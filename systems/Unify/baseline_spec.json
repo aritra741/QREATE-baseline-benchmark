@@ -1,0 +1,164 @@
+{
+  "baseline_id": "unify_v1",
+  "baseline_name": "Unify",
+  "type": "query_answering",
+  "input_description": "Unify processes natural language queries over unstructured text documents stored in a directory. The system accepts a query string and a dataset path containing PDF or TXT files.",
+  "processing_pipeline": "Unify loads documents from the dataset path, chunks them into segments, generates embeddings using sentence transformers, and builds an HNSW vector index. It then semantically parses the query, generates an execution plan by recursively matching basic questions, and executes the plan using a set of operators to produce the final result.",
+  "output_description": "The system returns query results in various formats depending on the query type, including counts, entities, document sets, computed values, ratios, or boolean answers.",
+  "entry_points": {
+    "python_api": "from unify import recursive_plan_generation, planManager; from chunk import load_process_data_chunks, ChunkExtractor; from embed import EmbedModel; from index import indexHNSW; from semanticParse import semantic_parse, replace_parsed_elements_with_identifiers, BQMatcher",
+    "cli": null,
+    "other": "Flask API endpoint /process_query via API.py; index can be built and reused via indexHNSW class"
+  },
+  "dependencies": [
+    "numpy~=1.22.4",
+    "openai~=1.37.0",
+    "httpx>=0.25.2,<0.28",
+    "matplotlib~=3.5.3",
+    "pandas~=1.3.5",
+    "ray~=2.31.0",
+    "torch~=2.3.1",
+    "vllm~=0.5.3.post1",
+    "PyMuPDF~=1.24.9",
+    "blingfire~=0.1.8",
+    "beautifulsoup4~=4.12.3",
+    "sentence-transformers~=2.5.0",
+    "transformers~=4.43.1",
+    "hnswlib~=0.8.0",
+    "tqdm~=4.66.4",
+    "scikit-learn~=1.4.1.post1",
+    "flask"
+  ],
+  "runtime_requirements": {
+    "python_version": ">=3.10",
+    "gpu_required": false,
+    "gpu_optional": true,
+    "requires_index": false,
+    "supports_index_save_load": false,
+    "default_index_storage": "./indexes/",
+    "index_persistence_optional": true,
+    "external_services": {
+      "ollama": {
+        "required": true,
+        "model": "qwen3:8b",
+        "description": "Ollama service must run with model loaded"
+      }
+    },
+    "memory_gb_min": 4
+  },
+  "input_contract": {
+    "query": {
+      "type": "string",
+      "description": "Natural language query string"
+    },
+    "dataset_path": {
+      "type": "string",
+      "description": "Path to directory containing PDF or TXT files"
+    },
+    "model": {
+      "type": "string",
+      "default": "qwen3:8b",
+      "description": "Ollama model name"
+    },
+    "tokenizer_path": {
+      "type": "string",
+      "description": "Path to tokenizer model"
+    },
+    "sentence_model_path": {
+      "type": "string",
+      "description": "Path to sentence transformer embedding model"
+    },
+    "api_key": {
+      "type": "string",
+      "default": "EMPTY",
+      "description": "OpenAI API key for Ollama compatibility"
+    },
+    "api_base": {
+      "type": "string",
+      "default": "http://localhost:11434/v1",
+      "description": "Ollama API base URL"
+    },
+    "attribute_descriptions": {
+      "type": ["object", "null"],
+      "additionalProperties": {"type": "string"},
+      "default": null
+    }
+  },
+  "output_schema": {
+    "type": "array",
+    "items": {
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        ".*": {"type": ["string", "number", "boolean", "null", "array", "object"]}
+      },
+      "description": "Query results as array of objects with dynamic attribute keys"
+    }
+  },
+  "default_config": {
+    "model": "qwen3:8b",
+    "api_key": "EMPTY",
+    "api_base": "http://localhost:11434/v1",
+    "temperature": 0.1,
+    "top_p": 0.9,
+    "max_tokens": 1000,
+    "embedding_batch_size": 128,
+    "index_ef_construction": 200,
+    "index_M": 16,
+    "index_ef_search": 50
+  },
+  "cacheable_artifacts": [
+    "hnsw_index",
+    "document_embeddings",
+    "document_chunks",
+    "chunk_locations"
+  ],
+  "failure_modes": [
+    "ollama_connection_error",
+    "model_not_found",
+    "index_build_failure",
+    "semantic_parse_error",
+    "plan_generation_failure",
+    "operator_execution_error",
+    "document_load_error",
+    "embedding_computation_error",
+    "invalid_query_syntax",
+    "recursion_depth_exceeded"
+  ],
+  "supports_separate_index_build": true,
+  "determinism_signature": [
+    "dataset_path",
+    "model",
+    "temperature",
+    "top_p",
+    "tokenizer_path",
+    "sentence_model_path"
+  ],
+  "proposed_wrapper_interface": "def run_baseline_Unify_query(\n    query: str,\n    dataset_path: str,\n    tokenizer_path: str,\n    sentence_model_path: str,\n    model: str = \"qwen3:8b\",\n    api_key: str = \"EMPTY\",\n    api_base: str = \"http://localhost:11434/v1\",\n    attribute_descriptions: dict | None = None,\n    **kwargs\n) -> str:\n    \"\"\"Executes Unify query pipeline and returns results as JSON string.\"\"\"",
+  "orchestrator_invoke": {
+    "python_module": "wrappers.unify_wrapper",
+    "python_function": "run_baseline_Unify_query",
+    "arguments": {
+      "query": {"type": "str"},
+      "dataset_path": {"type": "str"},
+      "tokenizer_path": {"type": "str"},
+      "sentence_model_path": {"type": "str"},
+      "model": {"type": "str", "default": "qwen3:8b"},
+      "api_key": {"type": "str", "default": "EMPTY"},
+      "api_base": {"type": "str", "default": "http://localhost:11434/v1"},
+      "attribute_descriptions": {"type": ["object", "null"], "default": null},
+      "temperature": {"type": "float", "default": 0.1},
+      "top_p": {"type": "float", "default": 0.9},
+      "max_tokens": {"type": "int", "default": 1000}
+    },
+    "returns": {
+      "type": "json_string",
+      "schema_ref": "#/output_schema"
+    },
+    "module_generation_policy": "created dynamically from baseline JSON"
+  },
+  "notes": "Unify is an unstructured data analytics system that uses LLMs to decompose natural language queries into execution plans. It supports PDF and TXT document formats, builds vector indexes for efficient retrieval, and executes queries through a set of operators including Scan, Count, Extract, GroupBy, and others. The system requires Ollama service running locally with a compatible model."
+}
+
+
+
