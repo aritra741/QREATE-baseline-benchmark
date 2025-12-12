@@ -1,0 +1,10 @@
+{
+  "id": "agg_2",
+  "name": "Analyze USA players by position",
+  "dataset": "Player",
+  "entity": "player",
+  "sql": "SELECT position, COUNT(*) AS player_count, \n       AVG(nba_championships) AS avg_championships\nFROM player\nWHERE nationality = 'American'\nGROUP BY position",
+  "difficulty": "medium",
+  "reason": "Tests GROUP BY with entity matching and aggregation functions on numerical data",
+  "type": "aggregation"
+}

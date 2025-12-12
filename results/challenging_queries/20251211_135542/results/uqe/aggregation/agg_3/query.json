@@ -1,0 +1,10 @@
+{
+  "id": "agg_3",
+  "name": "Analyze financial metrics by industry",
+  "dataset": "Finan",
+  "entity": "finance",
+  "sql": "SELECT principal_activities, COUNT(*) AS company_count,\n       AVG(revenue) AS avg_revenue,\n       SUM(total_assets) AS total_assets,\n       AVG(business_segments_num) AS avg_segments\nFROM finance\nWHERE principal_activities IS NOT NULL\nGROUP BY principal_activities\nHAVING COUNT(*) >= 2",
+  "difficulty": "hard",
+  "reason": "Aggregations over financial data from long documents; principal_activities is multi-valued",
+  "type": "aggregation"
+}

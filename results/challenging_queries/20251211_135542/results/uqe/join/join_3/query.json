@@ -1,0 +1,10 @@
+{
+  "id": "join_3",
+  "name": "Find diseases with multiple complications",
+  "dataset": "Med",
+  "entity": "disease",
+  "sql": "SELECT disease_name, disease_type, complications, \n       risk_factors, prevention_measures, quality_of_life_impact\nFROM disease\nWHERE complications LIKE '%,%'",
+  "difficulty": "hard",
+  "reason": "Complex filtering on comma-separated complications field requiring pattern matching on multi-valued data",
+  "type": "join"
+}

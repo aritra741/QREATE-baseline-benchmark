@@ -1,0 +1,10 @@
+{
+  "id": "join_3",
+  "name": "Join with complex filtering",
+  "dataset": "Med",
+  "entity": "disease,drug",
+  "sql": "SELECT disease.disease_name, disease.common_symptoms, disease.affected_organs,\n       drug.brand_name, drug.dosage_frequency, drug.unsuitable_population, drug.storage_conditions\nFROM disease\nJOIN drug ON disease.disease_name = drug.disease_name\nWHERE disease.diagnostic_methods = 'laboratory_test'\n  AND disease.risk_factors = 'genetic_predisposition'\n  AND drug.pharmaceutical_form = 'injection'\n  AND drug.activation_conditions = 'no special condition'",
+  "difficulty": "hard",
+  "reason": "Multi-valued attribute matching requires accurate extraction before join",
+  "type": "join"
+}

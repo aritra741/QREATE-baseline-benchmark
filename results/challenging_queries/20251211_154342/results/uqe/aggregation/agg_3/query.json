@@ -1,0 +1,10 @@
+{
+  "id": "agg_3",
+  "name": "Count financial companies by activity",
+  "dataset": "Finan",
+  "entity": "finance",
+  "sql": "SELECT principal_activities, COUNT(*) AS company_count\nFROM finance\nWHERE principal_activities IS NOT NULL\nGROUP BY principal_activities",
+  "difficulty": "medium",
+  "reason": "Tests GROUP BY on multi-valued text field from long documents",
+  "type": "aggregation"
+}

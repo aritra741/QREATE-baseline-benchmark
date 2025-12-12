@@ -1,0 +1,10 @@
+{
+  "id": "union_2",
+  "name": "Union of players by achievement criteria",
+  "dataset": "Player",
+  "entity": "player",
+  "sql": "SELECT name, nationality, team, 'MVP Winner' AS achievement_type, mvp_awards AS count\nFROM player\nWHERE mvp_awards >= 2\nUNION\nSELECT name, nationality, team, 'Championship Winner' AS achievement_type, nba_championships AS count\nFROM player\nWHERE nba_championships >= 3",
+  "difficulty": "hard",
+  "reason": "Multi-branch union requiring consistent numerical extraction",
+  "type": "union"
+}

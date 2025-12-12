@@ -1,0 +1,10 @@
+{
+  "id": "filter_2",
+  "name": "Inference-heavy legal case filtering",
+  "dataset": "Legal",
+  "entity": "legal_case",
+  "sql": "SELECT judge_name, plaintiff, defendant, charges, first_judge, case_number, verdict\nFROM Legal_Case\nWHERE first_judge = '1' \n  AND case_type = 'Commercial Case'\n  AND case_number >= 10\n  AND fine_amount != '20000.00'",
+  "difficulty": "hard",
+  "reason": "first_judge requires complex reasoning; case_number requires counting cited precedents",
+  "type": "filter"
+}

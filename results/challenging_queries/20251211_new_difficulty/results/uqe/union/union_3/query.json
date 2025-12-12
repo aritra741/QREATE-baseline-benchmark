@@ -1,0 +1,10 @@
+{
+  "id": "union_3",
+  "name": "Conditional union with complex filtering",
+  "dataset": "Player",
+  "entity": "player",
+  "sql": "SELECT name, CAST(mvp_awards AS INT) AS count, 'MVP Awards' AS metric\nFROM player\nWHERE CAST(mvp_awards AS INT) >= 2\nUNION\nSELECT name, CAST(nba_championships AS INT) AS count, 'Championships' AS metric\nFROM player\nWHERE CAST(nba_championships AS INT) >= 2\nLIMIT 100",
+  "difficulty": "hard",
+  "reason": "Requires type conversion and numerical comparison on extracted fields",
+  "type": "union"
+}

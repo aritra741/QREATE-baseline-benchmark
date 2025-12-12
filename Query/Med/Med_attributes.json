@@ -1,0 +1,408 @@
+{
+  "disease": {
+    "disease_name": {
+      "value_type": "multi_str",
+      "usage": "general",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "the official name of the disease (e.g., Rheumatoid Arthritis).",
+      "is_fixed": false
+    },
+    "disease_type": {
+      "value_type": "multi_str",
+      "usage": "general",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "comprehensive classification of the disease; choose one or more from ['autoimmune', 'infectious', 'genetic', 'metabolic', 'neoplastic', 'degenerative', 'congenital', 'traumatic', 'nutritional', 'vascular', 'inflammatory', 'endocrine', 'psychiatric', 'toxic', 'allergic', 'iatrogenic', 'idiopathic', 'parasitic', 'others'], seperated by `||` (e.g. neoplastic || degenerative)",
+      "is_fixed": true
+    },
+    "pathogenesis": {
+      "value_type": "multi_str",
+      "usage": "general",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "the biological and physiological process by which the disease develops and progresses, choose one or more from: ['autoimmune', 'infectious_bacterial', 'infectious_viral', 'infectious_fungal', 'infectious_parasitic', 'genetic_mutation', 'metabolic_disorder', 'inflammatory', 'degenerative', 'neoplastic', 'vascular', 'traumatic', 'toxic', 'allergic', 'endocrine_disorder', 'nutritional_deficiency', 'iatrogenic', 'idiopathic', 'other'], seperated by `||` (e.g. inflammatory || degenerative).",
+      "is_fixed": true
+    },
+    "etiology": {
+      "value_type": "multi_str",
+      "usage": "general",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "the underlying cause(s) of the disease, including genetic, environmental, infectious, or lifestyle factors (e.g., gene mutation, viral infection, smoking).",
+      "is_fixed": false
+    },
+    "diagnostic_methods": {
+      "value_type": "multi_str",
+      "usage": "general",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "primary diagnostic approaches used for this disease; choose one or more from ['clinical_evaluation', 'laboratory_test', 'imaging', 'biopsy', 'genetic_testing', 'endoscopy', 'functional_test', 'pathology', 'screening', 'other'], seperated by `||` (e.g. clinical_evaluation || laboratory_test).",
+      "is_fixed": true
+    },
+    "common_symptoms": {
+      "value_type": "multi_str",
+      "usage": "general",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "typical clinical manifestations or symptoms experienced by patients with this disease (e.g., fever, cough, joint pain).",
+      "is_fixed": false
+    },
+    "complications": {
+      "value_type": "multi_str",
+      "usage": "general",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "significant secondary conditions or health problems that can arise as a result of the disease (e.g., heart failure, kidney injury).",
+      "is_fixed": false
+    },
+    "affected_organs": {
+      "value_type": "multi_str",
+      "usage": "general",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "primary organs, tissues, or body systems impacted by the disease (e.g., lungs, liver, joints, nervous system).",
+      "is_fixed": false
+    },
+    "treatments": {
+      "value_type": "multi_str",
+      "usage": "general",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "list of treatment modalities, choose one or more from ['oral_medication', 'injection', 'surgery', 'radiotherapy', 'chemotherapy', 'physical_therapy', 'psychotherapy', 'lifestyle_modification', 'device_implantation', 'dietary_intervention', 'others'], seperated by `||` (e.g. oral_medication).",
+      "is_fixed": true
+    },
+    "drugs": {
+      "value_type": "multi_str",
+      "usage": "general",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "list the specific names of drugs or pharmaceuticals used to treat or control the disease (e.g., metformin, aspirin, infliximab, penicillin).",
+      "is_fixed": false
+    },
+    "prognosis": {
+      "value_type": "multi_str",
+      "usage": "general",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "typical course and expected outcome of the disease; choose one or more from ['full_recovery', 'partial_recovery', 'chronic_condition', 'remission_possible', 'high_recurrence_risk', 'low_recurrence_risk', 'high_mortality', 'moderate_mortality', 'low_mortality', 'disability', 'variable', 'stable', 'progressive', 'quality_of_life_impairment', 'asymptomatic', 'unknown'], seperated by `||` (e.g.artial_recovery || chronic_condition)",
+      "is_fixed": true
+    },
+    "sequelae": {
+      "value_type": "multi_str",
+      "usage": "general",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "long-term or permanent health problems, symptoms, or functional impairments that persist after the acute phase of a disease or injury has resolved.(e.g., paralysis after stroke, chronic pain, hearing loss or cognitive impairment)",
+      "is_fixed": false
+    },
+    "epidemiology": {
+      "value_type": "multi_str",
+      "usage": "numerical",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "population-level data about the disease, including prevalence, incidence, age/gender distribution, or notable epidemiological patterns (e.g., 1 in 1000 adults, more common in males).",
+      "is_fixed": false
+    },
+    "risk_factors": {
+      "value_type": "multi_str",
+      "usage": "numerical",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "factors that increase the likelihood of developing the disease, choose one or more from ['family_history', 'genetic_predisposition', 'age', 'gender', 'smoking', 'alcohol_consumption', 'obesity', 'overweight', 'sedentary_lifestyle', 'unhealthy_diet', 'hypertension', 'hyperlipidemia', 'diabetes', 'chronic_disease', 'immunosuppression', 'environmental_exposure', 'occupational_exposure', 'exposure_to_toxins', 'infection', 'stress', 'low_socioeconomic_status', 'radiation_exposure', 'other'], seperated by `||` (e.g. family_history || age).",
+      "is_fixed": true
+    },
+    "preventive_measures": {
+      "value_type": "multi_str",
+      "usage": "numerical",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "known methods or actions to reduce the risk of disease occurrence, choose one or more from ['vaccination', 'lifestyle_modification', 'screening', 'prophylactic_medication', 'personal_hygiene', 'health_education', 'protective_equipment', 'environmental_control', 'vector_control', 'safe_sex_practices', 'regular_exercise', 'dietary_management', 'early_detection', 'other'], , seperated by `||` (e.g. vaccination || regular_exercise).",
+      "is_fixed": true
+    },
+    "diagnosis_challenges": {
+      "value_type": "multi_str",
+      "usage": "numerical",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "typical difficulties or obstacles encountered in the diagnosis of the disease (e.g., nonspecific symptoms, lack of early biomarkers, disease mimics).",
+      "is_fixed": false
+    },
+    "treatment_challenges": {
+      "value_type": "multi_str",
+      "usage": "numerical",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "major issues in the treatment or management of the disease (e.g., drug resistance, frequent relapse, side effects, poor adherence).",
+      "is_fixed": false
+    },
+    "quality_of_life_impact": {
+      "value_type": "multi_str",
+      "usage": "numerical",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "how the disease affects the patient's daily living, social interactions, work, and psychological well-being choose one or more from: ['mobility_impairment', 'chronic_pain', 'fatigue', 'sleep_disorders', 'anxiety', 'depression', 'social_isolation', 'work_disability', 'cognitive_impairment', 'sexual_dysfunction', 'self_care_difficulty', 'dietary_restriction', 'dependence_on_others', 'body_image_issues', 'financial_burden', 'emotional_distress', 'stigma', 'quality_of_life_decline', 'other'], , seperated by `||` (e.g. chronic_pain || work_disability).",
+      "is_fixed": true
+    }
+  },
+  "institution": {
+    "institution_name": {
+      "value_type": "multi_str",
+      "usage": "general",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "full name of the medical research institution (e.g., National Cancer Institute, RIKEN SPring-8 Center).",
+      "is_fixed": false
+    },
+    "institution_type": {
+      "value_type": "multi_str",
+      "usage": "categorical",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "list of the type of institution, choose only one from ['public', 'private', 'university-affiliated',  'corporate research lab'].",
+      "is_fixed": true
+    },
+    "parent_organization": {
+      "value_type": "multi_str",
+      "usage": "general",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "parent or affiliated organization, if any (e.g., Harvard University, Fudan University).",
+      "is_fixed": false
+    },
+    "establishment_year": {
+      "value_type": "str",
+      "usage": "general",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "the year the institution was established (e.g., 1996).",
+      "is_fixed": false
+    },
+    "number_of_staff": {
+      "value_type": "int",
+      "usage": "numerical",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "number of staff or researchers in the institution (e.g., 250).",
+      "is_fixed": false
+    },
+    "leadership": {
+      "value_type": "multi_str",
+      "usage": "general",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "leading figures or directors, e.g., name of the head scientist, director, or notable experts.",
+      "is_fixed": false
+    },
+    "institution_country": {
+      "value_type": "multi_str",
+      "usage": "numerical",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "the country where the institution is located (e.g., USA, Japan, China, Germany).",
+      "is_fixed": false
+    },
+    "institution_city": {
+      "value_type": "multi_str",
+      "usage": "general",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "the city where the institution is located (e.g., Boston, Tokyo, Beijing, Berlin).",
+      "is_fixed": false
+    },
+    "research_diseases": {
+      "value_type": "multi_str",
+      "usage": "general",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "main diseases that the institution focuses its research on (e.g., breast cancer, diabetes, Alzheimer's disease, inflammatory bowel disease).",
+      "is_fixed": false
+    },
+    "research_fields": {
+      "value_type": "multi_str",
+      "usage": "categorical",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "main areas or directions of medical research the institution focuses on, choose one or more from ['molecular_biology', 'regenerative_medicine', 'immunology', 'genomics', 'pharmacology', 'oncology', 'neuroscience', 'bioinformatics', 'microbiology', 'epidemiology', 'clinical_research', 'biochemistry', 'cell_biology', 'virology', 'pathology', 'public_health', 'medical_imaging', 'others'], (e.g. molecular_biology || pathology) .",
+      "is_fixed": true
+    },
+    "key_technologies": {
+      "value_type": "multi_str",
+      "usage": "general",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "key technologies, methods, or platforms used by the institution (e.g., automated specimen tracking, X-ray crystallography, CAR-T cell therapy).",
+      "is_fixed": false
+    },
+    "key_achievements": {
+      "value_type": "multi_str",
+      "usage": "general",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "major research achievements, scientific breakthroughs, or certifications obtained by the institution (e.g., ISO15189 certification, protein structure determination, discovery in cardiometabolic diseases).",
+      "is_fixed": false
+    },
+    "international_collaboration": {
+      "value_type": "multi_str",
+      "usage": "general",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "partnerships or collaborations with other institutions or companies, including joint projects and investments (e.g., collaboration between IPC and AP-HM, pharma investment in CAR-T therapy).",
+      "is_fixed": false
+    },
+    "funding_sources": {
+      "value_type": "multi_str",
+      "usage": "general",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "main sources of funding or grants supporting the institution's research, choose one or more from ['government grant', 'industry grant', 'philanthropy', 'self funded', 'international grant', 'other'], seperated by `||` (e.g. government grant).",
+      "is_fixed": true
+    },
+    "technology_application": {
+      "value_type": "multi_str",
+      "usage": "general",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "practical applications or implementations of the institution's technologies in clinical or research settings (e.g., barcode specimen handling, therapy for lipodystrophy, omega-3 supplements for heart health).",
+      "is_fixed": false
+    }
+  },
+  "drug": {
+    "generic_name": {
+      "value_type": "multi_str",
+      "usage": "general",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "the standard generic name(s) of the drug (e.g., Sildenafil with Dapoxetine).",
+      "is_fixed": false
+    },
+    "brand_name": {
+      "value_type": "multi_str",
+      "usage": "general",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "the commercial or brand name of the drug (e.g., Super Kamagra).",
+      "is_fixed": false
+    },
+    "disease_name": {
+      "value_type": "multi_str",
+      "usage": "general",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "the main disease(s) the drug is intended to treat; use standard disease names (e.g., Hypertension, Diabetes Mellitus, Asthma).",
+      "is_fixed": false
+    },
+    "indication": {
+      "value_type": "multi_str",
+      "usage": "general",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "the main symptoms, clinical manifestations, or related conditions for which the drug may be used (e.g., fever, pain, edema, high cholesterol, wheezing).",
+      "is_fixed": false
+    },
+    "active_ingredients": {
+      "value_type": "multi_str",
+      "usage": "general",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "active pharmaceutical ingredients in the drug (e.g., Sildenafil||Dapoxetine).",
+      "is_fixed": false
+    },
+    "pharmaceutical_form": {
+      "value_type": "multi_str",
+      "usage": "general",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "the physical form in which the drug is administered; choose one or more from ['tablet', 'capsule', 'injection', 'solution', 'cream', 'ointment', 'powder', 'granule', 'suspension', 'patch', 'spray', 'suppository', 'other'], seperated by `||` (e.g. tablet || injection).",
+      "is_fixed": true
+    },
+    "manufacturer": {
+      "value_type": "multi_str",
+      "usage": "general",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "the name of the company or manufacturer producing the drug (e.g., Ajanta Pharma).",
+      "is_fixed": false
+    },
+    "administration_route": {
+      "value_type": "multi_str",
+      "usage": "general",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "the route through which the drug is administered; choose one or more from ['oral', 'intravenous', 'intramuscular', 'subcutaneous', 'topical', 'transdermal', 'rectal', 'nasal', 'inhalation', 'other'], seperated by `||` (e.g. other).",
+      "is_fixed": true
+    },
+    "recommended_usage": {
+      "value_type": "multi_str",
+      "usage": "numerical",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "recommended instructions for use, choose one or more from ['swallowed with water', 'chewable', 'dissolve in water', 'take with food', 'take without food', 'take with or without food', 'at fixed time', 'before meals', 'after meals', 'other'], seperated by `||` (e.g. chewable || other).",
+      "is_fixed": true
+    },
+    "single_dose": {
+      "value_type": "multi_str",
+      "usage": "general",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "the amount of the drug to be taken at one time per administration,extract all 'population + dose' pairs (e.g., adults 10 mg || children 5 mg || patients with EGPA 3x100 mg).",
+      "is_fixed": false
+    },
+    "dosage_frequency": {
+      "value_type": "multi_str",
+      "usage": "numerical",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "the recommended frequency of administration (e.g., once daily, twice a day, every 8 hours).",
+      "is_fixed": false
+    },
+    "mechanism_of_action": {
+      "value_type": "multi_str",
+      "usage": "general",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "how the drug works in the body to achieve its intended effect (e.g., improves blood circulation in penile vessels, supporting erection).",
+      "is_fixed": false
+    },
+    "side_effects": {
+      "value_type": "multi_str",
+      "usage": "general",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "known or common side effects associated with the drug (e.g., photosensitivity, nausea, dizziness, drowsiness, tenderness).",
+      "is_fixed": false
+    },
+    "activation_conditions": {
+      "value_type": "multi_str",
+      "usage": "general",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "specific conditions or requirements for the drug to take effect; choose one or more from ['requires stimulation', 'requires food', 'requires fasting', 'requires physical activity', 'no special condition', 'requires specific timing', 'requires co-administration with other drugs', 'other'], seperated by `||` (e.g. requires stimulation || requires food)",
+      "is_fixed": true
+    },
+    "prescription_status": {
+      "value_type": "multi_str",
+      "usage": "categorical",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "whether the drug requires a prescription or can be bought over-the-counter; choose one from ['prescription_only', 'over_the_counter', 'restricted', 'unclassified'].",
+      "is_fixed": true
+    },
+    "unsuitable_population": {
+      "value_type": "multi_str",
+      "usage": "general",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "main populations for which the drug is not suitable or should be avoided; specify as described in the document (e.g., children, elderly, pregnant women, patients with renal impairment, children under 12).",
+      "is_fixed": false
+    },
+    "storage_conditions": {
+      "value_type": "multi_str",
+      "usage": "numerical",
+      "modality": "text",
+      "is_nullable": false,
+      "description": "recommended conditions for storing the drug; choose one or more from ['store at room temperature', 'store in a cool place', 'refrigerate', 'freeze', 'protect from light', 'keep in a dry place', 'keep tightly closed', 'avoid freezing', 'other'], seperated by `||` (e.g. avoid freezing || other).",
+      "is_fixed": true
+    }
+  }
+}

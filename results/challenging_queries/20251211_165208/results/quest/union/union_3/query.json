@@ -1,0 +1,10 @@
+{
+  "id": "union_3",
+  "name": "Compare financial companies by business metrics",
+  "dataset": "Finan",
+  "entity": "finance",
+  "sql": "SELECT company_name, revenue AS metric_value, 'Revenue' AS metric_type\nFROM finance\nWHERE revenue > 0\nUNION ALL\nSELECT company_name, total_assets AS metric_value, 'Total Assets' AS metric_type\nFROM finance\nWHERE total_assets > 0",
+  "difficulty": "hard",
+  "reason": "UNION of numerical metrics from different columns requiring proper value extraction and comparison",
+  "type": "union"
+}

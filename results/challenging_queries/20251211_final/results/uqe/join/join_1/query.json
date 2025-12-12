@@ -1,0 +1,10 @@
+{
+  "id": "join_1",
+  "name": "Three-way join with semantic matching",
+  "dataset": "Med",
+  "entity": "disease,drug,institution",
+  "sql": "SELECT disease.disease_name, disease.pathogenesis, disease.prognosis,\n       drug.generic_name, drug.mechanism_of_action, drug.side_effects,\n       institution.institution_name, institution.key_technologies, institution.research_fields\nFROM disease \nJOIN drug ON disease.disease_name = drug.disease_name\nJOIN institution ON disease.disease_name = institution.research_diseases\nWHERE disease.disease_type = 'autoimmune'\n  AND drug.prescription_status = 'prescription_only'\n  AND institution.research_fields = 'immunology'",
+  "difficulty": "hard",
+  "reason": "disease_name matching with name variations; research_diseases is multi-valued",
+  "type": "join"
+}

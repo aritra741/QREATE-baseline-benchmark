@@ -1,0 +1,12 @@
+{
+  "system": "uqe",
+  "query_id": "agg_2",
+  "start_time": "2025-12-11T13:24:54.860312",
+  "status": "failed",
+  "parse_time": 0.00043582916259765625,
+  "plan_time": 0.00013899803161621094,
+  "optimize_time": 3.1948089599609375e-05,
+  "error": "'CAST'",
+  "traceback": "Traceback (most recent call last):\n  File \"/Users/aritramazumder/Documents/UDA-Bench-main/run_challenging_queries.py\", line 909, in run_query\n    result_df = self.executor(optimized_plan)\n  File \"/Users/aritramazumder/Documents/UDA-Bench-main/systems/UQE/execute.py\", line 19, in executor\n    df = plan_oper.next()\n  File \"/Users/aritramazumder/Documents/UDA-Bench-main/systems/UQE/oper.py\", line 866, in next\n    child_df = self.children[0].next()\n  File \"/Users/aritramazumder/Documents/UDA-Bench-main/systems/UQE/oper.py\", line 61, in next\n    child_df = self.children[0].next(skip=skip)\n  File \"/Users/aritramazumder/Documents/UDA-Bench-main/systems/UQE/oper.py\", line 407, in next\n    child_df = self.children[0].next(skip=skip)\n  File \"/Users/aritramazumder/Documents/UDA-Bench-main/systems/UQE/oper.py\", line 159, in next\n    prompt = self.data_schema.get_extract_prompt(col, attrs)\n  File \"/Users/aritramazumder/Documents/UDA-Bench-main/systems/UQE/schema/nba.py\", line 140, in get_extract_prompt\n    info_intro = info_intro + col_name + \".\" + attr + \": \" + self.info_intro[col_name][attr] + \"; \"\n                                                             ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^\nKeyError: 'CAST'\n",
+  "end_time": "2025-12-11T13:24:54.863075"
+}

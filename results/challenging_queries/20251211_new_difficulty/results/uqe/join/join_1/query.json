@@ -1,0 +1,10 @@
+{
+  "id": "join_1",
+  "name": "Binary join with exact key matching",
+  "dataset": "Med",
+  "entity": "disease,drug",
+  "sql": "SELECT disease.disease_name, disease.common_symptoms,\n       drug.brand_name, drug.indication\nFROM disease \nJOIN drug ON disease.disease_name = drug.disease_name\nLIMIT 50",
+  "difficulty": "medium",
+  "reason": "Simple binary join; requires correct extraction of join keys on both sides",
+  "type": "join"
+}

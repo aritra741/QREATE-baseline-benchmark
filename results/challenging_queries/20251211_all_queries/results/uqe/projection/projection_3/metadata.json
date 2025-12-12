@@ -1,0 +1,12 @@
+{
+  "system": "uqe",
+  "query_id": "projection_3",
+  "start_time": "2025-12-11T01:45:18.938445",
+  "status": "failed",
+  "parse_time": 0.003854990005493164,
+  "plan_time": 9.989738464355469e-05,
+  "optimize_time": 3.218650817871094e-05,
+  "error": "\"['theme'] not in index\"",
+  "traceback": "Traceback (most recent call last):\n  File \"/Users/aritramazumder/Documents/UDA-Bench-main/run_challenging_queries.py\", line 918, in run_query\n    result_df = self.executor(optimized_plan)\n  File \"/Users/aritramazumder/Documents/UDA-Bench-main/systems/UQE/execute.py\", line 19, in executor\n    df = plan_oper.next()\n  File \"/Users/aritramazumder/Documents/UDA-Bench-main/systems/UQE/oper.py\", line 125, in next\n    result_df = child_df[exist_cols].reset_index(drop=True)\n                ~~~~~~~~^^^^^^^^^^^^\n  File \"/Users/aritramazumder/Documents/UDA-Bench-main/.venv/lib/python3.13/site-packages/pandas/core/frame.py\", line 4119, in __getitem__\n    indexer = self.columns._get_indexer_strict(key, \"columns\")[1]\n              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^\n  File \"/Users/aritramazumder/Documents/UDA-Bench-main/.venv/lib/python3.13/site-packages/pandas/core/indexes/base.py\", line 6212, in _get_indexer_strict\n    self._raise_if_missing(keyarr, indexer, axis_name)\n    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/aritramazumder/Documents/UDA-Bench-main/.venv/lib/python3.13/site-packages/pandas/core/indexes/base.py\", line 6264, in _raise_if_missing\n    raise KeyError(f\"{not_found} not in index\")\nKeyError: \"['theme'] not in index\"\n",
+  "end_time": "2025-12-11T01:45:18.952371"
+}

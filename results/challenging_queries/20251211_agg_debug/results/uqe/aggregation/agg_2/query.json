@@ -1,0 +1,10 @@
+{
+  "id": "agg_2",
+  "name": "Complex financial aggregation",
+  "dataset": "Finan",
+  "entity": "finance",
+  "sql": "SELECT principal_activities,\n       AVG(revenue) AS avg_revenue,\n       SUM(net_profit_or_loss) AS total_profit,\n       COUNT(company_name) AS company_count\nFROM finance\nGROUP BY principal_activities",
+  "difficulty": "hard",
+  "reason": "principal_activities is multi-valued; financial values require extraction + conversion",
+  "type": "aggregation"
+}

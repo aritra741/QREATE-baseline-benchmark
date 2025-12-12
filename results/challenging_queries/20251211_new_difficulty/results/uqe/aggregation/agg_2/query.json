@@ -1,0 +1,10 @@
+{
+  "id": "agg_2",
+  "name": "Multi-level grouping with aggregation",
+  "dataset": "Player",
+  "entity": "player",
+  "sql": "SELECT position, nationality, COUNT(name) AS player_count, \n       AVG(CAST(mvp_awards AS FLOAT)) AS avg_mvp_awards\nFROM player\nGROUP BY position, nationality\nHAVING COUNT(name) >= 2\nLIMIT 50",
+  "difficulty": "hard",
+  "reason": "Two-level grouping with mixed aggregation functions; requires numerical conversion",
+  "type": "aggregation"
+}

@@ -1,0 +1,10 @@
+{
+  "id": "filter_3",
+  "name": "Semantic comparison filter with implicit reasoning",
+  "dataset": "Med",
+  "entity": "disease",
+  "sql": "SELECT disease_name, pathogenesis, prognosis, treatment_challenges\nFROM disease\nWHERE pathogenesis = 'autoimmune'\n  AND treatment_challenges LIKE '%resistance%'\nLIMIT 50",
+  "difficulty": "hard",
+  "reason": "Pathogenesis requires semantic understanding; treatment_challenges requires pattern matching on complex text",
+  "type": "filter"
+}

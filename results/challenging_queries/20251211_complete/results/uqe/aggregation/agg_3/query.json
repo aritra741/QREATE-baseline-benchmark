@@ -1,0 +1,10 @@
+{
+  "id": "agg_3",
+  "name": "Multi-dimensional grouping on player statistics",
+  "dataset": "Player",
+  "entity": "player",
+  "sql": "SELECT position, nationality,\n       COUNT(name) AS player_count,\n       AVG(mvp_awards) AS avg_mvp,\n       SUM(nba_championships) AS total_championships\nFROM player\nGROUP BY position, nationality\nHAVING COUNT(name) >= 2",
+  "difficulty": "hard",
+  "reason": "Two-level grouping; requires accurate extraction of all numerical fields",
+  "type": "aggregation"
+}

@@ -1,0 +1,10 @@
+{
+  "id": "agg_1",
+  "name": "Count diseases by category",
+  "dataset": "Med",
+  "entity": "disease",
+  "sql": "SELECT disease_type, COUNT(*) AS disease_count\nFROM disease\nGROUP BY disease_type\nORDER BY disease_count DESC",
+  "difficulty": "medium",
+  "reason": "GROUP BY on multi-valued disease_type field with || separators requires careful parsing",
+  "type": "aggregation"
+}
