@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """
-Compare UQE results with ground truth for ALL query types.
+Compare system results with ground truth for ALL query types.
 
 Usage:
-    python compare_all_results.py --run-id 20251211_000936
+    python compare_all_results.py --run-id 20251211_000936 --system pz
+    python compare_all_results.py --run-id 20251211_000936 --system uqe
+    python compare_all_results.py --run-id 20251211_000936 --system all
 """
 
 import argparse
@@ -13,6 +15,7 @@ import json
 
 PROJECT_ROOT = Path(__file__).parent
 GT_DIR = PROJECT_ROOT / "ground_truth" / "challenging_queries"
+AVAILABLE_SYSTEMS = ["uqe", "pz", "quest", "lotus", "unify"]
 
 
 def normalize_value(val):
@@ -122,35 +125,26 @@ def calculate_metrics(gt_df: pd.DataFrame, result_df: pd.DataFrame) -> dict:
     return {"precision": precision, "recall": recall, "f1": f1, "tp": tp, "fp": fp, "fn": fn}
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Compare UQE results with ground truth for ALL queries")
-    parser.add_argument("--run-id", required=True, help="Run ID (e.g., 20251211_000936)")
-    args = parser.parse_args()
+def process_system(run_id: str, system: str, report: dict, results_dir: Path) -> dict:
+    """Process results for a single system and return metrics."""
     
-    run_id = args.run_id
-    results_dir = PROJECT_ROOT / "results" / "challenging_queries" / run_id
+    if system not in report.get("systems", {}):
+        print(f"Warning: System '{system}' not found in report")
+        return None
     
-    # Load detailed report
-    report_path = results_dir / "detailed_report.json"
-    if not report_path.exists():
-        print(f"Error: Report not found at {report_path}")
-        return
-    
-    with open(report_path) as f:
-        report = json.load(f)
+    system_data = report["systems"][system]
     
     print("=" * 100)
-    print("UQE BENCHMARK RESULTS - ALL QUERY TYPES")
+    print(f"{system.upper()} BENCHMARK RESULTS - ALL QUERY TYPES")
     print(f"Run ID: {run_id}")
     print("=" * 100)
     print()
     
     # Summary
-    uqe = report["systems"]["uqe"]
-    print(f"Total Queries: {uqe['total']}")
-    print(f"Completed: {uqe['completed']}")
-    print(f"Failed: {uqe['failed']}")
-    print(f"Unsupported: {uqe.get('unsupported', 0)}")
+    print(f"Total Queries: {system_data['total']}")
+    print(f"Completed: {system_data['completed']}")
+    print(f"Failed: {system_data['failed']}")
+    print(f"Unsupported: {system_data.get('unsupported', 0)}")
     print()
     
     # Detailed comparison
@@ -160,7 +154,7 @@ def main():
     
     all_metrics = []
     
-    for query_id, query_data in sorted(report["systems"]["uqe"]["queries"].items()):
+    for query_id, query_data in sorted(system_data.get("queries", {}).items()):
         qtype = query_data["query_type"]
         status = query_data["status"]
         
@@ -175,7 +169,7 @@ def main():
         
         if status == "completed":
             # Load result
-            result_path = results_dir / "results" / "uqe" / qtype / query_id / "result.csv"
+            result_path = results_dir / "results" / system / qtype / query_id / "result.csv"
             
             if result_path.exists():
                 result_df = pd.read_csv(result_path)
@@ -249,17 +243,18 @@ def main():
     print("=" * 100)
     
     # Save metrics to JSON and CSV files
-    metrics_output_dir = results_dir / "metrics"
-    metrics_output_dir.mkdir(exist_ok=True)
+    metrics_output_dir = results_dir / "metrics" / system
+    metrics_output_dir.mkdir(parents=True, exist_ok=True)
     
     # Save as JSON
     metrics_json = {
         "run_id": run_id,
+        "system": system,
         "summary": {
-            "total_queries": uqe['total'],
-            "completed": uqe['completed'],
-            "failed": uqe['failed'],
-            "unsupported": uqe.get('unsupported', 0),
+            "total_queries": system_data['total'],
+            "completed": system_data['completed'],
+            "failed": system_data['failed'],
+            "unsupported": system_data.get('unsupported', 0),
             "average_precision": avg_p if all_metrics else None,
             "average_recall": avg_r if all_metrics else None,
             "average_f1": avg_f1 if all_metrics else None
@@ -290,6 +285,77 @@ def main():
         csv_path = metrics_output_dir / "evaluation_metrics.csv"
         metrics_df.to_csv(csv_path, index=False)
         print(f"Metrics saved to: {csv_path}")
+    
+    return metrics_json
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Compare system results with ground truth for ALL queries")
+    parser.add_argument("--run-id", required=True, help="Run ID (e.g., 20251211_000936)")
+    parser.add_argument("--system", default="all", choices=AVAILABLE_SYSTEMS + ["all"],
+                       help="System to compare (default: all)")
+    args = parser.parse_args()
+    
+    run_id = args.run_id
+    results_dir = PROJECT_ROOT / "results" / "challenging_queries" / run_id
+    
+    # Load detailed report
+    report_path = results_dir / "detailed_report.json"
+    if not report_path.exists():
+        print(f"Error: Report not found at {report_path}")
+        return
+    
+    with open(report_path) as f:
+        report = json.load(f)
+    
+    # Determine which systems to process
+    if args.system == "all":
+        systems_to_process = [s for s in AVAILABLE_SYSTEMS if s in report.get("systems", {})]
+    else:
+        systems_to_process = [args.system]
+    
+    if not systems_to_process:
+        print(f"Error: No systems found in report")
+        return
+    
+    # Process each system
+    all_system_metrics = {}
+    for system in systems_to_process:
+        metrics = process_system(run_id, system, report, results_dir)
+        if metrics:
+            all_system_metrics[system] = metrics
+        print("\n")
+    
+    # If comparing all systems, create a combined summary
+    if len(systems_to_process) > 1:
+        print("=" * 100)
+        print("COMPARISON ACROSS ALL SYSTEMS")
+        print("=" * 100)
+        print()
+        print(f"{'System':<10} {'Queries':>8} {'Completed':>10} {'Failed':>8} {'Avg Precision':>14} {'Avg Recall':>12} {'Avg F1':>10}")
+        print("-" * 100)
+        
+        for system in systems_to_process:
+            if system in all_system_metrics:
+                metrics = all_system_metrics[system]
+                summary = metrics["summary"]
+                avg_p = summary.get("average_precision", 0)
+                avg_r = summary.get("average_recall", 0)
+                avg_f1 = summary.get("average_f1", 0)
+                
+                print(f"{system.upper():<10} {summary['total_queries']:>8} {summary['completed']:>10} "
+                      f"{summary['failed']:>8} {avg_p:>14.4f} {avg_r:>12.4f} {avg_f1:>10.4f}")
+        
+        print("=" * 100)
+        
+        # Save combined metrics
+        combined_path = results_dir / "metrics" / "all_systems_comparison.json"
+        with open(combined_path, 'w') as f:
+            json.dump({
+                "run_id": run_id,
+                "systems": all_system_metrics
+            }, f, indent=2)
+        print(f"\nCombined metrics saved to: {combined_path}")
 
 
 if __name__ == "__main__":

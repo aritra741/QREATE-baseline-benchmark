@@ -1130,25 +1130,109 @@ class UnifyRunner(SystemRunner):
         dump_json(metadata, preprocess_dir / "metadata.json")
         return metadata
     
+    def _convert_csv_to_text_dir(self, csv_path: Path, output_dir: Path) -> Path:
+        """Convert CSV file to text format in a directory for Unify.
+        
+        Unify expects a directory containing .txt or .pdf files.
+        This converts each CSV row into a text document.
+        """
+        output_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Read CSV
+        df = pd.read_csv(csv_path)
+        
+        # Convert each row to a text document
+        # Format: "column1: value1. column2: value2. ..."
+        text_lines = []
+        for idx, row in df.iterrows():
+            row_parts = []
+            for col in df.columns:
+                val = row[col]
+                if pd.notna(val):
+                    # Convert to string and clean
+                    val_str = str(val).strip()
+                    if val_str:
+                        row_parts.append(f"{col}: {val_str}")
+            
+            # Join with periods and newlines for better sentence splitting
+            row_text = ". ".join(row_parts) + "."
+            text_lines.append(row_text)
+        
+        # Write to a single text file (Unify will chunk it)
+        output_file = output_dir / f"{csv_path.stem}.txt"
+        with open(output_file, "w", encoding="utf-8") as f:
+            f.write("\n\n".join(text_lines))
+        
+        self.logger.debug(f"[UNIFY] Converted {len(df)} rows from {csv_path.name} to {output_file}")
+        return output_dir
+    
     def _get_data_path(self, dataset: str, entity: str) -> Optional[str]:
-        """Get the data path for a dataset/entity combination."""
-        # Map dataset/entity to data paths
-        data_map = {
-            ("Med", "disease"): str(PROJECT_ROOT / "Data" / "Med" / "disease.csv"),
-            ("Med", "drug"): str(PROJECT_ROOT / "Data" / "Med" / "drug.csv"),
-            ("Med", "institution"): str(PROJECT_ROOT / "Data" / "Med" / "institution.csv"),
-            ("Player", "player"): str(PROJECT_ROOT / "Data" / "Player" / "player.csv"),
-            ("Art", "art"): str(PROJECT_ROOT / "Data" / "Art" / "Art.csv"),
-            ("Legal", "legal_case"): str(PROJECT_ROOT / "Data" / "Legal" / "Legal.csv"),
-            ("Finan", "finance"): str(PROJECT_ROOT / "Data" / "Finan" / "Finan.csv"),
+        """Get the data path for a dataset/entity combination.
+        
+        Returns a directory path containing .txt files from source_data.
+        Unify expects a directory with .txt or .pdf files, which we have in source_data.
+        """
+        # Map dataset/entity to source_data directory paths
+        # These directories contain the original .txt files that Unify can process directly
+        source_data_map = {
+            ("Med", "disease"): PROJECT_ROOT / "source_data" / "Healthcare" / "disease_small",
+            ("Med", "drug"): PROJECT_ROOT / "source_data" / "Healthcare" / "drug_small",
+            ("Med", "institution"): PROJECT_ROOT / "source_data" / "Healthcare" / "institutes_small",
+            ("Player", "player"): PROJECT_ROOT / "source_data" / "Player" / "player",
+            ("Art", "art"): PROJECT_ROOT / "source_data" / "Art" / "wikiart",
+            ("Legal", "legal_case"): PROJECT_ROOT / "source_data" / "Legal" / "legal_case",
+            ("Finan", "finance"): PROJECT_ROOT / "source_data" / "Finance" / "finance",
         }
         
         key = (dataset, entity.lower())
-        for (ds, ent), path in data_map.items():
+        text_dir = None
+        for (ds, ent), path in source_data_map.items():
             if ds.lower() == dataset.lower() and ent.lower() == entity.lower():
-                return path
+                text_dir = Path(path)
+                break
         
-        return None
+        if text_dir is None:
+            self.logger.warning(f"[UNIFY] No source_data mapping found for {dataset}/{entity}")
+            return None
+        
+        if not text_dir.exists():
+            self.logger.warning(f"[UNIFY] Source data directory does not exist: {text_dir}")
+            return None
+        
+        # Verify directory contains .txt files
+        txt_files = list(text_dir.glob("*.txt"))
+        if not txt_files:
+            self.logger.warning(f"[UNIFY] No .txt files found in {text_dir}")
+            return None
+        
+        self.logger.info(f"[UNIFY] Using source_data directory: {text_dir} ({len(txt_files)} .txt files)")
+        return str(text_dir)
+    
+    def _load_preprocessed_index(self, dataset: str, entity: str) -> Optional[Dict]:
+        """Load preprocessed index from disk if available."""
+        import pickle
+        
+        preprocess_dir = PROJECT_ROOT / "preprocess_unify" / "indexes" / dataset / entity
+        
+        if not preprocess_dir.exists():
+            self.logger.warning(f"[UNIFY] Preprocessed index not found at {preprocess_dir}")
+            self.logger.warning(f"[UNIFY] Run: python preprocess_unify_data.py --entities {dataset} {entity}")
+            return None
+        
+        pkl_file = preprocess_dir / "preprocessed_data.pkl"
+        if not pkl_file.exists():
+            self.logger.warning(f"[UNIFY] Preprocessed data file not found: {pkl_file}")
+            return None
+        
+        try:
+            self.logger.debug(f"[UNIFY] Loading preprocessed index from {pkl_file}...")
+            with open(pkl_file, "rb") as f:
+                preprocessed_data = pickle.load(f)
+            self.logger.info(f"[UNIFY] ✓ Loaded preprocessed index: {len(preprocessed_data['all_chunks'])} chunks")
+            return preprocessed_data
+        except Exception as e:
+            self.logger.error(f"[UNIFY] Failed to load preprocessed index: {e}")
+            return None
     
     def run_query(self, query: Dict) -> Tuple[Optional[pd.DataFrame], Dict]:
         """Run a query with Unify."""
@@ -1182,14 +1266,27 @@ class UnifyRunner(SystemRunner):
             os.chdir(self.unify_path)
             start_time = time.time()
             
-            # Get data path
-            data_path = self._get_data_path(dataset, entity)
-            if not data_path or not Path(data_path).exists():
-                metadata["status"] = "requires_data"
-                metadata["error"] = f"Data not found for {dataset}/{entity}"
+            # Try to load preprocessed index (offline preprocessing)
+            self.logger.debug("[UNIFY] Attempting to load preprocessed index...")
+            preprocessed_data = self._load_preprocessed_index(dataset, entity)
+            
+            if preprocessed_data is None:
+                metadata["status"] = "requires_preprocessing"
+                metadata["error"] = f"Preprocessed index not found for {dataset}/{entity}"
+                metadata["hint"] = f"Run: python preprocess_unify_data.py --entities {dataset} {entity}"
                 metadata["total_time"] = time.time() - start_time
                 metadata["end_time"] = datetime.now().isoformat()
                 return result_df, metadata
+            
+            # Use preprocessed data (offline)
+            all_file_data = preprocessed_data["all_file_data"]
+            all_chunks = preprocessed_data["all_chunks"]
+            all_ids = preprocessed_data["all_ids"]
+            all_embeds = preprocessed_data["all_embeds"]
+            all_chunk_locs = preprocessed_data["all_chunk_locs"]
+            index = preprocessed_data["index"]
+            
+            metadata["data_load_time"] = time.time() - start_time
             
             # Initialize Ollama/Qwen2.5 client (compatible with OpenAI interface)
             client = self.OpenAI(api_key=self.ollama_api_key, base_url=self.ollama_base_url)
@@ -1198,21 +1295,6 @@ class UnifyRunner(SystemRunner):
             chat_model.model_name = self.ollama_model
             
             self.logger.debug(f"[UNIFY] Using LLM: {self.ollama_model}")
-            
-            # Load and process data
-            self.logger.debug("[UNIFY] Loading and processing data...")
-            chunk_extractor = self.ChunkExtractor()
-            embed_model = self.EmbedModel(
-                tokenizer_path="models/tokenizer",
-                sentence_model_path="models/embedding"
-            )
-            
-            all_file_data, all_chunks, all_ids, all_embeds, all_chunk_locs = self.load_process_data_chunks(
-                embed_model, chunk_extractor, data_path
-            )
-            index = self.indexHNSW(all_chunks, all_embeds, all_ids, all_chunk_locs)
-            
-            metadata["data_load_time"] = time.time() - start_time
             
             # Parse the query
             self.logger.debug("[UNIFY] Parsing query...")
@@ -1238,7 +1320,7 @@ class UnifyRunner(SystemRunner):
                 sql, final_plan, client, chat_model, final_bq_list, all_file_data, 
                 parsed_result, partial_question_list, embed_model, index
             )
-            pm.execute_without_plan()
+            pm.execute_with_plan()
             
             metadata["execution_time"] = time.time() - start_time - metadata.get("plan_generation_time", 0) - metadata.get("parse_time", 0) - metadata["data_load_time"]
             

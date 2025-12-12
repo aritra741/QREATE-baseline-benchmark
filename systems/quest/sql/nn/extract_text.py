@@ -26,11 +26,16 @@ class ExtractText(Extract):
         # This prevents state leakage between multiple query runs
         self.output = []
         
+        print(f"\n[DEBUG ExtractText.process] STARTING - inputs from: {[type(n).__name__ for n in self.input]}")
+        print(f"[DEBUG ExtractText.process] Number of input nodes: {len(self.input)}")
+        
         dataList = []
         for node in self.input:
-            dataList.extend(node.get_output())
+            output = node.get_output()
+            print(f"[DEBUG ExtractText.process] Input node {type(node).__name__} returned {len(output)} data packs")
+            dataList.extend(output)
 
-        print(f"[DEBUG ExtractText] Received {len(dataList)} data packs from inputs")
+        print(f"[DEBUG ExtractText.process] Total dataList size: {len(dataList)}")
         if not dataList:
             print(f"[WARNING ExtractText] No data packs received - extraction will fail!")
 
@@ -84,6 +89,13 @@ class ExtractText(Extract):
         # step2 : extract from text
 
         # step2-1 : access local database and get cache
+        print(f"[DEBUG ExtractText] now_table shape BEFORE cache check: {now_table.shape}")
+        print(f"[DEBUG ExtractText] now_table columns: {list(now_table.columns)}")
+        if not now_table.empty:
+            print(f"[DEBUG ExtractText] now_table has data: {len(now_table)} rows")
+        else:
+            print(f"[DEBUG ExtractText] now_table is EMPTY")
+        
         new_textDict = table_util.check_dict_and_table(textDict, res_doc_id_list, columns, now_table)
 
         print(f"[DEBUG ExtractText] After cache check: {len(new_textDict)} documents need extraction")
@@ -93,11 +105,14 @@ class ExtractText(Extract):
         # delete no used ones
 
         # step2-2 : query input, build the input and the query in LLM
+        print(f"[DEBUG ExtractText] Calling LLM extraction for {len(new_textDict)} documents")
         df = self.querier.extract_attribute_from_textDict(textDict = new_textDict, attributeList = columns)
+        print(f"[DEBUG ExtractText] LLM extraction returned df with {len(df)} rows, {len(df.columns)} columns")
 
         # step2-3 : merge
-
+        print(f"[DEBUG ExtractText] Merging: now_table has {len(now_table)} rows, df has {len(df)} rows")
         now_table = table_util.merge_table(now_table, df, key='doc_id')
+        print(f"[DEBUG ExtractText] After merge: now_table has {len(now_table)} rows")
         #print_log("merge extract_table:\n", now_table)
 
         # step3 : output

@@ -10,19 +10,19 @@ class Model(str, Enum):
     which requires invoking an LLM. It does NOT specify whether the model need be executed
     remotely or locally (if applicable).
     
-    All models are configured to use Ollama with qwen3:8b (no-think mode).
+    All models are configured to use Ollama with qwen2.5:7b-instruct.
     """
-    # All models now use ollama/qwen3:8b
-    LLAMA3_2_3B = "qwen3:8b"
-    LLAMA3_1_8B = "qwen3:8b"
-    LLAMA3_3_70B = "qwen3:8b"
-    LLAMA3_2_90B_V = "qwen3:8b"
-    MIXTRAL = "qwen3:8b"
-    DEEPSEEK_V3 = "qwen3:8b"
-    DEEPSEEK_R1_DISTILL_QWEN_1_5B = "qwen3:8b"
-    GPT_4o = "qwen3:8b"
-    GPT_4o_MINI = "qwen3:8b"
-    QWEN3_8B = "qwen3:8b"  # Primary model
+    # All models now use ollama/qwen2.5:7b-instruct
+    LLAMA3_2_3B = "qwen2.5:7b-instruct"
+    LLAMA3_1_8B = "qwen2.5:7b-instruct"
+    LLAMA3_3_70B = "qwen2.5:7b-instruct"
+    LLAMA3_2_90B_V = "qwen2.5:7b-instruct"
+    MIXTRAL = "qwen2.5:7b-instruct"
+    DEEPSEEK_V3 = "qwen2.5:7b-instruct"
+    DEEPSEEK_R1_DISTILL_QWEN_1_5B = "qwen2.5:7b-instruct"
+    GPT_4o = "qwen2.5:7b-instruct"
+    GPT_4o_MINI = "qwen2.5:7b-instruct"
+    QWEN3_8B = "qwen2.5:7b-instruct"  # Primary model (Qwen 2.5 7B Instruct)
     TEXT_EMBEDDING_3_SMALL = "text-embedding-3-small"
     CLIP_VIT_B_32 = "clip-ViT-B-32"
     # o1 = "o1-2024-12-17"

@@ -75,11 +75,30 @@ def fill_cells(df : pd.DataFrame, attributeList : list, indList : list, key : st
 def check_dict(d : dict, keyList : list):
     """
     check if d has keyList, if not, return a empty dict
+    
+    CRITICAL FIX: Handle both string and int keys by trying both types
     """
+    print(f"[DEBUG check_dict] Looking for {len(keyList)} keys")
+    print(f"[DEBUG check_dict] keyList sample: {keyList[:3]} (types: {[type(k) for k in keyList[:3]]})")
+    print(f"[DEBUG check_dict] d.keys() sample: {list(d.keys())[:3]} (types: {[type(k) for k in list(d.keys())[:3]]})")
+    
     res = {}
+    found = 0
     for key in keyList:
+        # Try exact match first
         if key in d.keys():
             res[key] = d[key]
+            found += 1
+        # Try converting to string if key is int
+        elif isinstance(key, int) and str(key) in d.keys():
+            res[key] = d[str(key)]
+            found += 1
+        # Try converting to int if key is string
+        elif isinstance(key, str) and key.isdigit() and int(key) in d.keys():
+            res[key] = d[int(key)]
+            found += 1
+    
+    print(f"[DEBUG check_dict] Found {found} out of {len(keyList)} keys")
     return res
 
 def check_dict_and_table(d: dict, doc_idList : list, columns : list[str], df : pd.DataFrame):

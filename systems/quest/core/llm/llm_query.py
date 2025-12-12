@@ -11,11 +11,36 @@ from quest.utils.log import print_log
 import copy
 
 def parse_result(text, doc_id, attributeList):
-    #dic = dict(re.findall(r"(\w+):\s*(.*)", text))
-    dic = dict(re.findall(r"(\w+(?:\.\w+)?):([^:\n]*)", text))
+    """
+    Parse LLM output. Supports two formats:
+    1. key: value (original format)
+    2. (key, value, confidence, chunk_id) (tuple format from sampler)
+    """
+    print(f"[DEBUG parse_result] Input text: {text[:100]}")
+    
+    dic = {}
+    
+    # Try tuple format first: (key, value, conf, idx)
+    # Pattern: (word, anything, number, number)
+    tuple_pattern = r'\((\w+(?:\.\w+)?),\s*([^,]+),\s*\d+,\s*\d+\)'
+    tuple_matches = re.findall(tuple_pattern, text)
+    
+    if tuple_matches:
+        print(f"[DEBUG parse_result] Found {len(tuple_matches)} tuple matches")
+        for key, value in tuple_matches:
+            key = key.strip()
+            value = value.strip().strip("'\"")  # Remove quotes
+            dic[key] = value
+    else:
+        # Fall back to key: value format
+        print(f"[DEBUG parse_result] No tuple matches, trying colon format")
+        dic = dict(re.findall(r"(\w+(?:\.\w+)?):([^:\n]*)", text))
+    
+    print(f"[DEBUG parse_result] Extracted dict: {dic}")
     dic["doc_id"] = doc_id
     for attr in attributeList:
         dic.setdefault(attr, None)
+    print(f"[DEBUG parse_result] Final dict with defaults: {dic}")
     return dic
 
 class LLMInfo(object):
@@ -107,7 +132,22 @@ class TextLLMQuerier(object):
 
     def extract_attribute_from_textDict(self, textDict, attributeList):
         # {doc_id1 : { column1 :[(text1, chunkid1), (text2,chunkid2), ...], } }
+        print(f"[DEBUG extract_attribute_from_textDict] Input textDict: {len(textDict)} docs")
+        print(f"[DEBUG extract_attribute_from_textDict] Sample doc_id: {list(textDict.keys())[0] if textDict else 'EMPTY'}")
+        if textDict:
+            first_doc_id = list(textDict.keys())[0]
+            first_doc = textDict[first_doc_id]
+            print(f"[DEBUG extract_attribute_from_textDict] First doc structure: {list(first_doc.keys())[:3]}")
+            if first_doc:
+                first_col = list(first_doc.keys())[0]
+                first_texts = first_doc[first_col]
+                print(f"[DEBUG extract_attribute_from_textDict] First doc, first column has {len(first_texts)} text chunks")
+                if first_texts:
+                    print(f"[DEBUG extract_attribute_from_textDict] First text sample (first 200 chars): {first_texts[0][:200] if isinstance(first_texts[0], str) else str(first_texts[0])[:200]}")
+        
         textList, doc_idList = self.build_text_list(textDict)
+        print(f"[DEBUG extract_attribute_from_textDict] textList: {len(textList)} docs, {[len(t) if isinstance(t, str) else len(str(t)) for t in textList[:3]]} chars (sample)")
+        print(f"[DEBUG extract_attribute_from_textDict] doc_idList: {doc_idList[:5]}")
         # print_log("textList:\n", textList, "\ndoc_idList:\n", doc_idList)
         return self.extract_attribute(textList, doc_idList, attributeList)
     
@@ -237,6 +277,10 @@ Output {len(attributeList)} tuples (one per attribute):'''
             for doc in docs
         ]
         results = self.batch_llm_response(prompts=prompts) # totest
+
+        print(f"[DEBUG extract_attribute] LLM returned {len(results)} results")
+        if results:
+            print(f"[DEBUG extract_attribute] First result (first 500 chars): {results[0][:500]}")
 
         json_result = [parse_result(results[i], doc_idList[i], attributeList) for i in range(len(results))]
         df = pd.DataFrame(json_result)
