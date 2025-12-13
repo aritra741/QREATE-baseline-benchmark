@@ -1212,11 +1212,12 @@ class UnifyRunner(SystemRunner):
         """Load preprocessed index from disk if available."""
         import pickle
         
+        # Preprocessed indexes are saved relative to PROJECT_ROOT
         preprocess_dir = PROJECT_ROOT / "preprocess_unify" / "indexes" / dataset / entity
         
         if not preprocess_dir.exists():
             self.logger.warning(f"[UNIFY] Preprocessed index not found at {preprocess_dir}")
-            self.logger.warning(f"[UNIFY] Run: python preprocess_unify_data.py --entities {dataset} {entity}")
+            self.logger.warning(f"[UNIFY] Run: python systems/Unify/scripts/preprocess_unify_data.py --entities {dataset} {entity}")
             return None
         
         pkl_file = preprocess_dir / "preprocessed_data.pkl"
@@ -1273,7 +1274,7 @@ class UnifyRunner(SystemRunner):
             if preprocessed_data is None:
                 metadata["status"] = "requires_preprocessing"
                 metadata["error"] = f"Preprocessed index not found for {dataset}/{entity}"
-                metadata["hint"] = f"Run: python preprocess_unify_data.py --entities {dataset} {entity}"
+                metadata["hint"] = f"Run: python systems/Unify/scripts/preprocess_unify_data.py --entities {dataset} {entity}"
                 metadata["total_time"] = time.time() - start_time
                 metadata["end_time"] = datetime.now().isoformat()
                 return result_df, metadata

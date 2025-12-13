@@ -10,14 +10,22 @@ This script performs offline preprocessing as described in the Unify paper:
 
 Requirements:
 - Python 3.10+
-- Unify dependencies (see systems/Unify/requirements.txt)
-- Models in: systems/Unify/main/models/tokenizer and models/embedding
+- Unify dependencies (see requirements.txt)
+- Models in: main/models/tokenizer and main/models/embedding
 - Compatible with x86_64 architecture (CHPC)
 
 Usage:
-    python preprocess_unify_data.py --datasets all
-    python preprocess_unify_data.py --datasets Med Player
-    python preprocess_unify_data.py --entities Med disease
+    # From UDA-Bench-main directory:
+    python systems/Unify/scripts/preprocess_unify_data.py --datasets all
+    
+    # Or from systems/Unify directory:
+    python scripts/preprocess_unify_data.py --datasets all
+    
+    # Preprocess specific datasets
+    python systems/Unify/scripts/preprocess_unify_data.py --datasets Med Player
+    
+    # Preprocess specific entities
+    python systems/Unify/scripts/preprocess_unify_data.py --entities Med disease
 """
 
 import argparse
@@ -31,10 +39,17 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 import traceback
 
-# Add project paths
-PROJECT_ROOT = Path(__file__).parent
+# Determine project root (UDA-Bench-main directory)
+# Script is in: systems/Unify/scripts/preprocess_unify_data.py
+# So PROJECT_ROOT should be 3 levels up
+SCRIPT_DIR = Path(__file__).parent.resolve()
+UNIFY_DIR = SCRIPT_DIR.parent  # systems/Unify
+SYSTEMS_DIR = UNIFY_DIR.parent  # systems
+PROJECT_ROOT = SYSTEMS_DIR.parent  # UDA-Bench-main
+
+# Add paths for imports
 sys.path.insert(0, str(PROJECT_ROOT))
-sys.path.insert(0, str(PROJECT_ROOT / "systems" / "Unify" / "main"))
+sys.path.insert(0, str(UNIFY_DIR / "main"))
 
 import numpy as np
 import pandas as pd
@@ -51,7 +66,7 @@ logger = logging.getLogger(__name__)
 # DATA MAPPINGS
 # ==============================================================================
 
-# Map dataset/entity to source_data directory paths
+# Map dataset/entity to source_data directory paths (relative to PROJECT_ROOT)
 SOURCE_DATA_MAP = {
     ("Med", "disease"): PROJECT_ROOT / "source_data" / "Healthcare" / "disease_small",
     ("Med", "drug"): PROJECT_ROOT / "source_data" / "Healthcare" / "drug_small",
@@ -65,7 +80,7 @@ SOURCE_DATA_MAP = {
     ("Finan", "finance"): PROJECT_ROOT / "source_data" / "Finance" / "finance",
 }
 
-# Output directory for preprocessed data
+# Output directory for preprocessed data (relative to PROJECT_ROOT)
 PREPROCESS_OUTPUT_DIR = PROJECT_ROOT / "preprocess_unify" / "indexes"
 
 
@@ -79,6 +94,7 @@ class UnifyPreprocessor:
     def __init__(self, output_dir: Path = PREPROCESS_OUTPUT_DIR):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.unify_main_dir = UNIFY_DIR / "main"
         
         # Initialize Unify modules
         self._initialize_unify()
@@ -86,7 +102,9 @@ class UnifyPreprocessor:
     def _initialize_unify(self):
         """Load Unify modules."""
         try:
-            os.chdir(PROJECT_ROOT / "systems" / "Unify" / "main")
+            # Change to Unify main directory for imports
+            original_cwd = os.getcwd()
+            os.chdir(self.unify_main_dir)
             
             # vllm is imported but not used in chunking - make it optional
             try:
@@ -107,6 +125,9 @@ class UnifyPreprocessor:
             self.load_process_data_chunks = load_process_data_chunks
             self.EmbedModel = EmbedModel
             self.indexHNSW = indexHNSW
+            
+            # Restore original directory
+            os.chdir(original_cwd)
             
             logger.info("✓ Unify modules loaded successfully")
         except Exception as e:
@@ -147,6 +168,8 @@ class UnifyPreprocessor:
             "errors": []
         }
         
+        original_cwd = os.getcwd()
+        
         try:
             start_time = time.time()
             
@@ -164,14 +187,17 @@ class UnifyPreprocessor:
             # 2. Initialize models
             logger.info("Initializing embedding model...")
             try:
-                # Use absolute paths for model directories
-                tokenizer_path = PROJECT_ROOT / "systems" / "Unify" / "main" / "models" / "tokenizer"
-                embedding_path = PROJECT_ROOT / "systems" / "Unify" / "main" / "models" / "embedding"
+                # Use paths relative to Unify main directory
+                tokenizer_path = self.unify_main_dir / "models" / "tokenizer"
+                embedding_path = self.unify_main_dir / "models" / "embedding"
                 
                 if not tokenizer_path.exists():
                     raise FileNotFoundError(f"Tokenizer model not found: {tokenizer_path}")
                 if not embedding_path.exists():
                     raise FileNotFoundError(f"Embedding model not found: {embedding_path}")
+                
+                # Change to Unify main directory for model loading
+                os.chdir(self.unify_main_dir)
                 
                 embed_model = self.EmbedModel(
                     tokenizer_path=str(tokenizer_path),
@@ -182,7 +208,8 @@ class UnifyPreprocessor:
                 result["status"] = "failed"
                 result["errors"].append(f"Failed to initialize embedding model: {e}")
                 logger.error(f"✗ {result['errors'][-1]}")
-                logger.error(f"  Make sure models are in: {PROJECT_ROOT / 'systems' / 'Unify' / 'main' / 'models'}")
+                logger.error(f"  Make sure models are in: {self.unify_main_dir / 'models'}")
+                os.chdir(original_cwd)
                 return result
             
             chunk_extractor = self.ChunkExtractor()
@@ -202,6 +229,7 @@ class UnifyPreprocessor:
                 result["errors"].append(f"Failed to load and chunk data: {e}")
                 logger.error(f"✗ {result['errors'][-1]}")
                 logger.error(traceback.format_exc())
+                os.chdir(original_cwd)
                 return result
             
             # 4. Build HNSW index
@@ -214,6 +242,7 @@ class UnifyPreprocessor:
                 result["errors"].append(f"Failed to build index: {e}")
                 logger.error(f"✗ {result['errors'][-1]}")
                 logger.error(traceback.format_exc())
+                os.chdir(original_cwd)
                 return result
             
             # 5. Save preprocessed data
@@ -259,6 +288,7 @@ class UnifyPreprocessor:
                 result["errors"].append(f"Failed to save preprocessed data: {e}")
                 logger.error(f"✗ {result['errors'][-1]}")
                 logger.error(traceback.format_exc())
+                os.chdir(original_cwd)
                 return result
             
             elapsed = time.time() - start_time
@@ -269,6 +299,7 @@ class UnifyPreprocessor:
             logger.info(f"✓ Preprocessing completed in {elapsed:.2f}s")
             logger.info(f"✓ Output saved to: {output_subdir}")
             
+            os.chdir(original_cwd)
             return result
             
         except Exception as e:
@@ -276,6 +307,7 @@ class UnifyPreprocessor:
             result["errors"].append(f"Unexpected error: {e}")
             logger.error(f"✗ {result['errors'][-1]}")
             logger.error(traceback.format_exc())
+            os.chdir(original_cwd)
             return result
     
     def preprocess_all(self) -> Dict:
@@ -323,16 +355,16 @@ def main():
         epilog="""
 Examples:
   # Preprocess all datasets
-  python preprocess_unify_data.py --datasets all
+  python systems/Unify/scripts/preprocess_unify_data.py --datasets all
   
   # Preprocess specific datasets
-  python preprocess_unify_data.py --datasets Med Player
+  python systems/Unify/scripts/preprocess_unify_data.py --datasets Med Player
   
   # Preprocess specific entities
-  python preprocess_unify_data.py --entities Med disease Med drug Player player
+  python systems/Unify/scripts/preprocess_unify_data.py --entities Med disease Med drug Player player
   
   # Specify custom output directory
-  python preprocess_unify_data.py --datasets all --output-dir /path/to/indexes
+  python systems/Unify/scripts/preprocess_unify_data.py --datasets all --output-dir /path/to/indexes
         """
     )
     
@@ -365,6 +397,8 @@ Examples:
     logger.info(f"\n{'='*70}")
     logger.info(f"UNIFY DATA PREPROCESSING")
     logger.info(f"{'='*70}")
+    logger.info(f"Project root: {PROJECT_ROOT}")
+    logger.info(f"Unify directory: {UNIFY_DIR}")
     logger.info(f"Output directory: {args.output_dir}")
     
     # Determine what to preprocess

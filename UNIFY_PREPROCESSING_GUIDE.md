@@ -26,34 +26,38 @@ Run the preprocessing script to build and save indexes:
 ### Preprocess All Datasets
 
 ```bash
-python preprocess_unify_data.py --datasets all
+# From UDA-Bench-main directory:
+python systems/Unify/scripts/preprocess_unify_data.py --datasets all
+
+# Or from systems/Unify directory:
+python scripts/preprocess_unify_data.py --datasets all
 ```
 
 ### Preprocess Specific Datasets
 
 ```bash
 # Preprocess only Med and Player datasets
-python preprocess_unify_data.py --datasets Med Player
+python systems/Unify/scripts/preprocess_unify_data.py --datasets Med Player
 
 # Preprocess only Finance
-python preprocess_unify_data.py --datasets Finan
+python systems/Unify/scripts/preprocess_unify_data.py --datasets Finan
 ```
 
 ### Preprocess Specific Entities
 
 ```bash
 # Preprocess only Med/disease and Player/player
-python preprocess_unify_data.py --entities Med disease Player player
+python systems/Unify/scripts/preprocess_unify_data.py --entities Med disease Player player
 
 # Preprocess just Med/drug
-python preprocess_unify_data.py --entities Med drug
+python systems/Unify/scripts/preprocess_unify_data.py --entities Med drug
 ```
 
 ### Custom Output Directory
 
 ```bash
 # Save indexes to a custom location
-python preprocess_unify_data.py --datasets all --output-dir /path/to/custom/indexes
+python systems/Unify/scripts/preprocess_unify_data.py --datasets all --output-dir /path/to/custom/indexes
 ```
 
 ## Output
@@ -117,7 +121,7 @@ python run_challenging_queries.py --systems all --query-types all
 
 ## Key Points
 
-✅ **Offline Preprocessing** (`preprocess_unify_data.py`):
+✅ **Offline Preprocessing** (`systems/Unify/scripts/preprocess_unify_data.py`):
 - Happens once per dataset/entity
 - Saves indexes to disk for reuse
 - Follows the Unify paper's architecture
@@ -145,7 +149,7 @@ python run_challenging_queries.py --systems all --query-types all
 
 **Solution**: Run preprocessing for that dataset/entity:
 ```bash
-python preprocess_unify_data.py --entities Med disease
+python systems/Unify/scripts/preprocess_unify_data.py --entities Med disease
 ```
 
 ### "Embedding model not found"
@@ -195,7 +199,7 @@ results/challenging_queries/20241209_120000/
 
 ```bash
 # 1. Preprocess Med and Player datasets (once)
-python preprocess_unify_data.py --datasets Med Player
+python systems/Unify/scripts/preprocess_unify_data.py --datasets Med Player
 
 # 2. Run filter queries
 python run_challenging_queries.py --systems unify --query-types filter
