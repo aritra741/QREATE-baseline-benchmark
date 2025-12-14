@@ -1356,7 +1356,7 @@ class UnifyRunner(SystemRunner):
             bq_matcher = self.BQMatcher(embed_model)
             final_flag, final_plan, final_bq_list, partial_question_list = self.recursive_plan_generation(
                 sql, transformed_question, bq_matcher, client, chat_model, embed_model,
-                current_plan=[], use_bq_list=[], partial_question_list=[], depth=0
+                [], [], [], 0  # current_plan, use_bq_list, partial_question_list, depth
             )
             
             metadata["plan_generation_time"] = time.time() - start_time - metadata.get("parse_time", 0) - metadata["data_load_time"]

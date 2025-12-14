@@ -6,10 +6,6 @@ from transformers import AutoTokenizer
 from sentence_transformers import SentenceTransformer
 import torch
 
-# Disable CUDA for HPC compatibility
-os.environ['CUDA_VISIBLE_DEVICES'] = ''
-torch.cuda.is_available = lambda: False
-
 SENTENTENCE_TRANSFORMER_BATCH_SIZE = 128  # TUNE THIS VARIABLE depending on the size of your embedding model and GPU mem available
 
 
@@ -25,9 +21,13 @@ class EmbedModel:
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_path, trust_remote_code=True)
         print(f"[DEBUG] Tokenizer loaded successfully")
 
-        # Use CPU only for HPC compatibility
-        self.device = torch.device("cpu")
-        print(f"[DEBUG] Using device: {self.device}")
+        # Use GPU if available, otherwise fall back to CPU
+        if torch.cuda.is_available():
+            self.device = torch.device("cuda")
+            print(f"[DEBUG] Using GPU: {torch.cuda.get_device_name(0)}")
+        else:
+            self.device = torch.device("cpu")
+            print(f"[DEBUG] Using CPU (GPU not available)")
         
         print(f"[DEBUG] Loading SentenceTransformer from {sentence_model_path}...")
         self.sentence_model = SentenceTransformer(
