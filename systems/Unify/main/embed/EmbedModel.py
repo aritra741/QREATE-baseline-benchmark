@@ -2,9 +2,6 @@ import bz2
 import json
 import os
 
-# Force CPU to avoid CUDA compatibility issues on some clusters
-os.environ["CUDA_VISIBLE_DEVICES"] = ""
-
 from transformers import AutoTokenizer
 from sentence_transformers import SentenceTransformer
 import torch
@@ -21,8 +18,14 @@ class EmbedModel:
         # Load tokenizer (AutoTokenizer supports various model types including LLaMA, Qwen, etc.)
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_path, trust_remote_code=True)
 
-        # Force sentence-transformer to run on CPU to avoid unsupported GPU errors
-        self.device = torch.device("cpu")
+        # Use GPU if available, otherwise fall back to CPU
+        if torch.cuda.is_available():
+            self.device = torch.device("cuda")
+            print(f"[DEBUG] Using GPU: {torch.cuda.get_device_name(0)}")
+        else:
+            self.device = torch.device("cpu")
+            print(f"[DEBUG] Using CPU (GPU not available)")
+        
         self.sentence_model = SentenceTransformer(
             sentence_model_path,
             device=self.device,
