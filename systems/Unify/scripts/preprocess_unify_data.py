@@ -104,14 +104,27 @@ class UnifyPreprocessor:
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.unify_main_dir = UNIFY_DIR / "main"
         
-        # Set model paths (default to local paths, or use provided paths/HuggingFace names)
+        # Check for scratch directory (CHPC pattern: /scratch/general/vast/u1592362)
+        SCRATCH_BASE = Path(os.environ.get("SCRATCH", os.environ.get("SCRATCHDIR", "")))
+        if not SCRATCH_BASE or not SCRATCH_BASE.exists():
+            # Try CHPC default scratch pattern
+            chpc_scratch = Path("/scratch/general/vast/u1592362")
+            if chpc_scratch.exists():
+                SCRATCH_BASE = chpc_scratch
+        
+        if SCRATCH_BASE and SCRATCH_BASE.exists():
+            default_models_dir = SCRATCH_BASE / "unify_models"
+        else:
+            default_models_dir = self.unify_main_dir / "models"
+        
+        # Set model paths (default to scratch/local paths, or use provided paths/HuggingFace names)
         if tokenizer_path is None:
-            self.tokenizer_path = str(self.unify_main_dir / "models" / "tokenizer")
+            self.tokenizer_path = str(default_models_dir / "tokenizer")
         else:
             self.tokenizer_path = tokenizer_path
         
         if embedding_path is None:
-            self.embedding_path = str(self.unify_main_dir / "models" / "embedding")
+            self.embedding_path = str(default_models_dir / "embedding")
         else:
             self.embedding_path = embedding_path
         

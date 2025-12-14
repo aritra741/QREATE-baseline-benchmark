@@ -21,7 +21,23 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).parent.resolve()
 UNIFY_DIR = SCRIPT_DIR.parent
 MAIN_DIR = UNIFY_DIR / "main"
-MODELS_DIR = MAIN_DIR / "models"
+
+# Check for scratch directory (CHPC pattern: /scratch/general/vast/u1592362)
+SCRATCH_BASE = Path(os.environ.get("SCRATCH", os.environ.get("SCRATCHDIR", "")))
+if not SCRATCH_BASE or not SCRATCH_BASE.exists():
+    # Try CHPC default scratch pattern
+    chpc_scratch = Path("/scratch/general/vast/u1592362")
+    if chpc_scratch.exists():
+        SCRATCH_BASE = chpc_scratch
+
+if SCRATCH_BASE and SCRATCH_BASE.exists():
+    # Use scratch for models (more space, faster I/O)
+    MODELS_DIR = SCRATCH_BASE / "unify_models"
+    print(f"Using scratch directory: {MODELS_DIR}")
+else:
+    # Fall back to local models directory
+    MODELS_DIR = MAIN_DIR / "models"
+    print(f"Using local directory: {MODELS_DIR}")
 
 # Create models directory
 MODELS_DIR.mkdir(parents=True, exist_ok=True)
