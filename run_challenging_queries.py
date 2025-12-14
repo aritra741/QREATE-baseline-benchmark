@@ -1063,6 +1063,31 @@ class UnifyRunner(SystemRunner):
             except:
                 pass
     
+    def _get_model_paths(self):
+        """Resolve model paths, checking scratch and local locations."""
+        # Check scratch directory first (CHPC pattern)
+        scratch_base = Path(os.environ.get("SCRATCH", os.environ.get("SCRATCHDIR", "")))
+        if not scratch_base or not scratch_base.exists():
+            chpc_scratch = Path("/scratch/general/vast/u1592362")
+            if chpc_scratch.exists():
+                scratch_base = chpc_scratch
+        
+        # Try scratch location first
+        if scratch_base and scratch_base.exists():
+            scratch_models = scratch_base / "unify_models"
+            if (scratch_models / "tokenizer").exists() and (scratch_models / "embedding").exists():
+                tokenizer_path = str(scratch_models / "tokenizer")
+                embedding_path = str(scratch_models / "embedding")
+                self.logger.debug(f"[UNIFY] Using models from scratch: {scratch_models}")
+                return tokenizer_path, embedding_path
+        
+        # Fall back to local models directory
+        local_models = self.unify_path / "models"
+        tokenizer_path = str(local_models / "tokenizer")
+        embedding_path = str(local_models / "embedding")
+        self.logger.debug(f"[UNIFY] Using models from local: {local_models}")
+        return tokenizer_path, embedding_path
+    
     def preprocess(self, dataset: str, entity: str) -> Dict:
         """Preprocess data for Unify (data loading and indexing)."""
         self._ensure_init()
@@ -1101,9 +1126,10 @@ class UnifyRunner(SystemRunner):
             # Load and process data chunks
             self.logger.debug(f"[UNIFY] Loading data from {data_path}...")
             chunk_extractor = self.ChunkExtractor()
+            tokenizer_path, embedding_path = self._get_model_paths()
             embed_model = self.EmbedModel(
-                tokenizer_path="models/tokenizer",
-                sentence_model_path="models/embedding"
+                tokenizer_path=tokenizer_path,
+                sentence_model_path=embedding_path
             )
             
             all_file_data, all_chunks, all_ids, all_embeds, all_chunk_locs = self.load_process_data_chunks(
@@ -1307,9 +1333,10 @@ class UnifyRunner(SystemRunner):
             sys.stdout.flush()
             sys.stderr.flush()
             try:
+                tokenizer_path, embedding_path = self._get_model_paths()
                 embed_model = self.EmbedModel(
-                    tokenizer_path="models/tokenizer",
-                    sentence_model_path="models/embedding"
+                    tokenizer_path=tokenizer_path,
+                    sentence_model_path=embedding_path
                 )
                 self.logger.info("[UNIFY] Embedding model initialized successfully")
             except Exception as e:
