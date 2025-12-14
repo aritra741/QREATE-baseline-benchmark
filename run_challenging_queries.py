@@ -1053,7 +1053,7 @@ class UnifyRunner(SystemRunner):
             self.OpenAI = OpenAI
             
             # Configure Ollama/Qwen2.5 settings
-            self.ollama_model = "qwen2.5-7b-instruct"
+            self.ollama_model = "qwen2.5:7b-instruct"
             self.ollama_base_url = "http://localhost:11434/v1"
             self.ollama_api_key = "ollama"
             

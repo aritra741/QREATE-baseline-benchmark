@@ -203,7 +203,7 @@ ollama pull qwen3:8b
 cd main
 python unify.py \
   --llm_model_path qwen3:8b \
-  --tokenizer_path ~/models/Qwen2.5-7B-Instruct \
+  --tokenizer_path ~/models/Qwen2.5:7B-Instruct \
   --sentence_model_path ~/models/all-MiniLM-L6-v2 \
   --doc_path ~/data/my_documents \
   --query "Count the number of documents about machine learning"

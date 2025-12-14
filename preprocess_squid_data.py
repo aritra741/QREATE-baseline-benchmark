@@ -549,7 +549,7 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Preprocess with default LLM (qwen2.5-7b-instruct via Ollama)
+  # Preprocess with default LLM (qwen2.5:7b-instruct via Ollama)
   python preprocess_squid_data.py --dataset all
   
   # Preprocess specific dataset with LLM
@@ -581,8 +581,8 @@ Examples:
     parser.add_argument(
         "--llm-model",
         type=str,
-        default="ollama/qwen2.5-7b-instruct",
-        help="LLM model to use for document generation (default: ollama/qwen2.5-7b-instruct)"
+        default="ollama/qwen2.5:7b-instruct",
+        help="LLM model to use for document generation (default: ollama/qwen2.5:7b-instruct)"
     )
     
     parser.add_argument(

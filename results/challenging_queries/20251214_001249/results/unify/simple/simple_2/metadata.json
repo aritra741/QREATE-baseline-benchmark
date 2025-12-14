@@ -1,0 +1,13 @@
+{
+  "system": "unify",
+  "query_id": "simple_2",
+  "start_time": "2025-12-14T00:14:06.160696",
+  "status": "failed",
+  "data_load_time": 0.23366141319274902,
+  "parse_time": 1.6769630908966064,
+  "plan_generation_time": 146.19251608848572,
+  "error": "invalid literal for int() with base 10: 'dictionary'",
+  "traceback": "Traceback (most recent call last):\n  File \"/uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/run_challenging_queries.py\", line 1398, in run_query\n    pm.execute_with_plan()\n  File \"/uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/systems/Unify/main/PlanManager.py\", line 368, in execute_with_plan\n    self.ctxManager = postorder_traversal(bq['IDPlan'], mapping, self.ctxManager)\n                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/systems/Unify/main/PlanManager.py\", line 320, in postorder_traversal\n    ctxManager = postorder_traversal(operator['Followup Plan'], mapping, ctxManager)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/systems/Unify/main/PlanManager.py\", line 323, in postorder_traversal\n    op_instance = self.get_operator_instance(operator, mapping, ctxManager)\n                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/systems/Unify/main/PlanManager.py\", line 460, in get_operator_instance\n    return operator_class(CONDITION, data_list, self.client, self.chatModel, self.ctxManager)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/systems/Unify/main/operators/scanOP.py\", line 39, in __init__\n    self.extract_op, self.extract_literal = self.extract_op_literals(self.condition)\n                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/systems/Unify/main/operators/scanOP.py\", line 93, in extract_op_literals\n    literal = int(response.split(\",\")[1].strip())\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nValueError: invalid literal for int() with base 10: 'dictionary'\n",
+  "total_time": 363.22527384757996,
+  "end_time": "2025-12-14T00:20:09.386009"
+}
