@@ -39,6 +39,9 @@ else:
     MODELS_DIR = MAIN_DIR / "models"
     print(f"Using local directory: {MODELS_DIR}")
 
+# Ensure MODELS_DIR is an absolute path
+MODELS_DIR = MODELS_DIR.resolve()
+
 # Create models directory
 MODELS_DIR.mkdir(parents=True, exist_ok=True)
 

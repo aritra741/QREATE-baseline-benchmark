@@ -117,6 +117,9 @@ class UnifyPreprocessor:
         else:
             default_models_dir = self.unify_main_dir / "models"
         
+        # Ensure absolute paths
+        default_models_dir = default_models_dir.resolve()
+        
         # Set model paths (default to scratch/local paths, or use provided paths/HuggingFace names)
         if tokenizer_path is None:
             self.tokenizer_path = str(default_models_dir / "tokenizer")
