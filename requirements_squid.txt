@@ -1,0 +1,86 @@
+# Requirements for SQUiD + UDA-Bench integration
+# This venv supports both preprocess_squid_data.py and run_challenging_queries.py
+
+# ==============================================================================
+# Core UDA-Bench dependencies
+# ==============================================================================
+pandas>=2.0.0
+openai>=1.0.0  # For Ollama/OpenAI client
+
+# ==============================================================================
+# Evaluation framework dependencies (needed by run_challenging_queries.py)
+# ==============================================================================
+sqlglot>=20.0.0
+duckdb>=0.9.0
+litellm>=1.0.0
+tqdm>=4.65.0
+pyyaml>=6.0.0
+
+# ==============================================================================
+# SQUiD system dependencies (from systems/SQUiD/requirements.txt)
+# ==============================================================================
+# Core SQUiD dependencies
+json-repair  # Critical: fixes malformed JSON from LLMs
+stanza  # NLP processing
+spacy>=3.8.0  # NLP framework
+transformers>=4.0.0  # LLM models
+torch>=2.0.0  # Deep learning framework
+numpy>=1.24.0
+pyyaml>=6.0.0  # Config parsing
+sqlparse>=0.4.0  # SQL parsing
+
+# Spacy language models (required for SQUiD)
+# These will be downloaded automatically, but you can also run:
+# python -m spacy download en_core_web_sm
+# python -m spacy download en_core_web_md
+
+# Additional SQUiD dependencies (essential subset)
+absl-py
+accelerate
+aiofiles
+aiohttp
+beautifulsoup4
+bert-score
+cachetools
+click
+datasets
+dill
+filelock
+fire
+huggingface-hub
+joblib
+jsonschema
+nltk
+packaging
+protobuf
+pyarrow
+requests
+safetensors
+scikit-learn
+sentencepiece
+sentence-transformers
+tensorboard
+tokenizers
+tqdm
+transformers
+typing-extensions
+
+# Optional but recommended for SQUiD
+rich>=13.0.0  # Better logging/display
+
+# ==============================================================================
+# Notes
+# ==============================================================================
+# After installation, download spacy models:
+#   python -m spacy download en_core_web_sm
+#   python -m spacy download en_core_web_md
+#
+# For CoreNLP (used by SQUiD's symbolic value identification):
+#   - CoreNLP is typically run as a separate Java service
+#   - See SQUiD documentation for CoreNLP setup
+#
+# For Ollama (used for LLM calls):
+#   - Install Ollama separately: https://ollama.ai
+#   - Pull the model: ollama pull qwen2.5:7b-instruct
+#   - Start server: ollama serve
+
