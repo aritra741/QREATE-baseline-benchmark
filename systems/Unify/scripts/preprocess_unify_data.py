@@ -14,6 +14,9 @@ Requirements:
 - Models in: main/models/tokenizer and main/models/embedding
 - Compatible with x86_64 architecture (CHPC)
 
+Note: If you encounter numpy version errors, upgrade numpy:
+    pip install --upgrade numpy
+
 Usage:
     # From UDA-Bench-main directory:
     python systems/Unify/scripts/preprocess_unify_data.py --datasets all
@@ -52,7 +55,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 sys.path.insert(0, str(UNIFY_DIR / "main"))
 
 import numpy as np
-import pandas as pd
+# pandas not needed for preprocessing
 
 # Configure logging
 import logging
