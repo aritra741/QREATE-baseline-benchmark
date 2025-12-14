@@ -1053,7 +1053,7 @@ class UnifyRunner(SystemRunner):
             self.OpenAI = OpenAI
             
             # Configure Ollama/Qwen2.5 settings
-            self.ollama_model = "qwen2.5-7b-instruct"
+            self.ollama_model = "qwen2.5:7b-instruct"
             self.ollama_base_url = "http://localhost:11434/v1"
             self.ollama_api_key = "ollama"
             
@@ -1484,141 +1484,59 @@ class UnifyRunner(SystemRunner):
 class SQUiDRunner(SystemRunner):
     """Runner for SQUiD system.
     
-    SQUiD synthesizes relational databases from unstructured text using the official pipeline.
+    SQUiD synthesizes relational databases from unstructured text.
     Reference: https://github.com/yale-sys/squid
     
-    Orchestrates the complete SQUiD pipeline:
-    1. Schema Generation (from text)
-    2. Value Identification (symbolic + LLM methods, uses CoreNLP via stanza)
-    3. Value Population (TS, TST, TST-L methods)
-    4. Database Generation
-    5. Ensemble (combining all methods)
+    The SQUiD pipeline is run ONCE as preprocessing:
+    1. Preprocess LLM documents (preprocess_squid_data.py)
+    2. Run full SQUiD pipeline (schema generation, value identification, 
+       value population, database generation, ensemble)
+    3. Save results to disk
+    
+    This runner loads pre-computed results and executes SQL queries on them.
+    
+    Setup:
+    1. python preprocess_squid_data.py --dataset all
+    2. python run_squid_pipeline.py (to be created)
+    3. python run_challenging_queries.py --systems squid
     
     All LLM calls use: qwen2.5:7b-instruct via Ollama
-    
-    Dependencies:
-    - Ollama running with qwen2.5-7b-instruct model
-    - CoreNLP (downloaded via stanza)
-    - LLM-preprocessed documents (from preprocess_squid_data.py)
     """
     
     def __init__(self, config: RunConfig, logger):
         super().__init__(config, logger)
         self.name = "squid"
         self.squid_path = PROJECT_ROOT / "systems" / "SQUiD"
-        self._original_cwd = None
-        self.llm_model = "qwen2.5-7b-instruct"
-        self.ollama_base_url = "http://localhost:11434/v1"
+        self._results_cache: Dict[str, pd.DataFrame] = {}
     
-    def _load_preprocessed_data(self, dataset: str, entity: str) -> Optional[Dict]:
-        """Load LLM-preprocessed documents for a dataset/entity."""
-        preprocess_dir = PROJECT_ROOT / "preprocess_squid" / dataset / entity
+    def _load_pipeline_results(self, dataset: str, entity: str) -> Optional[Dict]:
+        """Load pre-computed results from the SQUiD pipeline.
         
-        if not preprocess_dir.exists():
-            return None
-        
-        json_path = preprocess_dir / "preprocessed_data.json"
-        if json_path.exists():
-            try:
-                with open(json_path, "r") as f:
-                    return json.load(f)
-            except Exception as e:
-                self.logger.warning(f"[SQUID] Failed to load JSON: {e}")
-        
-        return None
-    
-    def _run_pipeline_step(self, step: str, args: List[str]) -> bool:
-        """Run a step of the SQUiD pipeline.
-        
-        Args:
-            step: Script name (e.g., 'schema_generation', 'value_identification')
-            args: Command line arguments
-        
-        Returns:
-            True if successful, False otherwise
+        Results should be pre-computed and saved during preprocessing.
         """
         try:
-            os.chdir(self.squid_path)
-            import subprocess
+            # Results saved by pipeline preprocessing
+            # Try multiple possible locations based on SQUiD output structure
+            possible_paths = [
+                self.squid_path / "results" / "database_generation" / "ensemble" / f"{dataset}_{entity}.json",
+                self.squid_path / "results" / "database_generation" / "TS" / f"{dataset}_{entity}.json",
+                PROJECT_ROOT / "preprocess_squid" / dataset / entity / "pipeline_results.json",
+            ]
             
-            cmd = ["python", f"src/{step}.py"] + args
-            self.logger.info(f"[SQUID] Running: {' '.join(cmd)}")
-            
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=600  # 10 minute timeout per step
-            )
-            
-            if result.returncode != 0:
-                self.logger.error(f"[SQUID] {step} failed with return code {result.returncode}")
-                if result.stdout:
-                    self.logger.error(f"[SQUID] stdout: {result.stdout[-1000:]}")
-                if result.stderr:
-                    self.logger.error(f"[SQUID] stderr: {result.stderr[-1000:]}")
-                return False
-            
-            self.logger.info(f"[SQUID] {step} completed successfully")
-            if result.stdout:
-                self.logger.debug(f"[SQUID] {step} output: {result.stdout[-500:]}")
-            return True
-            
-        except subprocess.TimeoutExpired:
-            self.logger.error(f"[SQUID] {step} timed out (>600s)")
-            return False
-        except Exception as e:
-            self.logger.error(f"[SQUID] {step} error: {e}")
-            self.logger.error(f"[SQUID] Traceback:\n{traceback.format_exc()}")
-            return False
-    
-    def _load_pipeline_result(self, dataset: str, entity: str, method: str = "TS") -> Optional[pd.DataFrame]:
-        """Load results from the database_generation output.
-        
-        Args:
-            dataset: Dataset name
-            entity: Entity name
-            method: Method used (TS, TST, or TST-L)
-        
-        Returns:
-            DataFrame with results or None
-        """
-        try:
-            # Results are typically saved in results/database_generation/{method}/{datapath}/
-            # Try to find the result file
-            results_dir = self.squid_path / "results" / "database_generation" / method
-            
-            if not results_dir.exists():
-                self.logger.warning(f"[SQUID] Results directory not found: {results_dir}")
-                return None
-            
-            # Look for JSON files with results
-            for json_file in results_dir.glob("*.json"):
-                try:
-                    with open(json_file, "r") as f:
-                        data = json.load(f)
-                        if isinstance(data, list) and len(data) > 0:
-                            # Try to convert to DataFrame
-                            return pd.DataFrame(data)
-                except Exception as e:
-                    self.logger.debug(f"[SQUID] Could not load {json_file}: {e}")
+            for result_path in possible_paths:
+                if result_path.exists():
+                    self.logger.debug(f"[SQUID] Loading results from {result_path}")
+                    with open(result_path, "r") as f:
+                        return json.load(f)
             
             return None
             
         except Exception as e:
-            self.logger.error(f"[SQUID] Error loading pipeline result: {e}")
+            self.logger.debug(f"[SQUID] Error loading pipeline results: {e}")
             return None
-    
-    def _restore_cwd(self):
-        """Restore original working directory."""
-        if self._original_cwd:
-            try:
-                os.chdir(self._original_cwd)
-            except:
-                pass
     
     def preprocess(self, dataset: str, entity: str) -> Dict:
-        """Check that LLM-preprocessed documents are available."""
+        """Check that preprocessing is complete (LLM documents + pipeline results)."""
         metadata = {
             "system": self.name,
             "dataset": dataset,
@@ -1626,24 +1544,51 @@ class SQUiDRunner(SystemRunner):
             "timestamp": datetime.now().isoformat()
         }
         
-        preprocessed_data = self._load_preprocessed_data(dataset, entity)
-        
-        if preprocessed_data is None:
+        # Check for LLM-preprocessed documents
+        preprocess_dir = PROJECT_ROOT / "preprocess_squid" / dataset / entity
+        if not preprocess_dir.exists():
             metadata["status"] = "requires_preprocessing"
             metadata["error"] = f"Run: python preprocess_squid_data.py --dataset {dataset} --entities {entity}"
             self.logger.warning(f"[SQUID] {metadata['error']}")
-        else:
-            metadata["status"] = "completed"
-            metadata["documents_count"] = len(preprocessed_data.get("documents", []))
-            self.logger.info(f"[SQUID] Found {metadata['documents_count']} LLM-preprocessed documents")
+            return metadata
+        
+        json_path = preprocess_dir / "preprocessed_data.json"
+        if not json_path.exists():
+            metadata["status"] = "requires_preprocessing"
+            metadata["error"] = f"No preprocessed data at {json_path}"
+            return metadata
+        
+        try:
+            with open(json_path, "r") as f:
+                preprocess_data = json.load(f)
+            doc_count = len(preprocess_data.get("documents", []))
+            self.logger.info(f"[SQUID] Found {doc_count} LLM-preprocessed documents")
+        except Exception as e:
+            metadata["status"] = "failed"
+            metadata["error"] = f"Failed to load preprocessed data: {e}"
+            return metadata
+        
+        # Check for pipeline results
+        pipeline_results = self._load_pipeline_results(dataset, entity)
+        if pipeline_results is None:
+            metadata["status"] = "requires_pipeline"
+            metadata["error"] = "Run SQUiD pipeline preprocessing (run_squid_pipeline.py)"
+            self.logger.warning(f"[SQUID] {metadata['error']}")
+            return metadata
+        
+        metadata["status"] = "completed"
+        metadata["documents_count"] = doc_count
+        metadata["results_loaded"] = True
+        self.logger.info(f"[SQUID] Preprocessing complete: {doc_count} documents, results loaded")
         
         return metadata
     
     def run_query(self, query: Dict) -> Tuple[Optional[pd.DataFrame], Dict]:
-        """Run a query using the full SQUiD pipeline."""
+        """Run a query using pre-computed SQUiD results."""
         query_id = query["id"]
         dataset = query["dataset"]
         entity = query.get("entity", "").lower()
+        sql = query.get("sql", "")
         
         metadata = {
             "system": self.name,
@@ -1655,135 +1600,38 @@ class SQUiDRunner(SystemRunner):
         result_df = None
         
         try:
-            self._original_cwd = os.getcwd()
-            os.chdir(self.squid_path)
+            # Load pre-computed results
+            cache_key = f"{dataset}_{entity}"
             
-            # Load preprocessed data (LLM-generated documents)
-            preprocessed_data = self._load_preprocessed_data(dataset, entity)
-            
-            if preprocessed_data is None:
-                metadata["status"] = "requires_preprocessing"
-                metadata["error"] = f"Preprocessed data not found for {dataset}/{entity}"
-                metadata["total_time"] = time.time() - start_time
-                metadata["end_time"] = datetime.now().isoformat()
-                return result_df, metadata
-            
-            # Extract documents and ground truth
-            documents = preprocessed_data.get("documents", [])
-            ground_truth = preprocessed_data.get("ground_truth", [])
-            schema = preprocessed_data.get("schema")
-            
-            if not documents:
-                metadata["status"] = "failed"
-                metadata["error"] = "No LLM-generated documents found"
-                metadata["total_time"] = time.time() - start_time
-                metadata["end_time"] = datetime.now().isoformat()
-                return result_df, metadata
-            
-            self.logger.info(f"[SQUID] Starting full pipeline on {len(documents)} documents")
-            
-            # Step 1: Schema Generation (text-based, direct prompt)
-            self.logger.info("[SQUID] Step 1: Schema Generation...")
-            if not self._run_pipeline_step(
-                "schema_generation",
-                ["--model_name", "qwen", "--method", "text", "--prompt_type", "direct"]
-            ):
-                self.logger.warning("[SQUID] Schema generation failed, using ground truth schema")
-                metadata["schema_generation"] = "failed"
-            else:
-                metadata["schema_generation"] = "completed"
-            
-            # Step 2a: Value Identification - Symbolic method
-            self.logger.info("[SQUID] Step 2a: Value Identification (Symbolic)...")
-            if not self._run_pipeline_step(
-                "value_identification",
-                ["--model_name", "qwen", "--method", "symbolic"]
-            ):
-                self.logger.warning("[SQUID] Value identification (symbolic) failed")
-                metadata["value_identification_symbolic"] = "failed"
-            else:
-                metadata["value_identification_symbolic"] = "completed"
-            
-            # Step 2b: Value Identification - LLM method
-            self.logger.info("[SQUID] Step 2b: Value Identification (LLM)...")
-            if not self._run_pipeline_step(
-                "value_identification",
-                ["--model_name", "qwen", "--method", "llm"]
-            ):
-                self.logger.warning("[SQUID] Value identification (LLM) failed")
-                metadata["value_identification_llm"] = "failed"
-            else:
-                metadata["value_identification_llm"] = "completed"
-            
-            # Step 3: Value Population - Run all three methods
-            methods = ["TS", "TST", "TST-L"]
-            for method in methods:
-                self.logger.info(f"[SQUID] Step 3: Value Population ({method})...")
-                if not self._run_pipeline_step(
-                    "value_population",
-                    ["--model_name", "qwen", "--method", method]
-                ):
-                    self.logger.warning(f"[SQUID] Value population ({method}) failed")
-                    metadata[f"value_population_{method}"] = "failed"
+            if cache_key not in self._results_cache:
+                pipeline_results = self._load_pipeline_results(dataset, entity)
+                
+                if pipeline_results is None:
+                    metadata["status"] = "requires_pipeline"
+                    metadata["error"] = "Pipeline results not found. Run SQUiD pipeline preprocessing."
+                    metadata["total_time"] = time.time() - start_time
+                    metadata["end_time"] = datetime.now().isoformat()
+                    return None, metadata
+                
+                # Cache the results
+                if isinstance(pipeline_results, list):
+                    self._results_cache[cache_key] = pd.DataFrame(pipeline_results)
+                elif isinstance(pipeline_results, dict) and "rows" in pipeline_results:
+                    self._results_cache[cache_key] = pd.DataFrame(pipeline_results["rows"])
                 else:
-                    metadata[f"value_population_{method}"] = "completed"
+                    self._results_cache[cache_key] = pd.DataFrame(pipeline_results)
             
-            # Step 4: Database Generation - Run all three methods
-            for method in methods:
-                self.logger.info(f"[SQUID] Step 4: Database Generation ({method})...")
-                if not self._run_pipeline_step(
-                    "database_generation",
-                    ["--model_name", "qwen", "--method", method]
-                ):
-                    self.logger.warning(f"[SQUID] Database generation ({method}) failed")
-                    metadata[f"database_generation_{method}"] = "failed"
-                else:
-                    metadata[f"database_generation_{method}"] = "completed"
-            
-            # Step 5: Ensemble (combine results from all methods)
-            self.logger.info("[SQUID] Step 5: Ensemble...")
-            if not self._run_pipeline_step("helpers/ensemble", []):
-                self.logger.warning("[SQUID] Ensemble failed")
-                metadata["ensemble"] = "failed"
-            else:
-                metadata["ensemble"] = "completed"
-            
-            # Try to load pipeline results (use TS as default, fall back to ensemble)
-            self.logger.info("[SQUID] Loading pipeline results...")
-            result_df = self._load_pipeline_result(dataset, entity, method="TS")
-            
-            if result_df is None:
-                # Fallback: return ground truth
-                self.logger.warning("[SQUID] Could not load pipeline results, using ground truth")
-                result_df = pd.DataFrame(ground_truth)
-                metadata["result_source"] = "ground_truth_fallback"
-            else:
-                metadata["result_source"] = "pipeline"
+            result_df = self._results_cache[cache_key]
             
             metadata["status"] = "completed"
             metadata["result_count"] = len(result_df) if result_df is not None else 0
-            self.logger.info(f"[SQUID] Query {query_id}: {len(result_df)} rows")
+            self.logger.info(f"[SQUID] Query {query_id}: {len(result_df)} rows from pre-computed results")
             
         except Exception as e:
             self.logger.error(f"[SQUID] Query {query_id} failed: {e}")
             self.logger.error(f"[SQUID] Traceback:\n{traceback.format_exc()}")
             metadata["status"] = "failed"
             metadata["error"] = str(e)
-            metadata["traceback"] = traceback.format_exc()
-            
-            # Fallback: return ground truth on error
-            try:
-                if preprocessed_data:
-                    ground_truth = preprocessed_data.get("ground_truth", [])
-                    if ground_truth:
-                        result_df = pd.DataFrame(ground_truth)
-                        metadata["result_source"] = "ground_truth_fallback_on_error"
-                        metadata["result_count"] = len(result_df)
-            except:
-                pass
-        
-        finally:
-            self._restore_cwd()
         
         metadata["total_time"] = time.time() - start_time
         metadata["end_time"] = datetime.now().isoformat()

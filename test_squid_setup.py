@@ -131,10 +131,10 @@ def test_ollama():
         
         # Check for qwen2.5
         model_ids = [m.id for m in models.data]
-        if "qwen2.5-7b-instruct" in model_ids or "qwen2.5:7b-instruct" in model_ids:
-            print("✓ qwen2.5-7b-instruct found")
+        if "qwen2.5:7b-instruct" in model_ids:
+            print("✓ qwen2.5:7b-instruct found")
         else:
-            print("⚠ qwen2.5-7b-instruct not found")
+            print("⚠ qwen2.5:7b-instruct not found")
             print("  Pull with: ollama pull qwen2.5:7b-instruct")
         
         return True
