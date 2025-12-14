@@ -1,13 +1,18 @@
 """
-Preprocessing script for SQUiD system.
+Preprocessing script for SQUiD system with LLM-based document generation.
 
 SQUiD takes unstructured text as input and generates relational databases.
 This script converts CSV ground truth data into natural language text documents
-that can be used to test SQUiD.
+by using an LLM to generate creative, conversational stories while preserving
+all data points (as per SQUiD paper methodology).
+
+The documents are generated using system/user prompts from the SQUiD paper
+which instruct the LLM to rephrase structured data into engaging narratives.
 
 Usage:
-    python preprocess_squid_data.py --dataset Med --entities disease drug institution
-    python preprocess_squid_data.py --dataset all  # Process all datasets
+    python preprocess_squid_data.py --dataset Med --entities disease drug
+    python preprocess_squid_data.py --dataset all
+    python preprocess_squid_data.py --dataset Med --no-llm  # Use structured sentences only
 """
 
 import argparse
@@ -18,7 +23,7 @@ import pandas as pd
 import pickle
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Tuple
 import hashlib
 
 # Add project paths
@@ -27,6 +32,12 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 from evaluation.logging_utils import setup_logger
 from evaluation.config import dump_json, load_json
+
+try:
+    from openai import OpenAI
+    HAS_OPENAI = True
+except ImportError:
+    HAS_OPENAI = False
 
 
 # ==============================================================================
@@ -130,21 +141,63 @@ SCHEMAS = {
 
 
 # ==============================================================================
-# PREPROCESSING UTILITIES
+# LLM UTILITIES
 # ==============================================================================
 
-def csv_row_to_document(row: pd.Series, schema_cols: List[Dict]) -> str:
+def get_llm_client(llm_model: str, logger) -> Optional[Tuple]:
+    """Get or create LLM client based on model specification.
+    
+    Args:
+        llm_model: Model name (e.g., 'gpt-4', 'ollama/qwen2.5', 'ollama/llama2')
+        logger: Logger instance
+    
+    Returns:
+        Tuple of (client, model_name) or None if failed
     """
-    Convert a CSV row to a natural language document.
+    if not HAS_OPENAI:
+        logger.error("OpenAI client not available. Install with: pip install openai")
+        return None
+    
+    try:
+        if llm_model.startswith("ollama/"):
+            # Local Ollama model
+            model_name = llm_model.replace("ollama/", "")
+            logger.info(f"Using local Ollama model: {model_name}")
+            return OpenAI(
+                api_key="ollama",
+                base_url="http://localhost:11434/v1"
+            ), model_name
+        else:
+            # OpenAI model
+            api_key = os.getenv("OPENAI_API_KEY")
+            if not api_key:
+                logger.error("OPENAI_API_KEY environment variable not set")
+                return None
+            logger.info(f"Using OpenAI model: {llm_model}")
+            return OpenAI(api_key=api_key), llm_model
+    except Exception as e:
+        logger.error(f"Failed to initialize LLM client: {e}")
+        return None
+
+
+# ==============================================================================
+# DOCUMENT GENERATION
+# ==============================================================================
+
+def csv_row_to_sentence(row: pd.Series, schema_cols: List[Dict]) -> str:
+    """Convert a CSV row to a structured sentence for LLM rephrasing.
+    
+    This creates a sentence in the format: "attr1 is $value1$, attr2 is $value2$, ..."
+    The special markers ($...$) help the LLM preserve exact values.
     
     Args:
         row: A pandas Series representing one row
         schema_cols: List of column definitions from schema
     
     Returns:
-        A natural language description of the row
+        A structured sentence describing the row (before LLM rephrasing)
     """
-    sentences = []
+    parts = []
     
     for col_def in schema_cols:
         col_name = col_def["name"]
@@ -153,36 +206,109 @@ def csv_row_to_document(row: pd.Series, schema_cols: List[Dict]) -> str:
             
         value = row[col_name]
         
-        # Skip null/empty values
+        # Skip null/empty values and mark as 'nan' for LLM to skip
         if pd.isna(value) or value == "" or value == "#":
-            continue
+            value = "nan"
+        else:
+            value = str(value).strip()
         
-        # Convert value to string
-        value_str = str(value).strip()
-        
-        # Skip numeric columns with 0 or placeholder values
-        if col_def["type"] in ["INTEGER", "REAL"]:
-            try:
-                num_val = float(value_str)
-                if num_val == 0 or num_val == -1:
-                    continue
-            except (ValueError, TypeError):
-                pass
-        
-        # Create natural language sentence
-        # Remove underscores and make more readable
+        # Create readable sentence part with value markers
         readable_name = col_name.replace("_", " ")
-        sentences.append(f"{readable_name}: {value_str}")
+        parts.append(f"{readable_name} is ${value}$")
     
-    # Join sentences with periods
-    if not sentences:
+    # Join parts with commas
+    if not parts:
+        return ""
+    
+    sentence = ", ".join(parts)
+    return sentence
+
+
+def generate_llm_document(sentence: str, llm_client, model_name: str, logger) -> Optional[str]:
+    """Generate a creative document from a structured sentence using LLM.
+    
+    Uses the prompt format from SQUiD paper (Figures 6-7) to rephrase
+    structured data into engaging, conversational stories while preserving
+    all datapoints.
+    
+    Args:
+        sentence: Structured sentence with markers (e.g., "name is $John$, age is $30$")
+        llm_client: OpenAI client instance
+        model_name: Name of the model to use
+        logger: Logger instance
+    
+    Returns:
+        Generated natural language document or None if generation failed
+    """
+    if not llm_client or not sentence:
+        return None
+    
+    # System prompt from SQUiD paper (Figure 6)
+    system_prompt = """You are a creative AI that rephrases given sentences into engaging, conversational stories while incorporating all provided datapoints.
+- Ensure that no information is omitted or added, and skip any datapoints labeled as 'nan'.
+- Do not rephrase the object of a sentence. For example, if the sentence is 'start date is $9/22/2023$', do not change the date to a different format.
+- Respond only with the rephrased sentence without any additional commentary."""
+    
+    # User prompt from SQUiD paper (Figure 7)
+    user_prompt = f"""Rephrase the following sentence into a conversational story, ensuring all data points are included while skipping 'nan' values.
+Do not introduce any extra or false details.
+Original sentence: {sentence}
+Creative sentence:"""
+    
+    try:
+        response = llm_client.chat.completions.create(
+            model=model_name,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            temperature=0.7,
+            max_tokens=256,
+            timeout=30
+        )
+        
+        generated_text = response.choices[0].message.content.strip()
+        return generated_text
+    
+    except Exception as e:
+        logger.debug(f"LLM generation failed: {e}")
+        return None
+
+
+def csv_row_to_document(row: pd.Series, schema_cols: List[Dict], llm_client=None, 
+                       model_name: str = "", logger=None) -> str:
+    """Convert a CSV row to a natural language document.
+    
+    First converts row to structured sentence, then uses LLM to generate
+    a creative, conversational document if LLM is available.
+    
+    Args:
+        row: A pandas Series representing one row
+        schema_cols: List of column definitions from schema
+        llm_client: Optional LLM client for document generation
+        model_name: Name of the model to use
+        logger: Logger instance
+    
+    Returns:
+        A natural language description of the row
+    """
+    sentence = csv_row_to_sentence(row, schema_cols)
+    
+    if not sentence:
         return "No information available."
     
-    doc = ". ".join(sentences) + "."
-    return doc
+    # Try LLM generation if available
+    if llm_client and model_name:
+        generated = generate_llm_document(sentence, llm_client, model_name, logger)
+        if generated:
+            return generated
+    
+    # Fallback: return structured sentence if LLM fails
+    return sentence
 
 
-def preprocess_dataset(dataset: str, entity: str, output_dir: Path, logger) -> Dict[str, Any]:
+def preprocess_dataset(dataset: str, entity: str, output_dir: Path, logger, 
+                      llm_client=None, model_name: str = "") -> Dict[str, Any]:
     """
     Preprocess a single dataset/entity combination for SQUiD.
     
@@ -191,6 +317,8 @@ def preprocess_dataset(dataset: str, entity: str, output_dir: Path, logger) -> D
         entity: Entity name (e.g., "disease")
         output_dir: Output directory for preprocessed data
         logger: Logger instance
+        llm_client: Optional LLM client for document generation
+        model_name: Name of the model to use
     
     Returns:
         Metadata dictionary with preprocessing info
@@ -231,26 +359,47 @@ def preprocess_dataset(dataset: str, entity: str, output_dir: Path, logger) -> D
     documents = []
     ground_truth = []
     metadata_list = []
+    generation_errors = 0
     
     for idx, row in df.iterrows():
-        # Generate natural language document
-        doc = csv_row_to_document(row, schema_cols)
+        try:
+            # Generate natural language document
+            doc = csv_row_to_document(row, schema_cols, llm_client, model_name, logger)
+            
+            # Store document with metadata
+            documents.append(doc)
+            
+            # Store ground truth row data as dict
+            gt_row = row.to_dict()
+            ground_truth.append(gt_row)
+            
+            # Create metadata for this row
+            doc_metadata = {
+                "idx": idx,
+                "dataset": dataset,
+                "entity": entity,
+                "hash": hashlib.md5(doc.encode()).hexdigest()[:8],
+                "llm_generated": bool(llm_client and model_name)
+            }
+            metadata_list.append(doc_metadata)
+            
+            if idx % max(1, len(df) // 10) == 0:
+                logger.debug(f"Processed {idx}/{len(df)} documents")
         
-        # Store document with metadata
-        documents.append(doc)
-        
-        # Store ground truth row data as dict
-        gt_row = row.to_dict()
-        ground_truth.append(gt_row)
-        
-        # Create metadata for this row
-        doc_metadata = {
-            "idx": idx,
-            "dataset": dataset,
-            "entity": entity,
-            "hash": hashlib.md5(doc.encode()).hexdigest()[:8]
-        }
-        metadata_list.append(doc_metadata)
+        except Exception as e:
+            logger.warning(f"Error processing row {idx}: {e}")
+            generation_errors += 1
+            # Still add a placeholder
+            documents.append(f"Error generating document for row {idx}")
+            gt_row = row.to_dict()
+            ground_truth.append(gt_row)
+            metadata_list.append({
+                "idx": idx,
+                "dataset": dataset,
+                "entity": entity,
+                "error": str(e),
+                "llm_generated": False
+            })
     
     # Save documents as individual text files (SQUiD expects separate files)
     docs_dir = output_entity_dir / "documents"
@@ -271,7 +420,9 @@ def preprocess_dataset(dataset: str, entity: str, output_dir: Path, logger) -> D
         "ground_truth": ground_truth,
         "schema": schema,
         "metadata": metadata_list,
-        "count": len(documents)
+        "count": len(documents),
+        "generation_errors": generation_errors,
+        "llm_used": bool(llm_client and model_name)
     }
     
     # Save as JSON
@@ -291,9 +442,11 @@ def preprocess_dataset(dataset: str, entity: str, output_dir: Path, logger) -> D
         "dataset": dataset,
         "entity": entity,
         "count": len(documents),
+        "generation_errors": generation_errors,
         "csv_path": str(csv_path),
         "output_dir": str(output_entity_dir),
         "documents_dir": str(docs_dir),
+        "llm_used": bool(llm_client and model_name),
         "timestamp": datetime.now().isoformat()
     }
     
@@ -303,20 +456,24 @@ def preprocess_dataset(dataset: str, entity: str, output_dir: Path, logger) -> D
     return summary
 
 
+
 def main():
     parser = argparse.ArgumentParser(
-        description="Preprocess data for SQUiD system",
+        description="Preprocess data for SQUiD system using LLM document generation",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Preprocess a specific dataset/entity
-  python preprocess_squid_data.py --dataset Med --entities disease drug
-  
-  # Preprocess all datasets
+  # Preprocess with default LLM (qwen2.5-7b-instruct via Ollama)
   python preprocess_squid_data.py --dataset all
   
-  # Preprocess all entities in a dataset
+  # Preprocess specific dataset with LLM
   python preprocess_squid_data.py --dataset Med
+  
+  # Preprocess without LLM (fallback to structured sentences)
+  python preprocess_squid_data.py --dataset Med --no-llm
+  
+  # Specific entities with LLM
+  python preprocess_squid_data.py --dataset Med --entities disease drug
         """
     )
     
@@ -333,6 +490,19 @@ Examples:
         nargs="+",
         default=None,
         help="Specific entities to preprocess (if not specified, preprocess all)"
+    )
+    
+    parser.add_argument(
+        "--llm-model",
+        type=str,
+        default="ollama/qwen2.5-7b-instruct",
+        help="LLM model to use for document generation (default: ollama/qwen2.5-7b-instruct)"
+    )
+    
+    parser.add_argument(
+        "--no-llm",
+        action="store_true",
+        help="Skip LLM document generation, use structured sentences only"
     )
     
     parser.add_argument(
@@ -357,8 +527,22 @@ Examples:
     logger = setup_logger("preprocess_squid", level=args.log_level, log_file=log_file)
     
     logger.info("=" * 80)
-    logger.info("SQUiD Data Preprocessing")
+    logger.info("SQUiD Data Preprocessing (LLM-based Document Generation)")
     logger.info("=" * 80)
+    
+    # Initialize LLM client if requested
+    llm_client = None
+    model_name = ""
+    if not args.no_llm:
+        logger.info(f"Initializing LLM client with model: {args.llm_model}")
+        result = get_llm_client(args.llm_model, logger)
+        if result:
+            llm_client, model_name = result
+            logger.info("✓ LLM client initialized successfully")
+        else:
+            logger.warning("⚠ Failed to initialize LLM client, will use structured sentences as fallback")
+    else:
+        logger.info("LLM generation disabled, will use structured sentences")
     
     # Determine which datasets to process
     datasets_to_process = []
@@ -380,9 +564,20 @@ Examples:
         
         for entity in entities_to_process:
             try:
-                result = preprocess_dataset(dataset, entity, args.output_dir, logger)
+                result = preprocess_dataset(dataset, entity, args.output_dir, logger, 
+                                          llm_client, model_name)
                 all_results.append(result)
-                logger.info(f"✓ {dataset}/{entity}: {result.get('count', 0)} documents")
+                
+                doc_count = result.get('count', 0)
+                gen_errors = result.get('generation_errors', 0)
+                llm_used = result.get('llm_used', False)
+                
+                if gen_errors > 0:
+                    logger.info(f"✓ {dataset}/{entity}: {doc_count} documents ({gen_errors} generation errors)" +
+                              (f" [LLM]" if llm_used else " [Fallback]"))
+                else:
+                    logger.info(f"✓ {dataset}/{entity}: {doc_count} documents" +
+                              (f" [LLM]" if llm_used else " [Fallback]"))
             except Exception as e:
                 logger.error(f"✗ {dataset}/{entity}: {e}")
                 all_results.append({
@@ -398,6 +593,7 @@ Examples:
         "successful": len([r for r in all_results if r.get("status") == "completed"]),
         "failed": len([r for r in all_results if r.get("status") == "failed"]),
         "results": all_results,
+        "llm_model": args.llm_model if not args.no_llm else "none",
         "timestamp": datetime.now().isoformat()
     }
     
@@ -409,6 +605,7 @@ Examples:
     logger.info(f"Total: {summary['total_results']}")
     logger.info(f"Successful: {summary['successful']}")
     logger.info(f"Failed: {summary['failed']}")
+    logger.info(f"LLM Model: {summary['llm_model']}")
     logger.info(f"Output: {args.output_dir}")
     logger.info("=" * 80)
     
