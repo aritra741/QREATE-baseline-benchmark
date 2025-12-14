@@ -1267,8 +1267,14 @@ class UnifyRunner(SystemRunner):
             os.chdir(self.unify_path)
             start_time = time.time()
             
+            self.logger.info("[UNIFY] Starting query execution...")
+            sys.stdout.flush()
+            sys.stderr.flush()
+            
             # Try to load preprocessed index (offline preprocessing)
             self.logger.debug("[UNIFY] Attempting to load preprocessed index...")
+            sys.stdout.flush()
+            sys.stderr.flush()
             preprocessed_data = self._load_preprocessed_index(dataset, entity)
             
             if preprocessed_data is None:
@@ -1295,16 +1301,29 @@ class UnifyRunner(SystemRunner):
             # Model path is set correctly via constructor
             
             # Initialize embedding model for semantic operations
+            self.logger.info("[UNIFY] Initializing embedding model...")
+            sys.stdout.flush()
+            sys.stderr.flush()
             embed_model = self.EmbedModel(
                 tokenizer_path="models/tokenizer",
                 sentence_model_path="models/embedding"
             )
+            self.logger.info("[UNIFY] Embedding model initialized successfully")
+            sys.stdout.flush()
+            sys.stderr.flush()
             
             self.logger.debug(f"[UNIFY] Using LLM: {self.ollama_model}")
+            sys.stdout.flush()
+            sys.stderr.flush()
             
             # Parse the query
             self.logger.debug("[UNIFY] Parsing query...")
+            sys.stdout.flush()
+            sys.stderr.flush()
             parsed_result = self.semantic_parse(sql, client, chat_model)
+            self.logger.debug("[UNIFY] Query parsed successfully")
+            sys.stdout.flush()
+            sys.stderr.flush()
             transformed_question = self.replace_parsed_elements_with_identifiers(sql, parsed_result)
             
             metadata["parse_time"] = time.time() - start_time - metadata["data_load_time"]
