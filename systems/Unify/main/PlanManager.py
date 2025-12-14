@@ -418,7 +418,11 @@ class planManager:
             # Replace the variables with their values from the mapping
             for var in variables:
                 if var in mapping:
-                    input_string = input_string.replace(f'[{var}]', mapping[var])
+                    value = mapping[var]
+                    # Handle None values - convert to empty string or 'None'
+                    if value is None:
+                        value = "None"
+                    input_string = input_string.replace(f'[{var}]', str(value))
 
             return input_string
 
