@@ -384,7 +384,7 @@ def recursive_plan_generation(origin_question, question, BQMatcher, client, chat
 if __name__ == "__main__":
     
     parser = argparse.ArgumentParser(description="Unify script with dynamic path parameters")
-    parser.add_argument("--llm_model_path", type=str, default="qwen3:8b", help="Ollama model name (e.g., qwen3:8b)")
+    parser.add_argument("--llm_model_path", type=str, default="qwen2.5:7b-instruct", help="Ollama model name (e.g., qwen2.5:7b-instruct)")
     parser.add_argument("--tokenizer_path", type=str, default="/path/to/your/tokenizer", help="Path to the tokenizer model")
     parser.add_argument("--sentence_model_path", type=str, default="/path/to/your/Embedding Model", help="Path to the sentence transformer model")
     parser.add_argument("--api_key", type=str, default="EMPTY", help="Set OpenAI's API key")

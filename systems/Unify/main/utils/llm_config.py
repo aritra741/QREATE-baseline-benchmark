@@ -33,16 +33,16 @@ def clean_llm_response(response):
 class ModelConfig:
     def __init__(self, model_path=None):
         # Default model name for Ollama, can be adjusted according to the actual environment
-        self.model_path = model_path or "qwen3:8b"
+        self.model_path = model_path or "qwen2.5:7b-instruct"
         self.validate_model_path()
 
     def validate_model_path(self):
         """Validate the model path/name"""
-        # For Ollama, model names are strings like "qwen3:8b", not file paths
+        # For Ollama, model names are strings like "qwen2.5:7b-instruct", not file paths
         # Only validate if it looks like a file path (contains /)
         if "/" in self.model_path and not self.model_path.startswith("http") and not os.path.exists(self.model_path):
             print(f"Warning: Model path {self.model_path} does not exist. Using default.")
-            self.model_path = "qwen3:8b"
+            self.model_path = "qwen2.5:7b-instruct"
 
     def create_completion(self, client, temperature=0.1, top_p=0.9, max_tokens=1000, messages=None):
         """Unified LLM call method, using stored model configuration"""
@@ -81,5 +81,5 @@ class ModelConfig:
 
 # Default debug model configuration
 DEBUG_MODEL_CONFIG = ModelConfig(
-    model_path="qwen3:8b"
+    model_path="qwen2.5:7b-instruct"
 )
