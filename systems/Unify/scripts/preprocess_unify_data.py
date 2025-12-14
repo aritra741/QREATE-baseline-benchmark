@@ -14,8 +14,11 @@ Requirements:
 - Models in: main/models/tokenizer and main/models/embedding
 - Compatible with x86_64 architecture (CHPC)
 
-Note: If you encounter numpy version errors, upgrade numpy:
-    pip install --upgrade numpy
+Note: If you encounter numpy version errors, install a compatible version:
+    pip install "numpy>=1.22.4,<2.0.0"
+    
+    The requirements specify numpy~=1.22.4, but vllm requires numpy<2.0.0.
+    A safe version is numpy 1.26.4 or similar.
 
 Usage:
     # From UDA-Bench-main directory:
@@ -94,10 +97,23 @@ PREPROCESS_OUTPUT_DIR = PROJECT_ROOT / "preprocess_unify" / "indexes"
 class UnifyPreprocessor:
     """Handles offline preprocessing of data for Unify."""
     
-    def __init__(self, output_dir: Path = PREPROCESS_OUTPUT_DIR):
+    def __init__(self, output_dir: Path = PREPROCESS_OUTPUT_DIR, 
+                 tokenizer_path: Optional[str] = None,
+                 embedding_path: Optional[str] = None):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.unify_main_dir = UNIFY_DIR / "main"
+        
+        # Set model paths (default to local paths, or use provided paths/HuggingFace names)
+        if tokenizer_path is None:
+            self.tokenizer_path = str(self.unify_main_dir / "models" / "tokenizer")
+        else:
+            self.tokenizer_path = tokenizer_path
+        
+        if embedding_path is None:
+            self.embedding_path = str(self.unify_main_dir / "models" / "embedding")
+        else:
+            self.embedding_path = embedding_path
         
         # Initialize Unify modules
         self._initialize_unify()
@@ -190,21 +206,43 @@ class UnifyPreprocessor:
             # 2. Initialize models
             logger.info("Initializing embedding model...")
             try:
-                # Use paths relative to Unify main directory
-                tokenizer_path = self.unify_main_dir / "models" / "tokenizer"
-                embedding_path = self.unify_main_dir / "models" / "embedding"
+                # Use paths relative to Unify main directory, or HuggingFace model names
+                tokenizer_path = self.tokenizer_path
+                embedding_path = self.embedding_path
                 
-                if not tokenizer_path.exists():
-                    raise FileNotFoundError(f"Tokenizer model not found: {tokenizer_path}")
-                if not embedding_path.exists():
-                    raise FileNotFoundError(f"Embedding model not found: {embedding_path}")
+                # Check if paths exist (if they're local paths)
+                if not tokenizer_path.startswith(("http://", "https://")) and not Path(tokenizer_path).exists():
+                    # Try relative to Unify main directory
+                    tokenizer_path_relative = self.unify_main_dir / "models" / "tokenizer"
+                    if tokenizer_path_relative.exists():
+                        tokenizer_path = str(tokenizer_path_relative)
+                    else:
+                        raise FileNotFoundError(
+                            f"Tokenizer model not found: {tokenizer_path}\n"
+                            f"  Expected location: {self.unify_main_dir / 'models' / 'tokenizer'}\n"
+                            f"  Download with: python scripts/setup_models.py\n"
+                            f"  Or use HuggingFace model name: --tokenizer-path Qwen/Qwen2.5-7B"
+                        )
+                
+                if not embedding_path.startswith(("http://", "https://")) and not Path(embedding_path).exists():
+                    # Try relative to Unify main directory
+                    embedding_path_relative = self.unify_main_dir / "models" / "embedding"
+                    if embedding_path_relative.exists():
+                        embedding_path = str(embedding_path_relative)
+                    else:
+                        raise FileNotFoundError(
+                            f"Embedding model not found: {embedding_path}\n"
+                            f"  Expected location: {self.unify_main_dir / 'models' / 'embedding'}\n"
+                            f"  Download with: python scripts/setup_models.py\n"
+                            f"  Or use HuggingFace model name: --embedding-path sentence-transformers/all-MiniLM-L6-v2"
+                        )
                 
                 # Change to Unify main directory for model loading
                 os.chdir(self.unify_main_dir)
                 
                 embed_model = self.EmbedModel(
-                    tokenizer_path=str(tokenizer_path),
-                    sentence_model_path=str(embedding_path)
+                    tokenizer_path=tokenizer_path,
+                    sentence_model_path=embedding_path
                 )
                 logger.info(f"✓ Embedding model initialized from {embedding_path}")
             except Exception as e:
@@ -212,6 +250,7 @@ class UnifyPreprocessor:
                 result["errors"].append(f"Failed to initialize embedding model: {e}")
                 logger.error(f"✗ {result['errors'][-1]}")
                 logger.error(f"  Make sure models are in: {self.unify_main_dir / 'models'}")
+                logger.error(f"  Or download with: python scripts/setup_models.py")
                 os.chdir(original_cwd)
                 return result
             
@@ -368,6 +407,11 @@ Examples:
   
   # Specify custom output directory
   python systems/Unify/scripts/preprocess_unify_data.py --datasets all --output-dir /path/to/indexes
+  
+  # Use custom model paths (HuggingFace names or local paths)
+  python systems/Unify/scripts/preprocess_unify_data.py --datasets Med \\
+    --tokenizer-path Qwen/Qwen2.5-7B \\
+    --embedding-path sentence-transformers/all-MiniLM-L6-v2
         """
     )
     
@@ -392,10 +436,30 @@ Examples:
         help=f"Output directory for preprocessed indexes (default: {PREPROCESS_OUTPUT_DIR})"
     )
     
+    parser.add_argument(
+        "--tokenizer-path",
+        type=str,
+        default=None,
+        help="Path to tokenizer model (local path or HuggingFace name, e.g., Qwen/Qwen2.5-7B). "
+             "Default: systems/Unify/main/models/tokenizer"
+    )
+    
+    parser.add_argument(
+        "--embedding-path",
+        type=str,
+        default=None,
+        help="Path to embedding model (local path or HuggingFace name, e.g., sentence-transformers/all-MiniLM-L6-v2). "
+             "Default: systems/Unify/main/models/embedding"
+    )
+    
     args = parser.parse_args()
     
-    # Initialize preprocessor
-    preprocessor = UnifyPreprocessor(output_dir=args.output_dir)
+    # Initialize preprocessor with optional custom model paths
+    preprocessor = UnifyPreprocessor(
+        output_dir=args.output_dir,
+        tokenizer_path=args.tokenizer_path,
+        embedding_path=args.embedding_path
+    )
     
     logger.info(f"\n{'='*70}")
     logger.info(f"UNIFY DATA PREPROCESSING")
