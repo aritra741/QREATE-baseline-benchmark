@@ -47,6 +47,7 @@ class ModelConfig:
     def create_completion(self, client, temperature=0.1, top_p=0.9, max_tokens=1000, messages=None):
         """Unified LLM call method, using stored model configuration"""
         try:
+            print(f"[LLM] Calling model {self.model_path} with {len(messages)} messages...")
             response = client.chat.completions.create(
                 model=self.model_path,
                 messages=messages,
@@ -54,6 +55,7 @@ class ModelConfig:
                 top_p=top_p,
                 max_tokens=max_tokens
             ).choices[0].message.content
+            print(f"[LLM] Got response: {type(response)}")
             return response
         except Exception as e:
             print(f"LLM call failed with model {self.model_path}: {e}")
