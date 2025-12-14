@@ -18,6 +18,8 @@ import os
 import sys
 import time
 import hashlib
+import signal
+import faulthandler
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Any, Tuple
@@ -1304,11 +1306,18 @@ class UnifyRunner(SystemRunner):
             self.logger.info("[UNIFY] Initializing embedding model...")
             sys.stdout.flush()
             sys.stderr.flush()
-            embed_model = self.EmbedModel(
-                tokenizer_path="models/tokenizer",
-                sentence_model_path="models/embedding"
-            )
-            self.logger.info("[UNIFY] Embedding model initialized successfully")
+            try:
+                embed_model = self.EmbedModel(
+                    tokenizer_path="models/tokenizer",
+                    sentence_model_path="models/embedding"
+                )
+                self.logger.info("[UNIFY] Embedding model initialized successfully")
+            except Exception as e:
+                self.logger.error(f"[UNIFY] Failed to initialize embedding model: {e}")
+                self.logger.error(f"[UNIFY] Traceback:\n{traceback.format_exc()}")
+                sys.stdout.flush()
+                sys.stderr.flush()
+                raise
             sys.stdout.flush()
             sys.stderr.flush()
             
@@ -1778,6 +1787,9 @@ class ChallengingQueryRunner:
 # ==============================================================================
 
 def main():
+    # Enable fault handler to debug segfaults
+    faulthandler.enable()
+    
     parser = argparse.ArgumentParser(
         description="Run challenging queries against UDA systems",
         formatter_class=argparse.RawDescriptionHelpFormatter,
