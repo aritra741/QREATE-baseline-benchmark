@@ -1053,7 +1053,7 @@ class UnifyRunner(SystemRunner):
             self.OpenAI = OpenAI
             
             # Configure Ollama/Qwen2.5 settings
-            self.ollama_model = "qwen2.5:7b-instruct"
+            self.ollama_model = "qwen2.5-7b-instruct"
             self.ollama_base_url = "http://localhost:11434/v1"
             self.ollama_api_key = "ollama"
             
@@ -1577,35 +1577,6 @@ class SQUiDRunner(SystemRunner):
         
         return None
     
-    def _sql_query_to_text(self, sql: str) -> str:
-        """Convert SQL query to natural language for SQUiD."""
-        # Simple SQL to NL conversion for testing
-        # In a real system, this would be more sophisticated
-        query_lower = sql.lower()
-        
-        if "select" in query_lower:
-            # Extract columns
-            select_match = re.search(r"select\s+(.*?)\s+from", query_lower, re.IGNORECASE)
-            if select_match:
-                columns = select_match.group(1).strip()
-                
-            # Extract table and conditions
-            from_match = re.search(r"from\s+(\w+)", query_lower, re.IGNORECASE)
-            where_match = re.search(r"where\s+(.*?)(?:$|group|order|limit)", query_lower, re.IGNORECASE)
-            
-            if from_match:
-                table = from_match.group(1)
-                nl_query = f"Extract {columns} from the {table} records"
-                
-                if where_match:
-                    condition = where_match.group(1).strip()
-                    nl_query += f" where {condition}"
-                
-                return nl_query
-        
-        # Fallback
-        return sql
-    
     def preprocess(self, dataset: str, entity: str) -> Dict:
         self._ensure_init()
         
@@ -1701,10 +1672,6 @@ class SQUiDRunner(SystemRunner):
                 return result_df, metadata
             
             self.logger.info(f"[SQUID] Processing {len(documents)} documents")
-            
-            # Convert SQL to natural language
-            nl_query = self._sql_query_to_text(sql)
-            self.logger.debug(f"[SQUID] NL Query: {nl_query}")
             
             # For SQUiD, we simulate query execution on the ground truth data
             # In a real system, SQUiD would:
