@@ -338,22 +338,26 @@ Original sentence: {sentence}
 Creative sentence:"""
     
     try:
-        response = llm_client.chat.completions.create(
+        stream = llm_client.chat.completions.create(
             model=model_name,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
             temperature=0.7,
-            max_tokens=256,
-            timeout=30
+            max_tokens=512,
+            stream=True
         )
         
-        generated_text = response.choices[0].message.content.strip()
-        return generated_text
+        generated_text = ""
+        for chunk in stream:
+            if chunk.choices[0].delta.content:
+                generated_text += chunk.choices[0].delta.content
+        
+        return generated_text.strip()
     
     except Exception as e:
-        logger.debug(f"LLM generation failed: {e}")
+        logger.error(f"LLM generation failed for sentence: {sentence[:100]}... | Error: {e}")
         return None
 
 
@@ -361,32 +365,36 @@ def csv_row_to_document(row: pd.Series, schema_cols: List[Dict], llm_client=None
                        model_name: str = "", logger=None) -> str:
     """Convert a CSV row to a natural language document.
     
-    First converts row to structured sentence, then uses LLM to generate
-    a creative, conversational document if LLM is available.
+    Converts row to structured sentence, then uses LLM to generate
+    a creative, conversational document (required - no fallback).
     
     Args:
         row: A pandas Series representing one row
         schema_cols: List of column definitions from schema
-        llm_client: Optional LLM client for document generation
-        model_name: Name of the model to use
+        llm_client: LLM client for document generation (required)
+        model_name: Name of the model to use (required)
         logger: Logger instance
     
     Returns:
-        A natural language description of the row
+        A conversational natural language description of the row
+        
+    Raises:
+        RuntimeError: If LLM generation fails
     """
+    if not llm_client or not model_name:
+        raise RuntimeError("LLM client and model_name are required for document generation")
+    
     sentence = csv_row_to_sentence(row, schema_cols)
     
     if not sentence:
         return "No information available."
     
-    # Try LLM generation if available
-    if llm_client and model_name:
-        generated = generate_llm_document(sentence, llm_client, model_name, logger)
-        if generated:
-            return generated
+    # Generate conversational document using LLM
+    generated = generate_llm_document(sentence, llm_client, model_name, logger)
+    if not generated:
+        raise RuntimeError(f"Failed to generate document for: {sentence[:100]}")
     
-    # Fallback: return structured sentence if LLM fails
-    return sentence
+    return generated
 
 
 def preprocess_dataset(dataset: str, entity: str, output_dir: Path, logger, 
