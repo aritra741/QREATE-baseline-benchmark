@@ -1399,32 +1399,37 @@ class UnifyRunner(SystemRunner):
             
             metadata["execution_time"] = time.time() - start_time - metadata.get("plan_generation_time", 0) - metadata.get("parse_time", 0) - metadata["data_load_time"]
             
-            # Extract result - find the root operator in the IDPlan tree
+            # Extract result - find the result from the executed plan
             final_result = None
             if pm.BQ_list and "IDPlan" in pm.BQ_list[-1] and pm.BQ_list[-1]["IDPlan"]:
-                # The IDPlan is a tree structure where operators may have 'FollowupPlan' children
-                # We need to find the root operator (the one at index 0 after postorder traversal)
-                # The final answer is in the root operator's Result after execution
-                
-                def find_root_result(plan):
-                    """Find the result from the root operator (first in the plan after postorder)."""
+                def find_final_result(plan):
+                    """Recursively find the final result from the executed plan."""
                     if not plan:
                         return None
                     
-                    # The root operator is at index 0 (execution happens bottom-up via postorder traversal)
-                    root_op = plan[0]
-                    
-                    if "Result" in root_op:
-                        return root_op["Result"]
+                    # Look through all operators to find one with a Result
+                    # Start from the end (root after postorder) and work backwards
+                    for operator in reversed(plan):
+                        if "Result" in operator and operator["Result"] is not None:
+                            result = operator["Result"]
+                            # Make sure it's not just a primitive or string
+                            if isinstance(result, (list, dict)) or isinstance(result, pd.DataFrame):
+                                return result
+                        
+                        # Check nested FollowupPlan
+                        if "FollowupPlan" in operator and operator["FollowupPlan"]:
+                            nested_result = find_final_result(operator["FollowupPlan"])
+                            if nested_result is not None:
+                                return nested_result
                     
                     return None
                 
-                final_result = find_root_result(pm.BQ_list[-1]["IDPlan"])
+                final_result = find_final_result(pm.BQ_list[-1]["IDPlan"])
                 
                 if final_result is None:
                     # Log the structure for debugging
                     self.logger.debug(f"[UNIFY] IDPlan structure (last BQ): {pm.BQ_list[-1]['IDPlan']}")
-                    self.logger.warning("[UNIFY] No Result found in root operator")
+                    self.logger.warning("[UNIFY] No Result found in any operator")
             
             if final_result is not None:
                 # Convert result to DataFrame if needed
