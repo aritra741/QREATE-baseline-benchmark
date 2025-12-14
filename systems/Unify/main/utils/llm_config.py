@@ -56,15 +56,28 @@ class ModelConfig:
             ).choices[0].message.content
             return response
         except Exception as e:
-            print(f"LLM call failed: {e}. Using default model.")
-            default_config = ModelConfig()
-            return client.chat.completions.create(
-                model=default_config.model_path,
-                messages=messages,
-                temperature=temperature,
-                top_p=top_p,
-                max_tokens=max_tokens
-            ).choices[0].message.content
+            print(f"LLM call failed with model {self.model_path}: {e}")
+            print(f"Exception type: {type(e).__name__}")
+            print(f"Exception details: {str(e)}")
+            
+            # Try with default model only once
+            try:
+                print(f"Attempting fallback with default model...")
+                default_config = ModelConfig()
+                response = client.chat.completions.create(
+                    model=default_config.model_path,
+                    messages=messages,
+                    temperature=temperature,
+                    top_p=top_p,
+                    max_tokens=max_tokens
+                ).choices[0].message.content
+                return response
+            except Exception as e2:
+                print(f"LLM fallback also failed: {e2}")
+                print(f"Exception type: {type(e2).__name__}")
+                print(f"Exception details: {str(e2)}")
+                # Return None instead of raising to allow graceful degradation
+                return None
 
 # Default debug model configuration
 DEBUG_MODEL_CONFIG = ModelConfig(

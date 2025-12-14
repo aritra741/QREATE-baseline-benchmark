@@ -1291,9 +1291,14 @@ class UnifyRunner(SystemRunner):
             
             # Initialize Ollama/Qwen2.5 client (compatible with OpenAI interface)
             client = self.OpenAI(api_key=self.ollama_api_key, base_url=self.ollama_base_url)
-            chat_model = self.ModelConfig("")
-            # Override model name with Ollama model
-            chat_model.model_name = self.ollama_model
+            chat_model = self.ModelConfig(self.ollama_model)
+            # Model path is set correctly via constructor
+            
+            # Initialize embedding model for semantic operations
+            embed_model = self.EmbedModel(
+                tokenizer_path="models/tokenizer",
+                sentence_model_path="models/embedding"
+            )
             
             self.logger.debug(f"[UNIFY] Using LLM: {self.ollama_model}")
             
