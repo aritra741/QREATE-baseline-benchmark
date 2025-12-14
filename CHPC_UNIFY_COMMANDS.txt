@@ -1,0 +1,26 @@
+CHPC COMMANDS FOR UNIFY NL TESTING
+===================================
+
+## Quick Test (run interactively)
+cd /Users/aritramazumder/Documents/UDA-Bench-main
+python3 run_challenging_queries.py --systems unify --query-types simple --log-level DEBUG
+
+## Submit to CHPC Batch
+chmod +x submit_unify_test.sh
+sbatch submit_unify_test.sh
+
+## Monitor Job
+squeue -u $USER
+tail -f logs/unify_test_*.log
+
+## Full Test (all query types)
+python3 run_challenging_queries.py --systems unify --query-types simple filter projection join aggregation union --log-level INFO
+
+## Compare with UQE (baseline)
+python3 run_challenging_queries.py --systems uqe --query-types simple --log-level INFO
+
+## Check Results
+ls -la results/challenging_queries/*/results/unify/
+cat results/challenging_queries/*/results/unify/simple/simple_1/metadata.json | python3 -m json.tool
+head results/challenging_queries/*/results/unify/simple/simple_1/result.csv
+

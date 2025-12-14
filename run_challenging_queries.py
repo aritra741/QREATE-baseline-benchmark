@@ -133,6 +133,7 @@ CHALLENGING_QUERIES = {
             "entity": "disease",
             "sql": """SELECT disease_name, disease_type, prognosis
 FROM disease""",
+            "nl_query": "List all diseases with their names, types, and prognosis",
             "difficulty": "easy",
             "reason": "Basic projection from disease table - straightforward attribute extraction"
         },
@@ -143,6 +144,7 @@ FROM disease""",
             "entity": "player",
             "sql": """SELECT name, position, nationality, team
 FROM player""",
+            "nl_query": "List all NBA players with their names, positions, nationalities, and teams",
             "difficulty": "easy",
             "reason": "Simple attribute selection on player table with no filtering"
         }
@@ -157,6 +159,7 @@ FROM player""",
             "sql": """SELECT disease_name, disease_type, common_symptoms, treatments
 FROM disease
 WHERE disease_type = 'psychiatric'""",
+            "nl_query": "Find all diseases where the disease type is psychiatric, including their names, types, common symptoms, and treatments",
             "difficulty": "easy",
             "reason": "Simple equality filter on disease_type field"
         },
@@ -168,6 +171,7 @@ WHERE disease_type = 'psychiatric'""",
             "sql": """SELECT name, team, position, nationality, draft_year
 FROM player
 WHERE position = 'Frontcourt'""",
+            "nl_query": "Find all players where position is Frontcourt, including their names, teams, positions, nationalities, and draft years",
             "difficulty": "easy",
             "reason": "Simple equality filter on position field"
         },
@@ -179,6 +183,7 @@ WHERE position = 'Frontcourt'""",
             "sql": """SELECT disease_name, disease_type, etiology, treatment_challenges
 FROM disease
 WHERE disease_type = 'inflammatory'""",
+            "nl_query": "Find all diseases where the disease type is inflammatory, including their names, types, etiology, and treatment challenges",
             "difficulty": "easy",
             "reason": "Simple equality filter on disease_type field"
         }
@@ -193,6 +198,7 @@ WHERE disease_type = 'inflammatory'""",
             "sql": """SELECT disease_name, disease_type, diagnostic_methods, 
        common_symptoms, treatments, prognosis
 FROM disease""",
+            "nl_query": "Extract all diseases with their names, types, diagnostic methods, common symptoms, treatments, and prognosis",
             "difficulty": "medium",
             "reason": "Extracting multiple medical attributes including diagnostic and treatment information"
         },
@@ -204,6 +210,7 @@ FROM disease""",
             "sql": """SELECT name, position, nationality, team, 
        college, nba_championships, mvp_awards, olympic_gold_medals
 FROM player""",
+            "nl_query": "Extract all players with their names, positions, nationalities, teams, colleges, NBA championships, MVP awards, and Olympic gold medals",
             "difficulty": "medium",
             "reason": "8 attributes mixing categorical and numerical data requiring accurate extraction"
         },
@@ -215,6 +222,7 @@ FROM player""",
             "sql": """SELECT company_name, principal_activities, revenue, 
        net_profit_or_loss, total_assets, business_risks
 FROM finance""",
+            "nl_query": "Extract all companies with their names, principal activities, revenue, net profit or loss, total assets, and business risks",
             "difficulty": "hard",
             "reason": "Financial attributes scattered across long 100+ page documents; requires careful value extraction"
         }
@@ -229,6 +237,7 @@ FROM finance""",
             "sql": """SELECT disease_name, disease_type, treatments, diagnostic_methods, common_symptoms
 FROM disease
 WHERE disease_type = 'infectious'""",
+            "nl_query": "Find all diseases where the disease type is infectious, including their names, types, treatments, diagnostic methods, and common symptoms",
             "difficulty": "medium",
             "reason": "Multi-attribute extraction with equality filter on category"
         },
@@ -240,6 +249,7 @@ WHERE disease_type = 'infectious'""",
             "sql": """SELECT name, team, position, nationality, nba_championships
 FROM player
 WHERE nba_championships > 0""",
+            "nl_query": "Find all players who have won NBA championships, including their names, teams, positions, nationalities, and number of championships",
             "difficulty": "medium",
             "reason": "Filtering on numerical comparison and multi-attribute extraction"
         },
@@ -251,6 +261,7 @@ WHERE nba_championships > 0""",
             "sql": """SELECT disease_name, disease_type, pathogenesis, prognosis
 FROM disease
 WHERE disease_type = 'genetic'""",
+            "nl_query": "Find all diseases where the disease type is genetic, including their names, types, pathogenesis, and prognosis",
             "difficulty": "easy",
             "reason": "Multi-attribute extraction with equality filter"
         }
@@ -265,6 +276,7 @@ WHERE disease_type = 'genetic'""",
             "sql": """SELECT disease_type, COUNT(*) AS disease_count
 FROM disease
 GROUP BY disease_type""",
+            "nl_query": "Count how many diseases there are for each disease type",
             "difficulty": "medium",
             "reason": "Tests GROUP BY and COUNT aggregation across multiple categories"
         },
@@ -278,6 +290,7 @@ GROUP BY disease_type""",
 FROM player
 WHERE nationality = 'American'
 GROUP BY position""",
+            "nl_query": "For American players, count how many players there are in each position and calculate the average number of NBA championships per position",
             "difficulty": "medium",
             "reason": "Tests GROUP BY with entity matching and aggregation functions on numerical data"
         },
@@ -289,6 +302,7 @@ GROUP BY position""",
             "sql": """SELECT principal_activities, COUNT(*) AS company_count
 FROM finance
 GROUP BY principal_activities""",
+            "nl_query": "Count how many companies there are for each principal activity",
             "difficulty": "medium",
             "reason": "Tests GROUP BY and COUNT on text field from financial documents"
         }
@@ -307,6 +321,7 @@ UNION ALL
 SELECT name, nationality, mvp_awards AS achievement_count, 'MVP Awards' AS type
 FROM player
 WHERE mvp_awards > 0""",
+            "nl_query": "Find all players who have won NBA championships or MVP awards, showing their names, nationalities, achievement counts, and achievement types",
             "difficulty": "medium",
             "reason": "UNION of same table with different numerical filters; requires accurate extraction of both fields"
         },
@@ -322,6 +337,7 @@ UNION ALL
 SELECT disease_name, treatments AS clinical_info, 'Treatment' AS info_type
 FROM disease
 WHERE treatments IS NOT NULL""",
+            "nl_query": "Combine diagnostic methods and treatments for all diseases, showing disease names, clinical information, and information type",
             "difficulty": "hard",
             "reason": "Cross-field union requiring accurate extraction and understanding of different medical information types"
         },
@@ -337,6 +353,7 @@ UNION ALL
 SELECT company_name, total_assets AS metric_value, 'Total Assets' AS metric_type
 FROM finance
 WHERE total_assets > 0""",
+            "nl_query": "Compare financial companies by showing their revenue and total assets, including company names, metric values, and metric types",
             "difficulty": "hard",
             "reason": "UNION of numerical metrics from different columns requiring proper value extraction and comparison"
         }
@@ -1315,6 +1332,15 @@ class UnifyRunner(SystemRunner):
             chat_model = self.ModelConfig(self.ollama_model)
             # Model path is set correctly via constructor
             
+            # Get natural language query for Unify
+            nl_query = query.get("nl_query")
+            if not nl_query:
+                self.logger.warning("[UNIFY] No nl_query field found, falling back to SQL")
+                nl_query = sql
+            self.logger.info(f"[UNIFY] Using NL Query: {nl_query}")
+            sys.stdout.flush()
+            sys.stderr.flush()
+            
             # Initialize embedding model for semantic operations
             self.logger.info("[UNIFY] Initializing embedding model...")
             sys.stdout.flush()
@@ -1339,55 +1365,94 @@ class UnifyRunner(SystemRunner):
             sys.stdout.flush()
             sys.stderr.flush()
             
-            # Parse the query
-            self.logger.debug("[UNIFY] Parsing query...")
+            # Parse the natural language query (not SQL)
+            self.logger.debug("[UNIFY] Parsing natural language query...")
             sys.stdout.flush()
             sys.stderr.flush()
-            parsed_result = self.semantic_parse(sql, client, chat_model)
+            parsed_result = self.semantic_parse(nl_query, client, chat_model)
             self.logger.debug("[UNIFY] Query parsed successfully")
             sys.stdout.flush()
             sys.stderr.flush()
-            transformed_question = self.replace_parsed_elements_with_identifiers(sql, parsed_result)
+            transformed_question = self.replace_parsed_elements_with_identifiers(nl_query, parsed_result)
             
             metadata["parse_time"] = time.time() - start_time - metadata["data_load_time"]
             
-            # Generate plan
+            # Generate plan (use nl_query for planning)
             self.logger.debug("[UNIFY] Generating execution plan...")
             bq_matcher = self.BQMatcher(embed_model)
             final_flag, final_plan, final_bq_list, partial_question_list = self.recursive_plan_generation(
-                sql, transformed_question, bq_matcher, client, chat_model, embed_model,
+                nl_query, transformed_question, bq_matcher, client, chat_model, embed_model,
                 [], [], [], 0  # current_plan, use_bq_list, partial_question_list, depth
             )
             
             metadata["plan_generation_time"] = time.time() - start_time - metadata.get("parse_time", 0) - metadata["data_load_time"]
             self.logger.debug(f"[UNIFY] Plan generated: {final_flag}")
             
-            # Execute plan
+            # Execute plan (use nl_query as the original question)
             self.logger.debug("[UNIFY] Executing plan...")
             pm = self.planManager(
-                sql, final_plan, client, chat_model, final_bq_list, all_file_data, 
+                nl_query, final_plan, client, chat_model, final_bq_list, all_file_data, 
                 parsed_result, partial_question_list, embed_model, index
             )
             pm.execute_with_plan()
             
             metadata["execution_time"] = time.time() - start_time - metadata.get("plan_generation_time", 0) - metadata.get("parse_time", 0) - metadata["data_load_time"]
             
-            # Extract result
+            # Extract result - find the root operator in the IDPlan tree
             final_result = None
             if pm.BQ_list and "IDPlan" in pm.BQ_list[-1] and pm.BQ_list[-1]["IDPlan"]:
-                final_result = pm.BQ_list[-1]["IDPlan"][0].get("Result", None)
+                # The IDPlan is a tree structure where operators may have 'FollowupPlan' children
+                # We need to find the root operator (the one at index 0 after postorder traversal)
+                # The final answer is in the root operator's Result after execution
+                
+                def find_root_result(plan):
+                    """Find the result from the root operator (first in the plan after postorder)."""
+                    if not plan:
+                        return None
+                    
+                    # The root operator is at index 0 (execution happens bottom-up via postorder traversal)
+                    root_op = plan[0]
+                    
+                    if "Result" in root_op:
+                        return root_op["Result"]
+                    
+                    return None
+                
+                final_result = find_root_result(pm.BQ_list[-1]["IDPlan"])
+                
+                if final_result is None:
+                    # Log the structure for debugging
+                    self.logger.debug(f"[UNIFY] IDPlan structure (last BQ): {pm.BQ_list[-1]['IDPlan']}")
+                    self.logger.warning("[UNIFY] No Result found in root operator")
             
             if final_result is not None:
                 # Convert result to DataFrame if needed
                 if isinstance(final_result, list):
-                    result_df = pd.DataFrame(final_result)
+                    if final_result:  # Only create DataFrame if list is not empty
+                        result_df = pd.DataFrame(final_result)
+                    else:
+                        self.logger.warning("[UNIFY] Result list is empty")
+                        result_df = pd.DataFrame()
+                elif isinstance(final_result, dict):
+                    # If result is a dictionary (e.g., from Scan operator), convert to DataFrame
+                    if final_result:
+                        result_df = pd.DataFrame([final_result])
+                    else:
+                        result_df = pd.DataFrame()
                 elif isinstance(final_result, pd.DataFrame):
                     result_df = final_result
                 else:
                     # Try to wrap in a dataframe
-                    result_df = pd.DataFrame([final_result])
+                    try:
+                        result_df = pd.DataFrame([final_result])
+                    except Exception as e:
+                        self.logger.warning(f"[UNIFY] Could not convert result to DataFrame: {e}")
+                        result_df = None
                 
-                self.logger.info(f"[UNIFY] Query executed successfully, result shape: {result_df.shape}")
+                if result_df is not None:
+                    self.logger.info(f"[UNIFY] Query executed successfully, result shape: {result_df.shape}")
+                    if len(result_df) > 0:
+                        self.logger.debug(f"[UNIFY] Result preview:\n{result_df.head()}")
             else:
                 self.logger.warning("[UNIFY] No result returned from query execution")
             
