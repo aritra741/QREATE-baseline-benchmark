@@ -64,13 +64,16 @@ def download_model(model_name: str, save_path: Path, model_type: str = "tokenize
     print(f"Downloading {model_type} model: {model_name}")
     print(f"Saving to: {save_path}")
     
+    # Ensure save_path is a string
+    save_path_str = str(save_path)
+    
     if model_type == "tokenizer":
         try:
             from transformers import AutoTokenizer
             print("Loading tokenizer...")
             tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
-            print(f"Saving tokenizer to {save_path}...")
-            tokenizer.save_pretrained(save_path)
+            print(f"Saving tokenizer to {save_path_str}...")
+            tokenizer.save_pretrained(save_path_str)
             print(f"✓ Tokenizer saved successfully")
             return True
         except Exception as e:
@@ -82,8 +85,8 @@ def download_model(model_name: str, save_path: Path, model_type: str = "tokenize
             from sentence_transformers import SentenceTransformer
             print("Loading embedding model...")
             model = SentenceTransformer(model_name)
-            print(f"Saving embedding model to {save_path}...")
-            model.save(save_path)
+            print(f"Saving embedding model to {save_path_str}...")
+            model.save(save_path_str)
             print(f"✓ Embedding model saved successfully")
             return True
         except Exception as e:
