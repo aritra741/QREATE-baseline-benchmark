@@ -357,6 +357,13 @@ class planManager:
             print("Formatted Q:  ", formatted_original_question)
             print("@"*50)
 
+            # Check if mapping has any None values and log a warning
+            none_mappings = {k: v for k, v in mapping.items() if v is None}
+            if none_mappings:
+                print(f"WARNING: Mapping contains None values: {none_mappings}")
+                print(f"WARNING: These placeholders could not be matched to the original question")
+                print(f"WARNING: Proceeding with 'None' as replacement string")
+
             # Traverse and execute the subplan in post-order
             self.ctxManager = postorder_traversal(bq['IDPlan'], mapping, self.ctxManager)
 
@@ -419,10 +426,12 @@ class planManager:
             for var in variables:
                 if var in mapping:
                     value = mapping[var]
-                    # Handle None values - convert to empty string or 'None'
+                    # Ensure value is a string (handle None and other types)
                     if value is None:
-                        value = "None"
-                    input_string = input_string.replace(f'[{var}]', str(value))
+                        value = ""
+                    else:
+                        value = str(value)
+                    input_string = input_string.replace(f'[{var}]', value)
 
             return input_string
 

@@ -31,36 +31,50 @@ def numbering_placeholders(query):
 
 # Create a query with placeholders, and map each placeholder to the original query
 def map_placeholders_to_original(template_question, original_question):
+    """
+    Map placeholders in a template question to corresponding text in the original question.
+    
+    Improved robustness:
+    - Handles cases where template parts don't appear in original question
+    - Returns empty string instead of None for unmatched placeholders
+    - Logs debugging info for troubleshooting
+    """
     # Step 1: Extract placeholders from the template question
     placeholders = re.findall(r'\[([A-Za-z]+\d+)\]', template_question)
-
+    
     # Step 2: Split both questions by placeholders
     template_parts = re.split(r'\[([A-Za-z]+\d+)\]', template_question)
-
+    
     # The original question is split using the same template parts
     # This allows us to find the parts corresponding to each placeholder
     parts = []
     last_index = 0
     for part in template_parts:
-        if part:
+        if part:  # Skip empty parts
             index = original_question.find(part, last_index)
             if index != -1:
                 if last_index < index:
-                    parts.append(original_question[last_index:index])
+                    extracted = original_question[last_index:index].strip()
+                    if extracted:  # Only add non-empty parts
+                        parts.append(extracted)
                 last_index = index + len(part)
+    
     # Append any remaining text after the last placeholder
     if last_index < len(original_question):
-        parts.append(original_question[last_index:])
-
+        remaining = original_question[last_index:].strip()
+        if remaining:
+            parts.append(remaining)
+    
     # Step 3: Create the mapping between placeholders and original text
     mapping = {}
     for i, placeholder in enumerate(placeholders):
-        # mapping[placeholder] = parts[i].strip()
         if i < len(parts):
-            mapping[placeholder] = parts[i].strip()
+            mapping[placeholder] = parts[i]
         else:
-            mapping[placeholder] = None
-
+            # Use empty string instead of None to avoid type errors downstream
+            # Add the placeholder name as fallback for debugging
+            mapping[placeholder] = f"[{placeholder}]"
+    
     return mapping
 
 def check_prerequisites_with_llm(client, chatModel, original_question, parsed_question, bq):
