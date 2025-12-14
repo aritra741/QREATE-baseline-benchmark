@@ -83,6 +83,34 @@ SCHEMAS = {
                 {"name": "pathogenesis", "type": "TEXT"},
                 {"name": "treatment_challenges", "type": "TEXT"},
             ]}
+        ],
+        "drug": [
+            {"table_name": "drug", "columns": [
+                {"name": "id", "type": "INTEGER", "primary_key": True},
+                {"name": "drug_name", "type": "TEXT"},
+                {"name": "generic_name", "type": "TEXT"},
+                {"name": "drug_type", "type": "TEXT"},
+                {"name": "indication", "type": "TEXT"},
+                {"name": "mechanism_of_action", "type": "TEXT"},
+                {"name": "side_effects", "type": "TEXT"},
+                {"name": "dosage", "type": "TEXT"},
+                {"name": "manufacturer", "type": "TEXT"},
+                {"name": "approval_status", "type": "TEXT"},
+            ]}
+        ],
+        "institution": [
+            {"table_name": "institution", "columns": [
+                {"name": "id", "type": "INTEGER", "primary_key": True},
+                {"name": "institution_name", "type": "TEXT"},
+                {"name": "institution_type", "type": "TEXT"},
+                {"name": "location", "type": "TEXT"},
+                {"name": "specialties", "type": "TEXT"},
+                {"name": "bed_count", "type": "INTEGER"},
+                {"name": "accreditation", "type": "TEXT"},
+                {"name": "founding_year", "type": "INTEGER"},
+                {"name": "director", "type": "TEXT"},
+                {"name": "contact_info", "type": "TEXT"},
+            ]}
         ]
     },
     "Player": {
@@ -99,16 +127,63 @@ SCHEMAS = {
                 {"name": "mvp_awards", "type": "INTEGER"},
                 {"name": "olympic_gold_medals", "type": "INTEGER"},
             ]}
+        ],
+        "team": [
+            {"table_name": "team", "columns": [
+                {"name": "id", "type": "INTEGER", "primary_key": True},
+                {"name": "team_name", "type": "TEXT"},
+                {"name": "city", "type": "TEXT"},
+                {"name": "founded_year", "type": "INTEGER"},
+                {"name": "coach", "type": "TEXT"},
+                {"name": "championships", "type": "INTEGER"},
+                {"name": "conference", "type": "TEXT"},
+                {"name": "arena", "type": "TEXT"},
+                {"name": "owner", "type": "TEXT"},
+                {"name": "player_count", "type": "INTEGER"},
+            ]}
+        ],
+        "manager": [
+            {"table_name": "manager", "columns": [
+                {"name": "id", "type": "INTEGER", "primary_key": True},
+                {"name": "manager_name", "type": "TEXT"},
+                {"name": "team", "type": "TEXT"},
+                {"name": "years_coaching", "type": "INTEGER"},
+                {"name": "championships_won", "type": "INTEGER"},
+                {"name": "total_wins", "type": "INTEGER"},
+                {"name": "total_losses", "type": "INTEGER"},
+                {"name": "coaching_style", "type": "TEXT"},
+                {"name": "nationality", "type": "TEXT"},
+                {"name": "notable_achievements", "type": "TEXT"},
+            ]}
+        ],
+        "city": [
+            {"table_name": "city", "columns": [
+                {"name": "id", "type": "INTEGER", "primary_key": True},
+                {"name": "city_name", "type": "TEXT"},
+                {"name": "state", "type": "TEXT"},
+                {"name": "population", "type": "INTEGER"},
+                {"name": "region", "type": "TEXT"},
+                {"name": "nba_teams", "type": "INTEGER"},
+                {"name": "founding_year", "type": "INTEGER"},
+                {"name": "major_attractions", "type": "TEXT"},
+                {"name": "climate", "type": "TEXT"},
+                {"name": "economy_type", "type": "TEXT"},
+            ]}
         ]
     },
     "Art": {
         "art": [
             {"table_name": "art", "columns": [
                 {"name": "id", "type": "INTEGER", "primary_key": True},
-                {"name": "artist", "type": "TEXT"},
                 {"name": "title", "type": "TEXT"},
+                {"name": "artist", "type": "TEXT"},
                 {"name": "year", "type": "INTEGER"},
                 {"name": "style", "type": "TEXT"},
+                {"name": "medium", "type": "TEXT"},
+                {"name": "period", "type": "TEXT"},
+                {"name": "technique", "type": "TEXT"},
+                {"name": "subject", "type": "TEXT"},
+                {"name": "cultural_significance", "type": "TEXT"},
             ]}
         ]
     },
@@ -121,6 +196,10 @@ SCHEMAS = {
                 {"name": "court", "type": "TEXT"},
                 {"name": "judge", "type": "TEXT"},
                 {"name": "ruling", "type": "TEXT"},
+                {"name": "parties_involved", "type": "TEXT"},
+                {"name": "jurisdiction", "type": "TEXT"},
+                {"name": "case_type", "type": "TEXT"},
+                {"name": "significance", "type": "TEXT"},
             ]}
         ]
     },
@@ -134,6 +213,9 @@ SCHEMAS = {
                 {"name": "net_profit_or_loss", "type": "REAL"},
                 {"name": "total_assets", "type": "REAL"},
                 {"name": "business_risks", "type": "TEXT"},
+                {"name": "sector", "type": "TEXT"},
+                {"name": "employees", "type": "INTEGER"},
+                {"name": "founded_year", "type": "INTEGER"},
             ]}
         ]
     }
@@ -378,8 +460,7 @@ def preprocess_dataset(dataset: str, entity: str, output_dir: Path, logger,
                 "idx": idx,
                 "dataset": dataset,
                 "entity": entity,
-                "hash": hashlib.md5(doc.encode()).hexdigest()[:8],
-                "llm_generated": bool(llm_client and model_name)
+                "hash": hashlib.md5(doc.encode()).hexdigest()[:8]
             }
             metadata_list.append(doc_metadata)
             
@@ -397,8 +478,7 @@ def preprocess_dataset(dataset: str, entity: str, output_dir: Path, logger,
                 "idx": idx,
                 "dataset": dataset,
                 "entity": entity,
-                "error": str(e),
-                "llm_generated": False
+                "error": str(e)
             })
     
     # Save documents as individual text files (SQUiD expects separate files)
@@ -421,8 +501,7 @@ def preprocess_dataset(dataset: str, entity: str, output_dir: Path, logger,
         "schema": schema,
         "metadata": metadata_list,
         "count": len(documents),
-        "generation_errors": generation_errors,
-        "llm_used": bool(llm_client and model_name)
+        "generation_errors": generation_errors
     }
     
     # Save as JSON
@@ -446,7 +525,6 @@ def preprocess_dataset(dataset: str, entity: str, output_dir: Path, logger,
         "csv_path": str(csv_path),
         "output_dir": str(output_entity_dir),
         "documents_dir": str(docs_dir),
-        "llm_used": bool(llm_client and model_name),
         "timestamp": datetime.now().isoformat()
     }
     
@@ -500,12 +578,6 @@ Examples:
     )
     
     parser.add_argument(
-        "--no-llm",
-        action="store_true",
-        help="Skip LLM document generation, use structured sentences only"
-    )
-    
-    parser.add_argument(
         "--output-dir",
         type=Path,
         default=PROJECT_ROOT / "preprocess_squid",
@@ -530,19 +602,15 @@ Examples:
     logger.info("SQUiD Data Preprocessing (LLM-based Document Generation)")
     logger.info("=" * 80)
     
-    # Initialize LLM client if requested
-    llm_client = None
-    model_name = ""
-    if not args.no_llm:
-        logger.info(f"Initializing LLM client with model: {args.llm_model}")
-        result = get_llm_client(args.llm_model, logger)
-        if result:
-            llm_client, model_name = result
-            logger.info("✓ LLM client initialized successfully")
-        else:
-            logger.warning("⚠ Failed to initialize LLM client, will use structured sentences as fallback")
-    else:
-        logger.info("LLM generation disabled, will use structured sentences")
+    # Initialize LLM client (always required)
+    logger.info(f"Initializing LLM client with model: {args.llm_model}")
+    result = get_llm_client(args.llm_model, logger)
+    if not result:
+        logger.error("Failed to initialize LLM client")
+        return 1
+    
+    llm_client, model_name = result
+    logger.info("✓ LLM client initialized successfully")
     
     # Determine which datasets to process
     datasets_to_process = []
@@ -570,14 +638,11 @@ Examples:
                 
                 doc_count = result.get('count', 0)
                 gen_errors = result.get('generation_errors', 0)
-                llm_used = result.get('llm_used', False)
                 
                 if gen_errors > 0:
-                    logger.info(f"✓ {dataset}/{entity}: {doc_count} documents ({gen_errors} generation errors)" +
-                              (f" [LLM]" if llm_used else " [Fallback]"))
+                    logger.info(f"✓ {dataset}/{entity}: {doc_count} documents ({gen_errors} generation errors)")
                 else:
-                    logger.info(f"✓ {dataset}/{entity}: {doc_count} documents" +
-                              (f" [LLM]" if llm_used else " [Fallback]"))
+                    logger.info(f"✓ {dataset}/{entity}: {doc_count} documents")
             except Exception as e:
                 logger.error(f"✗ {dataset}/{entity}: {e}")
                 all_results.append({
@@ -593,7 +658,6 @@ Examples:
         "successful": len([r for r in all_results if r.get("status") == "completed"]),
         "failed": len([r for r in all_results if r.get("status") == "failed"]),
         "results": all_results,
-        "llm_model": args.llm_model if not args.no_llm else "none",
         "timestamp": datetime.now().isoformat()
     }
     
@@ -605,7 +669,6 @@ Examples:
     logger.info(f"Total: {summary['total_results']}")
     logger.info(f"Successful: {summary['successful']}")
     logger.info(f"Failed: {summary['failed']}")
-    logger.info(f"LLM Model: {summary['llm_model']}")
     logger.info(f"Output: {args.output_dir}")
     logger.info("=" * 80)
     
