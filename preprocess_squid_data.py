@@ -561,21 +561,24 @@ def update_config_for_dataset(dataset: str, entity: str, squid_path: Path, logge
             config["schema_generation"]["prompt_type"] = PROMPT_TYPE
         
         if "value_identification" in config:
-            config["value_identification"]["datapath"] = f"{datapath}/text_cot_{MODEL_NAME}"
+            # datapath should just be the dataset/entity for output naming
+            config["value_identification"]["datapath"] = f"{datapath}/{schema_file_base}"
             config["value_identification"]["num_of_entries"] = num_entries
             config["value_identification"]["model_name"] = MODEL_NAME
-            # Exact path to schema file created by schema_generation
+            # Exact path to schema file created by schema_generation (this is the INPUT)
             config["value_identification"]["schema_path"] = f"results/schema_generation/{datapath}/{schema_file_base}.json"
         
         if "value_population" in config:
-            config["value_population"]["datapath"] = f"{datapath}/text_cot_{MODEL_NAME}"
+            config["value_population"]["datapath"] = f"{datapath}/{schema_file_base}"
             config["value_population"]["num_of_entries"] = num_entries
             config["value_population"]["model_name"] = MODEL_NAME
             # Symbolic results path - must match what value_identification creates
-            config["value_population"]["symbolic_path"] = f"results/value_identification/symbolic/{datapath}/text_cot_{MODEL_NAME}.json"
+            # value_identification outputs to: results_dir + method + "/" + datapath + ".json"
+            # = results/value_identification/symbolic/Med/disease/text_direct_ollama.json
+            config["value_population"]["symbolic_path"] = f"results/value_identification/symbolic/{datapath}/{schema_file_base}.json"
         
         if "database_generation" in config:
-            config["database_generation"]["datapath"] = f"{datapath}/text_cot_{MODEL_NAME}"
+            config["database_generation"]["datapath"] = f"{datapath}/{schema_file_base}"
             config["database_generation"]["num_of_entries"] = num_entries
             config["database_generation"]["model_name"] = MODEL_NAME
             # Exact path to schema mapping file
