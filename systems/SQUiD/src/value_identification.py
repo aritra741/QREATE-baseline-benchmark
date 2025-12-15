@@ -589,9 +589,10 @@ class ValueIdentificationPipeline:
             schema = data["predicted_schema"][idx]
             schema = extract_schema(schema)
             try:
-                schema = eval(schema)
-            except:
-                print("schema could not be extracted")
+                # Use json.loads() instead of eval() for proper JSON parsing
+                schema = json.loads(schema)
+            except Exception as e:
+                print(f"schema could not be extracted: {e}")
                 continue
             superkey = get_superkey(schema)
             each_users_data = self.get_each_users_data_from_text(text)
@@ -642,9 +643,10 @@ class ValueIdentificationPipeline:
             schema = data["predicted_schema"][idx]
             schema = extract_schema(schema)
             try:
-                schema = eval(schema)
-            except:
-                print("schema could not be extracted")
+                # Use json.loads() instead of eval() for proper JSON parsing
+                schema = json.loads(schema)
+            except Exception as e:
+                print(f"schema could not be extracted: {e}")
                 continue
             superkey = get_superkey(schema)
             each_users_data = self.get_each_users_data_from_text(text)
