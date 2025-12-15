@@ -1601,6 +1601,61 @@ class SQUiDRunner(SystemRunner):
         
         return metadata
     
+    def _rewrite_sql_for_squid_tables(self, sql: str, ensemble_data: List[Dict]) -> str:
+        """Rewrite SQL query to use correct SQUiD table names with UNION ALL across all documents.
+        
+        SQUiD creates separate tables for each document: {domain}_{idx} (e.g., disease_0, disease_1, ...).
+        This converts queries using generic table names into UNION ALL queries that combine all documents.
+        
+        Example:
+            Input:  SELECT name FROM disease
+            Output: (SELECT name FROM disease_0) UNION ALL (SELECT name FROM disease_1) UNION ALL ...
+        """
+        import re
+        
+        # Get unique domains and their document indices
+        domains = {}
+        for idx, entry in enumerate(ensemble_data):
+            domain = entry.get("domain", "")
+            if domain:
+                if domain not in domains:
+                    domains[domain] = []
+                domains[domain].append(idx)
+        
+        if not domains:
+            self.logger.warning("[SQUID] No domains found in ensemble data, using original SQL")
+            return sql
+        
+        # Build UNION ALL query for each domain
+        rewritten_sql = sql
+        
+        for domain, indices in domains.items():
+            pattern = rf'\bFROM\s+{re.escape(domain)}\b'
+            
+            if re.search(pattern, rewritten_sql, re.IGNORECASE):
+                # Build union of all document tables for this domain
+                union_parts = []
+                for idx in sorted(indices):
+                    # Replace domain with domain_idx for this iteration
+                    temp_sql = rewritten_sql
+                    # Replace FROM domain with FROM domain_idx
+                    temp_sql = re.sub(pattern, f'{domain}_{idx}', temp_sql, flags=re.IGNORECASE)
+                    # Also handle JOINs with the same domain within the same document
+                    join_pattern = rf'\bJOIN\s+{re.escape(domain)}\b'
+                    temp_sql = re.sub(join_pattern, f'JOIN {domain}_{idx}', temp_sql, flags=re.IGNORECASE)
+                    union_parts.append(f'({temp_sql})')
+                
+                # Join all parts with UNION ALL
+                rewritten_sql = ' UNION ALL '.join(union_parts)
+            else:
+                # Domain not in main FROM clause, just handle JOINs
+                join_pattern = rf'\bJOIN\s+{re.escape(domain)}\b'
+                for idx in sorted(indices):
+                    rewritten_sql = re.sub(join_pattern, f'JOIN {domain}_{idx}', rewritten_sql, flags=re.IGNORECASE)
+                    break  # Only replace first occurrence
+        
+        return rewritten_sql
+    
     def _build_database_from_ensemble(self, ensemble_data: List[Dict]) -> Optional[Any]:
         """Build an in-memory DuckDB database from SQUiD ensemble results.
         
@@ -1712,9 +1767,13 @@ class SQUiDRunner(SystemRunner):
             
             if db_conn is not None:
                 try:
+                    # Rewrite SQL query to use correct table names (domain_0, domain_1, etc.)
+                    rewritten_sql = self._rewrite_sql_for_squid_tables(sql, pipeline_results)
+                    self.logger.debug(f"[SQUID] Original SQL: {sql}")
+                    self.logger.debug(f"[SQUID] Rewritten SQL: {rewritten_sql}")
+                    
                     # Execute SQL query on database
-                    self.logger.debug(f"[SQUID] Executing SQL: {sql}")
-                    result_df = db_conn.execute(sql).fetch_df()
+                    result_df = db_conn.execute(rewritten_sql).fetch_df()
                     self.logger.info(f"[SQUID] Query {query_id}: {len(result_df)} rows from database query")
                 except Exception as query_error:
                     # If query fails (e.g., table/column not found), log and try fallback
