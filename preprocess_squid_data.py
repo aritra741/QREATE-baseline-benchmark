@@ -541,10 +541,10 @@ def update_config_for_dataset(dataset: str, entity: str, squid_path: Path, logge
         num_entries = 100
         
         # Deterministic file naming based on pipeline parameters
-        # schema_generation with --method text --prompt_type direct --model_name qwen creates:
+        # Use "ollama" to invoke Ollama with qwen2.5:7b-instruct
         METHOD = "text"
         PROMPT_TYPE = "direct"
-        MODEL_NAME = "qwen"
+        MODEL_NAME = "ollama"  # This will use Ollama with qwen2.5:7b-instruct
         
         schema_file_base = f"{METHOD}_{PROMPT_TYPE}_{MODEL_NAME}"
         
@@ -590,7 +590,7 @@ def update_config_for_dataset(dataset: str, entity: str, squid_path: Path, logge
         with open(config_path, "w") as f:
             yaml.dump(config, f, default_flow_style=False)
         
-        logger.info(f"[PIPELINE] Updated config for {dataset}/{entity}")
+        logger.info(f"[PIPELINE] Updated config for {dataset}/{entity} using Ollama (qwen2.5:7b-instruct)")
         logger.debug(f"[PIPELINE] Schema file: results/schema_generation/{datapath}/{schema_file_base}.json")
         logger.debug(f"[PIPELINE] Schema mapping: results/schema_generation/{datapath}/{schema_file_base}_schema.json")
         return True
@@ -641,7 +641,7 @@ def run_squid_pipeline(skip_pipeline: bool, datasets_to_process: List[str], logg
             # Step 1: Schema Generation
             logger.info(f"\n[PIPELINE] Step 1: Schema Generation ({dataset}/{entity})")
             if not run_squid_pipeline_step("schema_generation", [
-                "--model_name", "qwen",
+                "--model_name", "ollama",
                 "--method", "text",
                 "--prompt_type", "direct"
             ], squid_path, logger):
@@ -650,7 +650,7 @@ def run_squid_pipeline(skip_pipeline: bool, datasets_to_process: List[str], logg
             # Step 2a: Value Identification - Symbolic
             logger.info(f"\n[PIPELINE] Step 2a: Value Identification - Symbolic ({dataset}/{entity})")
             if not run_squid_pipeline_step("value_identification", [
-                "--model_name", "qwen",
+                "--model_name", "ollama",
                 "--method", "symbolic"
             ], squid_path, logger):
                 logger.warning(f"[PIPELINE] Value identification (symbolic) failed for {dataset}/{entity}, continuing...")
@@ -658,7 +658,7 @@ def run_squid_pipeline(skip_pipeline: bool, datasets_to_process: List[str], logg
             # Step 2b: Value Identification - LLM
             logger.info(f"\n[PIPELINE] Step 2b: Value Identification - LLM ({dataset}/{entity})")
             if not run_squid_pipeline_step("value_identification", [
-                "--model_name", "qwen",
+                "--model_name", "ollama",
                 "--method", "llm"
             ], squid_path, logger):
                 logger.warning(f"[PIPELINE] Value identification (LLM) failed for {dataset}/{entity}, continuing...")
@@ -668,7 +668,7 @@ def run_squid_pipeline(skip_pipeline: bool, datasets_to_process: List[str], logg
             for method in methods:
                 logger.info(f"\n[PIPELINE] Step 3: Value Population ({method}) ({dataset}/{entity})")
                 if not run_squid_pipeline_step("value_population", [
-                    "--model_name", "qwen",
+                    "--model_name", "ollama",
                     "--method", method
                 ], squid_path, logger):
                     logger.warning(f"[PIPELINE] Value population ({method}) failed for {dataset}/{entity}, continuing...")
@@ -677,7 +677,7 @@ def run_squid_pipeline(skip_pipeline: bool, datasets_to_process: List[str], logg
             for method in methods:
                 logger.info(f"\n[PIPELINE] Step 4: Database Generation ({method}) ({dataset}/{entity})")
                 if not run_squid_pipeline_step("database_generation", [
-                    "--model_name", "qwen",
+                    "--model_name", "ollama",
                     "--method", method
                 ], squid_path, logger):
                     logger.warning(f"[PIPELINE] Database generation ({method}) failed for {dataset}/{entity}, continuing...")

@@ -48,6 +48,10 @@ class Model:
                 self.model, self.tokenizer, self.device = self.mistral_model_init()
             elif llm=="deepseek":
                 self.client = OpenAI(api_key="", base_url="https://api.deepseek.com")
+            elif llm=="ollama" or llm=="ollama_qwen":
+                # Use Ollama with qwen2.5:7b-instruct via OpenAI-compatible API
+                self.client = OpenAI(api_key="ollama", base_url="http://localhost:11434/v1")
+                self.ollama_model = "qwen2.5:7b-instruct"
             elif "qwen" in llm.lower():
                 llm = "Qwen3-8B"
                 self.llm = llm
@@ -206,6 +210,20 @@ class Model:
                 stream=False
             )
             return str(response.choices[0].message.content)
+        
+        elif self.llm == "ollama" or self.llm == "ollama_qwen":
+            # Use Ollama via OpenAI-compatible API
+            response = self.client.chat.completions.create(
+                model=self.ollama_model,
+                messages=[
+                    {"role": "system", "content": prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0,
+                stream=False
+            )
+            return str(response.choices[0].message.content)
+        
         elif self.llm == "claude":
             response = self.client.messages.create(
                 model="claude-3-7-sonnet-20241022",  # or "claude-3-opus-20240229"
