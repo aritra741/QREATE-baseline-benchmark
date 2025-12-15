@@ -297,6 +297,8 @@ def extract_schema(text):
             extracted = extracted.replace(': True', ': true').replace(': False', ': false').replace(': None', ': null')
             # Fix missing commas between table definitions: }\n\n{ -> },\n\n{
             extracted = re.sub(r'\}\s*\n\s*\n\s*\{', '},\n\n{', extracted)
+            # Remove trailing commas before closing brackets (invalid in JSON)
+            extracted = re.sub(r',(\s*[\]}])', r'\1', extracted)
             return extracted
     return None
 
