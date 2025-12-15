@@ -1601,56 +1601,61 @@ class SQUiDRunner(SystemRunner):
         
         return metadata
     
-    def _rewrite_sql_for_squid_tables(self, sql: str, ensemble_data: List[Dict]) -> str:
+    def _rewrite_sql_for_squid_tables(self, sql: str, ensemble_data: List[Dict], entity: str = "") -> str:
         """Rewrite SQL query to use correct SQUiD table names with UNION ALL across all documents.
         
-        SQUiD creates separate tables for each document: {entity}_{idx} (e.g., disease_0, disease_1, ...).
+        SQUiD creates separate tables for each document using db_name (e.g., Med_0, Med_1, ...).
         This converts queries using generic table names (entity) into UNION ALL queries that combine all documents.
         
         Example:
             Input:  SELECT name FROM disease
-            Output: (SELECT name FROM disease_0) UNION ALL (SELECT name FROM disease_1) UNION ALL ...
+            Output: (SELECT name FROM Med_0) UNION ALL (SELECT name FROM Med_1) UNION ALL ...
+        
+        Args:
+            sql: Original SQL query
+            ensemble_data: List of ensemble entries with db_name and other metadata
+            entity: The entity name to replace in the query (e.g., "disease", "player")
         """
         import re
         
-        # Get unique entities (NOT domains) and their document indices
-        entities = {}
-        for idx, entry in enumerate(ensemble_data):
-            entity = entry.get("domain", "")  # 'domain' field actually contains the entity name (disease, player, etc)
-            if entity:
-                if entity not in entities:
-                    entities[entity] = []
-                entities[entity].append(idx)
-        
-        if not entities:
-            self.logger.warning("[SQUID] No entities found in ensemble data, using original SQL")
+        if not entity:
+            self.logger.warning("[SQUID] No entity name provided, cannot rewrite SQL")
             return sql
         
-        # Build UNION ALL query for each entity
-        rewritten_sql = sql
+        # Get all db_names from ensemble data - these are the actual table names (Med_0, Med_1, etc.)
+        db_names = []
+        for idx, entry in enumerate(ensemble_data):
+            db_name = entry.get("db_name", f"result_{idx}")
+            db_names.append(db_name)
         
-        for entity, indices in entities.items():
-            # Match the entity name in FROM and JOIN clauses
-            pattern = rf'\bFROM\s+{re.escape(entity)}\b'
+        if not db_names:
+            self.logger.warning("[SQUID] No db_names found in ensemble data, using original SQL")
+            return sql
+        
+        # Replace entity name with UNION of all db_names
+        # Pattern matches the entity name as a table reference (FROM entity or JOIN entity)
+        pattern = rf'\bFROM\s+{re.escape(entity)}\b'
+        
+        if re.search(pattern, sql, re.IGNORECASE):
+            # Build union of all tables
+            union_parts = []
+            for db_name in sorted(set(db_names)):  # Use set to avoid duplicates
+                temp_sql = sql
+                # Replace FROM entity with FROM db_name
+                temp_sql = re.sub(pattern, f'FROM {db_name}', temp_sql, flags=re.IGNORECASE)
+                # Also handle JOINs with the same entity
+                join_pattern = rf'\bJOIN\s+{re.escape(entity)}\b'
+                temp_sql = re.sub(join_pattern, f'JOIN {db_name}', temp_sql, flags=re.IGNORECASE)
+                union_parts.append(f'({temp_sql})')
             
-            if re.search(pattern, rewritten_sql, re.IGNORECASE):
-                # Build union of all document tables for this entity
-                union_parts = []
-                for idx in sorted(indices):
-                    # Replace entity with entity_idx for this iteration
-                    temp_sql = rewritten_sql
-                    # Replace FROM entity with FROM entity_idx
-                    temp_sql = re.sub(pattern, f'{entity}_{idx}', temp_sql, flags=re.IGNORECASE)
-                    # Also handle JOINs with the same entity within the same document
-                    join_pattern = rf'\bJOIN\s+{re.escape(entity)}\b'
-                    temp_sql = re.sub(join_pattern, f'JOIN {entity}_{idx}', temp_sql, flags=re.IGNORECASE)
-                    union_parts.append(f'({temp_sql})')
-                
-                # Join all parts with UNION ALL
-                rewritten_sql = ' UNION ALL '.join(union_parts)
-        
-        self.logger.debug(f"[SQUID] SQL rewriting: Original={sql[:80]}... -> Rewritten={rewritten_sql[:80]}...")
-        return rewritten_sql
+            # Join all parts with UNION ALL
+            rewritten_sql = ' UNION ALL '.join(union_parts)
+            self.logger.debug(f"[SQUID] SQL rewriting: entity={entity}, db_names={sorted(set(db_names))[:3]}...")
+            return rewritten_sql
+        else:
+            # Entity not in FROM clause
+            self.logger.warning(f"[SQUID] Entity '{entity}' not found in FROM clause of query")
+            return sql
     
     def _build_database_from_ensemble(self, ensemble_data: List[Dict]) -> Optional[Any]:
         """Build an in-memory DuckDB database from SQUiD ensemble results.
@@ -1767,8 +1772,8 @@ class SQUiDRunner(SystemRunner):
             
             if db_conn is not None:
                 try:
-                    # Rewrite SQL query to use correct table names (domain_0, domain_1, etc.)
-                    rewritten_sql = self._rewrite_sql_for_squid_tables(sql, pipeline_results)
+                    # Rewrite SQL query to use correct table names (db_name format)
+                    rewritten_sql = self._rewrite_sql_for_squid_tables(sql, pipeline_results, entity)
                     self.logger.debug(f"[SQUID] Original SQL: {sql}")
                     self.logger.debug(f"[SQUID] Rewritten SQL: {rewritten_sql}")
                     
