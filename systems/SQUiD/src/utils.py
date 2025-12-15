@@ -293,8 +293,10 @@ def extract_schema(text):
             # If pattern 2 (dict in code block), wrap in list
             if idx == 2 and extracted.strip().startswith('{'):
                 extracted = f"[{extracted}]"
-            # Convert JSON booleans to Python booleans for eval()
-            extracted = extracted.replace(': true', ': True').replace(': false', ': False').replace(': null', ': None')
+            # Convert Python booleans/None to JSON format for json.loads()
+            extracted = extracted.replace(': True', ': true').replace(': False', ': false').replace(': None', ': null')
+            # Fix missing commas between table definitions: }\n\n{ -> },\n\n{
+            extracted = re.sub(r'\}\s*\n\s*\n\s*\{', '},\n\n{', extracted)
             return extracted
     return None
 
