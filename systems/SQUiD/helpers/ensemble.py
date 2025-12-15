@@ -4,7 +4,14 @@ from collections import defaultdict
 
 # Directory to search for input files
 root_dir = 'results/database_generation'
-datapaths = ['BIRD/bird_dataset','SyntheticText/merged_dataset2']
+# Support all UDA-Bench datasets and entities
+datapaths = [
+    'Med/disease', 'Med/drug', 'Med/institution',
+    'Player/player', 'Player/team', 'Player/manager', 'Player/city',
+    'Art/art',
+    'Legal/legal_case',
+    'Finan/finance'
+]
 model_names = ['qwen', 'llama', 'claude', 'openai', 'deepseek']
 
 # current_ensemble_combo = ['TS', 'TST']

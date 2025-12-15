@@ -513,8 +513,38 @@ def run_squid_pipeline_step(step_name: str, args: list, squid_path: Path, logger
         return False
 
 
-def run_squid_pipeline(skip_pipeline: bool, logger) -> bool:
-    """Run the complete SQUiD pipeline."""
+def update_config_for_dataset(dataset: str, entity: str, squid_path: Path, logger) -> bool:
+    """Update config.yaml for processing a specific dataset/entity."""
+    try:
+        import yaml
+        
+        config_path = squid_path / "configs" / "config.yaml"
+        datapath = f"{dataset}/{entity}"
+        num_entries = 100  # Default, adjust as needed
+        
+        # Read current config
+        with open(config_path, "r") as f:
+            config = yaml.safe_load(f)
+        
+        # Update datapath for all stages
+        for stage in ["schema_generation", "value_identification", "value_population", "database_generation", "baseline"]:
+            if stage in config:
+                config[stage]["datapath"] = datapath.replace("/", f"/text_cot_qwen") if stage != "schema_generation" and stage != "baseline" else datapath
+                config[stage]["num_of_entries"] = num_entries
+        
+        # Write updated config
+        with open(config_path, "w") as f:
+            yaml.dump(config, f)
+        
+        logger.info(f"[PIPELINE] Updated config for {dataset}/{entity}")
+        return True
+    except Exception as e:
+        logger.error(f"[PIPELINE] Failed to update config: {e}")
+        return False
+
+
+def run_squid_pipeline(skip_pipeline: bool, datasets_to_process: List[str], logger) -> bool:
+    """Run the complete SQUiD pipeline for all datasets/entities."""
     if skip_pipeline:
         logger.info("[PIPELINE] Skipping SQUiD pipeline (--skip-pipeline flag set)")
         return True
@@ -522,55 +552,80 @@ def run_squid_pipeline(skip_pipeline: bool, logger) -> bool:
     squid_path = PROJECT_ROOT / "systems" / "SQUiD"
     
     logger.info("\n" + "="*80)
-    logger.info("Running SQUiD Pipeline")
+    logger.info("Running SQUiD Pipeline for all datasets")
     logger.info("="*80)
     
-    # Step 1: Schema Generation
-    logger.info("\n[PIPELINE] Step 1: Schema Generation")
-    if not run_squid_pipeline_step("schema_generation", [
-        "--model_name", "qwen",
-        "--method", "text",
-        "--prompt_type", "direct"
-    ], squid_path, logger):
-        logger.warning("[PIPELINE] Schema generation failed, continuing...")
+    # Map datasets to their entities
+    dataset_entities = {
+        "Med": ["disease", "drug", "institution"],
+        "Player": ["player", "team", "manager", "city"],
+        "Art": ["art"],
+        "Legal": ["legal_case"],
+        "Finan": ["finance"]
+    }
     
-    # Step 2a: Value Identification - Symbolic
-    logger.info("\n[PIPELINE] Step 2a: Value Identification (Symbolic)")
-    if not run_squid_pipeline_step("value_identification", [
-        "--model_name", "qwen",
-        "--method", "symbolic"
-    ], squid_path, logger):
-        logger.warning("[PIPELINE] Value identification (symbolic) failed, continuing...")
+    # Run pipeline for each dataset/entity combination
+    for dataset in datasets_to_process:
+        if dataset not in dataset_entities:
+            logger.warning(f"[PIPELINE] Unknown dataset: {dataset}")
+            continue
+        
+        for entity in dataset_entities[dataset]:
+            logger.info(f"\n{'='*80}")
+            logger.info(f"Processing {dataset}/{entity}")
+            logger.info(f"{'='*80}")
+            
+            # Update config for this dataset/entity
+            if not update_config_for_dataset(dataset, entity, squid_path, logger):
+                logger.warning(f"[PIPELINE] Failed to update config for {dataset}/{entity}")
+                continue
+            
+            # Step 1: Schema Generation
+            logger.info(f"\n[PIPELINE] Step 1: Schema Generation ({dataset}/{entity})")
+            if not run_squid_pipeline_step("schema_generation", [
+                "--model_name", "qwen",
+                "--method", "text",
+                "--prompt_type", "direct"
+            ], squid_path, logger):
+                logger.warning(f"[PIPELINE] Schema generation failed for {dataset}/{entity}, continuing...")
+            
+            # Step 2a: Value Identification - Symbolic
+            logger.info(f"\n[PIPELINE] Step 2a: Value Identification - Symbolic ({dataset}/{entity})")
+            if not run_squid_pipeline_step("value_identification", [
+                "--model_name", "qwen",
+                "--method", "symbolic"
+            ], squid_path, logger):
+                logger.warning(f"[PIPELINE] Value identification (symbolic) failed for {dataset}/{entity}, continuing...")
+            
+            # Step 2b: Value Identification - LLM
+            logger.info(f"\n[PIPELINE] Step 2b: Value Identification - LLM ({dataset}/{entity})")
+            if not run_squid_pipeline_step("value_identification", [
+                "--model_name", "qwen",
+                "--method", "llm"
+            ], squid_path, logger):
+                logger.warning(f"[PIPELINE] Value identification (LLM) failed for {dataset}/{entity}, continuing...")
+            
+            # Step 3: Value Population (all three methods)
+            methods = ["TS", "TST", "TST-L"]
+            for method in methods:
+                logger.info(f"\n[PIPELINE] Step 3: Value Population ({method}) ({dataset}/{entity})")
+                if not run_squid_pipeline_step("value_population", [
+                    "--model_name", "qwen",
+                    "--method", method
+                ], squid_path, logger):
+                    logger.warning(f"[PIPELINE] Value population ({method}) failed for {dataset}/{entity}, continuing...")
+            
+            # Step 4: Database Generation (all three methods)
+            for method in methods:
+                logger.info(f"\n[PIPELINE] Step 4: Database Generation ({method}) ({dataset}/{entity})")
+                if not run_squid_pipeline_step("database_generation", [
+                    "--model_name", "qwen",
+                    "--method", method
+                ], squid_path, logger):
+                    logger.warning(f"[PIPELINE] Database generation ({method}) failed for {dataset}/{entity}, continuing...")
     
-    # Step 2b: Value Identification - LLM
-    logger.info("\n[PIPELINE] Step 2b: Value Identification (LLM)")
-    if not run_squid_pipeline_step("value_identification", [
-        "--model_name", "qwen",
-        "--method", "llm"
-    ], squid_path, logger):
-        logger.warning("[PIPELINE] Value identification (LLM) failed, continuing...")
-    
-    # Step 3: Value Population (all three methods)
-    methods = ["TS", "TST", "TST-L"]
-    for method in methods:
-        logger.info(f"\n[PIPELINE] Step 3: Value Population ({method})")
-        if not run_squid_pipeline_step("value_population", [
-            "--model_name", "qwen",
-            "--method", method
-        ], squid_path, logger):
-            logger.warning(f"[PIPELINE] Value population ({method}) failed, continuing...")
-    
-    # Step 4: Database Generation (all three methods)
-    for method in methods:
-        logger.info(f"\n[PIPELINE] Step 4: Database Generation ({method})")
-        if not run_squid_pipeline_step("database_generation", [
-            "--model_name", "qwen",
-            "--method", method
-        ], squid_path, logger):
-            logger.warning(f"[PIPELINE] Database generation ({method}) failed, continuing...")
-    
-    # Step 5: Ensemble
-    logger.info(f"\n[PIPELINE] Step 5: Ensemble")
+    # Step 5: Ensemble (runs once for all datasets)
+    logger.info(f"\n[PIPELINE] Step 5: Ensemble (all datasets)")
     if not run_squid_pipeline_step("ensemble", [], squid_path, logger, is_helper=True):
         logger.warning("[PIPELINE] Ensemble failed")
     
@@ -712,7 +767,7 @@ Examples:
     logger.info("Phase 2: SQUiD Pipeline (if not skipped)")
     logger.info("="*80)
     
-    if not run_squid_pipeline(args.skip_pipeline, logger):
+    if not run_squid_pipeline(args.skip_pipeline, datasets_to_process, logger):
         logger.warning("SQUiD pipeline had errors")
     
     # Summary
