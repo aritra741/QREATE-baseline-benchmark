@@ -26,7 +26,7 @@ def value_population_TS(params):
         
         schema = data['schema'][idx]   
         schema = extract_schema(schema)
-        schema = eval(schema)
+        schema = json.loads(schema)  # Use json.loads instead of eval
         
 
         entry = {}
@@ -89,7 +89,7 @@ def value_population_TST(params):
         
         schema = data['schema'][idx]   
         schema = extract_schema(schema)
-        schema = eval(schema)
+        schema = json.loads(schema)  # Use json.loads instead of eval
         superkey = get_superkey(schema)
         identified_values = data['identified_values'][idx]
         domain = data['domain'][idx]
@@ -163,7 +163,7 @@ def value_population_TST_L(params):
         
         schema = data['schema'][idx]   
         schema = extract_schema(schema)
-        schema = eval(schema)
+        schema = json.loads(schema)  # Use json.loads instead of eval
         superkey = get_superkey(schema)
         identified_values = data['identified_values'][idx]
         domain = data['domain'][idx]
