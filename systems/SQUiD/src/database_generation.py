@@ -740,12 +740,14 @@ def generate_mysql_for_all_entries(config):
         # Execute join query to get joined_rows
         try:
             db_path = f"databases/{datapath}/{method}/{entry['db_name']}.db"
+            print(f"DEBUG: Processing entry {idx}, db_path={db_path}, join_query={entry['join_query']}")
             if os.path.exists(db_path):
                 conn = sqlite3.connect(db_path)
                 cursor = conn.cursor()
                 
                 # Get the join query (it returns a list, take the first one)
                 join_queries = entry['join_query']
+                print(f"DEBUG: join_queries type={type(join_queries)}, len={len(join_queries) if join_queries else 0}")
                 if join_queries and len(join_queries) > 0:
                     query = join_queries[0]
                     try:
