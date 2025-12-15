@@ -615,21 +615,94 @@ LEFT JOIN researcher_publication ON researcher.id = researcher_publication.resea
 LEFT JOIN publication ON researcher_publication.publication_id = publication.id
 LIMIT 50;"""
     else:
-        # For unknown domains, generate a simple SELECT * query that gets all data
-        # This ensures joined_rows is populated even for new domains
-        query = "SELECT * FROM (SELECT 1) LIMIT 50;"  # Fallback empty query
-        # Try to extract table names from schema and generate a query
+        # For unknown domains, generate a JOIN query dynamically from the schema
+        # This follows SQUiD's design: flatten all related tables into denormalized view
+        query = None
         try:
             if isinstance(schema, str):
                 schema = json.loads(schema)
             if isinstance(schema, list) and len(schema) > 0:
-                # Get first table name
-                first_table = schema[0].get('table_name', schema[0].get('name', ''))
-                if first_table:
-                    # Try simple SELECT from first table
-                    query = f"SELECT * FROM {first_table} LIMIT 50;"
-        except:
-            pass
+                # Generate a JOIN query that combines all tables
+                # Assume first table is the central entity
+                primary_table = schema[0].get('table_name', schema[0].get('name', ''))
+                if primary_table:
+                    # Start with primary table and SELECT all its columns
+                    select_parts = [f"{primary_table}.*"]
+                    from_clause = primary_table
+                    join_clauses = []
+                    
+                    # For each related table, try to join on foreign keys
+                    for i in range(1, len(schema)):
+                        related_table = schema[i].get('table_name', schema[i].get('name', ''))
+                        if not related_table:
+                            continue
+                        
+                        # Select all columns from related table with alias to avoid duplicates
+                        select_parts.append(f"{related_table}.*")
+                        
+                        # Try to find foreign key relationship
+                        # Look for a column in related_table that references primary_table
+                        columns = schema[i].get('columns', [])
+                        fk_found = False
+                        
+                        for col in columns:
+                            if isinstance(col, dict):
+                                if col.get('foreign_key'):
+                                    fk_table = col.get('foreign_key_table', '')
+                                    fk_column = col.get('foreign_key_column', '')
+                                    if fk_table == primary_table:
+                                        # Found a foreign key to primary table
+                                        col_name = col.get('name', '')
+                                        join_clauses.append(
+                                            f"LEFT JOIN {related_table} ON {primary_table}.id = {related_table}.{col_name}"
+                                        )
+                                        fk_found = True
+                                        break
+                        
+                        # If no FK found, try to infer join on common patterns
+                        if not fk_found:
+                            # Try common naming patterns: primary_table_id, {primary_table}_id
+                            for col in columns:
+                                if isinstance(col, dict):
+                                    col_name = col.get('name', '').lower()
+                                    if f"{primary_table}_id" in col_name or f"{primary_table}id" in col_name:
+                                        join_clauses.append(
+                                            f"LEFT JOIN {related_table} ON {primary_table}.id = {related_table}.{col.get('name', '')}"
+                                        )
+                                        fk_found = True
+                                        break
+                        
+                        # If still no FK, do a LEFT JOIN without condition (will produce cross product, but better than nothing)
+                        if not fk_found and len(schema) <= 3:  # Only for small schemas to avoid explosion
+                            join_clauses.append(f"LEFT JOIN {related_table} ON 1=1")
+                    
+                    # Build final query
+                    query = f"SELECT {', '.join(select_parts)} FROM {from_clause}"
+                    if join_clauses:
+                        query += " " + " ".join(join_clauses)
+                    query += " LIMIT 50;"
+        except Exception as e:
+            print(f"Error generating JOIN query from schema: {e}")
+            import traceback
+            traceback.print_exc()
+        
+        # If query generation failed, fall back to simple SELECT
+        if query is None:
+            print("WARNING: Could not generate JOIN query, falling back to primary table only")
+            try:
+                if isinstance(schema, str):
+                    schema = json.loads(schema)
+                if isinstance(schema, list) and len(schema) > 0:
+                    primary_table = schema[0].get('table_name', schema[0].get('name', ''))
+                    if primary_table:
+                        query = f"SELECT * FROM {primary_table} LIMIT 50;"
+            except Exception as e:
+                print(f"ERROR: Even fallback query generation failed: {e}")
+                query = None
+        
+        if query is None:
+            # This should rarely happen, but if it does, we need to know
+            raise ValueError("Failed to generate any query from schema. Schema may be malformed.")
 
     return [query]
 

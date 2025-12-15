@@ -134,7 +134,8 @@ CHALLENGING_QUERIES = {
             "entity": "disease",
             "sql": """SELECT disease_name, disease_type, prognosis
 FROM disease""",
-            "sql_squid": """SELECT id, name, category FROM disease""",
+            "sql_squid": """SELECT DISTINCT disease.id, disease.name, disease.category
+FROM disease""",
             "nl_query": "Get disease names, types, and prognosis from all disease documents",
             "difficulty": "easy",
             "reason": "Basic projection from disease table - straightforward attribute extraction"
