@@ -571,8 +571,8 @@ def update_config_for_dataset(dataset: str, entity: str, squid_path: Path, logge
             config["value_population"]["datapath"] = f"{datapath}/text_cot_{MODEL_NAME}"
             config["value_population"]["num_of_entries"] = num_entries
             config["value_population"]["model_name"] = MODEL_NAME
-            # Symbolic results path
-            config["value_population"]["symbolic_path"] = f"results/value_identification/symbolic/{datapath}/result.json"
+            # Symbolic results path - must match what value_identification creates
+            config["value_population"]["symbolic_path"] = f"results/value_identification/symbolic/{datapath}/text_cot_{MODEL_NAME}.json"
         
         if "database_generation" in config:
             config["database_generation"]["datapath"] = f"{datapath}/text_cot_{MODEL_NAME}"
