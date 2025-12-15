@@ -1,43 +1,53 @@
-baseline:
-  base_data_path: ../../preprocess_squid
-  datapath: Med/institution
-  logs_dir: logs/baseline_results/
-  method: None
-  model_name: qwen
-  num_of_entries: 100
-  results_dir: results/database_generation/baseline/
-database_generation:
-  base_data_path: results/value_population/
-  datapath: Med/text_cot_qweninstitution
-  logs_dir: logs/database_evaluation_results/
-  method: TS
-  model_name: qwen
-  num_of_entries: 100
-  results_dir: results/database_generation/
 schema_generation:
-  base_data_path: ../../preprocess_squid
-  datapath: Med/institution
-  logs_dir: logs/schema_results/
-  method: text
-  model_name: qwen
-  num_of_entries: 100
-  prompt_type: direct
-  results_dir: results/schema_generation/
+    datapath: "Med/disease"   # Points to preprocess_squid/{dataset}/{entity}/documents
+    num_of_entries: 100
+    model_name: "qwen"
+    prompt_type: "direct"
+    method: "text"
+    # Paths - relative to SQUiD root directory
+    base_data_path: "../../preprocess_squid"
+    logs_dir: "logs/schema_results/"
+    results_dir: "results/schema_generation/"
+
 value_identification:
-  base_data_path: results/schema_generation
-  datapath: Med/text_cot_qweninstitution
-  logs_dir: logs/value_identification_results/
-  method: symbolic
-  model_name: qwen
-  num_of_entries: 100
-  results_dir: results/value_identification/
-  schema_path: results/schema_generation/Med/disease/schema.json
+    datapath: "Med/disease/text_cot_qwen"
+    num_of_entries: 100
+    model_name: "qwen"
+    method: "symbolic"
+    # Paths
+    base_data_path: "results/schema_generation"
+    logs_dir: "logs/value_identification_results/"
+    results_dir: "results/value_identification/"
+    schema_path: "results/schema_generation/Med/disease/schema.json"
+
+
 value_population:
-  base_data_path: results/value_identification/
-  datapath: Med/text_cot_qweninstitution
-  logs_dir: logs/value_population_results/
-  method: TS
-  model_name: qwen
-  num_of_entries: 100
-  results_dir: results/value_population/
-  symbolic_path: results/value_identification/Med/disease/result.json
+    datapath: "Med/disease/text_cot_qwen"
+    num_of_entries: 100
+    model_name: "qwen"
+    method: "TS"
+    # Paths
+    base_data_path: "results/value_identification/"
+    logs_dir: "logs/value_population_results/"
+    results_dir: "results/value_population/"
+    symbolic_path: "results/value_identification/Med/disease/result.json"
+
+database_generation:
+    datapath: "Med/disease/text_cot_qwen"
+    num_of_entries: 100
+    model_name: "qwen"
+    method: "TS"
+    base_data_path: "results/value_population/"
+    logs_dir: "logs/database_evaluation_results/"
+    results_dir: "results/database_generation/"
+    schema_path: "results/schema_generation/Med/disease/text_direct_qwen_schema.json"
+
+
+baseline:
+    datapath: "Med/disease"
+    num_of_entries: 100
+    method: None
+    model_name: "qwen"
+    base_data_path: "../../preprocess_squid"
+    logs_dir: "logs/baseline_results/"
+    results_dir: "results/database_generation/baseline/"

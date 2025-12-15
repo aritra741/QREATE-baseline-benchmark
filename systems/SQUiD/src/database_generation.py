@@ -627,7 +627,10 @@ def generate_mysql_for_all_entries(config):
     logs_path = config['logs_dir']
     num_of_entries = config['num_of_entries']
     model_name = config['model_name']
-    dataset = "SyntheticText/merged_dataset2"
+    datapath_from_config = config['datapath']
+    
+    # Extract dataset from datapath (e.g., "Med/disease" -> "Med/disease")
+    dataset = datapath_from_config.replace("/text_cot_qwen", "") if "/text_cot_qwen" in datapath_from_config else datapath_from_config
 
     parser = argparse.ArgumentParser(description="Evaluate database generation.")
     parser.add_argument("--method", type=str, required=False, help="Method used for database generation.")
@@ -645,7 +648,16 @@ def generate_mysql_for_all_entries(config):
     config['datapath'] = config['datapath'].replace("<<model_name>>",model_name)
     datapath = config['datapath']
 
-    schema_path = f"schema/{dataset}/schema_mapping.json"
+    # Use config's schema path if available, otherwise construct from dataset
+    if 'schema_path' in config and config['schema_path']:
+        schema_path = config['schema_path']
+    else:
+        schema_path = f"results/schema_generation/{dataset}/text_direct_qwen_schema.json"
+    
+    # Handle both old path format and new
+    if not os.path.exists(schema_path):
+        schema_path = f"schema/{dataset}/schema_mapping.json"
+    
     schema_dict = json.load(open(schema_path))
 
     path = f"{base_data_path}{method}/{datapath}.json"
