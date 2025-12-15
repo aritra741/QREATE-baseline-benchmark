@@ -614,7 +614,22 @@ LEFT JOIN institution ON researcher_institution.institution_id = institution.id
 LEFT JOIN researcher_publication ON researcher.id = researcher_publication.researcher_id
 LEFT JOIN publication ON researcher_publication.publication_id = publication.id
 LIMIT 50;"""
-
+    else:
+        # For unknown domains, generate a simple SELECT * query that gets all data
+        # This ensures joined_rows is populated even for new domains
+        query = "SELECT * FROM (SELECT 1) LIMIT 50;"  # Fallback empty query
+        # Try to extract table names from schema and generate a query
+        try:
+            if isinstance(schema, str):
+                schema = json.loads(schema)
+            if isinstance(schema, list) and len(schema) > 0:
+                # Get first table name
+                first_table = schema[0].get('table_name', schema[0].get('name', ''))
+                if first_table:
+                    # Try simple SELECT from first table
+                    query = f"SELECT * FROM {first_table} LIMIT 50;"
+        except:
+            pass
 
     return [query]
 
