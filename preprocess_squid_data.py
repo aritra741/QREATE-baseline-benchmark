@@ -351,6 +351,23 @@ def csv_row_to_document(row: pd.Series, schema_cols: List[Dict], llm_client=None
 def preprocess_llm_documents(dataset: str, entity: str, output_dir: Path, logger, 
                             llm_client=None, model_name: str = "") -> Dict[str, Any]:
     """Preprocess a single dataset/entity to generate LLM documents."""
+    
+    output_entity_dir = output_dir / dataset / entity
+    json_file = output_entity_dir / f"{entity}.json"
+    
+    # Skip if already generated
+    if json_file.exists():
+        logger.info(f"✓ LLM documents already exist for {dataset}/{entity}, skipping generation")
+        with open(json_file) as f:
+            data = json.load(f)
+        return {
+            "status": "completed",
+            "dataset": dataset,
+            "entity": entity,
+            "count": len(data),
+            "generation_errors": 0
+        }
+    
     logger.info(f"Generating LLM documents for {dataset}/{entity}...")
     
     if dataset not in DATA_PATHS or entity not in DATA_PATHS[dataset]:
