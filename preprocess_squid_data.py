@@ -529,8 +529,15 @@ def update_config_for_dataset(dataset: str, entity: str, squid_path: Path, logge
         # Update datapath for all stages
         for stage in ["schema_generation", "value_identification", "value_population", "database_generation", "baseline"]:
             if stage in config:
-                config[stage]["datapath"] = datapath.replace("/", f"/text_cot_qwen") if stage != "schema_generation" and stage != "baseline" else datapath
+                if stage == "schema_generation" or stage == "baseline":
+                    config[stage]["datapath"] = datapath
+                else:
+                    config[stage]["datapath"] = f"{datapath}/text_cot_qwen"
                 config[stage]["num_of_entries"] = num_entries
+                
+                # Update schema_path for database_generation
+                if stage == "database_generation":
+                    config[stage]["schema_path"] = f"results/schema_generation/{datapath}/text_direct_qwen_schema.json"
         
         # Write updated config
         with open(config_path, "w") as f:
