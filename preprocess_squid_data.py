@@ -462,9 +462,21 @@ def preprocess_llm_documents(dataset: str, entity: str, output_dir: Path, logger
 # SQUiD PIPELINE
 # ==============================================================================
 
-def run_squid_pipeline_step(step_name: str, args: list, squid_path: Path, logger) -> bool:
-    """Run a single step of the SQUiD pipeline."""
-    cmd = ["python", f"src/{step_name}.py"] + args
+def run_squid_pipeline_step(step_name: str, args: list, squid_path: Path, logger, is_helper: bool = False) -> bool:
+    """Run a single step of the SQUiD pipeline.
+    
+    Args:
+        step_name: Name of the step/script
+        args: Arguments to pass to the script
+        squid_path: Path to SQUiD directory
+        logger: Logger instance
+        is_helper: If True, script is in helpers/ directory, not src/
+    """
+    if is_helper:
+        cmd = ["python", f"helpers/{step_name}.py"] + args
+    else:
+        cmd = ["python", f"src/{step_name}.py"] + args
+    
     logger.info(f"[PIPELINE] Running: {' '.join(cmd)}")
     logger.debug(f"[PIPELINE] Working directory: {squid_path}")
     
@@ -559,7 +571,7 @@ def run_squid_pipeline(skip_pipeline: bool, logger) -> bool:
     
     # Step 5: Ensemble
     logger.info(f"\n[PIPELINE] Step 5: Ensemble")
-    if not run_squid_pipeline_step("helpers/ensemble", [], squid_path, logger):
+    if not run_squid_pipeline_step("ensemble", [], squid_path, logger, is_helper=True):
         logger.warning("[PIPELINE] Ensemble failed")
     
     logger.info("\n[PIPELINE] ✓ SQUiD Pipeline Complete")

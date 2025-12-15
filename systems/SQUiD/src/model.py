@@ -6,7 +6,12 @@ import logging
 import re
 import random
 import numpy as np
-from anthropic import Anthropic
+
+# Make anthropic import optional - only needed for claude models
+try:
+    from anthropic import Anthropic
+except ImportError:
+    Anthropic = None
 random.seed(42)
 np.random.seed(42)
 import transformers
@@ -45,6 +50,8 @@ class Model:
                 else:
                     raise ValueError(f"Model {llm} is not supported. Supported models are: {supported_models}")
             elif llm=="claude":
+                if Anthropic is None:
+                    raise ImportError("anthropic package is required for claude models. Install with: pip install anthropic")
                 self.client = Anthropic(api_key="")
 
                         
