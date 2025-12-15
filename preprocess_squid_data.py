@@ -553,8 +553,11 @@ def update_config_for_dataset(dataset: str, entity: str, squid_path: Path, logge
                     config[stage]["datapath"] = f"{datapath}/text_cot_qwen"
                 config[stage]["num_of_entries"] = num_entries
                 
-                # Update schema_path for database_generation
-                if stage == "database_generation":
+                # Update schema_path for stages that need it
+                # Schema generation creates: results/schema_generation/{datapath}/text_direct_qwen_schema.json
+                if stage == "value_identification":
+                    config[stage]["schema_path"] = f"results/schema_generation/{datapath}/text_direct_qwen.json"
+                elif stage == "database_generation":
                     config[stage]["schema_path"] = f"results/schema_generation/{datapath}/text_direct_qwen_schema.json"
         
         # Write updated config
