@@ -290,8 +290,31 @@ class ValueIdentificationPipeline:
         except:
             print("Error in parsing the output")
             output = []
-        print(output)
-        return output
+        
+        # Normalize triplets: ensure all have 'column_name', not variations like 'description'
+        normalized_output = []
+        for triplet in output:
+            if isinstance(triplet, dict):
+                normalized = {}
+                # Map common variations to standard keys
+                for key, value in triplet.items():
+                    if key in ['description', 'attribute', 'field', 'col_name', 'columnName']:
+                        normalized['column_name'] = value
+                    elif key == 'table' or key == 'tableName':
+                        normalized['table_name'] = value
+                    else:
+                        normalized[key] = value
+                
+                # Only add if it has the required keys
+                if 'table_name' in normalized and 'column_name' in normalized and 'value' in normalized:
+                    normalized_output.append(normalized)
+                else:
+                    print(f"Warning: Skipping malformed triplet: {triplet}")
+            else:
+                print(f"Warning: Skipping non-dict triplet: {triplet}")
+        
+        print(normalized_output)
+        return normalized_output
 
     def get_additional_triplets_llm(self, paragraph, existing_triplets, missing_items, schema):
         """
