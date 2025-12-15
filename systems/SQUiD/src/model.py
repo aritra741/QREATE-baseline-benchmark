@@ -22,8 +22,15 @@ import json
 from transformers import LlamaTokenizer, LlamaForCausalLM, AutoConfig
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import gc
-import mysql.connector
-from mysql.connector import Error
+
+# Make mysql optional - only needed if actually using MySQL backend
+try:
+    import mysql.connector
+    from mysql.connector import Error
+except ImportError:
+    mysql = None
+    Error = None
+
 import re
 from tabulate import tabulate
 from colorama import Fore, Style
