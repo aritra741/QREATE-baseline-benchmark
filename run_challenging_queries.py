@@ -1601,6 +1601,77 @@ class SQUiDRunner(SystemRunner):
         
         return metadata
     
+    def _build_database_from_ensemble(self, ensemble_data: List[Dict]) -> Optional[Any]:
+        """Build an in-memory SQLite database from SQUiD ensemble results.
+        
+        SQUiD ensemble output contains:
+        - db_name: identifier
+        - schema: list of table definitions
+        - joined_rows: data rows (usually empty in ensemble output)
+        - ground_truth_key_value: the actual ground truth data
+        
+        Returns a DuckDB connection with queryable tables.
+        """
+        try:
+            import duckdb
+            
+            # Create in-memory database
+            conn = duckdb.connect(":memory:")
+            
+            # Process each entry
+            for entry in ensemble_data:
+                if not entry.get("schema"):
+                    continue
+                
+                schema = entry["schema"]
+                if not isinstance(schema, list):
+                    continue
+                
+                # Create tables from schema
+                for table_def in schema:
+                    table_name = table_def.get("table_name", "unknown")
+                    columns = table_def.get("columns", [])
+                    
+                    if not columns:
+                        continue
+                    
+                    # Build CREATE TABLE statement
+                    col_defs = []
+                    for col in columns:
+                        col_name = col.get("name", "")
+                        col_type = col.get("type", "TEXT")
+                        
+                        # Map SQUiD types to SQL types
+                        sql_type = "INTEGER" if col_type == "INTEGER" else "TEXT"
+                        
+                        constraints = []
+                        if col.get("primary_key"):
+                            constraints.append("PRIMARY KEY")
+                        
+                        col_def = f"{col_name} {sql_type}"
+                        if constraints:
+                            col_def += " " + " ".join(constraints)
+                        
+                        col_defs.append(col_def)
+                    
+                    create_sql = f"CREATE TABLE IF NOT EXISTS {table_name} ({', '.join(col_defs)})"
+                    self.logger.debug(f"[SQUID] {create_sql}")
+                    
+                    try:
+                        conn.execute(create_sql)
+                    except Exception as e:
+                        self.logger.warning(f"[SQUID] Failed to create table {table_name}: {e}")
+            
+            self.logger.info(f"[SQUID] Created in-memory database with schema")
+            return conn
+            
+        except ImportError:
+            self.logger.warning("[SQUID] DuckDB not available, falling back to pandas")
+            return None
+        except Exception as e:
+            self.logger.error(f"[SQUID] Failed to build database: {e}")
+            return None
+    
     def run_query(self, query: Dict) -> Tuple[Optional[pd.DataFrame], Dict]:
         """Run a query using pre-computed SQUiD results."""
         query_id = query["id"]
@@ -1631,19 +1702,39 @@ class SQUiDRunner(SystemRunner):
                     metadata["end_time"] = datetime.now().isoformat()
                     return None, metadata
                 
-                # Cache the results
-                if isinstance(pipeline_results, list):
-                    self._results_cache[cache_key] = pd.DataFrame(pipeline_results)
-                elif isinstance(pipeline_results, dict) and "rows" in pipeline_results:
-                    self._results_cache[cache_key] = pd.DataFrame(pipeline_results["rows"])
+                # Convert to list if needed
+                if isinstance(pipeline_results, dict):
+                    pipeline_results = [pipeline_results]
+                elif not isinstance(pipeline_results, list):
+                    pipeline_results = [pipeline_results]
+                
+                # Build queryable database from ensemble data
+                db_conn = self._build_database_from_ensemble(pipeline_results)
+                
+                if db_conn is None:
+                    self.logger.warning("[SQUID] Could not build database, returning raw results")
+                    if isinstance(pipeline_results, list) and len(pipeline_results) > 0:
+                        self._results_cache[cache_key] = (None, pd.DataFrame(pipeline_results))
+                    else:
+                        self._results_cache[cache_key] = (None, pd.DataFrame(pipeline_results))
                 else:
-                    self._results_cache[cache_key] = pd.DataFrame(pipeline_results)
+                    self._results_cache[cache_key] = (db_conn, None)
             
-            result_df = self._results_cache[cache_key]
+            # Execute query if we have a database
+            db_conn, fallback_df = self._results_cache[cache_key]
+            
+            if db_conn is not None:
+                # Execute SQL query on database
+                self.logger.debug(f"[SQUID] Executing SQL: {sql}")
+                result_df = db_conn.execute(sql).fetch_df()
+                self.logger.info(f"[SQUID] Query {query_id}: {len(result_df)} rows from database query")
+            else:
+                # Fallback to raw results
+                result_df = fallback_df
+                self.logger.info(f"[SQUID] Query {query_id}: using fallback results ({len(result_df)} rows)")
             
             metadata["status"] = "completed"
             metadata["result_count"] = len(result_df) if result_df is not None else 0
-            self.logger.info(f"[SQUID] Query {query_id}: {len(result_df)} rows from pre-computed results")
             
         except Exception as e:
             self.logger.error(f"[SQUID] Query {query_id} failed: {e}")
