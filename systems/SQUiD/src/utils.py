@@ -279,18 +279,21 @@ def extract_schema(text):
     return string
     """
     patterns = [
-        r"```(?:json|python)?\s*schema\s*=\s*(\[[\s\S]*\])\s*```",
-        r"```(?:json|python)?\s*(\[[\s\S]*\])\s*```",
-        r"schema\s*=\s*(\[[\s\S]*\])",
+        r"```(?:json|python)?\s*schema\s*=\s*(\[[\s\S]*?\])\s*```",
+        r"```(?:json|python)?\s*(\[[\s\S]*?\])\s*```",
+        r"```(?:json|python)?\s*(\{[\s\S]*?\})\s*```",  # Handle dict in code blocks (wrap in list)
+        r"schema\s*=\s*(\[[\s\S]*?\])",
         r"[Ss]chema\s*[:=]\s*(\[[\s\S]*?\])",
         r"[Ss]chema\s*:\s*{\s*\"schema\"\s*:\s*(\[[\s\S]*?\])\s*}"
-
     ]
-    for pattern in patterns:
+    for idx, pattern in enumerate(patterns):
         match = re.search(pattern, text)
         if match:
-            match.group(1).replace("Schema: ", "")
-            return match.group(1)
+            extracted = match.group(1).replace("Schema: ", "")
+            # If pattern 2 (dict in code block), wrap in list
+            if idx == 2 and extracted.strip().startswith('{'):
+                extracted = f"[{extracted}]"
+            return extracted
     return None
 
 def extract_schema_with_repair(text):
