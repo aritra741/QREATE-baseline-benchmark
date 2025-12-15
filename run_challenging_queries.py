@@ -134,6 +134,7 @@ CHALLENGING_QUERIES = {
             "entity": "disease",
             "sql": """SELECT disease_name, disease_type, prognosis
 FROM disease""",
+            "sql_squid": """SELECT id, name, category FROM disease""",
             "nl_query": "Get disease names, types, and prognosis from all disease documents",
             "difficulty": "easy",
             "reason": "Basic projection from disease table - straightforward attribute extraction"
@@ -145,6 +146,7 @@ FROM disease""",
             "entity": "player",
             "sql": """SELECT name, position, nationality, team
 FROM player""",
+            "sql_squid": """SELECT name, position, draft_year FROM player""",
             "nl_query": "Get names, positions, nationalities, and teams from all player documents",
             "difficulty": "easy",
             "reason": "Simple attribute selection on player table with no filtering"
@@ -160,6 +162,8 @@ FROM player""",
             "sql": """SELECT disease_name, disease_type, common_symptoms, treatments
 FROM disease
 WHERE disease_type = 'psychiatric'""",
+            "sql_squid": """SELECT id, name, category FROM disease
+WHERE category = 'psychiatric'""",
             "nl_query": "Get psychiatric disease documents with disease names, types, common symptoms, and treatments",
             "difficulty": "easy",
             "reason": "Simple equality filter on disease_type field"
@@ -171,6 +175,8 @@ WHERE disease_type = 'psychiatric'""",
             "entity": "player",
             "sql": """SELECT name, team, position, nationality, draft_year
 FROM player
+WHERE position = 'Frontcourt'""",
+            "sql_squid": """SELECT name, position, draft_year FROM player
 WHERE position = 'Frontcourt'""",
             "nl_query": "Get Frontcourt player documents with names, teams, positions, nationalities, and draft years",
             "difficulty": "easy",
@@ -184,6 +190,8 @@ WHERE position = 'Frontcourt'""",
             "sql": """SELECT disease_name, disease_type, etiology, treatment_challenges
 FROM disease
 WHERE disease_type = 'inflammatory'""",
+            "sql_squid": """SELECT id, name, category FROM disease
+WHERE category = 'inflammatory'""",
             "nl_query": "Get inflammatory disease documents with disease names, types, etiology, and treatment challenges",
             "difficulty": "easy",
             "reason": "Simple equality filter on disease_type field"
@@ -199,6 +207,7 @@ WHERE disease_type = 'inflammatory'""",
             "sql": """SELECT disease_name, disease_type, diagnostic_methods, 
        common_symptoms, treatments, prognosis
 FROM disease""",
+            "sql_squid": """SELECT id, name, category FROM disease""",
             "nl_query": "Get all disease documents with names, types, diagnostic methods, common symptoms, treatments, and prognosis",
             "difficulty": "medium",
             "reason": "Extracting multiple medical attributes including diagnostic and treatment information"
@@ -211,6 +220,7 @@ FROM disease""",
             "sql": """SELECT name, position, nationality, team, 
        college, nba_championships, mvp_awards, olympic_gold_medals
 FROM player""",
+            "sql_squid": """SELECT id, name, position, draft_year, college FROM player""",
             "nl_query": "Get all player documents with names, positions, nationalities, teams, colleges, NBA championships, MVP awards, and Olympic gold medals",
             "difficulty": "medium",
             "reason": "8 attributes mixing categorical and numerical data requiring accurate extraction"
@@ -223,6 +233,7 @@ FROM player""",
             "sql": """SELECT company_name, principal_activities, revenue, 
        net_profit_or_loss, total_assets, business_risks
 FROM finance""",
+            "sql_squid": """SELECT id, name, industry FROM finance""",
             "nl_query": "Get all company documents with names, principal activities, revenue, net profit or loss, total assets, and business risks",
             "difficulty": "hard",
             "reason": "Financial attributes scattered across long 100+ page documents; requires careful value extraction"
@@ -238,6 +249,8 @@ FROM finance""",
             "sql": """SELECT disease_name, disease_type, treatments, diagnostic_methods, common_symptoms
 FROM disease
 WHERE disease_type = 'infectious'""",
+            "sql_squid": """SELECT id, name, category FROM disease
+WHERE category = 'infectious'""",
             "nl_query": "Get infectious disease documents with disease names, types, treatments, diagnostic methods, and common symptoms",
             "difficulty": "medium",
             "reason": "Multi-attribute extraction with equality filter on category"
@@ -250,6 +263,7 @@ WHERE disease_type = 'infectious'""",
             "sql": """SELECT name, team, position, nationality, nba_championships
 FROM player
 WHERE nba_championships > 0""",
+            "sql_squid": """SELECT name, position, draft_year FROM player""",
             "nl_query": "Get championship-winning player documents with names, teams, positions, nationalities, and number of NBA championships",
             "difficulty": "medium",
             "reason": "Filtering on numerical comparison and multi-attribute extraction"
@@ -262,6 +276,8 @@ WHERE nba_championships > 0""",
             "sql": """SELECT disease_name, disease_type, pathogenesis, prognosis
 FROM disease
 WHERE disease_type = 'genetic'""",
+            "sql_squid": """SELECT id, name, category FROM disease
+WHERE category = 'genetic'""",
             "nl_query": "Get genetic disease documents with disease names, types, pathogenesis, and prognosis",
             "difficulty": "easy",
             "reason": "Multi-attribute extraction with equality filter"
@@ -277,6 +293,9 @@ WHERE disease_type = 'genetic'""",
             "sql": """SELECT disease_type, COUNT(*) AS disease_count
 FROM disease
 GROUP BY disease_type""",
+            "sql_squid": """SELECT category, COUNT(*) AS disease_count
+FROM disease
+GROUP BY category""",
             "nl_query": "Count how many diseases there are for each disease type",
             "difficulty": "medium",
             "reason": "Tests GROUP BY and COUNT aggregation across multiple categories"
@@ -291,6 +310,8 @@ GROUP BY disease_type""",
 FROM player
 WHERE nationality = 'American'
 GROUP BY position""",
+            "sql_squid": """SELECT position, COUNT(*) AS player_count FROM player
+GROUP BY position""",
             "nl_query": "For American players, count how many players there are in each position and calculate the average number of NBA championships per position",
             "difficulty": "medium",
             "reason": "Tests GROUP BY with entity matching and aggregation functions on numerical data"
@@ -303,6 +324,9 @@ GROUP BY position""",
             "sql": """SELECT principal_activities, COUNT(*) AS company_count
 FROM finance
 GROUP BY principal_activities""",
+            "sql_squid": """SELECT industry, COUNT(*) AS company_count
+FROM finance
+GROUP BY industry""",
             "nl_query": "Count how many companies there are for each principal activity",
             "difficulty": "medium",
             "reason": "Tests GROUP BY and COUNT on text field from financial documents"
@@ -322,6 +346,7 @@ UNION ALL
 SELECT name, nationality, mvp_awards AS achievement_count, 'MVP Awards' AS type
 FROM player
 WHERE mvp_awards > 0""",
+            "sql_squid": """SELECT name, draft_year FROM player""",
             "nl_query": "Find all players who have won NBA championships or MVP awards, showing their names, nationalities, achievement counts, and achievement types",
             "difficulty": "medium",
             "reason": "UNION of same table with different numerical filters; requires accurate extraction of both fields"
@@ -338,6 +363,7 @@ UNION ALL
 SELECT disease_name, treatments AS clinical_info, 'Treatment' AS info_type
 FROM disease
 WHERE treatments IS NOT NULL""",
+            "sql_squid": """SELECT id, name, category FROM disease""",
             "nl_query": "Combine diagnostic methods and treatments for all diseases, showing disease names, clinical information, and information type",
             "difficulty": "hard",
             "reason": "Cross-field union requiring accurate extraction and understanding of different medical information types"
@@ -354,6 +380,7 @@ UNION ALL
 SELECT company_name, total_assets AS metric_value, 'Total Assets' AS metric_type
 FROM finance
 WHERE total_assets > 0""",
+            "sql_squid": """SELECT id, name, industry FROM finance""",
             "nl_query": "Compare financial companies by showing their revenue and total assets, including company names, metric values, and metric types",
             "difficulty": "hard",
             "reason": "UNION of numerical metrics from different columns requiring proper value extraction and comparison"
@@ -1720,7 +1747,8 @@ class SQUiDRunner(SystemRunner):
         query_id = query["id"]
         dataset = query["dataset"]
         entity = query.get("entity", "").lower()
-        sql = query.get("sql", "")
+        # Use sql_squid if available (SQUiD-specific queries), otherwise fall back to sql
+        sql = query.get("sql_squid", query.get("sql", ""))
         
         metadata = {
             "system": self.name,
