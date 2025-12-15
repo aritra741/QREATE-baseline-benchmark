@@ -1515,19 +1515,37 @@ class SQUiDRunner(SystemRunner):
         Results should be pre-computed and saved during preprocessing.
         """
         try:
-            # Results saved by pipeline preprocessing
-            # Try multiple possible locations based on SQUiD output structure
+            # Results saved by pipeline preprocessing in ensemble directory
+            # The ensemble combines results from TS, TST, TST-L methods
+            ensemble_path = (
+                self.squid_path / "results" / "database_generation" / "ensemble" / 
+                "TS_TST_TST-L" / dataset / entity / "text_direct_ollama.json"
+            )
+            
+            if ensemble_path.exists():
+                self.logger.debug(f"[SQUID] Loading ensemble results from {ensemble_path}")
+                with open(ensemble_path, "r") as f:
+                    return json.load(f)
+            
+            # Fallback: try other possible locations
             possible_paths = [
-                self.squid_path / "results" / "database_generation" / "ensemble" / f"{dataset}_{entity}.json",
-                self.squid_path / "results" / "database_generation" / "TS" / f"{dataset}_{entity}.json",
+                self.squid_path / "results" / "database_generation" / "TS" / dataset / entity / "text_direct_ollama.json",
+                self.squid_path / "results" / "database_generation" / "TST" / dataset / entity / "text_direct_ollama.json",
                 PROJECT_ROOT / "preprocess_squid" / dataset / entity / "pipeline_results.json",
             ]
             
             for result_path in possible_paths:
                 if result_path.exists():
-                    self.logger.debug(f"[SQUID] Loading results from {result_path}")
+                    self.logger.debug(f"[SQUID] Loading results from fallback path: {result_path}")
                     with open(result_path, "r") as f:
                         return json.load(f)
+            
+            # Log available paths for debugging
+            self.logger.debug(f"[SQUID] Checked primary path: {ensemble_path}")
+            self.logger.debug(f"[SQUID] Ensemble directory exists: {ensemble_path.parent.parent.exists()}")
+            if ensemble_path.parent.parent.exists():
+                available_entities = list(ensemble_path.parent.parent.iterdir())
+                self.logger.debug(f"[SQUID] Available entities in ensemble: {[e.name for e in available_entities]}")
             
             return None
             
