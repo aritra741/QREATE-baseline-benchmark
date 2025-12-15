@@ -29,6 +29,7 @@ import sys
 import pandas as pd
 import pickle
 import subprocess
+import traceback
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Optional, Any, Tuple
@@ -465,22 +466,38 @@ def run_squid_pipeline_step(step_name: str, args: list, squid_path: Path, logger
     """Run a single step of the SQUiD pipeline."""
     cmd = ["python", f"src/{step_name}.py"] + args
     logger.info(f"[PIPELINE] Running: {' '.join(cmd)}")
+    logger.debug(f"[PIPELINE] Working directory: {squid_path}")
     
     try:
-        result = subprocess.run(cmd, cwd=squid_path, capture_output=True, text=True, timeout=600)
+        # Create environment with PYTHONPATH set to squid_path/src
+        env = os.environ.copy()
+        env["PYTHONPATH"] = f"{squid_path}/src:{env.get('PYTHONPATH', '')}"
+        
+        result = subprocess.run(
+            cmd, 
+            cwd=str(squid_path),  # Convert to string to ensure path is correct
+            capture_output=True, 
+            text=True, 
+            timeout=600,
+            env=env
+        )
+        
         if result.returncode == 0:
             logger.info(f"[PIPELINE] ✓ {step_name} completed successfully")
             return True
         else:
             logger.error(f"[PIPELINE] ✗ {step_name} failed with return code {result.returncode}")
             if result.stderr:
-                logger.error(f"[PIPELINE] stderr: {result.stderr[-500:]}")
+                logger.error(f"[PIPELINE] stderr: {result.stderr[-1000:]}")  # Increased to 1000 chars
+            if result.stdout:
+                logger.debug(f"[PIPELINE] stdout: {result.stdout[-500:]}")
             return False
     except subprocess.TimeoutExpired:
         logger.error(f"[PIPELINE] ✗ {step_name} timed out (>600s)")
         return False
     except Exception as e:
         logger.error(f"[PIPELINE] ✗ {step_name} error: {e}")
+        logger.error(f"[PIPELINE] Traceback:\n{traceback.format_exc()}")
         return False
 
 
