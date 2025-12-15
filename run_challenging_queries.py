@@ -1755,15 +1755,19 @@ class SQUiDRunner(SystemRunner):
                 
                 if db_conn is None:
                     self.logger.warning("[SQUID] Could not build database, returning raw results")
-                    if isinstance(pipeline_results, list) and len(pipeline_results) > 0:
-                        self._results_cache[cache_key] = (None, pd.DataFrame(pipeline_results))
-                    else:
-                        self._results_cache[cache_key] = (None, pd.DataFrame(pipeline_results))
+                    self._results_cache[cache_key] = (None, pd.DataFrame(pipeline_results), pipeline_results)
                 else:
-                    self._results_cache[cache_key] = (db_conn, None)
+                    self._results_cache[cache_key] = (db_conn, None, pipeline_results)
             
             # Execute query if we have a database
-            db_conn, fallback_df = self._results_cache[cache_key]
+            # Cache now includes pipeline_results as third element
+            cache_entry = self._results_cache[cache_key]
+            if len(cache_entry) == 3:
+                db_conn, fallback_df, pipeline_results = cache_entry
+            else:
+                # Backward compatibility with old 2-tuple cache format
+                db_conn, fallback_df = cache_entry
+                pipeline_results = []
             
             if db_conn is not None:
                 try:
