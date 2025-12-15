@@ -532,42 +532,72 @@ def run_squid_pipeline_step(step_name: str, args: list, squid_path: Path, logger
 
 
 def update_config_for_dataset(dataset: str, entity: str, squid_path: Path, logger) -> bool:
-    """Update config.yaml for processing a specific dataset/entity."""
+    """Update config.yaml for processing a specific dataset/entity with deterministic paths."""
     try:
         import yaml
         
         config_path = squid_path / "configs" / "config.yaml"
         datapath = f"{dataset}/{entity}"
-        num_entries = 100  # Default, adjust as needed
+        num_entries = 100
+        
+        # Deterministic file naming based on pipeline parameters
+        # schema_generation with --method text --prompt_type direct --model_name qwen creates:
+        METHOD = "text"
+        PROMPT_TYPE = "direct"
+        MODEL_NAME = "qwen"
+        
+        schema_file_base = f"{METHOD}_{PROMPT_TYPE}_{MODEL_NAME}"
         
         # Read current config
         with open(config_path, "r") as f:
             config = yaml.safe_load(f)
         
-        # Update datapath for all stages
-        for stage in ["schema_generation", "value_identification", "value_population", "database_generation", "baseline"]:
-            if stage in config:
-                if stage == "schema_generation" or stage == "baseline":
-                    config[stage]["datapath"] = datapath
-                else:
-                    config[stage]["datapath"] = f"{datapath}/text_cot_qwen"
-                config[stage]["num_of_entries"] = num_entries
-                
-                # Update schema_path for stages that need it
-                # Schema generation creates: results/schema_generation/{datapath}/text_direct_qwen_schema.json
-                if stage == "value_identification":
-                    config[stage]["schema_path"] = f"results/schema_generation/{datapath}/text_direct_qwen.json"
-                elif stage == "database_generation":
-                    config[stage]["schema_path"] = f"results/schema_generation/{datapath}/text_direct_qwen_schema.json"
+        # Update all stages with deterministic paths
+        if "schema_generation" in config:
+            config["schema_generation"]["datapath"] = datapath
+            config["schema_generation"]["num_of_entries"] = num_entries
+            config["schema_generation"]["model_name"] = MODEL_NAME
+            config["schema_generation"]["method"] = METHOD
+            config["schema_generation"]["prompt_type"] = PROMPT_TYPE
+        
+        if "value_identification" in config:
+            config["value_identification"]["datapath"] = f"{datapath}/text_cot_{MODEL_NAME}"
+            config["value_identification"]["num_of_entries"] = num_entries
+            config["value_identification"]["model_name"] = MODEL_NAME
+            # Exact path to schema file created by schema_generation
+            config["value_identification"]["schema_path"] = f"results/schema_generation/{datapath}/{schema_file_base}.json"
+        
+        if "value_population" in config:
+            config["value_population"]["datapath"] = f"{datapath}/text_cot_{MODEL_NAME}"
+            config["value_population"]["num_of_entries"] = num_entries
+            config["value_population"]["model_name"] = MODEL_NAME
+            # Symbolic results path
+            config["value_population"]["symbolic_path"] = f"results/value_identification/symbolic/{datapath}/result.json"
+        
+        if "database_generation" in config:
+            config["database_generation"]["datapath"] = f"{datapath}/text_cot_{MODEL_NAME}"
+            config["database_generation"]["num_of_entries"] = num_entries
+            config["database_generation"]["model_name"] = MODEL_NAME
+            # Exact path to schema mapping file
+            config["database_generation"]["schema_path"] = f"results/schema_generation/{datapath}/{schema_file_base}_schema.json"
+        
+        if "baseline" in config:
+            config["baseline"]["datapath"] = datapath
+            config["baseline"]["num_of_entries"] = num_entries
+            config["baseline"]["model_name"] = MODEL_NAME
         
         # Write updated config
         with open(config_path, "w") as f:
-            yaml.dump(config, f)
+            yaml.dump(config, f, default_flow_style=False)
         
         logger.info(f"[PIPELINE] Updated config for {dataset}/{entity}")
+        logger.debug(f"[PIPELINE] Schema file: results/schema_generation/{datapath}/{schema_file_base}.json")
+        logger.debug(f"[PIPELINE] Schema mapping: results/schema_generation/{datapath}/{schema_file_base}_schema.json")
         return True
+        
     except Exception as e:
         logger.error(f"[PIPELINE] Failed to update config: {e}")
+        logger.error(f"[PIPELINE] Traceback:\n{traceback.format_exc()}")
         return False
 
 
