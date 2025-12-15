@@ -421,6 +421,24 @@ def preprocess_llm_documents(dataset: str, entity: str, output_dir: Path, logger
     
     logger.info(f"Saved {len(documents)} documents to {docs_dir}")
     
+    # Create SQUiD-compatible JSON format
+    squid_format_data = []
+    for idx, (doc, gt) in enumerate(zip(documents, ground_truth)):
+        squid_entry = {
+            "text": doc,
+            "ground_truth_entities": [entity],  # Entity this document belongs to
+            "ground_truth_key_value": gt,  # The CSV row as key-value pairs
+            "domain": dataset,
+            "difficulty": "medium"  # Default difficulty
+        }
+        squid_format_data.append(squid_entry)
+    
+    # Save in SQUiD-compatible format at the location SQUiD expects
+    # SQUiD looks for: ../../preprocess_squid/{dataset}/{entity}.json
+    squid_json_path = output_dir / dataset / f"{entity}.json"
+    dump_json(squid_format_data, squid_json_path)
+    logger.info(f"Saved SQUiD-compatible JSON to {squid_json_path}")
+    
     consolidated_data = {
         "dataset": dataset,
         "entity": entity,
