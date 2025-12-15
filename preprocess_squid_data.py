@@ -354,17 +354,17 @@ def preprocess_llm_documents(dataset: str, entity: str, output_dir: Path, logger
     
     output_entity_dir = output_dir / dataset / entity
     json_file = output_entity_dir / f"{entity}.json"
+    docs_dir = output_entity_dir / "documents"
     
-    # Skip if already generated
-    if json_file.exists():
-        logger.info(f"✓ LLM documents already exist for {dataset}/{entity}, skipping generation")
-        with open(json_file) as f:
-            data = json.load(f)
+    # Skip if documents directory already exists and has files
+    if docs_dir.exists() and any(docs_dir.glob("doc_*.txt")):
+        logger.info(f"✓ LLM documents already exist for {dataset}/{entity} (found {len(list(docs_dir.glob('doc_*.txt')))} docs), skipping generation")
+        # Return success even if JSON doesn't exist - it will be created by SQUiD steps
         return {
-            "status": "completed",
+            "status": "skipped",
             "dataset": dataset,
             "entity": entity,
-            "count": len(data),
+            "count": len(list(docs_dir.glob("doc_*.txt"))),
             "generation_errors": 0
         }
     
