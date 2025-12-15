@@ -1602,15 +1602,13 @@ class SQUiDRunner(SystemRunner):
         return metadata
     
     def _build_database_from_ensemble(self, ensemble_data: List[Dict]) -> Optional[Any]:
-        """Build an in-memory SQLite database from SQUiD ensemble results.
+        """Build an in-memory DuckDB database from SQUiD ensemble results.
         
-        SQUiD ensemble output contains:
-        - db_name: identifier
-        - schema: list of table definitions
-        - joined_rows: data rows (usually empty in ensemble output)
-        - ground_truth_key_value: the actual ground truth data
+        SQUiD pipeline outputs joined_rows which are the denormalized results of joining
+        all tables across the schema. These are the actual data extracted and populated
+        by the SQUiD pipeline, ready to be queried.
         
-        Returns a DuckDB connection with queryable tables.
+        Returns a DuckDB connection with queryable denormalized tables.
         """
         try:
             import duckdb
@@ -1618,55 +1616,44 @@ class SQUiDRunner(SystemRunner):
             # Create in-memory database
             conn = duckdb.connect(":memory:")
             
-            # Process each entry
-            for entry in ensemble_data:
-                if not entry.get("schema"):
-                    continue
-                
-                schema = entry["schema"]
-                if not isinstance(schema, list):
-                    continue
-                
-                # Create tables from schema
-                for table_def in schema:
-                    table_name = table_def.get("table_name", "unknown")
-                    columns = table_def.get("columns", [])
-                    
-                    if not columns:
-                        continue
-                    
-                    # Build CREATE TABLE statement
-                    col_defs = []
-                    for col in columns:
-                        col_name = col.get("name", "")
-                        col_type = col.get("type", "TEXT")
-                        
-                        # Map SQUiD types to SQL types
-                        sql_type = "INTEGER" if col_type == "INTEGER" else "TEXT"
-                        
-                        constraints = []
-                        if col.get("primary_key"):
-                            constraints.append("PRIMARY KEY")
-                        
-                        col_def = f"{col_name} {sql_type}"
-                        if constraints:
-                            col_def += " " + " ".join(constraints)
-                        
-                        col_defs.append(col_def)
-                    
-                    create_sql = f"CREATE TABLE IF NOT EXISTS {table_name} ({', '.join(col_defs)})"
-                    self.logger.debug(f"[SQUID] {create_sql}")
-                    
-                    try:
-                        conn.execute(create_sql)
-                    except Exception as e:
-                        self.logger.warning(f"[SQUID] Failed to create table {table_name}: {e}")
+            # Each entry in ensemble_data represents one document's extracted data
+            # joined_rows contains the denormalized rows from that document
+            table_count = 0
+            row_count = 0
             
-            self.logger.info(f"[SQUID] Created in-memory database with schema")
+            for idx, entry in enumerate(ensemble_data):
+                joined_rows = entry.get("joined_rows", [])
+                
+                if not joined_rows or len(joined_rows) == 0:
+                    self.logger.debug(f"[SQUID] Entry {idx}: No joined_rows data")
+                    continue
+                
+                db_name = entry.get("db_name", f"result_{idx}")
+                domain = entry.get("domain", "data")
+                
+                # Create a table for this entry's denormalized data
+                table_name = f"{domain}_{idx}"
+                
+                try:
+                    # Register joined_rows as a table in DuckDB
+                    # DuckDB can directly query Python dicts/lists
+                    import pandas as pd
+                    df = pd.DataFrame(joined_rows)
+                    conn.register(table_name, df)
+                    
+                    row_count += len(joined_rows)
+                    table_count += 1
+                    self.logger.debug(f"[SQUID] Created table {table_name} with {len(joined_rows)} rows, {len(df.columns)} columns")
+                    
+                except Exception as e:
+                    self.logger.warning(f"[SQUID] Failed to register table for entry {idx}: {e}")
+                    continue
+            
+            self.logger.info(f"[SQUID] Built in-memory database with {table_count} tables, {row_count} total rows")
             return conn
             
         except ImportError:
-            self.logger.warning("[SQUID] DuckDB not available, falling back to pandas")
+            self.logger.warning("[SQUID] DuckDB or pandas not available")
             return None
         except Exception as e:
             self.logger.error(f"[SQUID] Failed to build database: {e}")
@@ -1724,10 +1711,19 @@ class SQUiDRunner(SystemRunner):
             db_conn, fallback_df = self._results_cache[cache_key]
             
             if db_conn is not None:
-                # Execute SQL query on database
-                self.logger.debug(f"[SQUID] Executing SQL: {sql}")
-                result_df = db_conn.execute(sql).fetch_df()
-                self.logger.info(f"[SQUID] Query {query_id}: {len(result_df)} rows from database query")
+                try:
+                    # Execute SQL query on database
+                    self.logger.debug(f"[SQUID] Executing SQL: {sql}")
+                    result_df = db_conn.execute(sql).fetch_df()
+                    self.logger.info(f"[SQUID] Query {query_id}: {len(result_df)} rows from database query")
+                except Exception as query_error:
+                    # If query fails (e.g., table/column not found), log and try fallback
+                    self.logger.warning(f"[SQUID] Query execution failed: {query_error}")
+                    if fallback_df is not None and len(fallback_df) > 0:
+                        result_df = fallback_df
+                        self.logger.info(f"[SQUID] Query {query_id}: using fallback results ({len(result_df)} rows)")
+                    else:
+                        raise
             else:
                 # Fallback to raw results
                 result_df = fallback_df

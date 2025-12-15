@@ -736,6 +736,47 @@ def generate_mysql_for_all_entries(config):
             continue
         entry['join_query'] = generate_intermediate_queries(schema, entry['domain'], method)
         entry['db_name'] = f"{entry['domain']}_{idx}"
+        
+        # Execute join query to get joined_rows
+        try:
+            db_path = f"databases/{datapath}/{method}/{entry['db_name']}.db"
+            if os.path.exists(db_path):
+                conn = sqlite3.connect(db_path)
+                cursor = conn.cursor()
+                
+                # Get the join query (it returns a list, take the first one)
+                join_queries = entry['join_query']
+                if join_queries and len(join_queries) > 0:
+                    query = join_queries[0]
+                    try:
+                        cursor.execute(query)
+                        rows = cursor.fetchall()
+                        
+                        # Get column names
+                        col_names = [description[0] for description in cursor.description]
+                        
+                        # Convert rows to list of dicts
+                        joined_rows = []
+                        for row in rows:
+                            row_dict = dict(zip(col_names, row))
+                            joined_rows.append(row_dict)
+                        
+                        entry['joined_rows'] = joined_rows
+                        print(f"Entry {idx}: Extracted {len(joined_rows)} rows from join query")
+                    except Exception as e:
+                        print(f"Error executing join query for entry {idx}: {e}")
+                        entry['joined_rows'] = []
+                else:
+                    entry['joined_rows'] = []
+                
+                conn.close()
+            else:
+                print(f"Database file not found: {db_path}")
+                entry['joined_rows'] = []
+        except Exception as e:
+            print(f"Error getting joined_rows for entry {idx}: {e}")
+            entry['joined_rows'] = []
+        
         updated_json.append(entry)
 
 
