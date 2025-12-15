@@ -752,17 +752,19 @@ def generate_mysql_for_all_entries(config):
                         cursor.execute(query)
                         rows = cursor.fetchall()
                         
-                        # Get column names
-                        col_names = [description[0] for description in cursor.description]
-                        
-                        # Convert rows to list of dicts
+                        # Get column names - handle case where cursor.description is None
                         joined_rows = []
-                        for row in rows:
-                            row_dict = dict(zip(col_names, row))
-                            joined_rows.append(row_dict)
+                        if cursor.description:
+                            col_names = [description[0] for description in cursor.description]
+                            
+                            # Convert rows to list of dicts
+                            for row in rows:
+                                row_dict = dict(zip(col_names, row))
+                                joined_rows.append(row_dict)
                         
                         entry['joined_rows'] = joined_rows
-                        print(f"Entry {idx}: Extracted {len(joined_rows)} rows from join query")
+                        if len(joined_rows) > 0:
+                            print(f"Entry {idx}: Extracted {len(joined_rows)} rows from join query")
                     except Exception as e:
                         print(f"Error executing join query for entry {idx}: {e}")
                         entry['joined_rows'] = []
