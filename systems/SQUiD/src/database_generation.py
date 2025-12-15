@@ -629,8 +629,13 @@ def generate_mysql_for_all_entries(config):
     model_name = config['model_name']
     datapath_from_config = config['datapath']
     
-    # Extract dataset from datapath (e.g., "Med/disease" -> "Med/disease")
-    dataset = datapath_from_config.replace("/text_cot_qwen", "") if "/text_cot_qwen" in datapath_from_config else datapath_from_config
+    # Extract dataset from datapath (e.g., "Med/disease/text_direct_ollama" -> "Med/disease")
+    # Handle both old format (text_cot_qwen) and new format (text_direct_ollama)
+    dataset = datapath_from_config
+    for suffix in ["/text_cot_qwen", "/text_cot_ollama", "/text_direct_qwen", "/text_direct_ollama"]:
+        if suffix in dataset:
+            dataset = dataset.replace(suffix, "")
+            break
 
     parser = argparse.ArgumentParser(description="Evaluate database generation.")
     parser.add_argument("--method", type=str, required=False, help="Method used for database generation.")
@@ -652,7 +657,9 @@ def generate_mysql_for_all_entries(config):
     if 'schema_path' in config and config['schema_path']:
         schema_path = config['schema_path']
     else:
-        schema_path = f"results/schema_generation/{dataset}/text_direct_qwen_schema.json"
+        # Use ollama as default model name if not specified
+        default_model = model_name if model_name else "ollama"
+        schema_path = f"results/schema_generation/{dataset}/text_direct_{default_model}_schema.json"
     
     # Handle both old path format and new
     if not os.path.exists(schema_path):

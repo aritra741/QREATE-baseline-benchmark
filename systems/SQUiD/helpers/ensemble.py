@@ -1,9 +1,11 @@
 import os
 import json
 from collections import defaultdict
+import sys
 
 # Directory to search for input files
 root_dir = 'results/database_generation'
+
 # Support all UDA-Bench datasets and entities
 datapaths = [
     'Med/disease', 'Med/drug', 'Med/institution',
@@ -12,7 +14,9 @@ datapaths = [
     'Legal/legal_case',
     'Finan/finance'
 ]
-model_names = ['qwen', 'llama', 'claude', 'openai', 'deepseek']
+
+# Model names - use ollama as that's what we're using
+model_names = ['ollama']
 
 # current_ensemble_combo = ['TS', 'TST']
 # current_ensemble_combo = ['TS', 'TST-L']
@@ -21,17 +25,27 @@ ensemble_name = ""
 for item in current_ensemble_combo:
     ensemble_name += item + "_"
 ensemble_name = ensemble_name[:-1]  # Remove the last underscore
+
 # model name and datapath name has to be same for each ensemble
 for datapath in datapaths:
     for model_name in model_names:
-        output_path = f"results/database_generation/ensemble/{ensemble_name}/{datapath}/text_cot_{model_name}.json"
+        # Use text_direct_ollama as the file naming convention
+        output_path = f"results/database_generation/ensemble/{ensemble_name}/{datapath}/text_direct_{model_name}.json"
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        
         # Temporary dictionary to accumulate rows and ground truth by db_name
         temp_data = defaultdict(lambda: {'joined_rows': [], 'ground_truth_key_value': None, 'schema': None, 'domain': None})
+        
         for method in current_ensemble_combo:
-            file_path = f"results/database_generation/{method}/{datapath}/text_cot_{model_name}.json"
-            with open(file_path, 'r') as f:
-                try:
+            # Check for both possible file naming formats for backward compatibility
+            file_path = f"results/database_generation/{method}/{datapath}/text_direct_{model_name}.json"
+            
+            if not os.path.exists(file_path):
+                print(f"Warning: {file_path} not found, skipping...")
+                continue
+                
+            try:
+                with open(file_path, 'r') as f:
                     data = json.load(f)
                     for entry in data:
                         db_name = entry.get('db_name')
@@ -49,10 +63,12 @@ for datapath in datapaths:
                                 temp_data[db_name]['schema'] = schema
                             if domain and temp_data[db_name]['domain'] is None:
                                 temp_data[db_name]['domain'] = domain
-                except json.JSONDecodeError as e:
-                    print(f"Skipping {file_path} due to JSON error: {e}")
+            except json.JSONDecodeError as e:
+                print(f"Skipping {file_path} due to JSON error: {e}")
+            except FileNotFoundError:
+                print(f"Skipping {file_path} - file not found")
 
-            # Convert temp_data to list of dicts
+        # Convert temp_data to list of dicts
         merged_data = [
             {
                 'db_name': db_name,
