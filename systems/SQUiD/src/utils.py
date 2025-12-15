@@ -293,6 +293,8 @@ def extract_schema(text):
             # If pattern 2 (dict in code block), wrap in list
             if idx == 2 and extracted.strip().startswith('{'):
                 extracted = f"[{extracted}]"
+            # Convert JSON booleans to Python booleans for eval()
+            extracted = extracted.replace(': true', ': True').replace(': false', ': False').replace(': null', ': None')
             return extracted
     return None
 
