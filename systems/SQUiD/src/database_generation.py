@@ -583,6 +583,88 @@ LIMIT 50;
 FROM age_record
 JOIN person ON age_record.person_id = person.id
 LIMIT 50;"""
+    elif domain == "Player" or "player" in domain.lower():
+        # Player domain: join player with achievements and draft info
+        query = """SELECT
+  player.id AS player_id,
+  player.name AS player_name,
+  player.draft_year,
+  player.college,
+  player.position,
+  
+  achievement.id AS achievement_id,
+  achievement.nba_championships,
+  achievement.mvp_awards,
+  achievement.olympic_gold_medals,
+  
+  draft.id AS draft_id,
+  draft.year AS draft_year_info,
+  
+  team.id AS team_id,
+  team.name AS team_name
+
+FROM player
+LEFT JOIN achievement ON player.id = achievement.player_id
+LEFT JOIN draft ON player.id = draft.player_id
+LEFT JOIN team ON 1=1
+LIMIT 100;
+"""
+    elif domain == "Med" or "disease" in domain.lower() or "drug" in domain.lower():
+        # Medical domain: join disease/drug with symptoms, treatments, causes
+        query = """SELECT
+  disease.id AS disease_id,
+  disease.name AS disease_name,
+  disease.category AS disease_category,
+  
+  symptom.id AS symptom_id,
+  symptom.description AS symptom_description,
+  
+  treatment.id AS treatment_id,
+  treatment.method AS treatment_method,
+  
+  causes.id AS cause_id,
+  causes.description AS cause_description,
+  
+  treatment_challenges.id AS challenge_id,
+  treatment_challenges.description AS challenge_description
+
+FROM disease
+LEFT JOIN symptom ON disease.id = symptom.disease_id
+LEFT JOIN treatment ON disease.id = treatment.disease_id
+LEFT JOIN causes ON disease.id = causes.disease_id
+LEFT JOIN treatment_challenges ON disease.id = treatment_challenges.disease_id
+LIMIT 100;
+"""
+    elif domain == "Finan" or "finance" in domain.lower():
+        # Financial domain: join company with revenue, profit, assets, risk
+        query = """SELECT
+  company.id AS company_id,
+  company.name AS company_name,
+  company.industry,
+  
+  financial_year.id AS fy_id,
+  financial_year.year,
+  
+  revenue.id AS revenue_id,
+  revenue.amount AS revenue_amount,
+  
+  net_profit.id AS profit_id,
+  net_profit.amount AS profit_amount,
+  
+  assets.id AS assets_id,
+  assets.amount AS assets_amount,
+  
+  risk.id AS risk_id,
+  risk.risk_type
+
+FROM company
+LEFT JOIN revenue ON company.id = revenue.company_id
+LEFT JOIN net_profit ON company.id = net_profit.company_id
+LEFT JOIN assets ON company.id = assets.company_id
+LEFT JOIN risk ON company.id = risk.company_id
+LEFT JOIN financial_year ON 1=1
+LIMIT 100;
+"""
     elif domain == "authors":
         query = """SELECT
     researcher.id AS researcher_id,
@@ -615,94 +697,21 @@ LEFT JOIN researcher_publication ON researcher.id = researcher_publication.resea
 LEFT JOIN publication ON researcher_publication.publication_id = publication.id
 LIMIT 50;"""
     else:
-        # For unknown domains, generate a JOIN query dynamically from the schema
-        # This follows SQUiD's design: flatten all related tables into denormalized view
+        # For any other domain not explicitly handled above, use a simple SELECT from primary table
+        # This is a safe fallback
         query = None
         try:
             if isinstance(schema, str):
                 schema = json.loads(schema)
             if isinstance(schema, list) and len(schema) > 0:
-                # Generate a JOIN query that combines all tables
-                # Assume first table is the central entity
                 primary_table = schema[0].get('table_name', schema[0].get('name', ''))
                 if primary_table:
-                    # Start with primary table and SELECT all its columns
-                    select_parts = [f"{primary_table}.*"]
-                    from_clause = primary_table
-                    join_clauses = []
-                    
-                    # For each related table, try to join on foreign keys
-                    for i in range(1, len(schema)):
-                        related_table = schema[i].get('table_name', schema[i].get('name', ''))
-                        if not related_table:
-                            continue
-                        
-                        # Select all columns from related table with alias to avoid duplicates
-                        select_parts.append(f"{related_table}.*")
-                        
-                        # Try to find foreign key relationship
-                        # Look for a column in related_table that references primary_table
-                        columns = schema[i].get('columns', [])
-                        fk_found = False
-                        
-                        for col in columns:
-                            if isinstance(col, dict):
-                                if col.get('foreign_key'):
-                                    fk_table = col.get('foreign_key_table', '')
-                                    fk_column = col.get('foreign_key_column', '')
-                                    if fk_table == primary_table:
-                                        # Found a foreign key to primary table
-                                        col_name = col.get('name', '')
-                                        join_clauses.append(
-                                            f"LEFT JOIN {related_table} ON {primary_table}.id = {related_table}.{col_name}"
-                                        )
-                                        fk_found = True
-                                        break
-                        
-                        # If no FK found, try to infer join on common patterns
-                        if not fk_found:
-                            # Try common naming patterns: primary_table_id, {primary_table}_id
-                            for col in columns:
-                                if isinstance(col, dict):
-                                    col_name = col.get('name', '').lower()
-                                    if f"{primary_table}_id" in col_name or f"{primary_table}id" in col_name:
-                                        join_clauses.append(
-                                            f"LEFT JOIN {related_table} ON {primary_table}.id = {related_table}.{col.get('name', '')}"
-                                        )
-                                        fk_found = True
-                                        break
-                        
-                        # If still no FK, do a LEFT JOIN without condition (will produce cross product, but better than nothing)
-                        if not fk_found and len(schema) <= 3:  # Only for small schemas to avoid explosion
-                            join_clauses.append(f"LEFT JOIN {related_table} ON 1=1")
-                    
-                    # Build final query
-                    query = f"SELECT {', '.join(select_parts)} FROM {from_clause}"
-                    if join_clauses:
-                        query += " " + " ".join(join_clauses)
-                    query += " LIMIT 50;"
+                    query = f"SELECT * FROM {primary_table} LIMIT 50;"
         except Exception as e:
-            print(f"Error generating JOIN query from schema: {e}")
-            import traceback
-            traceback.print_exc()
-        
-        # If query generation failed, fall back to simple SELECT
-        if query is None:
-            print("WARNING: Could not generate JOIN query, falling back to primary table only")
-            try:
-                if isinstance(schema, str):
-                    schema = json.loads(schema)
-                if isinstance(schema, list) and len(schema) > 0:
-                    primary_table = schema[0].get('table_name', schema[0].get('name', ''))
-                    if primary_table:
-                        query = f"SELECT * FROM {primary_table} LIMIT 50;"
-            except Exception as e:
-                print(f"ERROR: Even fallback query generation failed: {e}")
-                query = None
+            print(f"Error generating fallback query: {e}")
         
         if query is None:
-            # This should rarely happen, but if it does, we need to know
-            raise ValueError("Failed to generate any query from schema. Schema may be malformed.")
+            raise ValueError("Failed to generate query from schema. Schema may be malformed.")
 
     return [query]
 
