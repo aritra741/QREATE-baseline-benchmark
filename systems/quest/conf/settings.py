@@ -28,11 +28,16 @@ _default_scratch = os.environ.get(
     "SCRATCH",
     f"/scratch/general/vast/{os.environ.get('USER', '')}"
 )
-INDEX_ROOT_DIR = os.path.join(
-    os.environ.get("QUEST_INDEX_ROOT", _default_scratch),
-    "UDA-Bench-main",
-    "index"
-)
+# CRITICAL FIX (2025-12-27): Remove hardcoded "UDA-Bench-main" from path
+# When QUEST_INDEX_ROOT is set to PROJECT_ROOT (e.g., /path/to/UDA-Bench-main),
+# we should append only "index", not "UDA-Bench-main/index"
+_index_root = os.environ.get("QUEST_INDEX_ROOT", _default_scratch)
+if "QUEST_INDEX_ROOT" in os.environ:
+    # User explicitly set QUEST_INDEX_ROOT, use it directly with just /index
+    INDEX_ROOT_DIR = os.path.join(_index_root, "index")
+else:
+    # Default scratch behavior: append UDA-Bench-main/index to scratch path
+    INDEX_ROOT_DIR = os.path.join(_index_root, "UDA-Bench-main", "index")
 # Global index config location (used by GlobalIndexer)
 GLOBAL_INDEX_CONFIG = os.path.join(INDEX_ROOT_DIR, "global_index/global_index.json")
 
