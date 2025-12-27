@@ -47,6 +47,12 @@ class ExtractText(Extract):
         print(f"[DEBUG ExtractText.process] Total dataList size: {len(dataList)}")
         if not dataList:
             print(f"[WARNING ExtractText] No data packs received - extraction will fail!")
+        
+        # Summary of what we received
+        textpack_count = sum(1 for p in dataList if isinstance(p, (TextPack, TextListPack, TextDictPack)))
+        doclist_count = sum(1 for p in dataList if isinstance(p, DocListPack))
+        tablepack_count = sum(1 for p in dataList if isinstance(p, TablePack))
+        print(f"[DEBUG ExtractText] Summary - TextPacks: {textpack_count}, DocListPacks: {doclist_count}, TablePacks: {tablepack_count}")
 
         # step 1 : get_datapacks
         columns = column_util.parse_full(self.columns)
@@ -95,6 +101,14 @@ class ExtractText(Extract):
 
         res_doc_list = list(textDict.keys())
         res_doc_id_list = [int(x) for x in res_doc_list]
+        
+        # Show what columns we have in textDict for first few docs
+        if len(textDict) > 0:
+            first_doc_id = list(textDict.keys())[0]
+            first_doc_cols = list(textDict[first_doc_id].keys())
+            first_doc_text_lens = {col: len(str(textDict[first_doc_id][col])) for col in first_doc_cols[:3]}
+            print(f"[DEBUG ExtractText] textDict[doc_id={first_doc_id}] has {len(first_doc_cols)} columns: {first_doc_cols}")
+            print(f"[DEBUG ExtractText]   Text lengths: {first_doc_text_lens}")
         
         # CRITICAL: If we received a DocListPack from Filter, use that instead of deriving from textDict
         if input_doc_list is not None:

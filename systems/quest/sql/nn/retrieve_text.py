@@ -42,6 +42,8 @@ class RetrieveText(Retrieve):
         # Step1 : Get evidence segments
         evidence_segments = self.sampler.get_evidence_segments()
         print(f"[DEBUG RetrieveText] Got evidence segments for {len(evidence_segments)} attributes")
+        print(f"[DEBUG RetrieveText] Evidence segments keys: {list(evidence_segments.keys())}")
+        print(f"[DEBUG RetrieveText] Evidence segments counts: {[(col, len(segs)) for col, segs in evidence_segments.items()]}")(f"[DEBUG RetrieveText] Evidence segments keys: {list(evidence_segments.keys())}")
         
         # Step 2: For each attribute, use evidence-augmented retrieval
         # According to QUEST paper Section 4.2:
@@ -60,6 +62,7 @@ class RetrieveText(Retrieve):
                     topk=settings.TOPK
                 )
                 nowDict[column] = retrieved_chunks
+                print(f"[DEBUG RetrieveText] doc_id={doc_id}, column={column}: retrieved {len(retrieved_chunks)} chunks, total length={sum(len(str(c)) for c in retrieved_chunks)}")
             self.output.append(TextDictPack(doc_id, nowDict))
         
         print(f"[DEBUG RetrieveText] Created {len(self.output)} TextDictPack objects")
@@ -80,8 +83,10 @@ class RetrieveText(Retrieve):
             # Fallback: use attribute name + description as query
             attr_schema_evidence = self.sampler.get_attr_schema_evidence()
             query_text = attr_schema_evidence.get(column, column)
-            print(f"[DEBUG _retrieve_with_evidence] No evidence for '{column}', using description: {query_text[:50]}...")
-            return self.indexer.get_relative_chunks_text_with_id(doc_id, query_text, topk=topk)
+            chunks = self.indexer.get_relative_chunks_text_with_id(doc_id, query_text, topk=topk)
+            print(f"[DEBUG _retrieve_with_evidence] NO EVIDENCE for '{column}', used description: {query_text[:80] if len(str(query_text)) > 80 else query_text}")
+            print(f"[DEBUG _retrieve_with_evidence]   doc_id={doc_id}, column={column}: Got {len(chunks)} chunks, lengths={[len(str(c))[:20] for c in chunks[:3]]}")
+            return chunks
         
         # Step 1: Embed evidence segments
         print(f"[DEBUG _retrieve_with_evidence] Embedding {len(evidence_segments)} evidence segments for '{column}'")
