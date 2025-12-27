@@ -1,0 +1,12 @@
+{
+  "id": "join_1",
+  "name": "Select infectious disease information",
+  "dataset": "Med",
+  "entity": "disease",
+  "sql": "SELECT disease_name, disease_type, treatments, diagnostic_methods, common_symptoms\nFROM disease\nWHERE disease_type = 'infectious'",
+  "sql_squid": "SELECT DISTINCT disease.id, disease.name, disease.category,\n       treatment.method, symptom.description\nFROM disease\nLEFT JOIN treatment ON disease.id = treatment.disease_id\nLEFT JOIN symptom ON disease.id = symptom.disease_id\nWHERE disease.category = 'infectious'",
+  "nl_query": "Get infectious disease documents with disease names, types, treatments, diagnostic methods, and common symptoms",
+  "difficulty": "medium",
+  "reason": "Multi-attribute extraction with equality filter on category",
+  "type": "join"
+}

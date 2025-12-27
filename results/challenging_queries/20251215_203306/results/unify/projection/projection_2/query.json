@@ -1,0 +1,12 @@
+{
+  "id": "projection_2",
+  "name": "Extract comprehensive player statistics",
+  "dataset": "Player",
+  "entity": "player",
+  "sql": "SELECT name, position, nationality, team, \n       college, nba_championships, mvp_awards, olympic_gold_medals\nFROM player",
+  "sql_squid": "SELECT DISTINCT player.id, player.name, player.position, player.draft_year, player.college,\n       achievement.nba_championships, achievement.mvp_awards, achievement.olympic_gold_medals\nFROM player\nLEFT JOIN achievement ON player.id = achievement.player_id",
+  "nl_query": "Get all player documents with names, positions, nationalities, teams, colleges, NBA championships, MVP awards, and Olympic gold medals",
+  "difficulty": "medium",
+  "reason": "8 attributes mixing categorical and numerical data requiring accurate extraction",
+  "type": "projection"
+}

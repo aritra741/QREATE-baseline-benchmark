@@ -1,0 +1,12 @@
+{
+  "id": "join_3",
+  "name": "Select genetic diseases",
+  "dataset": "Med",
+  "entity": "disease",
+  "sql": "SELECT disease_name, disease_type, pathogenesis, prognosis\nFROM disease\nWHERE disease_type = 'genetic'",
+  "sql_squid": "SELECT DISTINCT disease.id, disease.name, disease.category,\n       causes.description as pathogenesis\nFROM disease\nLEFT JOIN causes ON disease.id = causes.disease_id\nWHERE disease.category = 'genetic'",
+  "nl_query": "Get genetic disease documents with disease names, types, pathogenesis, and prognosis",
+  "difficulty": "easy",
+  "reason": "Multi-attribute extraction with equality filter",
+  "type": "join"
+}

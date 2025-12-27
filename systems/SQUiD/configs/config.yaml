@@ -1,44 +1,44 @@
 baseline:
   base_data_path: ../../preprocess_squid
-  datapath: Med/disease
+  datapath: Finan/finance
   logs_dir: logs/baseline_results/
   method: None
-  model_name: qwen
+  model_name: ollama
   num_of_entries: 100
   results_dir: results/database_generation/baseline/
 database_generation:
   base_data_path: results/value_population/
-  datapath: Med/disease/text_cot_qwen
+  datapath: Finan/finance/text_direct_ollama
   logs_dir: logs/database_evaluation_results/
   method: TS
-  model_name: qwen
+  model_name: ollama
   num_of_entries: 100
   results_dir: results/database_generation/
-  schema_path: results/schema_generation/Med/disease/text_direct_qwen_schema.json
+  schema_path: results/schema_generation/Finan/finance/text_direct_ollama_schema.json
 schema_generation:
   base_data_path: ../../preprocess_squid
-  datapath: Med/disease
+  datapath: Finan/finance
   logs_dir: logs/schema_results/
   method: text
-  model_name: qwen
+  model_name: ollama
   num_of_entries: 100
   prompt_type: direct
   results_dir: results/schema_generation/
 value_identification:
   base_data_path: results/schema_generation
-  datapath: Med/disease/text_cot_qwen
+  datapath: Finan/finance/text_direct_ollama
   logs_dir: logs/value_identification_results/
   method: symbolic
-  model_name: qwen
+  model_name: ollama
   num_of_entries: 100
   results_dir: results/value_identification/
-  schema_path: results/schema_generation/Med/disease/text_direct_qwen.json
+  schema_path: results/schema_generation/Finan/finance/text_direct_ollama.json
 value_population:
   base_data_path: results/value_identification/
-  datapath: Med/disease/text_cot_qwen
+  datapath: Finan/finance/text_direct_ollama
   logs_dir: logs/value_population_results/
   method: TS
-  model_name: qwen
+  model_name: ollama
   num_of_entries: 100
   results_dir: results/value_population/
-  symbolic_path: results/value_identification/symbolic/Med/disease/result.json
+  symbolic_path: results/value_identification/symbolic/Finan/finance/text_direct_ollama.json

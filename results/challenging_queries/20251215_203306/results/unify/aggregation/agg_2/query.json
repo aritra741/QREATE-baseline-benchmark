@@ -1,0 +1,12 @@
+{
+  "id": "agg_2",
+  "name": "Analyze USA players by position",
+  "dataset": "Player",
+  "entity": "player",
+  "sql": "SELECT position, COUNT(*) AS player_count, \n       AVG(nba_championships) AS avg_championships\nFROM player\nWHERE nationality = 'American'\nGROUP BY position",
+  "sql_squid": "SELECT position, COUNT(*) AS player_count, \n       AVG(achievement.nba_championships) AS avg_championships\nFROM player\nLEFT JOIN achievement ON player.id = achievement.player_id\nGROUP BY position",
+  "nl_query": "For American players, count how many players there are in each position and calculate the average number of NBA championships per position",
+  "difficulty": "medium",
+  "reason": "Tests GROUP BY with entity matching and aggregation functions on numerical data",
+  "type": "aggregation"
+}
