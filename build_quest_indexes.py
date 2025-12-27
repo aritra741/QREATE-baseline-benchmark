@@ -37,7 +37,10 @@ sys.path.insert(0, str(PROJECT_ROOT / "systems" / "quest"))
 
 # Set QUEST_INDEX_ROOT to local project directory BEFORE importing QUEST modules
 # This ensures indexes are built locally instead of in /scratch
-os.environ["QUEST_INDEX_ROOT"] = str(PROJECT_ROOT.parent)
+# CRITICAL FIX (2025-12-27): Use PROJECT_ROOT, not PROJECT_ROOT.parent
+# Settings.py will append "index" to this, so we want:
+# QUEST_INDEX_ROOT = /path/to/UDA-Bench-main -> results in /path/to/UDA-Bench-main/index
+os.environ["QUEST_INDEX_ROOT"] = str(PROJECT_ROOT)
 
 # ==============================================================================
 # RAW DOCUMENT PATHS - Maps to your raw/ folder structure
