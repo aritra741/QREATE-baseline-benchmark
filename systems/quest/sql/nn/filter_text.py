@@ -256,14 +256,27 @@ class FilterText(Filter):
                 # Step 4-2 get the exist value
                 gb_table = copy.copy(self.now_tableDict[self.table])
                 gb_table = gb_table.set_index('doc_id', inplace = False)
-                # CRITICAL FIX: Handle case where .loc returns a DataFrame instead of Series
-                selected = gb_table.loc[exist_idx, now_column]
-                if isinstance(selected, pd.DataFrame):
-                    # Multiple indices - extract the column as a list
-                    exist_check_text = selected[now_column].tolist() if now_column in selected.columns else selected.iloc[:, 0].tolist()
-                else:
-                    # Single index - Series - convert to list
-                    exist_check_text = [selected] if not isinstance(selected, list) else selected
+                # CRITICAL FIX: Safely handle pandas Series/DataFrame .loc indexing
+                try:
+                    # Use direct indexing - more reliable than .loc for mixed cases
+                    if len(exist_idx) == 0:
+                        exist_check_text = []
+                    elif len(exist_idx) == 1:
+                        # Single index - get scalar value
+                        val = gb_table.loc[exist_idx[0], now_column]
+                        exist_check_text = [val] if not isinstance(val, list) else val
+                    else:
+                        # Multiple indices - get Series and convert to list
+                        series_result = gb_table.loc[exist_idx, now_column]
+                        if isinstance(series_result, pd.Series):
+                            exist_check_text = series_result.tolist()
+                        else:
+                            # Fallback for unexpected type
+                            exist_check_text = list(series_result) if hasattr(series_result, '__iter__') else [series_result]
+                except Exception as e:
+                    print(f"[ERROR filter_text] Failed to extract exist_check_text: {e}")
+                    exist_check_text = []
+                
                 exist_df = self.querier.check_filter_condition(exist_check_text, exist_idx, [now_column], condition)
                 gb_table.reset_index(inplace=True) # remember to reset
 
