@@ -224,15 +224,25 @@ class JoinLogicalPlanner(object):
         cnt = 0
         for table in tableList:
             # Filter
+            # CRITICAL FIX (2025-12-27): FilterText must receive ALL columns needed (WHERE + SELECT)
             filternn : LogicalFilter
             if len(where_attrs)>0:
 
-                columns = []
+                # Collect all columns needed (WHERE + SELECT) for this table
+                filter_columns = []
                 for attr in where_attrs:
                     tbl = attr.parse_table()
                     if table == tbl or tbl == sqlconst.DEFAULT_TABLE_NAME:
-                        columns.append(attr)
-                filternn = LogicalFilter(columns = columns, table = table, root = self.build_filter(selectStmt.whereClause.value, table))
+                        filter_columns.append(attr)
+                
+                # Also include SELECT columns so Filter can pass their text downstream
+                for attr in proj_attrs:
+                    tbl = attr.parse_table()
+                    if table == tbl or tbl == sqlconst.DEFAULT_TABLE_NAME:
+                        if attr not in filter_columns:
+                            filter_columns.append(attr)
+                
+                filternn = LogicalFilter(columns = filter_columns, table = table, root = self.build_filter(selectStmt.whereClause.value, table))
                     
             # Extract
             columns = []

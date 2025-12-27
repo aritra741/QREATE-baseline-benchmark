@@ -341,6 +341,9 @@ class FilterText(Filter):
             if isinstance(data, TextDictPack):
                 doc_id = data.doc_id
                 text = data.textDict
+                print(f"[DEBUG FilterText] Received TextDictPack for doc_id={doc_id}")
+                print(f"[DEBUG FilterText] TextDictPack contains columns: {list(text.keys())}")
+                print(f"[DEBUG FilterText] Sample text lengths: {[(col, len(str(text[col]))) for col in list(text.keys())[:3]]}")
                 self.textDict.setdefault(doc_id, text)
 
         #print_log("after data pack", self.now_tableDict[self.table])
@@ -376,15 +379,24 @@ class FilterText(Filter):
         #print_log("after filter res docs---: \n", res_doc_idList)
 
         # {doc_id1 : { column1 :[text1, text2, ...], }
+        print(f"[DEBUG FilterText] Outputting TextListPacks for filtered documents")
+        print(f"[DEBUG FilterText] res_doc_idList has {len(res_doc_idList)} documents")
+        print(f"[DEBUG FilterText] self.textDict has {len(self.textDict)} total documents")
+        
+        textlist_count = 0
         for tid, value in self.textDict.items():
             if tid not in res_doc_idList:
                 continue
 
+            print(f"[DEBUG FilterText]   doc_id {tid}: has {len(value)} columns: {list(value.keys())}")
             #self.output.append(TextDictPack(tid, value))
             #print_log("continue to extract doc id is : ", tid)
             for col, lst in value.items():
                 #print_log("append - ", tid, ' ' , lst, ' ', col, ' --- ', columns)
                 self.output.append(TextListPack(tid, lst, col))
+                textlist_count += 1
+        
+        print(f"[DEBUG FilterText] Total TextListPacks output: {textlist_count}")
 
         #print("filter_table:\n", self.now_tableDict[self.table])
         

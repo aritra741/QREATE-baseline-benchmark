@@ -33,6 +33,15 @@ class ExtractText(Extract):
         for node in self.input:
             output = node.get_output()
             print(f"[DEBUG ExtractText.process] Input node {type(node).__name__} returned {len(output)} data packs")
+            for i, pack in enumerate(output[:3]):  # Show first 3 packs
+                if isinstance(pack, TextListPack):
+                    print(f"  Pack {i}: TextListPack - doc_id={pack.doc_id}, column={pack.column}, text_len={len(str(pack.textList))}")
+                elif isinstance(pack, TextDictPack):
+                    print(f"  Pack {i}: TextDictPack - doc_id={pack.doc_id}, columns={list(pack.textDict.keys())}")
+                elif isinstance(pack, DocListPack):
+                    print(f"  Pack {i}: DocListPack - {len(pack.docList)} doc_ids")
+                elif isinstance(pack, TablePack):
+                    print(f"  Pack {i}: TablePack - shape={pack.table.shape if hasattr(pack.table, 'shape') else 'N/A'}")
             dataList.extend(output)
 
         print(f"[DEBUG ExtractText.process] Total dataList size: {len(dataList)}")
