@@ -90,9 +90,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"the one we've been focusing on today\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, 'the one weve been focusing on today');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_0"
+    "db_name": "Art_0",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "the one weve been focusing on today"
+      }
+    ]
   },
   {
     "text": "So, we're looking at item number 2.0 today!",
@@ -185,9 +191,15 @@
     "output": "extract item: \"id\": 2.0; \"description\": \"number 2.0 today\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES ('2.0', 'number 2.0 today');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_1"
+    "db_name": "Art_1",
+    "joined_rows": [
+      {
+        "id": 2,
+        "description": "number 2.0 today"
+      }
+    ]
   },
   {
     "text": "Sure! Imagine you're looking through a database, and there's an entry with the ID number right at $3.0$. It's like finding a special code in a treasure hunt!",
@@ -280,9 +292,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"ID number right at $3.0\"\nextract catalog_entry: \"id\": 1; \"item_id\": 1; \"item_id\": ?",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, 'ID number right at $3.0');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);\n\nINSERT INTO `catalog_entry` (`id`, `item_id`) VALUES (1, '#');",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_2"
+    "db_name": "Art_2",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "ID number right at $3.0"
+      }
+    ]
   },
   {
     "text": "Sure! Imagine you're looking through a catalog, and there it is\u2014item number 4.0 catching your eye!",
@@ -375,9 +393,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"?\"\nextract catalog_entry: \"id\": 1; \"item_id\": 4.0",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, '#');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);\n\nINSERT INTO `catalog_entry` (`id`, `item_id`) VALUES (1, '4.0');",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_3"
+    "db_name": "Art_3",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": null
+      }
+    ]
   },
   {
     "text": "Sure! So, we're talking about item number 5.0 here.",
@@ -470,9 +494,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"number 5.0\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, 'number 5.0');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_4"
+    "db_name": "Art_4",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "number 5.0"
+      }
+    ]
   },
   {
     "text": "Hey there! So, this particular item has an ID number of 6.0.",
@@ -565,9 +595,15 @@
     "output": "extract item: \"id\": 6; \"description\": \"ID number of 6.0\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (6, 'ID number of 6.0');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_5"
+    "db_name": "Art_5",
+    "joined_rows": [
+      {
+        "id": 6,
+        "description": "ID number of 6.0"
+      }
+    ]
   },
   {
     "text": "Sure! Imagine you're looking through a list of items, and there's one that catches your eye with an ID number\u2014specifically, the ID is $7.0$.",
@@ -660,9 +696,15 @@
     "output": "extract item: \"id\": 7; \"description\": \"?\"\nextract item: \"id\": 7.0; \"description\": \"?\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (7, '#');\n\nINSERT INTO `item` (`id`, `description`) VALUES ('7.0', '#');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_6"
+    "db_name": "Art_6",
+    "joined_rows": [
+      {
+        "id": 7,
+        "description": null
+      }
+    ]
   },
   {
     "text": "Sure! Imagine you have an item with the ID tag set to $8.0$.",
@@ -755,9 +797,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"ID tag set to $8.0$\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, 'ID tag set to $8.0$');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_7"
+    "db_name": "Art_7",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "ID tag set to $8.0$"
+      }
+    ]
   },
   {
     "text": "Sure! Imagine you have an item with the ID number 9.0, making it easy to keep track of in your collection or system.",
@@ -850,9 +898,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"easy to keep track of in your collection or system\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, 'easy to keep track of in your collection or system');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_8"
+    "db_name": "Art_8",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "easy to keep track of in your collection or system"
+      }
+    ]
   },
   {
     "text": "So, we're talking about item number 10, and its ID is $10.0$.",
@@ -955,9 +1009,15 @@
     "output": "extract item: \"id\": 10; \"description\": \"$10.0\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (10, '$10.0');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_9"
+    "db_name": "Art_9",
+    "joined_rows": [
+      {
+        "id": 10,
+        "description": "$10.0"
+      }
+    ]
   },
   {
     "text": "So, we're talking about item number 11.0 here!",
@@ -1050,9 +1110,15 @@
     "output": "extract item: \"id\": 11.0; \"description\": \"number 11.0\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES ('11.0', 'number 11.0');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_10"
+    "db_name": "Art_10",
+    "joined_rows": [
+      {
+        "id": 11,
+        "description": "number 11.0"
+      }
+    ]
   },
   {
     "text": "Sure! Imagine you're looking through a catalog and you come across item number 12.0, ready to be added to your cart.",
@@ -1145,9 +1211,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"?\"\nextract catalog_entry: \"id\": 1; \"item_id\": 12.0",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, '#');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);\n\nINSERT INTO `catalog_entry` (`id`, `item_id`) VALUES (1, '12.0');",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_11"
+    "db_name": "Art_11",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": null
+      }
+    ]
   },
   {
     "text": "Great news! The ID for today's activity is $13.0$.",
@@ -1245,9 +1317,15 @@
     "output": "extract item: \"id\": 13; \"description\": \"today's activity\"\nextract catalog_entry: \"id\": 1; \"item_id\": 13",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (13, 'todays activity');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);\n\nINSERT INTO `catalog_entry` (`id`, `item_id`) VALUES (1, 13);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_12"
+    "db_name": "Art_12",
+    "joined_rows": [
+      {
+        "id": 13,
+        "description": "todays activity"
+      }
+    ]
   },
   {
     "text": "Sure! Imagine you have an item with the ID number 14.0. It's a unique identifier for this particular item in your collection.",
@@ -1340,9 +1418,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"a unique identifier for this particular item in your collection\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, 'a unique identifier for this particular item in your collection');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_13"
+    "db_name": "Art_13",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "a unique identifier for this particular item in your collection"
+      }
+    ]
   },
   {
     "text": "Great news! The item you're looking at has an ID of 15.0.",
@@ -1435,9 +1519,15 @@
     "output": "extract item: \"id\": 15; \"description\": \"Great news! The item you're looking at has an ID of 15.0.\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (15, 'Great news! The item youre looking at has an ID of 15.0.');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_14"
+    "db_name": "Art_14",
+    "joined_rows": [
+      {
+        "id": 15,
+        "description": "Great news! The item youre looking at has an ID of 15.0."
+      }
+    ]
   },
   {
     "text": "Sure! Imagine you're looking through a catalog, and you come across item number 16.0, ready to add it to your cart.",
@@ -1530,9 +1620,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"?\"\nextract catalog_entry: \"id\": 1; \"item_id\": 16.0",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, '#');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);\n\nINSERT INTO `catalog_entry` (`id`, `item_id`) VALUES (1, '16.0');",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_15"
+    "db_name": "Art_15",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": null
+      }
+    ]
   },
   {
     "text": "Great news! The item you're looking at has an ID of 17.0.",
@@ -1625,9 +1721,15 @@
     "output": "extract item: \"id\": 17; \"description\": \"Great news! The item you're looking at has an ID of 17.0.\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (17, 'Great news! The item youre looking at has an ID of 17.0.');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_16"
+    "db_name": "Art_16",
+    "joined_rows": [
+      {
+        "id": 17,
+        "description": "Great news! The item youre looking at has an ID of 17.0."
+      }
+    ]
   },
   {
     "text": "Wow, look at that! The ID number here is $18.0$.",
@@ -1720,9 +1822,15 @@
     "output": "extract item: \"id\": 18.0; \"description\": \"?\"\nextract catalog_entry: \"id\": 18.0; \"item_id\": 18.0",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES ('18.0', '#');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);\n\nINSERT INTO `catalog_entry` (`id`, `item_id`) VALUES ('18.0', '18.0');",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_17"
+    "db_name": "Art_17",
+    "joined_rows": [
+      {
+        "id": 18,
+        "description": null
+      }
+    ]
   },
   {
     "text": "Sure! Imagine you're looking through a catalog and you come across item number 19.0. It's a unique piece that catches your eye right away!",
@@ -1815,9 +1923,15 @@
     "output": "extract item: \"id\": 19; \"description\": \"?\"\nextract catalog_entry: \"id\": 1; \"item_id\": 19; \"item_id\": 19",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (19, '#');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);\n\nINSERT INTO `catalog_entry` (`id`, `item_id`) VALUES (1, 19);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_18"
+    "db_name": "Art_18",
+    "joined_rows": [
+      {
+        "id": 19,
+        "description": null
+      }
+    ]
   },
   {
     "text": "Sure! Imagine you're looking through your items and come across one with an ID tag that says right on it, \"$20.0$\". It's like finding a special code for this particular item!",
@@ -1910,9 +2024,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"$20.0$\"\nextract catalog_entry: \"id\": 1; \"item_id\": 1",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, '$20.0$');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);\n\nINSERT INTO `catalog_entry` (`id`, `item_id`) VALUES (1, 1);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_19"
+    "db_name": "Art_19",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "$20.0$"
+      }
+    ]
   },
   {
     "text": "It looks like the ID for this item is $21.0$.",
@@ -2005,9 +2125,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"It looks like the ID for this item is $21.0$.\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, 'It looks like the ID for this item is $21.0$.');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_20"
+    "db_name": "Art_20",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "It looks like the ID for this item is $21.0$."
+      }
+    ]
   },
   {
     "text": "Sure! Imagine you have an item with an ID tag, and this particular one has the number $22.0$ on it.",
@@ -2100,9 +2226,15 @@
     "output": "extract item: \"id\": 22; \"description\": \"$22.0\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (22, '$22.0');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_21"
+    "db_name": "Art_21",
+    "joined_rows": [
+      {
+        "id": 22,
+        "description": "$22.0"
+      }
+    ]
   },
   {
     "text": "So, the ID for this item is $23.0$.",
@@ -2195,9 +2327,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"23.0\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, '23.0');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_22"
+    "db_name": "Art_22",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "23.0"
+      }
+    ]
   },
   {
     "text": "Sure! Imagine you're looking through a catalog and you come across an item with the ID number 24.0.",
@@ -2290,9 +2428,15 @@
     "output": "extract item: \"id\": 24; \"description\": \"?\"\nextract catalog_entry: \"id\": 1; \"item_id\": 24",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (24, '#');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);\n\nINSERT INTO `catalog_entry` (`id`, `item_id`) VALUES (1, 24);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_23"
+    "db_name": "Art_23",
+    "joined_rows": [
+      {
+        "id": 24,
+        "description": null
+      }
+    ]
   },
   {
     "text": "Great news! The ID number for this item is $25.0$.",
@@ -2385,9 +2529,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"Great news! The ID number for this item is 25.0.\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, 'Great news! The ID number for this item is 25.0.');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_24"
+    "db_name": "Art_24",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "Great news! The ID number for this item is 25.0."
+      }
+    ]
   },
   {
     "text": "Sure! Imagine you're looking through a list of items, and one particular entry catches your eye with the ID number $26.0$. It's just another unique identifier in the vast collection you're exploring.",
@@ -2480,9 +2630,15 @@
     "output": "extract item: \"id\": 26; \"description\": \"It\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (26, 'It');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_25"
+    "db_name": "Art_25",
+    "joined_rows": [
+      {
+        "id": 26,
+        "description": "It"
+      }
+    ]
   },
   {
     "text": "It looks like the ID for this item is 27.0.",
@@ -2580,9 +2736,15 @@
     "output": "extract item: \"id\": 27; \"description\": \"?\"\nextract catalog_entry: \"id\": 1; \"item_id\": 27",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (27, '#');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);\n\nINSERT INTO `catalog_entry` (`id`, `item_id`) VALUES (1, 27);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_26"
+    "db_name": "Art_26",
+    "joined_rows": [
+      {
+        "id": 27,
+        "description": null
+      }
+    ]
   },
   {
     "text": "So, the ID for this item is $28.0$.",
@@ -2675,9 +2837,15 @@
     "output": "extract item: \"id\": 28; \"description\": \"?\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (28, '#');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_27"
+    "db_name": "Art_27",
+    "joined_rows": [
+      {
+        "id": 28,
+        "description": null
+      }
+    ]
   },
   {
     "text": "So, the ID for this item is $29.0$.",
@@ -2770,9 +2938,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"29.0\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, '29.0');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_28"
+    "db_name": "Art_28",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "29.0"
+      }
+    ]
   },
   {
     "text": "The item you're looking at has an ID number of $30.0$.",
@@ -2865,9 +3039,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"ID number of $30.0$\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, 'ID number of $30.0$');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_29"
+    "db_name": "Art_29",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "ID number of $30.0$"
+      }
+    ]
   },
   {
     "text": "Sure! Imagine you're looking through a collection of items and you find one with an ID tag that says $31.0$.",
@@ -2960,9 +3140,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"$31.0\"\nextract catalog_entry: \"id\": 1; \"item_id\": 1",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, '$31.0');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);\n\nINSERT INTO `catalog_entry` (`id`, `item_id`) VALUES (1, 1);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_30"
+    "db_name": "Art_30",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "$31.0"
+      }
+    ]
   },
   {
     "text": "So, you know, we're looking at item number 32.0.",
@@ -3060,9 +3246,15 @@
     "output": "extract item: \"id\": 32; \"description\": \"you know, we're looking at item number 32.0.\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (32, 'you know, were looking at item number 32.0.');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_31"
+    "db_name": "Art_31",
+    "joined_rows": [
+      {
+        "id": 32,
+        "description": "you know, were looking at item number 32.0."
+      }
+    ]
   },
   {
     "text": "It looks like the ID number is 33.0.",
@@ -3155,9 +3347,15 @@
     "output": "extract item: \"id\": 33.0; \"description\": \"?\"\nextract catalog_entry: \"id\": 1; \"item_id\": 33.0",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES ('33.0', '#');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);\n\nINSERT INTO `catalog_entry` (`id`, `item_id`) VALUES (1, '33.0');",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_32"
+    "db_name": "Art_32",
+    "joined_rows": [
+      {
+        "id": 33,
+        "description": null
+      }
+    ]
   },
   {
     "text": "So, we're talking about item number 34.0 here!",
@@ -3250,9 +3448,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"number 34.0\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, 'number 34.0');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_33"
+    "db_name": "Art_33",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "number 34.0"
+      }
+    ]
   },
   {
     "text": "Sure! Imagine you're looking through a catalog, and you come across item number $35.0$.",
@@ -3345,9 +3549,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"?\"\nextract catalog_entry: \"id\": 1; \"item_id\": 1",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, '#');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);\n\nINSERT INTO `catalog_entry` (`id`, `item_id`) VALUES (1, 1);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_34"
+    "db_name": "Art_34",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": null
+      }
+    ]
   },
   {
     "text": "Sure! Imagine you're looking through a catalog and you come across item number 36.0.",
@@ -3440,9 +3650,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"?\"\nextract catalog_entry: \"id\": 1; \"item_id\": 36.0",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, '#');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);\n\nINSERT INTO `catalog_entry` (`id`, `item_id`) VALUES (1, '36.0');",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_35"
+    "db_name": "Art_35",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": null
+      }
+    ]
   },
   {
     "text": "So the ID for this item is $37.0$.",
@@ -3535,9 +3751,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"37.0\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, '37.0');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_36"
+    "db_name": "Art_36",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "37.0"
+      }
+    ]
   },
   {
     "text": "Sure! Imagine you're looking through a catalog, and you come across an item with the ID number $38.0$.",
@@ -3630,9 +3852,15 @@
     "output": "extract item: \"id\": 38; \"description\": \"?\"\nextract catalog_entry: \"id\": 1; \"item_id\": 38; \"item_id\": ?",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (38, '#');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);\n\nINSERT INTO `catalog_entry` (`id`, `item_id`) VALUES (1, '#');",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_37"
+    "db_name": "Art_37",
+    "joined_rows": [
+      {
+        "id": 38,
+        "description": null
+      }
+    ]
   },
   {
     "text": "Great news! The unique identifier for this item is $39.0$.",
@@ -3725,9 +3953,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"Great news! The unique identifier for this item is $39.0$.\"\nextract catalog_entry: \"id\": 1; \"item_id\": 1",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, 'Great news! The unique identifier for this item is $39.0$.');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);\n\nINSERT INTO `catalog_entry` (`id`, `item_id`) VALUES (1, 1);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_38"
+    "db_name": "Art_38",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "Great news! The unique identifier for this item is $39.0$."
+      }
+    ]
   },
   {
     "text": "Great news! The item you're looking at has an ID of $40.0$.",
@@ -3820,9 +4054,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"Great news! The item you're looking at has an ID of $40.0$.\"\nextract catalog_entry: \"id\": 1; \"item_id\": 1; \"item_id\": 1",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, 'Great news! The item youre looking at has an ID of $40.0$.');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);\n\nINSERT INTO `catalog_entry` (`id`, `item_id`) VALUES (1, 1);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_39"
+    "db_name": "Art_39",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "Great news! The item youre looking at has an ID of $40.0$."
+      }
+    ]
   },
   {
     "text": "The item you're looking at has an ID of 41.0.",
@@ -3915,9 +4155,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"The item you're looking at\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, 'The item youre looking at');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_40"
+    "db_name": "Art_40",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "The item youre looking at"
+      }
+    ]
   },
   {
     "text": "The ID for this item is $42.0$.",
@@ -4010,9 +4256,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"42.0\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, '42.0');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_41"
+    "db_name": "Art_41",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "42.0"
+      }
+    ]
   },
   {
     "text": "Sure! So, the ID for this item is $43.0$.",
@@ -4105,9 +4357,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"$43.0$\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, '$43.0$');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_42"
+    "db_name": "Art_42",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "$43.0$"
+      }
+    ]
   },
   {
     "text": "So, the ID for this item is $44.0$.",
@@ -4200,9 +4458,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"44.0\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, '44.0');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_43"
+    "db_name": "Art_43",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "44.0"
+      }
+    ]
   },
   {
     "text": "Sure! Imagine you're organizing your collection and one item stands out with an ID of 45.0.",
@@ -4295,9 +4559,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"stands out\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, 'stands out');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_44"
+    "db_name": "Art_44",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "stands out"
+      }
+    ]
   },
   {
     "text": "The item you're looking at has an ID of 46.0.",
@@ -4390,9 +4660,15 @@
     "output": "extract item: \"id\": 46; \"description\": \"The item you're looking at\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (46, 'The item youre looking at');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_45"
+    "db_name": "Art_45",
+    "joined_rows": [
+      {
+        "id": 46,
+        "description": "The item youre looking at"
+      }
+    ]
   },
   {
     "text": "Sure! Imagine you're looking through a catalog, and there it is\u2014item number 47.0 catching your eye.",
@@ -4485,9 +4761,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"?\"\nextract catalog_entry: \"id\": 1; \"item_id\": 47.0",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, '#');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);\n\nINSERT INTO `catalog_entry` (`id`, `item_id`) VALUES (1, '47.0');",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_46"
+    "db_name": "Art_46",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": null
+      }
+    ]
   },
   {
     "text": "So, the ID for this item is $48.0$.",
@@ -4580,9 +4862,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"?\"\nextract catalog_entry: \"id\": 1; \"item_id\": 1; \"item_id\": 1",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, '#');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);\n\nINSERT INTO `catalog_entry` (`id`, `item_id`) VALUES (1, 1);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_47"
+    "db_name": "Art_47",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": null
+      }
+    ]
   },
   {
     "text": "So, the item you're looking at has an ID of $49.0$.",
@@ -4675,9 +4963,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"you're looking at\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, 'youre looking at');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_48"
+    "db_name": "Art_48",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "youre looking at"
+      }
+    ]
   },
   {
     "text": "So, the ID you're looking for is right there at $50.0.",
@@ -4770,9 +5064,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"$50.0\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, '$50.0');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_49"
+    "db_name": "Art_49",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "$50.0"
+      }
+    ]
   },
   {
     "text": "Sure! Imagine you're looking through a list of items, and you come across one with an ID tag that reads $51.0$. It's like finding a special code for this particular item in your collection.",
@@ -4865,9 +5165,15 @@
     "output": "extract item: \"id\": 51; \"description\": \"a special code for this particular item in your collection\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (51, 'a special code for this particular item in your collection');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_50"
+    "db_name": "Art_50",
+    "joined_rows": [
+      {
+        "id": 51,
+        "description": "a special code for this particular item in your collection"
+      }
+    ]
   },
   {
     "text": "Sure! Here's a creative way to include that information: \"The unique identifier for this item is $52.0$.\"",
@@ -4960,9 +5266,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"The unique identifier for this item is $52.0$.\"\nextract catalog_entry: \"id\": ?, \"item_id\": 1",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, 'The unique identifier for this item is $52.0$.');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_51"
+    "db_name": "Art_51",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "The unique identifier for this item is $52.0$."
+      }
+    ]
   },
   {
     "text": "Sure! Imagine you're looking through a collection of items and you come across one with an ID tag that says $53.0$.",
@@ -5055,9 +5367,15 @@
     "output": "extract item: \"id\": 53; \"description\": \"$53.0\"\nextract catalog_entry: \"id\": 53; \"item_id\": 53",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (53, '$53.0');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);\n\nINSERT INTO `catalog_entry` (`id`, `item_id`) VALUES (53, 53);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_52"
+    "db_name": "Art_52",
+    "joined_rows": [
+      {
+        "id": 53,
+        "description": "$53.0"
+      }
+    ]
   },
   {
     "text": "Sure! So, we're talking about item number 54.0.",
@@ -5150,9 +5468,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"we're talking about item number 54.0\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, 'were talking about item number 54.0');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_53"
+    "db_name": "Art_53",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "were talking about item number 54.0"
+      }
+    ]
   },
   {
     "text": "Sure! Imagine you're looking through a catalog and you come across item number 55.0.",
@@ -5245,9 +5569,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"?\"\nextract catalog_entry: \"id\": 1; \"item_id\": 55.0",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, '#');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);\n\nINSERT INTO `catalog_entry` (`id`, `item_id`) VALUES (1, '55.0');",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_54"
+    "db_name": "Art_54",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": null
+      }
+    ]
   },
   {
     "text": "Our project has been assigned the unique identifier of 56.0.",
@@ -5340,9 +5670,15 @@
     "output": "extract item: \"id\": 56; \"description\": \"Our project\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (56, 'Our project');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_55"
+    "db_name": "Art_55",
+    "joined_rows": [
+      {
+        "id": 56,
+        "description": "Our project"
+      }
+    ]
   },
   {
     "text": "So, the ID for this item is $57.0$.",
@@ -5435,9 +5771,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"57.0\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, '57.0');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_56"
+    "db_name": "Art_56",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "57.0"
+      }
+    ]
   },
   {
     "text": "The item you're looking at has an ID of 58.0.",
@@ -5530,9 +5872,15 @@
     "output": "extract item: \"id\": 58; \"description\": \"The item you're looking at\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (58, 'The item youre looking at');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_57"
+    "db_name": "Art_57",
+    "joined_rows": [
+      {
+        "id": 58,
+        "description": "The item youre looking at"
+      }
+    ]
   },
   {
     "text": "The item you're looking at has an ID of $59.0$.",
@@ -5625,9 +5973,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"you're looking at\"\nextract catalog_entry: \"id\": 1; \"item_id\": 1",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, 'youre looking at');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);\n\nINSERT INTO `catalog_entry` (`id`, `item_id`) VALUES (1, 1);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_58"
+    "db_name": "Art_58",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "youre looking at"
+      }
+    ]
   },
   {
     "text": "Our item has the ID number 60.0.",
@@ -5720,9 +6074,15 @@
     "output": "extract item: \"id\": 60; \"description\": \"Our item has the ID number 60.0.\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (60, 'Our item has the ID number 60.0.');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_59"
+    "db_name": "Art_59",
+    "joined_rows": [
+      {
+        "id": 60,
+        "description": "Our item has the ID number 60.0."
+      }
+    ]
   },
   {
     "text": "Sure! So, the ID for this item is $61.0$.",
@@ -5815,9 +6175,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"61.0\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, '61.0');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_60"
+    "db_name": "Art_60",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "61.0"
+      }
+    ]
   },
   {
     "text": "Sure! Imagine you're looking through a database, and there's an entry with an ID of 62.0. It's just another item in the list, waiting for its turn to be noticed.",
@@ -5910,9 +6276,15 @@
     "output": "extract item: \"id\": 62.0; \"description\": \"?\"\nextract catalog_entry: \"id\": ?; \"item_id\": 62.0",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES ('62.0', '#');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);\n\nINSERT INTO `catalog_entry` (`id`, `item_id`) VALUES ('#', '62.0');",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_61"
+    "db_name": "Art_61",
+    "joined_rows": [
+      {
+        "id": 62,
+        "description": null
+      }
+    ]
   },
   {
     "text": "Sure! Here's a little story: The unique identifier for this item is $63.0$.",
@@ -6005,9 +6377,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"The unique identifier for this item is $63.0$.\"\nextract catalog_entry: \"id\": 1; \"item_id\": 1; \"item_id\": 1",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, 'The unique identifier for this item is $63.0$.');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);\n\nINSERT INTO `catalog_entry` (`id`, `item_id`) VALUES (1, 1);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_62"
+    "db_name": "Art_62",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "The unique identifier for this item is $63.0$."
+      }
+    ]
   },
   {
     "text": "Great, so the ID for this item is 64.0.",
@@ -6105,9 +6483,15 @@
     "output": "extract item: \"id\": 64; \"description\": \"Great, so the ID for this item is 64.0.\"\nextract catalog_entry: \"id\": 1; \"item_id\": 64",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (64, 'Great, so the ID for this item is 64.0.');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);\n\nINSERT INTO `catalog_entry` (`id`, `item_id`) VALUES (1, 64);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_63"
+    "db_name": "Art_63",
+    "joined_rows": [
+      {
+        "id": 64,
+        "description": "Great, so the ID for this item is 64.0."
+      }
+    ]
   },
   {
     "text": "Great news! The item you're looking at has an ID of 65.0.",
@@ -6200,9 +6584,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"Great news! The item you're looking at has an ID of 65.0.\"\nextract catalog_entry: \"id\": 1; \"item_id\": 1; \"item_id\": 1",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, 'Great news! The item youre looking at has an ID of 65.0.');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);\n\nINSERT INTO `catalog_entry` (`id`, `item_id`) VALUES (1, 1);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_64"
+    "db_name": "Art_64",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "Great news! The item youre looking at has an ID of 65.0."
+      }
+    ]
   },
   {
     "text": "The item you're looking at is identified by the number $66.0$.",
@@ -6295,9 +6685,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"The item you're looking at\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, 'The item youre looking at');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_65"
+    "db_name": "Art_65",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "The item youre looking at"
+      }
+    ]
   },
   {
     "text": "So, the id for this item is $67.0$.",
@@ -6390,9 +6786,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"?\"\nextract catalog_entry: \"id\": 1; \"item_id\": 1; \"item_id\": 1",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, '#');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);\n\nINSERT INTO `catalog_entry` (`id`, `item_id`) VALUES (1, 1);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_66"
+    "db_name": "Art_66",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": null
+      }
+    ]
   },
   {
     "text": "Alright, so here we go. The ID for this item is $68.0$.",
@@ -6485,9 +6887,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"ID for this item is $68.0$\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, 'ID for this item is $68.0$');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_67"
+    "db_name": "Art_67",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "ID for this item is $68.0$"
+      }
+    ]
   },
   {
     "text": "So, the ID for this item is $69.0$.",
@@ -6580,9 +6988,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"?\"\nextract catalog_entry: \"id\": 1; \"item_id\": 1; \"title\": \"?\"; \"salary\": ?; \"department\": \"?\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, '#');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);\n\nINSERT INTO `catalog_entry` (`id`, `item_id`) VALUES (1, 1);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_68"
+    "db_name": "Art_68",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": null
+      }
+    ]
   },
   {
     "text": "Sure! Imagine you're looking through a catalog and you come across item number 70.0.",
@@ -6675,9 +7089,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"?\"\nextract catalog_entry: \"id\": 1; \"item_id\": 70.0",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, '#');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);\n\nINSERT INTO `catalog_entry` (`id`, `item_id`) VALUES (1, '70.0');",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_69"
+    "db_name": "Art_69",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": null
+      }
+    ]
   },
   {
     "text": "Hey there! So, this particular item has an ID of 71.0.",
@@ -6770,9 +7190,15 @@
     "output": "extract item: \"id\": 71.0; \"description\": \"?\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES ('71.0', '#');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_70"
+    "db_name": "Art_70",
+    "joined_rows": [
+      {
+        "id": 71,
+        "description": null
+      }
+    ]
   },
   {
     "text": "Sure! Imagine you have an item with an ID number, and this particular one just happens to be 72.0.",
@@ -6865,9 +7291,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"ID number\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, 'ID number');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_71"
+    "db_name": "Art_71",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "ID number"
+      }
+    ]
   },
   {
     "text": "Sure! Here's a fun way to think about it: Your special identifier is number 73.0.",
@@ -6965,9 +7397,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"Your special identifier\"\nextract catalog_entry: \"id\": 1; \"item_id\": 73",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, 'Your special identifier');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);\n\nINSERT INTO `catalog_entry` (`id`, `item_id`) VALUES (1, 73);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_72"
+    "db_name": "Art_72",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "Your special identifier"
+      }
+    ]
   },
   {
     "text": "The item you're looking at has an ID of 74.0.",
@@ -7060,9 +7498,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"The item you're looking at\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, 'The item youre looking at');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_73"
+    "db_name": "Art_73",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "The item youre looking at"
+      }
+    ]
   },
   {
     "text": "Sure! Imagine you're looking through a collection and come across item number 75\u2014it's the one you've been searching for!",
@@ -7155,9 +7599,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"the one you've been searching for\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, 'the one youve been searching for');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_74"
+    "db_name": "Art_74",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "the one youve been searching for"
+      }
+    ]
   },
   {
     "text": "Sure! Imagine you're looking through a collection, and you stumble upon item number 76.0. It's a special one, isn't it?",
@@ -7250,9 +7700,15 @@
     "output": "extract item: \"id\": 76; \"description\": \"It\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (76, 'It');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_75"
+    "db_name": "Art_75",
+    "joined_rows": [
+      {
+        "id": 76,
+        "description": "It"
+      }
+    ]
   },
   {
     "text": "Sure! Imagine you're looking through a catalog, and you come across item number 77.0. There it is!",
@@ -7345,9 +7801,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"?\"\nextract catalog_entry: \"id\": 1; \"item_id\": 77.0",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, '#');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);\n\nINSERT INTO `catalog_entry` (`id`, `item_id`) VALUES (1, '77.0');",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_76"
+    "db_name": "Art_76",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": null
+      }
+    ]
   },
   {
     "text": "So, the ID for this item is $78.0$.",
@@ -7440,9 +7902,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"?\"\nextract catalog_entry: \"id\": 1; \"item_id\": 1; \"title\": \"?\"; \"salary\": ?; \"department\": \"?\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, '#');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);\n\nINSERT INTO `catalog_entry` (`id`, `item_id`) VALUES (1, 1);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_77"
+    "db_name": "Art_77",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": null
+      }
+    ]
   },
   {
     "text": "Great news! The unique identifier for this item is 79.0.",
@@ -7535,9 +8003,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"unique identifier for this item is 79.0\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, 'unique identifier for this item is 79.0');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_78"
+    "db_name": "Art_78",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "unique identifier for this item is 79.0"
+      }
+    ]
   },
   {
     "text": "It looks like this item has an ID of $80.0$.",
@@ -7630,9 +8104,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"It looks like this item has an ID of $80.0$. \"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, 'It looks like this item has an ID of $80.0$.');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_79"
+    "db_name": "Art_79",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "It looks like this item has an ID of $80.0$."
+      }
+    ]
   },
   {
     "text": "Alright, so the ID for this item is $81.0$.",
@@ -7725,9 +8205,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"81.0\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, '81.0');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_80"
+    "db_name": "Art_80",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "81.0"
+      }
+    ]
   },
   {
     "text": "Sure! Imagine you're looking through a collection, and you come across item number 82.0.",
@@ -7820,9 +8306,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"number 82\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, 'number 82');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_81"
+    "db_name": "Art_81",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "number 82"
+      }
+    ]
   },
   {
     "text": "The item you're looking at has an ID of 83.0.",
@@ -7915,9 +8407,15 @@
     "output": "extract item: \"id\": 83; \"description\": \"The item you're looking at\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (83, 'The item youre looking at');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_82"
+    "db_name": "Art_82",
+    "joined_rows": [
+      {
+        "id": 83,
+        "description": "The item youre looking at"
+      }
+    ]
   },
   {
     "text": "The item you're looking at has an ID of $84.0$.",
@@ -8010,9 +8508,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"you're looking at\"\nextract catalog_entry: \"id\": 1; \"item_id\": 1",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, 'youre looking at');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);\n\nINSERT INTO `catalog_entry` (`id`, `item_id`) VALUES (1, 1);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_83"
+    "db_name": "Art_83",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "youre looking at"
+      }
+    ]
   },
   {
     "text": "So, the ID for this item is $85.0$.",
@@ -8105,9 +8609,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"?\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, '#');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_84"
+    "db_name": "Art_84",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": null
+      }
+    ]
   },
   {
     "text": "So, we're talking about item number 86.0 here.",
@@ -8200,9 +8710,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"we're talking about item number 86.0 here.\"\nextract catalog_entry: \"id\": 1; \"item_id\": 1; \"item_id\": 1",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, 'were talking about item number 86.0 here.');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);\n\nINSERT INTO `catalog_entry` (`id`, `item_id`) VALUES (1, 1);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_85"
+    "db_name": "Art_85",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "were talking about item number 86.0 here."
+      }
+    ]
   },
   {
     "text": "So, the ID for this item is 87.0.",
@@ -8295,9 +8811,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"So, the ID for this item is 87.0.\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, 'So, the ID for this item is 87.0.');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_86"
+    "db_name": "Art_86",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "So, the ID for this item is 87.0."
+      }
+    ]
   },
   {
     "text": "Sure! So, the ID for this item is $88.0$.",
@@ -8390,9 +8912,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"88.0\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, '88.0');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_87"
+    "db_name": "Art_87",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "88.0"
+      }
+    ]
   },
   {
     "text": "So, we're talking about item number 89, right?",
@@ -8485,9 +9013,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"we're talking about item number 89, right?\"\n\nextract catalog_entry: \"id\": 1; \"item_id\": 1; \"item_id\": 89 (Note: The id field is auto-assigned and matches the item's id for foreign key consistency)",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, 'were talking about item number 89, right#');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_88"
+    "db_name": "Art_88",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "were talking about item number 89, right#"
+      }
+    ]
   },
   {
     "text": "Sure! Imagine you're looking through your collection and you come across item number $90.0$. That's the one!",
@@ -8590,9 +9124,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"number 90.0\"\nextract catalog_entry: \"id\": 1; \"item_id\": 1",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, 'number 90.0');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);\n\nINSERT INTO `catalog_entry` (`id`, `item_id`) VALUES (1, 1);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_89"
+    "db_name": "Art_89",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "number 90.0"
+      }
+    ]
   },
   {
     "text": "Sure! Imagine you're looking through a catalog and you find item number 91.0 standing out to you.",
@@ -8685,9 +9225,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"?\"\nextract catalog_entry: \"id\": 1; \"item_id\": 91.0",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, '#');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);\n\nINSERT INTO `catalog_entry` (`id`, `item_id`) VALUES (1, '91.0');",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_90"
+    "db_name": "Art_90",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": null
+      }
+    ]
   },
   {
     "text": "Sure! Imagine you're looking through a catalog and you come across item number 92.0.",
@@ -8780,9 +9326,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"?\"\nextract catalog_entry: \"id\": 1; \"item_id\": 92.0",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, '#');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);\n\nINSERT INTO `catalog_entry` (`id`, `item_id`) VALUES (1, '92.0');",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_91"
+    "db_name": "Art_91",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": null
+      }
+    ]
   },
   {
     "text": "It looks like this one is numbered as id $93.0$.",
@@ -8880,9 +9432,15 @@
     "output": "extract item: \"id\": 93; \"description\": \"numbered as id $93.0$\"\nextract catalog_entry: \"id\": 93; \"item_id\": 93",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (93, 'numbered as id $93.0$');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);\n\nINSERT INTO `catalog_entry` (`id`, `item_id`) VALUES (93, 93);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_92"
+    "db_name": "Art_92",
+    "joined_rows": [
+      {
+        "id": 93,
+        "description": "numbered as id $93.0$"
+      }
+    ]
   },
   {
     "text": "Sure! Imagine you're looking through a catalog, and there it is\u2014item number 94, ready to make your day just a little bit brighter.",
@@ -8975,9 +9533,15 @@
     "output": "extract item: \"id\": 94; \"description\": \"?\"\nextract catalog_entry: \"id\": ?; \"item_id\": 94",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (94, '#');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);\n\nINSERT INTO `catalog_entry` (`id`, `item_id`) VALUES ('#', 94);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_93"
+    "db_name": "Art_93",
+    "joined_rows": [
+      {
+        "id": 94,
+        "description": null
+      }
+    ]
   },
   {
     "text": "Sure! So, we're talking about item number 95.0.",
@@ -9070,9 +9634,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"number 95\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, 'number 95');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_94"
+    "db_name": "Art_94",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "number 95"
+      }
+    ]
   },
   {
     "text": "Sure! Imagine you're keeping track of something, and this particular item has an ID number of 96.",
@@ -9165,9 +9735,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"something\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, 'something');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_95"
+    "db_name": "Art_95",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "something"
+      }
+    ]
   },
   {
     "text": "Oh, it looks like the ID for this item is 97.0.",
@@ -9265,9 +9841,15 @@
     "output": "extract item: \"id\": 97; \"description\": \"it\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (97, 'it');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_96"
+    "db_name": "Art_96",
+    "joined_rows": [
+      {
+        "id": 97,
+        "description": "it"
+      }
+    ]
   },
   {
     "text": "Sure! Imagine you have an item with the ID number 98 - that's the unique identifier for this particular object in our system.",
@@ -9360,9 +9942,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"the unique identifier for this particular object in our system\"\nextract catalog_entry: \"id\": 1; \"item_id\": 1",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, 'the unique identifier for this particular object in our system');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);\n\nINSERT INTO `catalog_entry` (`id`, `item_id`) VALUES (1, 1);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_97"
+    "db_name": "Art_97",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "the unique identifier for this particular object in our system"
+      }
+    ]
   },
   {
     "text": "So, we're talking about item number 99!",
@@ -9455,9 +10043,15 @@
     "output": "extract item: \"id\": 1; \"description\": \"number 99\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, 'number 99');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_98"
+    "db_name": "Art_98",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": "number 99"
+      }
+    ]
   },
   {
     "text": "Great! So, the ID for this item is 100.",
@@ -9550,8 +10144,14 @@
     "output": "extract item: \"id\": 1; \"description\": \"?\"",
     "sql_statements": "CREATE TABLE `item` (\n  `id` INTEGER PRIMARY KEY,\n  `description` TEXT\n);\n\nINSERT INTO `item` (`id`, `description`) VALUES (1, '#');\n\nCREATE TABLE `catalog_entry` (\n  `id` INTEGER PRIMARY KEY,\n  `item_id` INTEGER REFERENCES `item`(`id`)\n);",
     "join_query": [
-      ""
+      "SELECT * FROM item LIMIT 50;"
     ],
-    "db_name": "Art_99"
+    "db_name": "Art_99",
+    "joined_rows": [
+      {
+        "id": 1,
+        "description": null
+      }
+    ]
   }
 ]

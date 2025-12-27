@@ -1,0 +1,13 @@
+{
+  "system": "unify",
+  "query_id": "filter_1",
+  "start_time": "2025-12-15T20:33:45.047401",
+  "status": "failed",
+  "data_load_time": 0.17682719230651855,
+  "parse_time": 1.6539068222045898,
+  "plan_generation_time": 18.657734394073486,
+  "error": "list index out of range",
+  "traceback": "Traceback (most recent call last):\n  File \"/uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/run_challenging_queries.py\", line 1453, in run_query\n    pm.execute_with_plan()\n  File \"/uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/systems/Unify/main/PlanManager.py\", line 368, in execute_with_plan\n    self.ctxManager = postorder_traversal(bq['IDPlan'], mapping, self.ctxManager)\n                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/systems/Unify/main/PlanManager.py\", line 323, in postorder_traversal\n    op_instance = self.get_operator_instance(operator, mapping, ctxManager)\n                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/systems/Unify/main/PlanManager.py\", line 460, in get_operator_instance\n    return operator_class(CONDITION, data_list, self.client, self.chatModel, self.ctxManager)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/systems/Unify/main/operators/scanOP.py\", line 39, in __init__\n    self.extract_op, self.extract_literal = self.extract_op_literals(self.condition)\n                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/systems/Unify/main/operators/scanOP.py\", line 93, in extract_op_literals\n    literal = int(response.split(\",\")[1].strip())\n                  ~~~~~~~~~~~~~~~~~~~^^^\nIndexError: list index out of range\n",
+  "total_time": 20.999753952026367,
+  "end_time": "2025-12-15T20:34:06.047199"
+}

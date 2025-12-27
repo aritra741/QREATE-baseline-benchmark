@@ -1,0 +1,12 @@
+{
+  "id": "projection_3",
+  "name": "Extract financial and operational data from companies",
+  "dataset": "Finan",
+  "entity": "finance",
+  "sql": "SELECT company_name, principal_activities, revenue, \n       net_profit_or_loss, total_assets, business_risks\nFROM finance",
+  "sql_squid": "SELECT DISTINCT company.id, company.name, company.industry,\n       revenue.amount as revenue_amount,\n       net_profit.amount as profit_amount,\n       assets.amount as assets_amount\nFROM company\nLEFT JOIN revenue ON company.id = revenue.company_id\nLEFT JOIN net_profit ON company.id = net_profit.company_id\nLEFT JOIN assets ON company.id = assets.company_id",
+  "nl_query": "Get all company documents with names, principal activities, revenue, net profit or loss, total assets, and business risks",
+  "difficulty": "hard",
+  "reason": "Financial attributes scattered across long 100+ page documents; requires careful value extraction",
+  "type": "projection"
+}

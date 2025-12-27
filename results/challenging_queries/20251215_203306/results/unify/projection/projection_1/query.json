@@ -1,0 +1,12 @@
+{
+  "id": "projection_1",
+  "name": "Extract diagnostic and treatment information from diseases",
+  "dataset": "Med",
+  "entity": "disease",
+  "sql": "SELECT disease_name, disease_type, diagnostic_methods, \n       common_symptoms, treatments, prognosis\nFROM disease",
+  "sql_squid": "SELECT DISTINCT disease.id, disease.name, disease.category,\n       treatment.method, symptom.description\nFROM disease\nLEFT JOIN treatment ON disease.id = treatment.disease_id\nLEFT JOIN symptom ON disease.id = symptom.disease_id",
+  "nl_query": "Get all disease documents with names, types, diagnostic methods, common symptoms, treatments, and prognosis",
+  "difficulty": "medium",
+  "reason": "Extracting multiple medical attributes including diagnostic and treatment information",
+  "type": "projection"
+}
