@@ -62,3 +62,4 @@ print()
 print(f"✓ Successfully rebuilt global index config with {len(verify)} tables!")
 
 
+

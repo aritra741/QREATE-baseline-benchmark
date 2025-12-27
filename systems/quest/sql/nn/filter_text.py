@@ -165,7 +165,8 @@ class FilterText(Filter):
 
                     nowDict = table_util.check_dict_and_table(self.textDict, now_doc_idList, [now_column], self.now_tableDict[now_table])
                     #nowDict = check_dict(self.textDict, now_doc_idList)
-                    df = self.querier.extract_attribute_from_textDict_semantic_fiter(nowDict, [now_column], condition)
+                    # Extract without semantic filter, then filter programmatically using pandas query
+                    df = self.querier.extract_attribute_from_textDict(nowDict, [now_column])
 
                 else:
                     # filter IN, or filter '=='string''
@@ -183,26 +184,66 @@ class FilterText(Filter):
 
                     nowDict = table_util.check_dict_and_table(self.textDict, now_doc_idList, [now_column], self.now_tableDict[self.table])
                     #nowDict = check_dict(self.textDict, now_doc_idList)
-                    df = self.querier.extract_attribute_from_textDict_semantic_fiter(nowDict, [now_column], condition)
+                    # Extract without semantic filter, then filter programmatically using pandas query
+                    df = self.querier.extract_attribute_from_textDict(nowDict, [now_column])
 
-                # drop fcondition
-
+                # Format extracted columns and apply filter condition programmatically  
+                # Step 2: Format the column if needed
+                if isinstance(filter.rhs, astn.IntegerValue):
+                    df[now_column] = pd.to_numeric(df[now_column], errors='coerce')
+                    df.dropna(subset=[now_column], inplace=True)
+                    df[now_column] = df[now_column].astype(int)
+                elif isinstance(filter.rhs, astn.RealValue):
+                    df[now_column] = pd.to_numeric(df[now_column], errors='coerce')
+                    df.dropna(subset=[now_column], inplace=True)
+                    df[now_column] = df[now_column].astype(float)
+                
+                # Add fcondition column by applying the condition filter
+                extracted_df = df.copy()  # Save the extracted data with fcondition
+                extracted_df['fcondition'] = 'False'  # Default to False
+                
+                try:
+                    # Parse the condition - extract column name and value
+                    # Condition format: "column = 'value'" or "column == 'value'"
+                    import re
+                    match = re.match(r"(`?[\w.]+`?)\s*(?:==|=|!=|<>|<=|>=|<|>)\s*'?([^']*)'?", condition)
+                    if match:
+                        col_name = match.group(1).strip('`')
+                        val_right = match.group(2).strip("'\"")
+                        print(f"[DEBUG filter_text] Parsing condition: column='{col_name}', value='{val_right}'")
+                        
+                        # Apply filter based on operator
+                        if '==' in condition or ('=' in condition and '!=' not in condition and '<>' not in condition):
+                            # Equality check
+                            mask = extracted_df[col_name].astype(str).str.strip() == val_right
+                            extracted_df.loc[mask, 'fcondition'] = 'True'
+                        # TODO: Add support for other operators (<, >, !=, etc)
+                        
+                        print(f"[DEBUG filter_text] Applied condition: {len(extracted_df[extracted_df['fcondition'] == 'True'])} rows match")
+                    else:
+                        print(f"[DEBUG filter_text] Could not parse condition: {condition}")
+                except Exception as e:
+                    print(f"[DEBUG filter_text] Error applying condition '{condition}': {e}")
+                    import traceback
+                    traceback.print_exc()
+                    # Keep all as False if parsing fails
+                    extracted_df['fcondition'] = 'False'
+                
+                # Use extracted_df for now and merge it below
                 #print_log("get filter df : \n", df)
-
-                ndf = df.drop(columns = 'fcondition')
-                #print_log("ndf : \n", ndf)
+                #print_log("extracted_df : \n", extracted_df)
 
                 # Step 3 : merge
                 #print_log("before merge tableDict : \n", self.now_tableDict[self.table])
 
-                self.now_tableDict[self.table] = table_util.merge_table(self.now_tableDict[self.table], ndf, key='doc_id')
+                self.now_tableDict[self.table] = table_util.merge_table(self.now_tableDict[self.table], extracted_df, key='doc_id')
 
                 #print_log("after merge tableDict : \n", self.now_tableDict[self.table])
 
                 # Step 4 : check filter
 
                 # Step 4-1 get the exist doc_ids that extract before
-                ndf = df.set_index('doc_id', inplace = False)
+                ndf = extracted_df.set_index('doc_id', inplace = False)
                 #print_log("after set index ndf : \n", ndf)
                 checked_idx = [idx for idx in now_doc_idList if idx in ndf.index] # only filter this time docs index
                 exist_idx = list_xor(now_doc_idList, checked_idx) # extract before, need to check samantics
@@ -221,7 +262,7 @@ class FilterText(Filter):
 
                 #print_log("exist_df : \n", exist_df)
 
-                df = table_util.merge_table(df, exist_df, key='doc_id') # filter this time merge fiter before with fcondition!
+                df = table_util.merge_table(extracted_df, exist_df, key='doc_id') # filter this time merge fiter before with fcondition!
 
                 #print_log("merge df and exist_df : \n", df)
 
@@ -233,9 +274,11 @@ class FilterText(Filter):
                 # Step 5 : check the filed include
                 if df.empty:
                     res_doc_idList = []
+                    print(f"[DEBUG filter_text] df is empty, res_doc_idList = []")
                 else:
                     res_doc_idList = format_util.remove_duplicates(df['doc_id'].tolist())
                     res_doc_idList = list(map(int,res_doc_idList))
+                    print(f"[DEBUG filter_text] df has {len(df)} rows, res_doc_idList = {res_doc_idList[:10]}...")
                 #print_log("res_doc_idList : ",res_doc_idList)
 
             # fill cells , not extract again!
@@ -312,7 +355,23 @@ class FilterText(Filter):
         res_doc_idList = self.solve(self.root, doc_idList)
         
         # step3 : output
-        self.output.append(TablePack(self.table, self.now_tableDict[self.table]))
+        # CRITICAL FIX: Only include rows that pass the filter in the output table
+        filtered_table = self.now_tableDict[self.table].copy()
+        if res_doc_idList:
+            # Filter to only include doc_ids that passed the filter
+            if not filtered_table.empty:
+                # Ensure doc_id column is int for comparison
+                filtered_table['doc_id'] = filtered_table['doc_id'].astype(int)
+                filtered_table = filtered_table[filtered_table['doc_id'].isin(res_doc_idList)].copy()
+            print(f"[DEBUG filter_text.process] Output table: keeping {len(filtered_table)} rows out of {len(self.now_tableDict[self.table])} based on filter results")
+        else:
+            # No documents passed the filter - create empty dataframe with same columns
+            filtered_table = self.now_tableDict[self.table].iloc[0:0].copy()  # Empty but with same structure
+            print(f"[DEBUG filter_text.process] Output table: empty (no documents passed filter)")
+        
+        self.output.append(TablePack(self.table, filtered_table))
+        # CRITICAL: Also pass the filtered doc_ids so Extract knows which documents passed the filter
+        self.output.append(DocListPack(self.table, res_doc_idList))
 
         #print_log("after filter res docs---: \n", res_doc_idList)
 

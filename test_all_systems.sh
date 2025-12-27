@@ -40,3 +40,4 @@ if latest:
                         print(f"  {query_dir.name}: status={meta.get('status')}, rows={rows}, time={meta.get('total_time', 0):.2f}s")
 EOF
 
+

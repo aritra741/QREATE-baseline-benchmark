@@ -89,10 +89,30 @@ def count_tokens(text):
     return len(tokens)
 
 # OpenAI client for direct Ollama calls (uses /v1 compatible endpoint)
-client = OpenAI(
-    base_url=f"{OLLAMA_BASE}/v1",  # OpenAI SDK needs /v1, LiteLLM does NOT
-    api_key="ollama"
-)
+# Lazy initialization to avoid SSL permission errors during import
+_client = None
+
+def get_client():
+    """Get or create the OpenAI client lazily to avoid SSL issues during module import."""
+    global _client
+    if _client is None:
+        import httpx
+        _client = OpenAI(
+            base_url=f"{OLLAMA_BASE}/v1",  # OpenAI SDK needs /v1, LiteLLM does NOT
+            api_key="ollama",
+            http_client=httpx.Client(verify=False)  # Disable SSL verification for local HTTP
+        )
+    return _client
+
+# For backward compatibility, create a property-like access
+class ClientProxy:
+    def __getattr__(self, name):
+        return getattr(get_client(), name)
+    
+    def __call__(self, *args, **kwargs):
+        return get_client()(*args, **kwargs)
+
+client = ClientProxy()
 
 # SAMPLE
 

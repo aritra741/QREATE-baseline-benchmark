@@ -96,3 +96,4 @@ This is a **schema initialization fix** - bringing the schema definitions into s
 For detailed analysis of schema gaps, see: `UQE_RUN_ANALYSIS.md`
 For schema mapping details, see: `UQE_SCHEMA_FIXES.md`
 
+

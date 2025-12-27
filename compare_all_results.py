@@ -11,6 +11,7 @@ Usage:
 import argparse
 import pandas as pd
 from pathlib import Path
+from typing import Optional, List
 import json
 
 PROJECT_ROOT = Path(__file__).parent
@@ -125,8 +126,16 @@ def calculate_metrics(gt_df: pd.DataFrame, result_df: pd.DataFrame) -> dict:
     return {"precision": precision, "recall": recall, "f1": f1, "tp": tp, "fp": fp, "fn": fn}
 
 
-def process_system(run_id: str, system: str, report: dict, results_dir: Path) -> dict:
-    """Process results for a single system and return metrics."""
+def process_system(run_id: str, system: str, report: dict, results_dir: Path, query_ids: Optional[List[str]] = None) -> dict:
+    """Process results for a single system and return metrics.
+    
+    Args:
+        run_id: Run ID
+        system: System name
+        report: Report dictionary
+        results_dir: Results directory path
+        query_ids: Optional list of query IDs to filter (if None, processes all queries)
+    """
     
     if system not in report.get("systems", {}):
         print(f"Warning: System '{system}' not found in report")
@@ -137,6 +146,8 @@ def process_system(run_id: str, system: str, report: dict, results_dir: Path) ->
     print("=" * 100)
     print(f"{system.upper()} BENCHMARK RESULTS - ALL QUERY TYPES")
     print(f"Run ID: {run_id}")
+    if query_ids:
+        print(f"Filtering to query IDs: {query_ids}")
     print("=" * 100)
     print()
     
@@ -155,6 +166,9 @@ def process_system(run_id: str, system: str, report: dict, results_dir: Path) ->
     all_metrics = []
     
     for query_id, query_data in sorted(system_data.get("queries", {}).items()):
+        # Filter by query_ids if specified
+        if query_ids is not None and query_id not in query_ids:
+            continue
         qtype = query_data["query_type"]
         status = query_data["status"]
         
@@ -294,6 +308,8 @@ def main():
     parser.add_argument("--run-id", required=True, help="Run ID (e.g., 20251211_000936)")
     parser.add_argument("--system", default="all", choices=AVAILABLE_SYSTEMS + ["all"],
                        help="System to compare (default: all)")
+    parser.add_argument("--query-ids", nargs="+", default=None,
+                       help="Specific query IDs to compare (e.g., filter_1, projection_2). If not specified, compares all queries.")
     args = parser.parse_args()
     
     run_id = args.run_id
@@ -321,7 +337,7 @@ def main():
     # Process each system
     all_system_metrics = {}
     for system in systems_to_process:
-        metrics = process_system(run_id, system, report, results_dir)
+        metrics = process_system(run_id, system, report, results_dir, query_ids=args.query_ids)
         if metrics:
             all_system_metrics[system] = metrics
         print("\n")

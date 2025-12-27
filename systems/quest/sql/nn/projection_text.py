@@ -37,6 +37,10 @@ class ProjectionText(Projection):
             # get table
             if isinstance(data, TablePack):
                 now_table = data.table
+        
+        print(f"[DEBUG ProjectionText] Input table shape: {now_table.shape}")
+        print(f"[DEBUG ProjectionText] Input table columns: {list(now_table.columns)}")
+        print(f"[DEBUG ProjectionText] Requested columns: {full_columns}")
 
         for col in now_table.columns:
             if 'doc_id' in col or 'file_name' in col:
@@ -46,7 +50,16 @@ class ProjectionText(Projection):
             full_columns.remove('count_ALL_COLUMNS_STAR_TABLE.ALL_COLUMNS_STAR')
             full_columns.append('Count(*)')
         
-        now_table = now_table[full_columns]
+        print(f"[DEBUG ProjectionText] Full columns after adding doc_id/file_name: {full_columns}")
+        
+        # Filter to only existing columns
+        existing_columns = [col for col in full_columns if col in now_table.columns]
+        missing_columns = [col for col in full_columns if col not in now_table.columns]
+        if missing_columns:
+            print(f"[DEBUG ProjectionText] WARNING: Missing columns {missing_columns}, using only: {existing_columns}")
+        
+        now_table = now_table[existing_columns]
+        print(f"[DEBUG ProjectionText] After projection: {now_table.shape}")
         
         if 'doc_id' in now_table.columns:
             # Step 2 : update doc_id to file_name

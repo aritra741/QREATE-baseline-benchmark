@@ -32,6 +32,7 @@ PROJECT_ROOT = Path(__file__).parent
 sys.path.insert(0, str(PROJECT_ROOT))
 sys.path.insert(0, str(PROJECT_ROOT / "systems"))
 sys.path.insert(0, str(PROJECT_ROOT / "systems" / "quest"))
+sys.path.insert(0, str(PROJECT_ROOT / "systems" / "PZ"))
 
 # Check for required dependencies
 try:
@@ -607,7 +608,13 @@ class QuestRunner(SystemRunner):
                 indexer_obj, _ = gb_indexer.get_indexer(entity)
                 self.logger.debug(f"[QUEST] Got indexer for {entity}, has {len(indexer_obj.get_docs_id())} docs")
                 
-                gb_sampler.try_sample(indexer_obj, prompt_str)
+                # Check if exhaustive sampling is enabled via environment variable
+                use_exhaustive = os.environ.get('QUEST_EXHAUSTIVE_SAMPLING', '').lower() == 'true'
+                if use_exhaustive:
+                    self.logger.warning(f"[QUEST] EXHAUSTIVE SAMPLING ENABLED - sampling ALL documents for evidence!")
+                    gb_sampler.try_sample_all_docs(indexer_obj, prompt_str)
+                else:
+                    gb_sampler.try_sample(indexer_obj, prompt_str)
                 
                 self.logger.info(f"[QUEST] Sampler initialized with evidence for {len(gb_sampler.map_attr_evidence)} attributes")
                 
@@ -1858,13 +1865,14 @@ class Checkpoint:
 class ChallengingQueryRunner:
     """Main orchestrator for running challenging queries."""
     
-    AVAILABLE_SYSTEMS = ["quest", "uqe", "lotus", "unify", "squid"]
+    AVAILABLE_SYSTEMS = ["quest", "uqe", "lotus", "unify", "squid", "pz"]
     
     SYSTEM_DEPENDENCIES = {
         "quest": ["ply", "sqlglot", "duckdb", "openai", "tiktoken"],
         "uqe": ["tqdm", "numpy", "openai"],
         "unify": ["openai", "torch", "sentence-transformers", "hnswlib"],
         "squid": ["pandas", "openai"],
+        "pz": ["pandas"],
         # lotus-ai requires Python <3.13, checked separately
     }
     
@@ -1925,6 +1933,9 @@ class ChallengingQueryRunner:
                 runner = UnifyRunner(self.config, self.logger)
             elif system == "squid":
                 runner = SQUiDRunner(self.config, self.logger)
+            elif system == "pz":
+                from systems.PZ.pz_runner import PZRunner
+                runner = PZRunner(self.config, self.logger)
             else:
                 self.logger.error(f"Unknown system: {system}")
                 return None
@@ -1934,11 +1945,20 @@ class ChallengingQueryRunner:
             self.logger.error(f"Failed to initialize {system}: {e}")
             return None
     
-    def run(self, systems: List[str], query_types: List[str], skip_completed: bool = True):
-        """Run queries for specified systems and types."""
+    def run(self, systems: List[str], query_types: List[str], skip_completed: bool = True, query_ids: Optional[List[str]] = None):
+        """Run queries for specified systems and types.
+        
+        Args:
+            systems: List of system names to run
+            query_types: List of query types to run
+            skip_completed: Whether to skip already completed queries
+            query_ids: Optional list of specific query IDs to run (filters queries)
+        """
         
         self.logger.info(f"Running systems: {systems}")
         self.logger.info(f"Query types: {query_types}")
+        if query_ids:
+            self.logger.info(f"Filtering to query IDs: {query_ids}")
         
         # Check dependencies
         missing_deps = self.check_dependencies(systems)
@@ -1991,12 +2011,22 @@ class ChallengingQueryRunner:
             self.logger.warning("      3. Preprocessed data is saved to: preprocess_squid/")
             self.logger.warning("")
         
+        # Special note for pz
+        if "pz" in systems:
+            self.logger.warning("")
+            self.logger.warning("NOTE: PZ (Palimpzest) system")
+            self.logger.warning("      PZ uses MaxQuality policy for maximum accuracy")
+            self.logger.warning("      Install with: pip install -e systems/PZ/PZ_original/palimpzest/")
+            self.logger.warning("")
+        
         # Collect all queries to run
         queries_to_run = []
         for qtype in query_types:
             if qtype in CHALLENGING_QUERIES:
                 for query in CHALLENGING_QUERIES[qtype]:
-                    queries_to_run.append((qtype, query))
+                    # Filter by query_ids if specified
+                    if query_ids is None or query["id"] in query_ids:
+                        queries_to_run.append((qtype, query))
         
         self.logger.info(f"Total queries to run: {len(queries_to_run)}")
         
@@ -2253,6 +2283,13 @@ Examples:
     )
     
     parser.add_argument(
+        "--query-ids",
+        nargs="+",
+        default=None,
+        help="Specific query IDs to run (e.g., filter_1, projection_2). If not specified, runs all queries of the specified types."
+    )
+    
+    parser.add_argument(
         "--run-id",
         type=str,
         default=None,
@@ -2279,6 +2316,12 @@ Examples:
         help="Base output directory"
     )
     
+    parser.add_argument(
+        "--local",
+        action="store_true",
+        help="Use local indexes (PROJECT_ROOT/index) instead of CHPC path"
+    )
+    
     args = parser.parse_args()
     
     # Handle 'all' options
@@ -2299,6 +2342,13 @@ Examples:
         log_level=args.log_level
     )
     
+    # Set local index path if --local flag is used
+    if args.local:
+        # Set the path to project root so it becomes PROJECT_ROOT/UDA-Bench-main/index
+        os.environ["QUEST_INDEX_ROOT"] = str(PROJECT_ROOT.parent)
+        print(f"Using local indexes at: {PROJECT_ROOT}/index")
+    
+    
     # Handle resume
     if args.resume:
         if not args.run_id:
@@ -2315,7 +2365,7 @@ Examples:
     
     # Run
     runner = ChallengingQueryRunner(config)
-    summary = runner.run(systems, query_types, skip_completed=args.resume)
+    summary = runner.run(systems, query_types, skip_completed=args.resume, query_ids=args.query_ids)
     
     return 0 if summary["failed"] == 0 else 1
 

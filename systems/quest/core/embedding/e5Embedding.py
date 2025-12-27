@@ -4,15 +4,42 @@ from numpy.typing import NDArray
 from langchain_core.embeddings import Embeddings
 from transformers import AutoModel, AutoTokenizer
 import torch
-from tqdm import tqdm
-
 import os
 
-# Use HuggingFace model IDs directly - they will be auto-downloaded and cached
-# Compact, fast MiniLM default (good quality, low resource)
+# Disable tokenizers multiprocessing to avoid segfaults on macOS
+os.environ['TOKENIZERS_PARALLELISM'] = 'false'
+
+# Model path constants
 E5_EMBEDDING_PATH = os.environ.get("E5_MODEL_PATH", "sentence-transformers/all-MiniLM-L6-v2")
-# Optional: keep BGE path for larger English model if desired
 BGE_EMBEDDING_PATH = os.environ.get("BGE_MODEL_PATH", "BAAI/bge-large-en-v1.5")
+
+# Use SentenceTransformer for reliable, lightweight embeddings
+class SentenceTransformerEmbedding(Embeddings):
+    """Wrapper around SentenceTransformer for reliable embeddings without segfaults."""
+    def __init__(self, model_name: str = 'sentence-transformers/all-MiniLM-L6-v2', device: str = "cpu"):
+        """Initialize SentenceTransformer embedding model."""
+        from sentence_transformers import SentenceTransformer
+        self.model = SentenceTransformer(model_name, device=device)
+        self.emb_size = self.model.get_sentence_embedding_dimension()
+        self.device = device
+    
+    def embed_documents(self, texts: List[str]) -> List[NDArray]:
+        """Embed a list of documents."""
+        embeddings = self.model.encode(texts, convert_to_numpy=True)
+        if len(embeddings.shape) == 1:
+            return [embeddings]
+        return [emb for emb in embeddings]
+    
+    def embed_query(self, text: str) -> NDArray:
+        """Embed a single query."""
+        embedding = self.model.encode(text, convert_to_numpy=True)
+        return embedding
+    
+    def __call__(self, text: Union[str, List[str]]):
+        """Call the embedding model."""
+        if isinstance(text, str):
+            return self.embed_query(text)
+        return self.embed_documents(text)
 
 class batchedBGEEmbeddings(Embeddings):
     def __init__(self, model_path: str = BGE_EMBEDDING_PATH, device: str = "cuda", batch_size: int = 1):
@@ -51,8 +78,8 @@ class batchedBGEEmbeddings(Embeddings):
         batch_size = self.batch_size
         all_embeddings = []
         
-        # 分批次处理大规模输入
-        for i in tqdm(range(0, len(sentences), batch_size), desc="BGE Embedding", unit="batch"):
+        # 分批次处理大规模输入 (disable tqdm to avoid multiprocessing issues)
+        for i in range(0, len(sentences), batch_size):
             batch = sentences[i:i + batch_size]
             
             # 批量编码（自动处理填充和截断）
@@ -112,12 +139,9 @@ class batchedE5Embeddings(Embeddings):
         """优化后的批量嵌入逻辑"""
         batch_size = self.batch_size
         all_embeddings = []
-        # 加入tqdm进度条显示
-
         
-        # 分批次处理大规模输入
-        for i in tqdm(range(0, len(sentences), batch_size), desc="E5 Embedding", unit="batch"):
-        # for i in range(0, len(sentences), batch_size):
+        # 分批次处理大规模输入 (disable tqdm to avoid multiprocessing issues on macOS)
+        for i in range(0, len(sentences), batch_size):
             batch = sentences[i:i + batch_size]
             
             # 批量编码（自动处理填充和截断）

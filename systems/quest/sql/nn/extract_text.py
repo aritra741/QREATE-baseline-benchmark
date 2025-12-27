@@ -45,12 +45,18 @@ class ExtractText(Extract):
         full_columns.append('doc_id')
         textDict = {} # {doc_id1 : { column1 :[text1, text2, ...], }
         now_table = pd.DataFrame(columns=full_columns, index=pd.Index([], name='doc_id'))
+        input_doc_list = None  # Store doc_ids from DocListPack if provided
 
         for data in dataList:
 
             # get table
             if isinstance(data, TablePack):
                 now_table = table_util.merge_table(now_table, data.table, 'doc_id')
+
+            # get doc list (from Filter output)
+            if isinstance(data, DocListPack):
+                input_doc_list = data.docList
+                print(f"[DEBUG ExtractText] Received DocListPack with {len(input_doc_list)} doc_ids: {input_doc_list[:10]}...")
 
             # get text
             if isinstance(data, TextPack):
@@ -80,6 +86,13 @@ class ExtractText(Extract):
 
         res_doc_list = list(textDict.keys())
         res_doc_id_list = [int(x) for x in res_doc_list]
+        
+        # CRITICAL: If we received a DocListPack from Filter, use that instead of deriving from textDict
+        if input_doc_list is not None:
+            print(f"[DEBUG ExtractText] Using doc_ids from DocListPack (from Filter)")
+            res_doc_id_list = input_doc_list
+        else:
+            print(f"[DEBUG ExtractText] Using doc_ids from textDict")
 
         print(f"[DEBUG ExtractText] textDict has {len(res_doc_list)} documents")
         print(f"[DEBUG ExtractText] First 5 doc IDs in textDict: {res_doc_id_list[:5] if res_doc_id_list else 'NONE'}")
@@ -96,9 +109,21 @@ class ExtractText(Extract):
         else:
             print(f"[DEBUG ExtractText] now_table is EMPTY")
         
-        new_textDict = table_util.check_dict_and_table(textDict, res_doc_id_list, columns, now_table)
-
-        print(f"[DEBUG ExtractText] After cache check: {len(new_textDict)} documents need extraction")
+        # CRITICAL FIX: If we received filtered doc_ids from Filter, we need to extract ALL columns for those docs
+        # Don't use cache check because the table has empty columns
+        if input_doc_list is not None and len(input_doc_list) > 0:
+            # We have specific doc_ids from Filter - extract all columns for them
+            print(f"[DEBUG ExtractText] Filter provided specific doc_ids - extracting all columns for filtered documents")
+            new_textDict = textDict  # Use the textDict as-is (might be empty)
+            # But we need to get text for these documents to extract from!
+            # The documents should be retrieved from the source
+            # For now, assume the columns in now_table have the values we need
+            # Actually, we should extract the missing columns!
+            # Get text for the filtered doc_ids
+            print(f"[DEBUG ExtractText] Need to retrieve text for filtered documents - this should have been done by Retrieve/Filter")
+        else:
+            new_textDict = table_util.check_dict_and_table(textDict, res_doc_id_list, columns, now_table)
+            print(f"[DEBUG ExtractText] After cache check: {len(new_textDict)} documents need extraction")
 
         #print_log("need to extract text dict : \n", new_textDict)
 

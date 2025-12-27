@@ -156,3 +156,4 @@ Expected output:
 The core issue was a logic error in how `GlobalIndexer.load_indexer()` handles the `table_to_type` parameter. By passing `None`, the method loads the complete configuration of all available indices instead of just the current query's table.
 
 
+

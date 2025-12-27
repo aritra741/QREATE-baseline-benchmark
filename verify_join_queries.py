@@ -92,3 +92,4 @@ print(f"JOIN-2: {len(result_j2)} rows ✓")
 print(f"JOIN-3: {len(result_j3)} rows ✓")
 print("=" * 80)
 
+

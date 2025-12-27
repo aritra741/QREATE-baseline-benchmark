@@ -35,6 +35,10 @@ sys.path.insert(0, str(PROJECT_ROOT))
 sys.path.insert(0, str(PROJECT_ROOT / "systems"))
 sys.path.insert(0, str(PROJECT_ROOT / "systems" / "quest"))
 
+# Set QUEST_INDEX_ROOT to local project directory BEFORE importing QUEST modules
+# This ensures indexes are built locally instead of in /scratch
+os.environ["QUEST_INDEX_ROOT"] = str(PROJECT_ROOT.parent)
+
 # ==============================================================================
 # RAW DOCUMENT PATHS - Maps to your raw/ folder structure
 # ==============================================================================

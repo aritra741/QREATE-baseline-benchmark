@@ -87,3 +87,4 @@ echo "  3. Run challenging queries:"
 echo "     python run_challenging_queries.py --systems squid"
 echo ""
 
+
