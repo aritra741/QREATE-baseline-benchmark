@@ -37,11 +37,31 @@ import faiss
 OLLAMA_API_KEY = 'ollama'  # Ollama doesn't require API key
 OLLAMA_BASE_URL = 'http://localhost:11434/v1'
 
-# Initialize Ollama client for qwen3:8b
-client = OpenAI(
-    api_key=OLLAMA_API_KEY,
-    base_url=OLLAMA_BASE_URL
-)
+# Initialize Ollama client lazily to avoid SSL permission errors
+# For local HTTP connections, we disable SSL verification
+_zendb_client = None
+
+def get_client():
+    """Get or create the OpenAI client lazily with SSL verification disabled for local HTTP."""
+    global _zendb_client
+    if _zendb_client is None:
+        import httpx
+        _zendb_client = OpenAI(
+            api_key=OLLAMA_API_KEY,
+            base_url=OLLAMA_BASE_URL,
+            http_client=httpx.Client(verify=False)  # Disable SSL for local HTTP
+        )
+    return _zendb_client
+
+# For backward compatibility
+class ClientProxy:
+    def __getattr__(self, name):
+        return getattr(get_client(), name)
+    
+    def __call__(self, *args, **kwargs):
+        return get_client()(*args, **kwargs)
+
+client = ClientProxy()
 
 @dataclass
 class SHTNode:

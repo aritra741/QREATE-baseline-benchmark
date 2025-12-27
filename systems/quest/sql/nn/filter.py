@@ -15,6 +15,7 @@ class Filter(Physical):
         self.type = type
         self.root = root
         self.querier = None
+        self.sampler = None
         self.name = 'Filter'
 
     def process(self):
@@ -22,3 +23,6 @@ class Filter(Physical):
 
     def set_querier(self, x):
         self.querier = x
+    
+    def set_sampler(self, x):
+        self.sampler = x

@@ -9,15 +9,33 @@ from quest.conf import settings
 from quest.db.indexer.preprocessor.load_documents import load_TextDocs_from_directory, load_ZenDBDoc_from_directory
 
 
-from quest.core.embedding.e5Embedding import batchedE5Embeddings, batchedBGEEmbeddings
+from quest.core.embedding.e5Embedding import batchedE5Embeddings, batchedBGEEmbeddings, SentenceTransformerEmbedding
 from quest.core.embedding.apiEmbedding import ApiEmbeddings
 
 # SingleIndexer默认使用的Embedding方法:
 # Use local E5 embedding model (auto-downloads from HuggingFace)
-# Set device to "cuda" if GPU available, otherwise "cpu"
+# Set device to "cpu" to avoid macOS ARM64 segfault
 import torch
-_device = "cuda" if torch.cuda.is_available() else "cpu"
-local_emb_model = batchedE5Embeddings(device=_device, batch_size=32)
+import os
+
+# Disable threading to avoid macOS ARM64 segfault with PyTorch
+os.environ['OMP_NUM_THREADS'] = '1'
+os.environ['MKL_NUM_THREADS'] = '1'
+os.environ['NUMEXPR_NUM_THREADS'] = '1'
+torch.set_num_threads(1)
+
+_device = "cpu"  # Force CPU on macOS to avoid segfaults
+
+# Lazy load embedding model to avoid macOS segfault on import
+_local_emb_model = None
+
+def get_local_emb_model():
+    """Lazily load the embedding model to avoid segfault on macOS during import."""
+    global _local_emb_model
+    if _local_emb_model is None:
+        _local_emb_model = batchedE5Embeddings(device=_device, batch_size=32)
+        print(f"[INFO] Loaded E5 embedding model on device: {_device}")
+    return _local_emb_model
 
 # SingleIndexer默认使用的chunker方法
 from quest.core.chunker.chunker import GrammarSemanticChunker, SentenceTransformerTokenTextChunker, RecursiveTokenTextChunker, TokenTextChunker
@@ -25,9 +43,9 @@ TOKEN_CHUNKER = TokenTextChunker(chunk_size=20000, chunk_overlap=128)
 
 RECURSIVE_TOKEN_CHUNKER = RecursiveTokenTextChunker(chunk_size=512, chunk_overlap=128)
 
-USED_EMBEDDING_MODEL = local_emb_model
+USED_EMBEDDING_MODEL = None  # Will use get_local_emb_model() lazily
 
-GRAMMAR_SEMANTIC_CHUNKER = GrammarSemanticChunker(USED_EMBEDDING_MODEL, min_chunk_size=128, max_chunk_size=512)
+GRAMMAR_SEMANTIC_CHUNKER = None  # Will be initialized lazily with the embedding model
 
 USED_CHUNKER = TOKEN_CHUNKER
 
@@ -199,12 +217,16 @@ class GlobalIndexer:
 
 def load_all_indexer(table_to_type = None, chunker = USED_CHUNKER, embedding_model=USED_EMBEDDING_MODEL) -> GlobalIndexer:
     """加载所有索引器"""
+    if embedding_model is None:
+        embedding_model = get_local_emb_model()
     global_indexer = GlobalIndexer(chunker=chunker, embedding_model=embedding_model)
     global_indexer.load_indexer(table_to_type)
     return global_indexer
 
 def build_all_indexer(doc_dirs : list[str], tables_name: list[str], types = ["TextDoc", "TextDoc"], debug_flag = False, chunker = USED_CHUNKER ,embedding_model = USED_EMBEDDING_MODEL) -> GlobalIndexer:
     """构建所有索引器"""
+    if embedding_model is None:
+        embedding_model = get_local_emb_model()
     table2docs = {}
     if len(doc_dirs) != len(tables_name):
         raise ValueError("doc_dirs和table_names的长度必须相同")

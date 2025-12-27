@@ -322,3 +322,4 @@ For issues, questions, or contributions related to SQUiD integration:
 **Integration Version**: 1.0
 **SQUiD Status**: Baseline implementation with planned extensions
 
+

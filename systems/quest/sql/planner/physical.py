@@ -47,6 +47,8 @@ class TextPhysicalPlanner(object):
     def build_filter(self, root : LogicalFilter):
         node = FilterText(root.columns, root.table, 'Text', root.root)
         node.set_querier(self.querier)
+        node.set_sampler(self.sampler)
+        node.set_indexer(self.global_indexer)
         return node
     
     def build_extract(self, root : LogicalExtract):

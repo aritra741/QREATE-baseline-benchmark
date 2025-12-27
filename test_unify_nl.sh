@@ -18,3 +18,4 @@ python3 run_challenging_queries.py \
   --query-types simple \
   --log-level DEBUG
 
+

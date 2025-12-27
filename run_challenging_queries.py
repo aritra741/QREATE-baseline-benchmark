@@ -32,6 +32,7 @@ PROJECT_ROOT = Path(__file__).parent
 sys.path.insert(0, str(PROJECT_ROOT))
 sys.path.insert(0, str(PROJECT_ROOT / "systems"))
 sys.path.insert(0, str(PROJECT_ROOT / "systems" / "quest"))
+sys.path.insert(0, str(PROJECT_ROOT / "systems" / "PZ"))
 
 # Check for required dependencies
 try:
@@ -134,7 +135,6 @@ CHALLENGING_QUERIES = {
             "entity": "disease",
             "sql": """SELECT disease_name, disease_type, prognosis
 FROM disease""",
-            "sql_squid": """SELECT DISTINCT id, name, category FROM disease""",
             "nl_query": "Get disease names, types, and prognosis from all disease documents",
             "difficulty": "easy",
             "reason": "Basic projection from disease table - straightforward attribute extraction"
@@ -146,7 +146,6 @@ FROM disease""",
             "entity": "player",
             "sql": """SELECT name, position, nationality, team
 FROM player""",
-            "sql_squid": """SELECT DISTINCT name, position, draft_year, college FROM player""",
             "nl_query": "Get names, positions, nationalities, and teams from all player documents",
             "difficulty": "easy",
             "reason": "Simple attribute selection on player table with no filtering"
@@ -162,8 +161,6 @@ FROM player""",
             "sql": """SELECT disease_name, disease_type, common_symptoms, treatments
 FROM disease
 WHERE disease_type = 'psychiatric'""",
-            "sql_squid": """SELECT id, name, category FROM disease
-WHERE category = 'psychiatric'""",
             "nl_query": "Get psychiatric disease documents with disease names, types, common symptoms, and treatments",
             "difficulty": "easy",
             "reason": "Simple equality filter on disease_type field"
@@ -175,8 +172,6 @@ WHERE category = 'psychiatric'""",
             "entity": "player",
             "sql": """SELECT name, team, position, nationality, draft_year
 FROM player
-WHERE position = 'Frontcourt'""",
-            "sql_squid": """SELECT DISTINCT name, position, draft_year, college FROM player
 WHERE position = 'Frontcourt'""",
             "nl_query": "Get Frontcourt player documents with names, teams, positions, nationalities, and draft years",
             "difficulty": "easy",
@@ -190,8 +185,6 @@ WHERE position = 'Frontcourt'""",
             "sql": """SELECT disease_name, disease_type, etiology, treatment_challenges
 FROM disease
 WHERE disease_type = 'inflammatory'""",
-            "sql_squid": """SELECT id, name, category FROM disease
-WHERE category = 'inflammatory'""",
             "nl_query": "Get inflammatory disease documents with disease names, types, etiology, and treatment challenges",
             "difficulty": "easy",
             "reason": "Simple equality filter on disease_type field"
@@ -207,11 +200,6 @@ WHERE category = 'inflammatory'""",
             "sql": """SELECT disease_name, disease_type, diagnostic_methods, 
        common_symptoms, treatments, prognosis
 FROM disease""",
-            "sql_squid": """SELECT DISTINCT disease.id, disease.name, disease.category,
-       treatment.method, symptom.description
-FROM disease
-LEFT JOIN treatment ON disease.id = treatment.disease_id
-LEFT JOIN symptom ON disease.id = symptom.disease_id""",
             "nl_query": "Get all disease documents with names, types, diagnostic methods, common symptoms, treatments, and prognosis",
             "difficulty": "medium",
             "reason": "Extracting multiple medical attributes including diagnostic and treatment information"
@@ -224,10 +212,6 @@ LEFT JOIN symptom ON disease.id = symptom.disease_id""",
             "sql": """SELECT name, position, nationality, team, 
        college, nba_championships, mvp_awards, olympic_gold_medals
 FROM player""",
-            "sql_squid": """SELECT DISTINCT player.id, player.name, player.position, player.draft_year, player.college,
-       achievement.nba_championships, achievement.mvp_awards, achievement.olympic_gold_medals
-FROM player
-LEFT JOIN achievement ON player.id = achievement.player_id""",
             "nl_query": "Get all player documents with names, positions, nationalities, teams, colleges, NBA championships, MVP awards, and Olympic gold medals",
             "difficulty": "medium",
             "reason": "8 attributes mixing categorical and numerical data requiring accurate extraction"
@@ -240,14 +224,6 @@ LEFT JOIN achievement ON player.id = achievement.player_id""",
             "sql": """SELECT company_name, principal_activities, revenue, 
        net_profit_or_loss, total_assets, business_risks
 FROM finance""",
-            "sql_squid": """SELECT DISTINCT company.id, company.name, company.industry,
-       revenue.amount as revenue_amount,
-       net_profit.amount as profit_amount,
-       assets.amount as assets_amount
-FROM company
-LEFT JOIN revenue ON company.id = revenue.company_id
-LEFT JOIN net_profit ON company.id = net_profit.company_id
-LEFT JOIN assets ON company.id = assets.company_id""",
             "nl_query": "Get all company documents with names, principal activities, revenue, net profit or loss, total assets, and business risks",
             "difficulty": "hard",
             "reason": "Financial attributes scattered across long 100+ page documents; requires careful value extraction"
@@ -257,55 +233,42 @@ LEFT JOIN assets ON company.id = assets.company_id""",
     "join": [
         {
             "id": "join_1",
-            "name": "Select infectious disease information",
+            "name": "Join diseases with their drug treatments",
             "dataset": "Med",
-            "entity": "disease",
-            "sql": """SELECT disease_name, disease_type, treatments, diagnostic_methods, common_symptoms
-FROM disease
-WHERE disease_type = 'infectious'""",
-            "sql_squid": """SELECT DISTINCT disease.id, disease.name, disease.category,
-       treatment.method, symptom.description
-FROM disease
-LEFT JOIN treatment ON disease.id = treatment.disease_id
-LEFT JOIN symptom ON disease.id = symptom.disease_id
-WHERE disease.category = 'infectious'""",
-            "nl_query": "Get infectious disease documents with disease names, types, treatments, diagnostic methods, and common symptoms",
-            "difficulty": "medium",
-            "reason": "Multi-attribute extraction with equality filter on category"
+            "entity": "disease,drug",
+            "sql": """SELECT d.disease_name, d.disease_type, d.treatments, dr.generic_name, dr.brand_name, dr.side_effects
+FROM disease d
+JOIN drug dr ON d.disease_name = dr.disease_name
+WHERE d.disease_name IN ('Type 2 Diabetes Mellitus', 'Tuberculosis', 'Fibromyalgia', 'Asthma', 'Depression')""",
+            "nl_query": "Get common diseases (diabetes, tuberculosis, fibromyalgia, asthma, depression) with their associated drug treatments, showing disease names, types, treatments from disease documents, generic drug names, brand names, and side effects",
+            "difficulty": "hard",
+            "reason": "Requires joining disease and drug tables on disease name matching across documents; tests accurate extraction of treatment-related fields from both entity types"
         },
         {
             "id": "join_2",
-            "name": "Select championship-winning players",
+            "name": "Join players with their teams and cities",
             "dataset": "Player",
-            "entity": "player",
-            "sql": """SELECT name, team, position, nationality, nba_championships
-FROM player
-WHERE nba_championships > 0""",
-            "sql_squid": """SELECT DISTINCT player.name, player.position, player.draft_year,
-       achievement.nba_championships
-FROM player
-LEFT JOIN achievement ON player.id = achievement.player_id
-WHERE achievement.nba_championships > 0""",
-            "nl_query": "Get championship-winning player documents with names, teams, positions, nationalities, and number of NBA championships",
-            "difficulty": "medium",
-            "reason": "Filtering on numerical comparison and multi-attribute extraction"
+            "entity": "player,team,city",
+            "sql": """SELECT p.name, p.position, p.nationality, t.team_name, t.ownership, c.city_name, c.state_name
+FROM player p
+JOIN team t ON p.team = t.team_name
+JOIN city c ON t.location = c.city_name""",
+            "nl_query": "Get all players with their team information and city details, showing player names, positions, nationalities, team names, ownership, city names, and state names",
+            "difficulty": "hard",
+            "reason": "Multi-table join across player, team, and city entities; requires matching team names and city names across multiple documents"
         },
         {
             "id": "join_3",
-            "name": "Select genetic diseases",
+            "name": "Join diseases with research institutions",
             "dataset": "Med",
-            "entity": "disease",
-            "sql": """SELECT disease_name, disease_type, pathogenesis, prognosis
-FROM disease
-WHERE disease_type = 'genetic'""",
-            "sql_squid": """SELECT DISTINCT disease.id, disease.name, disease.category,
-       causes.description as pathogenesis
-FROM disease
-LEFT JOIN causes ON disease.id = causes.disease_id
-WHERE disease.category = 'genetic'""",
-            "nl_query": "Get genetic disease documents with disease names, types, pathogenesis, and prognosis",
-            "difficulty": "easy",
-            "reason": "Multi-attribute extraction with equality filter"
+            "entity": "disease,institution",
+            "sql": """SELECT DISTINCT d.disease_name, d.disease_type, d.prognosis, i.institution_name, i.research_diseases, i.institution_country
+FROM disease d
+JOIN institution i ON d.disease_name IN i.research_diseases
+WHERE d.disease_type IN ('infectious', 'genetic')""",
+            "nl_query": "Get infectious and genetic diseases along with institutions that research them, showing disease names, disease types, prognosis, institution names, research focus, and institution countries",
+            "difficulty": "hard",
+            "reason": "Joining disease and institution tables where disease names must be found within research_diseases field; requires semantic substring matching across documents"
         }
     ],
     
@@ -318,9 +281,6 @@ WHERE disease.category = 'genetic'""",
             "sql": """SELECT disease_type, COUNT(*) AS disease_count
 FROM disease
 GROUP BY disease_type""",
-            "sql_squid": """SELECT category, COUNT(*) AS disease_count
-FROM disease
-GROUP BY category""",
             "nl_query": "Count how many diseases there are for each disease type",
             "difficulty": "medium",
             "reason": "Tests GROUP BY and COUNT aggregation across multiple categories"
@@ -335,11 +295,6 @@ GROUP BY category""",
 FROM player
 WHERE nationality = 'American'
 GROUP BY position""",
-            "sql_squid": """SELECT position, COUNT(*) AS player_count, 
-       AVG(achievement.nba_championships) AS avg_championships
-FROM player
-LEFT JOIN achievement ON player.id = achievement.player_id
-GROUP BY position""",
             "nl_query": "For American players, count how many players there are in each position and calculate the average number of NBA championships per position",
             "difficulty": "medium",
             "reason": "Tests GROUP BY with entity matching and aggregation functions on numerical data"
@@ -352,9 +307,6 @@ GROUP BY position""",
             "sql": """SELECT principal_activities, COUNT(*) AS company_count
 FROM finance
 GROUP BY principal_activities""",
-            "sql_squid": """SELECT industry, COUNT(*) AS company_count
-FROM finance
-GROUP BY industry""",
             "nl_query": "Count how many companies there are for each principal activity",
             "difficulty": "medium",
             "reason": "Tests GROUP BY and COUNT on text field from financial documents"
@@ -374,7 +326,6 @@ UNION ALL
 SELECT name, nationality, mvp_awards AS achievement_count, 'MVP Awards' AS type
 FROM player
 WHERE mvp_awards > 0""",
-            "sql_squid": """SELECT name, draft_year FROM player""",
             "nl_query": "Find all players who have won NBA championships or MVP awards, showing their names, nationalities, achievement counts, and achievement types",
             "difficulty": "medium",
             "reason": "UNION of same table with different numerical filters; requires accurate extraction of both fields"
@@ -391,7 +342,6 @@ UNION ALL
 SELECT disease_name, treatments AS clinical_info, 'Treatment' AS info_type
 FROM disease
 WHERE treatments IS NOT NULL""",
-            "sql_squid": """SELECT id, name, category FROM disease""",
             "nl_query": "Combine diagnostic methods and treatments for all diseases, showing disease names, clinical information, and information type",
             "difficulty": "hard",
             "reason": "Cross-field union requiring accurate extraction and understanding of different medical information types"
@@ -408,7 +358,6 @@ UNION ALL
 SELECT company_name, total_assets AS metric_value, 'Total Assets' AS metric_type
 FROM finance
 WHERE total_assets > 0""",
-            "sql_squid": """SELECT id, name, industry FROM finance""",
             "nl_query": "Compare financial companies by showing their revenue and total assets, including company names, metric values, and metric types",
             "difficulty": "hard",
             "reason": "UNION of numerical metrics from different columns requiring proper value extraction and comparison"
@@ -659,7 +608,13 @@ class QuestRunner(SystemRunner):
                 indexer_obj, _ = gb_indexer.get_indexer(entity)
                 self.logger.debug(f"[QUEST] Got indexer for {entity}, has {len(indexer_obj.get_docs_id())} docs")
                 
-                gb_sampler.try_sample(indexer_obj, prompt_str)
+                # Check if exhaustive sampling is enabled via environment variable
+                use_exhaustive = os.environ.get('QUEST_EXHAUSTIVE_SAMPLING', '').lower() == 'true'
+                if use_exhaustive:
+                    self.logger.warning(f"[QUEST] EXHAUSTIVE SAMPLING ENABLED - sampling ALL documents for evidence!")
+                    gb_sampler.try_sample_all_docs(indexer_obj, prompt_str)
+                else:
+                    gb_sampler.try_sample(indexer_obj, prompt_str)
                 
                 self.logger.info(f"[QUEST] Sampler initialized with evidence for {len(gb_sampler.map_attr_evidence)} attributes")
                 
@@ -1775,8 +1730,7 @@ class SQUiDRunner(SystemRunner):
         query_id = query["id"]
         dataset = query["dataset"]
         entity = query.get("entity", "").lower()
-        # Use sql_squid if available (SQUiD-specific queries), otherwise fall back to sql
-        sql = query.get("sql_squid", query.get("sql", ""))
+        sql = query.get("sql", "")
         
         metadata = {
             "system": self.name,
@@ -1911,13 +1865,14 @@ class Checkpoint:
 class ChallengingQueryRunner:
     """Main orchestrator for running challenging queries."""
     
-    AVAILABLE_SYSTEMS = ["quest", "uqe", "lotus", "unify", "squid"]
+    AVAILABLE_SYSTEMS = ["quest", "uqe", "lotus", "unify", "squid", "pz"]
     
     SYSTEM_DEPENDENCIES = {
         "quest": ["ply", "sqlglot", "duckdb", "openai", "tiktoken"],
         "uqe": ["tqdm", "numpy", "openai"],
         "unify": ["openai", "torch", "sentence-transformers", "hnswlib"],
         "squid": ["pandas", "openai"],
+        "pz": ["pandas"],
         # lotus-ai requires Python <3.13, checked separately
     }
     
@@ -1978,6 +1933,9 @@ class ChallengingQueryRunner:
                 runner = UnifyRunner(self.config, self.logger)
             elif system == "squid":
                 runner = SQUiDRunner(self.config, self.logger)
+            elif system == "pz":
+                from systems.PZ.pz_runner import PZRunner
+                runner = PZRunner(self.config, self.logger)
             else:
                 self.logger.error(f"Unknown system: {system}")
                 return None
@@ -1987,11 +1945,20 @@ class ChallengingQueryRunner:
             self.logger.error(f"Failed to initialize {system}: {e}")
             return None
     
-    def run(self, systems: List[str], query_types: List[str], skip_completed: bool = True):
-        """Run queries for specified systems and types."""
+    def run(self, systems: List[str], query_types: List[str], skip_completed: bool = True, query_ids: Optional[List[str]] = None):
+        """Run queries for specified systems and types.
+        
+        Args:
+            systems: List of system names to run
+            query_types: List of query types to run
+            skip_completed: Whether to skip already completed queries
+            query_ids: Optional list of specific query IDs to run (filters queries)
+        """
         
         self.logger.info(f"Running systems: {systems}")
         self.logger.info(f"Query types: {query_types}")
+        if query_ids:
+            self.logger.info(f"Filtering to query IDs: {query_ids}")
         
         # Check dependencies
         missing_deps = self.check_dependencies(systems)
@@ -2044,12 +2011,22 @@ class ChallengingQueryRunner:
             self.logger.warning("      3. Preprocessed data is saved to: preprocess_squid/")
             self.logger.warning("")
         
+        # Special note for pz
+        if "pz" in systems:
+            self.logger.warning("")
+            self.logger.warning("NOTE: PZ (Palimpzest) system")
+            self.logger.warning("      PZ uses MaxQuality policy for maximum accuracy")
+            self.logger.warning("      Install with: pip install -e systems/PZ/PZ_original/palimpzest/")
+            self.logger.warning("")
+        
         # Collect all queries to run
         queries_to_run = []
         for qtype in query_types:
             if qtype in CHALLENGING_QUERIES:
                 for query in CHALLENGING_QUERIES[qtype]:
-                    queries_to_run.append((qtype, query))
+                    # Filter by query_ids if specified
+                    if query_ids is None or query["id"] in query_ids:
+                        queries_to_run.append((qtype, query))
         
         self.logger.info(f"Total queries to run: {len(queries_to_run)}")
         
@@ -2306,6 +2283,13 @@ Examples:
     )
     
     parser.add_argument(
+        "--query-ids",
+        nargs="+",
+        default=None,
+        help="Specific query IDs to run (e.g., filter_1, projection_2). If not specified, runs all queries of the specified types."
+    )
+    
+    parser.add_argument(
         "--run-id",
         type=str,
         default=None,
@@ -2332,6 +2316,12 @@ Examples:
         help="Base output directory"
     )
     
+    parser.add_argument(
+        "--local",
+        action="store_true",
+        help="Use local indexes (PROJECT_ROOT/index) instead of CHPC path"
+    )
+    
     args = parser.parse_args()
     
     # Handle 'all' options
@@ -2352,6 +2342,13 @@ Examples:
         log_level=args.log_level
     )
     
+    # Set local index path if --local flag is used
+    if args.local:
+        # Set the path to project root so it becomes PROJECT_ROOT/UDA-Bench-main/index
+        os.environ["QUEST_INDEX_ROOT"] = str(PROJECT_ROOT.parent)
+        print(f"Using local indexes at: {PROJECT_ROOT}/index")
+    
+    
     # Handle resume
     if args.resume:
         if not args.run_id:
@@ -2368,7 +2365,7 @@ Examples:
     
     # Run
     runner = ChallengingQueryRunner(config)
-    summary = runner.run(systems, query_types, skip_completed=args.resume)
+    summary = runner.run(systems, query_types, skip_completed=args.resume, query_ids=args.query_ids)
     
     return 0 if summary["failed"] == 0 else 1
 

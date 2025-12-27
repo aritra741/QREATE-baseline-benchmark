@@ -454,6 +454,26 @@ Extract the attributes from the chunks above."""
             self.sample_one_doc(doc_id, doc_indexer, attr_schema)
         self.map_attr_evidence = self.get_evidence(attr_schema)
 
+    def try_sample_all_docs(self, doc_indexer: TextDocIndexer, attr_schema):
+        """
+        DUMMY FUNCTION: Sample ALL documents from indexer to verify data completeness.
+        This bypasses the random sampling and extracts from every document.
+        Useful for debugging and verifying if information is actually in the dataset.
+        """
+        doc_ids = doc_indexer.get_docs_id()
+        N = len(doc_ids)
+        print(f"[DEBUG try_sample_all_docs] Sampling ALL {N} documents for exhaustive evidence collection")
+        
+        # Process all documents
+        for i, doc_id in enumerate(doc_ids):
+            if (i + 1) % 10 == 0:
+                print(f"[DEBUG try_sample_all_docs] Processed {i + 1}/{N} documents")
+            self.sample_one_doc(doc_id, doc_indexer, attr_schema)
+        
+        self.map_attr_evidence = self.get_evidence(attr_schema)
+        print(f"[DEBUG try_sample_all_docs] Completed sampling all {N} documents")
+
+
     def get_evidence(self, attr_schema = ""):
         if len(attr_schema)<10:
             attr_schema = copy.copy(self.schema)
@@ -513,6 +533,12 @@ Extract the attributes from the chunks above."""
         map_attr_evidence_segments = {}
         attr_names = extract_attr_names_from_schema(attr_schema)
         
+        # DEBUG: Log sample table info
+        print(f"[DEBUG get_evidence_segments] sample_table shape: {self.sample_table.shape}")
+        print(f"[DEBUG get_evidence_segments] sample_table columns: {list(self.sample_table.columns)}")
+        if len(self.sample_table) > 0:
+            print(f"[DEBUG get_evidence_segments] sample_table first row: {self.sample_table.iloc[0].to_dict()}")
+        
         for attr in attr_names:
             value_col = attr
             confidence_col = f"{attr}_confidence"
@@ -523,17 +549,20 @@ Extract the attributes from the chunks above."""
                 confidence_col not in self.sample_table.columns or
                 evidence_col not in self.sample_table.columns
             ):
+                print(f"[DEBUG get_evidence_segments] Missing columns for {attr}: value_col={value_col in self.sample_table.columns}, confidence_col={confidence_col in self.sample_table.columns}, evidence_col={evidence_col in self.sample_table.columns}")
                 map_attr_evidence_segments[attr] = []
                 continue
             
             # Get rows with non-None confidence
             valid_rows = self.sample_table[self.sample_table[confidence_col].notnull()]
+            print(f"[DEBUG get_evidence_segments] {attr}: {len(valid_rows)} rows with non-None confidence out of {len(self.sample_table)}")
             if len(valid_rows) == 0:
                 map_attr_evidence_segments[attr] = []
                 continue
             
             # Get all evidence segments (not just top 2)
             evidences = [str(e) for e in valid_rows[evidence_col].tolist() if e and str(e).strip()]
+            print(f"[DEBUG get_evidence_segments] {attr}: collected {len(evidences)} evidence segments")
             map_attr_evidence_segments[attr] = evidences
         
         return map_attr_evidence_segments

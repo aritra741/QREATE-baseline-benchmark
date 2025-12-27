@@ -260,3 +260,4 @@ Test results:
   ✗ 0 rows returned → Plan generation issue (separate)
 ```
 
+
