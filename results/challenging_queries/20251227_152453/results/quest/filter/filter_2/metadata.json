@@ -1,0 +1,12 @@
+{
+  "system": "quest",
+  "query_id": "filter_2",
+  "start_time": "2025-12-27T15:25:05.604821",
+  "status": "failed",
+  "parse_time": 0.006139993667602539,
+  "logical_plan_time": 8.440017700195312e-05,
+  "physical_plan_time": 11.559191942214966,
+  "error": "'DataFrame' object has no attribute 'tolist'",
+  "traceback": "Traceback (most recent call last):\n  File \"/uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/run_challenging_queries.py\", line 642, in run_query\n    result = processer.process(physical_plan)\n  File \"/uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/systems/quest/sql/processer/processer.py\", line 28, in process\n    return self.dfs(root)\n           ~~~~~~~~^^^^^^\n  File \"/uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/systems/quest/sql/processer/processer.py\", line 19, in dfs\n    self.dfs(v)\n    ~~~~~~~~^^^\n  File \"/uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/systems/quest/sql/processer/processer.py\", line 19, in dfs\n    self.dfs(v)\n    ~~~~~~~~^^^\n  File \"/uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/systems/quest/sql/processer/processer.py\", line 22, in dfs\n    return node.process()\n           ~~~~~~~~~~~~^^\n  File \"/uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/systems/quest/sql/nn/filter_text.py\", line 358, in process\n    res_doc_idList = self.solve(self.root, doc_idList)\n  File \"/uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/systems/quest/sql/nn/filter_text.py\", line 259, in solve\n    exist_check_text = gb_table.loc[exist_idx, now_column].tolist()\n                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/quest_venv/lib/python3.13/site-packages/pandas/core/generic.py\", line 6321, in __getattr__\n    return object.__getattribute__(self, name)\n           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^\nAttributeError: 'DataFrame' object has no attribute 'tolist'\n",
+  "end_time": "2025-12-27T15:42:41.471964"
+}
