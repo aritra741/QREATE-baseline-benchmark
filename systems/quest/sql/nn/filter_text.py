@@ -364,7 +364,21 @@ class FilterText(Filter):
                 print(f"[DEBUG FilterText] Received TextDictPack for doc_id={doc_id}")
                 print(f"[DEBUG FilterText] TextDictPack contains columns: {list(text.keys())}")
                 print(f"[DEBUG FilterText] Sample text lengths: {[(col, len(str(text[col]))) for col in list(text.keys())[:3]]}")
-                self.textDict.setdefault(doc_id, text)
+                # CRITICAL FIX: Merge the text dict, don't just setdefault
+                # setdefault keeps the old value if key exists, which loses new data
+                if doc_id not in self.textDict:
+                    self.textDict[doc_id] = text
+                else:
+                    # Merge columns - add any new columns from incoming text
+                    for col, col_text in text.items():
+                        if col not in self.textDict[doc_id]:
+                            self.textDict[doc_id][col] = col_text
+                        elif isinstance(col_text, list) and isinstance(self.textDict[doc_id][col], list):
+                            # Both are lists - extend
+                            self.textDict[doc_id][col].extend(col_text)
+                        else:
+                            # Replace if it's the newer value
+                            self.textDict[doc_id][col] = col_text
 
         #print_log("after data pack", self.now_tableDict[self.table])
 
