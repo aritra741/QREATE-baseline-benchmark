@@ -45,7 +45,16 @@ def merge_table(U : pd.DataFrame, V : pd.DataFrame, key):
         for column in V.columns:
             if pd.isna(Vrow[column]) or Vrow[column] == '':
                 continue
-            if pd.isna(U.at[Vindex, column]) or U.at[Vindex, column] == '':
+            # CRITICAL FIX: Handle case where U.at returns a Series instead of scalar
+            try:
+                u_val = U.at[Vindex, column]
+                # If u_val is a Series, it means something is wrong with the index/column
+                if isinstance(u_val, pd.Series):
+                    U.at[Vindex, column] = Vrow[column]
+                elif pd.isna(u_val) or u_val == '':
+                    U.at[Vindex, column] = Vrow[column]
+            except (KeyError, TypeError):
+                # If index/column doesn't exist, just set it
                 U.at[Vindex, column] = Vrow[column]
     U.reset_index(inplace=True)
 

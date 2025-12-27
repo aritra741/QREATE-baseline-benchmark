@@ -2344,8 +2344,8 @@ Examples:
     
     # Set local index path if --local flag is used
     if args.local:
-        # Set the path to project root so it becomes PROJECT_ROOT/UDA-Bench-main/index
-        os.environ["QUEST_INDEX_ROOT"] = str(PROJECT_ROOT.parent)
+        # Set the path to project root so indexes are at PROJECT_ROOT/index
+        os.environ["QUEST_INDEX_ROOT"] = str(PROJECT_ROOT)
         print(f"Using local indexes at: {PROJECT_ROOT}/index")
     
     
