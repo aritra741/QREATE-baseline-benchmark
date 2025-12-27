@@ -43,7 +43,7 @@ class RetrieveText(Retrieve):
         evidence_segments = self.sampler.get_evidence_segments()
         print(f"[DEBUG RetrieveText] Got evidence segments for {len(evidence_segments)} attributes")
         print(f"[DEBUG RetrieveText] Evidence segments keys: {list(evidence_segments.keys())}")
-        print(f"[DEBUG RetrieveText] Evidence segments counts: {[(col, len(segs)) for col, segs in evidence_segments.items()]}")(f"[DEBUG RetrieveText] Evidence segments keys: {list(evidence_segments.keys())}")
+        print(f"[DEBUG RetrieveText] Evidence segments counts: {[(col, len(segs)) for col, segs in evidence_segments.items()]}")
         
         # Step 2: For each attribute, use evidence-augmented retrieval
         # According to QUEST paper Section 4.2:
