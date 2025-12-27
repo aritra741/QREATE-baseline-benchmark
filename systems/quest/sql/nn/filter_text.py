@@ -256,7 +256,14 @@ class FilterText(Filter):
                 # Step 4-2 get the exist value
                 gb_table = copy.copy(self.now_tableDict[self.table])
                 gb_table = gb_table.set_index('doc_id', inplace = False)
-                exist_check_text = gb_table.loc[exist_idx, now_column].tolist()
+                # CRITICAL FIX: Handle case where .loc returns a DataFrame instead of Series
+                selected = gb_table.loc[exist_idx, now_column]
+                if isinstance(selected, pd.DataFrame):
+                    # Multiple indices - extract the column as a list
+                    exist_check_text = selected[now_column].tolist() if now_column in selected.columns else selected.iloc[:, 0].tolist()
+                else:
+                    # Single index - Series - convert to list
+                    exist_check_text = [selected] if not isinstance(selected, list) else selected
                 exist_df = self.querier.check_filter_condition(exist_check_text, exist_idx, [now_column], condition)
                 gb_table.reset_index(inplace=True) # remember to reset
 
