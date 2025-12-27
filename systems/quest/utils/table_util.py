@@ -43,19 +43,32 @@ def merge_table(U : pd.DataFrame, V : pd.DataFrame, key):
             U.loc[Vindex] = [np.nan] * len(U.columns)
 
         for column in V.columns:
-            if pd.isna(Vrow[column]) or Vrow[column] == '':
-                continue
-            # CRITICAL FIX: Handle case where U.at returns a Series instead of scalar
+            # CRITICAL FIX: Safely get the value from Vrow (a Series)
             try:
-                u_val = U.at[Vindex, column]
-                # If u_val is a Series, it means something is wrong with the index/column
-                if isinstance(u_val, pd.Series):
-                    U.at[Vindex, column] = Vrow[column]
-                elif pd.isna(u_val) or u_val == '':
-                    U.at[Vindex, column] = Vrow[column]
-            except (KeyError, TypeError):
-                # If index/column doesn't exist, just set it
-                U.at[Vindex, column] = Vrow[column]
+                v_val = Vrow[column]
+                # Handle case where indexing returns a Series instead of scalar
+                if isinstance(v_val, pd.Series):
+                    v_val = v_val.iloc[0] if len(v_val) > 0 else None
+                
+                # Skip if value is NaN or empty
+                if pd.isna(v_val) or (isinstance(v_val, str) and v_val.strip() == ''):
+                    continue
+                
+                # Get the existing value safely
+                try:
+                    u_val = U.at[Vindex, column]
+                    # If u_val is a Series, it means something is wrong - skip or set
+                    if isinstance(u_val, pd.Series):
+                        U.at[Vindex, column] = v_val
+                    elif pd.isna(u_val) or (isinstance(u_val, str) and u_val.strip() == ''):
+                        U.at[Vindex, column] = v_val
+                except (KeyError, TypeError, ValueError):
+                    # If index/column doesn't exist, just set it
+                    U.at[Vindex, column] = v_val
+                    
+            except Exception as e:
+                # Silently skip problematic values
+                continue
     U.reset_index(inplace=True)
 
     return U
