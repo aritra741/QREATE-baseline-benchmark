@@ -301,8 +301,12 @@ class FilterText(Filter):
                     print(f"[DEBUG filter_text] df has {len(df)} rows, res_doc_idList = {res_doc_idList[:10]}...")
                 #print_log("res_doc_idList : ",res_doc_idList)
 
-            # fill cells , not extract again!
-            self.now_tableDict[self.table] = table_util.fill_cells(self.now_tableDict[self.table], [now_column], now_doc_idList, 'doc_id')
+            # CRITICAL FIX: Don't call fill_cells after extraction+merge!
+            # We just extracted and merged values for the filter column.
+            # Calling fill_cells() would overwrite those extracted values with 'None' strings.
+            # The merge_table() call already ensured all rows exist in the table.
+            # For documents where extraction failed, they already have NaN in the column.
+            # DO NOT: self.now_tableDict[self.table] = table_util.fill_cells(self.now_tableDict[self.table], [now_column], now_doc_idList, 'doc_id')
 
             return res_doc_idList
 
@@ -423,6 +427,7 @@ class FilterText(Filter):
         print(f"[DEBUG filter_text.process] Output columns after filter: {list(filtered_table.columns)}")
         if len(filtered_table) > 0:
             print(f"[DEBUG filter_text.process] Sample row 0: {filtered_table.iloc[0].to_dict()}")
+            print(f"[DEBUG filter_text.process] Position values: {filtered_table['position'].unique()}")
         
         self.output.append(TablePack(self.table, filtered_table))
         # CRITICAL: Also pass the filtered doc_ids so Extract knows which documents passed the filter

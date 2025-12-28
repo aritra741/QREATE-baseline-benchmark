@@ -242,10 +242,10 @@ class PZRunner:
             import os
             os.environ["LITELLM_LOCAL_MODEL_COST_MAP"] = "true"
             os.environ["OLLAMA_API_BASE"] = "http://localhost:11434/v1"
-            os.environ["OLLAMA_API_KEY"] = "ollama"
-            # Required for LiteLLM when routing to Ollama via "openai/" prefix
-            # This is a dummy key since Ollama doesn't authenticate
-            os.environ["OPENAI_API_KEY"] = "ollama-no-auth"
+            # Disable strict API key validation for local Ollama
+            os.environ["LITELLM_DISABLE_STRICT_VALIDATION"] = "true"
+            # Dummy OpenAI key for RAG operators (not used with Ollama)
+            os.environ["OPENAI_API_KEY"] = "sk-dummy-for-ollama"
             
             # Don't set api_base or VLLM_API_BASE - this would enable vLLM models
             # which would then be chosen before Ollama models. Instead, only Ollama

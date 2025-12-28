@@ -347,7 +347,9 @@ class Generator(Generic[ContextType, InputType]):
                 model_to_use = f"openai/{ollama_model_name}"
                 completion_kwargs = {
                     "api_base": os.environ.get("OLLAMA_API_BASE", "http://localhost:11434/v1"),
-                    "api_key": os.environ.get("OLLAMA_API_KEY", "ollama"),
+                    # Use sk- prefixed key that passes LiteLLM validation format
+                    # The actual validation is bypassed by LITELLM_DISABLE_STRICT_VALIDATION
+                    "api_key": "sk-local-ollama-no-validation-needed",
                     **completion_kwargs
                 }
             else:
