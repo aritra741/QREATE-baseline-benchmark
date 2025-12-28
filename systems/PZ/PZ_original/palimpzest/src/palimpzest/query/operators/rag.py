@@ -194,16 +194,31 @@ class RAGConvert(LLMConvert):
         return candidate, embed_stats
 
     def convert(self, candidate: DataRecord, fields: dict[str, FieldInfo]) -> tuple[dict[str, list], GenerationStats]:
-        # set client
-        self.client = OpenAI() if self.client is None else self.client
+        # set client - skip RAG/embeddings if OpenAI is not properly configured
+        import os
+        from palimpzest.core.models import GenerationStats as Stats
+        
+        use_rag = False
+        if self.client is None:
+            openai_key = os.getenv("OPENAI_API_KEY", "")
+            # Only use RAG if we have a real OpenAI key (not a placeholder)
+            if openai_key and openai_key.startswith("sk-") and "placeholder" not in openai_key.lower():
+                self.client = OpenAI()
+                use_rag = True
+        else:
+            use_rag = True
 
         # get the set of input fields to use for the convert operation
         input_fields = self.get_input_fields()
         output_fields = list(fields.keys())
 
-        # lookup most relevant chunks for each field using embedding search
+        # lookup most relevant chunks for each field using embedding search (only if RAG is available)
         candidate_copy = candidate.copy()
-        candidate_copy, embed_stats = self.get_chunked_candidate(candidate_copy, input_fields, output_fields)
+        if use_rag:
+            candidate_copy, embed_stats = self.get_chunked_candidate(candidate_copy, input_fields, output_fields)
+        else:
+            # Skip RAG/embeddings - just pass through the full candidate
+            embed_stats = Stats()
 
         # construct kwargs for generation
         gen_kwargs = {"project_cols": input_fields, "output_schema": self.output_schema}

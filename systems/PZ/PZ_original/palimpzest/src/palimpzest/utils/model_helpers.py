@@ -8,7 +8,11 @@ def get_models(include_embedding: bool = False, use_vertex: bool = False, gemini
     Return the set of models which the system has access to based on the set environment variables.
     """
     models = []
-    if os.getenv("OPENAI_API_KEY") not in [None, ""]:
+    
+    # Check if we should only use Ollama (environment flag to force Ollama-only mode)
+    ollama_only = os.getenv("PALIMPZEST_USE_OLLAMA_ONLY", "").lower() in ["true", "1", "yes"]
+    
+    if not ollama_only and os.getenv("OPENAI_API_KEY") not in [None, ""]:
         openai_models = [model for model in Model if model.is_openai_model()]
         if not include_embedding:
             openai_models = [
