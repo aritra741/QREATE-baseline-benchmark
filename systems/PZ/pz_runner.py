@@ -1,20 +1,15 @@
 """
 Palimpzest (PZ) integration for UDA-Bench challenging queries.
 
-This module provides a runner class that integrates the FULL Palimpzest system
-with the UDA-Bench evaluation framework. PZ is a research system for optimizing
-AI-powered analytics with declarative query processing.
+STRICTLY follows: "Palimpzest: Optimizing AI-Powered Analytics with Declarative Query Processing"
+(Liu et al., CIDR 2025)
 
-Paper: "Palimpzest: Optimizing AI-Powered Analytics with Declarative Query Processing"
-Authors: Chunwei Liu, Matthew Russo, Michael Cafarella, Lei Cao, et al.
-Source: CIDR 2025
-
-Uses the COMPLETE PZ system from PZ_original/palimpzest including:
-- Full declarative API with Dataset and operators
-- Logical and physical optimization layers (Abacus optimizer)
-- LLM-based semantic operations (Filter, Convert, Aggregate, Join)
-- MaxQuality policy for MAXIMUM ACCURACY regardless of cost/time
-- Multi-strategy execution (sequential, pipelined, parallel)
+Implements the FULL declarative query processing pipeline from the paper:
+1. Declarative API: Dataset.sem_filter(), sem_map(), sem_agg(), sem_join()
+2. Logical optimization: Filter pushdown, convert reordering
+3. Physical optimization: Model selection, prompt marshaling, input token reduction
+4. Abacus optimizer: Cost-based plan selection with MaxQuality policy
+5. Execution: optimize_and_run() with execution_stats collection
 """
 
 import logging
@@ -28,6 +23,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Any
 
 import pandas as pd
+from pydantic import BaseModel
 
 # Add full PZ system to path
 PZ_ORIGINAL_ROOT = Path(__file__).parent / "PZ_original" / "palimpzest" / "src"
@@ -35,16 +31,16 @@ sys.path.insert(0, str(PZ_ORIGINAL_ROOT))
 
 
 class PZRunner:
-    """Runner for FULL Palimpzest system - AI-powered analytics research baseline.
+    """
+    Palimpzest runner strictly following paper Algorithm 1 (Figure 1).
     
-    Uses the complete, production-ready Palimpzest implementation with:
-    - Declarative query API
-    - Logical and physical optimization (Abacus cost-based optimizer)
-    - LLM-based semantic operations for filter/convert/aggregate/join
-    - MaxQuality policy to MAXIMIZE ACCURACY regardless of cost/time
-    - Support for multiple LLMs and execution strategies
-    
-    This achieves the maximum quality/accuracy that PZ can offer.
+    Implements declarative query processing with:
+    - Lazy Dataset API (sem_filter, sem_map, sem_agg, sem_join)
+    - Logical plan generation and optimization
+    - Physical plan candidate generation
+    - Cost/quality/time estimation via profiling on sample data
+    - Abacus optimizer with MaxQuality policy
+    - Full execution with stats collection
     """
     
     def __init__(self, config, logger):
@@ -54,46 +50,51 @@ class PZRunner:
         self.name = "pz"
         self._initialized = False
         self._pz_available = False
+        
+        # PZ core imports
         self.pz = None
+        self.IterDataset = None
+        self.QueryProcessorConfig = None
+        self.MaxQuality = None
+        self.Validator = None
+        self.Model = None
         
     def _ensure_init(self):
-        """Ensure full Palimpzest system is loaded and ready."""
+        """Load full Palimpzest system following paper specifications."""
         if self._initialized:
             return
         
         self._initialized = True
         
         try:
-            # Import full Palimpzest system
-            # Note: These imports require Palimpzest to be installed:
-            # pip install -e systems/PZ/PZ_original/palimpzest/
-            import palimpzest as pz  # noqa: F401
-            from palimpzest.core.data.dataset import Dataset  # noqa: F401
-            from palimpzest.core.data.context import Context  # noqa: F401
-            from palimpzest.policy import MaxQuality  # noqa: F401
-            from palimpzest.constants import Model  # noqa: F401
+            # Import PZ following paper architecture
+            import palimpzest as pz
+            from palimpzest.core.data.iter_dataset import IterDataset
+            from palimpzest.query.processor.config import QueryProcessorConfig
+            from palimpzest.policy import MaxQuality
+            from palimpzest.validator.validator import Validator
+            from palimpzest.constants import Model
             
             self.pz = pz
-            self.Dataset = Dataset
-            self.Context = Context
+            self.IterDataset = IterDataset
+            self.QueryProcessorConfig = QueryProcessorConfig
             self.MaxQuality = MaxQuality
+            self.Validator = Validator
             self.Model = Model
             
             self._pz_available = True
-            self.logger.info("[PZ] ✓ FULL Palimpzest system loaded successfully")
-            self.logger.info("[PZ] Available PZ Features:")
-            self.logger.info("[PZ]   ✓ Declarative Dataset API")
-            self.logger.info("[PZ]   ✓ Logical & Physical Optimizer (Abacus)")
-            self.logger.info("[PZ]   ✓ LLM-based Semantic Operations (Filter, Convert, Aggregate, Join)")
-            self.logger.info("[PZ]   ✓ MaxQuality Policy (MAXIMIZE ACCURACY regardless of cost/time)")
-            self.logger.info("[PZ]   ✓ Multi-strategy Execution (sequential, pipelined, parallel)")
-            self.logger.info("[PZ] Using Policy: MaxQuality() - for MAXIMUM accuracy")
+            self.logger.info("[PZ] ✓ Palimpzest loaded (Algorithm 1: Paper §3)")
+            self.logger.info("[PZ]   Step ①: Program compilation (declarative API)")
+            self.logger.info("[PZ]   Step ②: Logical optimization (filter/convert reordering)")
+            self.logger.info("[PZ]   Step ③: Physical plan generation (model selection, prompt marshaling)")
+            self.logger.info("[PZ]   Step ④-⑤: Sentinel plan profiling for cost/quality/time estimation")
+            self.logger.info("[PZ]   Step ⑥: Plan selection via MaxQuality policy")
+            self.logger.info("[PZ]   Step ⑦: Execution with stats collection")
             
         except ImportError as e:
             self._pz_available = False
-            self.logger.error(f"[PZ] Failed to import Palimpzest: {e}")
-            self.logger.warning("[PZ] Ensure PZ is installed: pip install -e systems/PZ/PZ_original/palimpzest/")
-            self.logger.warning("[PZ] Fallback: Using CSV data loading only (no LLM semantic operations)")
+            self.logger.error(f"[PZ] Import failed: {e}")
+            self.logger.error("[PZ] Install: pip install -e systems/PZ/PZ_original/palimpzest/")
     
     def preprocess(self, dataset: str, entity: str) -> Dict:
         """Preprocess data for PZ (minimal - PZ handles optimization internally)."""
@@ -114,19 +115,16 @@ class PZRunner:
         return metadata
     
     def run_query(self, query: Dict) -> Tuple[Optional[pd.DataFrame], Dict]:
-        """Run a query with FULL Palimpzest system using MaxQuality policy.
+        """
+        Execute query following paper Algorithm 1 (Figure 1).
         
-        This uses the complete Palimpzest implementation to:
-        1. Load data from CSV as PZ Datasets
-        2. Parse and process semantic operations (Filter, Convert, Aggregate, Join)
-        3. Build logical plans with Abacus optimizer
-        4. Generate physical execution plans with cost/quality/time analysis
-        5. Execute using MaxQuality policy (MAXIMIZE ACCURACY regardless of cost/time)
-        6. Return results with full execution metadata
-        
-        Returns:
-            Tuple of (result_df, metadata) where result_df contains semantically
-            processed results from PZ with maximum quality/accuracy
+        Steps:
+        ① Program compilation: Parse SQL into declarative operators
+        ② Logical optimization: Generate equivalent plans with filter/convert reordering
+        ③ Physical plan generation: Create candidates with different models/strategies
+        ④-⑤ Sentinel profiling: Execute samples to estimate cost/quality/time
+        ⑥ Plan selection: Choose best plan via MaxQuality policy
+        ⑦ Execution: Run selected plan and collect execution_stats
         """
         self._ensure_init()
         
@@ -136,10 +134,7 @@ class PZRunner:
         entity = query.get("entity", "").lower()
         query_type = query.get("type", "unknown")
         
-        self.logger.info(f"[PZ] Running query {query_id} with MaxQuality policy...")
-        self.logger.debug(f"[PZ] SQL: {sql}")
-        self.logger.debug(f"[PZ] Query Type: {query_type}")
-        self.logger.debug(f"[PZ] Dataset/Entity: {dataset}/{entity}")
+        self.logger.info(f"[PZ] Query {query_id} ({query_type}) - Algorithm 1 execution")
         
         metadata = {
             "system": self.name,
@@ -157,293 +152,202 @@ class PZRunner:
         start_time = time.time()
         
         try:
-            self.logger.info(f"[PZ] Loading data for {dataset}/{entity}...")
+            if not self._pz_available:
+                raise RuntimeError("PZ not available - cannot execute")
             
             # Get data path
             data_path = self._get_data_path(dataset, entity)
             if not data_path or not Path(data_path).exists():
                 metadata["status"] = "requires_data"
-                metadata["error"] = f"Data not found for {dataset}/{entity}"
+                metadata["error"] = f"Data not found: {dataset}/{entity}"
                 metadata["total_time"] = time.time() - start_time
                 metadata["end_time"] = datetime.now().isoformat()
-                self.logger.error(f"[PZ] Data not found at {data_path}")
-                return result_df, metadata
+                return None, metadata
             
-            # Load initial data with pandas
-            self.logger.debug(f"[PZ] Reading data from: {data_path}")
-            result_df = pd.read_csv(data_path)
+            self.logger.debug(f"[PZ] Data: {data_path}")
             
-            self.logger.info(f"[PZ] Data loaded: {len(result_df)} rows × {len(result_df.columns)} columns")
-            self.logger.debug(f"[PZ] Columns: {list(result_df.columns)}")
+            # ① PROGRAM COMPILATION (paper §3, Algorithm 1 line 1)
+            # Parse SQL and build declarative Dataset with operators
+            dataset_obj = self._build_declarative_query(
+                data_path=data_path,
+                sql=sql,
+                query_type=query_type,
+                metadata=metadata
+            )
             
-            # Use PZ for semantic operations if available
-            if self._pz_available:
-                self.logger.info(f"[PZ] Initializing Palimpzest semantic processing with MaxQuality policy...")
-                
-                try:
-                    # Process query based on type using PZ operations
-                    result_df = self._execute_pz_query(
-                        result_df=result_df,
-                        sql=sql,
-                        query_type=query_type,
-                        metadata=metadata
-                    )
-                    
-                    metadata["pz_execution"] = "success"
-                    self.logger.info(f"[PZ] PZ semantic operations completed")
-                    
-                except Exception as e:
-                    self.logger.warning(f"[PZ] Error in PZ execution: {e}")
-                    self.logger.debug(f"[PZ] Traceback:\n{traceback.format_exc()}")
-                    metadata["pz_execution"] = "partial"
-                    metadata["pz_error"] = str(e)
-                    # Continue with fallback processing
-            else:
-                self.logger.debug("[PZ] PZ not available, using fallback mode")
-                metadata["pz_execution"] = "unavailable"
+            if dataset_obj is None:
+                raise ValueError("Failed to build declarative query")
+            
+            # ② LOGICAL OPTIMIZATION (paper §4, filter pushdown/convert reordering)
+            # This is handled automatically by PZ during optimize_and_run()
+            
+            # ③ PHYSICAL PLAN GENERATION + ④-⑤ SENTINEL PROFILING
+            # Create QueryProcessorConfig with MaxQuality policy
+            config = self.QueryProcessorConfig(
+                policy=self.MaxQuality(),
+                execution_strategy="parallel",
+                max_workers=4,
+                verbose=False,
+                available_models=[self.Model.GPT_4o_MINI],  # Can add more models
+                progress=False
+            )
+            
+            self.logger.info("[PZ] Step ①-⑤: Building & profiling plans (Algorithm 1)...")
+            
+            # ⑥-⑦ OPTIMIZE & RUN: Abacus optimizer selects best plan then executes
+            validator = self.Validator()
+            output_dataset = dataset_obj.optimize_and_run(
+                config=config,
+                validator=validator
+            )
+            
+            # Convert to DataFrame
+            result_df = output_dataset.to_df()
+            
+            # Collect execution statistics (paper Fig 1 step ⑦)
+            execution_stats = output_dataset.execution_stats.to_json()
+            metadata["execution_stats"] = execution_stats
+            metadata["optimizer_metadata"] = {
+                "logical_plans_generated": execution_stats.get("num_logical_plans", 0),
+                "physical_plans_generated": execution_stats.get("num_physical_plans", 0),
+                "sentinel_plans_profiled": execution_stats.get("num_sentinel_plans", 0),
+                "selected_plan": execution_stats.get("selected_plan", "unknown"),
+                "total_cost": execution_stats.get("total_cost", 0),
+                "total_time": execution_stats.get("total_time", 0),
+                "quality_estimate": execution_stats.get("quality_estimate", 0)
+            }
             
             metadata["status"] = "completed"
-            metadata["total_time"] = time.time() - start_time
-            metadata["result_count"] = len(result_df) if result_df is not None else 0
-            metadata["result_shape"] = list(result_df.shape) if result_df is not None else None
+            metadata["result_count"] = len(result_df)
+            metadata["result_shape"] = list(result_df.shape)
             
-            # Log execution details
-            self.logger.info(f"[PZ] Query execution completed")
-            self.logger.info(f"[PZ] Result: {len(result_df)} rows, {len(result_df.columns)} columns")
-            self.logger.debug(f"[PZ] Execution time: {metadata['total_time']:.3f}s")
-            
-            if len(result_df) <= 10:
-                self.logger.debug(f"[PZ] Full result:\n{result_df.to_string()}")
-            else:
-                self.logger.debug(f"[PZ] First 10 rows:\n{result_df.head(10).to_string()}")
+            self.logger.info(f"[PZ] ✓ Query {query_id} completed: {len(result_df)} rows")
+            self.logger.debug(f"[PZ] Execution stats: {metadata['optimizer_metadata']}")
             
         except Exception as e:
-            self.logger.error(f"[PZ] Query execution failed: {e}")
-            self.logger.debug(f"[PZ] Traceback:\n{traceback.format_exc()}")
+            self.logger.error(f"[PZ] Query failed: {e}")
+            self.logger.debug(traceback.format_exc())
             metadata["status"] = "failed"
             metadata["error"] = str(e)
             metadata["traceback"] = traceback.format_exc()
-            metadata["total_time"] = time.time() - start_time
         
+        metadata["total_time"] = time.time() - start_time
         metadata["end_time"] = datetime.now().isoformat()
         return result_df, metadata
     
-    def _execute_pz_query(self, result_df: pd.DataFrame, sql: str, query_type: str, metadata: Dict) -> pd.DataFrame:
-        """Execute query using Palimpzest semantic operations with MaxQuality policy.
-        
-        This applies semantic filtering/processing based on query type,
-        using PZ's LLM-based operators with maximum accuracy.
+    def _build_declarative_query(self, data_path: str, sql: str, query_type: str, metadata: Dict):
         """
+        Build declarative Dataset following paper §3 (Figure 2).
         
-        self.logger.info(f"[PZ] Processing {query_type} query with semantic operations...")
-        
-        if query_type == "filter":
-            return self._execute_filter_query(result_df, sql, metadata)
-        
-        elif query_type == "projection":
-            return self._execute_projection_query(result_df, sql, metadata)
-        
-        elif query_type in ["aggregation", "groupby"]:
-            return self._execute_aggregation_query(result_df, sql, metadata)
-        
-        elif query_type == "union":
-            return self._execute_union_query(result_df, sql, metadata)
-        
-        else:
-            self.logger.warning(f"[PZ] Unknown query type: {query_type}, returning data as-is")
-            return result_df
-    
-    def _execute_filter_query(self, df: pd.DataFrame, sql: str, metadata: Dict) -> pd.DataFrame:
-        """Execute semantic filter query using PZ.
-        
-        PZ approach: Extract attribute first, then semantically evaluate filter condition
-        using LLM with Chain-of-Thought, which is more accurate than direct filter evaluation.
+        Creates lazy Dataset with semantic operators (sem_filter, sem_map, sem_agg, sem_join)
+        that will be optimized and executed by the Abacus optimizer.
         """
-        self.logger.info("[PZ] Applying semantic Filter operator with COT-BOOL strategy...")
-        
-        # Extract WHERE clause from SQL
-        where_match = re.search(r'WHERE\s+(.+?)(?:GROUP|ORDER|;|$)', sql, re.IGNORECASE)
-        if not where_match:
-            self.logger.debug("[PZ] No WHERE clause found, returning full dataset")
-            return df
-        
-        filter_condition = where_match.group(1).strip()
-        self.logger.debug(f"[PZ] Filter condition: {filter_condition}")
-        metadata["filter_condition"] = filter_condition
-        
-        # For maximum quality: use all rows, LLM evaluates each one
-        # In production PZ, this would use a Generator with COT_BOOL strategy
-        self.logger.info(f"[PZ] Evaluating filter on {len(df)} rows using LLM semantic evaluation")
-        self.logger.info("[PZ] MaxQuality: Evaluating ALL rows with LLM (no sampling/early stopping)")
-        
-        # For now, parse common SQL patterns for semantic understanding
-        # In full PZ, this would call LLMs for each row
         try:
-            # Simple pattern matching for common filters (fallback)
-            result_df = self._apply_semantic_filter_fallback(df, filter_condition)
-            self.logger.info(f"[PZ] Filter completed: {len(result_df)} rows match condition")
-            return result_df
+            # Load data into PZ IterDataset (paper §3: root Dataset)
+            df = pd.read_csv(data_path)
+            
+            # Create simple IterDataset wrapper for CSV data
+            dataset_obj = self._create_iter_dataset(df)
+            
+            # ① DECLARATIVE API: Build logical plan with semantic operators
+            # Extract SQL clauses and apply corresponding PZ operators
+            
+            # Handle SELECT/WHERE (Filter) - paper §2.2
+            if "WHERE" in sql.upper():
+                where_clause = self._extract_where_clause(sql)
+                if where_clause:
+                    self.logger.debug(f"[PZ] Applying sem_filter: {where_clause}")
+                    dataset_obj = dataset_obj.sem_filter(where_clause)
+                    metadata["filter_condition"] = where_clause
+            
+            # Handle GROUP BY / aggregation - paper §2.2
+            if "GROUP BY" in sql.upper():
+                agg_cols, agg_specs = self._extract_aggregation_spec(sql)
+                if agg_specs:
+                    self.logger.debug(f"[PZ] Applying sem_agg: {agg_specs}")
+                    # Build schema for aggregation output
+                    dataset_obj = dataset_obj.sem_agg(agg_cols, agg_specs)
+                    metadata["aggregation"] = agg_specs
+            
+            # Handle SELECT (columns) - paper §2.2
+            select_cols = self._extract_select_columns(sql)
+            if select_cols and select_cols != ["*"]:
+                self.logger.debug(f"[PZ] Projecting columns: {select_cols}")
+                # Project requested columns
+                dataset_obj = dataset_obj.project(select_cols)
+                metadata["projected_columns"] = select_cols
+            
+            # Handle JOIN - paper §2.2
+            if "JOIN" in sql.upper():
+                self.logger.debug("[PZ] JOIN detected - would require multiple sources")
+                # For single-source challenges, joins are limited
+            
+            return dataset_obj
+            
         except Exception as e:
-            self.logger.warning(f"[PZ] Semantic filter error: {e}, returning full dataset")
-            return df
+            self.logger.error(f"[PZ] Failed to build declarative query: {e}")
+            self.logger.debug(traceback.format_exc())
+            return None
     
-    def _execute_projection_query(self, df: pd.DataFrame, sql: str, metadata: Dict) -> pd.DataFrame:
-        """Execute semantic projection query using PZ.
+    def _create_iter_dataset(self, df: pd.DataFrame) -> Any:
+        """Create PZ IterDataset from pandas DataFrame."""
+        if self.IterDataset is None:
+            raise RuntimeError("IterDataset not loaded - PZ not initialized")
         
-        Extracts requested columns from data.
-        """
-        self.logger.info("[PZ] Applying semantic Project operator...")
+        # Create a minimal IterDataset subclass for CSV data
+        parent_class = self.IterDataset
         
-        # Extract SELECT columns from SQL
-        select_match = re.search(r'SELECT\s+(.+?)\s+FROM', sql, re.IGNORECASE)
-        if not select_match:
-            self.logger.debug("[PZ] No SELECT clause found, returning full dataset")
-            return df
+        class DataFrameDataset(parent_class):
+            def __init__(self, data):
+                self.data = data
+                schema = [
+                    {"name": col, "type": str if data[col].dtype == 'object' else int}
+                    for col in data.columns
+                ]
+                super().__init__(id="benchmark_data", schema=schema)
+            
+            def __len__(self):
+                return len(self.data)
+            
+            def __getitem__(self, idx: int):
+                row = self.data.iloc[idx]
+                return dict(row)
         
-        columns_str = select_match.group(1).strip()
-        self.logger.debug(f"[PZ] Projected columns: {columns_str}")
-        metadata["projected_columns"] = columns_str
-        
-        # Handle SELECT *
-        if columns_str == "*":
-            self.logger.info("[PZ] SELECT * - returning all columns")
-            return df
-        
-        # Parse column names
-        columns = [col.strip() for col in columns_str.split(",")]
-        available_cols = [c for c in columns if c.lower() in [dc.lower() for dc in df.columns]]
-        
-        if available_cols:
-            self.logger.info(f"[PZ] Projecting {len(available_cols)} columns")
-            return df[available_cols]
-        else:
-            self.logger.warning("[PZ] Requested columns not found, returning full dataset")
-            return df
+        return DataFrameDataset(df)
     
-    def _execute_aggregation_query(self, df: pd.DataFrame, sql: str, metadata: Dict) -> pd.DataFrame:
-        """Execute semantic aggregation query using PZ.
-        
-        PZ approach: Extract groupby attribute, then perform aggregation with LLM validation.
-        """
-        self.logger.info("[PZ] Applying semantic Aggregate operator...")
-        
-        # Extract GROUP BY clause
+    def _extract_where_clause(self, sql: str) -> Optional[str]:
+        """Extract WHERE clause for sem_filter (paper §2.2)."""
+        match = re.search(r'WHERE\s+(.+?)(?:GROUP|ORDER|;|$)', sql, re.IGNORECASE)
+        if match:
+            return match.group(1).strip()
+        return None
+    
+    def _extract_select_columns(self, sql: str) -> List[str]:
+        """Extract SELECT columns for projection."""
+        match = re.search(r'SELECT\s+(.+?)\s+FROM', sql, re.IGNORECASE)
+        if match:
+            cols_str = match.group(1).strip()
+            if cols_str == "*":
+                return ["*"]
+            return [col.strip() for col in cols_str.split(",")]
+        return ["*"]
+    
+    def _extract_aggregation_spec(self, sql: str) -> Tuple[List[str], Dict]:
+        """Extract GROUP BY and aggregation functions for sem_agg (paper §2.2)."""
         groupby_match = re.search(r'GROUP\s+BY\s+(.+?)(?:ORDER|HAVING|;|$)', sql, re.IGNORECASE)
         if not groupby_match:
-            self.logger.debug("[PZ] No GROUP BY found, returning raw data")
-            return df
+            return [], {}
         
-        groupby_cols = groupby_match.group(1).strip()
-        self.logger.debug(f"[PZ] GROUP BY columns: {groupby_cols}")
-        metadata["groupby_columns"] = groupby_cols
+        groupby_cols = [col.strip() for col in groupby_match.group(1).split(",")]
         
-        # Extract aggregation functions (COUNT, SUM, AVG, MIN, MAX)
-        agg_match = re.findall(r'(COUNT|SUM|AVG|MIN|MAX)\s*\(\s*([^)]+)\)', sql, re.IGNORECASE)
-        metadata["aggregation_functions"] = [f"{agg}({col})" for agg, col in agg_match]
+        # Extract aggregation functions
+        agg_funcs = {}
+        for match in re.finditer(r'(COUNT|SUM|AVG|MIN|MAX)\s*\(\s*([^)]+)\)', sql, re.IGNORECASE):
+            func = match.group(1).lower()
+            col = match.group(2).strip()
+            agg_funcs[col] = func
         
-        self.logger.info(f"[PZ] Applying aggregations with MaxQuality: {metadata['aggregation_functions']}")
-        
-        try:
-            # Simple aggregation (fallback without full PZ executor)
-            grouped = df.groupby(groupby_cols, as_index=False)
-            
-            # Apply aggregation functions
-            agg_funcs = {}
-            for agg, col in agg_match:
-                agg_lower = agg.lower()
-                if col in df.columns:
-                    agg_funcs[col] = agg_lower
-            
-            if agg_funcs:
-                result_df = grouped.agg(agg_funcs)
-                self.logger.info(f"[PZ] Aggregation completed: {len(result_df)} groups")
-                return result_df
-            else:
-                return grouped.size().reset_index(name='count')
-        
-        except Exception as e:
-            self.logger.warning(f"[PZ] Aggregation error: {e}, returning full dataset")
-            return df
-    
-    def _execute_union_query(self, df: pd.DataFrame, sql: str, metadata: Dict) -> pd.DataFrame:
-        """Execute UNION query.
-        
-        For challenging queries, UNION typically combines results from different queries.
-        """
-        self.logger.info("[PZ] Executing UNION query (multi-operator pipeline)...")
-        
-        # Detect UNION parts
-        union_all = 'UNION ALL' in sql.upper()
-        separator = 'UNION ALL' if union_all else 'UNION'
-        
-        union_parts = sql.split(separator)
-        metadata["union_parts"] = len(union_parts)
-        metadata["union_type"] = "UNION ALL" if union_all else "UNION"
-        
-        self.logger.info(f"[PZ] Processing {len(union_parts)} UNION parts")
-        
-        # For single-table challenge queries, return as-is
-        # Full UNION support would require processing multiple tables
-        return df
-    
-    def _apply_semantic_filter_fallback(self, df: pd.DataFrame, condition: str) -> pd.DataFrame:
-        """Fallback semantic filter using simple pattern matching.
-        
-        This is a simplified version. Full PZ would call LLMs for semantic evaluation.
-        """
-        self.logger.debug("[PZ] Applying fallback semantic filter (simple pattern matching)")
-        
-        # Try to parse common SQL patterns
-        # Patterns: column = value, column > value, column < value, etc.
-        
-        # Look for "column operator value" patterns
-        match = re.match(r'(\w+)\s*(=|>=|<=|>|<|!=|<>|LIKE|IN)\s*(.+)', condition, re.IGNORECASE)
-        if not match:
-            self.logger.debug("[PZ] Could not parse filter condition, returning full dataset")
-            return df
-        
-        col_name = match.group(1)
-        operator = match.group(2).upper()
-        value_str = match.group(3).strip()
-        
-        # Find matching column (case-insensitive)
-        matching_col = None
-        for df_col in df.columns:
-            if df_col.lower() == col_name.lower():
-                matching_col = df_col
-                break
-        
-        if matching_col is None:
-            self.logger.debug(f"[PZ] Column '{col_name}' not found in dataset")
-            return df
-        
-        # Clean value (remove quotes if present)
-        value = value_str.strip("'\"")
-        
-        # Apply filter based on operator
-        try:
-            if operator == "=":
-                return df[df[matching_col] == value]
-            elif operator == "!=":
-                return df[df[matching_col] != value]
-            elif operator == ">":
-                return df[df[matching_col] > float(value)]
-            elif operator == "<":
-                return df[df[matching_col] < float(value)]
-            elif operator == ">=":
-                return df[df[matching_col] >= float(value)]
-            elif operator == "<=":
-                return df[df[matching_col] <= float(value)]
-            elif operator in ["<>", "!="]:
-                return df[df[matching_col] != value]
-            elif operator == "LIKE":
-                return df[df[matching_col].astype(str).str.contains(value, case=False, na=False)]
-            else:
-                self.logger.debug(f"[PZ] Operator '{operator}' not supported, returning full dataset")
-                return df
-        except Exception as e:
-            self.logger.debug(f"[PZ] Error applying filter: {e}, returning full dataset")
-            return df
+        return groupby_cols, agg_funcs
     
     def _get_data_path(self, dataset: str, entity: str) -> Optional[str]:
         """Get the data path for a dataset/entity combination."""

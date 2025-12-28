@@ -414,8 +414,11 @@ class FilterText(Filter):
 
         # {doc_id1 : { column1 :[text1, text2, ...], }
         print(f"[DEBUG FilterText] Outputting TextListPacks for filtered documents")
-        print(f"[DEBUG FilterText] res_doc_idList has {len(res_doc_idList)} documents")
+        print(f"[DEBUG FilterText] res_doc_idList has {len(res_doc_idList)} documents: {res_doc_idList[:10]}")
         print(f"[DEBUG FilterText] self.textDict has {len(self.textDict)} total documents")
+        if self.textDict:
+            print(f"[DEBUG FilterText] Sample textDict keys: {list(self.textDict.keys())[:5]}")
+            print(f"[DEBUG FilterText] Sample textDict[1]: {list(self.textDict[1].keys()) if 1 in self.textDict else 'N/A'}")
         
         textlist_count = 0
         for tid, value in self.textDict.items():
@@ -430,7 +433,8 @@ class FilterText(Filter):
                 self.output.append(TextListPack(tid, lst, col))
                 textlist_count += 1
         
-        print(f"[DEBUG FilterText] Total TextListPacks output: {textlist_count}")
+        print(f"[DEBUG FilterText] Total TextListPacks output: {textlist_count}") 
+        print(f"[DEBUG FilterText] Total packs in output so far: {len(self.output)}")
 
         #print("filter_table:\n", self.now_tableDict[self.table])
         
