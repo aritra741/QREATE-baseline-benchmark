@@ -287,6 +287,17 @@ class PZRunner:
             # Convert result to DataFrame
             result_df = output_dataset.to_df()
             
+            # DEBUG: Log what we got back
+            self.logger.info(f"[PZ] DEBUG: Result shape: {result_df.shape}")
+            self.logger.info(f"[PZ] DEBUG: Result columns: {list(result_df.columns)}")
+            self.logger.info(f"[PZ] DEBUG: Result dtypes: {result_df.dtypes.to_dict()}")
+            if len(result_df) > 0:
+                self.logger.info(f"[PZ] DEBUG: First row: {result_df.iloc[0].to_dict()}")
+                self.logger.info(f"[PZ] DEBUG: Null counts: {result_df.isnull().sum().to_dict()}")
+                # For aggregation, show the actual values
+                if query_type == "aggregation":
+                    self.logger.info(f"[PZ] DEBUG: Groupby column values: {result_df[group_cols[0]].unique()[:10] if group_cols else 'N/A'}")
+            
             metadata["status"] = "completed"
             metadata["result_count"] = len(result_df)
             metadata["result_shape"] = list(result_df.shape)
