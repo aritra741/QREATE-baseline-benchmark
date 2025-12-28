@@ -282,7 +282,7 @@ def p_join(p):
     """
     join : INNER JOIN table ON condition join
          | LEFT JOIN table ON condition join
-git         | JOIN table ON condition join
+         | JOIN table ON condition join
          | empty
     """
     if len(p)>2:
