@@ -517,7 +517,22 @@ class QuestRunner(SystemRunner):
             
             # Build logical plan
             self.logger.debug("[QUEST] Building logical plan...")
-            logical_planner = self.LogicalPlanner()
+            
+            # Per QUEST paper: use join transformation for join queries
+            is_join_query = query_type == "join"
+            
+            if is_join_query:
+                # Use join transformation planner per paper Section 3.2
+                try:
+                    from quest.sql.planner.joinlogical_quest_paper import JoinLogicalPlannerQuestPaper
+                    logical_planner = JoinLogicalPlannerQuestPaper()
+                    self.logger.info("[QUEST] Using JOIN TRANSFORMATION planner per paper Section 3.2")
+                except ImportError:
+                    self.logger.warning("[QUEST] Could not import join planner, falling back to regular planner")
+                    logical_planner = self.LogicalPlanner()
+            else:
+                logical_planner = self.LogicalPlanner()
+            
             logical_plan = logical_planner.build_logical_plan(ast)
             metadata["logical_plan_time"] = time.time() - start_time - metadata["parse_time"]
             self.logger.debug(f"[QUEST] Logical plan built in {metadata['logical_plan_time']:.2f}s")
