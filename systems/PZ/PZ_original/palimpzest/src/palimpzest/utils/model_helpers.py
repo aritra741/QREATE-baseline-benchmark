@@ -57,4 +57,13 @@ def get_models(include_embedding: bool = False, use_vertex: bool = False, gemini
             ]
         models.extend(vllm_models)
 
+    # Ollama models (local inference via localhost:11434)
+    if os.getenv("OLLAMA_API_BASE") not in [None, ""]:
+        ollama_models = [model for model in Model if model.is_ollama_model()]
+        if not include_embedding:
+            ollama_models = [
+                model for model in ollama_models if not model.is_embedding_model()
+            ]
+        models.extend(ollama_models)
+
     return models

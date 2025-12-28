@@ -108,29 +108,32 @@ class PZRunner:
         result_df = None
         start_time = time.time()
         
-        # PZ supports: extraction, filtering (SPJ focus per paper §5 evaluation)
-        # Aggregation and Join are in Table 1 but not deeply evaluated in paper
-        if query_type in ["aggregation", "union"]:
-            self.logger.warning(f"[PZ] {query_type} queries supported in Table 1 but not in paper evaluation")
-            self.logger.warning(f"[PZ] Marking as unsupported (paper focuses on extraction/filtering)")
+        # Check for unsupported query types
+        # Union queries are not in the paper evaluation
+        if query_type == "union":
+            self.logger.warning(f"[PZ] Union queries not evaluated in paper (uda-new.md §2.2)")
             metadata["status"] = "unsupported"
-            metadata["error"] = f"PZ paper evaluation focuses on extraction/filtering (§5), not {query_type}"
-            metadata["paper_note"] = "Table 1 includes GroupBy/Aggregate but paper §5 evaluates Real Estate Search (extraction+filtering)"
+            metadata["error"] = f"Union queries not supported - not in paper evaluation"
             metadata["total_time"] = time.time() - start_time
             metadata["end_time"] = datetime.now().isoformat()
             return None, metadata
         
+        # Join queries with multiple entities not supported
         if query_type == "join":
             # Check if multi-entity join
             entities = [e.strip() for e in entity.split(",") if e.strip()]
             if len(entities) > 1:
                 self.logger.warning(f"[PZ] Multi-entity join requires multiple datasets")
-                self.logger.warning(f"[PZ] Current implementation focuses on single-entity queries per paper §5")
+                self.logger.warning(f"[PZ] Paper focuses on single-entity queries")
                 metadata["status"] = "unsupported"
-                metadata["error"] = f"Multi-entity join not implemented (paper §5 focuses on single-dataset queries)"
+                metadata["error"] = f"Multi-entity join not implemented (paper evaluates single-dataset queries)"
                 metadata["total_time"] = time.time() - start_time
                 metadata["end_time"] = datetime.now().isoformat()
                 return None, metadata
+        
+        # Note: Aggregation IS supported via Extract-All strategy
+        # (uda-new.md §2.2 line 422-424: "Evaporate, ZenDB, QUEST and Palimpzest extract 
+        # the attribute from all documents, group the values in a table, and then perform aggregation")
         
         try:
             if not self._pz_available:
@@ -170,26 +173,57 @@ class PZRunner:
             # Parse SQL to build PZ operators
             select_cols = self._extract_select_columns(sql)
             where_clauses = self._extract_where_clauses(sql)
+            group_cols, agg_specs = self._extract_aggregation_spec(sql)
             
             # Paper Table 1: Convert operator χ - extract schema from unstructured text
-            if select_cols and select_cols != ["*"]:
+            # Extract all attributes needed for the query (including aggregation grouping keys)
+            extract_cols = select_cols.copy() if select_cols != ["*"] else []
+            if group_cols:
+                extract_cols = list(set(extract_cols + group_cols))
+            
+            if extract_cols:
                 # Define output schema for sem_map (Paper Figure 2 example)
                 schema_fields = []
-                for col in select_cols:
+                for col in extract_cols:
                     # Use proper PZ field types (paper uses StringField, IntField, etc.)
                     schema_fields.append({
                         "name": col,
                         "type": str,  # Simplified; real impl would infer types
-                        "description": f"The {col} attribute extracted from the document",
-                        "required": False
+                        "desc": f"The {col} attribute extracted from the document"
                     })
                 dataset_obj = dataset_obj.sem_map(schema_fields)
-                self.logger.info(f"[PZ] sem_map: Extracting {len(select_cols)} attributes via Convert operator")
+                self.logger.info(f"[PZ] sem_map: Extracting {len(extract_cols)} attributes via Convert operator")
             
             # Paper Table 1: Select operator σ - apply semantic filters
             for where in where_clauses:
                 dataset_obj = dataset_obj.sem_filter(where)
                 self.logger.info(f"[PZ] sem_filter: '{where}'")
+            
+            # Paper Table 1: Aggregate operator - GroupBy + Aggregation
+            # uda-new.md §2.2 (line 422-424): "Palimpzest extracts all attributes, groups, then aggregates"
+            if group_cols and agg_specs:
+                self.logger.info(f"[PZ] groupby(): Extract-All strategy - grouping by {group_cols}, then aggregating")
+                # PZ's groupby() uses GroupBySig to specify the grouping and aggregation
+                try:
+                    from palimpzest.core.elements.groupbysig import GroupBySig
+                    
+                    # Build GroupBySig with:
+                    # - group_by_fields: list of columns to group by
+                    # - agg_funcs: list of aggregation functions (e.g., ['count', 'sum'])
+                    # - agg_fields: list of fields to aggregate on
+                    agg_funcs = [spec["function"].lower() for spec in agg_specs]
+                    agg_fields = [spec["column"] if spec["column"] != "*" else group_cols[0] for spec in agg_specs]
+                    
+                    group_by_sig = GroupBySig(
+                        group_by_fields=group_cols,
+                        agg_funcs=agg_funcs,
+                        agg_fields=agg_fields
+                    )
+                    dataset_obj = dataset_obj.groupby(group_by_sig)
+                    self.logger.info(f"[PZ] Applied groupby() with columns={group_cols}, agg_funcs={agg_funcs}")
+                except Exception as e:
+                    self.logger.warning(f"[PZ] groupby() failed: {e}")
+                    self.logger.warning(f"[PZ] Will proceed with extraction only")
             
             # STEPS ②-⑦ (Paper Algorithm 1, lines 2-20): Execute via optimize_and_run()
             # Paper §3: "optimize_and_run() compiles initial logical plan, generates
@@ -204,13 +238,26 @@ class PZRunner:
             
             # Paper §3: QueryProcessorConfig specifies policy and execution strategy
             # Paper Figure 2: Policy determines optimization goal
+            # Configure Ollama/qwen2.5:7b-instruct via LiteLLM environment variables
+            import os
+            os.environ["LITELLM_LOCAL_MODEL_COST_MAP"] = "true"
+            os.environ["OLLAMA_API_BASE"] = "http://localhost:11434/v1"
+            os.environ["OLLAMA_API_KEY"] = "ollama"
+            # Required for LiteLLM when routing to Ollama via "openai/" prefix
+            # This is a dummy key since Ollama doesn't authenticate
+            os.environ["OPENAI_API_KEY"] = "ollama-no-auth"
+            
+            # Don't set api_base or VLLM_API_BASE - this would enable vLLM models
+            # which would then be chosen before Ollama models. Instead, only Ollama
+            # detection via OLLAMA_API_BASE environment variable is used.
+            
             config = self.pz.QueryProcessorConfig(
                 policy=self.pz.MaxQuality(),  # Paper: maximize F1-score
                 execution_strategy="parallel",
                 max_workers=4,
                 progress=True,
                 # Paper Algorithm 1 lines 4-9: Validation sample for sentinel profiling
-                validation_sample_size=0.05  # 5% for cost/quality estimation (paper §3)
+                validation_sample_size=0.05,  # 5% for cost/quality estimation (paper §3)
             )
             
             # Paper §3: Validator checks quality against champion model
@@ -244,17 +291,24 @@ class PZRunner:
         return result_df, metadata
     
     def _extract_select_columns(self, sql: str) -> List[str]:
-        """Extract SELECT columns."""
+        """Extract SELECT columns (excluding aggregate function results)."""
         match = re.search(r'SELECT\s+(.+?)\s+FROM', sql, re.IGNORECASE | re.DOTALL)
         if match:
             cols_str = re.sub(r'\s+', ' ', match.group(1).strip())
             if cols_str == "*":
                 return ["*"]
-            # Parse columns, handling aggregations
+            # Parse columns, but skip aggregate function results
             cols = []
-            for match in re.finditer(r'(\w+)(?:\s+AS\s+\w+)?', cols_str):
-                cols.append(match.group(1))
-            return [c for c in cols if c.upper() not in ['COUNT', 'SUM', 'AVG', 'MIN', 'MAX']]
+            # Remove aggregate functions and their arguments
+            # e.g., "COUNT(*) AS disease_count" -> ""
+            no_aggs = re.sub(r'(COUNT|SUM|AVG|MIN|MAX)\s*\([^)]*\)\s*(?:AS\s+\w+)?', '', cols_str, flags=re.IGNORECASE)
+            # Extract remaining column names
+            for col_match in re.finditer(r'(\w+)', no_aggs):
+                col_name = col_match.group(1)
+                # Skip SQL keywords
+                if col_name.upper() not in ['AS', 'FROM', 'WHERE', 'GROUP', 'ORDER', 'BY']:
+                    cols.append(col_name)
+            return cols if cols else ["*"]
         return ["*"]
     
     def _extract_where_clauses(self, sql: str) -> List[str]:
@@ -264,6 +318,43 @@ class PZRunner:
             where = match.group(1).strip()
             return [c.strip() for c in re.split(r'\s+AND\s+', where, flags=re.IGNORECASE)]
         return []
+    
+    def _extract_aggregation_spec(self, sql: str) -> Tuple[List[str], List[Dict]]:
+        """Extract GROUP BY columns and aggregation functions.
+        
+        Paper: uda-new.md §2.2 (line 422-424) describes Extract-All aggregation:
+        "Palimpzest extracts the attribute from all documents, groups the values, 
+        then performs aggregation on the grouped data"
+        
+        Returns:
+            - group_cols: List of GROUP BY columns
+            - agg_specs: List of aggregation specifications
+        """
+        group_cols = []
+        agg_specs = []
+        
+        # Extract GROUP BY clause
+        group_match = re.search(r'GROUP\s+BY\s+(.+?)(?:ORDER|;|$)', sql, re.IGNORECASE | re.DOTALL)
+        if group_match:
+            group_cols = [col.strip() for col in group_match.group(1).split(',')]
+        
+        # Extract aggregation functions from SELECT clause
+        select_match = re.search(r'SELECT\s+(.+?)\s+FROM', sql, re.IGNORECASE | re.DOTALL)
+        if select_match:
+            select_clause = select_match.group(1)
+            # Find functions like COUNT(*), AVG(col), SUM(col), MIN(col), MAX(col)
+            agg_pattern = r'(COUNT|SUM|AVG|MIN|MAX)\s*\(\s*(?:\*|([^)]+))\s*\)\s*(?:AS\s+(\w+))?'
+            for match in re.finditer(agg_pattern, select_clause, re.IGNORECASE):
+                func = match.group(1).upper()
+                col = match.group(2) if match.group(2) else "*"
+                alias = match.group(3) if match.group(3) else f"{func}_{col}"
+                agg_specs.append({
+                    "function": func,
+                    "column": col,
+                    "alias": alias
+                })
+        
+        return group_cols, agg_specs
     
     def _get_source_data_path(self, dataset: str, entity: str) -> Optional[str]:
         """Get source_data path with unstructured .txt files.

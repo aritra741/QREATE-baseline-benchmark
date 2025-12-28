@@ -395,7 +395,13 @@ class FilterText(Filter):
         res_doc_idList = self.solve(self.root, doc_idList)
         
         # step3 : output
-        # CRITICAL FIX: Only include rows that pass the filter in the output table
+        # CRITICAL FIX: Per QUEST paper (Section 2.4 & 3.1):
+        # "QUEST adopts a lazy extraction strategy... only extracting an attribute when an 
+        # analytical operation has to evaluate it"
+        # FilterText has extracted the filter column(s). These MUST be passed to downstream
+        # stages with their actual extracted VALUES, not as None.
+        
+        # Only include rows that pass the filter in the output table
         filtered_table = self.now_tableDict[self.table].copy()
         if res_doc_idList:
             # Filter to only include doc_ids that passed the filter
@@ -408,6 +414,15 @@ class FilterText(Filter):
             # No documents passed the filter - create empty dataframe with same columns
             filtered_table = self.now_tableDict[self.table].iloc[0:0].copy()  # Empty but with same structure
             print(f"[DEBUG filter_text.process] Output table: empty (no documents passed filter)")
+        
+        # CRITICAL: Remove the 'fcondition' column - it's just for internal filtering logic
+        # The actual filter column values should be in the table
+        if 'fcondition' in filtered_table.columns:
+            filtered_table = filtered_table.drop(columns=['fcondition'])
+        
+        print(f"[DEBUG filter_text.process] Output columns after filter: {list(filtered_table.columns)}")
+        if len(filtered_table) > 0:
+            print(f"[DEBUG filter_text.process] Sample row 0: {filtered_table.iloc[0].to_dict()}")
         
         self.output.append(TablePack(self.table, filtered_table))
         # CRITICAL: Also pass the filtered doc_ids so Extract knows which documents passed the filter

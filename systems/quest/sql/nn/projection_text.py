@@ -40,40 +40,28 @@ class ProjectionText(Projection):
         
         print(f"[DEBUG ProjectionText] Input table shape: {now_table.shape}")
         print(f"[DEBUG ProjectionText] Input table columns: {list(now_table.columns)}")
-        print(f"[DEBUG ProjectionText] Requested columns: {full_columns}")
+        print(f"[DEBUG ProjectionText] Requested columns (from SELECT): {full_columns}")
 
-        for col in now_table.columns:
-            if 'doc_id' in col or 'file_name' in col:
-                full_columns.append(col)
-
+        # CRITICAL FIX per QUEST paper & SQL semantics:
+        # Only output columns explicitly requested in SELECT clause.
+        # Do NOT automatically add doc_id, file_name, or other internal columns
+        # unless they were explicitly requested.
+        
         if 'count_ALL_COLUMNS_STAR_TABLE.ALL_COLUMNS_STAR' in full_columns:
             full_columns.remove('count_ALL_COLUMNS_STAR_TABLE.ALL_COLUMNS_STAR')
             full_columns.append('Count(*)')
         
-        print(f"[DEBUG ProjectionText] Full columns after adding doc_id/file_name: {full_columns}")
+        print(f"[DEBUG ProjectionText] Full columns from SELECT: {full_columns}")
         
-        # Filter to only existing columns
+        # Filter to only existing columns that were explicitly requested
         existing_columns = [col for col in full_columns if col in now_table.columns]
         missing_columns = [col for col in full_columns if col not in now_table.columns]
         if missing_columns:
             print(f"[DEBUG ProjectionText] WARNING: Missing columns {missing_columns}, using only: {existing_columns}")
         
+        # Select only the requested columns (no doc_id, file_name, etc unless explicitly asked)
         now_table = now_table[existing_columns]
-        print(f"[DEBUG ProjectionText] After projection: {now_table.shape}")
-        
-        if 'doc_id' in now_table.columns:
-            # Step 2 : update doc_id to file_name
-            index_list = now_table['doc_id'].tolist()
-            all_map : dict = self.indexer.get_global_doc_id2file_name()
-            #print("total map:\n", all_map)
-
-            now_table = now_table.set_index('doc_id', inplace=False)
-            for i in index_list:
-                now_table.at[i,'file_name'] = all_map.setdefault(i, 'None')
-            #print("index_list:\n",index_list)
-        
-            now_table.reset_index(inplace=True)
-            now_table = now_table.drop(columns='doc_id')
+        print(f"[DEBUG ProjectionText] After projection: {now_table.shape}, columns: {list(now_table.columns)}")
 
         self.output.append(TablePack('Result', now_table))
 

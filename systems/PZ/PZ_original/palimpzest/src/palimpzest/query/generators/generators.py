@@ -339,7 +339,21 @@ class Generator(Generic[ContextType, InputType]):
                     completion_kwargs = {"reasoning_effort": reasoning_effort, **completion_kwargs}
             if self.model.is_vllm_model():
                 completion_kwargs = {"api_base": self.api_base, "api_key": os.environ.get("VLLM_API_KEY", "fake-api-key"), **completion_kwargs}
-            completion = litellm.completion(model=self.model_name, messages=messages, **completion_kwargs)
+            if self.model.is_ollama_model():
+                # Configure Ollama models via LiteLLM
+                # Ollama exposes an OpenAI-compatible API at http://localhost:11434/v1
+                # Convert ollama/model_name to openai/model_name for LiteLLM routing
+                ollama_model_name = self.model_name.replace("ollama/", "")
+                model_to_use = f"openai/{ollama_model_name}"
+                completion_kwargs = {
+                    "api_base": os.environ.get("OLLAMA_API_BASE", "http://localhost:11434/v1"),
+                    "api_key": os.environ.get("OLLAMA_API_KEY", "ollama"),
+                    **completion_kwargs
+                }
+            else:
+                model_to_use = self.model_name
+            
+            completion = litellm.completion(model=model_to_use, messages=messages, **completion_kwargs)
             end_time = time.time()
             logger.debug(f"Generated completion in {end_time - start_time:.2f} seconds")
         # if there's an error generating the completion, we have to return an empty answer

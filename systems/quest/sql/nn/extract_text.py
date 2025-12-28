@@ -123,6 +123,11 @@ class ExtractText(Extract):
         #rint_log("res_doc_list:", res_doc_list)
             
         # step2 : extract from text
+        # CRITICAL FIX per QUEST paper (Section 2.4):
+        # "QUEST adopts a lazy extraction strategy... only extracting an attribute when 
+        # an analytical operation has to evaluate it"
+        # If FilterText already extracted some columns, we should NOT re-extract them.
+        # We should only extract the MISSING columns.
 
         # step2-1 : access local database and get cache
         print(f"[DEBUG ExtractText] now_table shape BEFORE cache check: {now_table.shape}")
@@ -132,20 +137,31 @@ class ExtractText(Extract):
         else:
             print(f"[DEBUG ExtractText] now_table is EMPTY")
         
-        # CRITICAL FIX: If we received filtered doc_ids from Filter, we need to extract ALL columns for those docs
-        # Don't use cache check because the table has empty columns
+        # Identify which columns are already populated (from FilterText) vs need extraction
+        columns_to_extract = []
+        for col in columns:
+            if col not in now_table.columns:
+                columns_to_extract.append(col)
+            else:
+                # Column exists - check if it has values or is empty
+                col_values = now_table[col].dropna()
+                if len(col_values) == 0 or all(str(v).strip() == '' for v in col_values):
+                    # Column is empty - needs extraction
+                    columns_to_extract.append(col)
+                else:
+                    # Column has values (from FilterText) - skip extraction
+                    print(f"[DEBUG ExtractText] Column '{col}' already populated by FilterText - skipping extraction")
+        
+        print(f"[DEBUG ExtractText] Columns already populated: {[c for c in columns if c not in columns_to_extract]}")
+        print(f"[DEBUG ExtractText] Columns to extract: {columns_to_extract}")
+        
+        # CRITICAL FIX: If we received filtered doc_ids from Filter, we need to extract remaining columns for those docs
         if input_doc_list is not None and len(input_doc_list) > 0:
-            # We have specific doc_ids from Filter - extract all columns for them
-            print(f"[DEBUG ExtractText] Filter provided specific doc_ids - extracting all columns for filtered documents")
-            new_textDict = textDict  # Use the textDict as-is (might be empty)
-            # But we need to get text for these documents to extract from!
-            # The documents should be retrieved from the source
-            # For now, assume the columns in now_table have the values we need
-            # Actually, we should extract the missing columns!
-            # Get text for the filtered doc_ids
-            print(f"[DEBUG ExtractText] Need to retrieve text for filtered documents - this should have been done by Retrieve/Filter")
+            # We have specific doc_ids from Filter - extract remaining columns for them
+            print(f"[DEBUG ExtractText] Filter provided specific doc_ids - extracting remaining columns")
+            new_textDict = textDict  # Use the textDict as-is
         else:
-            new_textDict = table_util.check_dict_and_table(textDict, res_doc_id_list, columns, now_table)
+            new_textDict = table_util.check_dict_and_table(textDict, res_doc_id_list, columns_to_extract, now_table)
             print(f"[DEBUG ExtractText] After cache check: {len(new_textDict)} documents need extraction")
 
         #print_log("need to extract text dict : \n", new_textDict)
@@ -153,9 +169,15 @@ class ExtractText(Extract):
         # delete no used ones
 
         # step2-2 : query input, build the input and the query in LLM
-        print(f"[DEBUG ExtractText] Calling LLM extraction for {len(new_textDict)} documents")
-        df = self.querier.extract_attribute_from_textDict(textDict = new_textDict, attributeList = columns)
-        print(f"[DEBUG ExtractText] LLM extraction returned df with {len(df)} rows, {len(df.columns)} columns")
+        # CRITICAL: Only extract columns that are missing
+        if len(columns_to_extract) > 0:
+            print(f"[DEBUG ExtractText] Calling LLM extraction for {len(new_textDict)} documents, {len(columns_to_extract)} columns")
+            df = self.querier.extract_attribute_from_textDict(textDict = new_textDict, attributeList = columns_to_extract)
+            print(f"[DEBUG ExtractText] LLM extraction returned df with {len(df)} rows, {len(df.columns)} columns")
+        else:
+            # No columns to extract - all were already populated by FilterText
+            print(f"[DEBUG ExtractText] All columns already extracted by FilterText - skipping LLM extraction")
+            df = pd.DataFrame()
 
         # step2-3 : merge
         print(f"[DEBUG ExtractText] Merging: now_table has {len(now_table)} rows, df has {len(df)} rows")
