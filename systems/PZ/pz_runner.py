@@ -206,6 +206,7 @@ class PZRunner:
                         "type": str,  # Simplified; real impl would infer types
                         "desc": f"The {col} attribute extracted from the document"
                     })
+                self.logger.info(f"[PZ] DEBUG: Extracting columns {extract_cols} with schema_fields: {schema_fields}")
                 dataset_obj = dataset_obj.sem_map(schema_fields)
                 self.logger.info(f"[PZ] sem_map: Extracting {len(extract_cols)} attributes via Convert operator")
             
