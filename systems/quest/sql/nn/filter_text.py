@@ -214,8 +214,16 @@ class FilterText(Filter):
                         
                         # Apply filter based on operator
                         if '==' in condition or ('=' in condition and '!=' not in condition and '<>' not in condition):
-                            # Equality check
-                            mask = extracted_df[col_name].astype(str).str.strip() == val_right
+                            # Equality check - handle compound values separated by ||
+                            # For disease_type and similar fields, values can be "type1 || type2"
+                            # We need to check if val_right is one of the components
+                            def check_equality(cell_val):
+                                cell_str = str(cell_val).strip()
+                                # Split by || and check if any component matches
+                                components = [c.strip() for c in cell_str.split('||')]
+                                return val_right in components or cell_str == val_right
+                            
+                            mask = extracted_df[col_name].apply(check_equality)
                             extracted_df.loc[mask, 'fcondition'] = 'True'
                         # TODO: Add support for other operators (<, >, !=, etc)
                         
