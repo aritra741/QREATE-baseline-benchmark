@@ -424,10 +424,22 @@ class FilterText(Filter):
         if 'fcondition' in filtered_table.columns:
             filtered_table = filtered_table.drop(columns=['fcondition'])
         
+        # CRITICAL FIX: Remove duplicate columns (keep first occurrence)
+        # This can happen if the same column appears in both WHERE and SELECT columns
+        filtered_table = filtered_table.loc[:, ~filtered_table.columns.duplicated(keep='first')]
+        
         print(f"[DEBUG filter_text.process] Output columns after filter: {list(filtered_table.columns)}")
         if len(filtered_table) > 0:
             print(f"[DEBUG filter_text.process] Sample row 0: {filtered_table.iloc[0].to_dict()}")
-            print(f"[DEBUG filter_text.process] Position values: {filtered_table['position'].unique()}")
+            # Handle potential duplicate column names
+            try:
+                pos_vals = filtered_table['position']
+                if isinstance(pos_vals, pd.DataFrame):
+                    # Duplicate column - get first one
+                    pos_vals = pos_vals.iloc[:, 0]
+                print(f"[DEBUG filter_text.process] Position values: {pos_vals.unique()}")
+            except Exception as e:
+                print(f"[DEBUG filter_text.process] Could not get position values: {e}")
         
         self.output.append(TablePack(self.table, filtered_table))
         # CRITICAL: Also pass the filtered doc_ids so Extract knows which documents passed the filter

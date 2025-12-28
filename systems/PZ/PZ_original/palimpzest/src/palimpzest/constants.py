@@ -40,7 +40,6 @@ class Model(str, Enum):
     VLLM_QWEN_1_5_0_5B_CHAT = "hosted_vllm/qwen/Qwen1.5-0.5B-Chat"
     # Ollama models (local inference)
     OLLAMA_QWEN_2_5_7B_INSTRUCT = "ollama/qwen2.5:7b-instruct"
-    OLLAMA_LLAMA_3_1_8B = "ollama/llama3.1:8b"
     # o1 = "o1-2024-12-17"
     TEXT_EMBEDDING_3_SMALL = "text-embedding-3-small"
     CLIP_VIT_B_32 = "clip-ViT-B-32"
@@ -617,16 +616,6 @@ OLLAMA_QWEN_2_5_7B_INSTRUCT_MODEL_CARD = {
     "overall": 25.0,  # Good quality local model
 }
 
-OLLAMA_LLAMA_3_1_8B_MODEL_CARD = {
-    ##### Cost in USD #####
-    "usd_per_input_token": 0.0 / 1e6,  # Local inference, no API cost
-    "usd_per_output_token": 0.0 / 1e6,  # Local inference, no API cost
-    ##### Time #####
-    "seconds_per_output_token": 0.06,  # Slightly slower than Qwen
-    ##### Agg. Benchmark #####
-    "overall": 24.0,  # Good quality local model
-}
-
 MODEL_CARDS = {
     Model.LLAMA3_2_3B.value: LLAMA3_2_3B_INSTRUCT_MODEL_CARD,
     Model.LLAMA3_1_8B.value: LLAMA3_1_8B_INSTRUCT_MODEL_CARD,
@@ -660,5 +649,4 @@ MODEL_CARDS = {
     Model.LLAMA_4_MAVERICK.value: LLAMA_4_MAVERICK_MODEL_CARD,
     Model.VLLM_QWEN_1_5_0_5B_CHAT.value: VLLM_QWEN_1_5_0_5B_CHAT_MODEL_CARD,
     Model.OLLAMA_QWEN_2_5_7B_INSTRUCT.value: OLLAMA_QWEN_2_5_7B_INSTRUCT_MODEL_CARD,
-    Model.OLLAMA_LLAMA_3_1_8B.value: OLLAMA_LLAMA_3_1_8B_MODEL_CARD,
 }

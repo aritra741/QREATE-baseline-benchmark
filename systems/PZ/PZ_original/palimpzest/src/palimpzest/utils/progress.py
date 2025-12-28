@@ -169,6 +169,9 @@ class MockProgressManager(ProgressManager):
     def incr(self, unique_full_op_id: str, num_inputs: int = 1, num_outputs: int = 1, display_text: str | None = None, **kwargs):
         pass
 
+    def incr_overall_progress_cost(self, cost_delta: float):
+        pass
+
     def finish(self):
         pass
 

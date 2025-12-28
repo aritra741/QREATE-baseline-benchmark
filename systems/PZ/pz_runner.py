@@ -242,8 +242,8 @@ class PZRunner:
             import os
             os.environ["LITELLM_LOCAL_MODEL_COST_MAP"] = "true"
             os.environ["OLLAMA_API_BASE"] = "http://localhost:11434/v1"
-            # Disable strict API key validation for local Ollama
-            os.environ["LITELLM_DISABLE_STRICT_VALIDATION"] = "true"
+            # Drop unused parameters to prevent validation issues
+            os.environ["LITELLM_DROP_PARAMS"] = "True"
             # Dummy OpenAI key for RAG operators (not used with Ollama)
             os.environ["OPENAI_API_KEY"] = "sk-dummy-for-ollama"
             
