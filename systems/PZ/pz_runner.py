@@ -240,12 +240,14 @@ class PZRunner:
             # Paper Figure 2: Policy determines optimization goal
             # Configure Ollama/qwen2.5:7b-instruct via LiteLLM environment variables
             import os
+            # Clear ALL other LLM API keys to ensure ONLY Ollama is available
+            for key in ["OPENAI_API_KEY", "ANTHROPIC_API_KEY", "TOGETHER_API_KEY", "GEMINI_API_KEY"]:
+                os.environ.pop(key, None)
+            
             os.environ["LITELLM_LOCAL_MODEL_COST_MAP"] = "true"
             os.environ["OLLAMA_API_BASE"] = "http://localhost:11434/v1"
             # Drop unused parameters to prevent validation issues
             os.environ["LITELLM_DROP_PARAMS"] = "True"
-            # Dummy OpenAI key for RAG operators (not used with Ollama)
-            os.environ["OPENAI_API_KEY"] = "sk-dummy-for-ollama"
             
             # Don't set api_base or VLLM_API_BASE - this would enable vLLM models
             # which would then be chosen before Ollama models. Instead, only Ollama
@@ -255,7 +257,7 @@ class PZRunner:
                 policy=self.pz.MaxQuality(),  # Paper: maximize F1-score
                 execution_strategy="parallel",
                 max_workers=4,
-                progress=True,
+                progress=False,  # Disable progress to avoid RAG operator OpenAI client init
                 # Paper Algorithm 1 lines 4-9: Validation sample for sentinel profiling
                 validation_sample_size=0.05,  # 5% for cost/quality estimation (paper §3)
             )

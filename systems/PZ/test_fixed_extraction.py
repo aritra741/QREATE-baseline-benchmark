@@ -1,60 +1,43 @@
 #!/usr/bin/env python
-"""Debug script to see what's actually being sent to LLM"""
+"""Quick test of Ollama extraction with fixed configuration"""
 
 import sys
 sys.path.insert(0, '/Users/aritramazumder/Documents/UDA-Bench-main')
 sys.path.insert(0, '/Users/aritramazumder/Documents/UDA-Bench-main/systems/PZ/PZ_original/palimpzest/src')
 
 import os
+# Clear ALL other LLM API keys to ensure ONLY Ollama is available
+for key in ["OPENAI_API_KEY", "ANTHROPIC_API_KEY", "TOGETHER_API_KEY", "GEMINI_API_KEY"]:
+    os.environ.pop(key, None)
+
+os.environ["LITELLM_LOCAL_MODEL_COST_MAP"] = "true"
 os.environ["OLLAMA_API_BASE"] = "http://localhost:11434/v1"
+os.environ["LITELLM_DROP_PARAMS"] = "True"
 
 import palimpzest as pz
-import logging
 
-# Enable debug logging for LiteLLM to see actual prompts
-import litellm
-litellm._turn_on_debug()
-
-# Setup logging
-logging.basicConfig(level=logging.DEBUG)
-
-# Load test documents
 test_path = '/Users/aritramazumder/Documents/UDA-Bench-main/source_data/Healthcare/disease_test'
 
-print(f"Loading documents from: {test_path}\n")
-
-# Create dataset and apply extraction
+print("Testing extraction with FIXED config...")
 dataset = pz.TextFileDataset(path=test_path, id="disease_test")
 
-# Apply sem_map to extract disease_type
-schema = [
-    {
-        "name": "disease_type",
-        "type": str,
-        "desc": "The disease type mentioned in the document"
-    }
-]
-
-print("Applying sem_map to extract disease_type...")
+schema = [{"name": "disease_type", "type": str, "desc": "The disease type mentioned in the document"}]
 dataset = dataset.sem_map(schema)
 
-# Create config
 config = pz.QueryProcessorConfig(
     policy=pz.MaxQuality(),
     execution_strategy="SEQUENTIAL",
     progress=False,
 )
 
-print("\nRunning optimize_and_run...\n")
-
-# Run the query
 try:
     validator = pz.Validator()
     output = dataset.optimize_and_run(config=config, validator=validator)
     result_df = output.to_df()
     print("\n=== RESULTS ===")
-    print(result_df)
-    print(f"\nNull values in disease_type: {result_df['disease_type'].isna().sum()}")
+    print(result_df[['disease_type']].to_string())
+    print(f"\nNon-null disease_type values: {result_df['disease_type'].notna().sum()}/{len(result_df)}")
+    print(f"Values: {result_df['disease_type'].unique()}")
 except Exception as e:
     print(f"Error: {e}")
     import traceback

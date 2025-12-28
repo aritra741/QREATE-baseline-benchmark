@@ -140,17 +140,22 @@ class ExtractText(Extract):
         # Identify which columns are already populated (from FilterText) vs need extraction
         columns_to_extract = []
         for col in columns:
+            print(f"[DEBUG ExtractText] Checking column '{col}'...")
             if col not in now_table.columns:
+                print(f"[DEBUG ExtractText]   -> NOT in now_table.columns, will extract")
                 columns_to_extract.append(col)
             else:
                 # Column exists - check if it has values or is empty
                 col_values = now_table[col].dropna()
-                if len(col_values) == 0 or all(str(v).strip() == '' for v in col_values):
+                non_empty = len(col_values) > 0 and not all(str(v).strip() == '' for v in col_values)
+                if not non_empty:
                     # Column is empty - needs extraction
+                    print(f"[DEBUG ExtractText]   -> Found in now_table but EMPTY ({len(col_values)} non-null values), will extract")
                     columns_to_extract.append(col)
                 else:
                     # Column has values (from FilterText) - skip extraction
-                    print(f"[DEBUG ExtractText] Column '{col}' already populated by FilterText - skipping extraction")
+                    unique_vals = col_values.unique()[:3]  # Show first 3 unique values
+                    print(f"[DEBUG ExtractText]   -> Already populated with {len(col_values)} values: {unique_vals}, SKIPPING extraction")
         
         print(f"[DEBUG ExtractText] Columns already populated: {[c for c in columns if c not in columns_to_extract]}")
         print(f"[DEBUG ExtractText] Columns to extract: {columns_to_extract}")
