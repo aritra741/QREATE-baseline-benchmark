@@ -572,63 +572,75 @@ class QuestRunner(SystemRunner):
                 metadata["end_time"] = datetime.now().isoformat()
                 return result_df, metadata
             
-            # Case-insensitive entity lookup
-            entity_attrs = None
-            for key in attributes:
-                if key.lower() == entity.lower():
-                    entity_attrs = attributes[key]
-                    break
+            # Handle multi-entity join queries (e.g., "disease,drug")
+            # Split by comma and strip whitespace
+            entity_list = [e.strip() for e in entity.split(",")]
             
-            if entity_attrs is None:
-                self.logger.warning(f"[QUEST] No attributes found for entity {entity} in {dataset}")
-                metadata["status"] = "requires_schema"
-                metadata["error"] = f"No attribute schema found for {dataset}/{entity}"
-                metadata["total_time"] = time.time() - start_time
-                metadata["end_time"] = datetime.now().isoformat()
-                return result_df, metadata
+            # For join queries, we need to combine schemas from all entities
+            all_entity_attrs = {}
+            all_attr_lines = []
             
-            # Build prompt/schema in the format expected by AttrSampler and TextLLMQuerier:
-            # "attr_name: description" on each line (colon separator is required for parsing)
-            attr_lines = []
-            for attr_name, attr_info in entity_attrs.items():
-                description = attr_info.get("description", "") if isinstance(attr_info, dict) else ""
-                attr_lines.append(f"{attr_name}: {description}")
-            prompt_str = "\n".join(attr_lines)
+            for ent in entity_list:
+                # Case-insensitive entity lookup
+                entity_attrs = None
+                for key in attributes:
+                    if key.lower() == ent.lower():
+                        entity_attrs = attributes[key]
+                        break
+                
+                if entity_attrs is None:
+                    self.logger.warning(f"[QUEST] No attributes found for entity {ent} in {dataset}")
+                    metadata["status"] = "requires_schema"
+                    metadata["error"] = f"No attribute schema found for {dataset}/{ent}"
+                    metadata["total_time"] = time.time() - start_time
+                    metadata["end_time"] = datetime.now().isoformat()
+                    return result_df, metadata
+                
+                all_entity_attrs[ent] = entity_attrs
+                
+                # Build prompt/schema in the format expected by AttrSampler and TextLLMQuerier:
+                # "attr_name: description" on each line (colon separator is required for parsing)
+                for attr_name, attr_info in entity_attrs.items():
+                    description = attr_info.get("description", "") if isinstance(attr_info, dict) else ""
+                    all_attr_lines.append(f"{attr_name}: {description}")
             
-            self.logger.debug(f"[QUEST] Schema built with {len(attr_lines)} attributes")
+            prompt_str = "\n".join(all_attr_lines)
+            
+            self.logger.debug(f"[QUEST] Schema built with {len(all_attr_lines)} attributes for {len(entity_list)} entities")
             
             # Create sampler and querier with properly formatted schema
             gb_sampler = AttrSampler(schema=prompt_str)
             gb_querier = TextLLMQuerier(prompt=prompt_str)
             
-            # CRITICAL: Initialize sampler with sample data from the index
+            # CRITICAL: Initialize sampler with sample data from the index for each entity
             # This populates the evidence dictionary that's used during retrieval
-            self.logger.info(f"[QUEST] Sampling documents from {entity} index for evidence...")
-            try:
-                indexer_obj, _ = gb_indexer.get_indexer(entity)
-                self.logger.debug(f"[QUEST] Got indexer for {entity}, has {len(indexer_obj.get_docs_id())} docs")
-                
-                # Check if exhaustive sampling is enabled via environment variable
-                use_exhaustive = os.environ.get('QUEST_EXHAUSTIVE_SAMPLING', '').lower() == 'true'
-                if use_exhaustive:
-                    self.logger.warning(f"[QUEST] EXHAUSTIVE SAMPLING ENABLED - sampling ALL documents for evidence!")
-                    gb_sampler.try_sample_all_docs(indexer_obj, prompt_str)
-                else:
-                    gb_sampler.try_sample(indexer_obj, prompt_str)
-                
-                self.logger.info(f"[QUEST] Sampler initialized with evidence for {len(gb_sampler.map_attr_evidence)} attributes")
-                
-                # Log what evidence was found for debugging
-                for attr, evidence in gb_sampler.map_attr_evidence.items():
-                    if evidence:
-                        self.logger.debug(f"[QUEST]   - {attr}: {len(evidence)} chars of evidence")
+            for ent in entity_list:
+                self.logger.info(f"[QUEST] Sampling documents from {ent} index for evidence...")
+                try:
+                    indexer_obj, _ = gb_indexer.get_indexer(ent)
+                    self.logger.debug(f"[QUEST] Got indexer for {ent}, has {len(indexer_obj.get_docs_id())} docs")
+                    
+                    # Check if exhaustive sampling is enabled via environment variable
+                    use_exhaustive = os.environ.get('QUEST_EXHAUSTIVE_SAMPLING', '').lower() == 'true'
+                    if use_exhaustive:
+                        self.logger.warning(f"[QUEST] EXHAUSTIVE SAMPLING ENABLED - sampling ALL documents for {ent}!")
+                        gb_sampler.try_sample_all_docs(indexer_obj, prompt_str)
                     else:
-                        self.logger.warning(f"[QUEST]   - {attr}: NO EVIDENCE FOUND!")
-                        
-            except Exception as e:
-                self.logger.error(f"[QUEST] Failed to sample documents: {e}")
-                self.logger.error(f"[QUEST] Traceback:\n{traceback.format_exc()}")
-                # Continue anyway - the query might still work with empty evidence
+                        gb_sampler.try_sample(indexer_obj, prompt_str)
+                    
+                    self.logger.info(f"[QUEST] Sampler initialized with evidence for {len(gb_sampler.map_attr_evidence)} attributes from {ent}")
+                    
+                    # Log what evidence was found for debugging
+                    for attr, evidence in gb_sampler.map_attr_evidence.items():
+                        if evidence:
+                            self.logger.debug(f"[QUEST]   - {attr}: {len(evidence)} chars of evidence")
+                        else:
+                            self.logger.warning(f"[QUEST]   - {attr}: NO EVIDENCE FOUND!")
+                            
+                except Exception as e:
+                    self.logger.error(f"[QUEST] Failed to sample documents for {ent}: {e}")
+                    self.logger.error(f"[QUEST] Traceback:\n{traceback.format_exc()}")
+                    # Continue anyway - the query might still work with empty evidence
             
             # Build physical plan
             self.logger.debug("[QUEST] Building physical plan...")
