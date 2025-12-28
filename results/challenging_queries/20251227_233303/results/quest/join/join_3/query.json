@@ -1,0 +1,11 @@
+{
+  "id": "join_3",
+  "name": "Join diseases with research institutions",
+  "dataset": "Med",
+  "entity": "disease,institution",
+  "sql": "SELECT DISTINCT d.disease_name, d.disease_type, d.prognosis, i.institution_name, i.research_diseases, i.institution_country\nFROM disease d\nJOIN institution i ON d.disease_name IN i.research_diseases\nWHERE d.disease_type IN ('infectious', 'genetic')",
+  "nl_query": "Get infectious and genetic diseases along with institutions that research them, showing disease names, disease types, prognosis, institution names, research focus, and institution countries",
+  "difficulty": "hard",
+  "reason": "Joining disease and institution tables where disease names must be found within research_diseases field; requires semantic substring matching across documents",
+  "type": "join"
+}
