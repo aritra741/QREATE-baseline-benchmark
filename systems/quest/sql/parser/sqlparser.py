@@ -279,14 +279,28 @@ def p_join(p):
     """
     join : INNER JOIN table ON condition join
          | LEFT JOIN table ON condition join
+         | JOIN table ON condition join
          | empty
     """
     if len(p)>2:
-        if isinstance(p[6], list):
-            p[6].append([p[1], p[3], p[5]])
-            p[0] = p[6]
+        if len(p) == 6:
+            # Plain JOIN case (defaults to INNER)
+            join_type = 'INNER'
+            table = p[2]
+            condition = p[4]
+            remaining_joins = p[5]
         else:
-            p[0] = [[p[1], p[3], p[5]]]
+            # INNER/LEFT JOIN case
+            join_type = p[1]
+            table = p[3]
+            condition = p[5]
+            remaining_joins = p[6]
+        
+        if isinstance(remaining_joins, list):
+            remaining_joins.append([join_type, table, condition])
+            p[0] = remaining_joins
+        else:
+            p[0] = [[join_type, table, condition]]
     else:
         p[0] = None
 
