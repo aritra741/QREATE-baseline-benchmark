@@ -3,12 +3,12 @@
 
 import sys
 sys.path.insert(0, '/Users/aritramazumder/Documents/UDA-Bench-main')
-sys.path.insert(0, '/Users/aritramazumder/Documents/UDA-Bench-main/systems/PZ/PZ_original/palimpzest/src')
 
 import os
-# Clear ALL other LLM API keys to ensure ONLY Ollama is available
-for key in ["OPENAI_API_KEY", "ANTHROPIC_API_KEY", "TOGETHER_API_KEY", "GEMINI_API_KEY"]:
-    os.environ.pop(key, None)
+# Force Ollama-only mode (ignore other API keys for model selection)
+os.environ["PALIMPZEST_USE_OLLAMA_ONLY"] = "true"
+
+# Don't set OPENAI_API_KEY - RAG operator will skip embeddings
 
 os.environ["LITELLM_LOCAL_MODEL_COST_MAP"] = "true"
 os.environ["OLLAMA_API_BASE"] = "http://localhost:11434/v1"

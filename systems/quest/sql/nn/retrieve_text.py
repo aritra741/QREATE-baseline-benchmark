@@ -85,7 +85,8 @@ class RetrieveText(Retrieve):
             query_text = attr_schema_evidence.get(column, column)
             chunks = self.indexer.get_relative_chunks_text_with_id(doc_id, query_text, topk=topk)
             print(f"[DEBUG _retrieve_with_evidence] NO EVIDENCE for '{column}', used description: {query_text[:80] if len(str(query_text)) > 80 else query_text}")
-            print(f"[DEBUG _retrieve_with_evidence]   doc_id={doc_id}, column={column}: Got {len(chunks)} chunks, lengths={[len(str(c))[:20] for c in chunks[:3]]}")
+            chunk_lengths = [len(str(c)) for c in chunks[:3]]
+            print(f"[DEBUG _retrieve_with_evidence]   doc_id={doc_id}, column={column}: Got {len(chunks)} chunks, lengths={chunk_lengths}")
             return chunks
         
         # Step 1: Embed evidence segments
