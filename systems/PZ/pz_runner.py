@@ -16,6 +16,21 @@ The PZ library's optimize_and_run() implements all 7 steps internally.
 This runner prepares unstructured text data and calls the library correctly.
 """
 
+import os
+# Set environment variables BEFORE any imports to ensure they take effect
+# Force Ollama-only mode - skip commercial APIs
+os.environ["PALIMPZEST_USE_OLLAMA_ONLY"] = "true"
+os.environ["LITELLM_LOCAL_MODEL_COST_MAP"] = "true"
+os.environ["LITELLM_DROP_PARAMS"] = "True"
+
+# Unset commercial API keys to prevent accidental usage
+for key in ["OPENAI_API_KEY", "ANTHROPIC_API_KEY", "TOGETHER_API_KEY", "GEMINI_API_KEY", "VLLM_API_BASE"]:
+    os.environ.pop(key, None)
+
+# Set Ollama API base (will be overridden by environment if set)
+if not os.getenv("OLLAMA_API_BASE"):
+    os.environ["OLLAMA_API_BASE"] = "http://localhost:11434/v1"
+
 import logging
 import time
 import traceback
