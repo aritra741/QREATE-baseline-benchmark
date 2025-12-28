@@ -360,8 +360,11 @@ class FilterText(Filter):
 
             if isinstance(data, TextDictPack):
                 doc_id = data.doc_id
+                # CRITICAL FIX: Convert doc_id to int for consistent type matching
+                # TextDictPack may have string doc_ids, but res_doc_idList has integers
+                doc_id = int(doc_id) if isinstance(doc_id, str) and doc_id.isdigit() else doc_id
                 text = data.textDict
-                print(f"[DEBUG FilterText] Received TextDictPack for doc_id={doc_id}")
+                print(f"[DEBUG FilterText] Received TextDictPack for doc_id={doc_id} (type: {type(doc_id).__name__})")
                 print(f"[DEBUG FilterText] TextDictPack contains columns: {list(text.keys())}")
                 print(f"[DEBUG FilterText] Sample text lengths: {[(col, len(str(text[col]))) for col in list(text.keys())[:3]]}")
                 # CRITICAL FIX: Merge the text dict, don't just setdefault
