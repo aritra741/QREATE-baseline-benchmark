@@ -1,0 +1,11 @@
+{
+  "id": "join_1",
+  "name": "Join diseases with their drug treatments",
+  "dataset": "Med",
+  "entity": "disease,drug",
+  "sql": "SELECT d.disease_name, d.disease_type, d.treatments, dr.generic_name, dr.brand_name, dr.side_effects\nFROM disease d\nJOIN drug dr ON d.disease_name = dr.disease_name\nWHERE d.disease_name IN ('Type 2 Diabetes Mellitus', 'Tuberculosis', 'Fibromyalgia', 'Asthma', 'Depression')",
+  "nl_query": "Get common diseases (diabetes, tuberculosis, fibromyalgia, asthma, depression) with their associated drug treatments, showing disease names, types, treatments from disease documents, generic drug names, brand names, and side effects",
+  "difficulty": "hard",
+  "reason": "Requires joining disease and drug tables on disease name matching across documents; tests accurate extraction of treatment-related fields from both entity types",
+  "type": "join"
+}

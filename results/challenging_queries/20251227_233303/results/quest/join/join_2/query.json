@@ -1,0 +1,11 @@
+{
+  "id": "join_2",
+  "name": "Join players with their teams and cities",
+  "dataset": "Player",
+  "entity": "player,team,city",
+  "sql": "SELECT p.name, p.position, p.nationality, t.team_name, t.ownership, c.city_name, c.state_name\nFROM player p\nJOIN team t ON p.team = t.team_name\nJOIN city c ON t.location = c.city_name",
+  "nl_query": "Get all players with their team information and city details, showing player names, positions, nationalities, team names, ownership, city names, and state names",
+  "difficulty": "hard",
+  "reason": "Multi-table join across player, team, and city entities; requires matching team names and city names across multiple documents",
+  "type": "join"
+}
