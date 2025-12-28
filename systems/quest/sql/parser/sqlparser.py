@@ -223,6 +223,9 @@ def p_column(p):
     if len(p)>2:
         table_name = p[1]
         column_name = p[3]
+        # Resolve table alias to actual table name using origin_tables
+        if table_name in origin_tables:
+            table_name = origin_tables[table_name]
     else:
         column_name = p[1]
 
@@ -428,14 +431,19 @@ def p_table(p):
           | IDENTIFIER IDENTIFIER
     """
     if len(p) == 2:
+        # No alias, just table name
         origin_tables.setdefault(p[1], p[1])
         p[0] = p[1]
     elif len(p) == 4:
+        # IDENTIFIER AS IDENTIFIER: store alias->tablename mapping and return actual table name
+        # This allows joins with aliases like "disease d" to work correctly
         origin_tables.setdefault(p[3], p[1])
-        p[0] = p[3]
+        p[0] = p[1]  # Return actual table name, not alias
     elif len(p) == 3:
+        # IDENTIFIER IDENTIFIER: store alias->tablename mapping and return actual table name
+        # This allows joins with aliases like "disease d" to work correctly
         origin_tables.setdefault(p[2], p[1])
-        p[0] = p[2]
+        p[0] = p[1]  # Return actual table name, not alias
     
 def p_values(p):
     """
