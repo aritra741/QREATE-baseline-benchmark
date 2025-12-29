@@ -228,7 +228,14 @@ class PZRunner:
                     # - agg_funcs: list of aggregation functions (e.g., ['count', 'sum'])
                     # - agg_fields: list of fields to aggregate on
                     agg_funcs = [spec["function"].lower() for spec in agg_specs]
-                    agg_fields = [spec["column"] if spec["column"] != "*" else group_cols[0] for spec in agg_specs]
+                    agg_fields = []
+                    for spec in agg_specs:
+                        if spec["column"] == "*":
+                            # For COUNT(*), use the grouping column as the field to count
+                            # (the count is on all records, not a specific column)
+                            agg_fields.append(group_cols[0])
+                        else:
+                            agg_fields.append(spec["column"])
                     
                     group_by_sig = GroupBySig(
                         group_by_fields=group_cols,
