@@ -274,8 +274,10 @@ class JoinLogicalPlanner(object):
         
         if filter_first:
             # Create LogicalFilter node to apply WHERE clause conditions
+            # CRITICAL: Only pass filter columns to the filter node, not projection columns
+            # The filter evaluates WHERE conditions FIRST, then Extract handles projection
             filter_columns = []
-            for attr in all_attrs:
+            for attr in where_attrs:
                 tbl = attr.parse_table()
                 if tbl == first_table or tbl == sqlconst.DEFAULT_TABLE_NAME:
                     filter_columns.append(attr)
