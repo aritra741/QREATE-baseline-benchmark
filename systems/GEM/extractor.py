@@ -191,20 +191,19 @@ class Extractor:
             System prompt text
         """
         schema_text = self.schema.to_prompt_str()
-        return f"""You are a data extraction engine designed to extract structured data from unstructured text documents.
+        return f"""You are a data extraction engine. Extract structured data from unstructured text.
 
 {schema_text}
 
-CRITICAL INSTRUCTIONS:
-1. Extract ONLY valid JSON output - nothing else
-2. If a field is not found or cannot be extracted with confidence, omit it from the JSON
-3. Do NOT hallucinate or invent field values
-4. Handle NULL/missing values by omitting the key entirely
-5. Ensure all strings are properly escaped
-6. If the document contains multiple instances of the entity, return an ARRAY of objects
-7. If no data matches the schema, return an empty JSON object {{}}
+INSTRUCTIONS:
+1. Return ONLY valid JSON - no explanation or commentary
+2. Extract only fields you can identify with confidence
+3. Omit fields if data is not found (do NOT invent values)
+4. If multiple records exist, return a JSON array [{{...}}, {{...}}]
+5. If no matching data, return empty object {{}}
+6. All output MUST be valid JSON
 
-Output format: Valid JSON only, no other text."""
+CRITICAL: Start output with {{ or [ only. No other text."""
     
     def _extract_from_text(self, text: str) -> List[Dict]:
         """Extract structured data from a single text chunk using LLM.
@@ -228,7 +227,7 @@ Output format: Valid JSON only, no other text."""
                     model=OLLAMA_MODEL,
                     messages=[
                         {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": text}
+                        {"role": "user", "content": text[:8000]}  # Limit text to 8000 chars
                     ],
                     temperature=0.1,  # Low temperature for consistency
                     timeout=EXTRACTION_TIMEOUT
@@ -237,25 +236,8 @@ Output format: Valid JSON only, no other text."""
                 # Extract JSON from response
                 response_text = response.choices[0].message.content.strip()
                 
-                # Try to parse as JSON
-                if response_text.startswith('['):
-                    # Array of objects
-                    records = json.loads(response_text)
-                    if not isinstance(records, list):
-                        records = [records]
-                elif response_text.startswith('{'):
-                    # Single object
-                    obj = json.loads(response_text)
-                    records = [obj] if obj else []
-                else:
-                    # Try to extract JSON from text
-                    json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
-                    if json_match:
-                        records = [json.loads(json_match.group())]
-                    else:
-                        self.logger.warning(f"No JSON found in response: {response_text[:100]}")
-                        records = []
-                
+                # Try multiple parsing strategies
+                records = self._parse_json_response(response_text)
                 return records
                 
             except json.JSONDecodeError as e:
@@ -265,6 +247,48 @@ Output format: Valid JSON only, no other text."""
                 self.logger.error(f"Extraction error (attempt {attempt + 1}): {e}")
                 time.sleep(2 ** attempt)
         
+        return []
+    
+    def _parse_json_response(self, response_text: str) -> List[Dict]:
+        """Parse JSON from LLM response with multiple fallback strategies.
+        
+        Args:
+            response_text: Raw LLM response
+            
+        Returns:
+            List of extracted records
+        """
+        if not response_text:
+            return []
+        
+        # Strategy 1: Direct parse
+        try:
+            if response_text.startswith('['):
+                return json.loads(response_text)
+            elif response_text.startswith('{'):
+                obj = json.loads(response_text)
+                return [obj] if obj else []
+        except json.JSONDecodeError:
+            pass
+        
+        # Strategy 2: Extract JSON from text
+        # Look for {...} or [...]
+        for pattern in [r'\[[\s\S]*\]', r'\{[\s\S]*\}']:
+            try:
+                match = re.search(pattern, response_text)
+                if match:
+                    json_str = match.group()
+                    if json_str.startswith('['):
+                        records = json.loads(json_str)
+                        return records if isinstance(records, list) else [records]
+                    else:
+                        obj = json.loads(json_str)
+                        return [obj] if obj else []
+            except json.JSONDecodeError:
+                continue
+        
+        # No valid JSON found
+        self.logger.warning(f"Could not extract JSON from response: {response_text[:80]}")
         return []
     
     def extract_from_file(self, filepath: Path, use_cache: bool = True) -> List[Dict]:
