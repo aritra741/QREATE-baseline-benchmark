@@ -298,6 +298,11 @@ class Generator(Generic[ContextType, InputType]):
 
     def __call__(self, candidate: DataRecord | list[DataRecord], fields: dict[str, FieldInfo] | None, right_candidate: DataRecord | None = None, json_output: bool=True, **kwargs) -> GenerationOutput:
         """Take the input record(s) (`candidate`), generate the output `fields`, and return the generated output."""
+        import sys
+        print(f"\n[GENERATOR CALLED] ========== ENTRY POINT ==========", file=sys.stderr, flush=True)
+        print(f"[GENERATOR CALLED] Candidate type: {type(candidate)}", file=sys.stderr, flush=True)
+        print(f"[GENERATOR CALLED] Fields: {list(fields.keys()) if fields else None}", file=sys.stderr, flush=True)
+        sys.stderr.flush()
         logger.debug(f"Generating for candidate(s) {candidate} with fields {fields}")
 
         # fields can only be None if the user provides an answer parser
@@ -320,6 +325,8 @@ class Generator(Generic[ContextType, InputType]):
         completion = None
         try:
             completion_kwargs = {}
+            model_to_use = self.model_name  # Initialize with default
+            
             if not self.model.is_o_model() and not self.model.is_gpt_5_model():
                 completion_kwargs = {"temperature": kwargs.get("temperature", 0.0), **completion_kwargs}
             if is_audio_op:
@@ -352,10 +359,24 @@ class Generator(Generic[ContextType, InputType]):
                     "api_key": "sk-local-ollama-no-validation-needed",
                     **completion_kwargs
                 }
-            else:
-                model_to_use = self.model_name
             
-            # DEBUG: Log what we're sending
+            # DEBUG: Log what we're sending (use print for guaranteed output)
+            import sys
+            print(f"\n[GENERATOR DEBUG] ========== ABOUT TO CALL LITELLM ==========", file=sys.stderr, flush=True)
+            print(f"[GENERATOR DEBUG] Model: {model_to_use}", file=sys.stderr, flush=True)
+            print(f"[GENERATOR DEBUG] Num messages: {len(messages)}", file=sys.stderr, flush=True)
+            for i, msg in enumerate(messages):
+                if isinstance(msg, dict) and 'content' in msg:
+                    content_preview = str(msg['content'])[:300]
+                    print(f"[GENERATOR DEBUG] Message {i} ({msg.get('role', 'unknown')}): {content_preview}...", file=sys.stderr, flush=True)
+            sys.stderr.flush()
+            
+            print(f"[GENERATOR DEBUG] Model: {model_to_use}", flush=True)
+            print(f"[GENERATOR DEBUG] Num messages: {len(messages)}", flush=True)
+            for i, msg in enumerate(messages):
+                if isinstance(msg, dict) and 'content' in msg:
+                    content_preview = str(msg['content'])[:300]
+                    print(f"[GENERATOR DEBUG] Message {i} ({msg.get('role', 'unknown')}): {content_preview}...", flush=True)
             logger.warning(f"[GENERATOR DEBUG] Model: {model_to_use}")
             logger.warning(f"[GENERATOR DEBUG] Num messages: {len(messages)}")
             for i, msg in enumerate(messages):
@@ -475,4 +496,8 @@ class Generator(Generic[ContextType, InputType]):
                 f.write(f"{str(e)}\n")
 
         logger.debug(f"Generated field answers: {field_answers}")
+        import sys
+        print(f"\n[GENERATOR DEBUG] ========== RETURNING FROM GENERATOR ==========", file=sys.stderr, flush=True)
+        print(f"[GENERATOR DEBUG] Field answers: {field_answers}", file=sys.stderr, flush=True)
+        sys.stderr.flush()
         return field_answers, reasoning, generation_stats, messages
