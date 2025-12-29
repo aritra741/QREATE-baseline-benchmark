@@ -275,12 +275,12 @@ CRITICAL: First field MUST be the attribute name from the list above.
 Format for EACH attribute:
 (attribute_name_from_list, extracted_value, confidence_0to100, chunk_index_0to9)
 
-Example (if extracting "disease_name" and "symptoms"):
-(disease_name, Trigeminal Neuralgia, 95, 0)
-(symptoms, severe facial pain, 90, 1)
+Example format (if extracting "name" and "age"):
+(name, John Smith, 95, 0)
+(age, 45, 90, 1)
 
-NOT like this (WRONG - disease name in first position):
-(Trigeminal Neuralgia, disease_type, ...)
+NOT like this (WRONG - value in first position):
+(John Smith, name, ...)
 
 Field descriptions:
 {related_attr_descriptions_str}
