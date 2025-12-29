@@ -97,12 +97,19 @@ class JoinTransformText(JoinText):
             
             if first_table_name in self.tableDict:
                 first_table = self.tableDict[first_table_name]
-                # Find the join column - it might have different names
+                # Find the join column - it might have different names or duplicates
                 join_col = None
-                for col in first_table.columns:
-                    if join_attr_col in col or col.endswith(join_attr_col.split('.')[-1]):
-                        join_col = col
-                        break
+                col_base = join_attr_col.split('.')[-1]  # Get last part after dot
+                
+                # Try exact match first
+                if join_attr_col in first_table.columns:
+                    join_col = join_attr_col
+                else:
+                    # Try partial match - look for column ending with the base name
+                    for col in first_table.columns:
+                        if col.endswith(col_base):
+                            join_col = col
+                            break
                 
                 if join_col:
                     # Extract join values from first table
@@ -111,7 +118,7 @@ class JoinTransformText(JoinText):
                         # If still a DataFrame, take the first column
                         col_series = col_series.iloc[:, 0]
                     join_values = col_series.dropna().unique().tolist()
-                    print(f"[DEBUG JoinTransformText] Extracted {len(join_values)} unique join values: {join_values[:5]}...")
+                    print(f"[DEBUG JoinTransformText] Extracted {len(join_values)} unique join values from column '{join_col}': {join_values[:5] if join_values else 'EMPTY'}...")
                     # The IN filter will be applied to second table during its extraction/filtering
                     # Store values for reference if needed
                     self.extracted_join_values = join_values
@@ -124,10 +131,10 @@ class JoinTransformText(JoinText):
         final_table = pd.DataFrame()
         
         for i, typ in enumerate(self.join_type):
-            if i >= len(self.join_order):
+            if i >= len(self.join_oreder):
                 break
             
-            condition = self.join_order[i]
+            condition = self.join_oreder[i]
             
             ltable_name = condition.lhs.parse_table()
             ltable_name = self.find_next(ltable_name)
