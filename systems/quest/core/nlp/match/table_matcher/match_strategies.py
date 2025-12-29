@@ -59,8 +59,14 @@ class MatchStrategy(ABC):
     
     def normalize_text(self, text: str) -> str:
         """标准化文本"""
-        if not text:
+        # Handle pandas Series or other non-string types
+        import pandas as pd
+        if isinstance(text, pd.Series):
+            text = text.iloc[0] if len(text) > 0 else ""
+        
+        if text is None or text == "":
             return ""
+        
         text = str(text).strip().lower()
         text = re.sub(r'\s+', ' ', text)
         return text
