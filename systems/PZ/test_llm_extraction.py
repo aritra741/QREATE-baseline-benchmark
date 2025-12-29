@@ -2,6 +2,9 @@
 """Test LLM extraction directly on actual documents from source_data"""
 
 import os
+import sys
+from pathlib import Path
+
 os.environ["PALIMPZEST_USE_OLLAMA_ONLY"] = "true"
 os.environ["OLLAMA_API_BASE"] = "http://localhost:11434/v1"
 os.environ["LITELLM_DROP_PARAMS"] = "True"
@@ -9,17 +12,22 @@ os.environ["LITELLM_DROP_PARAMS"] = "True"
 import litellm
 import json
 
-# Read a few actual documents
-docs_to_test = [
-    "/Users/aritramazumder/Documents/UDA-Bench-main/source_data/Healthcare/disease_small/103.txt",
-    "/Users/aritramazumder/Documents/UDA-Bench-main/source_data/Healthcare/disease_small/106.txt",
-    "/Users/aritramazumder/Documents/UDA-Bench-main/source_data/Healthcare/disease_small/109.txt",
-]
+# Get project root
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+SOURCE_DATA = PROJECT_ROOT / "source_data" / "Healthcare" / "disease_small"
+
+# Find first 3 documents
+doc_files = list(SOURCE_DATA.glob("*.txt"))[:3]
+
+if not doc_files:
+    print(f"ERROR: No documents found in {SOURCE_DATA}")
+    sys.exit(1)
 
 print("Testing LLM extraction on actual documents...")
+print(f"Source: {SOURCE_DATA}")
 print("=" * 80)
 
-for doc_path in docs_to_test:
+for doc_path in doc_files:
     if not os.path.exists(doc_path):
         print(f"SKIP: {doc_path} not found")
         continue
