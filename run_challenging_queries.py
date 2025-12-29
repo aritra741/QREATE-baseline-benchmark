@@ -1892,7 +1892,7 @@ class Checkpoint:
 class ChallengingQueryRunner:
     """Main orchestrator for running challenging queries."""
     
-    AVAILABLE_SYSTEMS = ["quest", "uqe", "lotus", "unify", "squid", "pz"]
+    AVAILABLE_SYSTEMS = ["quest", "uqe", "lotus", "unify", "squid", "pz", "gem"]
     
     SYSTEM_DEPENDENCIES = {
         "quest": ["ply", "sqlglot", "duckdb", "openai", "tiktoken"],
@@ -1900,6 +1900,7 @@ class ChallengingQueryRunner:
         "unify": ["openai", "torch", "sentence-transformers", "hnswlib"],
         "squid": ["pandas", "openai"],
         "pz": ["pandas"],
+        "gem": ["duckdb", "pandas", "openai", "sentence-transformers", "faiss-cpu"],
         # lotus-ai requires Python <3.13, checked separately
     }
     
@@ -1963,6 +1964,9 @@ class ChallengingQueryRunner:
             elif system == "pz":
                 from systems.PZ.pz_runner import PZRunner
                 runner = PZRunner(self.config, self.logger)
+            elif system == "gem":
+                from systems.GEM.gem_runner import GEMRunner
+                runner = GEMRunner(self.config, self.logger)
             else:
                 self.logger.error(f"Unknown system: {system}")
                 return None
@@ -2044,6 +2048,17 @@ class ChallengingQueryRunner:
             self.logger.warning("NOTE: PZ (Palimpzest) system")
             self.logger.warning("      PZ uses MaxQuality policy for maximum accuracy")
             self.logger.warning("      Install with: pip install -e systems/PZ/PZ_original/palimpzest/")
+            self.logger.warning("")
+        
+        # Special note for gem
+        if "gem" in systems:
+            self.logger.warning("")
+            self.logger.warning("NOTE: GEM (Global Entity Manager) system")
+            self.logger.warning("      GEM requires Ollama server running with qwen2.5:7b-instruct")
+            self.logger.warning("      1. Start Ollama: ollama pull qwen2.5:7b-instruct && ollama serve")
+            self.logger.warning("      2. Default endpoint: http://localhost:11434/v1")
+            self.logger.warning("      3. GEM pipeline: extract -> block -> resolve -> query")
+            self.logger.warning("      4. Install dependencies: pip install sentence-transformers faiss-cpu duckdb")
             self.logger.warning("")
         
         # Collect all queries to run

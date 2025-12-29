@@ -97,11 +97,21 @@ class JoinTransformText(JoinText):
             
             if first_table_name in self.tableDict:
                 first_table = self.tableDict[first_table_name]
-                if join_attr_col in first_table.columns:
+                # Find the join column - it might have different names
+                join_col = None
+                for col in first_table.columns:
+                    if join_attr_col in col or col.endswith(join_attr_col.split('.')[-1]):
+                        join_col = col
+                        break
+                
+                if join_col:
                     # Extract join values from first table
-                    join_values = first_table[join_attr_col].dropna().unique().tolist()
+                    col_series = first_table[join_col]
+                    if isinstance(col_series, pd.DataFrame):
+                        # If still a DataFrame, take the first column
+                        col_series = col_series.iloc[:, 0]
+                    join_values = col_series.dropna().unique().tolist()
                     print(f"[DEBUG JoinTransformText] Extracted {len(join_values)} unique join values: {join_values[:5]}...")
-                    
                     # The IN filter will be applied to second table during its extraction/filtering
                     # Store values for reference if needed
                     self.extracted_join_values = join_values
