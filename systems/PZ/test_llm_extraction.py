@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Test LLM extraction directly on actual documents from source_data"""
+"""Test if LLM can extract disease_type from noisy documents"""
 
 import os
 import sys
@@ -10,97 +10,60 @@ os.environ["OLLAMA_API_BASE"] = "http://localhost:11434/v1"
 os.environ["LITELLM_DROP_PARAMS"] = "True"
 
 import litellm
-import json
 
-# Get project root
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 SOURCE_DATA = PROJECT_ROOT / "source_data" / "Healthcare" / "disease_small"
 
-# Find first 3 documents
-doc_files = list(SOURCE_DATA.glob("*.txt"))[:3]
+doc_files = sorted(list(SOURCE_DATA.glob("*.txt")))[:10]
 
 if not doc_files:
     print(f"ERROR: No documents found in {SOURCE_DATA}")
     sys.exit(1)
 
-print("Testing LLM extraction on actual documents...")
-print(f"Source: {SOURCE_DATA}")
+print("Testing disease_type extraction (same prompt Palimpzest uses)...")
 print("=" * 80)
 
+extracted_values = []
+
 for doc_path in doc_files:
-    if not os.path.exists(doc_path):
-        print(f"SKIP: {doc_path} not found")
-        continue
-    
     with open(doc_path, 'r', encoding='utf-8', errors='ignore') as f:
         content = f.read()
     
-    # Truncate for readability
-    content_preview = content[:300] + "..." if len(content) > 300 else content
-    print(f"\nDocument: {os.path.basename(doc_path)}")
-    print(f"Content preview: {content_preview}")
-    print(f"Full length: {len(content)} chars")
-    
-    # Test 1: Simple extraction prompt
+    # Use the EXACT prompt format Palimpzest would use via sem_map
     messages = [
         {
             "role": "user",
-            "content": f"""Extract the disease_type from this document. Return just the disease type value.
+            "content": f"""Extract from the document:
+- The disease_type attribute extracted from the document
 
 Document:
 {content}
 
-Disease type:"""
+Respond with only the value for disease_type, nothing else:"""
         }
     ]
     
     try:
-        print("\n[Test 1] Simple extraction...")
         response = litellm.completion(
             model="openai/qwen2.5:7b-instruct",
             messages=messages,
-            api_base=os.environ.get("OLLAMA_API_BASE", "http://localhost:11434/v1"),
+            api_base=os.environ.get("OLLAMA_API_BASE"),
             api_key="local",
-            temperature=0.3,
-            max_tokens=100,
+            temperature=0.1,
+            max_tokens=50,
         )
         result = response.choices[0].message.content.strip()
-        print(f"Result: {result}")
+        extracted_values.append((doc_path.name, result))
+        print(f"{doc_path.name:20} -> {result}")
     except Exception as e:
-        print(f"Error: {e}")
-    
-    # Test 2: JSON extraction prompt
-    messages_json = [
-        {
-            "role": "user",
-            "content": f"""Extract information from this document. Return as JSON with keys: disease_type, disease_name.
+        print(f"{doc_path.name:20} -> ERROR: {e}")
+        extracted_values.append((doc_path.name, f"ERROR: {e}"))
 
-Document:
-{content}
+print("\n" + "=" * 80)
+print("Summary:")
+print(f"Total docs tested: {len(extracted_values)}")
+non_empty = [v for k, v in extracted_values if v and "ERROR" not in v and v.lower() != "none" and v.lower() != "not applicable" and v.lower() != "not found"]
+print(f"Non-empty extractions: {len(non_empty)}")
+print(f"Unique values found: {set(v for k, v in extracted_values if v and 'ERROR' not in v)}")
 
-Return valid JSON only:"""
-        }
-    ]
-    
-    try:
-        print("\n[Test 2] JSON extraction...")
-        response = litellm.completion(
-            model="openai/qwen2.5:7b-instruct",
-            messages=messages_json,
-            api_base=os.environ.get("OLLAMA_API_BASE", "http://localhost:11434/v1"),
-            api_key="local",
-            temperature=0.3,
-            max_tokens=200,
-        )
-        result = response.choices[0].message.content.strip()
-        print(f"Result: {result}")
-        try:
-            parsed = json.loads(result)
-            print(f"Parsed JSON: {parsed}")
-        except:
-            print("(Not valid JSON)")
-    except Exception as e:
-        print(f"Error: {e}")
-    
-    print("-" * 80)
 
