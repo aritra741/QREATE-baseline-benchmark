@@ -367,22 +367,9 @@ class Generator(Generic[ContextType, InputType]):
             print(f"[GENERATOR DEBUG] Num messages: {len(messages)}", file=sys.stderr, flush=True)
             for i, msg in enumerate(messages):
                 if isinstance(msg, dict) and 'content' in msg:
-                    content_preview = str(msg['content'])[:300]
-                    print(f"[GENERATOR DEBUG] Message {i} ({msg.get('role', 'unknown')}): {content_preview}...", file=sys.stderr, flush=True)
+                    print(f"[GENERATOR DEBUG] Message {i} ({msg.get('role', 'unknown')}) - LENGTH {len(msg['content'])}:", file=sys.stderr, flush=True)
+                    print(f"{msg['content']}", file=sys.stderr, flush=True)
             sys.stderr.flush()
-            
-            print(f"[GENERATOR DEBUG] Model: {model_to_use}", flush=True)
-            print(f"[GENERATOR DEBUG] Num messages: {len(messages)}", flush=True)
-            for i, msg in enumerate(messages):
-                if isinstance(msg, dict) and 'content' in msg:
-                    content_preview = str(msg['content'])[:300]
-                    print(f"[GENERATOR DEBUG] Message {i} ({msg.get('role', 'unknown')}): {content_preview}...", flush=True)
-            logger.warning(f"[GENERATOR DEBUG] Model: {model_to_use}")
-            logger.warning(f"[GENERATOR DEBUG] Num messages: {len(messages)}")
-            for i, msg in enumerate(messages):
-                if isinstance(msg, dict) and 'content' in msg:
-                    content_preview = str(msg['content'])[:200]
-                    logger.warning(f"[GENERATOR DEBUG] Message {i} ({msg.get('role', 'unknown')}): {content_preview}...")
             
             completion = litellm.completion(model=model_to_use, messages=messages, **completion_kwargs)
             end_time = time.time()
