@@ -355,6 +355,14 @@ class Generator(Generic[ContextType, InputType]):
             else:
                 model_to_use = self.model_name
             
+            # DEBUG: Log what we're sending
+            logger.warning(f"[GENERATOR DEBUG] Model: {model_to_use}")
+            logger.warning(f"[GENERATOR DEBUG] Num messages: {len(messages)}")
+            for i, msg in enumerate(messages):
+                if isinstance(msg, dict) and 'content' in msg:
+                    content_preview = str(msg['content'])[:200]
+                    logger.warning(f"[GENERATOR DEBUG] Message {i} ({msg.get('role', 'unknown')}): {content_preview}...")
+            
             completion = litellm.completion(model=model_to_use, messages=messages, **completion_kwargs)
             end_time = time.time()
             logger.debug(f"Generated completion in {end_time - start_time:.2f} seconds")
