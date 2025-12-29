@@ -117,6 +117,11 @@ class JoinTransformText(JoinText):
                     if isinstance(col_series, pd.DataFrame):
                         # If still a DataFrame, take the first column
                         col_series = col_series.iloc[:, 0]
+                    
+                    # Debug: show first few values
+                    print(f"[DEBUG JoinTransformText] Column '{join_col}' first 5 values: {col_series.head().tolist()}")
+                    print(f"[DEBUG JoinTransformText] Column dtype: {col_series.dtype}, non-null count: {col_series.count()}")
+                    
                     join_values = col_series.dropna().unique().tolist()
                     print(f"[DEBUG JoinTransformText] Extracted {len(join_values)} unique join values from column '{join_col}': {join_values[:5] if join_values else 'EMPTY'}...")
                     # The IN filter will be applied to second table during its extraction/filtering
