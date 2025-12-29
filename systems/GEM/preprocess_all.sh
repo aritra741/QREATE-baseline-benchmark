@@ -7,7 +7,7 @@ PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$PROJECT_ROOT"
 
 # Activate venv
-source systems/GEM/venv/bin/activate
+# source systems/GEM/venv/bin/activate
 
 echo "================================"
 echo "GEM Preprocessing Pipeline"
