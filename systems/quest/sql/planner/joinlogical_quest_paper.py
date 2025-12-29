@@ -250,8 +250,9 @@ class JoinLogicalPlanner(object):
             second_table = join_cond.lhs.parse_table()
         
         # For first table: get filters that apply to it
-        # NOTE: For join queries, we simplify by skipping WHERE clause filter handling
-        # Filters on individual tables are applied after join transformation
+        # CRITICAL: We MUST apply WHERE clause filters to filter the first table
+        # before extracting join values. This is essential for correctness.
+        filter_first = self.extract_filter_conditions_for_table(selectStmt.whereClause, first_table)
         
         # Build projection for first table (need join attribute + projection attributes + filter attributes)
         first_table_cols = []
@@ -268,9 +269,21 @@ class JoinLogicalPlanner(object):
         if join_attr_first not in first_table_cols:
             first_table_cols.append(join_attr_first)
         
-        # Build first table extract node
+        # Build first table extract node with filter
         extract_first = LogicalExtract(columns=first_table_cols, table=first_table)
-        extract_first.append_input(retrieveDict[first_table])
+        
+        if filter_first:
+            # Create LogicalFilter node to apply WHERE clause conditions
+            filter_columns = []
+            for attr in all_attrs:
+                tbl = attr.parse_table()
+                if tbl == first_table or tbl == sqlconst.DEFAULT_TABLE_NAME:
+                    filter_columns.append(attr)
+            logical_filter_first = LogicalFilter(columns=filter_columns, table=first_table, root=filter_first)
+            logical_filter_first.append_input(retrieveDict[first_table])
+            extract_first.append_input(logical_filter_first)
+        else:
+            extract_first.append_input(retrieveDict[first_table])
         
         extractDict[first_table] = extract_first
         
