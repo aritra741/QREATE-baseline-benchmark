@@ -1,7 +1,8 @@
 #!/bin/bash
 # GEM Quick Test - Verifies the system is working
 
-cd "$(dirname "$0")/../.." || exit 1
+# Navigate to project root (go up 2 levels from systems/GEM/)
+cd "$(cd "$(dirname "$0")/../.." && pwd)" || exit 1
 
 source systems/GEM/venv/bin/activate
 
