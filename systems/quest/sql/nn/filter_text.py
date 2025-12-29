@@ -203,33 +203,63 @@ class FilterText(Filter):
                 extracted_df['fcondition'] = 'False'  # Default to False
                 
                 try:
-                    # Parse the condition - extract column name and value
-                    # Condition format: "column = 'value'" or "column == 'value'"
+                    # Parse the condition - extract column name and value(s)
+                    # Condition formats: 
+                    # - "column = 'value'" or "column == 'value'"
+                    # - "column IN [val1, val2, ...]"
                     import re
-                    match = re.match(r"(`?[\w.]+`?)\s*(?:==|=|!=|<>|<=|>=|<|>)\s*'?([^']*)'?", condition)
-                    if match:
-                        col_name = match.group(1).strip('`')
-                        val_right = match.group(2).strip("'\"")
-                        print(f"[DEBUG filter_text] Parsing condition: column='{col_name}', value='{val_right}'")
+                    
+                    # First try to match IN condition
+                    in_match = re.match(r"(`?[\w.]+`?)\s+IN\s+\[(.*)\]", condition, re.IGNORECASE)
+                    if in_match:
+                        col_name = in_match.group(1).strip('`')
+                        vals_str = in_match.group(2)
+                        # Parse the list values - they might be quoted strings or numbers
+                        # Split by comma and strip quotes
+                        in_values = []
+                        for v in vals_str.split(','):
+                            v = v.strip().strip("'\"")
+                            if v:
+                                in_values.append(v.lower())  # Normalize to lowercase for comparison
                         
-                        # Apply filter based on operator
-                        if '==' in condition or ('=' in condition and '!=' not in condition and '<>' not in condition):
-                            # Equality check - handle compound values separated by ||
-                            # For disease_type and similar fields, values can be "type1 || type2"
-                            # We need to check if val_right is one of the components
-                            def check_equality(cell_val):
-                                cell_str = str(cell_val).strip()
-                                # Split by || and check if any component matches
-                                components = [c.strip() for c in cell_str.split('||')]
-                                return val_right in components or cell_str == val_right
-                            
-                            mask = extracted_df[col_name].apply(check_equality)
-                            extracted_df.loc[mask, 'fcondition'] = 'True'
-                        # TODO: Add support for other operators (<, >, !=, etc)
+                        print(f"[DEBUG filter_text] Parsing IN condition: column='{col_name}', values={in_values}")
                         
-                        print(f"[DEBUG filter_text] Applied condition: {len(extracted_df[extracted_df['fcondition'] == 'True'])} rows match")
+                        # Check if extracted values are in the IN list (case-insensitive)
+                        def check_in(cell_val):
+                            cell_str = str(cell_val).strip().lower()
+                            # Split by || and check if any component is in the IN list
+                            components = [c.strip().lower() for c in cell_str.split('||')]
+                            return any(comp in in_values for comp in components)
+                        
+                        mask = extracted_df[col_name].apply(check_in)
+                        extracted_df.loc[mask, 'fcondition'] = 'True'
+                        print(f"[DEBUG filter_text] Applied IN condition: {len(extracted_df[extracted_df['fcondition'] == 'True'])} rows match")
                     else:
-                        print(f"[DEBUG filter_text] Could not parse condition: {condition}")
+                        # Try simple equality match
+                        match = re.match(r"(`?[\w.]+`?)\s*(?:==|=|!=|<>|<=|>=|<|>)\s*'?([^']*)'?", condition)
+                        if match:
+                            col_name = match.group(1).strip('`')
+                            val_right = match.group(2).strip("'\"")
+                            print(f"[DEBUG filter_text] Parsing condition: column='{col_name}', value='{val_right}'")
+                            
+                            # Apply filter based on operator
+                            if '==' in condition or ('=' in condition and '!=' not in condition and '<>' not in condition):
+                                # Equality check - handle compound values separated by ||
+                                # For disease_type and similar fields, values can be "type1 || type2"
+                                # We need to check if val_right is one of the components
+                                def check_equality(cell_val):
+                                    cell_str = str(cell_val).strip()
+                                    # Split by || and check if any component matches
+                                    components = [c.strip() for c in cell_str.split('||')]
+                                    return val_right in components or cell_str == val_right
+                                
+                                mask = extracted_df[col_name].apply(check_equality)
+                                extracted_df.loc[mask, 'fcondition'] = 'True'
+                            # TODO: Add support for other operators (<, >, !=, etc)
+                            
+                            print(f"[DEBUG filter_text] Applied condition: {len(extracted_df[extracted_df['fcondition'] == 'True'])} rows match")
+                        else:
+                            print(f"[DEBUG filter_text] Could not parse condition: {condition}")
                 except Exception as e:
                     print(f"[DEBUG filter_text] Error applying condition '{condition}': {e}")
                     import traceback
