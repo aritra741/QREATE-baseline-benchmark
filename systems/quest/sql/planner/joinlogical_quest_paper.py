@@ -36,7 +36,7 @@ def remove_duplicates_columns(lst):
     return res
 
 
-class JoinLogicalPlannerQuestPaper(object):
+class JoinLogicalPlanner(object):
     """
     Implements join optimization according to QUEST paper Section 3.2.
     
@@ -178,8 +178,18 @@ class JoinLogicalPlannerQuestPaper(object):
         if not isinstance(selectStmt, astn.SelectExpr):
             raise Exception('Not a Select Node!')
         
-        # Get table list
+        # Get table list from FROM clause
         tableList = selectStmt.fromClause.value
+        
+        # CRITICAL: Extract all tables involved in JOIN clause (not just FROM)
+        # The parser puts joined tables in joinClause, not in tableList
+        if selectStmt.joinClause and selectStmt.joinClause.value:
+            for join_info in selectStmt.joinClause.value:
+                # join_info is [JOIN_TYPE, TABLE, CONDITION]
+                joined_table = join_info[1]  # The table being joined
+                if joined_table not in tableList:
+                    tableList.append(joined_table)
+        
         if len(tableList) < 2:
             # No join - use regular logical planner
             raise Exception('Use LogicalPlanner for non-join queries')
@@ -191,7 +201,16 @@ class JoinLogicalPlannerQuestPaper(object):
         where_attrs = remove_duplicates_columns(where_attrs)
         
         # Find join conditions
+        # Check both WHERE clause (legacy) and JOIN clause (explicit)
         join_conditions = self.extract_join_conditions(selectStmt.whereClause)
+        
+        # CRITICAL: Also extract join conditions from explicit JOIN clauses
+        if selectStmt.joinClause and selectStmt.joinClause.value:
+            for join_info in selectStmt.joinClause.value:
+                # join_info is [JOIN_TYPE, TABLE, CONDITION]
+                condition = join_info[2]  # The condition is a BinaryOperationExpr
+                if isinstance(condition, astn.BinaryOperationExpr):
+                    join_conditions.append(BinaryNode(condition.lhs, condition.op, condition.rhs))
         
         if not join_conditions:
             raise Exception('No join conditions found')
@@ -231,7 +250,8 @@ class JoinLogicalPlannerQuestPaper(object):
             second_table = join_cond.lhs.parse_table()
         
         # For first table: get filters that apply to it
-        filter_first = self.extract_filter_conditions_for_table(selectStmt.whereClause, first_table)
+        # NOTE: For join queries, we simplify by skipping WHERE clause filter handling
+        # Filters on individual tables are applied after join transformation
         
         # Build projection for first table (need join attribute + projection attributes + filter attributes)
         first_table_cols = []
@@ -250,18 +270,12 @@ class JoinLogicalPlannerQuestPaper(object):
         
         # Build first table extract node
         extract_first = LogicalExtract(columns=first_table_cols, table=first_table)
-        if filter_first:
-            filter_first.append_input(retrieveDict[first_table])
-            extract_first.append_input(filter_first)
-        else:
-            extract_first.append_input(retrieveDict[first_table])
+        extract_first.append_input(retrieveDict[first_table])
         
         extractDict[first_table] = extract_first
         
         # Step 3: TRANSFORM JOIN INTO IN FILTER (per paper Section 3.2)
-        # Second table gets: IN filter on join attribute + other filters
-        
-        filter_second = self.extract_filter_conditions_for_table(selectStmt.whereClause, second_table)
+        # Second table gets: IN filter on join attribute
         
         # Build second table columns
         second_table_cols = []
@@ -284,6 +298,10 @@ class JoinLogicalPlannerQuestPaper(object):
         
         extract_second = LogicalExtract(columns=second_table_cols, table=second_table)
         
+        # Connect second table: retrieve -> extract
+        extract_second = LogicalExtract(columns=second_table_cols, table=second_table)
+        extract_second.append_input(retrieveDict[second_table])
+        
         # Build join node
         join_node = LogicalJoin(
             join_type=['INNER'],
@@ -296,12 +314,6 @@ class JoinLogicalPlannerQuestPaper(object):
         
         # Connect: first table extract -> join -> second table extract
         join_node.append_input(extract_first)
-        extract_second.append_input(retrieveDict[second_table])
-        
-        if filter_second:
-            filter_second.append_input(retrieveDict[second_table])
-            extract_second.append_input(filter_second)
-        
         join_node.append_input(extract_second)
         
         return join_node

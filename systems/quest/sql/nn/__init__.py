@@ -25,6 +25,7 @@ from .projection_text import ProjectionText
 from .logical_join import LogicalJoin
 from .join import Join
 from .join_text import JoinText
+from .join_transform_text import JoinTransformText
 
 from .logical_aggregation import LogicalAggregation
 from .aggregation import Aggregation
@@ -63,6 +64,7 @@ __all__ = classes = [
     'LogicalJoin',
     'Join',
     'JoinText',
+    'JoinTransformText',
 
     'LogicalAggregation',
     'Aggregation',

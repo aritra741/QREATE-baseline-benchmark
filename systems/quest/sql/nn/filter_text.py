@@ -154,12 +154,12 @@ class FilterText(Filter):
                         
                         return now_doc_idList
                     
-                    # else process IN filter
+                    # else process IN filter (column-to-column comparison from join transformation)
 
-                    # get already in value
+                    # get already extracted values from first table
                     df = copy.copy(self.now_tableDict[last_table])
                     df_list = df[last_column].tolist()
-                    condition = str(now_column) + 'IN [' + ', '.join(df_list) + ']'
+                    condition = str(now_column) + ' IN [' + ', '.join(str(v) for v in df_list) + ']'
 
                     #print("condition : ", condition, '---- column : ',now_column)
 
@@ -170,11 +170,11 @@ class FilterText(Filter):
 
                 else:
                     # filter IN, or filter '=='string''
-                    # rhs is astn.ListValue or a StringValue
-                    lst = filter.rhs.parse_full()
+                    # rhs is astn.ListValue or a StringValue (or ValueList from join transformation)
+                    lst = filter.rhs.parse_full() if hasattr(filter.rhs, 'parse_full') else filter.rhs
                     condition = None
                     if isinstance(lst, list):
-                        condition = str(now_column) + 'IN [' + ', '.join(lst) + ']'
+                        condition = str(now_column) + ' IN [' + ', '.join(str(v) for v in lst) + ']'
                     elif isinstance(lst, str):
                         condition = str(now_column) + filter.op + lst 
                     else:

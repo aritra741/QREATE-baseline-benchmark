@@ -1,4 +1,5 @@
 from quest.sql.nn import *
+from quest.sql.nn.join_transform_text import JoinTransformText
 from quest.core.node import ast_node as astn
 from quest.conf import sqlconst
 import copy
@@ -62,7 +63,21 @@ class TextPhysicalPlanner(object):
         return node
     
     def build_join(self, root : LogicalJoin):
-        node = JoinText(root.join_type, root.join_order, 'Text')
+        # Per QUEST paper Section 3.2: Use join transformation (join -> IN filter)
+        # if join transformation attributes are provided
+        if hasattr(root, 'extracted_join_attr') and root.extracted_join_attr:
+            print("[DEBUG PhysicalPlanner] Building JoinTransformText (join transformation enabled)")
+            node = JoinTransformText(
+                root.join_type, 
+                root.join_order, 
+                'Text',
+                extracted_join_attr=root.extracted_join_attr,
+                join_filter_attr=root.join_filter_attr
+            )
+        else:
+            print("[DEBUG PhysicalPlanner] Building standard JoinText (no join transformation)")
+            node = JoinText(root.join_type, root.join_order, 'Text')
+        
         node.set_indexer(self.global_indexer)
         return node
     
