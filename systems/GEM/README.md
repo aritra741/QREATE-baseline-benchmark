@@ -144,25 +144,76 @@ Critical Features
 Setup Instructions
 ===================
 
-1. Install Dependencies:
-   ```bash
-   pip install duckdb pandas openai sentence-transformers faiss-cpu
-   ```
+### 1. Create Virtual Environment
 
-2. Start Ollama Server:
-   ```bash
-   ollama pull qwen2.5:7b-instruct
-   ollama serve
-   ```
+```bash
+# Create venv in systems/GEM/
+python3 -m venv systems/GEM/venv
 
-3. Verify Data & Schemas:
-   - source_data/{Dataset}/{Entity}/*.txt (text documents)
-   - Query/{Dataset}/{Dataset}_attributes.json (schemas)
+# Activate (macOS/Linux)
+source systems/GEM/venv/bin/activate
 
-4. Run GEM:
-   ```bash
-   python run_challenging_queries.py --systems gem --query-types all
-   ```
+# Or use the convenience script
+bash systems/GEM/activate.sh
+```
+
+### 2. Install Dependencies
+
+```bash
+# Using the requirements file
+pip install -r systems/GEM/requirements.txt
+
+# Or manually
+pip install duckdb pandas openai sentence-transformers faiss-cpu
+```
+
+### 3. Start Ollama Server
+
+Open a new terminal:
+```bash
+# Install and pull the model
+ollama pull qwen2.5:7b-instruct
+
+# Start the server (runs on http://localhost:11434)
+ollama serve
+```
+
+### 4. Preprocess Data
+
+```bash
+# Make sure venv is activated, then run preprocessing
+cd systems/GEM
+bash preprocess_all.sh
+
+# Or manually preprocess specific datasets
+python3 << 'EOF'
+from gem_runner import GEMRunner
+
+runner = GEMRunner()
+meta = runner.preprocess("Med", "disease")
+print(f"Status: {meta['status']}")
+print(f"Records: {meta.get('records_count', 0)}")
+EOF
+```
+
+### 5. Verify Data & Schemas
+
+Verify these exist before running queries:
+- `source_data/{Dataset}/{Entity}/*.txt` (text documents)
+- `Query/{Dataset}/{Dataset}_attributes.json` (schemas)
+
+### 6. Run GEM Queries
+
+```bash
+# Run all challenging queries with GEM
+python run_challenging_queries.py --systems gem --query-types all
+
+# Run specific queries
+python run_challenging_queries.py --systems gem --query-ids filter_1 projection_2
+
+# Compare with other systems
+python run_challenging_queries.py --systems gem lotus quest --query-types filter
+```
 
 Configuration
 =============
@@ -175,6 +226,26 @@ Edit systems/GEM/config.py to adjust:
 - SIMILARITY_THRESHOLD: Blocking similarity cutoff (default: 0.85)
 - TOP_K_NEIGHBORS: Blocking neighbor count (default: 15)
 - CHUNK_SIZE: Max tokens per extraction chunk (default: 4000)
+
+### Preprocessing Cache Management
+
+The preprocessing pipeline caches results to avoid re-running expensive operations:
+
+```bash
+# Clear extraction cache (forces fresh LLM extraction)
+rm -rf systems/GEM/.cache/extractions/
+
+# Clear all preprocessing results (blocks, resolutions, normalization)
+rm -rf systems/GEM/.cache/preprocessing/
+
+# Clear entire cache
+rm -rf systems/GEM/.cache/
+```
+
+Cached data locations:
+- `systems/GEM/.cache/extractions/{entity}/` - Raw LLM extracted JSON by file hash
+- `systems/GEM/.cache/preprocessing/{dataset}/{entity}/` - Final normalized records and canonical maps
+- Results are also saved to `results/challenging_queries/{run_id}/preprocessing/gem/`
 
 Output Structure
 ================
