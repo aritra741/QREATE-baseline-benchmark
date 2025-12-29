@@ -243,15 +243,32 @@ class TextLLMQuerier(object):
             docs.append(truncated_text)
         """
 
-        attributes = ", ".join(attributeList)
-        related_attr_descriptions = []
+        # CRITICAL FIX: Strip table prefixes from attribute names for LLM query
+        # Schema knows attributes as "disease_name", not "disease.disease_name"
+        # But we need to preserve the qualified names for the output DataFrame
+        unqualified_attrs = []
+        attr_mapping = {}  # Maps unqualified -> qualified
         for attr in attributeList:
+            if '.' in attr:
+                # Extract column name without table prefix
+                unqualified = attr.split('.')[-1]
+            else:
+                unqualified = attr
+            unqualified_attrs.append(unqualified)
+            attr_mapping[unqualified] = attr
+        
+        print(f"[DEBUG extract_attribute] Unqualified attrs for LLM: {unqualified_attrs}")
+        print(f"[DEBUG extract_attribute] Attr mapping: {attr_mapping}")
+
+        attributes = ", ".join(unqualified_attrs)
+        related_attr_descriptions = []
+        for attr in unqualified_attrs:
             related_attr_descriptions.append(f"{attr}: {self.attr_descriptions_dict.get(attr)}")
         related_attr_descriptions_str = " \n".join(related_attr_descriptions)
         prompts = [
             [
                 {"role": "system", "content": "Extract data into tuples. NO markdown. NO bullets. Format: (attribute_name, value, confidence, chunk). ONE tuple per line."},
-                {"role": "user", "content": f'''Extract these attributes: {', '.join(attributeList)}
+                {"role": "user", "content": f'''Extract these attributes: {', '.join(unqualified_attrs)}
 
 CRITICAL: First field MUST be the attribute name from the list above.
 
@@ -271,7 +288,7 @@ Field descriptions:
 Document:
 {doc}
 
-Output {len(attributeList)} tuples (one per attribute):'''
+Output {len(unqualified_attrs)} tuples (one per attribute):'''
                 }
             ]
             for doc in docs
@@ -282,11 +299,23 @@ Output {len(attributeList)} tuples (one per attribute):'''
         if results:
             print(f"[DEBUG extract_attribute] First result (first 500 chars): {results[0][:500]}")
 
-        json_result = [parse_result(results[i], doc_idList[i], attributeList) for i in range(len(results))]
+        json_result = [parse_result(results[i], doc_idList[i], unqualified_attrs) for i in range(len(results))]
         df = pd.DataFrame(json_result)
         df = df.fillna(" ")
-        attributeList.append('doc_id')
-        df = table_util.check_missing_columns(df, attributeList)
+        
+        # CRITICAL FIX: Rename columns from unqualified to qualified names
+        # This ensures the DataFrame has columns like "disease.disease_name" not just "disease_name"
+        rename_map = {}
+        for unqualified, qualified in attr_mapping.items():
+            if unqualified in df.columns and unqualified != qualified:
+                rename_map[unqualified] = qualified
+        
+        if rename_map:
+            print(f"[DEBUG extract_attribute] Renaming columns: {rename_map}")
+            df = df.rename(columns=rename_map)
+        
+        attributeList_with_doc = attributeList + ['doc_id']
+        df = table_util.check_missing_columns(df, attributeList_with_doc)
         #print("use prompt:", related_attr_descriptions_str)
         print("------------\n", df)
         return df
