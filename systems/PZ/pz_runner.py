@@ -190,11 +190,15 @@ class PZRunner:
             where_clauses = self._extract_where_clauses(sql)
             group_cols, agg_specs = self._extract_aggregation_spec(sql)
             
+            self.logger.info(f"[PZ] DEBUG: Parsed query - select_cols={select_cols}, group_cols={group_cols}, agg_specs={agg_specs}")
+            
             # Paper Table 1: Convert operator χ - extract schema from unstructured text
             # Extract all attributes needed for the query (including aggregation grouping keys)
             extract_cols = select_cols.copy() if select_cols != ["*"] else []
             if group_cols:
                 extract_cols = list(set(extract_cols + group_cols))
+            
+            self.logger.info(f"[PZ] DEBUG: Columns to extract via sem_map: {extract_cols}")
             
             if extract_cols:
                 # Define output schema for sem_map (Paper Figure 2 example)
@@ -223,6 +227,11 @@ class PZRunner:
                 try:
                     from palimpzest.core.elements.groupbysig import GroupBySig
                     
+                    # DEBUG: Check what data we have before groupby
+                    # Note: We can't materialize here (would break streaming), but we can log intent
+                    self.logger.info(f"[PZ] DEBUG: About to apply groupby on extracted data")
+                    self.logger.info(f"[PZ] DEBUG: Dataset schema has columns: {[f for f in dataset_obj.schema.model_fields.keys()]}")
+                    
                     # Build GroupBySig with:
                     # - group_by_fields: list of columns to group by
                     # - agg_funcs: list of aggregation functions (e.g., ['count', 'sum'])
@@ -242,8 +251,8 @@ class PZRunner:
                         agg_funcs=agg_funcs,
                         agg_fields=agg_fields
                     )
+                    self.logger.info(f"[PZ] Applied groupby() with columns={group_cols}, agg_funcs={agg_funcs}, agg_fields={agg_fields}")
                     dataset_obj = dataset_obj.groupby(group_by_sig)
-                    self.logger.info(f"[PZ] Applied groupby() with columns={group_cols}, agg_funcs={agg_funcs}")
                 except Exception as e:
                     self.logger.warning(f"[PZ] groupby() failed: {e}")
                     self.logger.warning(f"[PZ] Will proceed with extraction only")
