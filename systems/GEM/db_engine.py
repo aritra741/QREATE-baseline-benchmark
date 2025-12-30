@@ -126,7 +126,7 @@ class DBEngine:
             self.logger.error(f"Failed to create table {table_name}: {e}")
     
     def insert_records(self, table_name: str, records: List[Dict]):
-        """Insert records into table.
+        """Insert records into table, converting types based on schema.
         
         Args:
             table_name: Name of table
@@ -148,25 +148,25 @@ class DBEngine:
             # Convert to DataFrame
             df = pd.DataFrame(records)
             
-            # Cast numeric columns based on schema BEFORE inserting
+            # Cast columns to proper types based on schema
             if self.schema:
                 for attr in self.schema.attributes:
                     if attr.name in df.columns:
                         type_lower = attr.type.lower()
                         try:
                             if type_lower in ["int", "integer", "int_value"]:
-                                # Convert to numeric, coercing errors to NaN
-                                df[attr.name] = pd.to_numeric(df[attr.name], errors='coerce').astype('Int64')
+                                # Try to convert to int, coercing errors to NaN then to 0
+                                df[attr.name] = pd.to_numeric(df[attr.name], errors='coerce').fillna(0).astype('int64')
                             elif type_lower in ["float", "double", "float_value"]:
                                 df[attr.name] = pd.to_numeric(df[attr.name], errors='coerce').astype('float64')
+                            elif type_lower in ["bool", "boolean"]:
+                                df[attr.name] = df[attr.name].astype(bool)
                         except Exception as e:
-                            self.logger.warning(f"Failed to cast {attr.name} to {attr.type}: {e}")
+                            self.logger.debug(f"Type conversion for {attr.name}: {e}")
             
-            # Handle None/NULL values
-            df = df.where(pd.notnull(df), None)
-            
-            # Insert - DuckDB will respect pandas dtypes
-            self.conn.from_df(df).insert_into(table_name)
+            # Insert using DuckDB's from_df which respects pandas dtypes
+            rel = self.conn.from_df(df)
+            rel.insert_into(table_name)
             self.logger.info(f"Inserted {len(records)} records into {table_name}")
             
         except Exception as e:
