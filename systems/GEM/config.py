@@ -47,7 +47,7 @@ EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
 # Embedding settings for blocking
 EMBEDDING_DIM = 384  # Dimension of all-MiniLM-L6-v2
-SIMILARITY_THRESHOLD = 0.85  # Cosine similarity threshold for blocking
+SIMILARITY_THRESHOLD = 0.92  # Cosine similarity threshold for blocking (increased from 0.85 to be conservative)
 TOP_K_NEIGHBORS = 15  # Number of nearest neighbors to consider
 
 # ============================================================================

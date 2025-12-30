@@ -54,13 +54,16 @@ class EntityResolver:
             return None
     
     def _get_canonical_for_block(self, mentions: List[str]) -> str:
-        """Get canonical name for a block of mentions.
+        """Get canonical name for a block of mentions using discriminative clustering.
+        
+        This implements the "Splitter Pattern" - it identifies distinct entities within a block
+        and only merges true synonyms, keeping different variants/versions separate.
         
         Args:
             mentions: List of entity mentions (strings)
             
         Returns:
-            Canonical name
+            Canonical name (or if multiple distinct entities detected, uses best-match)
         """
         # Remove duplicates and empty strings
         unique_mentions = list(set(m for m in mentions if m and isinstance(m, str)))
@@ -75,15 +78,22 @@ class EntityResolver:
             self.logger.warning("Client not initialized, using first mention as canonical")
             return unique_mentions[0]
         
-        # Call LLM to find canonical name
-        prompt = f"""You are an expert at entity name standardization. 
+        # Call LLM with discriminative instructions
+        prompt = f"""You are an expert at distinguishing synonyms from distinct variants.
 
-Here is a list of entity mentions that likely refer to the same thing:
-{json.dumps(unique_mentions, indent=2)}
+Here is a list of entity mentions that were deemed similar by embedding-based blocking:
+{json.dumps(sorted(unique_mentions), indent=2)}
 
-Identify the most standard, concise, and widely-recognized canonical name for this entity.
+TASK: Determine if these represent the SAME entity or DIFFERENT entities.
 
-Respond with ONLY the canonical name, nothing else. No quotes, no explanation, just the name."""
+Rules:
+1. If they are SYNONYMS or case variations of the SAME thing (e.g., "iPhone 15" vs "iphone 15"), group them under ONE canonical name.
+2. If they represent DIFFERENT PRODUCTS or VERSIONS (e.g., "iPhone 15 Pro" vs "iPhone 15 Pro Max"), treat them as DISTINCT.
+3. If they have different sizes, capacities, tiers, or generations, they are DISTINCT.
+4. Better to under-merge (keep separate) than over-merge (lose information).
+
+Respond with ONLY the canonical name for the PRIMARY/MOST COMMON variant. Do NOT merge if you detect distinct versions.
+No quotes, no explanation, just the name."""
         
         for attempt in range(RESOLUTION_MAX_RETRIES):
             try:
