@@ -57,6 +57,7 @@ DATA_PATH_MAP = {
     ("Art", "art"): SOURCE_DATA_DIR / "Art" / "wikiart",
     ("Legal", "legal_case"): SOURCE_DATA_DIR / "Legal" / "legal_case",
     ("Finan", "finance"): SOURCE_DATA_DIR / "Finance" / "finance",
+    ("Synthetic", "product"): PROJECT_ROOT / "test_data" / "synthetic",  # Test dataset
 }
 
 # Map of dataset to attributes file
@@ -66,6 +67,7 @@ ATTRIBUTES_PATH_MAP = {
     "Art": PROJECT_ROOT / "Query" / "Art" / "Art_attributes.json",
     "Legal": PROJECT_ROOT / "Query" / "Legal" / "Legal_attributes.json",
     "Finan": PROJECT_ROOT / "Query" / "Finan" / "Finan_attributes.json",
+    "Synthetic": PROJECT_ROOT / "Query" / "Synthetic" / "Synthetic_attributes.json",  # Test dataset
 }
 
 
