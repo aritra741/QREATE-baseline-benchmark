@@ -148,7 +148,7 @@ class DBEngine:
             # Convert to DataFrame
             df = pd.DataFrame(records)
             
-            # Cast numeric columns based on schema
+            # Cast numeric columns based on schema BEFORE inserting
             if self.schema:
                 for attr in self.schema.attributes:
                     if attr.name in df.columns:
@@ -156,16 +156,16 @@ class DBEngine:
                         try:
                             if type_lower in ["int", "integer", "int_value"]:
                                 # Convert to numeric, coercing errors to NaN
-                                df[attr.name] = pd.to_numeric(df[attr.name], errors='coerce')
+                                df[attr.name] = pd.to_numeric(df[attr.name], errors='coerce').astype('Int64')
                             elif type_lower in ["float", "double", "float_value"]:
-                                df[attr.name] = pd.to_numeric(df[attr.name], errors='coerce')
+                                df[attr.name] = pd.to_numeric(df[attr.name], errors='coerce').astype('float64')
                         except Exception as e:
                             self.logger.warning(f"Failed to cast {attr.name} to {attr.type}: {e}")
             
             # Handle None/NULL values
             df = df.where(pd.notnull(df), None)
             
-            # Insert
+            # Insert - DuckDB will respect pandas dtypes
             self.conn.from_df(df).insert_into(table_name)
             self.logger.info(f"Inserted {len(records)} records into {table_name}")
             
