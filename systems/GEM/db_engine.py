@@ -148,6 +148,20 @@ class DBEngine:
             # Convert to DataFrame
             df = pd.DataFrame(records)
             
+            # Cast numeric columns based on schema
+            if self.schema:
+                for attr in self.schema.attributes:
+                    if attr.name in df.columns:
+                        type_lower = attr.type.lower()
+                        try:
+                            if type_lower in ["int", "integer", "int_value"]:
+                                # Convert to numeric, coercing errors to NaN
+                                df[attr.name] = pd.to_numeric(df[attr.name], errors='coerce')
+                            elif type_lower in ["float", "double", "float_value"]:
+                                df[attr.name] = pd.to_numeric(df[attr.name], errors='coerce')
+                        except Exception as e:
+                            self.logger.warning(f"Failed to cast {attr.name} to {attr.type}: {e}")
+            
             # Handle None/NULL values
             df = df.where(pd.notnull(df), None)
             
