@@ -214,18 +214,16 @@ class DBEngine:
             # Rewrite SQL with canonical map
             rewritten_sql = self._rewrite_sql_with_canonical_map(sql)
             
-            # Execute
-            result = self.conn.execute(rewritten_sql).fetch_all()
+            # Execute query
+            result = self.conn.execute(rewritten_sql)
             
-            # Get column names
-            columns = [desc[0] for desc in self.conn.description] if self.conn.description else []
-            
-            # Convert to DataFrame
+            # Fetch results - DuckDB returns a relation object
+            # Use df() to convert directly to pandas DataFrame
             if pd is None:
                 self.logger.warning("pandas not available, returning raw results")
                 return None
             
-            df = pd.DataFrame(result, columns=columns)
+            df = result.df()
             self.logger.info(f"Query returned {len(df)} rows")
             return df
             
@@ -263,7 +261,7 @@ class DBEngine:
         try:
             result = self.conn.execute(
                 f"SELECT 1 FROM information_schema.tables WHERE table_name = '{table_name}'"
-            ).fetch_one()
+            ).fetchone()
             return result is not None
         except Exception:
             return False
@@ -282,14 +280,14 @@ class DBEngine:
         
         try:
             # Get row count
-            row_count = self.conn.execute(f"SELECT COUNT(*) FROM {table_name}").fetch_one()[0]
+            row_count = self.conn.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]
             
             # Get columns
-            columns = self.conn.execute(f"DESCRIBE {table_name}").fetch_all()
+            columns_result = self.conn.execute(f"DESCRIBE {table_name}").fetchall()
             
             return {
                 "row_count": row_count,
-                "columns": [col[0] for col in columns]
+                "columns": [col[0] for col in columns_result]
             }
         except Exception as e:
             self.logger.warning(f"Failed to get table info: {e}")
