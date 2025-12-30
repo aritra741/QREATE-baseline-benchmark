@@ -14,7 +14,11 @@ and progressively orders the operations during query execution."
 from quest.sql.nn import *
 from quest.core.node import ast_node as astn
 from quest.conf import sqlconst
-from quest.core.node.logical_node import FilterNode, BinaryNode, LogicalFilter, LogicalExtract, LogicalRetrieve, LogicalJoin
+from quest.core.node.logical_node import FilterNode, BinaryNode
+from quest.sql.nn.logical_filter import LogicalFilter
+from quest.sql.nn.logical_extract import LogicalExtract
+from quest.sql.nn.logical_retrieve import LogicalRetrieve
+from quest.sql.nn.logical_join import LogicalJoin
 import copy
 from quest.utils.log import print_log
 
