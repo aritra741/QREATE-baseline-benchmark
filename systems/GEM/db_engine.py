@@ -155,7 +155,7 @@ class DBEngine:
                         type_lower = attr.type.lower()
                         try:
                             if type_lower in ["int", "integer", "int_value"]:
-                                # Try to convert to int, coercing errors to NaN then to 0
+                                # Convert to numeric, handling errors
                                 df[attr.name] = pd.to_numeric(df[attr.name], errors='coerce').fillna(0).astype('int64')
                             elif type_lower in ["float", "double", "float_value"]:
                                 df[attr.name] = pd.to_numeric(df[attr.name], errors='coerce').astype('float64')
@@ -164,13 +164,23 @@ class DBEngine:
                         except Exception as e:
                             self.logger.debug(f"Type conversion for {attr.name}: {e}")
             
-            # Insert using DuckDB's from_df which respects pandas dtypes
-            rel = self.conn.from_df(df)
-            rel.insert_into(table_name)
+            # Create a temp table from the DataFrame (DuckDB respects pandas dtypes)
+            temp_table = f"temp_{table_name}_{id(df)}"
+            self.conn.register(temp_table, df)
+            
+            # Insert from temp table into actual table
+            # This preserves the types from pandas DataFrame
+            self.conn.execute(f"INSERT INTO {table_name} SELECT * FROM {temp_table}")
+            
+            # Unregister temp table
+            self.conn.unregister(temp_table)
+            
             self.logger.info(f"Inserted {len(records)} records into {table_name}")
             
         except Exception as e:
             self.logger.error(f"Failed to insert records: {e}")
+            import traceback
+            traceback.print_exc()
     
     def _rewrite_sql_with_canonical_map(self, sql: str) -> str:
         """Rewrite SQL to use canonical names instead of input variations.
