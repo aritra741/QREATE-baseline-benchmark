@@ -237,29 +237,29 @@ class FilterText(Filter):
                     else:
                         # Try simple equality match
                         match = re.match(r"(`?[\w.]+`?)\s*(?:==|=|!=|<>|<=|>=|<|>)\s*'?([^']*)'?", condition)
-                        if match:
-                            col_name = match.group(1).strip('`')
-                            val_right = match.group(2).strip("'\"")
-                            print(f"[DEBUG filter_text] Parsing condition: column='{col_name}', value='{val_right}'")
+                    if match:
+                        col_name = match.group(1).strip('`')
+                        val_right = match.group(2).strip("'\"")
+                        print(f"[DEBUG filter_text] Parsing condition: column='{col_name}', value='{val_right}'")
+                        
+                        # Apply filter based on operator
+                        if '==' in condition or ('=' in condition and '!=' not in condition and '<>' not in condition):
+                            # Equality check - handle compound values separated by ||
+                            # For disease_type and similar fields, values can be "type1 || type2"
+                            # We need to check if val_right is one of the components
+                            def check_equality(cell_val):
+                                cell_str = str(cell_val).strip()
+                                # Split by || and check if any component matches
+                                components = [c.strip() for c in cell_str.split('||')]
+                                return val_right in components or cell_str == val_right
                             
-                            # Apply filter based on operator
-                            if '==' in condition or ('=' in condition and '!=' not in condition and '<>' not in condition):
-                                # Equality check - handle compound values separated by ||
-                                # For disease_type and similar fields, values can be "type1 || type2"
-                                # We need to check if val_right is one of the components
-                                def check_equality(cell_val):
-                                    cell_str = str(cell_val).strip()
-                                    # Split by || and check if any component matches
-                                    components = [c.strip() for c in cell_str.split('||')]
-                                    return val_right in components or cell_str == val_right
-                                
-                                mask = extracted_df[col_name].apply(check_equality)
-                                extracted_df.loc[mask, 'fcondition'] = 'True'
-                            # TODO: Add support for other operators (<, >, !=, etc)
-                            
-                            print(f"[DEBUG filter_text] Applied condition: {len(extracted_df[extracted_df['fcondition'] == 'True'])} rows match")
-                        else:
-                            print(f"[DEBUG filter_text] Could not parse condition: {condition}")
+                            mask = extracted_df[col_name].apply(check_equality)
+                            extracted_df.loc[mask, 'fcondition'] = 'True'
+                        # TODO: Add support for other operators (<, >, !=, etc)
+                        
+                        print(f"[DEBUG filter_text] Applied condition: {len(extracted_df[extracted_df['fcondition'] == 'True'])} rows match")
+                    else:
+                        print(f"[DEBUG filter_text] Could not parse condition: {condition}")
                 except Exception as e:
                     print(f"[DEBUG filter_text] Error applying condition '{condition}': {e}")
                     import traceback

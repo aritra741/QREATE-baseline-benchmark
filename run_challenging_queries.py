@@ -246,16 +246,15 @@ WHERE d.disease_name IN ('Type 2 Diabetes Mellitus', 'Tuberculosis', 'Fibromyalg
         },
         {
             "id": "join_2",
-            "name": "Join players with their teams and cities",
+            "name": "Join players with their teams",
             "dataset": "Player",
-            "entity": "player,team,city",
-            "sql": """SELECT p.name, p.position, p.nationality, t.team_name, t.ownership, c.city_name, c.state_name
+            "entity": "player,team",
+            "sql": """SELECT p.name, p.position, p.nationality, t.team_name, t.ownership, t.founded_year
 FROM player p
-JOIN team t ON p.team = t.team_name
-JOIN city c ON t.location = c.city_name""",
-            "nl_query": "Get all players with their team information and city details, showing player names, positions, nationalities, team names, ownership, city names, and state names",
+JOIN team t ON p.team = t.team_name""",
+            "nl_query": "Get all players with their team information, showing player names, positions, nationalities, team names, ownership, and founding years",
             "difficulty": "hard",
-            "reason": "Multi-table join across player, team, and city entities; requires matching team names and city names across multiple documents"
+            "reason": "Binary join across player and team entities; requires matching team names across documents from different tables"
         },
         {
             "id": "join_3",
