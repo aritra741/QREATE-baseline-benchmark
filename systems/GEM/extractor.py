@@ -271,20 +271,46 @@ CRITICAL: Start output with {{ or [ only. No other text."""
         except json.JSONDecodeError:
             pass
         
-        # Strategy 2: Extract JSON from text
+        # Strategy 2: Try to fix truncated JSON by closing it
+        try:
+            if response_text.startswith('['):
+                # Try to close the array
+                fixed = response_text.rstrip() + ']'
+                if fixed.count('[') > fixed.count(']'):
+                    fixed = response_text.rstrip() + '}]'
+                records = json.loads(fixed)
+                return records if isinstance(records, list) else [records]
+            elif response_text.startswith('{'):
+                # Try to close the object
+                fixed = response_text.rstrip() + '}'
+                if fixed.count('[') > fixed.count(']'):
+                    fixed = fixed.rstrip() + ']'
+                obj = json.loads(fixed)
+                return [obj] if obj else []
+        except json.JSONDecodeError:
+            pass
+        
+        # Strategy 3: Extract JSON from text
         # Look for {...} or [...]
-        for pattern in [r'\[[\s\S]*\]', r'\{[\s\S]*\}']:
+        for pattern in [r'\[[\s\S]*', r'\{[\s\S]*']:
             try:
                 match = re.search(pattern, response_text)
                 if match:
                     json_str = match.group()
+                    # Try to close it
                     if json_str.startswith('['):
-                        records = json.loads(json_str)
-                        return records if isinstance(records, list) else [records]
+                        try:
+                            records = json.loads(json_str + ']')
+                            return records if isinstance(records, list) else [records]
+                        except:
+                            pass
                     else:
-                        obj = json.loads(json_str)
-                        return [obj] if obj else []
-            except json.JSONDecodeError:
+                        try:
+                            obj = json.loads(json_str + '}')
+                            return [obj] if obj else []
+                        except:
+                            pass
+            except:
                 continue
         
         # No valid JSON found

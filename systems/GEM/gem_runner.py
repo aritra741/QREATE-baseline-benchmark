@@ -52,7 +52,7 @@ DATA_PATH_MAP = {
     ("Med", "institution"): SOURCE_DATA_DIR / "Healthcare" / "institutes_small",
     ("Player", "player"): SOURCE_DATA_DIR / "Player" / "player",
     ("Player", "team"): SOURCE_DATA_DIR / "Player" / "team",
-    ("Player", "manager"): SOURCE_DATA_DIR / "Player" / "manager",
+    ("Player", "manager"): SOURCE_DATA_DIR / "Player" / "owner",  # Note: actual directory is 'owner', not 'manager'
     ("Player", "city"): SOURCE_DATA_DIR / "Player" / "city",
     ("Art", "art"): SOURCE_DATA_DIR / "Art" / "wikiart",
     ("Legal", "legal_case"): SOURCE_DATA_DIR / "Legal" / "legal_case",
