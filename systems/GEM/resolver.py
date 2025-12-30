@@ -197,18 +197,20 @@ No quotes, no explanation, just the name."""
         # Return original
         return mention
     
-    def normalize_record(self, record: Dict, key_attributes: List[str]) -> Dict:
-        """Normalize a record by replacing key values with canonical forms.
+    def normalize_record(self, record: Dict, key_attributes: List[str], schema: Optional[object] = None) -> Dict:
+        """Normalize a record by replacing key values with canonical forms and converting types.
         
         Args:
             record: Record to normalize
-            key_attributes: Attributes to normalize
+            key_attributes: Attributes to normalize (entity resolution)
+            schema: Schema object for type information (optional)
             
         Returns:
-            Normalized record
+            Normalized record with canonical names and proper types
         """
         normalized = record.copy()
         
+        # First: Replace with canonical forms for key attributes
         for attr in key_attributes:
             if attr in normalized:
                 val = normalized[attr]
@@ -216,20 +218,46 @@ No quotes, no explanation, just the name."""
                     canonical = self.get_canonical(str(val))
                     normalized[attr] = canonical
         
+        # Second: Apply type conversions based on schema
+        if schema:
+            for attr in schema.attributes:
+                if attr.name in normalized and normalized[attr.name] is not None:
+                    val = normalized[attr.name]
+                    type_lower = attr.type.lower()
+                    
+                    try:
+                        if type_lower in ["int", "integer", "int_value"]:
+                            # Convert to int
+                            normalized[attr.name] = int(float(str(val)))
+                        elif type_lower in ["float", "double", "float_value"]:
+                            # Convert to float
+                            normalized[attr.name] = float(str(val))
+                        elif type_lower in ["bool", "boolean"]:
+                            # Convert to bool
+                            if isinstance(val, bool):
+                                normalized[attr.name] = val
+                            else:
+                                normalized[attr.name] = str(val).lower() in ["true", "1", "yes"]
+                        # For string types, keep as-is
+                    except (ValueError, TypeError) as e:
+                        self.logger.debug(f"Failed to convert {attr.name}={val} to {attr.type}: {e}")
+                        # Keep original value if conversion fails
+        
         return normalized
     
-    def normalize_records(self, records: List[Dict], key_attributes: List[str]) -> List[Dict]:
-        """Normalize all records.
+    def normalize_records(self, records: List[Dict], key_attributes: List[str], schema: Optional[object] = None) -> List[Dict]:
+        """Normalize all records by applying canonical mapping and type conversion.
         
         Args:
             records: Records to normalize
-            key_attributes: Attributes to normalize
+            key_attributes: Attributes to normalize (entity resolution)
+            schema: Schema object for type information (optional)
             
         Returns:
-            Normalized records
+            Normalized records with canonical names and proper types
         """
         self.logger.info(f"Normalizing {len(records)} records")
-        normalized = [self.normalize_record(r, key_attributes) for r in records]
+        normalized = [self.normalize_record(r, key_attributes, schema) for r in records]
         self.logger.info("Normalization complete")
         return normalized
     

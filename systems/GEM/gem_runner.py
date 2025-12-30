@@ -326,8 +326,8 @@ class GEMRunner:
             resolver = EntityResolver(self.logger)
             canonical_map = resolver.resolve_blocks(records, blocks, key_attrs)
             
-            # Normalize
-            normalized_records = resolver.normalize_records(records, key_attrs)
+            # Normalize with type conversion
+            normalized_records = resolver.normalize_records(records, key_attrs, schema)
             
             # Cache results
             cache_data = {
