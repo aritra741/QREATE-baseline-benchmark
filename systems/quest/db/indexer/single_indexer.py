@@ -104,19 +104,31 @@ class TextDocIndexer(SingleIndexer):
     def get_docs_id(self) -> list[int]:
         """
         Get all document IDs stored for this table.
+        
+        CRITICAL FIX: Returns LOGICAL doc_ids (1, 2, 3, ..., N) not physical doc_ids.
+        Each table indexer only knows about its own documents and should return
+        table-local sequential IDs, not the global indexed IDs.
 
         Returns:
-            list[int]: Document ID list.
+            list[int]: Document ID list (1-based, sequential for this table).
         """
-        doc_ids = list(self.docs_meta.keys())
-        if not doc_ids:
+        num_docs = len(self.docs_meta)
+        if num_docs == 0:
             print(f"[WARNING] get_docs_id returned EMPTY for table '{self.table_name}'!")
             print(f"[WARNING] docs_meta keys: {list(self.docs_meta.keys())}")
             print(f"[WARNING] docs_meta size: {len(self.docs_meta)}")
             if hasattr(self, 'docs_meta_path'):
                 print(f"[WARNING] docs_meta_path: {self.docs_meta_path}")
                 print(f"[WARNING] docs_meta_path exists: {os.path.exists(self.docs_meta_path)}")
-        return doc_ids
+            return []
+        
+        # Return logical IDs (1, 2, 3, ..., num_docs) instead of physical IDs
+        # Physical IDs are stored in docs_meta.keys() but are global across all tables
+        # Logical IDs are table-specific and expected by the query planner
+        logical_ids = list(range(1, num_docs + 1))
+        print(f"[DEBUG get_docs_id] Table '{self.table_name}': returning {len(logical_ids)} logical IDs (1 to {num_docs})")
+        print(f"[DEBUG get_docs_id] Physical IDs in docs_meta: {sorted(list(self.docs_meta.keys()))[:10]}... (showing first 10)")
+        return logical_ids
 
     def build_indexer(self, docs: List[Doc]) -> None:
         """
