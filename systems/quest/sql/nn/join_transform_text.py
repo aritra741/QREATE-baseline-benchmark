@@ -124,14 +124,51 @@ class JoinTransformText(JoinText):
                     
                     join_values = col_series.dropna().unique().tolist()
                     print(f"[DEBUG JoinTransformText] Extracted {len(join_values)} unique join values from column '{join_col}': {join_values[:5] if join_values else 'EMPTY'}...")
-                    # The IN filter will be applied to second table during its extraction/filtering
-                    # Store values for reference if needed
+                    
+                    # CRITICAL: Apply IN filter to second table BEFORE joining
+                    # Per QUEST paper: transform join into IN filter on second table
+                    second_table_name = self.join_filter_attr.parse_table()
+                    second_join_col = self.join_filter_attr.parse_full()
+                    
+                    if second_table_name in self.tableDict:
+                        second_table = self.tableDict[second_table_name]
+                        
+                        # Find the join column in second table
+                        second_join_col_found = None
+                        col_base_second = second_join_col.split('.')[-1]
+                        
+                        if second_join_col in second_table.columns:
+                            second_join_col_found = second_join_col
+                        else:
+                            for col in second_table.columns:
+                                if col.endswith(col_base_second):
+                                    second_join_col_found = col
+                                    break
+                        
+                        if second_join_col_found:
+                            # Apply IN filter: keep only rows where join column value is in join_values
+                            # Normalize values for case-insensitive matching
+                            join_values_lower = [str(v).lower().strip() for v in join_values if v]
+                            second_table_filtered = second_table[
+                                second_table[second_join_col_found].astype(str).str.lower().str.strip().isin(join_values_lower)
+                            ]
+                            
+                            print(f"[DEBUG JoinTransformText] Applied IN filter to '{second_table_name}': {len(second_table)} -> {len(second_table_filtered)} rows")
+                            print(f"[DEBUG JoinTransformText] Filtered values that matched: {second_table_filtered[second_join_col_found].unique().tolist()[:5] if len(second_table_filtered) > 0 else 'NONE'}")
+                            
+                            # Update the tableDict with filtered table
+                            self.tableDict[second_table_name] = second_table_filtered
+                        else:
+                            print(f"[WARNING JoinTransformText] Could not find join column '{second_join_col}' in second table '{second_table_name}'")
+                            print(f"[WARNING JoinTransformText] Available columns: {list(second_table.columns)}")
+                    
+                    # Store values for reference
                     self.extracted_join_values = join_values
                 else:
                     print(f"[ERROR JoinTransformText] Join column '{join_attr_col}' not found in first table")
                     print(f"[ERROR JoinTransformText] Available columns: {list(first_table.columns)}")
         
-        # Proceed with standard join
+        # Proceed with standard join (now on filtered second table)
         print("[DEBUG JoinTransformText] Proceeding with table merge")
         final_table = pd.DataFrame()
         
