@@ -104,7 +104,7 @@ class TextDocIndexer(SingleIndexer):
     def get_docs_id(self) -> list[int]:
         """
         Get all document IDs stored for this table.
-        
+
         CRITICAL FIX: Returns LOGICAL doc_ids (1, 2, 3, ..., N) not physical doc_ids.
         Each table indexer only knows about its own documents and should return
         table-local sequential IDs, not the global indexed IDs.

@@ -106,16 +106,23 @@ class RetrieveText(Retrieve):
             cluster_centers, _ = faiss_kmeans_clustering(evidence_embeddings, n_clusters=k)
         
         # Step 3: Query using each cluster center
+        # CRITICAL FIX: Map logical doc_id to physical doc_id before querying storage
+        print(f"[DEBUG _retrieve_with_evidence] MAPPING: logical doc_id={doc_id} (type={type(doc_id).__name__})")
+        physical_doc_id = self.indexer._map_logical_to_physical_doc_id(doc_id)
+        print(f"[DEBUG _retrieve_with_evidence] MAPPED: physical doc_id={physical_doc_id} (type={type(physical_doc_id).__name__})")
+        
         all_chunks = []
         seen_chunk_ids = set()
         
         for i, center_emb in enumerate(cluster_centers):
-            # Query storage directly with embedding
+            # Query storage with physical doc_id (NOT logical doc_id)
+            print(f"[DEBUG _retrieve_with_evidence] Querying storage with physical_doc_id={physical_doc_id} for cluster {i+1}/{len(cluster_centers)}")
             results = self.indexer.storage.query_chunk_with_id(
-                doc_id=doc_id,
+                doc_id=physical_doc_id,
                 topk=topk,
                 query_embedding=center_emb
             )
+            print(f"[DEBUG _retrieve_with_evidence] Storage returned {len(results)} results")
             
             # Deduplicate based on chunk_id
             for chunk_text, similarity, ret_doc_id, chunk_id in results:
