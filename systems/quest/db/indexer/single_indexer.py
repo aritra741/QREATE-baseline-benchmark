@@ -180,13 +180,50 @@ class TextDocIndexer(SingleIndexer):
             self.query_embedding_cache[cache_key] = self.preprocessor.embedding_model.embed_query(query)
         
         return self.query_embedding_cache[cache_key]
+    
+    def _map_logical_to_physical_doc_id(self, logical_doc_id: int) -> int:
+        """
+        CRITICAL FIX: Map logical doc_id to physical doc_id in the index.
+        
+        When multiple tables are indexed together, they get global sequential doc_ids.
+        But QUEST queries expect table-specific doc_ids (1-30 for team, 1-141 for player).
+        This method maps the logical IDs back to the physical IDs used in the index.
+        
+        Args:
+            logical_doc_id: The doc_id as expected by QUEST (1-30 for team)
+            
+        Returns:
+            The actual doc_id in the index (142-171 for team)
+        """
+        # If docs_meta is empty, return logical_doc_id as-is (shouldn't happen)
+        if not self.docs_meta:
+            print(f"[WARNING] docs_meta is empty for table '{self.table_name}'!")
+            return logical_doc_id
+        
+        # Get all physical doc_ids from docs_meta (keys are physical IDs)
+        physical_doc_ids = sorted(list(self.docs_meta.keys()))
+        
+        if not physical_doc_ids:
+            print(f"[WARNING] No physical doc_ids found in docs_meta!")
+            return logical_doc_id
+        
+        # Map logical index (0-based) to physical doc_id
+        # logical_doc_id 1 -> physical_doc_ids[0]
+        # logical_doc_id 2 -> physical_doc_ids[1], etc.
+        if 1 <= logical_doc_id <= len(physical_doc_ids):
+            physical_doc_id = physical_doc_ids[logical_doc_id - 1]
+            print(f"[DEBUG _map_logical_to_physical_doc_id] Mapping {self.table_name}: logical={logical_doc_id} -> physical={physical_doc_id}")
+            return physical_doc_id
+        else:
+            print(f"[WARNING] logical_doc_id {logical_doc_id} out of range [1, {len(physical_doc_ids)}]")
+            return logical_doc_id
 
     def get_relative_chunks_text_with_id_and_embedding(self, doc_id: int, query: str, topk: int) -> List[tuple[str, int, NDArray]]:
         """
         Query the most relevant text chunks in a document, returning text, chunk id, and embedding.
 
         Args:
-            doc_id: Document ID.
+            doc_id: Document ID (logical, will be mapped to physical).
             query: Query string.
             topk: Number of chunks to return.
 
@@ -194,12 +231,15 @@ class TextDocIndexer(SingleIndexer):
             List of tuples (chunk_text, chunk_id, chunk_embedding).
             Chunk IDs are unique within a document.
         """
+        # CRITICAL FIX: Map logical doc_id to physical doc_id
+        physical_doc_id = self._map_logical_to_physical_doc_id(doc_id)
+        
         # 1. Convert query to embedding (cached)
         query_embedding = self._get_cached_query_embedding(query)
 
-        # 2. Query storage for similar text chunks
+        # 2. Query storage for similar text chunks using physical doc_id
         results = self.storage.query_chunk_with_id_and_embedding(
-            doc_id=doc_id,
+            doc_id=physical_doc_id,
             topk=topk,
             query_embedding=query_embedding
         )
@@ -236,19 +276,22 @@ class TextDocIndexer(SingleIndexer):
         Query the most relevant text chunks in a document, returning text and chunk id.
 
         Args:
-            doc_id: Document ID.
+            doc_id: Document ID (logical, will be mapped to physical).
             query: Query string.
             topk: Number of chunks to return.
 
         Returns:
             List of tuples (chunk_text, chunk_id); IDs are unique per document.
         """
+        # CRITICAL FIX: Map logical doc_id to physical doc_id
+        physical_doc_id = self._map_logical_to_physical_doc_id(doc_id)
+        
         # 1. Convert query to embedding (cached)
         query_embedding = self._get_cached_query_embedding(query)
 
-        # 2. Query storage for similar text chunks
+        # 2. Query storage for similar text chunks using physical doc_id
         results = self.storage.query_chunk_with_id(
-            doc_id=doc_id,
+            doc_id=physical_doc_id,
             topk=topk,
             query_embedding=query_embedding
         )
@@ -263,19 +306,22 @@ class TextDocIndexer(SingleIndexer):
         Query the most relevant text chunks in a document, returning only chunk text.
 
         Args:
-            doc_id: Document ID.
+            doc_id: Document ID (logical, will be mapped to physical).
             query: Query string.
             topk: Number of chunks to return.
 
         Returns:
             List of chunk texts.
         """
+        # CRITICAL FIX: Map logical doc_id to physical doc_id
+        physical_doc_id = self._map_logical_to_physical_doc_id(doc_id)
+        
         # 1. Convert query to embedding (cached)
         query_embedding = self._get_cached_query_embedding(query)
 
-        # 2. Query storage for similar text chunks
+        # 2. Query storage for similar text chunks using physical doc_id
         results = self.storage.query(
-            doc_id=doc_id,
+            doc_id=physical_doc_id,
             topk=topk,
             query_embedding=query_embedding
         )
@@ -289,7 +335,7 @@ class TextDocIndexer(SingleIndexer):
         Calculate total token length of top-k relevant chunks for given documents.
 
         Args:
-            doc_id_list: List of document IDs.
+            doc_id_list: List of document IDs (logical, will be mapped to physical).
             query: Query string.
             topk: Number of chunks to consider.
 
@@ -302,9 +348,12 @@ class TextDocIndexer(SingleIndexer):
         # 2. Query storage for similar text chunks
 
         res = 0
-        for id in doc_id_list:
+        for logical_id in doc_id_list:
+            # CRITICAL FIX: Map logical doc_id to physical doc_id
+            physical_id = self._map_logical_to_physical_doc_id(logical_id)
+            
             results = self.storage.query(
-                doc_id=id,
+                doc_id=physical_id,
                 topk=topk,
                 query_embedding=query_embedding
             )
