@@ -267,37 +267,32 @@ class TextLLMQuerier(object):
         related_attr_descriptions_str = " \n".join(related_attr_descriptions)
         prompts = [
             [
-                {"role": "system", "content": "You are a data extraction assistant. Return ONLY a single line in tuple format. No explanations, no markdown, no extra text."},
-                {"role": "user", "content": f'''Extract the attribute "{unqualified_attrs[0]}" from the document.
+                {"role": "system", "content": "You MUST respond with EXACTLY one line. The line MUST start with an opening parenthesis. Do not write any other text before, after, or around this line."},
+                {"role": "user", "content": f'''EXTRACT TASK:
+Find the value of "{unqualified_attrs[0]}" in the document below.
 
-OUTPUT FORMAT - MUST be exactly one line with this structure:
-(attribute_name, extracted_value, confidence_0_to_100, section_0_to_9)
+MANDATORY OUTPUT FORMAT:
+(attribute_name, value, confidence, chunk_index)
 
-RULES:
-- Return EXACTLY ONE line only
-- First item in tuple MUST be: {unqualified_attrs[0]}
-- Second item: the actual value you extract (or "NONE" if not found)
-- Third item: confidence score 0-100 as a number
-- Fourth item: section index 0-9 as a number
-- Use commas to separate items
-- No quotes around values
-- No markdown, no bullets, no explanation
+WHERE:
+- attribute_name = {unqualified_attrs[0]}
+- value = extracted value from document (or NONE if not found)
+- confidence = 0-100 (how confident you are in this extraction)
+- chunk_index = which section of document (use 0 for first section)
 
-GENERIC EXAMPLES:
-(city, New York, 95, 0)
-(name, John Smith, 90, 1)
-(year, 2023, 85, 2)
+CRITICAL REQUIREMENTS:
+1. RESPOND WITH ONLY ONE LINE
+2. Line MUST start with ( and end with )
+3. Separate items with commas
+4. NO other text, NO explanation, NO markdown
 
-IF NOT FOUND, use:
-({unqualified_attrs[0]}, NONE, 0, 0)
-
-ATTRIBUTE DESCRIPTION:
+WHAT TO EXTRACT:
 {related_attr_descriptions_str}
 
-DOCUMENT:
+DOCUMENT TEXT:
 {doc}
 
-OUTPUT (one line only, starting with parenthesis):'''
+RESPOND WITH SINGLE LINE ONLY:'''
                 }
             ]
             for doc in docs
