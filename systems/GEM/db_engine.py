@@ -1,20 +1,19 @@
 """
 Database Engine - Storage and Query Execution
 
-Manages DuckDB storage and execution of SQL queries with semantic rewriting
+Manages SQLite storage and execution of SQL queries with semantic rewriting
 to handle entity resolution lookups.
 """
 
 import logging
 import re
+import sqlite3
 from typing import List, Dict, Optional, Any
 from pathlib import Path
 
 try:
-    import duckdb
     import pandas as pd
 except ImportError:
-    duckdb = None
     pd = None
 
 from .config import DB_PATH
@@ -26,13 +25,13 @@ logger = logging.getLogger(__name__)
 
 
 class DBEngine:
-    """DuckDB database engine for GEM."""
+    """SQLite database engine for GEM."""
     
     def __init__(self, db_path: Optional[Path] = None, logger: Optional[logging.Logger] = None):
         """Initialize database engine.
         
         Args:
-            db_path: Path to DuckDB file
+            db_path: Path to SQLite database file
             logger: Logger instance
         """
         self.logger = logger or logging.getLogger(__name__)
@@ -43,24 +42,24 @@ class DBEngine:
         self._init_db()
     
     def _init_db(self):
-        """Initialize DuckDB connection."""
-        if duckdb is None:
-            self.logger.warning("DuckDB not available")
-            return
-        
+        """Initialize SQLite connection."""
         try:
             # Create cache directory if needed
             self.db_path.parent.mkdir(parents=True, exist_ok=True)
             
-            # Connect to DuckDB
-            self.conn = duckdb.connect(str(self.db_path))
-            self.logger.info(f"Connected to DuckDB: {self.db_path}")
+            # Connect to SQLite
+            self.conn = sqlite3.connect(str(self.db_path))
+            # Enable returning rows as dictionaries
+            self.conn.row_factory = sqlite3.Row
+            # Enable foreign keys
+            self.conn.execute("PRAGMA foreign_keys = ON")
+            self.logger.info(f"Connected to SQLite: {self.db_path}")
         except Exception as e:
-            self.logger.error(f"Failed to initialize DuckDB: {e}")
+            self.logger.error(f"Failed to initialize SQLite: {e}")
             self.conn = None
     
     def set_resolver(self, resolver: EntityResolver):
-        """Set entity resolver for query rewriting.
+        """Set the entity resolver for semantic rewriting.
         
         Args:
             resolver: EntityResolver instance
@@ -68,7 +67,7 @@ class DBEngine:
         self.resolver = resolver
     
     def set_schema(self, schema: Schema):
-        """Set schema for type information.
+        """Set the schema for the current entity.
         
         Args:
             schema: Schema instance
@@ -76,7 +75,7 @@ class DBEngine:
         self.schema = schema
     
     def _get_sql_type(self, attr_type: str) -> str:
-        """Convert schema type to SQL type.
+        """Map attribute type to SQLite type.
         
         Args:
             attr_type: Attribute type from schema
@@ -89,18 +88,18 @@ class DBEngine:
         if type_lower in ["int", "integer"]:
             return "INTEGER"
         elif type_lower in ["float", "double", "decimal"]:
-            return "DOUBLE"
+            return "REAL"
         elif type_lower in ["bool", "boolean"]:
-            return "BOOLEAN"
+            return "INTEGER"  # SQLite uses 0/1 for booleans
         elif type_lower in ["date"]:
-            return "DATE"
+            return "TEXT"  # SQLite stores dates as TEXT
         elif type_lower in ["timestamp", "datetime"]:
-            return "TIMESTAMP"
+            return "TEXT"
         else:  # string, text, etc.
-            return "VARCHAR"
+            return "TEXT"
     
     def create_table(self, table_name: str, schema: Schema):
-        """Create a table in DuckDB based on schema.
+        """Create a table in SQLite based on schema.
         
         Args:
             table_name: Name of table to create
@@ -129,13 +128,14 @@ class DBEngine:
         
         try:
             self.conn.execute(create_sql)
+            self.conn.commit()
             self.logger.info(f"Created table {table_name}")
             self.logger.info(f"[CREATE TABLE] SQL: {create_sql}")
         except Exception as e:
             self.logger.error(f"Failed to create table {table_name}: {e}")
     
     def insert_records(self, table_name: str, records: List[Dict]):
-        """Insert records into table, converting types based on schema.
+        """Insert records into table using pandas.to_sql().
         
         Args:
             table_name: Name of table
@@ -156,53 +156,11 @@ class DBEngine:
             
             # Convert to DataFrame
             df = pd.DataFrame(records)
-            self.logger.debug(f"[INSERT] DataFrame shape: {df.shape}, columns: {df.columns.tolist()}")
-            self.logger.debug(f"[INSERT] DataFrame dtypes:\n{df.dtypes}")
-            self.logger.debug(f"[INSERT] First record: {records[0] if records else 'EMPTY'}")
+            self.logger.info(f"[INSERT] DataFrame shape: {df.shape}, columns: {df.columns.tolist()}")
             
-            # Cast columns to proper types based on schema
-            if self.schema:
-                for attr in self.schema.attributes:
-                    if attr.name in df.columns:
-                        type_lower = attr.type.lower()
-                        self.logger.debug(f"[INSERT TYPE] {attr.name}: schema_type={attr.type} (lower={type_lower})")
-                        try:
-                            if type_lower in ["int", "integer", "int_value"]:
-                                # Convert to numeric, handling errors
-                                df[attr.name] = pd.to_numeric(df[attr.name], errors='coerce').fillna(0).astype('int64')
-                                self.logger.debug(f"[INSERT TYPE] {attr.name} converted to int64")
-                            elif type_lower in ["float", "double", "float_value"]:
-                                df[attr.name] = pd.to_numeric(df[attr.name], errors='coerce').astype('float64')
-                                self.logger.debug(f"[INSERT TYPE] {attr.name} converted to float64")
-                            elif type_lower in ["bool", "boolean"]:
-                                df[attr.name] = df[attr.name].astype(bool)
-                                self.logger.debug(f"[INSERT TYPE] {attr.name} converted to bool")
-                        except Exception as e:
-                            self.logger.debug(f"Type conversion for {attr.name}: {e}")
-            
-            self.logger.debug(f"[INSERT] After type conversion, dtypes:\n{df.dtypes}")
-            
-            # Log sample values from key columns for debugging
-            for attr in self.schema.attributes if self.schema else []:
-                if attr.name in df.columns:
-                    self.logger.info(f"[INSERT SAMPLE] {attr.name}: {df[attr.name].dtype} | sample values: {df[attr.name].head(2).tolist()}")
-            
-            # Create a temp table from the DataFrame (DuckDB respects pandas dtypes)
-            temp_table = f"temp_{table_name}_{id(df)}"
-            self.conn.register(temp_table, df)
-            
-            # Verify the temp table schema
-            result = self.conn.execute(f"DESCRIBE {temp_table}").fetchall()
-            self.logger.info(f"[INSERT] Temp table {temp_table} schema:")
-            for row in result:
-                self.logger.info(f"[INSERT]   {row}")
-            
-            # Insert from temp table into actual table
-            # This preserves the types from pandas DataFrame
-            self.conn.execute(f"INSERT INTO {table_name} SELECT * FROM {temp_table}")
-            
-            # Unregister temp table
-            self.conn.unregister(temp_table)
+            # Use pandas to_sql with sqlite3 connection
+            # append mode adds to existing table, if_exists='append' to add to existing table
+            df.to_sql(table_name, self.conn, if_exists='append', index=False)
             
             self.logger.info(f"Inserted {len(records)} records into {table_name}")
             
@@ -264,94 +222,26 @@ class DBEngine:
             return None
         
         try:
-            # Rewrite SQL with canonical map
+            # Rewrite SQL to use canonical names
             rewritten_sql = self._rewrite_sql_with_canonical_map(sql)
             
-            # Execute query
-            result = self.conn.execute(rewritten_sql)
+            self.logger.debug(f"Executing SQL: {rewritten_sql}")
             
-            # Fetch results - DuckDB returns a relation object
-            # Use df() to convert directly to pandas DataFrame
-            if pd is None:
-                self.logger.warning("pandas not available, returning raw results")
-                return None
+            # Execute query and fetch results as DataFrame
+            df = pd.read_sql_query(rewritten_sql, self.conn)
             
-            df = result.df()
-            self.logger.info(f"Query returned {len(df)} rows")
             return df
             
         except Exception as e:
             self.logger.error(f"Query execution failed: {e}")
             return None
     
-    def drop_table(self, table_name: str):
-        """Drop a table.
-        
-        Args:
-            table_name: Name of table
-        """
-        if self.conn is None:
-            return
-        
-        try:
-            self.conn.execute(f"DROP TABLE IF EXISTS {table_name}")
-            self.logger.info(f"Dropped table {table_name}")
-        except Exception as e:
-            self.logger.warning(f"Failed to drop table {table_name}: {e}")
-    
-    def table_exists(self, table_name: str) -> bool:
-        """Check if table exists.
-        
-        Args:
-            table_name: Name of table
-            
-        Returns:
-            True if table exists
-        """
-        if self.conn is None:
-            return False
-        
-        try:
-            result = self.conn.execute(
-                f"SELECT 1 FROM information_schema.tables WHERE table_name = '{table_name}'"
-            ).fetchone()
-            return result is not None
-        except Exception:
-            return False
-    
-    def get_table_info(self, table_name: str) -> Optional[Dict]:
-        """Get table information.
-        
-        Args:
-            table_name: Name of table
-            
-        Returns:
-            Dictionary with table info or None
-        """
-        if self.conn is None:
-            return None
-        
-        try:
-            # Get row count
-            row_count = self.conn.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]
-            
-            # Get columns
-            columns_result = self.conn.execute(f"DESCRIBE {table_name}").fetchall()
-            
-            return {
-                "row_count": row_count,
-                "columns": [col[0] for col in columns_result]
-            }
-        except Exception as e:
-            self.logger.warning(f"Failed to get table info: {e}")
-            return None
-    
     def close(self):
         """Close database connection."""
-        if self.conn is not None:
+        if self.conn:
             try:
                 self.conn.close()
                 self.logger.info("Closed database connection")
             except Exception as e:
-                self.logger.warning(f"Error closing connection: {e}")
-
+                self.logger.error(f"Error closing connection: {e}")
+            self.conn = None

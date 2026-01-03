@@ -19,8 +19,8 @@ GEM_ROOT = PROJECT_ROOT / "systems" / "GEM"
 # Cache directory for intermediate results
 CACHE_DIR = GEM_ROOT / ".cache"
 
-# Database path for persistent DuckDB storage
-DB_PATH = CACHE_DIR / "gem.duckdb"
+# Database path for persistent SQLite storage
+DB_PATH = CACHE_DIR / "gem.sqlite"
 
 # Source data directory
 SOURCE_DATA_DIR = PROJECT_ROOT / "source_data"
