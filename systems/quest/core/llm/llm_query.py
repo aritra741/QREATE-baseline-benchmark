@@ -267,31 +267,37 @@ class TextLLMQuerier(object):
         related_attr_descriptions_str = " \n".join(related_attr_descriptions)
         prompts = [
             [
-                {"role": "system", "content": "You are a precise data extraction assistant. Extract ONLY the requested attribute and format it as a single tuple. Use exact formatting. NO markdown, NO extra text, NO explanations."},
-                {"role": "user", "content": f'''TASK: Extract the following attribute from the document below:
-Attribute: {', '.join(unqualified_attrs)}
+                {"role": "system", "content": "You are a data extraction assistant. Return ONLY a single line in tuple format. No explanations, no markdown, no extra text."},
+                {"role": "user", "content": f'''Extract the attribute "{unqualified_attrs[0]}" from the document.
 
-IMPORTANT RULES:
-1. Return EXACTLY ONE tuple per attribute
-2. Format: (attribute_name, value, confidence_score, section_index)
-3. attribute_name MUST match exactly: {unqualified_attrs[0] if unqualified_attrs else 'N/A'}
-4. confidence_score must be 0-100 (integer)
-5. section_index must be 0-9 (integer)
-6. If attribute NOT found, return: ({unqualified_attrs[0]}, NOT_FOUND, 0, 0)
-7. Do NOT return anything else, NO markdown, NO bullet points, NO extra text
+OUTPUT FORMAT - MUST be exactly one line with this structure:
+(attribute_name, extracted_value, confidence_0_to_100, section_0_to_9)
 
-EXAMPLES:
-- If finding "team" = "Los Angeles Lakers": (team, Los Angeles Lakers, 95, 0)
-- If finding "age" = 25: (age, 25, 90, 1)
-- If NOT found: (team, NOT_FOUND, 0, 0)
+RULES:
+- Return EXACTLY ONE line only
+- First item in tuple MUST be: {unqualified_attrs[0]}
+- Second item: the actual value you extract (or "NONE" if not found)
+- Third item: confidence score 0-100 as a number
+- Fourth item: section index 0-9 as a number
+- Use commas to separate items
+- No quotes around values
+- No markdown, no bullets, no explanation
+
+GENERIC EXAMPLES:
+(city, New York, 95, 0)
+(name, John Smith, 90, 1)
+(year, 2023, 85, 2)
+
+IF NOT FOUND, use:
+({unqualified_attrs[0]}, NONE, 0, 0)
 
 ATTRIBUTE DESCRIPTION:
 {related_attr_descriptions_str}
 
-DOCUMENT TO EXTRACT FROM:
+DOCUMENT:
 {doc}
 
-RESPONSE (ONE TUPLE ONLY):'''
+OUTPUT (one line only, starting with parenthesis):'''
                 }
             ]
             for doc in docs
