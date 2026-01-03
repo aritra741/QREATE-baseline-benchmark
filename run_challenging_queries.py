@@ -660,10 +660,12 @@ class QuestRunner(SystemRunner):
             
             # Execute
             self.logger.debug("[QUEST] Executing query...")
+            self.logger.debug(f"[QUEST] Physical plan type: {type(physical_plan)}")
+            self.logger.debug(f"[QUEST] Physical plan: {physical_plan}")
             processer = Processer()
             result = processer.process(physical_plan)
             
-            # Convert result to DataFrame if possible
+            self.logger.debug(f"[QUEST] Result from processer: {result}")
             self.logger.debug(f"[QUEST] Result type: {type(result)}")
             if result is not None:
                 if isinstance(result, list):
