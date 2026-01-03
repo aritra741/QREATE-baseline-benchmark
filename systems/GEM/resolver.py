@@ -245,19 +245,37 @@ No quotes, no explanation, just the name."""
         
         return normalized
     
-    def normalize_records(self, records: List[Dict], key_attributes: List[str], schema: Optional[object] = None) -> List[Dict]:
+    def normalize_records(self, records: List[Dict], key_attributes: List[str], schema: Optional[object] = None, deduplicate: bool = True) -> List[Dict]:
         """Normalize all records by applying canonical mapping and type conversion.
         
         Args:
             records: Records to normalize
             key_attributes: Attributes to normalize (entity resolution)
             schema: Schema object for type information (optional)
+            deduplicate: Whether to deduplicate records based on key attributes (default: True)
             
         Returns:
             Normalized records with canonical names and proper types
         """
         self.logger.info(f"Normalizing {len(records)} records")
         normalized = [self.normalize_record(r, key_attributes, schema) for r in records]
+        
+        if deduplicate:
+            # Deduplicate: keep only one record per unique key attribute combination
+            seen = {}
+            unique_records = []
+            
+            for record in normalized:
+                # Create a key from the key attributes
+                key_tuple = tuple(record.get(attr) for attr in key_attributes)
+                
+                if key_tuple not in seen:
+                    seen[key_tuple] = True
+                    unique_records.append(record)
+            
+            self.logger.info(f"Deduplication: {len(normalized)} records -> {len(unique_records)} unique records")
+            normalized = unique_records
+        
         self.logger.info("Normalization complete")
         return normalized
     
