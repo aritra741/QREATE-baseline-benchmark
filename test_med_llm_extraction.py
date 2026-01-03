@@ -27,33 +27,77 @@ import pandas as pd
 
 
 def load_sample_documents():
-    """Load sample drug and disease documents."""
-    raw_dir = PROJECT_ROOT / "raw" / "datasets" / "Med"
+    """Load sample drug and disease documents.
     
-    # Load drug documents
-    drug_dir = raw_dir / "drug_small"
-    disease_dir = raw_dir / "disease_small"
+    Tries multiple paths for both local and CHPC systems:
+    - Local: /Users/aritramazumder/Documents/UDA-Bench-main/source_data/Healthcare/
+    - CHPC: /uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/source_data/Healthcare/
+    """
+    # Try multiple possible paths in order of preference
+    possible_paths = [
+        PROJECT_ROOT / "source_data" / "Healthcare",      # Both local and CHPC (relative)
+        Path("/Users/aritramazumder/Documents/UDA-Bench-main/source_data/Healthcare"),  # Local absolute
+        Path("/uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/source_data/Healthcare"),  # CHPC absolute
+        PROJECT_ROOT / "preprocess_squid" / "Med",        # Alternative
+    ]
+    
+    drug_dir = None
+    disease_dir = None
+    found_path = None
+    
+    # Try to find drug_small and disease_small first
+    for base_path in possible_paths:
+        drug_candidate = base_path / "drug_small"
+        disease_candidate = base_path / "disease_small"
+        if drug_candidate.exists() and disease_candidate.exists():
+            drug_dir = drug_candidate
+            disease_dir = disease_candidate
+            found_path = base_path
+            print(f"✓ Found documents at: {found_path}")
+            break
+    
+    # Fallback to drug and disease (without _small suffix)
+    if not drug_dir:
+        for base_path in possible_paths:
+            drug_candidate = base_path / "drug"
+            disease_candidate = base_path / "disease"
+            if drug_candidate.exists() and disease_candidate.exists():
+                drug_dir = drug_candidate
+                disease_dir = disease_candidate
+                found_path = base_path
+                print(f"✓ Found documents at: {found_path}")
+                break
     
     drugs = []
     diseases = []
     
-    if drug_dir.exists():
-        for txt_file in sorted(list(drug_dir.glob("*.txt")))[:5]:  # First 5 drugs
-            with open(txt_file, 'r', encoding='utf-8', errors='ignore') as f:
-                drugs.append({
-                    'id': txt_file.stem,
-                    'text': f.read()[:2000],  # First 2000 chars
-                    'filename': txt_file.name
-                })
+    if drug_dir and drug_dir.exists():
+        txt_files = sorted(list(drug_dir.glob("*.txt")))[:5]  # First 5 drugs
+        print(f"  Loading {len(txt_files)} drug documents from {drug_dir}")
+        for txt_file in txt_files:
+            try:
+                with open(txt_file, 'r', encoding='utf-8', errors='ignore') as f:
+                    drugs.append({
+                        'id': txt_file.stem,
+                        'text': f.read()[:2000],  # First 2000 chars
+                        'filename': txt_file.name
+                    })
+            except Exception as e:
+                print(f"  Warning: Could not read {txt_file}: {e}")
     
-    if disease_dir.exists():
-        for txt_file in sorted(list(disease_dir.glob("*.txt")))[:5]:  # First 5 diseases
-            with open(txt_file, 'r', encoding='utf-8', errors='ignore') as f:
-                diseases.append({
-                    'id': txt_file.stem,
-                    'text': f.read()[:2000],  # First 2000 chars
-                    'filename': txt_file.name
-                })
+    if disease_dir and disease_dir.exists():
+        txt_files = sorted(list(disease_dir.glob("*.txt")))[:5]  # First 5 diseases
+        print(f"  Loading {len(txt_files)} disease documents from {disease_dir}")
+        for txt_file in txt_files:
+            try:
+                with open(txt_file, 'r', encoding='utf-8', errors='ignore') as f:
+                    diseases.append({
+                        'id': txt_file.stem,
+                        'text': f.read()[:2000],  # First 2000 chars
+                        'filename': txt_file.name
+                    })
+            except Exception as e:
+                print(f"  Warning: Could not read {txt_file}: {e}")
     
     return drugs, diseases
 
@@ -69,9 +113,13 @@ def test_llm_extraction():
     drugs, diseases = load_sample_documents()
     
     if not drugs or not diseases:
-        print("ERROR: Could not load sample documents from raw/datasets/Med/")
-        print(f"  Drug dir: {PROJECT_ROOT / 'raw' / 'datasets' / 'Med' / 'drug_small'}")
-        print(f"  Disease dir: {PROJECT_ROOT / 'raw' / 'datasets' / 'Med' / 'disease_small'}")
+        print("ERROR: Could not load sample documents!")
+        print(f"  Tried paths:")
+        print(f"    - {PROJECT_ROOT / 'source_data' / 'Healthcare'}")
+        print(f"    - /Users/aritramazumder/Documents/UDA-Bench-main/source_data/Healthcare")
+        print(f"    - /uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/source_data/Healthcare")
+        print(f"    - {PROJECT_ROOT / 'preprocess_squid' / 'Med'}")
+        print(f"\n  Loaded {len(drugs)} drugs and {len(diseases)} diseases")
         return
     
     print(f"✓ Loaded {len(drugs)} drug documents and {len(diseases)} disease documents\n")
