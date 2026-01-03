@@ -171,6 +171,14 @@ class SchemaLoader:
             ))
         
         schema = Schema(entity_name=entity_name, attributes=attributes)
+        
+        # Debug logging
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.debug(f"[SCHEMA] Parsed schema for {entity_name}:")
+        for attr in attributes:
+            logger.debug(f"[SCHEMA]   {attr.name}: {attr.type}")
+        
         self.schemas[entity_name] = schema
         return schema
     

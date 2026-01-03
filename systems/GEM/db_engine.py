@@ -110,18 +110,27 @@ class DBEngine:
             self.logger.warning("Database not initialized")
             return
         
+        # Drop table if it exists (to ensure clean state)
+        try:
+            self.conn.execute(f"DROP TABLE IF EXISTS {table_name}")
+            self.logger.debug(f"[CREATE TABLE] Dropped existing table {table_name}")
+        except Exception as e:
+            self.logger.debug(f"[CREATE TABLE] Could not drop table: {e}")
+        
         # Build CREATE TABLE statement
         columns = []
         for attr in schema.attributes:
             sql_type = self._get_sql_type(attr.type)
             columns.append(f"{attr.name} {sql_type}")
+            self.logger.debug(f"[CREATE TABLE] {attr.name}: {attr.type} -> {sql_type}")
         
         columns_str = ", ".join(columns)
-        create_sql = f"CREATE TABLE IF NOT EXISTS {table_name} ({columns_str})"
+        create_sql = f"CREATE TABLE {table_name} ({columns_str})"
         
         try:
             self.conn.execute(create_sql)
             self.logger.info(f"Created table {table_name}")
+            self.logger.debug(f"[CREATE TABLE] SQL: {create_sql}")
         except Exception as e:
             self.logger.error(f"Failed to create table {table_name}: {e}")
     
@@ -147,22 +156,31 @@ class DBEngine:
             
             # Convert to DataFrame
             df = pd.DataFrame(records)
+            self.logger.debug(f"[INSERT] DataFrame shape: {df.shape}, columns: {df.columns.tolist()}")
+            self.logger.debug(f"[INSERT] DataFrame dtypes:\n{df.dtypes}")
+            self.logger.debug(f"[INSERT] First record: {records[0] if records else 'EMPTY'}")
             
             # Cast columns to proper types based on schema
             if self.schema:
                 for attr in self.schema.attributes:
                     if attr.name in df.columns:
                         type_lower = attr.type.lower()
+                        self.logger.debug(f"[INSERT TYPE] {attr.name}: schema_type={attr.type} (lower={type_lower})")
                         try:
                             if type_lower in ["int", "integer", "int_value"]:
                                 # Convert to numeric, handling errors
                                 df[attr.name] = pd.to_numeric(df[attr.name], errors='coerce').fillna(0).astype('int64')
+                                self.logger.debug(f"[INSERT TYPE] {attr.name} converted to int64")
                             elif type_lower in ["float", "double", "float_value"]:
                                 df[attr.name] = pd.to_numeric(df[attr.name], errors='coerce').astype('float64')
+                                self.logger.debug(f"[INSERT TYPE] {attr.name} converted to float64")
                             elif type_lower in ["bool", "boolean"]:
                                 df[attr.name] = df[attr.name].astype(bool)
+                                self.logger.debug(f"[INSERT TYPE] {attr.name} converted to bool")
                         except Exception as e:
                             self.logger.debug(f"Type conversion for {attr.name}: {e}")
+            
+            self.logger.debug(f"[INSERT] After type conversion, dtypes:\n{df.dtypes}")
             
             # Create a temp table from the DataFrame (DuckDB respects pandas dtypes)
             temp_table = f"temp_{table_name}_{id(df)}"
