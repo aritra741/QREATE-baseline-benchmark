@@ -522,8 +522,8 @@ class QuestRunner(SystemRunner):
             
             if is_join_query:
                 # Use join transformation planner per paper Section 3.2 - NO FALLBACK
-                from quest.sql.planner.joinlogical_quest_paper import JoinLogicalPlanner
-                logical_planner = JoinLogicalPlanner()
+                    from quest.sql.planner.joinlogical_quest_paper import JoinLogicalPlanner
+                    logical_planner = JoinLogicalPlanner()
                 self.logger.info("[QUEST] Using JOIN TRANSFORMATION planner per paper Section 3.2 (NO FALLBACK)")
             else:
                 logical_planner = self.LogicalPlanner()
@@ -607,9 +607,9 @@ class QuestRunner(SystemRunner):
                     return result_df, metadata
                 
                 all_entity_attrs[ent] = entity_attrs
-            
-            # Build prompt/schema in the format expected by AttrSampler and TextLLMQuerier:
-            # "attr_name: description" on each line (colon separator is required for parsing)
+                
+                # Build prompt/schema in the format expected by AttrSampler and TextLLMQuerier:
+                # "attr_name: description" on each line (colon separator is required for parsing)
             for ent in entity_list:
                 entity_attrs = all_entity_attrs[ent]
                 for attr_name, attr_info in entity_attrs.items():
@@ -648,7 +648,7 @@ class QuestRunner(SystemRunner):
                             self.logger.debug(f"[QUEST]   - {attr}: {len(evidence)} chars of evidence")
                         else:
                             self.logger.warning(f"[QUEST]   - {attr}: NO EVIDENCE FOUND!")
-                        
+                            
                 except Exception as e:
                     self.logger.error(f"[QUEST] Failed to sample documents for {ent}: {e}")
                     self.logger.error(f"[QUEST] Traceback:\n{traceback.format_exc()}")

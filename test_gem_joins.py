@@ -127,10 +127,13 @@ def generate_ground_truth(queries: list, data: dict) -> dict:
             }
             print(f"  [{i+1}] {query['comment']}: {len(gt_df)} rows")
         except Exception as e:
+            # Log error but don't fail
+            error_msg = str(e)
+            print(f"  [{i+1}] {query['comment']}: ERROR - {error_msg}")
             results[i] = {
                 "sql": query_sql,
                 "comment": query["comment"],
-                "error": str(e),
+                "error": error_msg,
                 "status": "error"
             }
             print(f"  [{i+1}] {query['comment']}: ERROR - {e}")
@@ -149,39 +152,23 @@ def normalize_value(val):
 
 
 def llm_values_match(val1: str, val2: str) -> bool:
-    """Check if two values belong to the same entity using GEM's entity manager.
+    """Check if two values belong to the same entity.
     
-    Uses GEM's blocking (semantic similarity) and resolution (LLM confirmation).
-    This mirrors exactly what GEM does internally for entity resolution.
+    For now, uses exact normalized matching only.
+    TODO: Add semantic matching with GEM's entity manager later.
     """
-    if not val1 or not val2 or not HAS_ENTITY_MANAGER:
+    if not val1 or not val2:
         return False
     
-    try:
-        from scipy.spatial.distance import cosine
-        
-        # Step 1: Use GEM's blocking (semantic similarity check)
-        embeddings = blocker.encode_texts([val1, val2])
-        similarity = 1 - cosine(embeddings[0], embeddings[1])
-        
-        # If below GEM's threshold, they don't belong together
-        if similarity < blocker.similarity_threshold:
-            return False
-        
-        # Step 2: Use GEM's resolver (LLM confirmation)
-        # This is what resolver._get_canonical_for_block does - asks LLM to confirm
-        canonical = resolver._get_canonical_for_block([val1, val2])
-        
-        # If LLM identified a single canonical, they belong to same entity
-        # (LLM would return different canonicals if they were distinct entities)
-        if canonical:
-            logger.debug(f"Entity match: '{val1}' ≈ '{val2}' (canonical: {canonical})")
-            return True
-        
-        return False
-    except Exception as e:
-        logger.debug(f"Entity matching failed: {e}")
-        return False
+    # Normalize both values
+    norm_val1 = normalize_value(val1)
+    norm_val2 = normalize_value(val2)
+    
+    # Exact match after normalization
+    if norm_val1 == norm_val2:
+        return True
+    
+    return False
 
 
 def values_match(val1, val2):
