@@ -225,6 +225,9 @@ class JoinLogicalPlanner(object):
         all_attrs.extend(proj_attrs)
         all_attrs = remove_duplicates_columns(all_attrs)
         
+        print(f"[DEBUG JoinLogicalPlanner] all_attrs: {[a.parse_full() for a in all_attrs]}")
+        print(f"[DEBUG JoinLogicalPlanner] tableList: {tableList}")
+        
         retrieveDict = {}
         for table in tableList:
             columns = []
@@ -232,6 +235,7 @@ class JoinLogicalPlanner(object):
                 tbl = attr.parse_table()
                 if table == tbl or tbl == sqlconst.DEFAULT_TABLE_NAME:
                     columns.append(attr)
+            print(f"[DEBUG JoinLogicalPlanner] Table '{table}': columns={[c.parse_full() for c in columns]}")
             retrieveDict[table] = LogicalRetrieve(columns=columns, table=table, type='Text')
         
         # Step 2: Per QUEST paper - Process joins progressively
