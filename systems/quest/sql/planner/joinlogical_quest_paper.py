@@ -366,6 +366,10 @@ class JoinLogicalPlanner(object):
         join_node.append_input(extract_first)
         join_node.append_input(extract_second)
         
+        print(f"[DEBUG JoinLogicalPlanner] Final join_node created: {join_node}")
+        print(f"[DEBUG JoinLogicalPlanner] join_node.join_filter_attr: {join_node.join_filter_attr}")
+        print(f"[DEBUG JoinLogicalPlanner] join_node.extracted_join_attr: {join_node.extracted_join_attr}")
+        
         return join_node
 
     def build_logical_plan(self, root):
