@@ -16,7 +16,7 @@ import json
 
 PROJECT_ROOT = Path(__file__).parent
 GT_DIR = PROJECT_ROOT / "ground_truth" / "challenging_queries"
-AVAILABLE_SYSTEMS = ["uqe", "pz", "quest", "lotus", "unify", "squid"]
+AVAILABLE_SYSTEMS = ["uqe", "pz", "quest", "lotus", "unify", "squid", "gem"]
 
 
 def normalize_value(val):
