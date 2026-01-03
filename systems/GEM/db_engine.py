@@ -122,7 +122,7 @@ class DBEngine:
         for attr in schema.attributes:
             sql_type = self._get_sql_type(attr.type)
             columns.append(f"{attr.name} {sql_type}")
-            self.logger.debug(f"[CREATE TABLE] {attr.name}: {attr.type} -> {sql_type}")
+            self.logger.info(f"[CREATE TABLE] {attr.name}: schema_type='{attr.type}' -> SQL_type='{sql_type}'")
         
         columns_str = ", ".join(columns)
         create_sql = f"CREATE TABLE {table_name} ({columns_str})"
@@ -130,7 +130,7 @@ class DBEngine:
         try:
             self.conn.execute(create_sql)
             self.logger.info(f"Created table {table_name}")
-            self.logger.debug(f"[CREATE TABLE] SQL: {create_sql}")
+            self.logger.info(f"[CREATE TABLE] SQL: {create_sql}")
         except Exception as e:
             self.logger.error(f"Failed to create table {table_name}: {e}")
     
