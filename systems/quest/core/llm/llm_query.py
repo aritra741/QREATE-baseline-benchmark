@@ -12,9 +12,10 @@ import copy
 
 def parse_result(text, doc_id, attributeList):
     """
-    Parse LLM output. Supports two formats:
-    1. key: value (original format)
-    2. (key, value, confidence, chunk_id) (tuple format from sampler)
+    Parse LLM output. Supports multiple formats:
+    1. key: value (simplest format)
+    2. key: [value] (with brackets)
+    3. (key, value, confidence, chunk_id) (tuple format from sampler)
     """
     print(f"[DEBUG parse_result] Input text: {text[:100]}")
     
@@ -32,9 +33,21 @@ def parse_result(text, doc_id, attributeList):
             value = value.strip().strip("'\"")  # Remove quotes
             dic[key] = value
     else:
-        # Fall back to key: value format
+        # Fall back to key: value format (with optional brackets)
         print(f"[DEBUG parse_result] No tuple matches, trying colon format")
-        dic = dict(re.findall(r"(\w+(?:\.\w+)?):([^:\n]*)", text))
+        # Match: key: value or key: [value]
+        colon_pattern = r"(\w+(?:\.\w+)?)\s*:\s*\[?([^\]\n]*)\]?"
+        colon_matches = re.findall(colon_pattern, text)
+        if colon_matches:
+            for key, value in colon_matches:
+                key = key.strip()
+                value = value.strip().strip("'\"").strip()  # Remove quotes and whitespace
+                if value and value.lower() != 'none':
+                    dic[key] = value
+                else:
+                    dic[key] = None
+        else:
+            dic = {}
     
     print(f"[DEBUG parse_result] Extracted dict: {dic}")
     dic["doc_id"] = doc_id
@@ -267,32 +280,19 @@ class TextLLMQuerier(object):
         related_attr_descriptions_str = " \n".join(related_attr_descriptions)
         prompts = [
             [
-                {"role": "system", "content": "You MUST respond with EXACTLY one line. The line MUST start with an opening parenthesis. Do not write any other text before, after, or around this line."},
-                {"role": "user", "content": f'''EXTRACT TASK:
-Find the value of "{unqualified_attrs[0]}" in the document below.
+                {"role": "system", "content": "You are a data extraction assistant. Extract the requested attribute and return it in a simple key-value format. Be concise and direct."},
+                {"role": "user", "content": f'''Extract the following attribute from the document:
 
-MANDATORY OUTPUT FORMAT:
-(attribute_name, value, confidence, chunk_index)
+Attribute: {unqualified_attrs[0]}
+Description: {related_attr_descriptions_str}
 
-WHERE:
-- attribute_name = {unqualified_attrs[0]}
-- value = extracted value from document (or NONE if not found)
-- confidence = 0-100 (how confident you are in this extraction)
-- chunk_index = which section of document (use 0 for first section)
+Return format:
+{unqualified_attrs[0]}: [extracted value or NONE]
 
-CRITICAL REQUIREMENTS:
-1. RESPOND WITH ONLY ONE LINE
-2. Line MUST start with ( and end with )
-3. Separate items with commas
-4. NO other text, NO explanation, NO markdown
-
-WHAT TO EXTRACT:
-{related_attr_descriptions_str}
-
-DOCUMENT TEXT:
+DOCUMENT:
 {doc}
 
-RESPOND WITH SINGLE LINE ONLY:'''
+Answer:'''
                 }
             ]
             for doc in docs
