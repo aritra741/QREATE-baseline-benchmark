@@ -182,9 +182,20 @@ class DBEngine:
             
             self.logger.debug(f"[INSERT] After type conversion, dtypes:\n{df.dtypes}")
             
+            # Log sample values from key columns for debugging
+            for attr in self.schema.attributes if self.schema else []:
+                if attr.name in df.columns:
+                    self.logger.info(f"[INSERT SAMPLE] {attr.name}: {df[attr.name].dtype} | sample values: {df[attr.name].head(2).tolist()}")
+            
             # Create a temp table from the DataFrame (DuckDB respects pandas dtypes)
             temp_table = f"temp_{table_name}_{id(df)}"
             self.conn.register(temp_table, df)
+            
+            # Verify the temp table schema
+            result = self.conn.execute(f"DESCRIBE {temp_table}").fetchall()
+            self.logger.info(f"[INSERT] Temp table {temp_table} schema:")
+            for row in result:
+                self.logger.info(f"[INSERT]   {row}")
             
             # Insert from temp table into actual table
             # This preserves the types from pandas DataFrame
