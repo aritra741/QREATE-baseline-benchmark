@@ -236,7 +236,7 @@ class FilterText(Filter):
                         print(f"[DEBUG filter_text] Applied IN condition: {len(extracted_df[extracted_df['fcondition'] == 'True'])} rows match")
                     else:
                         # Try simple equality match
-                    match = re.match(r"(`?[\w.]+`?)\s*(?:==|=|!=|<>|<=|>=|<|>)\s*'?([^']*)'?", condition)
+                        match = re.match(r"(`?[\w.]+`?)\s*(?:==|=|!=|<>|<=|>=|<|>)\s*'?([^']*)'?", condition)
                     if match:
                         col_name = match.group(1).strip('`')
                         val_right = match.group(2).strip("'\"")
