@@ -4,11 +4,13 @@ Test script to verify LLM extraction on actual player documents
 """
 import json
 import os
+import sys
 from pathlib import Path
 
 # Setup path
 proj_root = Path(__file__).parent
 os.chdir(proj_root)
+sys.path.insert(0, str(proj_root / 'systems'))
 
 # Read a few actual player documents from the indexed content
 player_docs_path = proj_root / 'index' / 'hnsw' / 'player' / 'doc_content.json'
@@ -53,7 +55,8 @@ for doc_id, text in test_docs:
     }
     
     try:
-        result_df = querier.extract_attribute(textDict, ['team'])
+         # The extract_attribute signature is: extract_attribute(self, textDict, attributeList)
+        result_df = querier.extract_attribute_from_textDict(textDict, attributeList=['team'])
         print(f"\nLLM Extraction Result:")
         print(result_df)
         
