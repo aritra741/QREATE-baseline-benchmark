@@ -127,10 +127,9 @@ def test_llm_extraction(model_name):
     
     # Initialize LLM querier with specified model
     print(f"Initializing LLM querier (ollama/{model_name})...")
-    querier = TextLLMQuerier(prompt="")
-    # Override the model in the querier
-    querier.model = f"ollama/{model_name}"
-    print(f"✓ LLM querier initialized with model: {querier.model}\n")
+    # Create querier with the specified model
+    querier = TextLLMQuerier(prompt="", llm=f"ollama/{model_name}")
+    print(f"✓ LLM querier initialized with model: {querier.llm}\n")
     
     # Test 1: Extract disease_name from DRUG documents
     print("-" * 80)
