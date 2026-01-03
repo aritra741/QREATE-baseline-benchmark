@@ -224,8 +224,13 @@ def p_column(p):
         table_name = p[1]
         column_name = p[3]
         # Resolve table alias to actual table name using origin_tables
+        print(f"[DEBUG p_column] Before resolution: table_name={table_name}, origin_tables={origin_tables}")
         if table_name in origin_tables:
-            table_name = origin_tables[table_name]
+            resolved_table = origin_tables[table_name]
+            print(f"[DEBUG p_column] Resolved '{table_name}' -> '{resolved_table}'")
+            table_name = resolved_table
+        else:
+            print(f"[DEBUG p_column] No resolution for '{table_name}'")
     else:
         column_name = p[1]
 
