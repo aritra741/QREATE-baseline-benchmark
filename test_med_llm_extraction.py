@@ -182,18 +182,26 @@ def test_llm_extraction():
     print("SUMMARY")
     print("="*80)
     
-    drug_success = drug_results['disease_name'].notna().sum()
-    disease_success = disease_results['disease_name'].notna().sum()
+    # Count TRUE successful extractions (non-null AND non-whitespace)
+    drug_true_success = drug_results['disease_name'].apply(
+        lambda x: x is not None and isinstance(x, str) and x.strip() != ''
+    ).sum()
+    disease_true_success = disease_results['disease_name'].apply(
+        lambda x: x is not None and isinstance(x, str) and x.strip() != ''
+    ).sum()
     
-    print(f"\nDrug documents:    {drug_success}/{len(drug_results)} successful extractions ({100*drug_success/len(drug_results):.1f}%)")
-    print(f"Disease documents: {disease_success}/{len(disease_results)} successful extractions ({100*disease_success/len(disease_results):.1f}%)")
+    print(f"\nDrug documents:    {drug_true_success}/{len(drug_results)} successful extractions ({100*drug_true_success/len(drug_results):.1f}%)")
+    print(f"Disease documents: {disease_true_success}/{len(disease_results)} successful extractions ({100*disease_true_success/len(disease_results):.1f}%)")
     
-    if drug_success == 0 and disease_success == 0:
+    if drug_true_success == 0 and disease_true_success == 0:
         print("\n❌ LLM EXTRACTION IS COMPLETELY FAILING for Med dataset")
         print("   This explains why join_1 returns 0 rows")
-    elif drug_success < len(drug_results) * 0.5 or disease_success < len(disease_results) * 0.5:
+    elif drug_true_success < len(drug_results) * 0.5 or disease_true_success < len(disease_results) * 0.5:
         print("\n⚠️  LLM EXTRACTION IS UNRELIABLE (< 50% success rate)")
         print("   This is likely causing join_1 to return few or no rows")
+        print(f"\n   Actual extractions (non-empty):")
+        print(f"     Drugs: {drug_results[drug_results['disease_name'].str.strip() != '']['disease_name'].unique()}")
+        print(f"     Diseases: {disease_results[disease_results['disease_name'].str.strip() != '']['disease_name'].unique()}")
     else:
         print("\n✓ LLM extraction appears to be working reasonably well")
     
