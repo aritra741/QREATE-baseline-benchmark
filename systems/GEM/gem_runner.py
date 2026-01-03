@@ -366,10 +366,12 @@ class GEMRunner:
         
         query_id = query["id"]
         dataset = query["dataset"]
-        entity = query.get("entity", "").lower()
+        entity_str = query.get("entity", "").lower()
+        entities = [e.strip() for e in entity_str.split(",") if e.strip()]
         sql = query.get("sql", "")
         
         self.logger.info(f"[GEM] Running query {query_id}...")
+        self.logger.info(f"[GEM] Query involves entities: {entities}")
         
         metadata = {
             "system": self.name,
@@ -383,50 +385,56 @@ class GEMRunner:
         try:
             start_time = time.time()
             
-            # Ensure preprocessing is done
-            cache_key = f"{dataset}_{entity}"
-            if cache_key not in self._preprocessing_cache:
-                self.logger.debug(f"[GEM] Preprocessing not in cache, running now...")
-                preprocess_meta = self.preprocess(dataset, entity)
-                if preprocess_meta["status"] not in ["completed", "completed_empty"]:
-                    metadata["status"] = preprocess_meta["status"]
-                    metadata["error"] = preprocess_meta.get("error", "Preprocessing failed")
-                    metadata["end_time"] = datetime.now().isoformat()
-                    return result_df, metadata
+            # Ensure preprocessing is done for all entities in the query
+            for entity in entities:
+                cache_key = f"{dataset}_{entity}"
+                if cache_key not in self._preprocessing_cache:
+                    self.logger.debug(f"[GEM] Preprocessing not in cache for {entity}, running now...")
+                    preprocess_meta = self.preprocess(dataset, entity)
+                    if preprocess_meta["status"] not in ["completed", "completed_empty"]:
+                        metadata["status"] = preprocess_meta["status"]
+                        metadata["error"] = f"Preprocessing failed for {entity}: {preprocess_meta.get('error', 'Unknown error')}"
+                        metadata["end_time"] = datetime.now().isoformat()
+                        return result_df, metadata
             
-            # Load preprocessing results
-            if cache_key not in self._preprocessing_cache:
-                cached = self._load_preprocessing_results(dataset, entity)
-                if cached is None:
-                    metadata["status"] = "failed"
-                    metadata["error"] = "No preprocessed data available"
-                    metadata["end_time"] = datetime.now().isoformat()
-                    return result_df, metadata
-                self._preprocessing_cache[cache_key] = cached
-            
-            preprocess_data = self._preprocessing_cache[cache_key]
-            canonical_map = preprocess_data["canonical_map"]
-            normalized_records = preprocess_data["normalized_records"]
-            
-            # Create database and insert data
-            schema = self._load_schema(dataset, entity)
-            if not schema:
-                metadata["status"] = "failed"
-                metadata["error"] = f"Could not load schema"
-                metadata["end_time"] = datetime.now().isoformat()
-                return result_df, metadata
-            
-            # Create in-memory database for this query
+            # Load preprocessing results for all entities
             engine = DBEngine(logger=self.logger)
             resolver = EntityResolver(self.logger)
-            resolver.canonical_map = canonical_map
-            engine.set_resolver(resolver)
-            engine.set_schema(schema)
             
-            # Create and populate table
-            table_name = entity
-            engine.create_table(table_name, schema)
-            engine.insert_records(table_name, normalized_records)
+            # Create and populate tables for all entities
+            for entity in entities:
+                cache_key = f"{dataset}_{entity}"
+                
+                if cache_key not in self._preprocessing_cache:
+                    cached = self._load_preprocessing_results(dataset, entity)
+                    if cached is None:
+                        metadata["status"] = "failed"
+                        metadata["error"] = f"No preprocessed data available for {entity}"
+                        metadata["end_time"] = datetime.now().isoformat()
+                        return result_df, metadata
+                    self._preprocessing_cache[cache_key] = cached
+                
+                preprocess_data = self._preprocessing_cache[cache_key]
+                canonical_map = preprocess_data["canonical_map"]
+                normalized_records = preprocess_data["normalized_records"]
+                
+                # Get schema for this entity
+                schema = self._load_schema(dataset, entity)
+                if not schema:
+                    metadata["status"] = "failed"
+                    metadata["error"] = f"Could not load schema for {entity}"
+                    metadata["end_time"] = datetime.now().isoformat()
+                    return result_df, metadata
+                
+                resolver.canonical_map = canonical_map
+                engine.set_resolver(resolver)
+                engine.set_schema(schema)
+                
+                # Create and populate table
+                table_name = entity
+                engine.create_table(table_name, schema)
+                engine.insert_records(table_name, normalized_records)
+                self.logger.info(f"[GEM] Created table {table_name} with {len(normalized_records)} records")
             
             # Execute query
             result_df = engine.execute_query(sql)
