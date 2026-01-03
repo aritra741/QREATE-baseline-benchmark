@@ -653,9 +653,12 @@ class QuestRunner(SystemRunner):
                     # Continue anyway - the query might still work with empty evidence
             
             # Build physical plan
+            self.logger.info("[QUEST] About to build physical plan...")
             self.logger.debug("[QUEST] Building physical plan...")
             physical_planner = TextPhysicalPlanner(gb_indexer, gb_querier, sampler=gb_sampler)
+            self.logger.info("[QUEST] Physical planner created, building plan...")
             physical_plan = physical_planner.build(logical_plan)
+            self.logger.info(f"[QUEST] Physical plan built: {type(physical_plan)}")
             metadata["physical_plan_time"] = time.time() - start_time - metadata.get("logical_plan_time", 0) - metadata.get("parse_time", 0)
             
             # Execute
