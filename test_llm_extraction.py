@@ -55,7 +55,7 @@ for doc_id, text in test_docs:
     }
     
     try:
-         # The extract_attribute signature is: extract_attribute(self, textDict, attributeList)
+        # Use extract_attribute_from_textDict which takes textDict directly
         result_df = querier.extract_attribute_from_textDict(textDict, attributeList=['team'])
         print(f"\nLLM Extraction Result:")
         print(result_df)

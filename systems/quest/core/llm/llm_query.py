@@ -267,28 +267,31 @@ class TextLLMQuerier(object):
         related_attr_descriptions_str = " \n".join(related_attr_descriptions)
         prompts = [
             [
-                {"role": "system", "content": "Extract data into tuples. NO markdown. NO bullets. Format: (attribute_name, value, confidence, chunk). ONE tuple per line."},
-                {"role": "user", "content": f'''Extract these attributes: {', '.join(unqualified_attrs)}
+                {"role": "system", "content": "You are a precise data extraction assistant. Extract ONLY the requested attribute and format it as a single tuple. Use exact formatting. NO markdown, NO extra text, NO explanations."},
+                {"role": "user", "content": f'''TASK: Extract the following attribute from the document below:
+Attribute: {', '.join(unqualified_attrs)}
 
-CRITICAL: First field MUST be the attribute name from the list above.
+IMPORTANT RULES:
+1. Return EXACTLY ONE tuple per attribute
+2. Format: (attribute_name, value, confidence_score, section_index)
+3. attribute_name MUST match exactly: {unqualified_attrs[0] if unqualified_attrs else 'N/A'}
+4. confidence_score must be 0-100 (integer)
+5. section_index must be 0-9 (integer)
+6. If attribute NOT found, return: ({unqualified_attrs[0]}, NOT_FOUND, 0, 0)
+7. Do NOT return anything else, NO markdown, NO bullet points, NO extra text
 
-Format for EACH attribute:
-(attribute_name_from_list, extracted_value, confidence_0to100, chunk_index_0to9)
+EXAMPLES:
+- If finding "team" = "Los Angeles Lakers": (team, Los Angeles Lakers, 95, 0)
+- If finding "age" = 25: (age, 25, 90, 1)
+- If NOT found: (team, NOT_FOUND, 0, 0)
 
-Example format (if extracting "name" and "age"):
-(name, John Smith, 95, 0)
-(age, 45, 90, 1)
-
-NOT like this (WRONG - value in first position):
-(John Smith, name, ...)
-
-Field descriptions:
+ATTRIBUTE DESCRIPTION:
 {related_attr_descriptions_str}
 
-Document:
+DOCUMENT TO EXTRACT FROM:
 {doc}
 
-Output {len(unqualified_attrs)} tuples (one per attribute):'''
+RESPONSE (ONE TUPLE ONLY):'''
                 }
             ]
             for doc in docs
