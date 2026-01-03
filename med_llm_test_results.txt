@@ -1,0 +1,141 @@
+
+================================================================================
+TESTING LLM EXTRACTION FOR MED DATASET
+================================================================================
+
+✓ Found documents at: /uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/source_data/Healthcare
+  Loading 5 drug documents from /uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/source_data/Healthcare/drug_small
+  Loading 5 disease documents from /uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/source_data/Healthcare/disease_small
+✓ Loaded 5 drug documents and 5 disease documents
+
+Initializing LLM querier (ollama/qwen2.5:7b-instruct)...
+[TextLLMQuerier.__init__] Model: ollama/qwen2.5:7b-instruct, API Base: http://localhost:11434, Thinking: False
+✓ LLM querier initialized
+
+--------------------------------------------------------------------------------
+TEST 1: Extracting disease_name from DRUG documents
+--------------------------------------------------------------------------------
+
+Sending 5 drug documents to LLM...
+Sample drug document (first 500 chars):
+Handling Your Allergy Symptoms With Promethazine – Best filters and home appliances to help you clean your drinking water properly
+Promethazine is really a generic good name for a class of antihistamine drugs used to prevent motion sickness, nausea, or vomiting; as well as for sedation, along with the management of itching linked to allergies. It really is in the latter that we're thinking about here, treating allergic reactions and reactions with Promethazine, such as: nasal congestion, itching
+
+
+[DEBUG extract_attribute] Unqualified attrs for LLM: ['disease_name']
+[DEBUG extract_attribute] Attr mapping: {'disease_name': 'disease_name'}
+[DEBUG extract_attribute] LLM returned 5 results
+[DEBUG extract_attribute] First result (first 500 chars): disease_name: NONE
+[DEBUG parse_result] Input text: disease_name: NONE
+[DEBUG parse_result] No tuple matches, trying colon format
+[DEBUG parse_result] Extracted dict: {'disease_name': None}
+[DEBUG parse_result] Final dict with defaults: {'disease_name': None, 'doc_id': 1}
+[DEBUG parse_result] Input text: disease_name: NONE
+[DEBUG parse_result] No tuple matches, trying colon format
+[DEBUG parse_result] Extracted dict: {'disease_name': None}
+[DEBUG parse_result] Final dict with defaults: {'disease_name': None, 'doc_id': 2}
+[DEBUG parse_result] Input text: disease_name: Atherosclerotic cardiovascular disease
+[DEBUG parse_result] No tuple matches, trying colon format
+[DEBUG parse_result] Extracted dict: {'disease_name': 'Atherosclerotic cardiovascular disease'}
+[DEBUG parse_result] Final dict with defaults: {'disease_name': 'Atherosclerotic cardiovascular disease', 'doc_id': 3}
+[DEBUG parse_result] Input text: disease_name: NONE
+[DEBUG parse_result] No tuple matches, trying colon format
+[DEBUG parse_result] Extracted dict: {'disease_name': None}
+[DEBUG parse_result] Final dict with defaults: {'disease_name': None, 'doc_id': 4}
+[DEBUG parse_result] Input text: disease_name: NONE
+[DEBUG parse_result] No tuple matches, trying colon format
+[DEBUG parse_result] Extracted dict: {'disease_name': None}
+[DEBUG parse_result] Final dict with defaults: {'disease_name': None, 'doc_id': 5}
+------------
+                              disease_name  doc_id
+0                                               1
+1                                               2
+2  Atherosclerotic cardiovascular disease       3
+3                                               4
+4                                               5
+
+Drug extraction results:
+                             disease_name  doc_id
+0                                               1
+1                                               2
+2  Atherosclerotic cardiovascular disease       3
+3                                               4
+4                                               5
+
+Non-null disease_name count: 5 / 5
+Sample extracted values:
+[' ' 'Atherosclerotic cardiovascular disease']
+
+--------------------------------------------------------------------------------
+TEST 2: Extracting disease_name from DISEASE documents
+--------------------------------------------------------------------------------
+
+Sending 5 disease documents to LLM...
+Sample disease document (first 500 chars):
+UK Regulator Approves Hyatt Hotels BCR - First Approval under the Mutual Recognition Procedure | Privacy & Information Security Law Blog
+Home » UK Regulator Approves Hyatt Hotels BCR – First Approval under the Mutual Recognition Procedure
+UK Regulator Approves Hyatt Hotels BCR – First Approval under the Mutual Recognition Procedure
+On September 23, 2009, the Information Commissioner's Office (the "ICO"), the UK's data protection regulator, issued a press release announcing the approval of the Hy
+
+
+[DEBUG extract_attribute] Unqualified attrs for LLM: ['disease_name']
+[DEBUG extract_attribute] Attr mapping: {'disease_name': 'disease_name'}
+[DEBUG extract_attribute] LLM returned 5 results
+[DEBUG extract_attribute] First result (first 500 chars): disease_name: NONE
+[DEBUG parse_result] Input text: disease_name: NONE
+[DEBUG parse_result] No tuple matches, trying colon format
+[DEBUG parse_result] Extracted dict: {'disease_name': None}
+[DEBUG parse_result] Final dict with defaults: {'disease_name': None, 'doc_id': 1}
+[DEBUG parse_result] Input text: disease_name: Hemophilia B
+[DEBUG parse_result] No tuple matches, trying colon format
+[DEBUG parse_result] Extracted dict: {'disease_name': 'Hemophilia B'}
+[DEBUG parse_result] Final dict with defaults: {'disease_name': 'Hemophilia B', 'doc_id': 2}
+[DEBUG parse_result] Input text: disease_name: NONE
+[DEBUG parse_result] No tuple matches, trying colon format
+[DEBUG parse_result] Extracted dict: {'disease_name': None}
+[DEBUG parse_result] Final dict with defaults: {'disease_name': None, 'doc_id': 3}
+[DEBUG parse_result] Input text: disease_name: NONE
+[DEBUG parse_result] No tuple matches, trying colon format
+[DEBUG parse_result] Extracted dict: {'disease_name': None}
+[DEBUG parse_result] Final dict with defaults: {'disease_name': None, 'doc_id': 4}
+[DEBUG parse_result] Input text: disease_name: NONE
+[DEBUG parse_result] No tuple matches, trying colon format
+[DEBUG parse_result] Extracted dict: {'disease_name': None}
+[DEBUG parse_result] Final dict with defaults: {'disease_name': None, 'doc_id': 5}
+------------
+    disease_name  doc_id
+0                     1
+1  Hemophilia B       2
+2                     3
+3                     4
+4                     5
+
+Disease extraction results:
+   disease_name  doc_id
+0                     1
+1  Hemophilia B       2
+2                     3
+3                     4
+4                     5
+
+Non-null disease_name count: 5 / 5
+Sample extracted values:
+[' ' 'Hemophilia B']
+
+
+================================================================================
+SUMMARY
+================================================================================
+
+Drug documents:    1/5 successful extractions (20.0%)
+Disease documents: 1/5 successful extractions (20.0%)
+
+⚠️  LLM EXTRACTION IS UNRELIABLE (< 50% success rate)
+   This is likely causing join_1 to return few or no rows
+
+   Actual extractions (non-empty):
+     Drugs: ['Atherosclerotic cardiovascular disease']
+     Diseases: ['Hemophilia B']
+
+================================================================================
+

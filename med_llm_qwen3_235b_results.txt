@@ -1,0 +1,335 @@
+/uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/quest_venv/lib/python3.13/site-packages/transformers/utils/hub.py:110: FutureWarning: Using `TRANSFORMERS_CACHE` is deprecated and will be removed in v5 of Transformers. Use `HF_HOME` instead.
+  warnings.warn(
+
+================================================================================
+TESTING LLM EXTRACTION FOR MED DATASET - Model: qwen3:235b
+================================================================================
+
+✓ Found documents at: /uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/source_data/Healthcare
+  Loading 5 drug documents from /uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/source_data/Healthcare/drug_small
+  Loading 5 disease documents from /uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/source_data/Healthcare/disease_small
+✓ Loaded 5 drug documents and 5 disease documents
+
+Initializing LLM querier (ollama/qwen3:235b)...
+[TextLLMQuerier.__init__] Model: ollama/qwen3:235b, API Base: http://localhost:11434, Thinking: False
+✓ LLM querier initialized with model: ollama/qwen3:235b
+
+--------------------------------------------------------------------------------
+TEST 1: Extracting disease_name from DRUG documents
+--------------------------------------------------------------------------------
+
+Sending 5 drug documents to LLM...
+Streaming responses:
+
+[DEBUG extract_attribute] Unqualified attrs for LLM: ['disease_name']
+[DEBUG extract_attribute] Attr mapping: {'disease_name': 'disease_name'}
+
+[1;31mGive Feedback / Get Help: https://github.com/BerriAI/litellm/issues/new[0m
+LiteLLM.Info: If you need to debug this error, use `litellm._turn_on_debug()'.
+
+/uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/quest_venv/lib/python3.13/site-packages/transformers/utils/hub.py:110: FutureWarning: Using `TRANSFORMERS_CACHE` is deprecated and will be removed in v5 of Transformers. Use `HF_HOME` instead.
+  warnings.warn(
+
+================================================================================
+TESTING LLM EXTRACTION FOR MED DATASET - Model: llama3.1:70b
+================================================================================
+
+✓ Found documents at: /uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/source_data/Healthcare
+  Loading 5 drug documents from /uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/source_data/Healthcare/drug_small
+  Loading 5 disease documents from /uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/source_data/Healthcare/disease_small
+✓ Loaded 5 drug documents and 5 disease documents
+
+Initializing LLM querier (ollama/llama3.1:70b)...
+[TextLLMQuerier.__init__] Model: ollama/llama3.1:70b, API Base: http://localhost:11434, Thinking: False
+✓ LLM querier initialized with model: ollama/llama3.1:70b
+
+--------------------------------------------------------------------------------
+TEST 1: Extracting disease_name from DRUG documents
+--------------------------------------------------------------------------------
+
+Sending 5 drug documents to LLM...
+Streaming responses:
+
+[DEBUG extract_attribute] Unqualified attrs for LLM: ['disease_name']
+[DEBUG extract_attribute] Attr mapping: {'disease_name': 'disease_name'}
+[DEBUG extract_attribute] LLM returned 5 results
+[DEBUG extract_attribute] First result (first 500 chars): disease_name: NONE
+[DEBUG parse_result] Input text: disease_name: NONE
+[DEBUG parse_result] No tuple matches, trying colon format
+[DEBUG parse_result] Extracted dict: {'disease_name': None}
+[DEBUG parse_result] Final dict with defaults: {'disease_name': None, 'doc_id': 1}
+[DEBUG parse_result] Input text: disease_name: NONE
+[DEBUG parse_result] No tuple matches, trying colon format
+[DEBUG parse_result] Extracted dict: {'disease_name': None}
+[DEBUG parse_result] Final dict with defaults: {'disease_name': None, 'doc_id': 2}
+[DEBUG parse_result] Input text: disease_name: Atherosclerotic cardiovascular disease
+[DEBUG parse_result] No tuple matches, trying colon format
+[DEBUG parse_result] Extracted dict: {'disease_name': 'Atherosclerotic cardiovascular disease'}
+[DEBUG parse_result] Final dict with defaults: {'disease_name': 'Atherosclerotic cardiovascular disease', 'doc_id': 3}
+[DEBUG parse_result] Input text: disease_name: Acne
+[DEBUG parse_result] No tuple matches, trying colon format
+[DEBUG parse_result] Extracted dict: {'disease_name': 'Acne'}
+[DEBUG parse_result] Final dict with defaults: {'disease_name': 'Acne', 'doc_id': 4}
+[DEBUG parse_result] Input text: disease_name: NONE
+[DEBUG parse_result] No tuple matches, trying colon format
+[DEBUG parse_result] Extracted dict: {'disease_name': None}
+[DEBUG parse_result] Final dict with defaults: {'disease_name': None, 'doc_id': 5}
+------------
+                              disease_name  doc_id
+0                                               1
+1                                               2
+2  Atherosclerotic cardiovascular disease       3
+3                                    Acne       4
+4                                               5
+
+Drug extraction results:
+                             disease_name  doc_id
+0                                               1
+1                                               2
+2  Atherosclerotic cardiovascular disease       3
+3                                    Acne       4
+4                                               5
+--------------------------------------------------------------------------------
+TEST 2: Extracting disease_name from DISEASE documents
+--------------------------------------------------------------------------------
+
+Sending 5 disease documents to LLM...
+Streaming responses:
+
+[DEBUG extract_attribute] Unqualified attrs for LLM: ['disease_name']
+[DEBUG extract_attribute] Attr mapping: {'disease_name': 'disease_name'}
+[DEBUG extract_attribute] LLM returned 5 results
+[DEBUG extract_attribute] First result (first 500 chars): disease_name: NONE
+[DEBUG parse_result] Input text: disease_name: NONE
+[DEBUG parse_result] No tuple matches, trying colon format
+[DEBUG parse_result] Extracted dict: {'disease_name': None}
+[DEBUG parse_result] Final dict with defaults: {'disease_name': None, 'doc_id': 1}
+[DEBUG parse_result] Input text: disease_name: Hemophilia B
+[DEBUG parse_result] No tuple matches, trying colon format
+[DEBUG parse_result] Extracted dict: {'disease_name': 'Hemophilia B'}
+[DEBUG parse_result] Final dict with defaults: {'disease_name': 'Hemophilia B', 'doc_id': 2}
+[DEBUG parse_result] Input text: disease_name: NONE
+[DEBUG parse_result] No tuple matches, trying colon format
+[DEBUG parse_result] Extracted dict: {'disease_name': None}
+[DEBUG parse_result] Final dict with defaults: {'disease_name': None, 'doc_id': 3}
+[DEBUG parse_result] Input text: disease_name: Covid-19
+[DEBUG parse_result] No tuple matches, trying colon format
+[DEBUG parse_result] Extracted dict: {'disease_name': 'Covid-19'}
+[DEBUG parse_result] Final dict with defaults: {'disease_name': 'Covid-19', 'doc_id': 4}
+[DEBUG parse_result] Input text: disease_name: NONE
+[DEBUG parse_result] No tuple matches, trying colon format
+[DEBUG parse_result] Extracted dict: {'disease_name': None}
+[DEBUG parse_result] Final dict with defaults: {'disease_name': None, 'doc_id': 5}
+------------
+    disease_name  doc_id
+0                     1
+1  Hemophilia B       2
+2                     3
+3      Covid-19       4
+4                     5
+
+Disease extraction results:
+   disease_name  doc_id
+0                     1
+1  Hemophilia B       2
+2                     3
+3      Covid-19       4
+4                     5
+
+================================================================================
+SUMMARY
+================================================================================
+
+Model: llama3.1:70b
+Drug documents:    2/5 successful extractions (40.0%)
+Disease documents: 2/5 successful extractions (40.0%)
+
+⚠️  LLM EXTRACTION IS UNRELIABLE (< 50% success rate)
+   This is likely causing join_1 to return few or no rows
+
+   Actual extractions (non-empty):
+     Drugs: ['Atherosclerotic cardiovascular disease' 'Acne']
+     Diseases: ['Hemophilia B' 'Covid-19']
+
+================================================================================
+
+/uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/quest_venv/lib/python3.13/site-packages/transformers/utils/hub.py:110: FutureWarning: Using `TRANSFORMERS_CACHE` is deprecated and will be removed in v5 of Transformers. Use `HF_HOME` instead.
+  warnings.warn(
+
+================================================================================
+TESTING LLM EXTRACTION FOR MED DATASET - Model: gemma3:27b
+================================================================================
+
+✓ Found documents at: /uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/source_data/Healthcare
+  Loading 5 drug documents from /uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/source_data/Healthcare/drug_small
+  Loading 5 disease documents from /uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/source_data/Healthcare/disease_small
+✓ Loaded 5 drug documents and 5 disease documents
+
+Initializing LLM querier (ollama/gemma3:27b)...
+[TextLLMQuerier.__init__] Model: ollama/gemma3:27b, API Base: http://localhost:11434, Thinking: False
+✓ LLM querier initialized with model: ollama/gemma3:27b
+
+--------------------------------------------------------------------------------
+TEST 1: Extracting disease_name from DRUG documents
+--------------------------------------------------------------------------------
+
+Sending 5 drug documents to LLM...
+Streaming responses:
+
+[DEBUG extract_attribute] Unqualified attrs for LLM: ['disease_name']
+[DEBUG extract_attribute] Attr mapping: {'disease_name': 'disease_name'}
+[DEBUG extract_attribute] LLM returned 5 results
+[DEBUG extract_attribute] First result (first 500 chars): disease_name: allergies
+[DEBUG parse_result] Input text: disease_name: allergies
+[DEBUG parse_result] No tuple matches, trying colon format
+[DEBUG parse_result] Extracted dict: {'disease_name': 'allergies'}
+[DEBUG parse_result] Final dict with defaults: {'disease_name': 'allergies', 'doc_id': 1}
+[DEBUG parse_result] Input text: disease_name: trichuris muris
+[DEBUG parse_result] No tuple matches, trying colon format
+[DEBUG parse_result] Extracted dict: {'disease_name': 'trichuris muris'}
+[DEBUG parse_result] Final dict with defaults: {'disease_name': 'trichuris muris', 'doc_id': 2}
+[DEBUG parse_result] Input text: disease_name: Aatherosclerotic cardiovascular disease
+[DEBUG parse_result] No tuple matches, trying colon format
+[DEBUG parse_result] Extracted dict: {'disease_name': 'Aatherosclerotic cardiovascular disease'}
+[DEBUG parse_result] Final dict with defaults: {'disease_name': 'Aatherosclerotic cardiovascular disease', 'doc_id': 3}
+[DEBUG parse_result] Input text: disease_name: acne
+[DEBUG parse_result] No tuple matches, trying colon format
+[DEBUG parse_result] Extracted dict: {'disease_name': 'acne'}
+[DEBUG parse_result] Final dict with defaults: {'disease_name': 'acne', 'doc_id': 4}
+[DEBUG parse_result] Input text: disease_name: Cholesterol
+[DEBUG parse_result] No tuple matches, trying colon format
+[DEBUG parse_result] Extracted dict: {'disease_name': 'Cholesterol'}
+[DEBUG parse_result] Final dict with defaults: {'disease_name': 'Cholesterol', 'doc_id': 5}
+------------
+                               disease_name  doc_id
+0                                allergies       1
+1                          trichuris muris       2
+2  Aatherosclerotic cardiovascular disease       3
+3                                     acne       4
+4                              Cholesterol       5
+
+Drug extraction results:
+                              disease_name  doc_id
+0                                allergies       1
+1                          trichuris muris       2
+2  Aatherosclerotic cardiovascular disease       3
+3                                     acne       4
+4                              Cholesterol       5
+--------------------------------------------------------------------------------
+TEST 2: Extracting disease_name from DISEASE documents
+--------------------------------------------------------------------------------
+
+Sending 5 disease documents to LLM...
+Streaming responses:
+
+[DEBUG extract_attribute] Unqualified attrs for LLM: ['disease_name']
+[DEBUG extract_attribute] Attr mapping: {'disease_name': 'disease_name'}
+[DEBUG extract_attribute] LLM returned 5 results
+[DEBUG extract_attribute] First result (first 500 chars): disease_name: NONE
+[DEBUG parse_result] Input text: disease_name: NONE
+[DEBUG parse_result] No tuple matches, trying colon format
+[DEBUG parse_result] Extracted dict: {'disease_name': None}
+[DEBUG parse_result] Final dict with defaults: {'disease_name': None, 'doc_id': 1}
+[DEBUG parse_result] Input text: disease_name: Hemophilia B
+
+[DEBUG parse_result] No tuple matches, trying colon format
+[DEBUG parse_result] Extracted dict: {'disease_name': 'Hemophilia B'}
+[DEBUG parse_result] Final dict with defaults: {'disease_name': 'Hemophilia B', 'doc_id': 2}
+[DEBUG parse_result] Input text: disease_name: cardiovascular diseases, haematological malignancies, Alzheimer's disease and prostate
+[DEBUG parse_result] No tuple matches, trying colon format
+[DEBUG parse_result] Extracted dict: {'disease_name': "cardiovascular diseases, haematological malignancies, Alzheimer's disease and prostate cancer."}
+[DEBUG parse_result] Final dict with defaults: {'disease_name': "cardiovascular diseases, haematological malignancies, Alzheimer's disease and prostate cancer.", 'doc_id': 3}
+[DEBUG parse_result] Input text: disease_name: COVID-19
+
+[DEBUG parse_result] No tuple matches, trying colon format
+[DEBUG parse_result] Extracted dict: {'disease_name': 'COVID-19'}
+[DEBUG parse_result] Final dict with defaults: {'disease_name': 'COVID-19', 'doc_id': 4}
+[DEBUG parse_result] Input text: disease_name: NONE
+[DEBUG parse_result] No tuple matches, trying colon format
+[DEBUG parse_result] Extracted dict: {'disease_name': None}
+[DEBUG parse_result] Final dict with defaults: {'disease_name': None, 'doc_id': 5}
+------------
+                                         disease_name  doc_id
+0                                                          1
+1                                       Hemophilia B       2
+2  cardiovascular diseases, haematological malign...       3
+3                                           COVID-19       4
+4                                                          5
+
+Disease extraction results:
+                                        disease_name  doc_id
+0                                                          1
+1                                       Hemophilia B       2
+2  cardiovascular diseases, haematological malign...       3
+3                                           COVID-19       4
+4                                                          5
+
+================================================================================
+SUMMARY
+================================================================================
+
+Model: gemma3:27b
+Drug documents:    5/5 successful extractions (100.0%)
+Disease documents: 3/5 successful extractions (60.0%)
+
+✓ LLM extraction appears to be working reasonably well
+
+================================================================================
+
+
+================================================================================
+TESTING LLM EXTRACTION FOR MED DATASET - Model: qwen2.5:7b-instruct
+================================================================================
+
+✓ Found documents at: /uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/source_data/Healthcare
+  Loading 5 drug documents from /uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/source_data/Healthcare/drug_small
+  Loading 5 disease documents from /uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/source_data/Healthcare/disease_small
+✓ Loaded 5 drug documents and 5 disease documents
+
+--------------------------------------------------------------------------------
+TEST 1: Extracting disease_name from DRUG documents
+--------------------------------------------------------------------------------
+
+Drug 1/5: disease_name: NONE [doc_id=1]
+Drug 2/5: disease_name: NONE [doc_id=2]
+Drug 3/5: disease_name: Atherosclerotic cardiovascular disease [doc_id=3]
+Drug 4/5: disease_name: NONE [doc_id=4]
+Drug 5/5: disease_name: NONE [doc_id=5]
+
+--------------------------------------------------------------------------------
+TEST 2: Extracting disease_name from DISEASE documents
+--------------------------------------------------------------------------------
+
+Disease 1/5: disease_name: NONE [doc_id=1]
+Disease 2/5: disease_name: Hemophilia B [doc_id=2]
+Disease 3/5: disease_name: NONE [doc_id=3]
+Disease 4/5: disease_name: NONE [doc_id=4]
+Disease 5/5: disease_name: NONE [doc_id=5]
+
+
+================================================================================
+SUMMARY
+================================================================================
+
+Model: qwen2.5:7b-instruct
+Drug documents:    1/5 successful extractions (20.0%)
+Disease documents: 1/5 successful extractions (20.0%)
+
+Drug results:
+  Doc 1: disease_name: NONE
+  Doc 2: disease_name: NONE
+  Doc 3: disease_name: Atherosclerotic cardiovascular disease
+  Doc 4: disease_name: NONE
+  Doc 5: disease_name: NONE
+
+Disease results:
+  Doc 1: disease_name: NONE
+  Doc 2: disease_name: Hemophilia B
+  Doc 3: disease_name: NONE
+  Doc 4: disease_name: NONE
+  Doc 5: disease_name: NONE
+
+⚠️  LLM EXTRACTION IS UNRELIABLE (< 50% success rate)
+
+================================================================================
+
