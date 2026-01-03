@@ -65,8 +65,7 @@ class TextPhysicalPlanner(object):
     def build_join(self, root : LogicalJoin):
         # Per QUEST paper Section 3.2: Use join transformation (join -> IN filter)
         # if join transformation attributes are provided
-        # TEMPORARY: Disable join transformation to test standard join
-        if False and hasattr(root, 'extracted_join_attr') and root.extracted_join_attr:
+        if hasattr(root, 'extracted_join_attr') and root.extracted_join_attr:
             print("[DEBUG PhysicalPlanner] Building JoinTransformText (join transformation enabled)")
             node = JoinTransformText(
                 root.join_type, 
@@ -76,7 +75,7 @@ class TextPhysicalPlanner(object):
                 join_filter_attr=root.join_filter_attr
             )
         else:
-            print("[DEBUG PhysicalPlanner] Building standard JoinText (no join transformation - TESTING)")
+            print("[DEBUG PhysicalPlanner] Building standard JoinText (no join transformation)")
             node = JoinText(root.join_type, root.join_order, 'Text')
         
         node.set_indexer(self.global_indexer)

@@ -1902,7 +1902,7 @@ class ChallengingQueryRunner:
         "unify": ["openai", "torch", "sentence-transformers", "hnswlib"],
         "squid": ["pandas", "openai"],
         "pz": ["pandas"],
-        "gem": ["duckdb", "pandas", "openai", "sentence-transformers", "faiss-cpu"],
+        "gem": ["duckdb", "pandas", "openai", "sentence-transformers", "faiss"],
         # lotus-ai requires Python <3.13, checked separately
     }
     
