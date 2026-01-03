@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 """
 Test script to compare LLM extraction quality across different models for Med dataset.
+Uses direct Ollama API with streaming to show real-time progress.
 
 Run on CHPC with:
   cd /path/to/UDA-Bench-main
-  source quest_venv/bin/activate
-  python3 test_med_llm_extraction_multimodel.py --model qwen2.5:7b-instruct
-  python3 test_med_llm_extraction_multimodel.py --model qwen3:235b
+  python3 -u test_med_llm_extraction_multimodel.py --model qwen3:235b 2>&1 | tee results.txt
 """
 
 import sys
 from pathlib import Path
 import json
-import random
 import argparse
+import requests
+import time
 
 # Setup paths
 PROJECT_ROOT = Path(__file__).parent
@@ -21,19 +21,11 @@ sys.path.insert(0, str(PROJECT_ROOT))
 sys.path.insert(0, str(PROJECT_ROOT / "systems"))
 sys.path.insert(0, str(PROJECT_ROOT / "systems" / "quest"))
 
-# Import QUEST components
-from quest.core.llm.llm_query import TextLLMQuerier, parse_result
-from quest.core.embedding.e5Embedding import batchedE5Embeddings
 import pandas as pd
 
 
 def load_sample_documents():
-    """Load sample drug and disease documents.
-    
-    Tries multiple paths for both local and CHPC systems:
-    - Local: /Users/aritramazumder/Documents/UDA-Bench-main/source_data/Healthcare/
-    - CHPC: /uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/source_data/Healthcare/
-    """
+    """Load sample drug and disease documents."""
     # Try multiple possible paths in order of preference
     possible_paths = [
         PROJECT_ROOT / "source_data" / "Healthcare",      # Both local and CHPC (relative)
@@ -103,6 +95,59 @@ def load_sample_documents():
     return drugs, diseases
 
 
+def extract_with_ollama(model_name, text, doc_id, api_base="http://localhost:11434"):
+    """Extract disease_name from text using Ollama with streaming."""
+    
+    prompt = f"""Extract the disease_name from the following document.
+Return ONLY in this format: disease_name: <value>
+
+If no disease name is found, return: disease_name: NONE
+
+Document:
+{text}
+
+Answer:"""
+    
+    try:
+        response = requests.post(
+            f"{api_base}/api/generate",
+            json={
+                "model": model_name,
+                "prompt": prompt,
+                "stream": True,
+                "temperature": 0,
+                "num_predict": 50,
+            },
+            timeout=300,  # 5 minute timeout
+        )
+        response.raise_for_status()
+        
+        # Stream and collect response
+        full_response = ""
+        for line in response.iter_lines():
+            if line:
+                data = json.loads(line)
+                chunk = data.get("response", "")
+                if chunk:
+                    sys.stdout.write(chunk)
+                    sys.stdout.flush()
+                    full_response += chunk
+                if data.get("done", False):
+                    break
+        
+        sys.stdout.write(f" [doc_id={doc_id}]\n")
+        sys.stdout.flush()
+        
+        return full_response.strip()
+    
+    except requests.exceptions.Timeout:
+        print(f"\n⏱️  TIMEOUT for doc_id={doc_id} (model too large or slow)")
+        return "TIMEOUT"
+    except Exception as e:
+        print(f"\n❌ ERROR for doc_id={doc_id}: {str(e)[:100]}")
+        return f"ERROR: {str(e)[:50]}"
+
+
 def test_llm_extraction(model_name):
     """Test LLM extraction of disease_name from Med documents."""
     
@@ -120,105 +165,78 @@ def test_llm_extraction(model_name):
         print(f"    - /Users/aritramazumder/Documents/UDA-Bench-main/source_data/Healthcare")
         print(f"    - /uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/source_data/Healthcare")
         print(f"    - {PROJECT_ROOT / 'preprocess_squid' / 'Med'}")
-        print(f"\n  Loaded {len(drugs)} drugs and {len(diseases)} diseases")
         return
     
     print(f"✓ Loaded {len(drugs)} drug documents and {len(diseases)} disease documents\n")
     
-    # Initialize LLM querier with specified model
-    print(f"Initializing LLM querier (ollama/{model_name})...")
-    # Create querier with the specified model
-    querier = TextLLMQuerier(prompt="", llm=f"ollama/{model_name}")
-    print(f"✓ LLM querier initialized with model: {querier.llm}\n")
-    
     # Test 1: Extract disease_name from DRUG documents
     print("-" * 80)
     print("TEST 1: Extracting disease_name from DRUG documents")
-    print("-" * 80)
+    print("-" * 80 + "\n")
     
-    drug_texts = [doc['text'] for doc in drugs]
-    drug_ids = list(range(1, len(drugs) + 1))
+    drug_results = []
+    for i, drug in enumerate(drugs, 1):
+        print(f"Drug {i}/5: ", end="", flush=True)
+        result = extract_with_ollama(model_name, drug['text'], i)
+        drug_results.append({'doc_id': i, 'text': result})
     
-    print(f"\nSending {len(drug_texts)} drug documents to LLM...")
-    print("Streaming responses:\n")
-    
-    try:
-        drug_results = querier.extract_attribute(
-            textList=drug_texts,
-            doc_idList=drug_ids,
-            attributeList=['disease_name']
-        )
-        print("\nDrug extraction results:")
-        print(drug_results)
-    except Exception as e:
-        print(f"\n❌ ERROR during drug extraction: {type(e).__name__}: {str(e)[:200]}")
-        print("   Model may not be responding or may be too large for timeout")
-        return
+    print()
     
     # Test 2: Extract disease_name from DISEASE documents
     print("-" * 80)
     print("TEST 2: Extracting disease_name from DISEASE documents")
-    print("-" * 80)
+    print("-" * 80 + "\n")
     
-    disease_texts = [doc['text'] for doc in diseases]
-    disease_ids = list(range(1, len(diseases) + 1))
+    disease_results = []
+    for i, disease in enumerate(diseases, 1):
+        print(f"Disease {i}/5: ", end="", flush=True)
+        result = extract_with_ollama(model_name, disease['text'], i)
+        disease_results.append({'doc_id': i, 'text': result})
     
-    print(f"\nSending {len(disease_texts)} disease documents to LLM...")
-    print("Streaming responses:\n")
+    print()
     
-    try:
-        disease_results = querier.extract_attribute(
-            textList=disease_texts,
-            doc_idList=disease_ids,
-            attributeList=['disease_name']
-        )
-        print("\nDisease extraction results:")
-        print(disease_results)
-    except Exception as e:
-        print(f"\n❌ ERROR during disease extraction: {type(e).__name__}: {str(e)[:200]}")
-        print("   Model may not be responding or may be too large for timeout")
-        return
-    
-    # Summary
+    # Parse results
     print("\n" + "="*80)
     print("SUMMARY")
     print("="*80)
     
-    # Count TRUE successful extractions (non-null AND non-whitespace)
-    drug_true_success = drug_results['disease_name'].apply(
-        lambda x: x is not None and isinstance(x, str) and x.strip() != ''
-    ).sum()
-    disease_true_success = disease_results['disease_name'].apply(
-        lambda x: x is not None and isinstance(x, str) and x.strip() != ''
-    ).sum()
+    def count_successful(results):
+        """Count extractions that have actual disease names."""
+        count = 0
+        for r in results:
+            text = r['text']
+            # Extract value after "disease_name: "
+            if "disease_name:" in text.lower():
+                parts = text.lower().split("disease_name:")
+                if len(parts) > 1:
+                    value = parts[1].strip()
+                    if value and value.lower() != "none" and not value.startswith("error") and not value.startswith("timeout"):
+                        count += 1
+        return count
+    
+    drug_success = count_successful(drug_results)
+    disease_success = count_successful(disease_results)
     
     print(f"\nModel: {model_name}")
-    print(f"Drug documents:    {drug_true_success}/{len(drug_results)} successful extractions ({100*drug_true_success/len(drug_results):.1f}%)")
-    print(f"Disease documents: {disease_true_success}/{len(disease_results)} successful extractions ({100*disease_true_success/len(disease_results):.1f}%)")
+    print(f"Drug documents:    {drug_success}/{len(drug_results)} successful extractions ({100*drug_success/len(drug_results):.1f}%)")
+    print(f"Disease documents: {disease_success}/{len(disease_results)} successful extractions ({100*disease_success/len(disease_results):.1f}%)")
     
-    if drug_true_success == 0 and disease_true_success == 0:
+    print(f"\nDrug results:")
+    for r in drug_results:
+        print(f"  Doc {r['doc_id']}: {r['text'][:80]}")
+    
+    print(f"\nDisease results:")
+    for r in disease_results:
+        print(f"  Doc {r['doc_id']}: {r['text'][:80]}")
+    
+    if drug_success == 0 and disease_success == 0:
         print("\n❌ LLM EXTRACTION IS COMPLETELY FAILING for Med dataset")
-        print("   This explains why join_1 returns 0 rows")
-    elif drug_true_success < len(drug_results) * 0.5 or disease_true_success < len(disease_results) * 0.5:
+    elif drug_success < len(drug_results) * 0.5 or disease_success < len(disease_results) * 0.5:
         print("\n⚠️  LLM EXTRACTION IS UNRELIABLE (< 50% success rate)")
-        print("   This is likely causing join_1 to return few or no rows")
-        print(f"\n   Actual extractions (non-empty):")
-        drug_extracts = drug_results[drug_results['disease_name'].astype(str).str.strip() != '']['disease_name'].unique()
-        disease_extracts = disease_results[disease_results['disease_name'].astype(str).str.strip() != '']['disease_name'].unique()
-        print(f"     Drugs: {drug_extracts}")
-        print(f"     Diseases: {disease_extracts}")
     else:
         print("\n✓ LLM extraction appears to be working reasonably well")
     
     print("\n" + "="*80 + "\n")
-    
-    return {
-        'model': model_name,
-        'drug_success_rate': 100*drug_true_success/len(drug_results),
-        'disease_success_rate': 100*disease_true_success/len(disease_results),
-        'drug_count': drug_true_success,
-        'disease_count': disease_true_success,
-    }
 
 
 if __name__ == '__main__':
@@ -227,4 +245,4 @@ if __name__ == '__main__':
                         help='LLM model to test (e.g., qwen2.5:7b-instruct or qwen3:235b)')
     args = parser.parse_args()
     
-    result = test_llm_extraction(args.model)
+    test_llm_extraction(args.model)
