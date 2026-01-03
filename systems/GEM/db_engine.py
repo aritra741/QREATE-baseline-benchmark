@@ -158,8 +158,33 @@ class DBEngine:
             df = pd.DataFrame(records)
             self.logger.info(f"[INSERT] DataFrame shape: {df.shape}, columns: {df.columns.tolist()}")
             
-            # Use pandas to_sql with sqlite3 connection
-            # append mode adds to existing table, if_exists='append' to add to existing table
+            # If schema is defined, only keep columns that are in the schema
+            if self.schema:
+                schema_columns = [attr.name for attr in self.schema.attributes]
+                extra_columns = [col for col in df.columns if col not in schema_columns]
+                if extra_columns:
+                    self.logger.warning(f"[INSERT] Dropping extra columns not in schema: {extra_columns}")
+                    df = df[[col for col in df.columns if col in schema_columns]]
+                
+                # Convert lists to pipe-delimited strings for multi-valued fields
+                for col in df.columns:
+                    if df[col].dtype == 'object':
+                        # Check if any values are lists or dicts
+                        has_list_or_dict = df[col].apply(lambda x: isinstance(x, (list, dict))).any()
+                        if has_list_or_dict:
+                            self.logger.debug(f"[INSERT] Converting list/dict values in column {col} to pipe-delimited strings")
+                            def convert_value(x):
+                                if isinstance(x, list):
+                                    # Join list items with ||
+                                    return "||".join(str(item).strip() for item in x if item)
+                                elif isinstance(x, dict):
+                                    # For dicts, join values with ||
+                                    return "||".join(str(v).strip() for v in x.values() if v)
+                                else:
+                                    return str(x) if x else ""
+                            df[col] = df[col].apply(convert_value)
+            
+            # Insert using pandas to_sql
             df.to_sql(table_name, self.conn, if_exists='append', index=False)
             
             self.logger.info(f"Inserted {len(records)} records into {table_name}")
