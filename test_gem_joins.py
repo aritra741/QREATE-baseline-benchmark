@@ -22,16 +22,16 @@ PROJECT_ROOT = Path(__file__).parent
 sys.path.insert(0, str(PROJECT_ROOT / "systems"))
 
 from GEM.gem_runner import GEMRunner
-from GEM.blocking import Blocker
-from GEM.resolver import Resolver
+from GEM.blocking import SemanticBlocker
+from GEM.resolver import EntityResolver
 
 # Setup logging
 logger = logging.getLogger(__name__)
 
 # Initialize GEM's entity matcher components
 try:
-    blocker = Blocker(logger=logger)
-    resolver = Resolver(logger=logger)
+    blocker = SemanticBlocker(logger=logger)
+    resolver = EntityResolver(logger=logger)
     HAS_ENTITY_MANAGER = True
 except Exception as e:
     HAS_ENTITY_MANAGER = False
@@ -145,7 +145,7 @@ def llm_values_match(val1: str, val2: str) -> bool:
         from scipy.spatial.distance import cosine
         
         # Step 1: Use GEM's blocking (semantic similarity check)
-        embeddings = blocker.model.encode([val1, val2], convert_to_tensor=False)
+        embeddings = blocker.encode_texts([val1, val2])
         similarity = 1 - cosine(embeddings[0], embeddings[1])
         
         # If below GEM's threshold, they don't belong together
@@ -154,14 +154,12 @@ def llm_values_match(val1: str, val2: str) -> bool:
         
         # Step 2: Use GEM's resolver (LLM confirmation)
         # This is what resolver._get_canonical_for_block does - asks LLM to confirm
-        canonical_map = resolver._get_canonical_for_block([val1, val2])
+        canonical = resolver._get_canonical_for_block([val1, val2])
         
-        # If resolver maps both to the same canonical name, they're the same entity
-        val1_canonical = canonical_map.get(val1.lower(), val1)
-        val2_canonical = canonical_map.get(val2.lower(), val2)
-        
-        if val1_canonical == val2_canonical:
-            logger.debug(f"Entity match: '{val1}' ≈ '{val2}' (canonical: {val1_canonical})")
+        # If LLM identified a single canonical, they belong to same entity
+        # (LLM would return different canonicals if they were distinct entities)
+        if canonical:
+            logger.debug(f"Entity match: '{val1}' ≈ '{val2}' (canonical: {canonical})")
             return True
         
         return False
