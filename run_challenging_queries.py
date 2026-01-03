@@ -526,7 +526,7 @@ class QuestRunner(SystemRunner):
                 logical_planner = JoinLogicalPlanner()
                 self.logger.info("[QUEST] Using JOIN TRANSFORMATION planner per paper Section 3.2 (NO FALLBACK)")
             else:
-            logical_planner = self.LogicalPlanner()
+                logical_planner = self.LogicalPlanner()
             
             logical_plan = logical_planner.build_logical_plan(ast)
             metadata["logical_plan_time"] = time.time() - start_time - metadata["parse_time"]
