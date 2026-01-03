@@ -50,7 +50,7 @@ def values_match(val1, val2):
 
 
 def calculate_metrics(gt_df: pd.DataFrame, result_df: pd.DataFrame) -> dict:
-    """Calculate precision, recall, and F1."""
+    """Calculate precision, recall, and F1 using sorted row matching with 2-pointer approach."""
     
     # Handle empty results
     if len(result_df) == 0 and len(gt_df) == 0:
@@ -72,52 +72,110 @@ def calculate_metrics(gt_df: pd.DataFrame, result_df: pd.DataFrame) -> dict:
     if not common_cols_lower:
         return {"precision": 0.0, "recall": 0.0, "f1": 0.0, "tp": 0, "fp": 0, "fn": 0, "note": "No common columns"}
     
-    # Normalize data for comparison
+    # Get first column name for sorting
+    first_col_lower = min(common_cols_lower)  # Get first column alphabetically from common columns
+    first_col_gt = gt_cols_lower[first_col_lower]
+    first_col_result = result_cols_lower[first_col_lower]
+    
+    # Sort dataframes by first column (normalized values)
     gt_normalized = gt_df.copy()
     result_normalized = result_df.copy()
     
-    # Create matching index based on row position
-    gt_normalized['_idx'] = range(len(gt_normalized))
-    result_normalized['_idx'] = range(len(result_normalized))
+    gt_normalized['_sort_key'] = gt_normalized[first_col_gt].apply(normalize_value)
+    result_normalized['_sort_key'] = result_normalized[first_col_result].apply(normalize_value)
     
-    # Calculate TP, FP, FN per cell
+    gt_normalized = gt_normalized.sort_values('_sort_key').reset_index(drop=True)
+    result_normalized = result_normalized.sort_values('_sort_key').reset_index(drop=True)
+    
+    # 2-pointer matching
     tp = 0
     fp = 0
     fn = 0
     
-    max_rows = max(len(gt_normalized), len(result_normalized))
+    gt_idx = 0
+    result_idx = 0
+    gt_len = len(gt_normalized)
+    result_len = len(result_normalized)
     
-    for col_lower in common_cols_lower:
-        gt_col = gt_cols_lower[col_lower]
-        result_col = result_cols_lower[col_lower]
+    # Track which GT rows have been matched
+    gt_matched = set()
+    
+    while gt_idx < gt_len and result_idx < result_len:
+        gt_sort_key = gt_normalized.iloc[gt_idx]['_sort_key']
+        result_sort_key = result_normalized.iloc[result_idx]['_sort_key']
         
-        for idx in range(max_rows):
-            # Get GT value
-            if idx < len(gt_normalized):
-                gt_val = gt_normalized.iloc[idx][gt_col]
+        if gt_sort_key == result_sort_key:
+            # Rows match on first column, now compare all common columns
+            gt_matched.add(gt_idx)
+            row_tp = 0
+            row_fp = 0
+            row_fn = 0
+            
+            for col_lower in common_cols_lower:
+                gt_col = gt_cols_lower[col_lower]
+                result_col = result_cols_lower[col_lower]
+                
+                gt_val = gt_normalized.iloc[gt_idx][gt_col]
                 gt_val_norm = normalize_value(gt_val)
-            else:
-                gt_val = ""
-                gt_val_norm = ""
-            
-            # Get result value
-            if idx < len(result_normalized):
-                result_val = result_normalized.iloc[idx][result_col]
+                
+                result_val = result_normalized.iloc[result_idx][result_col]
                 result_val_norm = normalize_value(result_val)
-            else:
-                result_val = ""
-                result_val_norm = ""
+                
+                if gt_val_norm and result_val_norm:
+                    if values_match(gt_val, result_val):
+                        row_tp += 1
+                    else:
+                        row_fp += 1
+                        row_fn += 1
+                elif gt_val_norm and not result_val_norm:
+                    row_fn += 1
+                elif result_val_norm and not gt_val_norm:
+                    row_fp += 1
             
-            if gt_val_norm and result_val_norm:
-                if values_match(gt_val, result_val):
-                    tp += 1
-                else:
-                    fp += 1
+            tp += row_tp
+            fp += row_fp
+            fn += row_fn
+            
+            gt_idx += 1
+            result_idx += 1
+        elif gt_sort_key < result_sort_key:
+            # GT row has no match in result - count all cells as FN
+            for col_lower in common_cols_lower:
+                gt_col = gt_cols_lower[col_lower]
+                gt_val = gt_normalized.iloc[gt_idx][gt_col]
+                gt_val_norm = normalize_value(gt_val)
+                if gt_val_norm:
                     fn += 1
-            elif gt_val_norm and not result_val_norm:
+            gt_idx += 1
+        else:
+            # Result row has no match in GT - count all cells as FP
+            for col_lower in common_cols_lower:
+                result_col = result_cols_lower[col_lower]
+                result_val = result_normalized.iloc[result_idx][result_col]
+                result_val_norm = normalize_value(result_val)
+                if result_val_norm:
+                    fp += 1
+            result_idx += 1
+    
+    # Process remaining GT rows (unmatched) - all cells are FN
+    while gt_idx < gt_len:
+        for col_lower in common_cols_lower:
+            gt_col = gt_cols_lower[col_lower]
+            gt_val = gt_normalized.iloc[gt_idx][gt_col]
+            gt_val_norm = normalize_value(gt_val)
+            if gt_val_norm:
                 fn += 1
-            elif result_val_norm and not gt_val_norm:
+        gt_idx += 1
+    
+    # Process remaining result rows (unmatched) - all cells are FP
+    while result_idx < result_len:
+        for col_lower in common_cols_lower:
+            result_col = result_cols_lower[col_lower]
+            result_val = result_normalized.iloc[result_idx][result_col]
+            result_val_norm = normalize_value(result_val)
+            if result_val_norm:
                 fp += 1
+        result_idx += 1
     
     precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
     recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
