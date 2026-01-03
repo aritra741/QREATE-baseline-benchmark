@@ -19,6 +19,7 @@ from quest.sql.nn.logical_filter import LogicalFilter
 from quest.sql.nn.logical_extract import LogicalExtract
 from quest.sql.nn.logical_retrieve import LogicalRetrieve
 from quest.sql.nn.logical_join import LogicalJoin
+from quest.sql.nn.logical_projection import LogicalProjection
 import copy
 from quest.utils.log import print_log
 
@@ -370,7 +371,14 @@ class JoinLogicalPlanner(object):
         print(f"[DEBUG JoinLogicalPlanner] join_node.join_filter_attr: {join_node.join_filter_attr}")
         print(f"[DEBUG JoinLogicalPlanner] join_node.extracted_join_attr: {join_node.extracted_join_attr}")
         
-        return join_node
+        # CRITICAL: Add Projection node to only return SELECT columns (per SQL semantics)
+        # This ensures only explicitly requested columns are in the final output
+        projnn = LogicalProjection(proj_attrs)
+        projnn.append_input(join_node)
+        
+        print(f"[DEBUG JoinLogicalPlanner] Added LogicalProjection with columns: {[str(attr) for attr in proj_attrs]}")
+        
+        return projnn
 
     def build_logical_plan(self, root):
         self.root = self.build_select(root)
