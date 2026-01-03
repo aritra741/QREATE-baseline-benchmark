@@ -591,16 +591,16 @@ class QuestRunner(SystemRunner):
             all_attr_lines = []
             
             for ent in entity_list:
-            # Case-insensitive entity lookup
-            entity_attrs = None
-            for key in attributes:
+                # Case-insensitive entity lookup
+                entity_attrs = None
+                for key in attributes:
                     if key.lower() == ent.lower():
-                    entity_attrs = attributes[key]
-                    break
-            
-            if entity_attrs is None:
+                        entity_attrs = attributes[key]
+                        break
+                
+                if entity_attrs is None:
                     self.logger.warning(f"[QUEST] No attributes found for entity {ent} in {dataset}")
-                metadata["status"] = "requires_schema"
+                    metadata["status"] = "requires_schema"
                     metadata["error"] = f"No attribute schema found for {dataset}/{ent}"
                 metadata["total_time"] = time.time() - start_time
                 metadata["end_time"] = datetime.now().isoformat()
@@ -626,31 +626,31 @@ class QuestRunner(SystemRunner):
             # This populates the evidence dictionary that's used during retrieval
             for ent in entity_list:
                 self.logger.info(f"[QUEST] Sampling documents from {ent} index for evidence...")
-            try:
+                try:
                     indexer_obj, _ = gb_indexer.get_indexer(ent)
                     self.logger.debug(f"[QUEST] Got indexer for {ent}, has {len(indexer_obj.get_docs_id())} docs")
-                
-                # Check if exhaustive sampling is enabled via environment variable
-                use_exhaustive = os.environ.get('QUEST_EXHAUSTIVE_SAMPLING', '').lower() == 'true'
-                if use_exhaustive:
+                    
+                    # Check if exhaustive sampling is enabled via environment variable
+                    use_exhaustive = os.environ.get('QUEST_EXHAUSTIVE_SAMPLING', '').lower() == 'true'
+                    if use_exhaustive:
                         self.logger.warning(f"[QUEST] EXHAUSTIVE SAMPLING ENABLED - sampling ALL documents for {ent}!")
-                    gb_sampler.try_sample_all_docs(indexer_obj, prompt_str)
-                else:
-                    gb_sampler.try_sample(indexer_obj, prompt_str)
-                
-                    self.logger.info(f"[QUEST] Sampler initialized with evidence for {len(gb_sampler.map_attr_evidence)} attributes from {ent}")
-                
-                # Log what evidence was found for debugging
-                for attr, evidence in gb_sampler.map_attr_evidence.items():
-                    if evidence:
-                        self.logger.debug(f"[QUEST]   - {attr}: {len(evidence)} chars of evidence")
+                        gb_sampler.try_sample_all_docs(indexer_obj, prompt_str)
                     else:
-                        self.logger.warning(f"[QUEST]   - {attr}: NO EVIDENCE FOUND!")
-                        
-            except Exception as e:
+                        gb_sampler.try_sample(indexer_obj, prompt_str)
+                    
+                    self.logger.info(f"[QUEST] Sampler initialized with evidence for {len(gb_sampler.map_attr_evidence)} attributes from {ent}")
+                    
+                    # Log what evidence was found for debugging
+                    for attr, evidence in gb_sampler.map_attr_evidence.items():
+                        if evidence:
+                            self.logger.debug(f"[QUEST]   - {attr}: {len(evidence)} chars of evidence")
+                        else:
+                            self.logger.warning(f"[QUEST]   - {attr}: NO EVIDENCE FOUND!")
+                            
+                except Exception as e:
                     self.logger.error(f"[QUEST] Failed to sample documents for {ent}: {e}")
-                self.logger.error(f"[QUEST] Traceback:\n{traceback.format_exc()}")
-                # Continue anyway - the query might still work with empty evidence
+                    self.logger.error(f"[QUEST] Traceback:\n{traceback.format_exc()}")
+                    # Continue anyway - the query might still work with empty evidence
             
             # Build physical plan
             self.logger.debug("[QUEST] Building physical plan...")
