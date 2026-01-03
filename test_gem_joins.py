@@ -248,19 +248,26 @@ def calculate_metrics(gt_df: pd.DataFrame, result_df: pd.DataFrame) -> dict:
     if len(result_df) > 0 and len(gt_df) == 0:
         return {"precision": 0.0, "recall": 0.0, "f1": 0.0, "tp": 0, "fp": len(result_df), "fn": 0, "note": "Empty GT"}
     
-    # Get common columns (case-insensitive matching)
-    gt_cols_lower = {c.lower(): c for c in gt_df.columns}
-    result_cols_lower = {c.lower(): c for c in result_df.columns}
+    # Normalize column names by removing table prefixes (e.g., "disease.name" -> "name")
+    gt_df_norm = gt_df.copy()
+    result_df_norm = result_df.copy()
     
-    common_cols_lower = set(gt_cols_lower.keys()) & set(result_cols_lower.keys())
-    common_cols_lower.discard('id')  # Don't compare ID column
+    gt_df_norm.columns = [col.split('.')[-1].lower() for col in gt_df_norm.columns]
+    result_df_norm.columns = [col.split('.')[-1].lower() for col in result_df_norm.columns]
     
-    if not common_cols_lower:
+    # Get common columns (case-insensitive)
+    gt_cols = set(gt_df_norm.columns)
+    result_cols = set(result_df_norm.columns)
+    common_cols = gt_cols & result_cols
+    common_cols.discard('id')  # Don't compare ID column
+    
+    if not common_cols:
+        logger.warning(f"No common columns! GT: {gt_cols}, Result: {result_cols}")
         return {"precision": 0.0, "recall": 0.0, "f1": 0.0, "tp": 0, "fp": 0, "fn": 0, "note": "No common columns"}
     
     # Convert to dicts for set-based matching
-    gt_tuples = [gt_df.iloc[i].to_dict() for i in range(len(gt_df))]
-    result_tuples = [result_df.iloc[i].to_dict() for i in range(len(result_df))]
+    gt_tuples = [gt_df_norm[list(common_cols)].iloc[i].to_dict() for i in range(len(gt_df_norm))]
+    result_tuples = [result_df_norm[list(common_cols)].iloc[i].to_dict() for i in range(len(result_df_norm))]
     
     # Track which tuples have been matched
     gt_matched = [False] * len(gt_tuples)
@@ -271,12 +278,23 @@ def calculate_metrics(gt_df: pd.DataFrame, result_df: pd.DataFrame) -> dict:
     # Try to match each result tuple with a GT tuple (greedy matching)
     for r_idx, result_tuple in enumerate(result_tuples):
         for g_idx, gt_tuple in enumerate(gt_tuples):
-            if not gt_matched[g_idx] and tuple_matches(gt_tuple, result_tuple, common_cols_lower, gt_cols_lower, result_cols_lower):
-                # Found a match
-                gt_matched[g_idx] = True
-                result_matched[r_idx] = True
-                tp += 1
-                break
+            if not gt_matched[g_idx]:
+                # Check if all values in common columns match
+                all_match = True
+                for col in common_cols:
+                    gt_val = gt_tuple.get(col)
+                    result_val = result_tuple.get(col)
+                    if not values_match(str(gt_val) if gt_val is not None else "", 
+                                       str(result_val) if result_val is not None else ""):
+                        all_match = False
+                        break
+                
+                if all_match:
+                    # Found a match
+                    gt_matched[g_idx] = True
+                    result_matched[r_idx] = True
+                    tp += 1
+                    break
     
     # Count unmatched tuples
     fn = sum(1 for matched in gt_matched if not matched)  # Unmatched GT tuples
@@ -285,6 +303,8 @@ def calculate_metrics(gt_df: pd.DataFrame, result_df: pd.DataFrame) -> dict:
     precision = tp / len(result_tuples) if len(result_tuples) > 0 else 0.0
     recall = tp / len(gt_tuples) if len(gt_tuples) > 0 else 0.0
     f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
+    
+    logger.debug(f"Metrics: TP={tp}, FP={fp}, FN={fn}, Common cols={common_cols}")
     
     return {"precision": precision, "recall": recall, "f1": f1, "tp": tp, "fp": fp, "fn": fn}
 
