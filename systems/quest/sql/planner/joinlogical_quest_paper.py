@@ -233,7 +233,7 @@ class JoinLogicalPlanner(object):
         # Extract aliases from FROM clause
         if selectStmt.fromClause and selectStmt.fromClause.value:
             from_table = selectStmt.fromClause.value
-            if isinstance(from_table, astn.TableExpr):
+            if isinstance(from_table, astn.TablesExpr):
                 actual_table = from_table.table_name
                 if from_table.alias:
                     alias_to_table[from_table.alias] = actual_table
@@ -243,7 +243,7 @@ class JoinLogicalPlanner(object):
         # Extract aliases from JOIN clauses
         if hasattr(selectStmt, 'joinClause') and selectStmt.joinClause:
             for join in selectStmt.joinClause if isinstance(selectStmt.joinClause, list) else [selectStmt.joinClause]:
-                if isinstance(join, astn.JoinClause):
+                if isinstance(join, astn.JoinsExpr):
                     joined_table = join.table_name
                     if join.alias:
                         alias_to_table[join.alias] = joined_table
