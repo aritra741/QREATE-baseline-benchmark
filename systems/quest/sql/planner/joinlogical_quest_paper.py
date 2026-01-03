@@ -239,10 +239,13 @@ class JoinLogicalPlanner(object):
                 # If table_prefix is an alias, resolve it to actual table name
                 if table_prefix in alias_to_table:
                     actual_table = alias_to_table[table_prefix]
+                    # ColumnExpr.column is a list: [table_name, column_name, alias_name]
+                    column_name = attr.parse_column()
+                    alias_name = attr.column[2] if len(attr.column) > 2 else None
                     # Create new ColumnExpr with resolved table name
-                    resolved_attr = astn.ColumnExpr([actual_table, attr.column_name, attr.alias_name])
+                    resolved_attr = astn.ColumnExpr([actual_table, column_name, alias_name])
                     resolved_attrs.append(resolved_attr)
-                    print(f"[DEBUG JoinLogicalPlanner] Resolved {table_prefix}.{attr.column_name} -> {actual_table}.{attr.column_name}")
+                    print(f"[DEBUG JoinLogicalPlanner] Resolved {table_prefix}.{column_name} -> {actual_table}.{column_name}")
                 else:
                     resolved_attrs.append(attr)
             else:
