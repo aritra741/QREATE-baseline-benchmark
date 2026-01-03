@@ -140,15 +140,20 @@ def test_llm_extraction(model_name):
     drug_ids = list(range(1, len(drugs) + 1))
     
     print(f"\nSending {len(drug_texts)} drug documents to LLM...")
+    print("Streaming responses:\n")
     
-    drug_results = querier.extract_attribute(
-        textList=drug_texts,
-        doc_idList=drug_ids,
-        attributeList=['disease_name']
-    )
-    
-    print("\nDrug extraction results:")
-    print(drug_results)
+    try:
+        drug_results = querier.extract_attribute(
+            textList=drug_texts,
+            doc_idList=drug_ids,
+            attributeList=['disease_name']
+        )
+        print("\nDrug extraction results:")
+        print(drug_results)
+    except Exception as e:
+        print(f"\n❌ ERROR during drug extraction: {type(e).__name__}: {str(e)[:200]}")
+        print("   Model may not be responding or may be too large for timeout")
+        return
     
     # Test 2: Extract disease_name from DISEASE documents
     print("-" * 80)
@@ -159,15 +164,20 @@ def test_llm_extraction(model_name):
     disease_ids = list(range(1, len(diseases) + 1))
     
     print(f"\nSending {len(disease_texts)} disease documents to LLM...")
+    print("Streaming responses:\n")
     
-    disease_results = querier.extract_attribute(
-        textList=disease_texts,
-        doc_idList=disease_ids,
-        attributeList=['disease_name']
-    )
-    
-    print("\nDisease extraction results:")
-    print(disease_results)
+    try:
+        disease_results = querier.extract_attribute(
+            textList=disease_texts,
+            doc_idList=disease_ids,
+            attributeList=['disease_name']
+        )
+        print("\nDisease extraction results:")
+        print(disease_results)
+    except Exception as e:
+        print(f"\n❌ ERROR during disease extraction: {type(e).__name__}: {str(e)[:200]}")
+        print("   Model may not be responding or may be too large for timeout")
+        return
     
     # Summary
     print("\n" + "="*80)
