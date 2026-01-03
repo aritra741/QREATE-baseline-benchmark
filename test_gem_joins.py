@@ -183,7 +183,10 @@ def values_match(val1, val2):
     norm2 = normalize_value(val2)
     
     if not norm1 or not norm2:
-        return norm1 == norm2
+        match = norm1 == norm2
+        if not match:
+            logger.debug(f"Empty value match: '{norm1}' vs '{norm2}' = {match}")
+        return match
     
     # Exact match (after normalization)
     if norm1 == norm2:
@@ -204,6 +207,7 @@ def values_match(val1, val2):
             if llm_values_match(v1, v2):
                 return True
     
+    logger.debug(f"No match: '{norm1}' vs '{norm2}'")
     return False
 
 
@@ -258,16 +262,22 @@ def calculate_metrics(gt_df: pd.DataFrame, result_df: pd.DataFrame) -> dict:
     # Get common columns (case-insensitive)
     gt_cols = set(gt_df_norm.columns)
     result_cols = set(result_df_norm.columns)
-    common_cols = gt_cols & result_cols
-    common_cols.discard('id')  # Don't compare ID column
+    common_cols = sorted(list(gt_cols & result_cols))
+    common_cols = [c for c in common_cols if c != 'id']  # Don't compare ID column
     
     if not common_cols:
         logger.warning(f"No common columns! GT: {gt_cols}, Result: {result_cols}")
         return {"precision": 0.0, "recall": 0.0, "f1": 0.0, "tp": 0, "fp": 0, "fn": 0, "note": "No common columns"}
     
+    logger.debug(f"GT cols: {gt_cols}, Result cols: {result_cols}, Common: {common_cols}")
+    logger.debug(f"GT shape: {gt_df_norm.shape}, Result shape: {result_df_norm.shape}")
+    
     # Convert to dicts for set-based matching
-    gt_tuples = [gt_df_norm[list(common_cols)].iloc[i].to_dict() for i in range(len(gt_df_norm))]
-    result_tuples = [result_df_norm[list(common_cols)].iloc[i].to_dict() for i in range(len(result_df_norm))]
+    gt_tuples = [gt_df_norm[common_cols].iloc[i].to_dict() for i in range(len(gt_df_norm))]
+    result_tuples = [result_df_norm[common_cols].iloc[i].to_dict() for i in range(len(result_df_norm))]
+    
+    logger.debug(f"Sample GT tuple: {gt_tuples[0] if gt_tuples else 'empty'}")
+    logger.debug(f"Sample Result tuple: {result_tuples[0] if result_tuples else 'empty'}")
     
     # Track which tuples have been matched
     gt_matched = [False] * len(gt_tuples)
@@ -392,6 +402,13 @@ def main():
         gem_rows = len(result_df)
         
         # Calculate metrics
+        print(f"  DEBUG GT columns: {list(gt_df.columns)}")
+        print(f"  DEBUG Result columns: {list(result_df.columns)}")
+        if len(gt_df) > 0:
+            print(f"  DEBUG GT first row: {dict(gt_df.iloc[0])}")
+        if len(result_df) > 0:
+            print(f"  DEBUG Result first row: {dict(result_df.iloc[0])}")
+        
         metrics = calculate_metrics(gt_df, result_df)
         precision = metrics["precision"]
         recall = metrics["recall"]
