@@ -44,32 +44,48 @@ def load_join_queries(sql_file: Path) -> list:
         content = f.read()
     
     queries = []
-    # Split by empty lines and filter comments
-    for block in content.split('\n\n'):
-        block = block.strip()
-        if not block or block.startswith('--'):
-            continue
+    lines = content.strip().split('\n')
+    current_comment = ""
+    current_sql = []
+    query_num = 0
+    
+    for line in lines:
+        line = line.rstrip()
         
-        # Extract comment and SQL
-        lines = block.split('\n')
-        comment = ""
-        sql = ""
-        
-        for line in lines:
-            if line.strip().startswith('--'):
-                comment = line.strip()[2:].strip()
-            else:
-                sql += line + " "
-        
-        sql = sql.strip()
-        if sql and sql.endswith(';'):
+        # Check if this is a query header comment
+        if line.startswith('-- Query'):
+            # Save previous query if exists
+            if current_sql:
+                query_num += 1
+                sql = ' '.join(current_sql).strip()
+                if sql.endswith(';'):
+                    sql = sql[:-1].strip()
+                
+                queries.append({
+                    "id": f"join_{query_num}",
+                    "comment": current_comment,
+                    "sql": sql
+                })
+            
+            # Start new query
+            current_comment = line[2:].strip()  # Remove '-- '
+            current_sql = []
+        elif line and not line.startswith('--'):
+            # Add SQL line
+            current_sql.append(line)
+    
+    # Save last query
+    if current_sql:
+        query_num += 1
+        sql = ' '.join(current_sql).strip()
+        if sql.endswith(';'):
             sql = sql[:-1].strip()
         
-        if sql:
-            queries.append({
-                "comment": comment,
-                "sql": sql
-            })
+        queries.append({
+            "id": f"join_{query_num}",
+            "comment": current_comment,
+            "sql": sql
+        })
     
     return queries
 
