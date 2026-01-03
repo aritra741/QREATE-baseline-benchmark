@@ -220,53 +220,57 @@ class JoinLogicalPlanner(object):
             raise Exception('No join conditions found')
         
         # Step 1: Build retrieve nodes for all tables
-        # CRITICAL FIX: Resolve table aliases in attributes
-        # The parser processes SELECT before FROM/JOIN, so aliases aren't resolved yet
-        # We need to resolve them here using origin_tables from the AST
-        
-        # Build alias-to-table mapping from FROM/JOIN clauses
-        alias_map = {}
-        if hasattr(selectStmt, 'fromClause') and selectStmt.fromClause:
-            # From FROM clause
-            if hasattr(selectStmt.fromClause, 'value') and isinstance(selectStmt.fromClause.value, list):
-                for item in selectStmt.fromClause.value:
-                    if isinstance(item, astn.TableExpr) and len(item.value) > 1:
-                        table_name = item.value[0]
-                        if len(item.value) > 1:
-                            alias = item.value[1] if item.value[1] else table_name
-                            alias_map[alias] = table_name
-        
-        # From JOIN clause
-        if hasattr(selectStmt, 'joinClause') and selectStmt.joinClause:
-            for join_item in selectStmt.joinClause:
-                if hasattr(join_item, 'table') and isinstance(join_item.table, astn.TableExpr):
-                    table_name = join_item.table.value[0]
-                    if len(join_item.table.value) > 1:
-                        alias = join_item.table.value[1] if join_item.table.value[1] else table_name
-                        alias_map[alias] = table_name
-        
-        print(f"[DEBUG JoinLogicalPlanner] Built alias_map: {alias_map}")
-        
-        # Resolve aliases in all attributes
-        def resolve_alias(attr):
-            table = attr.parse_table()
-            if table in alias_map:
-                # Create new ColumnExpr with resolved table name
-                column_name = attr.parse_column()
-                new_attr = astn.ColumnExpr([alias_map[table], column_name, attr.value[2]])
-                print(f"[DEBUG JoinLogicalPlanner] Resolved {table}.{column_name} -> {alias_map[table]}.{column_name}")
-                return new_attr
-            return attr
-        
-        where_attrs = [resolve_alias(a) for a in where_attrs]
-        proj_attrs = [resolve_alias(a) for a in proj_attrs]
-        
         all_attrs = []
         all_attrs.extend(where_attrs)
         all_attrs.extend(proj_attrs)
         all_attrs = remove_duplicates_columns(all_attrs)
         
-        print(f"[DEBUG JoinLogicalPlanner] all_attrs (after resolution): {[a.parse_full() for a in all_attrs]}")
+        # CRITICAL FIX: Resolve table aliases to actual table names
+        # The parser couldn't resolve aliases for SELECT clause because FROM wasn't parsed yet
+        # Build a map of aliases -> actual table names from the FROM/JOIN clauses
+        alias_to_table = {}
+        
+        # Extract aliases from FROM clause
+        if selectStmt.fromClause and selectStmt.fromClause.value:
+            from_table = selectStmt.fromClause.value
+            if isinstance(from_table, astn.TableExpr):
+                actual_table = from_table.table_name
+                if from_table.alias:
+                    alias_to_table[from_table.alias] = actual_table
+                else:
+                    alias_to_table[actual_table] = actual_table
+        
+        # Extract aliases from JOIN clauses
+        if hasattr(selectStmt, 'joinClause') and selectStmt.joinClause:
+            for join in selectStmt.joinClause if isinstance(selectStmt.joinClause, list) else [selectStmt.joinClause]:
+                if isinstance(join, astn.JoinClause):
+                    joined_table = join.table_name
+                    if join.alias:
+                        alias_to_table[join.alias] = joined_table
+                    else:
+                        alias_to_table[joined_table] = joined_table
+        
+        print(f"[DEBUG JoinLogicalPlanner] Alias map: {alias_to_table}")
+        
+        # Resolve aliases in all_attrs
+        resolved_attrs = []
+        for attr in all_attrs:
+            if isinstance(attr, astn.ColumnExpr):
+                table_prefix = attr.parse_table()
+                # If table_prefix is an alias, resolve it
+                if table_prefix in alias_to_table:
+                    actual_table = alias_to_table[table_prefix]
+                    # Create new ColumnExpr with resolved table name
+                    resolved_attr = astn.ColumnExpr([actual_table, attr.column_name, attr.alias_name])
+                    resolved_attrs.append(resolved_attr)
+                    print(f"[DEBUG JoinLogicalPlanner] Resolved attr: {table_prefix}.{attr.column_name} -> {actual_table}.{attr.column_name}")
+                else:
+                    resolved_attrs.append(attr)
+            else:
+                resolved_attrs.append(attr)
+        
+        all_attrs = resolved_attrs
+        print(f"[DEBUG JoinLogicalPlanner] all_attrs after resolution: {[a.parse_full() for a in all_attrs]}")
         print(f"[DEBUG JoinLogicalPlanner] tableList: {tableList}")
         
         retrieveDict = {}
