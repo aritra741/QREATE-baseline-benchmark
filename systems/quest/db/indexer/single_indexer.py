@@ -214,6 +214,7 @@ class TextDocIndexer(SingleIndexer):
         
         # Get all physical doc_ids from docs_meta (keys are physical IDs)
         physical_doc_ids = sorted(list(self.docs_meta.keys()))
+        print(f"[DEBUG _map_logical_to_physical_doc_id] Table '{self.table_name}': docs_meta has {len(physical_doc_ids)} docs, type of keys: {type(list(self.docs_meta.keys())[0]) if self.docs_meta else 'N/A'}")
         
         if not physical_doc_ids:
             print(f"[WARNING] No physical doc_ids found in docs_meta!")
