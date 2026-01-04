@@ -149,8 +149,15 @@ class JoinTransformText(JoinText):
                             # Apply IN filter: keep only rows where join column value is in join_values
                             # Normalize values for case-insensitive matching
                             join_values_lower = [str(v).lower().strip() for v in join_values if v]
+                            
+                            # Handle duplicate columns - get the first occurrence
+                            col_data = second_table[second_join_col_found]
+                            if isinstance(col_data, pd.DataFrame):
+                                # Multiple columns with same name - take first
+                                col_data = col_data.iloc[:, 0]
+                            
                             second_table_filtered = second_table[
-                                second_table[second_join_col_found].astype(str).str.lower().str.strip().isin(join_values_lower)
+                                col_data.astype(str).str.lower().str.strip().isin(join_values_lower)
                             ]
                             
                             print(f"[DEBUG JoinTransformText] Applied IN filter to '{second_table_name}': {len(second_table)} -> {len(second_table_filtered)} rows")
