@@ -67,6 +67,16 @@ class JoinTransformText(JoinText):
                 print(f"[DEBUG JoinTransformText] Processing TablePack: {data.tablename}")
                 print(f"[DEBUG JoinTransformText] Table shape: {now_table.shape}, columns: {list(now_table.columns)}")
                 
+                # Show what data we have
+                if 'player.team' in now_table.columns:
+                    team_col = now_table['player.team']
+                    print(f"[DEBUG JoinTransformText] player.team column - non-null count: {team_col.count()}, non-null values: {team_col.dropna().unique().tolist()}")
+                if 'team.team_name' in now_table.columns:
+                    team_name_col = now_table['team.team_name']
+                    print(f"[DEBUG JoinTransformText] team.team_name column - non-null count: {team_name_col.count()}, sample values: {team_name_col.dropna().unique().tolist()[:5]}")
+                
+                print(f"[DEBUG JoinTransformText] First row of {data.tablename}:\n{now_table.head(1)}")
+                
                 # Update doc_id to file_name if needed
                 if 'doc_id' in now_table.columns:
                     index_list = now_table['doc_id'].tolist()
@@ -88,12 +98,15 @@ class JoinTransformText(JoinText):
         # Per paper: Transform join into IN filter
         if self.extracted_join_attr and self.join_filter_attr:
             print("[DEBUG JoinTransformText] Applying join transformation (join -> IN filter)")
+            print(f"[DEBUG JoinTransformText] extracted_join_attr (first table): {self.extracted_join_attr.parse_full()}")
+            print(f"[DEBUG JoinTransformText] join_filter_attr (second table): {self.join_filter_attr.parse_full()}")
             
             # Get join attribute values from first table
             first_table_name = self.extracted_join_attr.parse_table()
             join_attr_col = self.extracted_join_attr.parse_full()
             
-            print(f"[DEBUG JoinTransformText] Extracting join values from table '{first_table_name}', column '{join_attr_col}'")
+            print(f"[DEBUG JoinTransformText] Looking for first table: '{first_table_name}' in tableDict keys: {list(self.tableDict.keys())}")
+            print(f"[DEBUG JoinTransformText] Looking for join column: '{join_attr_col}'")
             
             if first_table_name in self.tableDict:
                 first_table = self.tableDict[first_table_name]
