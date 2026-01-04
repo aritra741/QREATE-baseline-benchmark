@@ -146,9 +146,9 @@ class JoinTransformText(JoinText):
                                     break
                         
                         if second_join_col_found:
-                            # Apply IN filter: keep only rows where join column value is in join_values
-                            # Normalize values for case-insensitive matching
-                            join_values_lower = [str(v).lower().strip() for v in join_values if v]
+                            # Apply IN filter: keep only rows where join column value matches join_values
+                            # CRITICAL: Use fuzzy matching instead of exact matching for better join results
+                            join_values_list = [str(v).strip() for v in join_values if v]
                             
                             # Handle duplicate columns - get the first occurrence
                             col_data = second_table[second_join_col_found]
@@ -156,11 +156,28 @@ class JoinTransformText(JoinText):
                                 # Multiple columns with same name - take first
                                 col_data = col_data.iloc[:, 0]
                             
-                            second_table_filtered = second_table[
-                                col_data.astype(str).str.lower().str.strip().isin(join_values_lower)
-                            ]
+                            # Use fuzzy matching: keep rows where similarity >= threshold
+                            from fuzzywuzzy import fuzz
+                            threshold = 80  # 80% similarity threshold
                             
-                            print(f"[DEBUG JoinTransformText] Applied IN filter to '{second_table_name}': {len(second_table)} -> {len(second_table_filtered)} rows")
+                            def matches_any_fuzzy(val, target_list, thresh=80):
+                                """Check if val fuzzy-matches any item in target_list"""
+                                if not val or not target_list:
+                                    return False
+                                val_str = str(val).strip().lower()
+                                for target in target_list:
+                                    target_str = str(target).lower()
+                                    # Use token_set_ratio for better matching (handles reordering)
+                                    similarity = fuzz.token_set_ratio(val_str, target_str)
+                                    if similarity >= thresh:
+                                        return True
+                                return False
+                            
+                            # Filter using fuzzy matching
+                            mask = col_data.apply(lambda x: matches_any_fuzzy(x, join_values_list, threshold))
+                            second_table_filtered = second_table[mask]
+                            
+                            print(f"[DEBUG JoinTransformText] Applied FUZZY IN filter to '{second_table_name}': {len(second_table)} -> {len(second_table_filtered)} rows (threshold={threshold}%)")
                             print(f"[DEBUG JoinTransformText] Filtered values that matched: {second_table_filtered[second_join_col_found].unique().tolist()[:5] if len(second_table_filtered) > 0 else 'NONE'}")
                             
                             # Update the tableDict with filtered table
