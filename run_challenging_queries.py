@@ -607,8 +607,8 @@ class QuestRunner(SystemRunner):
                     metadata["status"] = "requires_schema"
                     metadata["error"] = f"No attribute schema found for {dataset}/{ent}"
                     metadata["total_time"] = time.time() - start_time
-                metadata["end_time"] = datetime.now().isoformat()
-                return result_df, metadata
+                    metadata["end_time"] = datetime.now().isoformat()
+                    return result_df, metadata
                 
                 all_entity_attrs[ent] = entity_attrs
             
