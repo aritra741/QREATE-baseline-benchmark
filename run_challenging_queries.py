@@ -524,7 +524,7 @@ class QuestRunner(SystemRunner):
                 # Use join transformation planner per paper Section 3.2 - NO FALLBACK
                     from quest.sql.planner.joinlogical_quest_paper import JoinLogicalPlanner
                     logical_planner = JoinLogicalPlanner()
-                self.logger.info("[QUEST] Using JOIN TRANSFORMATION planner per paper Section 3.2 (NO FALLBACK)")
+                    self.logger.info("[QUEST] Using JOIN TRANSFORMATION planner per paper Section 3.2 (NO FALLBACK)")
             else:
                 logical_planner = self.LogicalPlanner()
             
