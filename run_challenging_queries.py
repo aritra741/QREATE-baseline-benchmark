@@ -661,10 +661,27 @@ class QuestRunner(SystemRunner):
             # Build physical plan
             self.logger.info("[QUEST] About to build physical plan...")
             self.logger.debug("[QUEST] Building physical plan...")
-            physical_planner = TextPhysicalPlanner(gb_indexer, gb_querier, sampler=gb_sampler)
-            self.logger.info("[QUEST] Physical planner created, building plan...")
-            physical_plan = physical_planner.build(logical_plan)
-            self.logger.info(f"[QUEST] Physical plan built: {type(physical_plan)}")
+            try:
+                physical_planner = TextPhysicalPlanner(gb_indexer, gb_querier, sampler=gb_sampler)
+                self.logger.info("[QUEST] Physical planner created, building plan...")
+                physical_plan = physical_planner.build(logical_plan)
+                self.logger.info(f"[QUEST] Physical plan built: {type(physical_plan)}")
+                if physical_plan is None:
+                    self.logger.warning("[QUEST] WARNING: physical_plan is None!")
+                    self.logger.warning(f"[QUEST] logical_plan type: {type(logical_plan)}")
+                    result_df = None
+                    metadata["status"] = "completed"
+                    metadata["total_time"] = time.time() - start_time
+                    return result_df, metadata
+            except Exception as e:
+                self.logger.error(f"[QUEST] Failed to build physical plan: {e}")
+                self.logger.error(f"[QUEST] Traceback:\n{traceback.format_exc()}")
+                result_df = None
+                metadata["status"] = "failed"
+                metadata["error"] = f"Failed to build physical plan: {e}"
+                metadata["total_time"] = time.time() - start_time
+                return result_df, metadata
+            
             metadata["physical_plan_time"] = time.time() - start_time - metadata.get("logical_plan_time", 0) - metadata.get("parse_time", 0)
             
             # Execute
