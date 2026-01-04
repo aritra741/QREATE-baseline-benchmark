@@ -256,6 +256,29 @@ class JoinLogicalPlanner(object):
         print(f"[DEBUG JoinLogicalPlanner] all_attrs after resolution: {[a.parse_full() for a in all_attrs]}")
         print(f"[DEBUG JoinLogicalPlanner] tableList: {tableList}")
         
+        # CRITICAL: Also resolve aliases in proj_attrs and where_attrs for extraction
+        def resolve_attr_list(attr_list):
+            """Resolve aliases in a list of attributes."""
+            resolved = []
+            for attr in attr_list:
+                if isinstance(attr, astn.ColumnExpr):
+                    table_prefix = attr.parse_table()
+                    if table_prefix in alias_to_table:
+                        actual_table = alias_to_table[table_prefix]
+                        column_name = attr.parse_column()
+                        alias_name = attr.column[2] if len(attr.column) > 2 else None
+                        resolved_attr = astn.ColumnExpr([actual_table, column_name, alias_name])
+                        resolved.append(resolved_attr)
+                        print(f"[DEBUG JoinLogicalPlanner] Resolved projection/where {table_prefix}.{column_name} -> {actual_table}.{column_name}")
+                    else:
+                        resolved.append(attr)
+                else:
+                    resolved.append(attr)
+            return resolved
+        
+        proj_attrs = resolve_attr_list(proj_attrs)
+        where_attrs = resolve_attr_list(where_attrs)
+        
         retrieveDict = {}
         for table in tableList:
             columns = []
@@ -276,14 +299,41 @@ class JoinLogicalPlanner(object):
         join_cond = join_conditions[0]  # First join condition
         
         # Get the join attribute for first table
-        if join_cond.lhs.parse_table() == first_table:
+        # CRITICAL: Resolve aliases in join attributes too
+        join_lhs_table = join_cond.lhs.parse_table()
+        join_rhs_table = join_cond.rhs.parse_table()
+        
+        # Resolve aliases in join condition tables
+        if join_lhs_table in alias_to_table:
+            join_lhs_table = alias_to_table[join_lhs_table]
+        if join_rhs_table in alias_to_table:
+            join_rhs_table = alias_to_table[join_rhs_table]
+        
+        if join_lhs_table == first_table:
             join_attr_first = join_cond.lhs
             join_attr_second = join_cond.rhs
-            second_table = join_cond.rhs.parse_table()
+            second_table = join_rhs_table
         else:
             join_attr_first = join_cond.rhs
             join_attr_second = join_cond.lhs
-            second_table = join_cond.lhs.parse_table()
+            second_table = join_lhs_table
+        
+        # Resolve join attributes themselves if they have aliases
+        if isinstance(join_attr_first, astn.ColumnExpr):
+            join_attr_first_table = join_attr_first.parse_table()
+            if join_attr_first_table in alias_to_table:
+                actual_table = alias_to_table[join_attr_first_table]
+                column_name = join_attr_first.parse_column()
+                alias_name = join_attr_first.column[2] if len(join_attr_first.column) > 2 else None
+                join_attr_first = astn.ColumnExpr([actual_table, column_name, alias_name])
+        
+        if isinstance(join_attr_second, astn.ColumnExpr):
+            join_attr_second_table = join_attr_second.parse_table()
+            if join_attr_second_table in alias_to_table:
+                actual_table = alias_to_table[join_attr_second_table]
+                column_name = join_attr_second.parse_column()
+                alias_name = join_attr_second.column[2] if len(join_attr_second.column) > 2 else None
+                join_attr_second = astn.ColumnExpr([actual_table, column_name, alias_name])
         
         # For first table: get filters that apply to it
         # CRITICAL: We MUST apply WHERE clause filters to filter the first table
