@@ -302,6 +302,9 @@ Answer:'''
         print(f"[DEBUG extract_attribute] LLM returned {len(results)} results")
         if results:
             print(f"[DEBUG extract_attribute] First result (first 500 chars): {results[0][:500]}")
+            # NEW: Log first 5 results
+            for i in range(min(5, len(results))):
+                print(f"[DEBUG extract_attribute] Result {i}: {repr(results[i][:200])}")
 
         json_result = [parse_result(results[i], doc_idList[i], unqualified_attrs) for i in range(len(results))]
         df = pd.DataFrame(json_result)
