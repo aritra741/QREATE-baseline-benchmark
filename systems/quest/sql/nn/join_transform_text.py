@@ -130,6 +130,8 @@ class JoinTransformText(JoinText):
                     second_table_name = self.join_filter_attr.parse_table()
                     second_join_col = self.join_filter_attr.parse_full()
                     
+                    print(f"[DEBUG JoinTransformText] About to apply IN filter. join_values={join_values}")
+                    
                     if second_table_name in self.tableDict:
                         second_table = self.tableDict[second_table_name]
                         
