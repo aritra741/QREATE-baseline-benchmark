@@ -401,15 +401,18 @@ def main():
     print("-" * 100)
     
     metrics_list = []
+    failed_queries = []  # Track failed queries
     
-    # Execute queries (only first one for testing)
+    # Execute queries
     for i, (query_idx, gt_result) in enumerate(gt_results.items()):
-        # Only process the first query
-        # if i > 0:
-        #     break
-            
         if gt_result["status"] == "error":
             print(f"[{i+1:2d}] {gt_result['comment']:<40} ERROR - {gt_result['error']}")
+            failed_queries.append({
+                "query_id": f"join_{i+1}",
+                "description": gt_result["comment"],
+                "reason": f"Ground truth generation failed: {gt_result['error']}",
+                "sql": gt_result.get("sql", "N/A")
+            })
             continue
         
         sql = gt_result["sql"]
@@ -427,7 +430,16 @@ def main():
         result_df, meta = gem_runner.run_query(query_dict)
         
         if result_df is None or meta["status"] != "completed":
+            error_msg = meta.get('error', 'Unknown error')
+            traceback_msg = meta.get('traceback', '')
             print(f"[{i+1:2d}] {gt_result['comment']:<40} {gt_rows:>8} {'ERROR':>8}")
+            failed_queries.append({
+                "query_id": f"join_{i+1}",
+                "description": gt_result["comment"],
+                "reason": error_msg,
+                "traceback": traceback_msg,
+                "sql": sql
+            })
             continue
         
         gem_rows = len(result_df)
@@ -474,6 +486,40 @@ def main():
     
     print("=" * 100)
     print()
+    
+    # Display failed queries
+    if failed_queries:
+        print("=" * 100)
+        print("FAILED QUERIES")
+        print("=" * 100)
+        print()
+        
+        for i, failed in enumerate(failed_queries, 1):
+            print(f"[{i}] {failed['query_id']}: {failed['description']}")
+            print(f"    Error: {failed['reason']}")
+            
+            # Show SQL if available
+            if 'sql' in failed:
+                print(f"    SQL: {failed['sql'][:100]}..." if len(failed['sql']) > 100 else f"    SQL: {failed['sql']}")
+            
+            # Show traceback if available
+            if failed.get('traceback'):
+                print(f"    Traceback:")
+                # Show first few lines of traceback
+                tb_lines = failed['traceback'].split('\n')[:5]
+                for line in tb_lines:
+                    print(f"      {line}")
+                if len(failed['traceback'].split('\n')) > 5:
+                    print(f"      ... ({len(failed['traceback'].split('\n')) - 5} more lines)")
+            print()
+        
+        print(f"Total Failed: {len(failed_queries)}")
+        print("=" * 100)
+        print()
+    else:
+        print("✓ All queries executed successfully!")
+        print("=" * 100)
+        print()
 
 
 if __name__ == "__main__":
