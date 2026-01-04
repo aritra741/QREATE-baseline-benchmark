@@ -158,7 +158,10 @@ class JoinTransformText(JoinText):
                             
                             # Use fuzzy matching: keep rows where similarity >= threshold
                             from fuzzywuzzy import fuzz
-                            threshold = 80  # 80% similarity threshold
+                            threshold = 70  # 70% similarity threshold (lowered for better matches)
+                            
+                            print(f"[DEBUG FUZZY] Join values to match: {join_values_list}")
+                            print(f"[DEBUG FUZZY] Team column values (first 10): {col_data.head(10).tolist()}")
                             
                             def matches_any_fuzzy(val, target_list, thresh=80):
                                 """Check if val fuzzy-matches any item in target_list"""
