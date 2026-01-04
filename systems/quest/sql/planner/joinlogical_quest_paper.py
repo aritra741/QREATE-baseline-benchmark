@@ -355,6 +355,8 @@ class JoinLogicalPlanner(object):
         if join_attr_first not in first_table_cols:
             first_table_cols.append(join_attr_first)
         
+        print(f"[DEBUG JoinLogicalPlanner] first_table_cols BEFORE extract: {[c.parse_full() if isinstance(c, astn.ColumnExpr) else str(c) for c in first_table_cols]}")
+        
         # Build first table extract node with filter
         extract_first = LogicalExtract(columns=first_table_cols, table=first_table)
         
