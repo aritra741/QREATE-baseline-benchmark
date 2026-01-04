@@ -17,6 +17,7 @@ class ExtractText(Extract):
     def __init__(self, columns, table, type):
         super().__init__(columns, table, type)
         self.name = 'ExtractText'
+        print(f"[DEBUG ExtractText.__init__] Table '{table}' initialized with columns: {[c.parse_full() if hasattr(c, 'parse_full') else str(c) for c in columns]}")
 
     def process(self):
         """
