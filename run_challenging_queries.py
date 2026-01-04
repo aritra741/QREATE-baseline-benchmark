@@ -658,6 +658,8 @@ class QuestRunner(SystemRunner):
                     self.logger.error(f"[QUEST] Traceback:\n{traceback.format_exc()}")
                     # Continue anyway - the query might still work with empty evidence
             
+            self.logger.info("[QUEST] SAMPLER LOOP COMPLETED")
+            
             # Build physical plan
             self.logger.info("[QUEST] About to build physical plan...")
             self.logger.debug("[QUEST] Building physical plan...")
