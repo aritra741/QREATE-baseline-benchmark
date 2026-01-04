@@ -23,7 +23,6 @@ sys.path.insert(0, str(PROJECT_ROOT / "systems"))
 
 from GEM.gem_runner import GEMRunner
 from GEM.blocking import SemanticBlocker
-from GEM.resolver import EntityResolver
 
 # Setup logging
 logger = logging.getLogger(__name__)
@@ -31,7 +30,6 @@ logger = logging.getLogger(__name__)
 # Initialize GEM's entity matcher components
 try:
     blocker = SemanticBlocker(logger=logger)
-    resolver = EntityResolver(logger=logger)
     HAS_ENTITY_MANAGER = True
 except Exception as e:
     HAS_ENTITY_MANAGER = False
@@ -151,22 +149,57 @@ def normalize_value(val):
     return val_str
 
 
-def values_match(val1, val2, blocker=None, resolver=None):
+def llm_ask_if_same_entity(val1: str, val2: str) -> bool:
+    """Ask LLM if two values refer to the same entity.
+    
+    Uses Ollama (qwen2.5:7b-instruct) for universal semantic matching.
+    """
+    try:
+        import requests
+        import json
+        
+        prompt = f"""Do these two values refer to the same entity or concept?
+Value 1: {val1}
+Value 2: {val2}
+
+Answer with ONLY "yes" or "no" (lowercase)."""
+        
+        response = requests.post(
+            "http://localhost:11434/v1/chat/completions",
+            json={
+                "model": "qwen2.5:7b-instruct",
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.1
+            },
+            timeout=10
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            answer = result["choices"][0]["message"]["content"].strip().lower()
+            return answer == "yes"
+    except Exception as e:
+        logger.debug(f"LLM query failed: {e}")
+    
+    return False
+
+
+def values_match(val1, val2, blocker=None):
     """Check if two values match using two-stage matching:
     
     Stage 1: Split by ||, normalize each value, do exact matching
     Stage 2: For unmatched values:
-        - For numeric values: check if difference < 1
-        - For categorical values: ask GEM if they refer to the same entity
+        - Check semantic similarity using embeddings
+        - If similarity is too low, don't match
+        - If similarity is high enough, ask LLM if they refer to the same entity
     
     If ANY split value from GT matches ANY split value from result (exactly or semantically),
     the entire cell is considered a match.
     
     Args:
         val1: First value (from GT)
-        val2: Second value (from GEM result)
-        blocker: SemanticBlocker instance (not used, kept for compatibility)
-        resolver: EntityResolver instance for LLM-based entity matching
+        val2: Second value (from result)
+        blocker: SemanticBlocker instance for semantic similarity (universal, not GEM-specific)
     
     Returns:
         True if ANY value matches, False if no matches at all
@@ -200,39 +233,52 @@ def values_match(val1, val2, blocker=None, resolver=None):
                 return True
     
     # ============================================================
-    # STAGE 2: Try numeric comparison or GEM entity resolution
+    # STAGE 2: Try numeric comparison, then semantic + LLM verification
     # ============================================================
     for v1 in values1:
         for v2 in values2:
             # Try numeric comparison first
             try:
-                num1 = float(v1)
-                num2 = float(v2)
-                if abs(num1 - num2) < 1:
-                    logger.debug(f"Numeric match: {num1} ~ {num2} (diff={abs(num1-num2):.2f})")
+                float_v1 = float(v1)
+                float_v2 = float(v2)
+                if abs(float_v1 - float_v2) < 0.001:  # Accept if difference is less than 1
+                    logger.debug(f"Numeric match: '{v1}' vs '{v2}' (diff={abs(float_v1 - float_v2):.3f})")
                     return True
             except ValueError:
-                # Not numeric values, try GEM entity resolution
-                if resolver is not None:
-                    try:
-                        # Ask GEM if these two values refer to the same entity
-                        # Using blocking to find if they should be in the same cluster
-                        canonical = resolver._get_canonical_for_block([v1, v2])
-                        
-                        # If GEM says they map to the same canonical, they're the same entity
-                        if canonical:
-                            logger.debug(f"GEM entity match: '{v1}' and '{v2}' -> canonical='{canonical}'")
-                            return True
-                    except Exception as e:
-                        logger.debug(f"GEM entity matching failed for '{v1}' vs '{v2}': {e}")
-                        pass
+                pass  # Not numeric values, proceed to semantic matching
+    
+    # Try semantic matching with LLM verification if blocker is available
+    if blocker is not None:
+        for v1 in values1:
+            for v2 in values2:
+                try:
+                    # Get semantic similarity using embeddings
+                    vec1 = blocker.encode_texts([v1])[0]
+                    vec2 = blocker.encode_texts([v2])[0]
+                    
+                    # Calculate cosine similarity
+                    import numpy as np
+                    sim = np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2))
+                    
+                    # If similarity is too low, skip LLM check
+                    if sim < blocker.similarity_threshold:
+                        logger.debug(f"Similarity too low: '{v1}' vs '{v2}' (sim={sim:.3f})")
+                        continue
+                    
+                    # If semantically similar, ask LLM to verify
+                    if llm_ask_if_same_entity(v1, v2):
+                        logger.debug(f"Semantic match (LLM confirmed): '{v1}' and '{v2}' (sim={sim:.3f})")
+                        return True
+                except Exception as e:
+                    logger.debug(f"Semantic matching failed for '{v1}' vs '{v2}': {e}")
+                    pass
     
     logger.debug(f"No match: '{val1}' vs '{val2}'")
     return False
 
 
 
-def calculate_metrics(gt_df: pd.DataFrame, result_df: pd.DataFrame, blocker=None, resolver=None) -> dict:
+def calculate_metrics(gt_df: pd.DataFrame, result_df: pd.DataFrame, blocker=None) -> dict:
     """Calculate precision, recall, and F1 using set-based tuple matching.
     
     Any result tuple can match any GT tuple (order-independent).
@@ -240,9 +286,8 @@ def calculate_metrics(gt_df: pd.DataFrame, result_df: pd.DataFrame, blocker=None
     
     Args:
         gt_df: Ground truth DataFrame
-        result_df: GEM result DataFrame
-        blocker: SemanticBlocker instance for semantic matching
-        resolver: EntityResolver instance for LLM-based matching
+        result_df: Result DataFrame
+        blocker: SemanticBlocker instance for semantic matching (optional, universal)
     """
     
     # Handle empty results
@@ -299,8 +344,7 @@ def calculate_metrics(gt_df: pd.DataFrame, result_df: pd.DataFrame, blocker=None
                     result_val = result_tuple.get(col)
                     if not values_match(str(gt_val) if gt_val is not None else "", 
                                        str(result_val) if result_val is not None else "",
-                                       blocker=blocker,
-                                       resolver=resolver):
+                                       blocker=blocker):
                         all_match = False
                         break
                 
@@ -385,13 +429,7 @@ def main():
         print(f"⚠️  Warning: Could not initialize blocker: {e}")
         blocker = None
     
-    try:
-        resolver = EntityResolver()
-        print("✓ Initialized entity resolver for LLM verification")
-    except Exception as e:
-        print(f"⚠️  Warning: Could not initialize resolver: {e}")
-        resolver = None
-    
+    # Generic LLM will be called in values_match function if needed
     print()
     print("=" * 100)
     print("QUERY RESULTS")
@@ -457,7 +495,7 @@ def main():
         if len(result_df) > 0 and len(gt_df) > 0 and len(result_df) > len(gt_df) * 5:
             print(f"  ⚠️  WARNING: Result has {len(result_df)} rows but GT has {len(gt_df)} - likely cross-product join issue!")
         
-        metrics = calculate_metrics(gt_df, result_df, blocker=blocker, resolver=resolver)
+        metrics = calculate_metrics(gt_df, result_df, blocker=blocker)
         precision = metrics["precision"]
         recall = metrics["recall"]
         f1 = metrics["f1"]

@@ -28,8 +28,61 @@ def normalize_value(val):
     return val_str
 
 
-def values_match(val1, val2):
-    """Check if two values match, handling multi-valued fields with || separator."""
+def llm_ask_if_same_entity(val1: str, val2: str) -> bool:
+    """Ask LLM if two values refer to the same entity.
+    
+    Uses Ollama (qwen2.5:7b-instruct) for universal semantic matching.
+    """
+    try:
+        import requests
+        import json
+        
+        prompt = f"""Do these two values refer to the same entity or concept?
+Value 1: {val1}
+Value 2: {val2}
+
+Answer with ONLY "yes" or "no" (lowercase)."""
+        
+        response = requests.post(
+            "http://localhost:11434/v1/chat/completions",
+            json={
+                "model": "qwen2.5:7b-instruct",
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.1
+            },
+            timeout=10
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            answer = result["choices"][0]["message"]["content"].strip().lower()
+            return answer == "yes"
+    except Exception as e:
+        pass
+    
+    return False
+
+
+def values_match(val1, val2, blocker=None):
+    """Check if two values match using two-stage matching:
+    
+    Stage 1: Split by ||, normalize each value, do exact matching
+    Stage 2: For unmatched values:
+        - Check semantic similarity using embeddings
+        - If similarity is too low, don't match
+        - If similarity is high enough, ask LLM if they refer to the same entity
+    
+    If ANY split value from GT matches ANY split value from result (exactly or semantically),
+    the entire cell is considered a match.
+    
+    Args:
+        val1: First value (from GT)
+        val2: Second value (from result)
+        blocker: SemanticBlocker instance for semantic similarity (optional, universal)
+    
+    Returns:
+        True if ANY value matches, False if no matches at all
+    """
     norm1 = normalize_value(val1)
     norm2 = normalize_value(val2)
     
@@ -40,17 +93,67 @@ def values_match(val1, val2):
     if norm1 == norm2:
         return True
     
-    # Handle multi-valued fields (separated by ||)
-    # Check if either value contains the other as a complete token
-    values1 = set(v.strip() for v in norm1.split('||'))
-    values2 = set(v.strip() for v in norm2.split('||'))
+    # ============================================================
+    # STAGE 1: Split by ||, normalize, and try exact matching
+    # ============================================================
+    values1 = [v.strip() for v in norm1.split('||') if v.strip()]
+    values2 = [v.strip() for v in norm2.split('||') if v.strip()]
     
-    # Match if there's any overlap in values
-    return bool(values1 & values2)
+    # Try exact match: if ANY value from GT matches ANY value from result, it's a match
+    for v1 in values1:
+        for v2 in values2:
+            if v1 == v2:
+                return True
+    
+    # ============================================================
+    # STAGE 2: Try numeric comparison, then semantic + LLM verification
+    # ============================================================
+    for v1 in values1:
+        for v2 in values2:
+            # Try numeric comparison first
+            try:
+                float_v1 = float(v1)
+                float_v2 = float(v2)
+                if abs(float_v1 - float_v2) < 0.001:  # Accept if difference is less than 1
+                    return True
+            except ValueError:
+                pass  # Not numeric values, proceed to semantic matching
+    
+    # Try semantic matching with LLM verification if blocker is available
+    if blocker is not None:
+        for v1 in values1:
+            for v2 in values2:
+                try:
+                    # Get semantic similarity using embeddings
+                    vec1 = blocker.encode_texts([v1])[0]
+                    vec2 = blocker.encode_texts([v2])[0]
+                    
+                    # Calculate cosine similarity
+                    import numpy as np
+                    sim = np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2))
+                    
+                    # If similarity is too low, skip LLM check
+                    if sim < blocker.similarity_threshold:
+                        continue
+                    
+                    # If semantically similar, ask LLM to verify
+                    if llm_ask_if_same_entity(v1, v2):
+                        return True
+                except Exception as e:
+                    # If semantic matching fails, continue with other pairs
+                    pass
+    
+    return False
 
 
-def calculate_metrics(gt_df: pd.DataFrame, result_df: pd.DataFrame) -> dict:
-    """Calculate precision, recall, and F1 using sorted row matching with 2-pointer approach."""
+def calculate_metrics(gt_df: pd.DataFrame, result_df: pd.DataFrame, blocker=None) -> dict:
+    """Calculate precision, recall, and F1 using sorted row matching with 2-pointer approach.
+    
+    Args:
+        gt_df: Ground truth DataFrame
+        result_df: Result DataFrame
+        blocker: SemanticBlocker instance for semantic matching (optional, universal)
+    """
     
     # Handle empty results
     if len(result_df) == 0 and len(gt_df) == 0:
@@ -122,7 +225,7 @@ def calculate_metrics(gt_df: pd.DataFrame, result_df: pd.DataFrame) -> dict:
                 result_val_norm = normalize_value(result_val)
                 
                 if gt_val_norm and result_val_norm:
-                    if values_match(gt_val, result_val):
+                    if values_match(gt_val, result_val, blocker=blocker):
                         row_tp += 1
                     else:
                         row_fp += 1
@@ -199,6 +302,18 @@ def process_system(run_id: str, system: str, report: dict, results_dir: Path, qu
         print(f"Warning: System '{system}' not found in report")
         return None
     
+    # Initialize semantic matching components (optional)
+    blocker = None
+    try:
+        from GEM.blocking import SemanticBlocker
+        import sys
+        sys.path.insert(0, str(Path(__file__).parent / "systems"))
+        
+        blocker = SemanticBlocker()
+        blocker.load_embedding_model()
+    except Exception as e:
+        print(f"Note: Semantic matching components not available: {e}")
+    
     system_data = report["systems"][system]
     
     print("=" * 100)
@@ -252,7 +367,7 @@ def process_system(run_id: str, system: str, report: dict, results_dir: Path, qu
                     gt_rows = len(gt_df)
                     
                     # Calculate metrics
-                    metrics = calculate_metrics(gt_df, result_df)
+                    metrics = calculate_metrics(gt_df, result_df, blocker=blocker)
                     precision = f"{metrics['precision']:.4f}"
                     recall = f"{metrics['recall']:.4f}"
                     f1 = f"{metrics['f1']:.4f}"
