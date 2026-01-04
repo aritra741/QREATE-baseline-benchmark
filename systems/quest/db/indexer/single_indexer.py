@@ -224,8 +224,8 @@ class TextDocIndexer(SingleIndexer):
         # logical_doc_id 1 -> physical_doc_ids[0]
         # logical_doc_id 2 -> physical_doc_ids[1], etc.
         if 1 <= logical_doc_id <= len(physical_doc_ids):
-            physical_doc_id = physical_doc_ids[logical_doc_id - 1]
-            print(f"[DEBUG _map_logical_to_physical_doc_id] Mapping {self.table_name}: logical={logical_doc_id} -> physical={physical_doc_id}")
+            physical_doc_id = int(physical_doc_ids[logical_doc_id - 1])  # CRITICAL: Convert to int
+            print(f"[DEBUG _map_logical_to_physical_doc_id] Mapping {self.table_name}: logical={logical_doc_id} -> physical={physical_doc_id} (type: {type(physical_doc_id).__name__})")
             return physical_doc_id
         else:
             print(f"[WARNING] logical_doc_id {logical_doc_id} out of range [1, {len(physical_doc_ids)}]")
