@@ -405,8 +405,8 @@ def main():
     # Execute queries (only first one for testing)
     for i, (query_idx, gt_result) in enumerate(gt_results.items()):
         # Only process the first query
-        if i > 0:
-            break
+        # if i > 0:
+        #     break
             
         if gt_result["status"] == "error":
             print(f"[{i+1:2d}] {gt_result['comment']:<40} ERROR - {gt_result['error']}")
