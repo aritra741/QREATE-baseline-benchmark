@@ -55,10 +55,14 @@ class RetrieveText(Retrieve):
         for doc_id in self.retrieveList:
             nowDict = {}
             for column in columns:
+                # CRITICAL FIX: Unqualify column name to match evidence_segments keys
+                # Evidence segments are keyed by unqualified names like 'name', 'team'
+                # But columns are qualified like 'player.name', 'player.team'
+                unqualified_column = column.split('.')[-1] if '.' in column else column
                 retrieved_chunks = self._retrieve_with_evidence(
                     doc_id, 
                     column, 
-                    evidence_segments.get(column, []),
+                    evidence_segments.get(unqualified_column, []),
                     topk=settings.TOPK
                 )
                 nowDict[column] = retrieved_chunks
