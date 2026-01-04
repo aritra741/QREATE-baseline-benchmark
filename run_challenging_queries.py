@@ -34,6 +34,10 @@ sys.path.insert(0, str(PROJECT_ROOT / "systems"))
 sys.path.insert(0, str(PROJECT_ROOT / "systems" / "quest"))
 sys.path.insert(0, str(PROJECT_ROOT / "systems" / "PZ"))
 
+# CRITICAL: Set QUEST_INDEX_ROOT before importing QUEST modules
+# This ensures indexes are loaded from the local project directory, not /scratch
+os.environ["QUEST_INDEX_ROOT"] = str(PROJECT_ROOT)
+
 # Check for required dependencies
 try:
     import pandas as pd
@@ -603,8 +607,8 @@ class QuestRunner(SystemRunner):
                     metadata["status"] = "requires_schema"
                     metadata["error"] = f"No attribute schema found for {dataset}/{ent}"
                     metadata["total_time"] = time.time() - start_time
-                    metadata["end_time"] = datetime.now().isoformat()
-                    return result_df, metadata
+                metadata["end_time"] = datetime.now().isoformat()
+                return result_df, metadata
                 
                 all_entity_attrs[ent] = entity_attrs
             
@@ -648,7 +652,7 @@ class QuestRunner(SystemRunner):
                             self.logger.debug(f"[QUEST]   - {attr}: {len(evidence)} chars of evidence")
                         else:
                             self.logger.warning(f"[QUEST]   - {attr}: NO EVIDENCE FOUND!")
-                        
+                            
                 except Exception as e:
                     self.logger.error(f"[QUEST] Failed to sample documents for {ent}: {e}")
                     self.logger.error(f"[QUEST] Traceback:\n{traceback.format_exc()}")
