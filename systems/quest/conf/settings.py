@@ -62,9 +62,9 @@ DATASET_DIR = os.path.join(ABS_PROJECT_ROOT_PATH, "data/dataset/")
 # IMPORTANT: LiteLLM handles endpoint routing internally, so use base URL without /v1
 OLLAMA_BASE = "http://localhost:11434"
 
-# Primary model: qwen2.5:7b-instruct via Ollama (better at structured output)
+# Primary model: gemma3:27b via Ollama (better extraction quality for join queries)
 # LiteLLM format: "ollama/<model_name>" with base URL (no /v1)
-LLM_MODEL = 'ollama/qwen2.5:7b-instruct'
+LLM_MODEL = 'ollama/gemma3:27b'
 API_BASE = OLLAMA_BASE  # Use base URL, NOT /v1
 
 # Embedding model configuration
@@ -73,8 +73,8 @@ API_EMB_MODEL = "ollama/nomic-embed-text"
 API_EMB_API_BASE = OLLAMA_BASE  # Use base URL without /v1 for embeddings
 API_EMB_API_KEY = "ollama"
 
-# LLM models use Ollama with qwen2.5:7b-instruct (superior structured output)
-GPT_MODEL = 'ollama/qwen2.5:7b-instruct'
+# LLM models use Ollama with gemma3:27b (better extraction quality)
+GPT_MODEL = 'ollama/gemma3:27b'
 GPT_API_BASE = OLLAMA_BASE  # Use base URL, NOT /v1
 GPT_API_KEY = "ollama"
 
