@@ -224,6 +224,14 @@ class JoinLogicalPlanner(object):
         all_attrs = []
         all_attrs.extend(where_attrs)
         all_attrs.extend(proj_attrs)
+        
+        # CRITICAL: Add join attributes to retrieval list so they get fetched during retrieve phase
+        for join_cond in join_conditions:
+            if hasattr(join_cond, 'lhs') and join_cond.lhs not in all_attrs:
+                all_attrs.append(join_cond.lhs)
+            if hasattr(join_cond, 'rhs') and join_cond.rhs not in all_attrs:
+                all_attrs.append(join_cond.rhs)
+        
         all_attrs = remove_duplicates_columns(all_attrs)
         
         # CRITICAL FIX: Resolve table aliases to actual table names
