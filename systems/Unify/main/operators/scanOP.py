@@ -89,8 +89,19 @@ class scanOP:
         response = self.chatmodel.create_completion(self.client, max_tokens = 4000, messages=self.ctxManager.get_messages())
         # Clean the response to remove <think> tags from models like qwen3
         response = clean_llm_response(response)
-        operator = response.split(",")[0].strip()
-        literal = int(response.split(",")[1].strip())
+        
+        parts = response.split(",")
+        operator = parts[0].strip()
+        
+        # Try to extract numeric literal, but handle cases where it doesn't exist (string conditions)
+        literal = None
+        if len(parts) > 1:
+            try:
+                literal = int(parts[1].strip())
+            except (ValueError, IndexError):
+                # No numeric literal for this condition (e.g., string equality like "position = Frontcourt")
+                literal = None
+        
         return operator, literal
 
     def execute_without_semantic(self, LLMclient, chatModel, ctxManager):
