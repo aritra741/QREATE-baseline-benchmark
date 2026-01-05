@@ -165,7 +165,7 @@ FROM player""",
             "sql": """SELECT disease_name, disease_type, common_symptoms, treatments
 FROM disease
 WHERE disease_type = 'psychiatric'""",
-            "nl_query": "Documents with disease_type being psychiatric",
+            "nl_query": "Get disease_name, disease_type from documents with disease_type being psychiatric",
             "difficulty": "easy",
             "reason": "Simple equality filter on disease_type field"
         },
@@ -177,7 +177,7 @@ WHERE disease_type = 'psychiatric'""",
             "sql": """SELECT name, team, position, nationality, draft_year
 FROM player
 WHERE position = 'Frontcourt'""",
-            "nl_query": "Documents with position being Frontcourt",
+            "nl_query": "Get name, team, position from documents with position being Frontcourt",
             "difficulty": "easy",
             "reason": "Simple equality filter on position field"
         },
@@ -189,7 +189,7 @@ WHERE position = 'Frontcourt'""",
             "sql": """SELECT disease_name, disease_type, etiology, treatment_challenges
 FROM disease
 WHERE disease_type = 'inflammatory'""",
-            "nl_query": "Documents with disease_type being inflammatory",
+            "nl_query": "Get disease_name, disease_type from documents with disease_type being inflammatory",
             "difficulty": "easy",
             "reason": "Simple equality filter on disease_type field"
         }
