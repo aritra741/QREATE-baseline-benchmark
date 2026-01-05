@@ -1469,9 +1469,11 @@ class UnifyRunner(SystemRunner):
             
             # Parse the natural language query (not SQL)
             self.logger.debug("[UNIFY] Parsing natural language query...")
+            print(f"[UNIFY-DEBUG] About to call semantic_parse for: {nl_query}", flush=True)
             sys.stdout.flush()
             sys.stderr.flush()
             parsed_result = self.semantic_parse(nl_query, client, chat_model)
+            print(f"[UNIFY-DEBUG] semantic_parse completed", flush=True)
             self.logger.debug("[UNIFY] Query parsed successfully")
             sys.stdout.flush()
             sys.stderr.flush()
