@@ -1639,13 +1639,81 @@ class UnifyRunner(SystemRunner):
                         self.logger.warning("[UNIFY] Result list is empty")
                         result_df = pd.DataFrame()
                 elif isinstance(final_result, dict):
-                    # If result is a dictionary of documents (from Scan), convert to DataFrame
+                    # If result is a dictionary of documents (from GroupBy or Scan)
+                    # Extract structured data from the documents
                     if final_result:
-                        # Create rows from document content
                         rows = []
-                        for doc_id, doc_content in final_result.items():
-                            rows.append({"document_id": doc_id, "content": doc_content})
-                        result_df = pd.DataFrame(rows)
+                        # Handle GroupBy result (nested dictionary: {category: {doc_id: content}})
+                        for key, value in final_result.items():
+                            if isinstance(value, dict):
+                                # This is a grouped structure from GroupBy
+                                # Each value is a dict of {doc_id: doc_content}
+                                for doc_id, doc_content in value.items():
+                                    # Extract structured fields from document content
+                                    if isinstance(doc_content, dict):
+                                        # If already a dict, use it directly (already structured)
+                                        row = doc_content.copy()
+                                        row['_group'] = key  # Add the grouping key
+                                        rows.append(row)
+                                    elif isinstance(doc_content, str):
+                                        # If string, use LLM to extract requested fields
+                                        try:
+                                            # Parse requested fields from the query
+                                            # e.g., "Extract player name, team, position..." → extract these fields
+                                            from systems.Unify.main.utils.llm_config import clean_llm_response
+                                            
+                                            # Build extraction prompt
+                                            extraction_prompt = f"""From the following document text, extract the following information and return as a JSON object:
+Document:
+{doc_content}
+
+Extract these fields: name, team, position, nationality, draft_year (if available)
+Return ONLY valid JSON, no other text."""
+                                            
+                                            print(f"[UNIFY-DEBUG] Extracting fields from document {doc_id}", flush=True)
+                                            
+                                            # Use the same LLM client to extract fields
+                                            try:
+                                                extraction_result = chat_model.create_completion(
+                                                    client, 
+                                                    messages=[{"role": "user", "content": extraction_prompt}]
+                                                )
+                                                extraction_result = clean_llm_response(extraction_result)
+                                                print(f"[UNIFY-DEBUG] Extraction result: {extraction_result[:100]}", flush=True)
+                                                
+                                                # Try to parse as JSON
+                                                import json
+                                                extracted_data = json.loads(extraction_result)
+                                                extracted_data['_group'] = key
+                                                extracted_data['_doc_id'] = doc_id
+                                                rows.append(extracted_data)
+                                            except json.JSONDecodeError:
+                                                # If JSON parsing fails, at least add the group and doc_id
+                                                rows.append({
+                                                    "document_id": doc_id, 
+                                                    "content": doc_content[:500], 
+                                                    "_group": key,
+                                                    "extraction_status": "failed_to_parse"
+                                                })
+                                        except Exception as e:
+                                            self.logger.warning(f"[UNIFY] Field extraction failed: {e}")
+                                            rows.append({
+                                                "document_id": doc_id, 
+                                                "content": doc_content[:500], 
+                                                "_group": key,
+                                                "extraction_error": str(e)
+                                            })
+                            else:
+                                # Flat structure: {doc_id: content}
+                                if isinstance(value, dict):
+                                    rows.append(value)
+                                else:
+                                    rows.append({"document_id": key, "content": str(value)[:500]})
+                        
+                        if rows:
+                            result_df = pd.DataFrame(rows)
+                        else:
+                            result_df = pd.DataFrame()
                     else:
                         result_df = pd.DataFrame()
                 elif isinstance(final_result, pd.DataFrame):

@@ -385,7 +385,7 @@ class planManager:
                 if operator['Operator'] != "Scan":
                     print(f"The {operator['Operator']} result is [{res}]")
                 operator["Result"] = res
-                
+
                 # Check for operator failure and signal it
                 if self.is_operator_failure(res):
                     print(f"[EXECUTION] WARNING: Operator '{operator['Operator']}' returned failed result")
