@@ -1419,18 +1419,23 @@ class UnifyRunner(SystemRunner):
             
             # Initialize Ollama/Qwen2.5 client (compatible with OpenAI interface)
             self.logger.info("[UNIFY] Initializing Ollama client...")
+            print(f"[UNIFY-DEBUG] Creating OpenAI client with base_url={self.ollama_base_url}", flush=True)
             try:
                 client = self.OpenAI(api_key=self.ollama_api_key, base_url=self.ollama_base_url)
+                print(f"[UNIFY-DEBUG] OpenAI client created successfully", flush=True)
                 # Test connection with a simple request
                 self.logger.debug("[UNIFY] Testing Ollama connection...")
+                print(f"[UNIFY-DEBUG] About to call client.chat.completions.create with timeout=5", flush=True)
                 test_response = client.chat.completions.create(
                     model=self.ollama_model,
                     messages=[{"role": "user", "content": "test"}],
                     max_tokens=1,
                     timeout=5.0  # 5 second timeout
                 )
+                print(f"[UNIFY-DEBUG] Ollama connection test successful", flush=True)
                 self.logger.info("[UNIFY] ✓ Ollama connection successful")
             except Exception as e:
+                print(f"[UNIFY-DEBUG] OLLAMA INITIALIZATION FAILED: {type(e).__name__}: {e}", flush=True)
                 self.logger.error(f"[UNIFY] Failed to connect to Ollama at {self.ollama_base_url}: {e}")
                 self.logger.error("[UNIFY] Make sure Ollama is running with: ollama serve")
                 metadata["status"] = "failed"
@@ -1439,7 +1444,9 @@ class UnifyRunner(SystemRunner):
                 metadata["end_time"] = datetime.now().isoformat()
                 return None, metadata
             
+            print(f"[UNIFY-DEBUG] Creating ModelConfig", flush=True)
             chat_model = self.ModelConfig(self.ollama_model)
+            print(f"[UNIFY-DEBUG] ModelConfig created", flush=True)
             # Model path is set correctly via constructor
             
             # Get natural language query for Unify
