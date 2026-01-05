@@ -1418,25 +1418,16 @@ class UnifyRunner(SystemRunner):
             print(f"[UNIFY-DEBUG] Data extraction complete, about to init Ollama", flush=True)
             
             # Initialize Ollama/Qwen2.5 client (compatible with OpenAI interface)
-            self.logger.info("[UNIFY] Initializing Ollama client...")
-            print(f"[UNIFY-DEBUG] Creating OpenAI client with base_url={self.ollama_base_url}", flush=True)
+            self.logger.info("[UNIFY] Initializing Ollama client with streaming...")
+            print(f"[UNIFY-DEBUG] Creating OpenAI client with base_url={self.ollama_base_url}, timeout=600s, stream=True", flush=True)
             try:
-                client = self.OpenAI(api_key=self.ollama_api_key, base_url=self.ollama_base_url)
-                print(f"[UNIFY-DEBUG] OpenAI client created successfully", flush=True)
-                # Test connection with a simple request
-                self.logger.debug("[UNIFY] Testing Ollama connection...")
-                print(f"[UNIFY-DEBUG] About to call client.chat.completions.create with timeout=5", flush=True)
-                test_response = client.chat.completions.create(
-                    model=self.ollama_model,
-                    messages=[{"role": "user", "content": "test"}],
-                    max_tokens=1,
-                    timeout=5.0  # 5 second timeout
-                )
-                print(f"[UNIFY-DEBUG] Ollama connection test successful", flush=True)
-                self.logger.info("[UNIFY] ✓ Ollama connection successful")
+                # Use streaming to avoid timeouts on long-running LLM calls
+                client = self.OpenAI(api_key=self.ollama_api_key, base_url=self.ollama_base_url, timeout=600.0)
+                print(f"[UNIFY-DEBUG] OpenAI client created successfully with streaming support", flush=True)
+                self.logger.info("[UNIFY] ✓ Ollama client initialized (streaming enabled)")
             except Exception as e:
-                print(f"[UNIFY-DEBUG] OLLAMA INITIALIZATION FAILED: {type(e).__name__}: {e}", flush=True)
-                self.logger.error(f"[UNIFY] Failed to connect to Ollama at {self.ollama_base_url}: {e}")
+                print(f"[UNIFY-DEBUG] OLLAMA CLIENT CREATION FAILED: {type(e).__name__}: {e}", flush=True)
+                self.logger.error(f"[UNIFY] Failed to create Ollama client at {self.ollama_base_url}: {e}")
                 self.logger.error("[UNIFY] Make sure Ollama is running with: ollama serve")
                 metadata["status"] = "failed"
                 metadata["error"] = f"Ollama not available at {self.ollama_base_url}. Start with: ollama serve"

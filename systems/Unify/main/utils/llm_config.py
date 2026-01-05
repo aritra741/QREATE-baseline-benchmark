@@ -45,18 +45,29 @@ class ModelConfig:
             self.model_path = "qwen2.5:7b-instruct"
 
     def create_completion(self, client, temperature=0.1, top_p=0.9, max_tokens=1000, messages=None):
-        """Unified LLM call method, using stored model configuration"""
+        """Unified LLM call method, using stored model configuration with streaming"""
         try:
-            print(f"[LLM] Calling model {self.model_path} with {len(messages)} messages...")
-            response = client.chat.completions.create(
+            print(f"[LLM] Calling model {self.model_path} with {len(messages)} messages (streaming)...")
+            response_text = ""
+            
+            # Use streaming to avoid timeouts on long-running calls
+            stream = client.chat.completions.create(
                 model=self.model_path,
                 messages=messages,
                 temperature=temperature,
                 top_p=top_p,
-                max_tokens=max_tokens
-            ).choices[0].message.content
-            print(f"[LLM] Got response: {type(response)}")
-            return response
+                max_tokens=max_tokens,
+                stream=True
+            )
+            
+            # Collect streamed chunks
+            for chunk in stream:
+                if chunk.choices[0].delta.content:
+                    response_text += chunk.choices[0].delta.content
+                    print(chunk.choices[0].delta.content, end="", flush=True)
+            
+            print(f"\n[LLM] Stream complete, total length: {len(response_text)}")
+            return response_text
         except Exception as e:
             print(f"LLM call failed with model {self.model_path}: {e}")
             print(f"Exception type: {type(e).__name__}")
@@ -64,16 +75,25 @@ class ModelConfig:
             
             # Try with default model only once
             try:
-                print(f"Attempting fallback with default model...")
+                print(f"Attempting fallback with default model (streaming)...")
                 default_config = ModelConfig()
-                response = client.chat.completions.create(
+                response_text = ""
+                stream = client.chat.completions.create(
                     model=default_config.model_path,
                     messages=messages,
                     temperature=temperature,
                     top_p=top_p,
-                    max_tokens=max_tokens
-                ).choices[0].message.content
-                return response
+                    max_tokens=max_tokens,
+                    stream=True
+                )
+                
+                for chunk in stream:
+                    if chunk.choices[0].delta.content:
+                        response_text += chunk.choices[0].delta.content
+                        print(chunk.choices[0].delta.content, end="", flush=True)
+                
+                print(f"\n[LLM] Fallback stream complete")
+                return response_text
             except Exception as e2:
                 print(f"LLM fallback also failed: {e2}")
                 print(f"Exception type: {type(e2).__name__}")
