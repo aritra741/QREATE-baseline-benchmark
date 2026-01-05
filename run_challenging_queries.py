@@ -1539,17 +1539,22 @@ class UnifyRunner(SystemRunner):
                     if not plan:
                         return None
                     
+                    print(f"[UNIFY-DEBUG-RECURSIVE] Searching in plan with {len(plan)} operators", flush=True)
+                    
                     # Look through all operators to find one with a Result
                     # Start from the end (root after postorder) and work backwards
-                    for operator in reversed(plan):
+                    for idx, operator in enumerate(reversed(plan)):
+                        print(f"[UNIFY-DEBUG-RECURSIVE]   Operator {len(plan)-idx-1}: {operator.get('Operator', 'Unknown')}", flush=True)
                         if "Result" in operator and operator["Result"] is not None:
                             result = operator["Result"]
+                            print(f"[UNIFY-DEBUG-RECURSIVE]     Found Result! Type: {type(result)}, Value: {str(result)[:100]}", flush=True)
                             # Make sure it's not just a primitive or string
                             if isinstance(result, (list, dict)) or isinstance(result, pd.DataFrame):
                                 return result
                         
                         # Check nested FollowupPlan
                         if "FollowupPlan" in operator and operator["FollowupPlan"]:
+                            print(f"[UNIFY-DEBUG-RECURSIVE]     Checking nested FollowupPlan", flush=True)
                             nested_result = find_final_result(operator["FollowupPlan"])
                             if nested_result is not None:
                                 return nested_result
@@ -1558,11 +1563,8 @@ class UnifyRunner(SystemRunner):
                 
                 final_result = find_final_result(pm.BQ_list[-1]["IDPlan"])
                 print(f"[UNIFY-DEBUG] find_final_result returned: {final_result is not None}", flush=True)
-                
                 if final_result is None:
-                    # Log the structure for debugging
-                    self.logger.debug(f"[UNIFY] IDPlan structure (last BQ): {pm.BQ_list[-1]['IDPlan']}")
-                    self.logger.warning("[UNIFY] No Result found in any operator")
+                    print(f"[UNIFY-DEBUG] IDPlan structure: {pm.BQ_list[-1]['IDPlan']}", flush=True)
             else:
                 print(f"[UNIFY-DEBUG] No BQ_list or IDPlan found", flush=True)
             
