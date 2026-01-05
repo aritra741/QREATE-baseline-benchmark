@@ -1400,14 +1400,22 @@ class UnifyRunner(SystemRunner):
                 return result_df, metadata
             
             # Use preprocessed data (offline)
+            print(f"[UNIFY-DEBUG] Extracting preprocessed data keys", flush=True)
             all_file_data = preprocessed_data["all_file_data"]
+            print(f"[UNIFY-DEBUG] Extracted all_file_data", flush=True)
             all_chunks = preprocessed_data["all_chunks"]
+            print(f"[UNIFY-DEBUG] Extracted all_chunks", flush=True)
             all_ids = preprocessed_data["all_ids"]
+            print(f"[UNIFY-DEBUG] Extracted all_ids", flush=True)
             all_embeds = preprocessed_data["all_embeds"]
+            print(f"[UNIFY-DEBUG] Extracted all_embeds", flush=True)
             all_chunk_locs = preprocessed_data["all_chunk_locs"]
+            print(f"[UNIFY-DEBUG] Extracted all_chunk_locs", flush=True)
             index = preprocessed_data["index"]
+            print(f"[UNIFY-DEBUG] Extracted index", flush=True)
             
             metadata["data_load_time"] = time.time() - start_time
+            print(f"[UNIFY-DEBUG] Data extraction complete, about to init Ollama", flush=True)
             
             # Initialize Ollama/Qwen2.5 client (compatible with OpenAI interface)
             self.logger.info("[UNIFY] Initializing Ollama client...")
@@ -1484,33 +1492,42 @@ class UnifyRunner(SystemRunner):
             sys.stdout.flush()
             sys.stderr.flush()
             transformed_question = self.replace_parsed_elements_with_identifiers(nl_query, parsed_result)
+            print(f"[UNIFY-DEBUG] replaced_elements_with_identifiers completed", flush=True)
             
             metadata["parse_time"] = time.time() - start_time - metadata["data_load_time"]
             
             # Generate plan (use nl_query for planning)
             self.logger.debug("[UNIFY] Generating execution plan...")
+            print(f"[UNIFY-DEBUG] About to create BQMatcher", flush=True)
             bq_matcher = self.BQMatcher(embed_model)
+            print(f"[UNIFY-DEBUG] BQMatcher created, calling recursive_plan_generation", flush=True)
             final_flag, final_plan, final_bq_list, partial_question_list = self.recursive_plan_generation(
                 nl_query, transformed_question, bq_matcher, client, chat_model, embed_model,
                 [], [], [], 0  # current_plan, use_bq_list, partial_question_list, depth
             )
+            print(f"[UNIFY-DEBUG] recursive_plan_generation completed with final_flag={final_flag}", flush=True)
             
             metadata["plan_generation_time"] = time.time() - start_time - metadata.get("parse_time", 0) - metadata["data_load_time"]
             self.logger.debug(f"[UNIFY] Plan generated: {final_flag}")
             
             # Execute plan (use nl_query as the original question)
             self.logger.debug("[UNIFY] Executing plan...")
+            print(f"[UNIFY-DEBUG] About to create planManager", flush=True)
             pm = self.planManager(
                 nl_query, final_plan, client, chat_model, final_bq_list, all_file_data, 
                 parsed_result, partial_question_list, embed_model, index
             )
+            print(f"[UNIFY-DEBUG] planManager created, calling execute_with_plan", flush=True)
             pm.execute_with_plan()
+            print(f"[UNIFY-DEBUG] execute_with_plan completed", flush=True)
             
             metadata["execution_time"] = time.time() - start_time - metadata.get("plan_generation_time", 0) - metadata.get("parse_time", 0) - metadata["data_load_time"]
             
             # Extract result - find the result from the executed plan
+            print(f"[UNIFY-DEBUG] Extracting final result", flush=True)
             final_result = None
             if pm.BQ_list and "IDPlan" in pm.BQ_list[-1] and pm.BQ_list[-1]["IDPlan"]:
+                print(f"[UNIFY-DEBUG] BQ_list exists with IDPlan", flush=True)
                 def find_final_result(plan):
                     """Recursively find the final result from the executed plan."""
                     if not plan:
@@ -1534,12 +1551,16 @@ class UnifyRunner(SystemRunner):
                     return None
                 
                 final_result = find_final_result(pm.BQ_list[-1]["IDPlan"])
+                print(f"[UNIFY-DEBUG] find_final_result returned: {final_result is not None}", flush=True)
                 
                 if final_result is None:
                     # Log the structure for debugging
                     self.logger.debug(f"[UNIFY] IDPlan structure (last BQ): {pm.BQ_list[-1]['IDPlan']}")
                     self.logger.warning("[UNIFY] No Result found in any operator")
+            else:
+                print(f"[UNIFY-DEBUG] No BQ_list or IDPlan found", flush=True)
             
+            print(f"[UNIFY-DEBUG] Converting result to DataFrame", flush=True)
             if final_result is not None:
                 # Convert result to DataFrame if needed
                 if isinstance(final_result, list):
@@ -1563,6 +1584,7 @@ class UnifyRunner(SystemRunner):
                     except Exception as e:
                         self.logger.warning(f"[UNIFY] Could not convert result to DataFrame: {e}")
                         result_df = None
+                print(f"[UNIFY-DEBUG] Result converted to DataFrame with shape: {result_df.shape if result_df is not None else None}", flush=True)
                 
                 if result_df is not None:
                     self.logger.info(f"[UNIFY] Query executed successfully, result shape: {result_df.shape}")
