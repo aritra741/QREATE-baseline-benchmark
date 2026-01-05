@@ -1531,6 +1531,18 @@ class UnifyRunner(SystemRunner):
                 print(f"[UNIFY-DEBUG] pm.BQ_list[-1] keys: {pm.BQ_list[-1].keys()}", flush=True)
                 if "IDPlan" in pm.BQ_list[-1]:
                     print(f"[UNIFY-DEBUG] IDPlan exists, length: {len(pm.BQ_list[-1]['IDPlan'])}", flush=True)
+                    
+                    # Also check previous BQ_list items for Scan results
+                    if len(pm.BQ_list) > 1:
+                        print(f"[UNIFY-DEBUG] Checking previous BQ items...", flush=True)
+                        for i in range(len(pm.BQ_list)-1, -1, -1):
+                            bq = pm.BQ_list[i]
+                            print(f"[UNIFY-DEBUG]   BQ[{i}] Return type: {bq.get('Return', 'unknown')}", flush=True)
+                            if "IDPlan" in bq and bq["IDPlan"]:
+                                for op_idx, op in enumerate(bq["IDPlan"]):
+                                    print(f"[UNIFY-DEBUG]     IDPlan[{op_idx}] Operator: {op.get('Operator', 'unknown')}, has Result: {'Result' in op}", flush=True)
+                                    if "Result" in op and op["Result"]:
+                                        print(f"[UNIFY-DEBUG]       Result type: {type(op['Result'])}, preview: {str(op['Result'])[:100]}", flush=True)
             final_result = None
             if pm.BQ_list and "IDPlan" in pm.BQ_list[-1] and pm.BQ_list[-1]["IDPlan"]:
                 print(f"[UNIFY-DEBUG] BQ_list exists with IDPlan", flush=True)
