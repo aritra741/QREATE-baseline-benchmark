@@ -1954,14 +1954,22 @@ class ChallengingQueryRunner:
         """Check if required dependencies are available for each system."""
         missing = {}
         
+        # Map package names to import names (for packages where they differ)
+        import_name_map = {
+            "sentence-transformers": "sentence_transformers",
+            "faiss-cpu": "faiss",
+        }
+        
         for system in systems:
             if system not in self.SYSTEM_DEPENDENCIES:
                 continue
                 
             system_missing = []
             for dep in self.SYSTEM_DEPENDENCIES[system]:
+                # Convert package name to import name if needed
+                import_name = import_name_map.get(dep, dep)
                 try:
-                    __import__(dep)
+                    __import__(import_name)
                 except ImportError:
                     system_missing.append(dep)
             
