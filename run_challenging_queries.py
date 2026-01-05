@@ -1391,7 +1391,27 @@ class UnifyRunner(SystemRunner):
             metadata["data_load_time"] = time.time() - start_time
             
             # Initialize Ollama/Qwen2.5 client (compatible with OpenAI interface)
-            client = self.OpenAI(api_key=self.ollama_api_key, base_url=self.ollama_base_url)
+            self.logger.info("[UNIFY] Initializing Ollama client...")
+            try:
+                client = self.OpenAI(api_key=self.ollama_api_key, base_url=self.ollama_base_url)
+                # Test connection with a simple request
+                self.logger.debug("[UNIFY] Testing Ollama connection...")
+                test_response = client.chat.completions.create(
+                    model=self.ollama_model,
+                    messages=[{"role": "user", "content": "test"}],
+                    max_tokens=1,
+                    timeout=5.0  # 5 second timeout
+                )
+                self.logger.info("[UNIFY] ✓ Ollama connection successful")
+            except Exception as e:
+                self.logger.error(f"[UNIFY] Failed to connect to Ollama at {self.ollama_base_url}: {e}")
+                self.logger.error("[UNIFY] Make sure Ollama is running with: ollama serve")
+                metadata["status"] = "failed"
+                metadata["error"] = f"Ollama not available at {self.ollama_base_url}. Start with: ollama serve"
+                metadata["total_time"] = time.time() - start_time
+                metadata["end_time"] = datetime.now().isoformat()
+                return None, metadata
+            
             chat_model = self.ModelConfig(self.ollama_model)
             # Model path is set correctly via constructor
             
