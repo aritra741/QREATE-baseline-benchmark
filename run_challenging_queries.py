@@ -139,7 +139,7 @@ CHALLENGING_QUERIES = {
             "entity": "disease",
             "sql": """SELECT disease_name, disease_type, prognosis
 FROM disease""",
-            "nl_query": "Get disease information from documents",
+            "nl_query": "Extract disease name, disease type, and prognosis from all disease documents",
             "difficulty": "easy",
             "reason": "Basic projection from disease table - straightforward attribute extraction"
         },
@@ -150,7 +150,7 @@ FROM disease""",
             "entity": "player",
             "sql": """SELECT name, position, nationality, team
 FROM player""",
-            "nl_query": "Get player information from documents",
+            "nl_query": "Extract player name, position, nationality, and team from all player documents",
             "difficulty": "easy",
             "reason": "Simple attribute selection on player table with no filtering"
         }
@@ -165,7 +165,7 @@ FROM player""",
             "sql": """SELECT disease_name, disease_type, common_symptoms, treatments
 FROM disease
 WHERE disease_type = 'psychiatric'""",
-            "nl_query": "Get disease_name, disease_type from documents with disease_type being psychiatric",
+            "nl_query": "Extract disease name and type from psychiatric disease documents",
             "difficulty": "easy",
             "reason": "Simple equality filter on disease_type field"
         },
@@ -177,7 +177,7 @@ WHERE disease_type = 'psychiatric'""",
             "sql": """SELECT name, team, position, nationality, draft_year
 FROM player
 WHERE position = 'Frontcourt'""",
-            "nl_query": "Get name, team, position from documents with position being Frontcourt",
+            "nl_query": "Extract player name, team, and position from Frontcourt player documents",
             "difficulty": "easy",
             "reason": "Simple equality filter on position field"
         },
@@ -189,7 +189,7 @@ WHERE position = 'Frontcourt'""",
             "sql": """SELECT disease_name, disease_type, etiology, treatment_challenges
 FROM disease
 WHERE disease_type = 'inflammatory'""",
-            "nl_query": "Get disease_name, disease_type from documents with disease_type being inflammatory",
+            "nl_query": "Extract disease name and type from inflammatory disease documents",
             "difficulty": "easy",
             "reason": "Simple equality filter on disease_type field"
         }
@@ -204,7 +204,7 @@ WHERE disease_type = 'inflammatory'""",
             "sql": """SELECT disease_name, disease_type, diagnostic_methods, 
        common_symptoms, treatments, prognosis
 FROM disease""",
-            "nl_query": "Get disease diagnostic and treatment information from documents",
+            "nl_query": "Extract disease name, disease type, diagnostic methods, common symptoms, treatments, and prognosis from all disease documents",
             "difficulty": "medium",
             "reason": "Extracting multiple medical attributes including diagnostic and treatment information"
         },
@@ -216,7 +216,7 @@ FROM disease""",
             "sql": """SELECT name, position, nationality, team, 
        college, nba_championships, mvp_awards, olympic_gold_medals
 FROM player""",
-            "nl_query": "Get player statistics from documents",
+            "nl_query": "Extract player name, position, nationality, team, college, NBA championships, MVP awards, and Olympic gold medals from all player documents",
             "difficulty": "medium",
             "reason": "8 attributes mixing categorical and numerical data requiring accurate extraction"
         },
@@ -228,7 +228,7 @@ FROM player""",
             "sql": """SELECT company_name, principal_activities, revenue, 
        net_profit_or_loss, total_assets, business_risks
 FROM finance""",
-            "nl_query": "Extract company information",
+            "nl_query": "Extract company name, principal activities, revenue, net profit or loss, total assets, and business risks from all company documents",
             "difficulty": "hard",
             "reason": "Financial attributes scattered across long 100+ page documents; requires careful value extraction"
         }
@@ -1582,17 +1582,63 @@ class UnifyRunner(SystemRunner):
             
             print(f"[UNIFY-DEBUG] Converting result to DataFrame", flush=True)
             if final_result is not None:
+                # Check if it's an error message
+                if isinstance(final_result, str) and ("not found" in final_result.lower() or "error" in final_result.lower()):
+                    print(f"[UNIFY-DEBUG] Final result is an error message, trying to find Scan result instead", flush=True)
+                    # Try to find the last Scan result from previous BQ items
+                    for i in range(len(pm.BQ_list)-2, -1, -1):
+                        bq = pm.BQ_list[i]
+                        if "IDPlan" in bq and bq["IDPlan"]:
+                            for op in bq["IDPlan"]:
+                                if op.get("Operator") == "Scan" and "Result" in op and op["Result"]:
+                                    result = op["Result"]
+                                    if isinstance(result, dict) and result and not isinstance(result, str):
+                                        print(f"[UNIFY-DEBUG] Found Scan result from BQ[{i}]", flush=True)
+                                        final_result = result
+                                        break
+                            if final_result != pm.BQ_list[-1]["IDPlan"][0]["Result"]:
+                                break
+                
+                # If we still have extracted text, try to parse it into structured data
+                if isinstance(final_result, str) and final_result and "not found" not in final_result.lower():
+                    print(f"[UNIFY-DEBUG] Attempting to parse extracted text into structured tuples", flush=True)
+                    # Extract creates text output that might be comma-separated or line-separated values
+                    rows = []
+                    # Try to parse as lines of data
+                    lines = final_result.strip().split('\n')
+                    if len(lines) > 1:
+                        for line in lines:
+                            if line.strip():
+                                # Split by comma to get individual fields
+                                fields = [f.strip() for f in line.split(',')]
+                                if len(fields) > 1:
+                                    rows.append({"extracted_data": line.strip()})
+                                elif len(fields) == 1:
+                                    rows.append({"extracted_data": fields[0]})
+                    else:
+                        # Single line or no newlines, might be comma-separated
+                        rows = [{"extracted_data": final_result.strip()}]
+                    
+                    if rows:
+                        result_df = pd.DataFrame(rows)
+                        print(f"[UNIFY-DEBUG] Parsed {len(rows)} rows from extracted text", flush=True)
+                    else:
+                        result_df = None
                 # Convert result to DataFrame if needed
-                if isinstance(final_result, list):
+                elif isinstance(final_result, list):
                     if final_result:  # Only create DataFrame if list is not empty
                         result_df = pd.DataFrame(final_result)
                     else:
                         self.logger.warning("[UNIFY] Result list is empty")
                         result_df = pd.DataFrame()
                 elif isinstance(final_result, dict):
-                    # If result is a dictionary (e.g., from Scan operator), convert to DataFrame
+                    # If result is a dictionary of documents (from Scan), convert to DataFrame
                     if final_result:
-                        result_df = pd.DataFrame([final_result])
+                        # Create rows from document content
+                        rows = []
+                        for doc_id, doc_content in final_result.items():
+                            rows.append({"document_id": doc_id, "content": doc_content})
+                        result_df = pd.DataFrame(rows)
                     else:
                         result_df = pd.DataFrame()
                 elif isinstance(final_result, pd.DataFrame):
