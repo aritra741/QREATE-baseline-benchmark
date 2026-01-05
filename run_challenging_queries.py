@@ -1576,24 +1576,29 @@ class UnifyRunner(SystemRunner):
                 final_result = find_final_result(pm.BQ_list[-1]["IDPlan"])
                 print(f"[UNIFY-DEBUG] find_final_result returned: {final_result is not None}", flush=True)
                 
-                # If final result is None or an error, try previous BQ items (intermediate results from dynamic plan adjustment)
+                # If final result is None or an error, use intermediate results from previous BQs
+                # This implements Unify's dynamic plan adjustment: using intermediate results when final operator fails
                 if final_result is None or (isinstance(final_result, str) and ("not found" in final_result.lower() or "error" in final_result.lower())):
                     print(f"[UNIFY-DEBUG] Final result is None or error, checking previous BQ items for intermediate results", flush=True)
-                    # This implements Unify's dynamic plan adjustment: using intermediate results when final operator fails
+                    
+                    # Search backwards through BQ items for valid intermediate results
                     for bq_idx in range(len(pm.BQ_list)-1, -1, -1):
                         bq = pm.BQ_list[bq_idx]
                         if "IDPlan" in bq and bq["IDPlan"]:
-                            # Look for the best result in this BQ's operators
+                            # Look through operators in this BQ
                             for op in bq["IDPlan"]:
                                 if "Result" in op and op["Result"] is not None:
                                     result = op["Result"]
-                                    # Check if this is a valid result (not an error)
-                                    if not (isinstance(result, str) and ("not found" in str(result).lower() or "error" in str(result).lower())):
-                                        if isinstance(result, (dict, list)) and result:
-                                            print(f"[UNIFY-DEBUG] Found valid intermediate result in BQ[{bq_idx}], Operator: {op.get('Operator', 'Unknown')}", flush=True)
-                                            final_result = result
-                                            break
-                        if final_result is not None and not (isinstance(final_result, str) and "not found" in final_result.lower()):
+                                    # Check if this is a valid result (not an error string)
+                                    is_valid_result = not (isinstance(result, str) and ("not found" in str(result).lower() or "error" in str(result).lower()))
+                                    
+                                    if is_valid_result and isinstance(result, (dict, list)) and result:
+                                        print(f"[UNIFY-DEBUG] Found valid intermediate result in BQ[{bq_idx}], Operator: {op.get('Operator', 'Unknown')}", flush=True)
+                                        final_result = result
+                                        break
+                        
+                        # Stop if we found a valid result
+                        if final_result is not None and not (isinstance(final_result, str) and ("not found" in final_result.lower() or "error" in final_result.lower())):
                             break
             else:
                 print(f"[UNIFY-DEBUG] No BQ_list or IDPlan found", flush=True)

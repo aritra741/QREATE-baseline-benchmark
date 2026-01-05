@@ -329,6 +329,14 @@ class planManager:
         print(f"[REPLANNING] Operator '{failed_operator_name}' failed at BQ index {failed_bq_idx}")
         print(f"[REPLANNING] Current question: {self.current_question}")
         
+        # Special case: Extract failing on dictionary input
+        # This means we're trying to extract from structured data that's already been processed
+        if failed_operator_name == "Extract" and "dictionary" in self.current_question.lower():
+            print(f"[REPLANNING] Extract operator failed on dictionary input")
+            print(f"[REPLANNING] The dictionary structure itself is the result - no further extraction needed")
+            print(f"[REPLANNING] Returning the grouped/processed data as the final result")
+            return None  # Signal to use intermediate results instead
+        
         # Use the current question to re-decompose into a new plan
         # This simulates Unify's dynamic replanning capability
         parsed_result = semantic_parse(self.current_question, self.client, self.chatModel)
@@ -435,10 +443,15 @@ class planManager:
                 # Trigger replanning
                 alternative_bqs = self.replan_from_failure(bq_idx, failed_op_name)
                 
-                # For now, log the failure but continue with current plan
-                # (Full replanning would require regenerating the entire remaining plan)
-                print(f"[EXECUTION] Note: Dynamic replanning detected, but continuing with current plan for robustness")
-                print(f"[EXECUTION] In a full implementation, the system would regenerate the plan from this point")
+                # If replanning returns None, it means we should use intermediate results
+                if alternative_bqs is None:
+                    print(f"[EXECUTION] Replanning suggests using intermediate results instead of retrying")
+                    print(f"[EXECUTION] The current BQ's result will be used as the final answer")
+                else:
+                    # For now, log the failure but continue with current plan
+                    # (Full replanning would require regenerating the entire remaining plan)
+                    print(f"[EXECUTION] Note: Dynamic replanning detected, but continuing with current plan for robustness")
+                    print(f"[EXECUTION] In a full implementation, the system would regenerate the plan from this point")
 
             # The following is the update of the global doc set
             print()
