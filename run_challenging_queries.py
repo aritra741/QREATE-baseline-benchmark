@@ -1387,6 +1387,10 @@ class UnifyRunner(SystemRunner):
             sys.stdout.flush()
             sys.stderr.flush()
             
+            # Try to load preprocessed index (offline preprocessing)
+            preprocessed_data = self._load_preprocessed_index(dataset, entity)
+            print(f"[UNIFY-DEBUG] preprocessed_data is None: {preprocessed_data is None}", flush=True)
+            
             if preprocessed_data is None:
                 metadata["status"] = "requires_preprocessing"
                 metadata["error"] = f"Preprocessed index not found for {dataset}/{entity}"
