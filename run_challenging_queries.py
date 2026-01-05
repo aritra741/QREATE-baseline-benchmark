@@ -1340,6 +1340,11 @@ class UnifyRunner(SystemRunner):
         entity = query.get("entity", "").lower()
         query_type = query.get("type", "unknown")
         
+        print(f"\n[UNIFY-DEBUG] run_query called for {query_id}")
+        print(f"[UNIFY-DEBUG] Dataset: {dataset}, Entity: {entity}, Type: {query_type}", flush=True)
+        sys.stdout.flush()
+        sys.stderr.flush()
+        
         self.logger.info(f"[UNIFY] Running query {query_id}...")
         self.logger.debug(f"[UNIFY] SQL: {sql}")
         
@@ -1359,18 +1364,15 @@ class UnifyRunner(SystemRunner):
             return result_df, metadata
         
         try:
+            print(f"[UNIFY-DEBUG] About to chdir to {self.unify_path}", flush=True)
             os.chdir(self.unify_path)
+            print(f"[UNIFY-DEBUG] Changed to {self.unify_path}", flush=True)
             start_time = time.time()
             
             self.logger.info("[UNIFY] Starting query execution...")
+            print(f"[UNIFY-DEBUG] Loading preprocessed index for {dataset}/{entity}", flush=True)
             sys.stdout.flush()
             sys.stderr.flush()
-            
-            # Try to load preprocessed index (offline preprocessing)
-            self.logger.debug("[UNIFY] Attempting to load preprocessed index...")
-            sys.stdout.flush()
-            sys.stderr.flush()
-            preprocessed_data = self._load_preprocessed_index(dataset, entity)
             
             if preprocessed_data is None:
                 metadata["status"] = "requires_preprocessing"
