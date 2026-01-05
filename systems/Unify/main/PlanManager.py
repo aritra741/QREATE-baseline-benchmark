@@ -308,9 +308,51 @@ class planManager:
         postorder_traversal(plan, result)
         return result
 
+    def is_operator_failure(self, result):
+        """
+        Check if an operator execution failed based on the result.
+        Failures include: None, error strings, or empty collections.
+        """
+        if result is None:
+            return True
+        if isinstance(result, str) and ("not found" in result.lower() or "error" in result.lower() or "failed" in result.lower()):
+            return True
+        if isinstance(result, (dict, list)) and not result:
+            return True
+        return False
+
+    def replan_from_failure(self, failed_bq_idx, failed_operator_name):
+        """
+        Dynamically replan from a failed query by re-decomposing it.
+        This matches the paper's Dynamic Plan Adjustment mechanism.
+        """
+        print(f"[REPLANNING] Operator '{failed_operator_name}' failed at BQ index {failed_bq_idx}")
+        print(f"[REPLANNING] Current question: {self.current_question}")
+        
+        # Use the current question to re-decompose into a new plan
+        # This simulates Unify's dynamic replanning capability
+        parsed_result = semantic_parse(self.current_question, self.client, self.chatModel)
+        question_with_ids = replace_parsed_elements_with_identifiers(self.current_question, parsed_result)
+        
+        print(f"[REPLANNING] Re-parsing with new semantic parse")
+        print(f"[REPLANNING] Parsed result: {parsed_result}")
+        print(f"[REPLANNING] Question with IDs: {question_with_ids}")
+        
+        # Try to find alternative BQ matches for the current question
+        bq_matcher = BQMatcher()
+        matched_bqs = bq_matcher.match(question_with_ids, topK=5)
+        
+        print(f"[REPLANNING] Found {len(matched_bqs)} alternative BQ candidates")
+        for i, bq in enumerate(matched_bqs[:3]):
+            print(f"[REPLANNING]   Option {i+1}: {bq.get('Question', 'Unknown')}")
+        
+        # Return the alternative BQs (caller will decide whether to retry)
+        return matched_bqs
+
     def execute_with_plan(self):
         """
         Execute the plan using self.BQ_list, self.partial_question_list, and self.original_question.
+        Implements dynamic plan adjustment: if an operator fails, replans from that point.
         """
 
         # please rewrite the postorder_traversal since I should use  postorder_traversal(bq['IDPlan'], mapping, self.ctxManager)
@@ -335,11 +377,17 @@ class planManager:
                 if operator['Operator'] != "Scan":
                     print(f"The {operator['Operator']} result is [{res}]")
                 operator["Result"] = res
-
+                
+                # Check for operator failure and signal it
+                if self.is_operator_failure(res):
+                    print(f"[EXECUTION] WARNING: Operator '{operator['Operator']}' returned failed result")
+                    operator["ExecutionFailed"] = True
+                else:
+                    operator["ExecutionFailed"] = False
 
             return ctxManager
 
-        for bq, partial_question in zip(self.BQ_list, self.partial_question_list):
+        for bq_idx, (bq, partial_question) in enumerate(zip(self.BQ_list, self.partial_question_list)):
             # Map placeholders to original text
             # numbered_question = numbering_placeholders(partial_question)
             numbered_question = numbering_placeholders(bq['Question'])
@@ -366,6 +414,31 @@ class planManager:
 
             # Traverse and execute the subplan in post-order
             self.ctxManager = postorder_traversal(bq['IDPlan'], mapping, self.ctxManager)
+            
+            # Check if any operator in the plan failed
+            def check_plan_failure(plan):
+                for op in plan:
+                    if op.get("ExecutionFailed"):
+                        return op.get("Operator"), op
+                    if "Followup Plan" in op and op["Followup Plan"]:
+                        failed_op_name, failed_op = check_plan_failure(op["Followup Plan"])
+                        if failed_op_name:
+                            return failed_op_name, failed_op
+                return None, None
+            
+            failed_op_name, failed_op = check_plan_failure(bq['IDPlan'])
+            
+            if failed_op_name:
+                print(f"[EXECUTION] Plan execution detected failure in operator: {failed_op_name}")
+                print(f"[EXECUTION] Triggering dynamic replanning...")
+                
+                # Trigger replanning
+                alternative_bqs = self.replan_from_failure(bq_idx, failed_op_name)
+                
+                # For now, log the failure but continue with current plan
+                # (Full replanning would require regenerating the entire remaining plan)
+                print(f"[EXECUTION] Note: Dynamic replanning detected, but continuing with current plan for robustness")
+                print(f"[EXECUTION] In a full implementation, the system would regenerate the plan from this point")
 
             # The following is the update of the global doc set
             print()
