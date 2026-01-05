@@ -139,7 +139,7 @@ CHALLENGING_QUERIES = {
             "entity": "disease",
             "sql": """SELECT disease_name, disease_type, prognosis
 FROM disease""",
-            "nl_query": "Extract disease name and disease type",
+            "nl_query": "Get disease information from documents",
             "difficulty": "easy",
             "reason": "Basic projection from disease table - straightforward attribute extraction"
         },
@@ -150,7 +150,7 @@ FROM disease""",
             "entity": "player",
             "sql": """SELECT name, position, nationality, team
 FROM player""",
-            "nl_query": "Extract player name and position",
+            "nl_query": "Get player information from documents",
             "difficulty": "easy",
             "reason": "Simple attribute selection on player table with no filtering"
         }
@@ -165,7 +165,7 @@ FROM player""",
             "sql": """SELECT disease_name, disease_type, common_symptoms, treatments
 FROM disease
 WHERE disease_type = 'psychiatric'""",
-            "nl_query": "Find psychiatric disease",
+            "nl_query": "Documents with disease_type being psychiatric",
             "difficulty": "easy",
             "reason": "Simple equality filter on disease_type field"
         },
@@ -177,7 +177,7 @@ WHERE disease_type = 'psychiatric'""",
             "sql": """SELECT name, team, position, nationality, draft_year
 FROM player
 WHERE position = 'Frontcourt'""",
-            "nl_query": "Find Frontcourt player",
+            "nl_query": "Documents with position being Frontcourt",
             "difficulty": "easy",
             "reason": "Simple equality filter on position field"
         },
@@ -189,7 +189,7 @@ WHERE position = 'Frontcourt'""",
             "sql": """SELECT disease_name, disease_type, etiology, treatment_challenges
 FROM disease
 WHERE disease_type = 'inflammatory'""",
-            "nl_query": "Find inflammatory disease",
+            "nl_query": "Documents with disease_type being inflammatory",
             "difficulty": "easy",
             "reason": "Simple equality filter on disease_type field"
         }
@@ -204,7 +204,7 @@ WHERE disease_type = 'inflammatory'""",
             "sql": """SELECT disease_name, disease_type, diagnostic_methods, 
        common_symptoms, treatments, prognosis
 FROM disease""",
-            "nl_query": "Extract disease information",
+            "nl_query": "Get disease diagnostic and treatment information from documents",
             "difficulty": "medium",
             "reason": "Extracting multiple medical attributes including diagnostic and treatment information"
         },
@@ -216,7 +216,7 @@ FROM disease""",
             "sql": """SELECT name, position, nationality, team, 
        college, nba_championships, mvp_awards, olympic_gold_medals
 FROM player""",
-            "nl_query": "Extract player information",
+            "nl_query": "Get player statistics from documents",
             "difficulty": "medium",
             "reason": "8 attributes mixing categorical and numerical data requiring accurate extraction"
         },
@@ -1504,6 +1504,8 @@ class UnifyRunner(SystemRunner):
                 [], [], [], 0  # current_plan, use_bq_list, partial_question_list, depth
             )
             print(f"[UNIFY-DEBUG] recursive_plan_generation completed with final_flag={final_flag}", flush=True)
+            print(f"[UNIFY-DEBUG] final_plan: {final_plan}", flush=True)
+            print(f"[UNIFY-DEBUG] final_bq_list length: {len(final_bq_list) if final_bq_list else 0}", flush=True)
             
             metadata["plan_generation_time"] = time.time() - start_time - metadata.get("parse_time", 0) - metadata["data_load_time"]
             self.logger.debug(f"[UNIFY] Plan generated: {final_flag}")
@@ -1515,6 +1517,7 @@ class UnifyRunner(SystemRunner):
                 nl_query, final_plan, client, chat_model, final_bq_list, all_file_data, 
                 parsed_result, partial_question_list, embed_model, index
             )
+            print(f"[UNIFY-DEBUG] planManager created with final_bq_list length: {len(final_bq_list)}", flush=True)
             print(f"[UNIFY-DEBUG] planManager created, calling execute_with_plan", flush=True)
             pm.execute_with_plan()
             print(f"[UNIFY-DEBUG] execute_with_plan completed", flush=True)
