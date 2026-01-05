@@ -1445,16 +1445,22 @@ class UnifyRunner(SystemRunner):
             
             # Initialize embedding model for semantic operations
             self.logger.info("[UNIFY] Initializing embedding model...")
+            print(f"[UNIFY-DEBUG] About to get model paths", flush=True)
             sys.stdout.flush()
             sys.stderr.flush()
             try:
+                print(f"[UNIFY-DEBUG] Getting model paths...", flush=True)
                 tokenizer_path, embedding_path = self._get_model_paths()
+                print(f"[UNIFY-DEBUG] Model paths: tokenizer={tokenizer_path}, embedding={embedding_path}", flush=True)
+                print(f"[UNIFY-DEBUG] Initializing EmbedModel...", flush=True)
                 embed_model = self.EmbedModel(
                     tokenizer_path=tokenizer_path,
                     sentence_model_path=embedding_path
                 )
+                print(f"[UNIFY-DEBUG] EmbedModel initialized", flush=True)
                 self.logger.info("[UNIFY] Embedding model initialized successfully")
             except Exception as e:
+                print(f"[UNIFY-DEBUG] Error initializing embedding model: {e}", flush=True)
                 self.logger.error(f"[UNIFY] Failed to initialize embedding model: {e}")
                 self.logger.error(f"[UNIFY] Traceback:\n{traceback.format_exc()}")
                 sys.stdout.flush()
