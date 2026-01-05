@@ -139,7 +139,7 @@ CHALLENGING_QUERIES = {
             "entity": "disease",
             "sql": """SELECT disease_name, disease_type, prognosis
 FROM disease""",
-            "nl_query": "Get disease names, types, and prognosis from all disease documents",
+            "nl_query": "Extract disease name and disease type",
             "difficulty": "easy",
             "reason": "Basic projection from disease table - straightforward attribute extraction"
         },
@@ -150,7 +150,7 @@ FROM disease""",
             "entity": "player",
             "sql": """SELECT name, position, nationality, team
 FROM player""",
-            "nl_query": "Get names, positions, nationalities, and teams from all player documents",
+            "nl_query": "Extract player name and position",
             "difficulty": "easy",
             "reason": "Simple attribute selection on player table with no filtering"
         }
@@ -165,7 +165,7 @@ FROM player""",
             "sql": """SELECT disease_name, disease_type, common_symptoms, treatments
 FROM disease
 WHERE disease_type = 'psychiatric'""",
-            "nl_query": "Get psychiatric disease documents with disease names, types, common symptoms, and treatments",
+            "nl_query": "Find psychiatric disease",
             "difficulty": "easy",
             "reason": "Simple equality filter on disease_type field"
         },
@@ -177,7 +177,7 @@ WHERE disease_type = 'psychiatric'""",
             "sql": """SELECT name, team, position, nationality, draft_year
 FROM player
 WHERE position = 'Frontcourt'""",
-            "nl_query": "Get Frontcourt player documents with names, teams, positions, nationalities, and draft years",
+            "nl_query": "Find Frontcourt player",
             "difficulty": "easy",
             "reason": "Simple equality filter on position field"
         },
@@ -189,7 +189,7 @@ WHERE position = 'Frontcourt'""",
             "sql": """SELECT disease_name, disease_type, etiology, treatment_challenges
 FROM disease
 WHERE disease_type = 'inflammatory'""",
-            "nl_query": "Get inflammatory disease documents with disease names, types, etiology, and treatment challenges",
+            "nl_query": "Find inflammatory disease",
             "difficulty": "easy",
             "reason": "Simple equality filter on disease_type field"
         }
@@ -204,7 +204,7 @@ WHERE disease_type = 'inflammatory'""",
             "sql": """SELECT disease_name, disease_type, diagnostic_methods, 
        common_symptoms, treatments, prognosis
 FROM disease""",
-            "nl_query": "Get all disease documents with names, types, diagnostic methods, common symptoms, treatments, and prognosis",
+            "nl_query": "Extract disease information",
             "difficulty": "medium",
             "reason": "Extracting multiple medical attributes including diagnostic and treatment information"
         },
@@ -216,7 +216,7 @@ FROM disease""",
             "sql": """SELECT name, position, nationality, team, 
        college, nba_championships, mvp_awards, olympic_gold_medals
 FROM player""",
-            "nl_query": "Get all player documents with names, positions, nationalities, teams, colleges, NBA championships, MVP awards, and Olympic gold medals",
+            "nl_query": "Extract player information",
             "difficulty": "medium",
             "reason": "8 attributes mixing categorical and numerical data requiring accurate extraction"
         },
@@ -228,7 +228,7 @@ FROM player""",
             "sql": """SELECT company_name, principal_activities, revenue, 
        net_profit_or_loss, total_assets, business_risks
 FROM finance""",
-            "nl_query": "Get all company documents with names, principal activities, revenue, net profit or loss, total assets, and business risks",
+            "nl_query": "Extract company information",
             "difficulty": "hard",
             "reason": "Financial attributes scattered across long 100+ page documents; requires careful value extraction"
         }
