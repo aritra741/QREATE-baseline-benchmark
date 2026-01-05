@@ -1310,23 +1310,36 @@ class UnifyRunner(SystemRunner):
         # Preprocessed indexes are saved relative to PROJECT_ROOT
         preprocess_dir = PROJECT_ROOT / "preprocess_unify" / "indexes" / dataset / entity
         
+        print(f"[UNIFY-DEBUG] Looking for preprocessed index at: {preprocess_dir}", flush=True)
+        print(f"[UNIFY-DEBUG] Directory exists: {preprocess_dir.exists()}", flush=True)
+        
         if not preprocess_dir.exists():
+            print(f"[UNIFY-DEBUG] Creating directory list for parent: {preprocess_dir.parent}", flush=True)
+            if preprocess_dir.parent.exists():
+                print(f"[UNIFY-DEBUG] Contents: {list(preprocess_dir.parent.iterdir())}", flush=True)
             self.logger.warning(f"[UNIFY] Preprocessed index not found at {preprocess_dir}")
             self.logger.warning(f"[UNIFY] Run: python systems/Unify/scripts/preprocess_unify_data.py --entities {dataset} {entity}")
             return None
         
         pkl_file = preprocess_dir / "preprocessed_data.pkl"
+        print(f"[UNIFY-DEBUG] Looking for pickle file: {pkl_file}", flush=True)
+        print(f"[UNIFY-DEBUG] File exists: {pkl_file.exists()}", flush=True)
+        
         if not pkl_file.exists():
+            print(f"[UNIFY-DEBUG] Contents of {preprocess_dir}: {list(preprocess_dir.iterdir())}", flush=True)
             self.logger.warning(f"[UNIFY] Preprocessed data file not found: {pkl_file}")
             return None
         
         try:
+            print(f"[UNIFY-DEBUG] Loading pickle file...", flush=True)
             self.logger.debug(f"[UNIFY] Loading preprocessed index from {pkl_file}...")
             with open(pkl_file, "rb") as f:
                 preprocessed_data = pickle.load(f)
+            print(f"[UNIFY-DEBUG] Pickle loaded successfully", flush=True)
             self.logger.info(f"[UNIFY] ✓ Loaded preprocessed index: {len(preprocessed_data['all_chunks'])} chunks")
             return preprocessed_data
         except Exception as e:
+            print(f"[UNIFY-DEBUG] Error loading pickle: {e}", flush=True)
             self.logger.error(f"[UNIFY] Failed to load preprocessed index: {e}")
             return None
     
