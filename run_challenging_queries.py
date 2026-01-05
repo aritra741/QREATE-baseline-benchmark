@@ -1523,6 +1523,11 @@ class UnifyRunner(SystemRunner):
             
             # Extract result - find the result from the executed plan
             print(f"[UNIFY-DEBUG] Extracting final result", flush=True)
+            print(f"[UNIFY-DEBUG] pm.BQ_list length: {len(pm.BQ_list) if pm.BQ_list else 0}", flush=True)
+            if pm.BQ_list:
+                print(f"[UNIFY-DEBUG] pm.BQ_list[-1] keys: {pm.BQ_list[-1].keys()}", flush=True)
+                if "IDPlan" in pm.BQ_list[-1]:
+                    print(f"[UNIFY-DEBUG] IDPlan exists, length: {len(pm.BQ_list[-1]['IDPlan'])}", flush=True)
             final_result = None
             if pm.BQ_list and "IDPlan" in pm.BQ_list[-1] and pm.BQ_list[-1]["IDPlan"]:
                 print(f"[UNIFY-DEBUG] BQ_list exists with IDPlan", flush=True)
