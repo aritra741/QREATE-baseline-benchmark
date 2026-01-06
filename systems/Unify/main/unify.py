@@ -16,7 +16,6 @@ from utils.llm_config import ModelConfig, DEBUG_MODEL_CONFIG, clean_llm_response
 import argparse
 import logging
 from datetime import datetime
-import sys
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
@@ -258,9 +257,6 @@ def recursive_plan_generation(origin_question, question, BQMatcher, client, chat
     :param depth:
     :return:
     """
-    print(f"[RECURSION-{depth}] Entered with question: {question[:80]}", flush=True)
-    sys.stdout.flush()
-    
     logging.info(f"{'--' * depth}Current question: {question}  Current plan {current_plan}")
     logging.info("Current used BQ_list: ")
     for bq in use_BQ_list:
@@ -269,16 +265,11 @@ def recursive_plan_generation(origin_question, question, BQMatcher, client, chat
 
 
     # Check if it is a simple problem
-    # TEMPORARILY DISABLED: if_simple_question calls LLM and may hang
-    # For now, let the matching naturally handle simple queries
-    simple_check_enabled = False
-    if simple_check_enabled and if_simple_question(origin_question, question, client, chatModel):
+    if if_simple_question(origin_question, question, client, chatModel):
         logging.info("Simple question reached, return current plan")
         return True, current_plan, use_BQ_list, partial_question_list
 
     if depth >=4 :
-        print(f"[RECURSION-{depth}] Max depth reached, returning", flush=True)
-        sys.stdout.flush()
         logging.warning("Maximum recursion depth reached, returning current plan.")
         return False, current_plan, use_BQ_list, partial_question_list
 
@@ -289,34 +280,19 @@ def recursive_plan_generation(origin_question, question, BQMatcher, client, chat
         logging.info(f"  {bq['Question']}")
     logging.info("")
 
-    print(f"[RECURSION-{depth}] About to match BQ", flush=True)
-    sys.stdout.flush()
     matchedBQ = BQMatcher.match(question, topK=3)
-    print(f"[RECURSION-{depth}] Matched {len(matchedBQ)} BQs", flush=True)
-    sys.stdout.flush()
 
     result_json_list = []
 
-    for idx, bq in enumerate(matchedBQ):
-        print(f"[RECURSION-{depth}] Processing BQ {idx+1}/{len(matchedBQ)}: {bq['Question'][:80]}", flush=True)
-        sys.stdout.flush()
+    for bq in matchedBQ:
         
         result_json = process_basic_question(origin_question, question, bq, client, chatModel, embed_model)
         if result_json:
             result_json_list.append(result_json)
-            print(f"[RECURSION-{depth}] BQ {idx+1} returned result", flush=True)
-        else:
-            print(f"[RECURSION-{depth}] BQ {idx+1} returned None", flush=True)
-        sys.stdout.flush()
-        
     if not result_json_list:
-        print(f"[RECURSION-{depth}] No valid results from any BQ, returning", flush=True)
-        sys.stdout.flush()
         logging.warning("No valid reduction found, returning current plan.")
         return False, current_plan, use_BQ_list, partial_question_list
 
-    print(f"[RECURSION-{depth}] Got {len(result_json_list)} results, sorting", flush=True)
-    sys.stdout.flush()
     sorted_results = get_sorted_results(result_json_list)
 
     # output sorted results
@@ -457,18 +433,14 @@ if __name__ == "__main__":
     BQMatcher = BQMatcher(embedModel)
 
     ##############  The following part is for generating the plan  ################
-    print(f"[UNIFY] About to call recursive_plan_generation with question: {transformed_question}", flush=True)
-    sys.stdout.flush()
-    
+
     final_flag, final_plan, final_BQ_list, partial_question_list = recursive_plan_generation(question, transformed_question, BQMatcher, client, chatModel, embedModel,
                                                                       current_plan=[],
                                                                       use_BQ_list=[],
                                                                       partial_question_list=[],
                                                                       depth=0)
 
-    print(f"[UNIFY] recursive_plan_generation completed with flag: {final_flag}", flush=True)
-    sys.stdout.flush()
-    
+
     logging.info(f"Finally the plan is successfully selected: {final_flag}")
     logging.info(f"The final plan is:\n{final_plan}")
     logging.info("The final BQ list is:")

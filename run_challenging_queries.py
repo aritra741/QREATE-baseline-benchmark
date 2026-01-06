@@ -177,7 +177,7 @@ WHERE disease_type = 'psychiatric'""",
             "sql": """SELECT name, team, position, nationality, draft_year
 FROM player
 WHERE position = 'Frontcourt'""",
-            "nl_query": "Extract player name, team, and position from Frontcourt player documents",
+            "nl_query": "Documents with Frontcourt",
             "difficulty": "easy",
             "reason": "Simple equality filter on position field"
         },
