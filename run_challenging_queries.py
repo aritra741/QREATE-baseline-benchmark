@@ -530,7 +530,7 @@ class QuestRunner(SystemRunner):
                 logical_planner = JoinLogicalPlanner()
                 self.logger.info("[QUEST] Using JOIN TRANSFORMATION planner per paper Section 3.2 (NO FALLBACK)")
             else:
-            logical_planner = self.LogicalPlanner()
+                logical_planner = self.LogicalPlanner()
             
             logical_plan = logical_planner.build_logical_plan(ast)
             metadata["logical_plan_time"] = time.time() - start_time - metadata["parse_time"]
@@ -595,20 +595,20 @@ class QuestRunner(SystemRunner):
             all_attr_lines = []
             
             for ent in entity_list:
-            # Case-insensitive entity lookup
-            entity_attrs = None
-            for key in attributes:
+                # Case-insensitive entity lookup
+                entity_attrs = None
+                for key in attributes:
                     if key.lower() == ent.lower():
-                    entity_attrs = attributes[key]
-                    break
-            
-            if entity_attrs is None:
+                        entity_attrs = attributes[key]
+                        break
+                
+                if entity_attrs is None:
                     self.logger.warning(f"[QUEST] No attributes found for entity {ent} in {dataset}")
-                metadata["status"] = "requires_schema"
+                    metadata["status"] = "requires_schema"
                     metadata["error"] = f"No attribute schema found for {dataset}/{ent}"
-                metadata["total_time"] = time.time() - start_time
-                metadata["end_time"] = datetime.now().isoformat()
-                return result_df, metadata
+                    metadata["total_time"] = time.time() - start_time
+                    metadata["end_time"] = datetime.now().isoformat()
+                    return result_df, metadata
                 
                 all_entity_attrs[ent] = entity_attrs
             
@@ -616,8 +616,8 @@ class QuestRunner(SystemRunner):
             # "attr_name: description" on each line (colon separator is required for parsing)
             for ent in entity_list:
                 entity_attrs = all_entity_attrs[ent]
-            for attr_name, attr_info in entity_attrs.items():
-                description = attr_info.get("description", "") if isinstance(attr_info, dict) else ""
+                for attr_name, attr_info in entity_attrs.items():
+                    description = attr_info.get("description", "") if isinstance(attr_info, dict) else ""
                     all_attr_lines.append(f"{attr_name}: {description}")
             
             prompt_str = "\n".join(all_attr_lines)
@@ -632,31 +632,31 @@ class QuestRunner(SystemRunner):
             # This populates the evidence dictionary that's used during retrieval
             for ent in entity_list:
                 self.logger.info(f"[QUEST] Sampling documents from {ent} index for evidence...")
-            try:
+                try:
                     indexer_obj, _ = gb_indexer.get_indexer(ent)
                     self.logger.debug(f"[QUEST] Got indexer for {ent}, has {len(indexer_obj.get_docs_id())} docs")
-                
+                    
                     # Check if exhaustive sampling is enabled via environment variable
                     use_exhaustive = os.environ.get('QUEST_EXHAUSTIVE_SAMPLING', '').lower() == 'true'
                     if use_exhaustive:
                         self.logger.warning(f"[QUEST] EXHAUSTIVE SAMPLING ENABLED - sampling ALL documents for {ent}!")
                         gb_sampler.try_sample_all_docs(indexer_obj, prompt_str)
                     else:
-                gb_sampler.try_sample(indexer_obj, prompt_str)
-                
+                        gb_sampler.try_sample(indexer_obj, prompt_str)
+                    
                     self.logger.info(f"[QUEST] Sampler initialized with evidence for {len(gb_sampler.map_attr_evidence)} attributes from {ent}")
-                
-                # Log what evidence was found for debugging
-                for attr, evidence in gb_sampler.map_attr_evidence.items():
-                    if evidence:
-                        self.logger.debug(f"[QUEST]   - {attr}: {len(evidence)} chars of evidence")
-                    else:
-                        self.logger.warning(f"[QUEST]   - {attr}: NO EVIDENCE FOUND!")
-                        
-            except Exception as e:
+                    
+                    # Log what evidence was found for debugging
+                    for attr, evidence in gb_sampler.map_attr_evidence.items():
+                        if evidence:
+                            self.logger.debug(f"[QUEST]   - {attr}: {len(evidence)} chars of evidence")
+                        else:
+                            self.logger.warning(f"[QUEST]   - {attr}: NO EVIDENCE FOUND!")
+                            
+                except Exception as e:
                     self.logger.error(f"[QUEST] Failed to sample documents for {ent}: {e}")
-                self.logger.error(f"[QUEST] Traceback:\n{traceback.format_exc()}")
-                # Continue anyway - the query might still work with empty evidence
+                    self.logger.error(f"[QUEST] Traceback:\n{traceback.format_exc()}")
+                    # Continue anyway - the query might still work with empty evidence
             
             self.logger.info("[QUEST] SAMPLER LOOP COMPLETED")
             
@@ -664,9 +664,9 @@ class QuestRunner(SystemRunner):
             self.logger.info("[QUEST] About to build physical plan...")
             self.logger.debug("[QUEST] Building physical plan...")
             try:
-            physical_planner = TextPhysicalPlanner(gb_indexer, gb_querier, sampler=gb_sampler)
+                physical_planner = TextPhysicalPlanner(gb_indexer, gb_querier, sampler=gb_sampler)
                 self.logger.info("[QUEST] Physical planner created, building plan...")
-            physical_plan = physical_planner.build(logical_plan)
+                physical_plan = physical_planner.build(logical_plan)
                 self.logger.info(f"[QUEST] Physical plan built: {type(physical_plan)}")
                 if physical_plan is None:
                     self.logger.warning("[QUEST] WARNING: physical_plan is None!")
@@ -1634,7 +1634,7 @@ class UnifyRunner(SystemRunner):
                 # Convert result to DataFrame if needed
                 elif isinstance(final_result, list):
                     if final_result:  # Only create DataFrame if list is not empty
-                    result_df = pd.DataFrame(final_result)
+                        result_df = pd.DataFrame(final_result)
                     else:
                         self.logger.warning("[UNIFY] Result list is empty")
                         result_df = pd.DataFrame()
@@ -1704,80 +1704,8 @@ Return ONLY valid JSON, no other text."""
                                                 "extraction_error": str(e)
                                             })
                             else:
-                                # Flat structure: {doc_id: content} from Scan
-                                # Extract fields from each document string
-                                if isinstance(value, str):
-                                    try:
-                                        from systems.Unify.main.utils.llm_config import clean_llm_response
-                                        
-                                        # Build extraction prompt
-                                        extraction_prompt = f"""From the following document text, extract the following information and return as a JSON object:
-Document:
-{value}
-
-Extract these fields: name, team, position, nationality, draft_year (if available)
-Return ONLY valid JSON, no other text."""
-                                        
-                                        print(f"[UNIFY-DEBUG] Extracting fields from Scan document {key}", flush=True)
-                                        
-                                        # Use the same LLM client to extract fields
-                                        try:
-                                            extraction_result = chat_model.create_completion(
-                                                client, 
-                                                messages=[{"role": "user", "content": extraction_prompt}]
-                                            )
-                                            extraction_result = clean_llm_response(extraction_result)
-                                            print(f"[UNIFY-DEBUG] Extraction result: {extraction_result[:200]}", flush=True)
-                                            
-                                            # Try to parse as JSON
-                                            import json
-                                            import re
-                                            
-                                            # Remove markdown code blocks if present (```json ... ```)
-                                            cleaned_result = extraction_result.strip()
-                                            if cleaned_result.startswith('```'):
-                                                # Extract JSON from markdown code block
-                                                match = re.search(r'```(?:json)?\s*([\s\S]*?)```', cleaned_result)
-                                                if match:
-                                                    cleaned_result = match.group(1).strip()
-                                            
-                                            # Parse JSON
-                                            extracted_data = json.loads(cleaned_result)
-                                            
-                                            # Handle case where LLM returns array instead of object
-                                            if isinstance(extracted_data, list) and len(extracted_data) > 0:
-                                                # If it's an array of objects, take the first one
-                                                extracted_data = extracted_data[0]
-                                            
-                                            # Ensure it's a dict before adding _doc_id
-                                            if isinstance(extracted_data, dict):
-                                                extracted_data['_doc_id'] = key
-                                                rows.append(extracted_data)
-                                            else:
-                                                # If still not a dict, fail gracefully
-                                                rows.append({
-                                                    "document_id": key, 
-                                                    "content": value[:500],
-                                                    "extraction_status": "unexpected_format"
-                                                })
-                                        except json.JSONDecodeError as e:
-                                            # If JSON parsing fails, log but continue
-                                            print(f"[UNIFY-DEBUG] Failed to parse JSON from extraction: {extraction_result[:100]}", flush=True)
-                                            print(f"[UNIFY-DEBUG] JSON error: {e}", flush=True)
-                                            rows.append({
-                                                "document_id": key, 
-                                                "content": value[:500],
-                                                "extraction_status": "failed_to_parse"
-                                            })
-                                    except Exception as e:
-                                        self.logger.warning(f"[UNIFY] Field extraction from Scan failed: {e}")
-                                        print(f"[UNIFY-DEBUG] Extraction error: {e}", flush=True)
-                                        rows.append({
-                                            "document_id": key, 
-                                            "content": value[:500],
-                                            "extraction_error": str(e)
-                                        })
-                                elif isinstance(value, dict):
+                                # Flat structure: {doc_id: content}
+                                if isinstance(value, dict):
                                     rows.append(value)
                                 else:
                                     rows.append({"document_id": key, "content": str(value)[:500]})
@@ -1793,47 +1721,14 @@ Return ONLY valid JSON, no other text."""
                 else:
                     # Try to wrap in a dataframe
                     try:
-                    result_df = pd.DataFrame([final_result])
+                        result_df = pd.DataFrame([final_result])
                     except Exception as e:
                         self.logger.warning(f"[UNIFY] Could not convert result to DataFrame: {e}")
                         result_df = None
                 print(f"[UNIFY-DEBUG] Result converted to DataFrame with shape: {result_df.shape if result_df is not None else None}", flush=True)
                 
-                # Post-processing: Clean up the DataFrame
-                if result_df is not None and len(result_df) > 0:
-                    print(f"[UNIFY-DEBUG] Applying post-processing to DataFrame", flush=True)
-                    
-                    # 1. Remove _doc_id column if it exists
-                    if '_doc_id' in result_df.columns:
-                        result_df = result_df.drop(columns=['_doc_id'])
-                        print(f"[UNIFY-DEBUG] Removed _doc_id column", flush=True)
-                    
-                    # 2. Convert lists to pipe-separated strings
-                    for col in result_df.columns:
-                        # Check if column contains list values
-                        def convert_lists_to_pipes(val):
-                            if isinstance(val, list):
-                                # Convert list elements to strings and join with " || "
-                                str_items = []
-                                for item in val:
-                                    if isinstance(item, dict):
-                                        # If list contains dicts, stringify them
-                                        str_items.append(str(item))
-                                    else:
-                                        str_items.append(str(item))
-                                return " || ".join(str_items)
-                            elif isinstance(val, dict):
-                                # If single dict, stringify it
-                                return str(val)
-                            return val
-                        
-                        result_df[col] = result_df[col].apply(convert_lists_to_pipes)
-                    
-                    print(f"[UNIFY-DEBUG] Converted lists to pipe-separated strings", flush=True)
-                    print(f"[UNIFY-DEBUG] Final DataFrame shape: {result_df.shape}", flush=True)
-                
                 if result_df is not None:
-                self.logger.info(f"[UNIFY] Query executed successfully, result shape: {result_df.shape}")
+                    self.logger.info(f"[UNIFY] Query executed successfully, result shape: {result_df.shape}")
                     if len(result_df) > 0:
                         self.logger.debug(f"[UNIFY] Result preview:\n{result_df.head()}")
             else:
@@ -2416,7 +2311,7 @@ class ChallengingQueryRunner:
                 for query in CHALLENGING_QUERIES[qtype]:
                     # Filter by query_ids if specified
                     if query_ids is None or query["id"] in query_ids:
-                    queries_to_run.append((qtype, query))
+                        queries_to_run.append((qtype, query))
         
         self.logger.info(f"Total queries to run: {len(queries_to_run)}")
         
