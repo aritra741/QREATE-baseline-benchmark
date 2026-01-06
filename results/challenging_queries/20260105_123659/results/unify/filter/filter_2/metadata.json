@@ -1,0 +1,13 @@
+{
+  "system": "unify",
+  "query_id": "filter_2",
+  "start_time": "2026-01-05T12:37:06.285892",
+  "status": "failed",
+  "data_load_time": 0.1603069305419922,
+  "parse_time": 5.262239694595337,
+  "plan_generation_time": 38.113229513168335,
+  "error": "list index out of range",
+  "traceback": "Traceback (most recent call last):\n  File \"/uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/run_challenging_queries.py\", line 1522, in run_query\n    pm.execute_with_plan()\n  File \"/uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/systems/Unify/main/PlanManager.py\", line 368, in execute_with_plan\n    self.ctxManager = postorder_traversal(bq['IDPlan'], mapping, self.ctxManager)\n  File \"/uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/systems/Unify/main/PlanManager.py\", line 323, in postorder_traversal\n    op_instance = self.get_operator_instance(operator, mapping, ctxManager)\n  File \"/uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/systems/Unify/main/PlanManager.py\", line 460, in get_operator_instance\n    return operator_class(CONDITION, data_list, self.client, self.chatModel, self.ctxManager)\n  File \"/uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/systems/Unify/main/operators/scanOP.py\", line 39, in __init__\n    self.extract_op, self.extract_literal = self.extract_op_literals(self.condition)\n  File \"/uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/systems/Unify/main/operators/scanOP.py\", line 93, in extract_op_literals\n    literal = int(response.split(\",\")[1].strip())\nIndexError: list index out of range\n",
+  "total_time": 129.1462321281433,
+  "end_time": "2026-01-05T12:39:15.432173"
+}
