@@ -1704,8 +1704,53 @@ Return ONLY valid JSON, no other text."""
                                                 "extraction_error": str(e)
                                             })
                             else:
-                                # Flat structure: {doc_id: content}
-                                if isinstance(value, dict):
+                                # Flat structure: {doc_id: content} from Scan
+                                # Extract fields from each document string
+                                if isinstance(value, str):
+                                    try:
+                                        from systems.Unify.main.utils.llm_config import clean_llm_response
+                                        
+                                        # Build extraction prompt
+                                        extraction_prompt = f"""From the following document text, extract the following information and return as a JSON object:
+Document:
+{value}
+
+Extract these fields: name, team, position, nationality, draft_year (if available)
+Return ONLY valid JSON, no other text."""
+                                        
+                                        print(f"[UNIFY-DEBUG] Extracting fields from Scan document {key}", flush=True)
+                                        
+                                        # Use the same LLM client to extract fields
+                                        try:
+                                            extraction_result = chat_model.create_completion(
+                                                client, 
+                                                messages=[{"role": "user", "content": extraction_prompt}]
+                                            )
+                                            extraction_result = clean_llm_response(extraction_result)
+                                            print(f"[UNIFY-DEBUG] Extraction result: {extraction_result[:200]}", flush=True)
+                                            
+                                            # Try to parse as JSON
+                                            import json
+                                            extracted_data = json.loads(extraction_result)
+                                            extracted_data['_doc_id'] = key
+                                            rows.append(extracted_data)
+                                        except json.JSONDecodeError:
+                                            # If JSON parsing fails, log but continue
+                                            print(f"[UNIFY-DEBUG] Failed to parse JSON from extraction: {extraction_result[:100]}", flush=True)
+                                            rows.append({
+                                                "document_id": key, 
+                                                "content": value[:500],
+                                                "extraction_status": "failed_to_parse"
+                                            })
+                                    except Exception as e:
+                                        self.logger.warning(f"[UNIFY] Field extraction from Scan failed: {e}")
+                                        print(f"[UNIFY-DEBUG] Extraction error: {e}", flush=True)
+                                        rows.append({
+                                            "document_id": key, 
+                                            "content": value[:500],
+                                            "extraction_error": str(e)
+                                        })
+                                elif isinstance(value, dict):
                                     rows.append(value)
                                 else:
                                     rows.append({"document_id": key, "content": str(value)[:500]})
