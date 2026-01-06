@@ -228,9 +228,17 @@ class StratifiedSampler:
                 # Convert to int to ensure consistent types
                 row_to_cluster[int(row_idx)] = cluster_id
         
+        # Track rows not in any cluster
+        unmapped_count = 0
+        
         for i, row_idx in enumerate(sampled_indices):
             # Convert numpy int to Python int for dict lookup
             row_idx_int = int(row_idx)
+            if row_idx_int not in row_to_cluster:
+                # Row not in any cluster, assign it to a default cluster
+                # Use uniform weight for unmapped rows
+                unmapped_count += 1
+                continue
             cluster_id = row_to_cluster[row_idx_int]
             sampled_per_cluster[cluster_id] += 1
         
@@ -238,15 +246,22 @@ class StratifiedSampler:
         for i, row_idx in enumerate(sampled_indices):
             # Convert numpy int to Python int for dict lookup
             row_idx_int = int(row_idx)
-            cluster_id = row_to_cluster[row_idx_int]
-            cluster_size = len(self.cluster_dict[cluster_id])
-            sampled_size = sampled_per_cluster[cluster_id]
-            
-            if sampled_size > 0:
-                weights[i] = cluster_size / sampled_size
+            if row_idx_int not in row_to_cluster:
+                # Unmapped rows get uniform weight
+                weights[i] = 1.0
+            else:
+                cluster_id = row_to_cluster[row_idx_int]
+                cluster_size = len(self.cluster_dict[cluster_id])
+                sampled_size = sampled_per_cluster[cluster_id]
+                
+                if sampled_size > 0:
+                    weights[i] = cluster_size / sampled_size
         
         # Normalize weights to sum to number of samples
         weights = weights / weights.sum() * len(sampled_indices)
+        
+        if unmapped_count > 0:
+            logger.debug(f"Warning: {unmapped_count}/{len(sampled_indices)} sampled rows not in any cluster")
         
         logger.debug(f"Computed weights for {len(sampled_indices)} samples: "
                     f"min={weights.min():.4f}, max={weights.max():.4f}, mean={weights.mean():.4f}")
