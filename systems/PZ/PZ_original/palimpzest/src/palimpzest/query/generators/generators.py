@@ -371,9 +371,40 @@ class Generator(Generic[ContextType, InputType]):
                     print(f"{msg['content']}", file=sys.stderr, flush=True)
             sys.stderr.flush()
             
-            completion = litellm.completion(model=model_to_use, messages=messages, **completion_kwargs)
+            # Stream the response to see it in real-time
+            import sys
+            print(f"\n[GENERATOR DEBUG] ========== STARTING STREAMING RESPONSE ==========", file=sys.stderr, flush=True)
+            
+            response_text = ""
+            completion = litellm.completion(model=model_to_use, messages=messages, stream=True, **completion_kwargs)
+            
+            for chunk in completion:
+                if chunk.choices[0].delta.content:
+                    delta_text = chunk.choices[0].delta.content
+                    response_text += delta_text
+                    print(f"[STREAM] {delta_text}", file=sys.stderr, end="", flush=True)
+            
+            print(f"\n[GENERATOR DEBUG] ========== STREAMING COMPLETE ==========", file=sys.stderr, flush=True)
             end_time = time.time()
             logger.debug(f"Generated completion in {end_time - start_time:.2f} seconds")
+            
+            # DEBUG: Log the full LLM response
+            print(f"\n[GENERATOR DEBUG] Full response length: {len(response_text)}", file=sys.stderr, flush=True)
+            print(f"[GENERATOR DEBUG] Full response:\n{response_text}\n", file=sys.stderr, flush=True)
+            sys.stderr.flush()
+            
+            # Convert streamed response back to completion-like object for compatibility
+            from litellm import Completion, CompletionChoice, Message
+            completion = Completion(
+                id="stream-completion",
+                choices=[CompletionChoice(
+                    message=Message(content=response_text, role="assistant"),
+                    finish_reason="stop",
+                    index=0
+                )],
+                model=model_to_use,
+                usage=None
+            )
         # if there's an error generating the completion, we have to return an empty answer
         # and can only account for the time spent performing the failed generation
         except Exception as e:
@@ -395,26 +426,33 @@ class Generator(Generic[ContextType, InputType]):
         # parse usage statistics and create the GenerationStats
         generation_stats = None
         if completion is not None:
-            usage = completion.usage.model_dump()
+            # Handle streaming responses which don't have usage stats
+            if completion.usage is None:
+                # For streaming responses, estimate tokens
+                import sys
+                print(f"[GENERATOR DEBUG] Warning: No usage stats from streamed response", file=sys.stderr, flush=True)
+                output_tokens = len(response_text.split()) if 'response_text' in locals() else 0
+                input_text_tokens = sum(len(msg.get('content', '').split()) for msg in messages if isinstance(msg, dict))
+                input_tokens = input_text_tokens
+            else:
+                usage = completion.usage.model_dump()
+                
+                # get output tokens (all text) and input tokens by modality
+                output_tokens = usage["completion_tokens"]
+                if is_audio_op:
+                    input_audio_tokens = usage["prompt_tokens_details"].get("audio_tokens", 0)
+                    input_text_tokens = usage["prompt_tokens_details"].get("text_tokens", 0)
+                    input_image_tokens = 0
+                else:
+                    input_audio_tokens = 0
+                    input_text_tokens = usage["prompt_tokens"]
+                    input_image_tokens = 0
+                input_tokens = input_audio_tokens + input_text_tokens + input_image_tokens
 
             # get cost per input/output token for the model
             usd_per_input_token = MODEL_CARDS[self.model_name].get("usd_per_input_token", 0.0)
             usd_per_audio_input_token = MODEL_CARDS[self.model_name].get("usd_per_audio_input_token", 0.0)
             usd_per_output_token = MODEL_CARDS[self.model_name]["usd_per_output_token"]
-
-            # TODO: for some models (e.g. GPT-5) we cannot separate text from image prompt tokens yet;
-            #       for now, we only use tokens from prompt_token_details if it's an audio prompt
-            # get output tokens (all text) and input tokens by modality
-            output_tokens = usage["completion_tokens"]
-            if is_audio_op:
-                input_audio_tokens = usage["prompt_tokens_details"].get("audio_tokens", 0)
-                input_text_tokens = usage["prompt_tokens_details"].get("text_tokens", 0)
-                input_image_tokens = 0
-            else:
-                input_audio_tokens = 0
-                input_text_tokens = usage["prompt_tokens"]
-                input_image_tokens = 0
-            input_tokens = input_audio_tokens + input_text_tokens + input_image_tokens
 
             # compute the input and output token costs
             total_input_cost = (input_text_tokens + input_image_tokens) * usd_per_input_token + input_audio_tokens * usd_per_audio_input_token

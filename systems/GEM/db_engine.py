@@ -8,7 +8,7 @@ to handle entity resolution lookups.
 import logging
 import re
 import sqlite3
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, Union
 from pathlib import Path
 
 try:
@@ -134,8 +134,45 @@ class DBEngine:
         except Exception as e:
             self.logger.error(f"Failed to create table {table_name}: {e}")
     
+    def _clean_numeric_value(self, value: str, target_type: str) -> Any:
+        """Clean a numeric value by removing currency symbols, commas, etc.
+        
+        Args:
+            value: String value to clean
+            target_type: Target type (int or float)
+            
+        Returns:
+            Cleaned numeric value or None if conversion fails
+        """
+        if pd.isna(value) or value is None:
+            return None
+        
+        try:
+            # Convert to string
+            str_val = str(value).strip()
+            
+            # Remove common currency symbols, commas, spaces, etc.
+            # Keep only digits, decimal points, and minus signs
+            cleaned = re.sub(r'[^\d.\-]', '', str_val)
+            
+            if not cleaned:
+                return None
+            
+            # Convert based on target type
+            if target_type.lower() in ["int", "integer"]:
+                return int(float(cleaned))
+            elif target_type.lower() in ["float", "double", "decimal"]:
+                return float(cleaned)
+            else:
+                return value
+        except (ValueError, TypeError) as e:
+            self.logger.debug(f"Failed to clean numeric value '{value}': {e}")
+            return value
+    
     def insert_records(self, table_name: str, records: List[Dict]):
         """Insert records into table using pandas.to_sql().
+        
+        Performs comprehensive type cleaning, deduplication, and normalization.
         
         Args:
             table_name: Name of table
@@ -166,23 +203,47 @@ class DBEngine:
                     self.logger.warning(f"[INSERT] Dropping extra columns not in schema: {extra_columns}")
                     df = df[[col for col in df.columns if col in schema_columns]]
                 
-                # Convert lists to pipe-delimited strings for multi-valued fields
+                # Create mapping of column names to types from schema
+                col_type_map = {attr.name: attr.type for attr in self.schema.attributes}
+                
+                # Type cleaning and conversion based on schema
                 for col in df.columns:
-                    if df[col].dtype == 'object':
-                        # Check if any values are lists or dicts
-                        has_list_or_dict = df[col].apply(lambda x: isinstance(x, (list, dict))).any()
-                        if has_list_or_dict:
-                            self.logger.debug(f"[INSERT] Converting list/dict values in column {col} to pipe-delimited strings")
-                            def convert_value(x):
-                                if isinstance(x, list):
-                                    # Join list items with ||
-                                    return "||".join(str(item).strip() for item in x if item)
-                                elif isinstance(x, dict):
-                                    # For dicts, join values with ||
-                                    return "||".join(str(v).strip() for v in x.values() if v)
-                                else:
-                                    return str(x) if x else ""
-                            df[col] = df[col].apply(convert_value)
+                    col_type = col_type_map.get(col, "str")
+                    
+                    # Handle numeric columns: clean and convert
+                    if col_type.lower() in ["int", "integer"]:
+                        self.logger.debug(f"[INSERT] Cleaning integer column: {col}")
+                        df[col] = df[col].apply(lambda x: self._clean_numeric_value(x, "int"))
+                    elif col_type.lower() in ["float", "double", "decimal"]:
+                        self.logger.debug(f"[INSERT] Cleaning float column: {col}")
+                        df[col] = df[col].apply(lambda x: self._clean_numeric_value(x, "float"))
+                    elif col_type.lower() in ["bool", "boolean"]:
+                        # Convert to boolean
+                        self.logger.debug(f"[INSERT] Converting boolean column: {col}")
+                        def bool_convert(x):
+                            if pd.isna(x):
+                                return None
+                            if isinstance(x, bool):
+                                return x
+                            return str(x).lower() in ["true", "1", "yes"]
+                        df[col] = df[col].apply(bool_convert)
+                    else:
+                        # String/text columns: convert lists to pipe-delimited strings
+                        if df[col].dtype == 'object':
+                            # Check if any values are lists or dicts
+                            has_list_or_dict = df[col].apply(lambda x: isinstance(x, (list, dict))).any()
+                            if has_list_or_dict:
+                                self.logger.debug(f"[INSERT] Converting list/dict values in column {col} to pipe-delimited strings")
+                                def convert_value(x):
+                                    if isinstance(x, list):
+                                        # Join list items with ||
+                                        return "||".join(str(item).strip() for item in x if item)
+                                    elif isinstance(x, dict):
+                                        # For dicts, join values with ||
+                                        return "||".join(str(v).strip() for v in x.values() if v)
+                                    else:
+                                        return str(x) if x else ""
+                                df[col] = df[col].apply(convert_value)
             
             # Insert using pandas to_sql
             df.to_sql(table_name, self.conn, if_exists='append', index=False)

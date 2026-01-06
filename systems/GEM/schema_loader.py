@@ -17,13 +17,15 @@ class Attribute:
     name: str
     type: str
     description: str
+    is_key_attribute: bool = False
     
     def to_dict(self) -> Dict[str, str]:
         """Convert to dictionary."""
         return {
             "name": self.name,
             "type": self.type,
-            "description": self.description
+            "description": self.description,
+            "is_key_attribute": self.is_key_attribute
         }
     
     def to_prompt_str(self) -> str:
@@ -140,6 +142,8 @@ class SchemaLoader:
                     break
         
         attributes = []
+        first_string_attr = None
+        
         for attr_name, attr_info in attributes_data.items():
             if isinstance(attr_info, dict):
                 # Extract type - try multiple keys
@@ -164,10 +168,18 @@ class SchemaLoader:
                 attr_type = "string"
                 attr_desc = str(attr_info)
             
+            # Determine if this is a key attribute (first string attribute)
+            is_key = False
+            type_lower = attr_type.lower()
+            if first_string_attr is None and type_lower in ["string", "text", "name", "str", "multi_str"]:
+                first_string_attr = attr_name
+                is_key = True
+            
             attributes.append(Attribute(
                 name=attr_name,
                 type=attr_type,
-                description=attr_desc
+                description=attr_desc,
+                is_key_attribute=is_key
             ))
         
         schema = Schema(entity_name=entity_name, attributes=attributes)

@@ -78,22 +78,29 @@ class EntityResolver:
             self.logger.warning("Client not initialized, using first mention as canonical")
             return unique_mentions[0]
         
-        # Call LLM with discriminative instructions
+        # Call LLM with discriminative instructions - SPLITTER PATTERN
         prompt = f"""You are an expert at distinguishing synonyms from distinct variants.
 
 Here is a list of entity mentions that were deemed similar by embedding-based blocking:
 {json.dumps(sorted(unique_mentions), indent=2)}
 
-TASK: Determine if these represent the SAME entity or DIFFERENT entities.
+TASK: Group these mentions into entities. Keep SYNONYMS together but KEEP DISTINCT VARIANTS SEPARATE.
 
 Rules:
-1. If they are SYNONYMS or case variations of the SAME thing (e.g., "iPhone 15" vs "iphone 15"), group them under ONE canonical name.
-2. If they represent DIFFERENT PRODUCTS or VERSIONS (e.g., "iPhone 15 Pro" vs "iPhone 15 Pro Max"), treat them as DISTINCT.
-3. If they have different sizes, capacities, tiers, or generations, they are DISTINCT.
-4. Better to under-merge (keep separate) than over-merge (lose information).
+1. SAME ENTITY: Synonyms, case variations, abbreviations of the SAME product/variant
+   - Example: "iPhone 15" and "iphone 15" and "iPhone15" are the SAME
+2. DIFFERENT ENTITIES: Different products, versions, tiers, sizes, capacities, generations
+   - Example: "iPhone 15 Pro" vs "iPhone 15 Pro Max" are DIFFERENT
+   - Example: "Pro 256GB" vs "Pro 512GB" are DIFFERENT
+3. Better to under-merge (keep separate) than over-merge (lose information).
 
-Respond with ONLY the canonical name for the PRIMARY/MOST COMMON variant. Do NOT merge if you detect distinct versions.
-No quotes, no explanation, just the name."""
+Return ONLY a JSON map in this exact format:
+{{
+  "Canonical Name 1": ["variant1", "variant2"],
+  "Canonical Name 2": ["variant3", "variant4"]
+}}
+
+If all are synonyms of one entity, return one group with that canonical name."""
         
         for attempt in range(RESOLUTION_MAX_RETRIES):
             try:
@@ -106,11 +113,31 @@ No quotes, no explanation, just the name."""
                     timeout=RESOLUTION_TIMEOUT
                 )
                 
-                canonical = response.choices[0].message.content.strip()
-                if canonical:
-                    return canonical
-                else:
+                response_text = response.choices[0].message.content.strip()
+                
+                if not response_text:
                     self.logger.warning("Empty response from LLM, using first mention")
+                    return unique_mentions[0]
+                
+                # Try to parse JSON response
+                try:
+                    groups = json.loads(response_text)
+                    
+                    # Find which group has the most mentions (primary entity)
+                    primary_canonical = unique_mentions[0]
+                    max_variants = 0
+                    
+                    for canonical, variants in groups.items():
+                        if len(variants) > max_variants:
+                            max_variants = len(variants)
+                            primary_canonical = canonical
+                    
+                    self.logger.debug(f"LLM resolved {len(groups)} distinct entity groups")
+                    return primary_canonical
+                    
+                except json.JSONDecodeError:
+                    # If JSON parsing fails, fall back to first mention
+                    self.logger.warning(f"Failed to parse LLM JSON response: {response_text}")
                     return unique_mentions[0]
                 
             except Exception as e:
