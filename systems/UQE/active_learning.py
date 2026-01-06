@@ -260,11 +260,11 @@ class StratifiedSampler:
             llm_responses: array of binary LLM responses (0 or 1)
             
         Returns:
-            estimated_count: unbiased estimate of total count
+            estimated_count: unbiased estimate of total count (as Python float)
         """
         if len(sampled_indices) == 0:
             logger.warning("No samples provided for estimation")
-            return 0
+            return 0.0
         
         weights = self.get_importance_weights(sampled_indices)
         
@@ -273,7 +273,7 @@ class StratifiedSampler:
         sample_size = len(sampled_indices)
         
         # Estimate total count
-        estimated_count = (weighted_sum / sample_size) * self.n_rows
+        estimated_count = float((weighted_sum / sample_size) * self.n_rows)
         
         logger.info(f"Estimated count: {estimated_count:.2f} "
                    f"(from {len(sampled_indices)} samples, {np.sum(llm_responses)} positive)")

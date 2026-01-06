@@ -57,7 +57,12 @@ def test_stratified_sampling():
     estimated_count = sampler.estimate_count(sample_idx, responses)
     
     # Compute error (convert numpy int to float if needed)
-    estimated_count = float(estimated_count)
+    try:
+        estimated_count = float(estimated_count)
+    except (TypeError, ValueError) as e:
+        logger.error(f"Error converting estimated_count: {e}, type={type(estimated_count)}")
+        estimated_count = float(np.asarray(estimated_count).item())
+    
     error = abs(estimated_count - true_count) / true_count
     print(f"\nEstimated count: {estimated_count:.1f}")
     print(f"Relative error: {100*error:.2f}%")
@@ -285,7 +290,9 @@ def run_all_tests():
     try:
         results['stratified_sampling'] = test_stratified_sampling()
     except Exception as e:
+        import traceback
         print(f"✗ Stratified sampling test failed: {e}")
+        traceback.print_exc()
         results['stratified_sampling'] = None
     
     try:
