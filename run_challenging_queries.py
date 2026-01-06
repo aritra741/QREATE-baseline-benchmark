@@ -1799,6 +1799,39 @@ Return ONLY valid JSON, no other text."""
                         result_df = None
                 print(f"[UNIFY-DEBUG] Result converted to DataFrame with shape: {result_df.shape if result_df is not None else None}", flush=True)
                 
+                # Post-processing: Clean up the DataFrame
+                if result_df is not None and len(result_df) > 0:
+                    print(f"[UNIFY-DEBUG] Applying post-processing to DataFrame", flush=True)
+                    
+                    # 1. Remove _doc_id column if it exists
+                    if '_doc_id' in result_df.columns:
+                        result_df = result_df.drop(columns=['_doc_id'])
+                        print(f"[UNIFY-DEBUG] Removed _doc_id column", flush=True)
+                    
+                    # 2. Convert lists to pipe-separated strings
+                    for col in result_df.columns:
+                        # Check if column contains list values
+                        def convert_lists_to_pipes(val):
+                            if isinstance(val, list):
+                                # Convert list elements to strings and join with " || "
+                                str_items = []
+                                for item in val:
+                                    if isinstance(item, dict):
+                                        # If list contains dicts, stringify them
+                                        str_items.append(str(item))
+                                    else:
+                                        str_items.append(str(item))
+                                return " || ".join(str_items)
+                            elif isinstance(val, dict):
+                                # If single dict, stringify it
+                                return str(val)
+                            return val
+                        
+                        result_df[col] = result_df[col].apply(convert_lists_to_pipes)
+                    
+                    print(f"[UNIFY-DEBUG] Converted lists to pipe-separated strings", flush=True)
+                    print(f"[UNIFY-DEBUG] Final DataFrame shape: {result_df.shape}", flush=True)
+                
                 if result_df is not None:
                     self.logger.info(f"[UNIFY] Query executed successfully, result shape: {result_df.shape}")
                     if len(result_df) > 0:
