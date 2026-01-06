@@ -225,15 +225,20 @@ class StratifiedSampler:
         
         for cluster_id, cluster_rows in self.cluster_dict.items():
             for row_idx in cluster_rows:
-                row_to_cluster[row_idx] = cluster_id
+                # Convert to int to ensure consistent types
+                row_to_cluster[int(row_idx)] = cluster_id
         
         for i, row_idx in enumerate(sampled_indices):
-            cluster_id = row_to_cluster[row_idx]
+            # Convert numpy int to Python int for dict lookup
+            row_idx_int = int(row_idx)
+            cluster_id = row_to_cluster[row_idx_int]
             sampled_per_cluster[cluster_id] += 1
         
         # Compute weights
         for i, row_idx in enumerate(sampled_indices):
-            cluster_id = row_to_cluster[row_idx]
+            # Convert numpy int to Python int for dict lookup
+            row_idx_int = int(row_idx)
+            cluster_id = row_to_cluster[row_idx_int]
             cluster_size = len(self.cluster_dict[cluster_id])
             sampled_size = sampled_per_cluster[cluster_id]
             
