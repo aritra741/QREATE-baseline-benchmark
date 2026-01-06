@@ -1731,12 +1731,39 @@ Return ONLY valid JSON, no other text."""
                                             
                                             # Try to parse as JSON
                                             import json
-                                            extracted_data = json.loads(extraction_result)
-                                            extracted_data['_doc_id'] = key
-                                            rows.append(extracted_data)
-                                        except json.JSONDecodeError:
+                                            import re
+                                            
+                                            # Remove markdown code blocks if present (```json ... ```)
+                                            cleaned_result = extraction_result.strip()
+                                            if cleaned_result.startswith('```'):
+                                                # Extract JSON from markdown code block
+                                                match = re.search(r'```(?:json)?\s*([\s\S]*?)```', cleaned_result)
+                                                if match:
+                                                    cleaned_result = match.group(1).strip()
+                                            
+                                            # Parse JSON
+                                            extracted_data = json.loads(cleaned_result)
+                                            
+                                            # Handle case where LLM returns array instead of object
+                                            if isinstance(extracted_data, list) and len(extracted_data) > 0:
+                                                # If it's an array of objects, take the first one
+                                                extracted_data = extracted_data[0]
+                                            
+                                            # Ensure it's a dict before adding _doc_id
+                                            if isinstance(extracted_data, dict):
+                                                extracted_data['_doc_id'] = key
+                                                rows.append(extracted_data)
+                                            else:
+                                                # If still not a dict, fail gracefully
+                                                rows.append({
+                                                    "document_id": key, 
+                                                    "content": value[:500],
+                                                    "extraction_status": "unexpected_format"
+                                                })
+                                        except json.JSONDecodeError as e:
                                             # If JSON parsing fails, log but continue
                                             print(f"[UNIFY-DEBUG] Failed to parse JSON from extraction: {extraction_result[:100]}", flush=True)
+                                            print(f"[UNIFY-DEBUG] JSON error: {e}", flush=True)
                                             rows.append({
                                                 "document_id": key, 
                                                 "content": value[:500],
