@@ -269,7 +269,7 @@ def recursive_plan_generation(origin_question, question, BQMatcher, client, chat
         logging.info("Simple question reached, return current plan")
         return True, current_plan, use_BQ_list, partial_question_list
 
-    if depth >=4 :
+    if depth >=8 :
         logging.warning("Maximum recursion depth reached, returning current plan.")
         return False, current_plan, use_BQ_list, partial_question_list
 

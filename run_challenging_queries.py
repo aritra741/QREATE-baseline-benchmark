@@ -530,7 +530,7 @@ class QuestRunner(SystemRunner):
                 logical_planner = JoinLogicalPlanner()
                 self.logger.info("[QUEST] Using JOIN TRANSFORMATION planner per paper Section 3.2 (NO FALLBACK)")
             else:
-                logical_planner = self.LogicalPlanner()
+            logical_planner = self.LogicalPlanner()
             
             logical_plan = logical_planner.build_logical_plan(ast)
             metadata["logical_plan_time"] = time.time() - start_time - metadata["parse_time"]
@@ -595,20 +595,20 @@ class QuestRunner(SystemRunner):
             all_attr_lines = []
             
             for ent in entity_list:
-                # Case-insensitive entity lookup
-                entity_attrs = None
-                for key in attributes:
+            # Case-insensitive entity lookup
+            entity_attrs = None
+            for key in attributes:
                     if key.lower() == ent.lower():
-                        entity_attrs = attributes[key]
-                        break
-                
-                if entity_attrs is None:
+                    entity_attrs = attributes[key]
+                    break
+            
+            if entity_attrs is None:
                     self.logger.warning(f"[QUEST] No attributes found for entity {ent} in {dataset}")
-                    metadata["status"] = "requires_schema"
+                metadata["status"] = "requires_schema"
                     metadata["error"] = f"No attribute schema found for {dataset}/{ent}"
-                    metadata["total_time"] = time.time() - start_time
-                    metadata["end_time"] = datetime.now().isoformat()
-                    return result_df, metadata
+                metadata["total_time"] = time.time() - start_time
+                metadata["end_time"] = datetime.now().isoformat()
+                return result_df, metadata
                 
                 all_entity_attrs[ent] = entity_attrs
             
@@ -616,8 +616,8 @@ class QuestRunner(SystemRunner):
             # "attr_name: description" on each line (colon separator is required for parsing)
             for ent in entity_list:
                 entity_attrs = all_entity_attrs[ent]
-                for attr_name, attr_info in entity_attrs.items():
-                    description = attr_info.get("description", "") if isinstance(attr_info, dict) else ""
+            for attr_name, attr_info in entity_attrs.items():
+                description = attr_info.get("description", "") if isinstance(attr_info, dict) else ""
                     all_attr_lines.append(f"{attr_name}: {description}")
             
             prompt_str = "\n".join(all_attr_lines)
@@ -632,31 +632,31 @@ class QuestRunner(SystemRunner):
             # This populates the evidence dictionary that's used during retrieval
             for ent in entity_list:
                 self.logger.info(f"[QUEST] Sampling documents from {ent} index for evidence...")
-                try:
+            try:
                     indexer_obj, _ = gb_indexer.get_indexer(ent)
                     self.logger.debug(f"[QUEST] Got indexer for {ent}, has {len(indexer_obj.get_docs_id())} docs")
-                    
+                
                     # Check if exhaustive sampling is enabled via environment variable
                     use_exhaustive = os.environ.get('QUEST_EXHAUSTIVE_SAMPLING', '').lower() == 'true'
                     if use_exhaustive:
                         self.logger.warning(f"[QUEST] EXHAUSTIVE SAMPLING ENABLED - sampling ALL documents for {ent}!")
                         gb_sampler.try_sample_all_docs(indexer_obj, prompt_str)
                     else:
-                        gb_sampler.try_sample(indexer_obj, prompt_str)
-                    
+                gb_sampler.try_sample(indexer_obj, prompt_str)
+                
                     self.logger.info(f"[QUEST] Sampler initialized with evidence for {len(gb_sampler.map_attr_evidence)} attributes from {ent}")
-                    
-                    # Log what evidence was found for debugging
-                    for attr, evidence in gb_sampler.map_attr_evidence.items():
-                        if evidence:
-                            self.logger.debug(f"[QUEST]   - {attr}: {len(evidence)} chars of evidence")
-                        else:
-                            self.logger.warning(f"[QUEST]   - {attr}: NO EVIDENCE FOUND!")
-                            
-                except Exception as e:
+                
+                # Log what evidence was found for debugging
+                for attr, evidence in gb_sampler.map_attr_evidence.items():
+                    if evidence:
+                        self.logger.debug(f"[QUEST]   - {attr}: {len(evidence)} chars of evidence")
+                    else:
+                        self.logger.warning(f"[QUEST]   - {attr}: NO EVIDENCE FOUND!")
+                        
+            except Exception as e:
                     self.logger.error(f"[QUEST] Failed to sample documents for {ent}: {e}")
-                    self.logger.error(f"[QUEST] Traceback:\n{traceback.format_exc()}")
-                    # Continue anyway - the query might still work with empty evidence
+                self.logger.error(f"[QUEST] Traceback:\n{traceback.format_exc()}")
+                # Continue anyway - the query might still work with empty evidence
             
             self.logger.info("[QUEST] SAMPLER LOOP COMPLETED")
             
@@ -664,9 +664,9 @@ class QuestRunner(SystemRunner):
             self.logger.info("[QUEST] About to build physical plan...")
             self.logger.debug("[QUEST] Building physical plan...")
             try:
-                physical_planner = TextPhysicalPlanner(gb_indexer, gb_querier, sampler=gb_sampler)
+            physical_planner = TextPhysicalPlanner(gb_indexer, gb_querier, sampler=gb_sampler)
                 self.logger.info("[QUEST] Physical planner created, building plan...")
-                physical_plan = physical_planner.build(logical_plan)
+            physical_plan = physical_planner.build(logical_plan)
                 self.logger.info(f"[QUEST] Physical plan built: {type(physical_plan)}")
                 if physical_plan is None:
                     self.logger.warning("[QUEST] WARNING: physical_plan is None!")
@@ -1634,7 +1634,7 @@ class UnifyRunner(SystemRunner):
                 # Convert result to DataFrame if needed
                 elif isinstance(final_result, list):
                     if final_result:  # Only create DataFrame if list is not empty
-                        result_df = pd.DataFrame(final_result)
+                    result_df = pd.DataFrame(final_result)
                     else:
                         self.logger.warning("[UNIFY] Result list is empty")
                         result_df = pd.DataFrame()
@@ -1793,7 +1793,7 @@ Return ONLY valid JSON, no other text."""
                 else:
                     # Try to wrap in a dataframe
                     try:
-                        result_df = pd.DataFrame([final_result])
+                    result_df = pd.DataFrame([final_result])
                     except Exception as e:
                         self.logger.warning(f"[UNIFY] Could not convert result to DataFrame: {e}")
                         result_df = None
@@ -1833,7 +1833,7 @@ Return ONLY valid JSON, no other text."""
                     print(f"[UNIFY-DEBUG] Final DataFrame shape: {result_df.shape}", flush=True)
                 
                 if result_df is not None:
-                    self.logger.info(f"[UNIFY] Query executed successfully, result shape: {result_df.shape}")
+                self.logger.info(f"[UNIFY] Query executed successfully, result shape: {result_df.shape}")
                     if len(result_df) > 0:
                         self.logger.debug(f"[UNIFY] Result preview:\n{result_df.head()}")
             else:
@@ -2416,7 +2416,7 @@ class ChallengingQueryRunner:
                 for query in CHALLENGING_QUERIES[qtype]:
                     # Filter by query_ids if specified
                     if query_ids is None or query["id"] in query_ids:
-                        queries_to_run.append((qtype, query))
+                    queries_to_run.append((qtype, query))
         
         self.logger.info(f"Total queries to run: {len(queries_to_run)}")
         
