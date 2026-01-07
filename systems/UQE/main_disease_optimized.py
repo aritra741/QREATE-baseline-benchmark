@@ -51,8 +51,9 @@ def main(query_type="SF", use_optimizations: bool = None):
     # Determine if optimizations should be enabled
     enable_opts = ENABLE_OPTIMIZATIONS if use_optimizations is None else use_optimizations
     
-    # location of query
-    query_dir = "query/disease"
+    # location of query - use absolute path relative to this script
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    query_dir = os.path.join(script_dir, "query/disease")
     
     # read query
     query_dict = read_query_list(query_dir, query_type)
@@ -62,7 +63,7 @@ def main(query_type="SF", use_optimizations: bool = None):
     
     # Add optimization marker to result path
     opt_marker = "_optimized" if enable_opts else "_baseline"
-    result_dir = os.path.join(result_dir, query_type + opt_marker, 
+    result_dir = os.path.join(script_dir, result_dir, query_type + opt_marker, 
                               datetime.now().strftime("%Y%m%d_%H%M%S"))
     os.makedirs(result_dir, exist_ok=True)
     
