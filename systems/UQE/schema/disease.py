@@ -4,9 +4,10 @@ import pandas as panda
 
 print("Current working directory:", os.getcwd())
 
-# Get the directory of this schema file, then find data/ relative to it
-schema_dir = os.path.dirname(os.path.abspath(__file__))
-data_dir = os.path.join(os.path.dirname(os.path.dirname(schema_dir)), 'data')
+# Get the directory of this schema file, then find data/ in the same parent (UQE)
+schema_dir = os.path.dirname(os.path.abspath(__file__))  # .../systems/UQE/schema
+uqe_dir = os.path.dirname(schema_dir)  # .../systems/UQE
+data_dir = os.path.join(uqe_dir, 'data')  # .../systems/UQE/data
 
 class DiseaseData:
     def __init__(self, path="disease"):
