@@ -308,6 +308,10 @@ class FilterOperator(Operator):
             logger.debug("Processing AND expression")
             and_expr = self.expression
             row_indices_list = []
+            
+            # Check if we have any semantic predicates
+            has_semantic = any(expr.op == 'SEMANTIC' for expr in and_expr.children)
+            
             for expr in and_expr.children:
                 assert isinstance(expr, ComparisonExpr)
                 left = expr.left
@@ -316,9 +320,28 @@ class FilterOperator(Operator):
                 logger.debug(f"    Column type: {left_type}")
                 logger.debug(f"    Operator: {expr.op}")
                 
-                # Skip semantic predicates in structured filtering - they'll be handled in unstructured filtering
+                # Handle semantic predicates with direct LLM filtering
                 if expr.op == 'SEMANTIC':
-                    logger.debug(f"    Semantic predicate: {expr.right} (will be handled in unstructured filtering)")
+                    logger.debug(f"    Semantic predicate: {expr.right} (using LLM filtering)")
+                    # For semantic predicates, use LLM to filter rows
+                    from f import llm_filter
+                    semantic_query = expr.right
+                    # Create a prompt for LLM filtering
+                    prompt = f"Does the following text discuss: {semantic_query}?\n\nText: {{text}}\n\nAnswer with YES or NO."
+                    
+                    matched_indices = []
+                    for idx, row in child_df.iterrows():
+                        if 'description' in child_df.columns:
+                            text = row['description']
+                            try:
+                                result = llm_filter(text, prompt)
+                                if result == 1:  # llm_filter returns 1 for match, 0 for no match
+                                    matched_indices.append(idx)
+                            except Exception as e:
+                                logger.debug(f"Error filtering row {idx}: {e}")
+                    
+                    logger.debug(f"    Semantic filter matched {len(matched_indices)} rows")
+                    row_indices_list.append(matched_indices)
                     continue
                 
                 logger.debug(f"    Is structured (ok without LLM): {self.check_col_ok_without_llm(left_type)}")
@@ -329,10 +352,19 @@ class FilterOperator(Operator):
                         logger.debug(f"    Matched indices: {row_indices}")
                     row_indices_list.append(row_indices)
             
-            row_indices = and_expr.get_row_indices_unstructured(child_df, self.data_schema)
-            row_indices_list.append(row_indices)
-            logger.debug(f"Unstructured filter matched {len(row_indices)} rows")
+            # Only call get_row_indices_unstructured if there are non-semantic predicates needing it
+            if not has_semantic or len(row_indices_list) == 0:
+                # If we only have semantic predicates or no predicates yet, check for unstructured ones
+                non_semantic_indices = and_expr.get_row_indices_unstructured(child_df, self.data_schema)
+                if non_semantic_indices and len(non_semantic_indices) > 0:
+                    row_indices_list.append(non_semantic_indices)
+                    logger.debug(f"Unstructured filter matched {len(non_semantic_indices)} rows")
+            
             logger.debug(f"Total filter groups: {len(row_indices_list)}")
+            
+            if len(row_indices_list) == 0:
+                logger.warning("No filter conditions matched any rows - returning empty DataFrame")
+                return child_df.iloc[[]].reset_index(drop=True)
 
             filtered_indices = set(row_indices_list[0])
             for row_indices in row_indices_list[1:]:
