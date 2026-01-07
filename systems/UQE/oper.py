@@ -64,9 +64,25 @@ class ProjectOperator(Operator):
             child_df = self.children[0].next()
         logger.debug(f"Child operator returned DataFrame shape: {child_df.shape if child_df is not None else 'None'}")
         
+        # Handle SELECT * - expand to all columns
         if self.project_columns[0] == '*':
             logger.debug("SELECT * - returning all columns")
             return child_df
+        elif '*' in self.project_columns:
+            # If * is mixed with other columns like PROJECT(id, *), expand * to include all columns
+            logger.debug("SELECT with * mixed with other columns - expanding *")
+            expanded_cols = []
+            for col in self.project_columns:
+                if col == '*':
+                    # Add all child_df columns that aren't already in expanded_cols
+                    for child_col in child_df.columns:
+                        if child_col not in expanded_cols:
+                            expanded_cols.append(child_col)
+                else:
+                    if col not in expanded_cols:
+                        expanded_cols.append(col)
+            logger.debug(f"Expanded columns: {expanded_cols}")
+            return child_df[expanded_cols]
         else:
             exist_cols = []
             to_extract_cols = {}
