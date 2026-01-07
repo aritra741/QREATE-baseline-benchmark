@@ -26,3 +26,22 @@ BASE_URL = "http://localhost:11434/v1"
 
 # No-think configuration
 ENABLE_THINKING = False
+
+# ========== NEW: Optimization Configuration ==========
+# Enable/disable optimizations
+ENABLE_OPTIMIZATIONS = True  # Set to False to disable all optimizations
+
+# Stratified Sampling (for aggregation queries)
+ENABLE_STRATIFIED_SAMPLING = True
+STRATIFIED_SAMPLE_RATIO = 0.1  # Sample 10% of data
+
+# Active Learning (for retrieval queries)
+ENABLE_ACTIVE_LEARNING = True
+ACTIVE_LEARNING_BUDGET = 200  # Max LLM calls for active learning
+
+# Query Optimization (for all queries)
+ENABLE_QUERY_OPTIMIZATION = True
+OPTIMIZER_BUDGET = 256  # Cost budget for query optimization
+
+# Clustering for stratified sampling
+OPTIMIZATION_N_CLUSTERS = 10  # Number of clusters for stratified sampling
