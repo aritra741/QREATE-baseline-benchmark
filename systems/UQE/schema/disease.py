@@ -3,11 +3,14 @@ import os
 import pandas as panda
 
 print("Current working directory:", os.getcwd())
-data_dir = os.path.join(os.getcwd(), 'data')
+
+# Get the directory of this schema file, then find data/ relative to it
+schema_dir = os.path.dirname(os.path.abspath(__file__))
+data_dir = os.path.join(os.path.dirname(os.path.dirname(schema_dir)), 'data')
 
 class DiseaseData:
     def __init__(self, path="disease"):
-        self.parent_dir = 'data'
+        self.parent_dir = data_dir
         self.dataset_dir = os.path.join(data_dir, 'disease')
         self.source_data_path = os.path.join(self.dataset_dir, 'dataset.json')
 
