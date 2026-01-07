@@ -1,1 +1,1 @@
-SELECT * FROM disease WHERE "discusses mental health or depression or anxiety"
+SELECT disease_name, disease_type, common_symptoms, treatments FROM disease WHERE "discusses mental health, depression, or anxiety"

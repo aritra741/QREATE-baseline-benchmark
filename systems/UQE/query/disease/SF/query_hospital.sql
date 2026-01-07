@@ -1,1 +1,1 @@
-SELECT * FROM disease WHERE "discusses hospital or medical center"
+SELECT disease_name, disease_type, common_symptoms, treatments FROM disease WHERE "refers to hospitals or medical centers"
