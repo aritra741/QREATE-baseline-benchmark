@@ -314,6 +314,13 @@ class FilterOperator(Operator):
                 left_type = self.data_schema.get_col_type(left)
                 logger.debug(f"  Filter condition: {expr.left} {expr.op} {expr.right}")
                 logger.debug(f"    Column type: {left_type}")
+                logger.debug(f"    Operator: {expr.op}")
+                
+                # Skip semantic predicates in structured filtering - they'll be handled in unstructured filtering
+                if expr.op == 'SEMANTIC':
+                    logger.debug(f"    Semantic predicate: {expr.right} (will be handled in unstructured filtering)")
+                    continue
+                
                 logger.debug(f"    Is structured (ok without LLM): {self.check_col_ok_without_llm(left_type)}")
                 if self.check_col_ok_without_llm(left_type):
                     row_indices = expr.get_row_indices_structured(left_type, child_df)
