@@ -79,7 +79,7 @@ def main(query_type="SF", use_optimizations: bool = None):
     if enable_opts:
         try:
             import numpy as np
-            embedding_path = "data/nba/embeddings.npy"
+            embedding_path = os.path.join(script_dir, "data/nba/embeddings.npy")
             if os.path.exists(embedding_path):
                 embeddings = np.load(embedding_path)
                 logger.info(f"Loaded embeddings: {embeddings.shape}")
