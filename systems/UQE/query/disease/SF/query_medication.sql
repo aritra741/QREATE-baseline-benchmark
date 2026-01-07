@@ -1,1 +1,1 @@
-SELECT * FROM disease WHERE "discusses medication or drugs"
+SELECT disease_name, disease_type, common_symptoms, treatments FROM disease WHERE "talks about medication, drugs, or prescriptions"

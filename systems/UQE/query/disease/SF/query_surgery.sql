@@ -1,1 +1,1 @@
-SELECT * FROM disease WHERE "discusses surgery or surgical procedures"
+SELECT disease_name, disease_type, common_symptoms, treatments FROM disease WHERE "discusses surgery or surgical procedures"
