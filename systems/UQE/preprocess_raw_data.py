@@ -162,9 +162,19 @@ def preprocess_dataset(source_dir: str, output_dir: str, dataset_name: str,
 def main():
     """
     Preprocess all datasets.
+    Auto-detects paths relative to script location.
     """
-    base_source = "/Users/aritramazumder/Documents/UDA-Bench-main/source_data"
-    base_output = "/Users/aritramazumder/Documents/UDA-Bench-main/systems/UQE/data"
+    # Get paths relative to this script's location
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(os.path.dirname(script_dir))
+    
+    base_source = os.path.join(project_root, 'source_data')
+    base_output = os.path.join(script_dir, 'data')
+    
+    logger.info(f"Script directory: {script_dir}")
+    logger.info(f"Project root: {project_root}")
+    logger.info(f"Source base: {base_source}")
+    logger.info(f"Output base: {base_output}")
     
     # Define datasets to preprocess
     datasets = [
@@ -206,20 +216,44 @@ def main():
     ]
     
     # Preprocess each dataset
+    processed_count = 0
+    failed_count = 0
+    
     for dataset in datasets:
         if os.path.exists(dataset['source']):
-            preprocess_dataset(
-                source_dir=dataset['source'],
-                output_dir=dataset['output'],
-                dataset_name=dataset['name'],
-                generate_embeddings_flag=True
-            )
+            try:
+                preprocess_dataset(
+                    source_dir=dataset['source'],
+                    output_dir=dataset['output'],
+                    dataset_name=dataset['name'],
+                    generate_embeddings_flag=True
+                )
+                processed_count += 1
+            except Exception as e:
+                logger.error(f"Failed to preprocess {dataset['name']}: {e}")
+                failed_count += 1
         else:
             logger.warning(f"Source directory not found: {dataset['source']}")
+            failed_count += 1
     
     logger.info(f"\n{'='*70}")
-    logger.info("All datasets preprocessed!")
+    logger.info(f"Preprocessing Summary")
     logger.info(f"{'='*70}")
+    logger.info(f"✓ Successfully processed: {processed_count} datasets")
+    logger.info(f"✗ Failed/skipped: {failed_count} datasets")
+    logger.info(f"Total: {len(datasets)} datasets")
+    
+    if processed_count == 0:
+        logger.error("No datasets were successfully processed!")
+        return False
+    elif failed_count > 0:
+        logger.warning(f"Preprocessing completed with {failed_count} failures")
+    else:
+        logger.info("All datasets preprocessed successfully!")
+    
+    logger.info(f"{'='*70}\n")
+    
+    return processed_count > 0
 
 
 if __name__ == '__main__':
