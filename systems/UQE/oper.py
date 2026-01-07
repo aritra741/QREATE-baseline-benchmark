@@ -143,14 +143,22 @@ class ProjectOperator(Operator):
                             logger.debug(f"  Column '{col}' is virtual attribute of '{column_name}'")
                         else:
                             # Format: just attribute name (implicit, treat as virtual from 'description')
-                            # Check if it exists as a concrete column first
+                            # Check if it's in the schema and is a "simple" type that might be in the data
+                            # But only treat it as concrete if it actually exists in the DataFrame
+                            is_schema_defined = False
                             try:
                                 col_type = self.data_schema.get_col_type(col)
-                                if self.check_col_ok_without_llm(col_type):
-                                    logger.debug(f"  Column '{col}' is concrete structured column (type: {col_type})")
+                                is_schema_defined = True
+                                logger.debug(f"  Column '{col}' is defined in schema with type: {col_type}")
+                                
+                                # Even if it's a simple type in the schema, if it's not in the DataFrame,
+                                # it must be extracted from description
+                                if self.check_col_ok_without_llm(col_type) and col in child_df.columns:
+                                    logger.debug(f"  Column '{col}' is concrete structured column (exists in data)")
                                     exist_cols.append(col)
                                     continue
                             except (KeyError, AttributeError):
+                                logger.debug(f"  Column '{col}' is not defined in schema")
                                 pass
                             
                             # It's a virtual attribute - extract from 'description' column
