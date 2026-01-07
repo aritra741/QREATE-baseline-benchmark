@@ -44,13 +44,25 @@ class ComparisonExpr(Expression):
         elif comp_unit.find('=') != -1:
             self.left, self.right = comp_unit.split('=', 1)
             self.op = '='
-
-        self.left = self.left.strip()
-        self.right = self.right.strip()
-        if self.right and (self.right[0] == '\'' or self.right[0] == '\"'):
-            self.right = self.right[1:-1]
+        else:
+            # No comparison operator found - this is a semantic/natural language predicate
+            # For semantic predicates, we default to filtering on the 'description' column
+            self.left = 'description'
+            self.right = comp_unit.strip().strip('"\'')  # Remove quotes if present
+            self.op = 'SEMANTIC'
+        
+        # Only strip if left exists (it should always exist)
+        if hasattr(self, 'left') and self.left:
+            self.left = self.left.strip()
+        
+        # Only strip right if it exists
+        if hasattr(self, 'right') and self.right:
+            self.right = self.right.strip()
+            if self.right and (self.right[0] == '\'' or self.right[0] == '\"'):
+                self.right = self.right[1:-1]
+        
         self.left_is_value = False
-        self.right_is_value = True
+        self.right_is_value = True if self.right else False
 
     def get_row_indices_structured(self, left_type, df):
         op = self.op
