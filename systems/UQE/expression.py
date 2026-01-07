@@ -201,15 +201,34 @@ class ConjunctionAndExpr(Expression):
         for expr in self.children:
             assert isinstance(expr, ComparisonExpr)
             left = expr.left
-            left_type = dataset_schema.get_col_type(left)
-            if not self.check_col_ok_without_llm(left_type):
-                op = expr.op
-                left_col = expr.left.split('.')[0]
-                left_attr = expr.left.split('.')[1]
-                right = expr.right
+            
+            # Handle semantic predicates specially
+            if expr.op == 'SEMANTIC':
+                # For semantic predicates, use the description column directly with LLM filtering
+                left_col = 'description'
+                left_attr = None  # No specific attribute for semantic predicates
+                right = expr.right  # The natural language query text
+                op = 'SEMANTIC'
+                
                 if left_col not in cols_to_add:
                     cols_to_add[left_col] = []
                 cols_to_add[left_col].append([left_attr, right, op])
+            else:
+                # For structured predicates with column.attribute notation
+                left_type = dataset_schema.get_col_type(left)
+                if not self.check_col_ok_without_llm(left_type):
+                    op = expr.op
+                    # Split on '.' to get column and attribute
+                    if '.' in expr.left:
+                        left_col = expr.left.split('.')[0]
+                        left_attr = expr.left.split('.')[1]
+                    else:
+                        left_col = expr.left
+                        left_attr = None
+                    right = expr.right
+                    if left_col not in cols_to_add:
+                        cols_to_add[left_col] = []
+                    cols_to_add[left_col].append([left_attr, right, op])
         
         sampled_row_index = sample_merged_rows(df, cols_to_add, dataset_schema)
         return sampled_row_index
