@@ -86,8 +86,19 @@ def read_query_list(query_dir, query_type):
             # 将content中的COUNT SUM MAX MIN AVG 替换为小写
             content = content.replace("COUNT", "count").replace("SUM", "sum").replace("MAX", "max").replace("MIN", "min").replace("AVG", "avg")
             query_dict[file.split('/')[-1].split('.')[0]] = content
-    # 按数字排序
-    query_dict = dict(sorted(query_dict.items(), key=lambda x: int(x[0][1:])))
+    
+    # 按数字排序（如果文件名包含数字）或按字母排序
+    def sort_key(item):
+        key = item[0]
+        # Try to extract number from filename (e.g., "query1" -> 1)
+        import re
+        numbers = re.findall(r'\d+', key)
+        if numbers:
+            return (0, int(numbers[0]))  # Sort by number first
+        else:
+            return (1, key)  # Then by name
+    
+    query_dict = dict(sorted(query_dict.items(), key=sort_key))
     return query_dict
 
 def print_config_to_file(file_path):
