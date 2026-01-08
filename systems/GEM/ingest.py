@@ -10,11 +10,12 @@ Implements streaming blocking with discriminative LLM resolution:
 
 import logging
 from typing import List, Dict, Optional, Tuple
-import numpy as np
 
 try:
+    import numpy as np
     import faiss
 except ImportError:
+    np = None
     faiss = None
 
 from .blocking import SemanticBlocker, UnionFind
