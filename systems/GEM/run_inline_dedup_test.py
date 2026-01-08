@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "systems"))
 
-from GEM.config import GEM_CACHE_DIR
+from GEM.config import CACHE_DIR
 from GEM.blocking import SemanticBlocker
 from GEM.resolver import EntityResolver
 from GEM.db_engine import DBEngine
@@ -80,7 +80,7 @@ def test_inline_deduplication():
     print()
     
     # Clear cache
-    cache_dir = Path(GEM_CACHE_DIR)
+    cache_dir = Path(CACHE_DIR)
     if cache_dir.exists():
         import shutil
         shutil.rmtree(cache_dir)

@@ -8,13 +8,16 @@ to handle entity resolution lookups.
 import logging
 import re
 import sqlite3
-from typing import List, Dict, Optional, Any, Union
+from typing import List, Dict, Optional, Any, Union, TYPE_CHECKING
 from pathlib import Path
 
 try:
     import pandas as pd
 except ImportError:
     pd = None
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 from .config import DB_PATH
 from .schema_loader import Schema
@@ -339,7 +342,7 @@ class DBEngine:
             self.logger.warning(f"Failed to safely replace '{mention}': {e}")
             return sql
     
-    def execute_query(self, sql: str) -> Optional[pd.DataFrame]:
+    def execute_query(self, sql: str) -> Optional["pd.DataFrame"]:
         """Execute SQL query with semantic rewriting.
         
         Args:

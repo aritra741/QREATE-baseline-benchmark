@@ -8,7 +8,7 @@ Clusters potentially identical entity mentions using:
 """
 
 import logging
-from typing import List, Dict, Set, Tuple
+from typing import List, Dict, Set, Tuple, TYPE_CHECKING
 from collections import defaultdict
 
 try:
@@ -19,6 +19,9 @@ except ImportError:
     np = None
     SentenceTransformer = None
     faiss = None
+
+if TYPE_CHECKING:
+    import numpy as np
 
 from .config import (
     EMBEDDING_MODEL, SIMILARITY_THRESHOLD, TOP_K_NEIGHBORS
@@ -250,7 +253,7 @@ class SemanticBlocker:
         self.logger.info(f"Got {len(mention_blocks)} blocks from {self.next_idx} mentions")
         return mention_blocks
     
-    def encode_texts(self, texts: List[str]) -> np.ndarray:
+    def encode_texts(self, texts: List[str]) -> "np.ndarray":
         """Encode texts to embeddings.
         
         Args:
@@ -273,7 +276,7 @@ class SemanticBlocker:
             self.logger.error(f"Failed to encode texts: {e}")
             return np.array([])
     
-    def build_index(self, embeddings: np.ndarray) -> faiss.Index:
+    def build_index(self, embeddings: "np.ndarray") -> "faiss.Index":
         """Build FAISS index from embeddings.
         
         Args:
@@ -308,7 +311,7 @@ class SemanticBlocker:
             self.logger.error(f"Failed to build FAISS index: {e}")
             return None
     
-    def find_similar_items(self, embeddings: np.ndarray, k: int = TOP_K_NEIGHBORS,
+    def find_similar_items(self, embeddings: "np.ndarray", k: int = TOP_K_NEIGHBORS,
                            threshold: float = SIMILARITY_THRESHOLD) -> List[List[int]]:
         """Find k nearest neighbors for each embedding.
         
