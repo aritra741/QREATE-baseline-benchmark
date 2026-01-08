@@ -259,7 +259,8 @@ class DBEngine:
         """Rewrite SQL to use canonical names instead of input variations.
         
         This implements the semantic shim that intercepts string literals
-        and replaces them with their canonical forms.
+        and replaces them with their canonical forms, using word boundaries
+        to prevent partial replacements (e.g., "iPhone 15" inside "iPhone 15 Pro").
         
         Args:
             sql: Original SQL query
@@ -293,6 +294,50 @@ class DBEngine:
             self.logger.debug(f"SQL rewritten:\n  Original:  {sql}\n  Rewritten: {rewritten_sql}")
         
         return rewritten_sql
+    
+    def _safe_replace_mention(self, mention: str, canonical: str, sql: str) -> str:
+        """Safely replace a mention with its canonical form using word boundaries.
+        
+        Prevents "iPhone 15" from matching inside "iPhone 15 Pro".
+        
+        Args:
+            mention: Original mention text
+            canonical: Canonical form
+            sql: SQL query
+            
+        Returns:
+            SQL with replacements applied
+        """
+        if mention == canonical:
+            return sql
+        
+        # Escape special regex characters
+        escaped_mention = re.escape(mention)
+        
+        # Use word boundaries and case-insensitive matching
+        # This prevents partial replacements
+        pattern = rf"\b{escaped_mention}\b"
+        
+        try:
+            # Replace within single quotes only
+            def replace_in_quotes(match):
+                """Replace only within quoted strings."""
+                quoted_content = match.group(1)
+                # Apply word boundary replacement within the quoted content
+                replaced = re.sub(pattern, canonical, quoted_content, flags=re.IGNORECASE)
+                return f"'{replaced}'"
+            
+            # Find all quoted strings and apply replacement
+            quoted_pattern = r"'([^']*?)'"
+            result = re.sub(quoted_pattern, replace_in_quotes, sql)
+            
+            if result != sql:
+                self.logger.debug(f"Replaced mention '{mention}' -> '{canonical}' in SQL")
+            
+            return result
+        except Exception as e:
+            self.logger.warning(f"Failed to safely replace '{mention}': {e}")
+            return sql
     
     def execute_query(self, sql: str) -> Optional[pd.DataFrame]:
         """Execute SQL query with semantic rewriting.

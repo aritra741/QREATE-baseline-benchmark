@@ -231,7 +231,7 @@ class PZRunner:
                     # Note: We can't materialize here (would break streaming), but we can log intent
                     self.logger.info(f"[PZ] DEBUG: About to apply groupby on extracted data")
                     self.logger.info(f"[PZ] DEBUG: Dataset schema has columns: {[f for f in dataset_obj.schema.model_fields.keys()]}")
-                    
+            
                     # Build GroupBySig with:
                     # - group_by_fields: list of columns to group by
                     # - agg_funcs: list of aggregation functions (e.g., ['count', 'sum'])

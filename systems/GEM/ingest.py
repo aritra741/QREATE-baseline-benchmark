@@ -1,11 +1,11 @@
 """
-Ingest Module - One-Pass Ingestion with Inline Deduplication
+Ingest Module - One-Pass Ingestion with Integrated HNSW-Union-Find
 
-Implements the "Search-before-Add" deduplication strategy:
-1. For each new mention, query the HNSW index (K=1) to find nearest neighbor
-2. If similarity > 0.98: exact duplicate, skip insertion
-3. If similarity > 0.85: potential synonym, insert and link in Union-Find
-4. Otherwise: new entity, insert and create new component
+Implements streaming blocking with discriminative LLM resolution:
+1. For each mention, use Blocker.add_and_link() for incremental HNSW-Union-Find
+2. Get all blocks from Blocker.get_blocks()
+3. For each block, call LLM.resolve_block() for discriminative clustering
+4. Register canonical names with semantic shim
 """
 
 import logging
@@ -21,6 +21,7 @@ from .blocking import SemanticBlocker, UnionFind
 from .resolver import EntityResolver
 from .db_engine import DBEngine
 from .schema_loader import Schema
+from .llm import LLMClient
 from .config import SIMILARITY_THRESHOLD, TOP_K_NEIGHBORS
 
 
@@ -28,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 class InlineDeduplicator:
-    """Performs inline deduplication during ingestion using HNSW index."""
+    """Performs inline deduplication using integrated HNSW-Union-Find blocking and LLM resolution."""
     
     def __init__(self, 
                  blocker: SemanticBlocker,
@@ -39,7 +40,7 @@ class InlineDeduplicator:
         """Initialize deduplicator.
         
         Args:
-            blocker: SemanticBlocker instance
+            blocker: SemanticBlocker instance with integrated HNSW-Union-Find
             resolver: EntityResolver instance
             db_engine: DBEngine instance
             schema: Schema for the entity
@@ -50,218 +51,112 @@ class InlineDeduplicator:
         self.resolver = resolver
         self.db_engine = db_engine
         self.schema = schema
+        self.llm_client = LLMClient(logger=logger)
         
-        self.index = None  # HNSW index
-        self.embeddings = []  # Store all embeddings
         self.records = []  # Store all records
-        self.union_find = None  # Union-Find for candidate blocks
-        self.component_map = {}  # Map record_idx -> canonical_id
-        
-        # Thresholds
-        self.exact_threshold = 0.98  # Exact duplicate
-        self.synonym_threshold = 0.85  # Potential synonym
+        self.canonical_map = {}  # Map mention_text -> canonical_name
+        self.mention_to_records = {}  # Map mention_text -> list of record indices
     
-    def _build_index(self):
-        """Build or rebuild FAISS index from current embeddings."""
-        if not self.embeddings or len(self.embeddings) == 0:
-            self.logger.debug("No embeddings to index")
-            self.index = None
+    def ingest_mention(self, mention_text: str, record_idx: int):
+        """Ingest a single mention using integrated HNSW-Union-Find blocking.
+        
+        Args:
+            mention_text: The mention text to add to blocker
+            record_idx: Index of the record containing this mention
+        """
+        if not mention_text:
             return
         
-        try:
-            embeddings_array = np.array(self.embeddings).astype('float32')
-            
-            # Create L2 index
-            self.index = faiss.IndexFlatL2(embeddings_array.shape[1])
-            self.index.add(embeddings_array)
-            
-            self.logger.debug(f"Built FAISS index with {len(self.embeddings)} embeddings")
-        except Exception as e:
-            self.logger.error(f"Failed to build index: {e}")
-            self.index = None
-    
-    def _search_nearest_neighbor(self, embedding: np.ndarray) -> Tuple[float, int]:
-        """Search for nearest neighbor in index.
+        # Add to blocker with streaming
+        blocker_idx = self.blocker.add_and_link(mention_text)
         
-        Args:
-            embedding: Query embedding
-            
-        Returns:
-            Tuple of (similarity, record_index) or (0.0, -1) if no index
-        """
-        if self.index is None or len(self.embeddings) == 0:
-            return 0.0, -1
-        
-        try:
-            # Convert to float32
-            query = np.array([embedding]).astype('float32')
-            
-            # Search for K=1 nearest neighbor
-            distances, indices = self.index.search(query, k=1)
-            
-            # Convert L2 distance to similarity (0-1 scale)
-            # similarity = 1 / (1 + distance)
-            distance = distances[0][0]
-            similarity = 1.0 / (1.0 + distance)
-            neighbor_idx = indices[0][0]
-            
-            return similarity, neighbor_idx
-        except Exception as e:
-            self.logger.error(f"Failed to search index: {e}")
-            return 0.0, -1
-    
-    def ingest_record(self, record: Dict, key_attributes: List[str]) -> int:
-        """Ingest a single record with deduplication.
-        
-        Implements the "Search-before-Add" algorithm:
-        1. Query index for nearest neighbor (K=1)
-        2. Based on similarity:
-           - > 0.98: exact duplicate, map to neighbor
-           - > 0.85: synonym, insert and link
-           - <= 0.85: new entity, insert
-        
-        Args:
-            record: Record to ingest
-            key_attributes: Attributes to use for deduplication
-            
-        Returns:
-            Component ID for this record
-        """
-        # Extract key value for embedding
-        key_value = " ".join(str(record.get(attr, "")) for attr in key_attributes if attr in record)
-        
-        if not key_value.strip():
-            self.logger.warning(f"Record has no key values: {record}")
-            return -1
-        
-        # Encode the key value
-        embedding = self.blocker.encode_texts([key_value])
-        if len(embedding) == 0:
-            self.logger.warning(f"Failed to encode key value: {key_value}")
-            return -1
-        
-        embedding = embedding[0]
-        record_idx = len(self.records)
-        
-        # Initialize Union-Find if needed
-        if self.union_find is None:
-            self.union_find = UnionFind(10000)  # Start with 10k capacity
-        
-        # Deduplication Logic (K=1 Search)
-        similarity, neighbor_idx = self._search_nearest_neighbor(embedding)
-        
-        if neighbor_idx >= 0:
-            self.logger.debug(f"Record {record_idx}: NN similarity={similarity:.3f}")
-            
-            if similarity > self.exact_threshold:
-                # Exact duplicate
-                self.logger.info(f"Record {record_idx}: EXACT DUPLICATE of {neighbor_idx} (sim={similarity:.3f}), skipping insert")
-                neighbor_component = self.component_map.get(neighbor_idx, neighbor_idx)
-                self.component_map[record_idx] = neighbor_component
-                return neighbor_component
-            
-            elif similarity > self.synonym_threshold:
-                # Potential synonym
-                self.logger.info(f"Record {record_idx}: SYNONYM of {neighbor_idx} (sim={similarity:.3f}), inserting and linking")
-                self.union_find.union(record_idx, neighbor_idx)
-                # Will be inserted below
-            
-            else:
-                # New entity
-                self.logger.debug(f"Record {record_idx}: NEW ENTITY (NN sim={similarity:.3f}), inserting")
-        else:
-            # No neighbors yet
-            self.logger.debug(f"Record {record_idx}: First record or empty index")
-        
-        # Insert into database
-        self.records.append(record)
-        self.embeddings.append(embedding)
-        self.component_map[record_idx] = record_idx
-        
-        # Rebuild index with new embedding
-        self._build_index()
-        
-        return record_idx
+        # Track mention -> records mapping
+        if mention_text not in self.mention_to_records:
+            self.mention_to_records[mention_text] = []
+        self.mention_to_records[mention_text].append(record_idx)
     
     def ingest_batch(self, records: List[Dict], key_attributes: List[str]) -> Tuple[List[Dict], Dict]:
-        """Ingest a batch of records with inline deduplication.
+        """Ingest batch of records using streaming HNSW-Union-Find blocking.
         
         Args:
             records: List of records to ingest
-            key_attributes: Attributes to use for deduplication
+            key_attributes: Attributes to use for blocking
             
         Returns:
-            Tuple of (deduplicated_records, component_map)
+            Tuple of (final_records, canonical_map)
         """
-        self.logger.info(f"Ingesting {len(records)} records with inline deduplication")
+        self.logger.info(f"Ingesting {len(records)} records with streaming HNSW-Union-Find")
         
-        component_ids = []
-        for i, record in enumerate(records):
-            component_id = self.ingest_record(record, key_attributes)
-            component_ids.append(component_id)
+        self.records = records.copy()
+        
+        # Phase 1: Stream mentions through blocker with ad-hoc HNSW-Union-Find
+        self.logger.info("Phase 1: Streaming mentions through HNSW-Union-Find blocker")
+        for record_idx, record in enumerate(records):
+            # Extract key values (mentions)
+            mentions = []
+            for attr in key_attributes:
+                val = record.get(attr)
+                if val is not None:
+                    mention_text = str(val).strip()
+                    if mention_text:
+                        mentions.append(mention_text)
             
-            if (i + 1) % 100 == 0:
-                self.logger.info(f"Ingested {i + 1}/{len(records)} records")
-        
-        # Get candidate blocks from Union-Find
-        candidate_blocks = self.union_find.get_clusters() if self.union_find else {}
-        self.logger.info(f"Formed {len(candidate_blocks)} candidate blocks")
-        
-        # Filter records: only keep one record per component (deduplication)
-        final_records = []
-        seen_components = set()
-        
-        for i, record in enumerate(self.records):
-            component = self.component_map.get(i, i)
+            # Add each mention to blocker
+            for mention_text in mentions:
+                self.ingest_mention(mention_text, record_idx)
             
-            if component not in seen_components:
-                final_records.append(record)
-                seen_components.add(component)
-            else:
-                self.logger.debug(f"Record {i}: Deduplicated (component {component} already seen)")
+            if (record_idx + 1) % 100 == 0:
+                self.logger.info(f"Streamed {record_idx + 1}/{len(records)} records")
         
-        self.logger.info(f"After deduplication: {len(records)} -> {len(final_records)} records")
+        # Phase 2: Get blocks from Union-Find
+        self.logger.info("Phase 2: Extracting blocks from Union-Find")
+        mention_blocks = self.blocker.get_blocks()
+        self.logger.info(f"Extracted {len(mention_blocks)} blocks")
         
-        return final_records, self.component_map
+        # Phase 3: Discriminative LLM resolution
+        self.logger.info("Phase 3: Resolving blocks with discriminative LLM")
+        self.canonical_map = {}
+        
+        for block_idx, (representative, mentions_in_block) in enumerate(mention_blocks.items()):
+            # Resolve block with LLM
+            resolution = self.llm_client.resolve_block(mentions_in_block)
+            
+            # Update canonical map with multi-entity resolution
+            for canonical_name, synonyms in resolution.items():
+                for synonym in synonyms:
+                    self.canonical_map[synonym] = canonical_name
+            
+            if (block_idx + 1) % 10 == 0:
+                self.logger.info(f"Resolved {block_idx + 1}/{len(mention_blocks)} blocks")
+        
+        self.logger.info(f"Built canonical map with {len(self.canonical_map)} mention -> canonical mappings")
+        
+        # Phase 4: Update resolver with canonical map
+        self.resolver.canonical_map = self.canonical_map
+        self.db_engine.set_resolver(self.resolver)
+        
+        return self.records, self.canonical_map
     
     def finalize(self) -> List[Dict]:
-        """Finalize ingestion by resolving candidate blocks with LLM.
-        
-        Updates canonical names in records based on LLM resolution.
+        """Finalize by normalizing records with canonical names.
         
         Returns:
-            Final deduplicated records with canonical names
+            Records normalized with canonical entity names
         """
         if not self.records:
             self.logger.warning("No records to finalize")
             return []
         
-        self.logger.info("Finalizing ingestion with LLM resolution")
+        self.logger.info("Finalizing records with canonical normalization")
         
-        # Get candidate blocks from Union-Find
-        if self.union_find:
-            candidate_blocks = self.union_find.get_clusters()
-            self.logger.info(f"Processing {len(candidate_blocks)} candidate blocks")
-        else:
-            candidate_blocks = {i: [i] for i in range(len(self.records))}
-        
-        # Resolve blocks and build canonical map
         key_attributes = [attr.name for attr in self.schema.attributes if attr.is_key_attribute]
-        self.resolver.resolve_blocks(self.records, list(candidate_blocks.values()), key_attributes)
         
-        # Apply canonical names to records
+        # Normalize records using canonical map
         final_records = []
-        seen_components = set()
+        for record in self.records:
+            normalized_record = self.resolver.normalize_record(record, key_attributes, self.schema)
+            final_records.append(normalized_record)
         
-        for i, record in enumerate(self.records):
-            component = self.component_map.get(i, i)
-            
-            if component not in seen_components:
-                # Normalize record with canonical names
-                normalized_record = self.resolver.normalize_record(record, key_attributes, self.schema)
-                final_records.append(normalized_record)
-                seen_components.add(component)
-        
-        self.logger.info(f"Finalized: {len(self.records)} records -> {len(final_records)} records")
+        self.logger.info(f"Finalized {len(final_records)} records")
         
         return final_records

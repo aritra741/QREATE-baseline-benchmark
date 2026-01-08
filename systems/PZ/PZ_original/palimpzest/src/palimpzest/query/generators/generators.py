@@ -435,19 +435,19 @@ class Generator(Generic[ContextType, InputType]):
                 input_text_tokens = sum(len(msg.get('content', '').split()) for msg in messages if isinstance(msg, dict))
                 input_tokens = input_text_tokens
             else:
-                usage = completion.usage.model_dump()
-                
-                # get output tokens (all text) and input tokens by modality
-                output_tokens = usage["completion_tokens"]
-                if is_audio_op:
-                    input_audio_tokens = usage["prompt_tokens_details"].get("audio_tokens", 0)
-                    input_text_tokens = usage["prompt_tokens_details"].get("text_tokens", 0)
-                    input_image_tokens = 0
-                else:
-                    input_audio_tokens = 0
-                    input_text_tokens = usage["prompt_tokens"]
-                    input_image_tokens = 0
-                input_tokens = input_audio_tokens + input_text_tokens + input_image_tokens
+            usage = completion.usage.model_dump()
+
+            # get output tokens (all text) and input tokens by modality
+            output_tokens = usage["completion_tokens"]
+            if is_audio_op:
+                input_audio_tokens = usage["prompt_tokens_details"].get("audio_tokens", 0)
+                input_text_tokens = usage["prompt_tokens_details"].get("text_tokens", 0)
+                input_image_tokens = 0
+            else:
+                input_audio_tokens = 0
+                input_text_tokens = usage["prompt_tokens"]
+                input_image_tokens = 0
+            input_tokens = input_audio_tokens + input_text_tokens + input_image_tokens
 
             # get cost per input/output token for the model
             usd_per_input_token = MODEL_CARDS[self.model_name].get("usd_per_input_token", 0.0)
