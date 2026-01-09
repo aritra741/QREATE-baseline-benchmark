@@ -35,6 +35,7 @@ from GEM.db_engine import DBEngine
 from GEM.ingest import InlineDeduplicator
 from GEM.schema_loader import SchemaLoader
 from GEM.llm import LLMClient
+from GEM.extractor import EntityExtractor
 
 
 def get_medical_schema():
@@ -53,8 +54,8 @@ def get_medical_schema():
     return schema
 
 
-def load_healthcare_data(data_dir: Path) -> Dict[str, List[Dict[str, Any]]]:
-    """Load healthcare text files and parse into records."""
+def load_healthcare_data(data_dir: Path, extractor: EntityExtractor) -> Dict[str, List[Dict[str, Any]]]:
+    """Load healthcare text files and extract entities using LLM pipeline."""
     data = {"drug": [], "disease": [], "institution": []}
     
     # Define which files belong to which entity type
@@ -65,7 +66,7 @@ def load_healthcare_data(data_dir: Path) -> Dict[str, List[Dict[str, Any]]]:
     }
     
     print("=" * 100)
-    print("LOADING HEALTHCARE DATA")
+    print("LOADING AND EXTRACTING HEALTHCARE DATA")
     print("=" * 100)
     print()
     
@@ -74,41 +75,17 @@ def load_healthcare_data(data_dir: Path) -> Dict[str, List[Dict[str, Any]]]:
             logger.warning(f"Directory not found: {entity_dir}")
             continue
         
-        txt_files = list(entity_dir.glob("*.txt"))
-        logger.info(f"Found {len(txt_files)} {entity_type} files in {entity_dir}")
+        # Map institution to disease in data structure
+        entity_key = "institution" if entity_type == "institutes_small" else entity_type
         
-        for txt_file in txt_files[:10]:  # Limit to 10 files per type for testing
-            try:
-                with open(txt_file, 'r', encoding='utf-8') as f:
-                    content = f.read().strip()
-                
-                # Parse key-value pairs from text
-                record = {"source_file": txt_file.name}
-                for line in content.split('\n'):
-                    line = line.strip()
-                    if not line or ':' not in line:
-                        continue
-                    
-                    key, value = line.split(':', 1)
-                    key = key.strip().lower().replace(' ', '_')
-                    value = value.strip()
-                    record[key] = value
-                
-                # Map institution to disease in data structure
-                entity_key = "institution" if entity_type == "institutes_small" else entity_type
-                
-                # Only add if we extracted some fields
-                if len(record) > 1:
-                    data[entity_key].append(record)
-                
-            except Exception as e:
-                logger.debug(f"Failed to parse {txt_file}: {e}")
+        # Use LLM extractor to process directory
+        logger.info(f"Extracting {entity_key} entities from {entity_dir}...")
+        extracted = extractor.extract_from_directory(entity_dir, entity_key, max_files=5)
+        
+        data[entity_key].extend(extracted)
+        print(f"Extracted {len(extracted)} {entity_key} records")
     
-    # Print summary
-    for entity_type, records in data.items():
-        print(f"Loaded {len(records)} {entity_type} records")
     print()
-    
     return data
 
 
@@ -290,9 +267,6 @@ def main():
         shutil.rmtree(cache_dir)
     cache_dir.mkdir(parents=True, exist_ok=True)
     
-    # Load data
-    data = load_healthcare_data(data_dir)
-    
     # Initialize components
     print("=" * 100)
     print("INITIALIZATION")
@@ -307,6 +281,13 @@ def main():
     
     llm_client = LLMClient()
     logger.info("✓ LLMClient initialized")
+    
+    extractor = EntityExtractor()
+    logger.info("✓ EntityExtractor initialized")
+    
+    # Load data with LLM extraction
+    data = load_healthcare_data(data_dir, extractor)
+    print()
     
     db_engine = DBEngine()
     logger.info("✓ DBEngine initialized")
