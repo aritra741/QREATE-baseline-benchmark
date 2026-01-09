@@ -120,7 +120,9 @@ Answer with only: yes or no"""
             )
             
             answer = response.choices[0].message.content.strip().lower()
-            return "yes" in answer
+            result = "yes" in answer
+            logger.debug(f"Judge {entity_type}: '{answer}' -> {result}")
+            return result
         
         except Exception as e:
             logger.error(f"Judge failed: {e}")
