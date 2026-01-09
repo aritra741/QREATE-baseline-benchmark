@@ -34,9 +34,9 @@ from GEM.schema_loader import SchemaLoader
 from GEM.llm import LLMClient
 
 
-def create_multi_table_schema():
-    """Create a multi-table schema for products."""
-    schema_dict = {
+def get_multi_table_schema_dict():
+    """Get multi-table schema dictionary for products."""
+    return {
         "product": {
             "name": {
                 "value_type": "str",
@@ -106,10 +106,6 @@ def create_multi_table_schema():
             }
         }
     }
-    
-    loader = SchemaLoader()
-    schema = loader._parse_schema(schema_dict)
-    return schema
 
 
 def create_test_observations():
@@ -276,7 +272,7 @@ def test_multi_table_entity_tracking():
     
     # Create test data
     observations = create_test_observations()
-    schema = create_multi_table_schema()
+    schema_dict = get_multi_table_schema_dict()
     
     print(f"Created {len(observations)} test observations:")
     for i, obs in enumerate(observations):
@@ -303,12 +299,20 @@ def test_multi_table_entity_tracking():
     print("✓ LLMClient initialized")
     
     db_engine = DBEngine()
-    db_engine.set_schema(schema)
+    # Don't set global schema - each table has different columns
     print("✓ DBEngine initialized")
     
-    # Create all tables
+    # Create all tables without using global schema
     for table_name in ["product", "pricing", "inventory", "reviews"]:
-        db_engine.create_table(table_name, schema)
+        # Get schema for this table
+        table_schema_dict = {table_name: schema_dict[table_name]}
+        loader = SchemaLoader()
+        table_schema = loader._parse_schema(table_schema_dict)
+        db_engine.set_schema(table_schema)
+        db_engine.create_table(table_name, table_schema)
+    
+    # Clear schema after table creation
+    db_engine.schema = None
     print("✓ All tables created")
     print()
     
@@ -333,7 +337,7 @@ def test_multi_table_entity_tracking():
     # Create dummy records for blocking
     dummy_records = [{"name": mention} for mention in all_mentions]
     
-    deduplicator = InlineDeduplicator(blocker, resolver, db_engine, schema, logger=logger)
+    deduplicator = InlineDeduplicator(blocker, resolver, db_engine, None, logger=logger)
     key_attributes = ["name"]
     
     final_records, canonical_map = deduplicator.ingest_batch(dummy_records, key_attributes)
