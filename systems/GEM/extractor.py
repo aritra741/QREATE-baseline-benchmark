@@ -93,9 +93,12 @@ class LLMExtractor:
         """
         Stage 1: Judge if chunk contains entity information.
         
+        Generic binary classification: Does this text contain structured/extractable information?
+        Works for any entity type by looking for patterns of entity-like information.
+        
         Args:
             text: Text chunk to judge
-            entity_type: "drug", "disease", or "institution"
+            entity_type: "drug", "disease", or "institution" (used only for logging)
             
         Returns:
             True if chunk likely contains entity info, False otherwise
@@ -104,8 +107,10 @@ class LLMExtractor:
             logger.error("LLM client not initialized")
             return False
         
-        prompt = f"""Analyze this text. Does it contain specific information about a {entity_type}?
-Consider: names, properties, treatments, symptoms, manufacturers, locations, etc.
+        # Generic prompt that works for any entity type
+        prompt = f"""Does this text contain extractable information about entities?
+Look for: named entities, attributes, properties, relationships, or structured data.
+This could be about anything - products, people, organizations, concepts, etc.
 
 Text: {text[:500]}
 
@@ -121,7 +126,7 @@ Answer with only: yes or no"""
             
             answer = response.choices[0].message.content.strip().lower()
             result = "yes" in answer
-            logger.debug(f"Judge {entity_type}: '{answer}' -> {result}")
+            logger.debug(f"Judge: response='{answer}' -> {result}")
             return result
         
         except Exception as e:
