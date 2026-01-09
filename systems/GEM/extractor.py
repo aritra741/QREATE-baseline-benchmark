@@ -207,14 +207,16 @@ Return ONLY valid JSON array, no markdown."""
                     
                     # Convert lists to pipe-delimited strings
                     if isinstance(v, list):
-                        processed[k] = "||".join(str(item).strip() for item in v if item)
+                        v = "||".join(str(item).strip() for item in v if item)
                     elif v is not None:
-                        processed[k] = str(v)
-                    else:
-                        processed[k] = None
+                        v = str(v).strip()
+                    
+                    # Only keep non-empty values
+                    if v:
+                        processed[k] = v
                 
-                # Only add if we extracted something meaningful
-                if any(processed.values()):
+                # Only add if we extracted something meaningful (at least 2 fields with values)
+                if len(processed) >= 1:
                     processed_entities.append(processed)
             
             return processed_entities
