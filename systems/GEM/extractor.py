@@ -127,9 +127,14 @@ Answer with only: yes or no"""
             return False
     
     def extract_attributes(self, text: str, entity_type: str, 
-                          attributes: List[str]) -> Dict[str, Any]:
+                          attributes: List[str]) -> List[Dict[str, Any]]:
         """
         Stage 2: Extract structured attributes from chunk.
+        
+        Always returns a list of entities (even if just one), where:
+        - Each entry is a distinct entity
+        - Multi-values for same entity are pipe-delimited
+        - Unrelated entities get separate list entries
         
         Args:
             text: Text chunk to extract from
@@ -137,28 +142,39 @@ Answer with only: yes or no"""
             attributes: List of attribute names to extract
             
         Returns:
-            Dict mapping attribute names to extracted values
+            List of dicts, each representing one entity with extracted values
         """
         if self.client is None:
             logger.error("LLM client not initialized")
-            return {}
+            return []
         
         attributes_str = ", ".join(attributes)
         
-        prompt = f"""Extract information from this text about a {entity_type}.
-Return a JSON object with these fields (use null if not found):
-{attributes_str}
+        prompt = f"""Extract information from this text about {entity_type} entities.
+
+IMPORTANT: Always return a JSON array, even if there's only ONE entity.
+Each array element is a separate {entity_type} entity.
+For multi-valued fields within the SAME entity, use pipe-delimiter (||).
+For DIFFERENT entities, create separate array entries.
+
+Fields to extract: {attributes_str}
 
 Text: {text[:1000]}
 
-Return only valid JSON, no markdown or explanation."""
+Example format:
+[
+  {{"name": "Entity1", "field1": "value1", "field2": "value2a||value2b"}},
+  {{"name": "Entity2", "field1": "value3", "field2": "value4"}}
+]
+
+Return ONLY valid JSON array, no markdown."""
         
         try:
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.2,
-                max_tokens=500
+                max_tokens=800
             )
             
             result_text = response.choices[0].message.content.strip()
@@ -173,15 +189,42 @@ Return only valid JSON, no markdown or explanation."""
             
             result = json.loads(result_text.strip())
             
-            # Filter to only requested attributes
-            return {k: v for k, v in result.items() if k in attributes}
+            # Ensure it's a list
+            if not isinstance(result, list):
+                result = [result] if result else []
+            
+            # Process each entity
+            processed_entities = []
+            for entity in result:
+                if not isinstance(entity, dict):
+                    continue
+                
+                # Filter to only requested attributes and ensure strings
+                processed = {}
+                for k, v in entity.items():
+                    if k not in attributes:
+                        continue
+                    
+                    # Convert lists to pipe-delimited strings
+                    if isinstance(v, list):
+                        processed[k] = "||".join(str(item).strip() for item in v if item)
+                    elif v is not None:
+                        processed[k] = str(v)
+                    else:
+                        processed[k] = None
+                
+                # Only add if we extracted something meaningful
+                if any(processed.values()):
+                    processed_entities.append(processed)
+            
+            return processed_entities
         
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse JSON response: {e}")
-            return {}
+            return []
         except Exception as e:
             logger.error(f"Extraction failed: {e}")
-            return {}
+            return []
 
 
 class EntityExtractor:
@@ -223,7 +266,7 @@ class EntityExtractor:
             entity_type: "drug", "disease", or "institution"
             
         Returns:
-            List of extracted entity records
+            List of extracted entity records (each can have multiple entities per chunk)
         """
         if entity_type not in self.entity_attributes:
             logger.error(f"Unknown entity type: {entity_type}")
@@ -236,7 +279,7 @@ class EntityExtractor:
         logger.info(f"Created {len(chunks)} chunks")
         
         # Step 2: Judge and extract
-        extracted_entities = []
+        all_entities = []
         
         for i, chunk in enumerate(chunks):
             # Judge if chunk contains entity info
@@ -246,17 +289,16 @@ class EntityExtractor:
             
             logger.debug(f"Chunk {i}: Relevant, extracting...")
             
-            # Extract attributes
+            # Extract attributes (returns list of entities)
             attributes = self.entity_attributes[entity_type]
-            extracted = self.llm.extract_attributes(chunk, entity_type, attributes)
+            entities = self.llm.extract_attributes(chunk, entity_type, attributes)
             
-            # Only add if we extracted something meaningful
-            if extracted and any(extracted.values()):
-                extracted_entities.append(extracted)
-                logger.debug(f"Chunk {i}: Extracted {len([v for v in extracted.values() if v])} fields")
+            if entities:
+                all_entities.extend(entities)
+                logger.debug(f"Chunk {i}: Extracted {len(entities)} entities")
         
-        logger.info(f"Extracted {len(extracted_entities)} entities from text")
-        return extracted_entities
+        logger.info(f"Extracted {len(all_entities)} total entities from text")
+        return all_entities
     
     def extract_from_file(self, file_path: Path, entity_type: str) -> List[Dict[str, Any]]:
         """
