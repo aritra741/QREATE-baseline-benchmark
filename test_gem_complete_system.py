@@ -48,7 +48,7 @@ def get_medical_schema():
     return schema_dict
 
 
-def load_and_extract_data(data_dir: Path, extractor: EntityExtractor, use_cache: bool = True) -> dict:
+def load_and_extract_data(data_dir: Path, extractor: EntityExtractor, use_cache: bool = True, max_files: int = None) -> dict:
     """Extract entities from Healthcare dataset with caching."""
     cache_file = Path(CACHE_DIR) / "extracted_entities.json"
     
@@ -79,7 +79,7 @@ def load_and_extract_data(data_dir: Path, extractor: EntityExtractor, use_cache:
         entity_key = "institution" if entity_type == "institutes_small" else entity_type
         
         logger.info(f"Extracting {entity_key} entities from {entity_dir}...")
-        extracted = extractor.extract_from_directory(entity_dir, entity_key, max_files=10)
+        extracted = extractor.extract_from_directory(entity_dir, entity_key, max_files=max_files)
         
         data[entity_key].extend(extracted)
         print(f"Extracted {len(extracted)} {entity_key} records")
@@ -287,6 +287,7 @@ def main():
     parser = argparse.ArgumentParser(description="GEM Complete System Test")
     parser.add_argument("--no-cache", action="store_true", help="Disable extraction caching")
     parser.add_argument("--clear-cache", action="store_true", help="Clear cache before running")
+    parser.add_argument("--max-files", type=int, default=None, help="Maximum files to process per entity type (None = all)")
     args = parser.parse_args()
     
     print("\n")
@@ -342,7 +343,7 @@ def main():
     print()
     
     # Extract (with caching)
-    data = load_and_extract_data(data_dir, extractor, use_cache=not args.no_cache)
+    data = load_and_extract_data(data_dir, extractor, use_cache=not args.no_cache, max_files=args.max_files)
     
     # Create DB
     db_engine = create_tables_and_db(schema_dict)
