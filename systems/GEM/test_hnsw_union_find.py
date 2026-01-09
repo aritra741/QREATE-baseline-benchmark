@@ -155,12 +155,23 @@ def test_hnsw_union_find():
     
     # Phase 2: Normalize records
     print("=" * 100)
-    print("PHASE 2: Normalization")
+    print("PHASE 2: Normalization & Deduplication")
     print("=" * 100)
     print()
     
     normalized_records = deduplicator.finalize()
     print(f"Normalized {len(products)} records")
+    
+    # Deduplicate by canonical name
+    seen_names = set()
+    deduplicated_records = []
+    for record in normalized_records:
+        name = record.get('name')
+        if name not in seen_names:
+            seen_names.add(name)
+            deduplicated_records.append(record)
+    
+    print(f"After deduplication: {len(normalized_records)} → {len(deduplicated_records)} unique records")
     print()
     
     # Phase 3: Insert into database
@@ -169,7 +180,7 @@ def test_hnsw_union_find():
     print("=" * 100)
     print()
     
-    db_engine.insert_records("product", normalized_records)
+    db_engine.insert_records("product", deduplicated_records)
     print()
     
     # Phase 4: Verification
@@ -254,7 +265,7 @@ def test_hnsw_union_find():
     print()
     print(f"Input products: {len(products)}")
     print(f"Canonical map size: {len(canonical_map)}")
-    print(f"Records inserted: {len(normalized_records)}")
+    print(f"Records after dedup: {len(deduplicated_records)}")
     print(f"Distinct names in DB: {unique_names if result_df is not None else 'unknown'}")
     print()
     
