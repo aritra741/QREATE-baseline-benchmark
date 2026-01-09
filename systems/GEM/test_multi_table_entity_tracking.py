@@ -213,7 +213,7 @@ class MultiTableEntityTracker:
         self.db_engine = db_engine
         self.canonical_map = canonical_map
         # Track which entities exist in which tables
-        self.entity_tables: Dict[str, set] = {}
+        self.entity_tables: set = set()
     
     def get_canonical_name(self, mention: str) -> str:
         """Get canonical name for a mention."""
