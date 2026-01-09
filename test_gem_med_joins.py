@@ -82,19 +82,27 @@ def load_healthcare_data(data_dir: Path) -> Dict[str, List[Dict[str, Any]]]:
                 with open(txt_file, 'r', encoding='utf-8') as f:
                     content = f.read().strip()
                 
-                # Parse content as JSON if possible
-                if content.startswith('{'):
-                    record = json.loads(content)
-                else:
-                    # Simple line-based parsing
-                    record = {"raw_text": content, "source_file": txt_file.name}
+                # Parse key-value pairs from text
+                record = {"source_file": txt_file.name}
+                for line in content.split('\n'):
+                    line = line.strip()
+                    if not line or ':' not in line:
+                        continue
+                    
+                    key, value = line.split(':', 1)
+                    key = key.strip().lower().replace(' ', '_')
+                    value = value.strip()
+                    record[key] = value
                 
                 # Map institution to disease in data structure
                 entity_key = "institution" if entity_type == "institutes_small" else entity_type
-                data[entity_key].append(record)
+                
+                # Only add if we extracted some fields
+                if len(record) > 1:
+                    data[entity_key].append(record)
                 
             except Exception as e:
-                logger.warning(f"Failed to parse {txt_file}: {e}")
+                logger.debug(f"Failed to parse {txt_file}: {e}")
     
     # Print summary
     for entity_type, records in data.items():
