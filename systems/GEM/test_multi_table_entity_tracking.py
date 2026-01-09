@@ -289,7 +289,7 @@ def test_multi_table_entity_tracking():
     print("=" * 100)
     print()
     
-    blocker = SemanticBlocker(blocking_threshold=0.85)
+    blocker = SemanticBlocker(blocking_threshold=0.90)
     print("✓ SemanticBlocker initialized")
     
     resolver = EntityResolver()
