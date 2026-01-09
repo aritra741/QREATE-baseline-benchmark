@@ -119,7 +119,6 @@ def test_hnsw_union_find():
     print()
     
     blocker = SemanticBlocker(blocking_threshold=0.85)
-    blocker.load_embedding_model()
     print("✓ SemanticBlocker initialized with HNSW-Union-Find")
     
     resolver = EntityResolver()
