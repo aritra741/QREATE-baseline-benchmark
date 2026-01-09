@@ -1,403 +1,313 @@
 """
-Extractor Module - LLM-based Data Extraction
+Text Extraction Pipeline - LLM-based Entity and Attribute Extraction
 
-Extracts structured data from raw text files using an LLM with:
-- Document chunking for long texts
-- Caching to avoid re-running extraction
-- JSON validation and error handling
-- Rate limiting for LLM calls
+Two-stage pipeline:
+1. LLM-as-Judge: Binary classification to detect if chunk contains entity info
+2. LLM-as-Extractor: Structured extraction of attributes from relevant chunks
 """
 
 import json
-import hashlib
-import time
-import re
-from pathlib import Path
-from typing import List, Dict, Any, Optional, Tuple
-from datetime import datetime
 import logging
+from typing import List, Dict, Any, Optional, Tuple
+from pathlib import Path
 
 try:
     from openai import OpenAI
 except ImportError:
     OpenAI = None
 
-from .config import (
-    OLLAMA_URL, OLLAMA_MODEL, OLLAMA_API_KEY, CACHE_DIR,
-    EXTRACTION_TIMEOUT, EXTRACTION_MAX_RETRIES,
-    CHUNK_TOKENIZER, CHUNK_SIZE, CHUNK_OVERLAP
-)
-from .schema_loader import Schema
-
-
 logger = logging.getLogger(__name__)
 
 
 class TextChunker:
-    """Splits long documents into overlapping chunks."""
+    """Split text into overlapping chunks."""
     
-    def __init__(self, chunk_size: int = CHUNK_SIZE, overlap: int = CHUNK_OVERLAP):
-        """Initialize chunker.
-        
+    def __init__(self, chunk_size: int = 5, overlap: int = 2):
+        """
         Args:
-            chunk_size: Maximum tokens per chunk
-            overlap: Token overlap between chunks
+            chunk_size: Number of sentences per chunk
+            overlap: Number of overlapping sentences between chunks
         """
         self.chunk_size = chunk_size
         self.overlap = overlap
-        self._token_count_cache = {}
     
-    def estimate_tokens(self, text: str) -> int:
-        """Estimate token count (rough approximation: 1 token ≈ 4 chars)."""
-        return len(text) // 4
-    
-    def chunk_text(self, text: str) -> List[str]:
-        """Split text into overlapping chunks.
+    def split_into_sentences(self, text: str) -> List[str]:
+        """Split text into sentences (simple approach)."""
+        # Simple sentence splitting on periods, newlines
+        sentences = []
+        current = ""
         
-        Args:
-            text: Input text
+        for line in text.split('\n'):
+            line = line.strip()
+            if not line:
+                continue
             
-        Returns:
-            List of text chunks
-        """
-        if not text:
-            return []
+            # Split by periods but keep sentence together
+            parts = line.split('. ')
+            for i, part in enumerate(parts):
+                if i < len(parts) - 1:
+                    sentences.append(part + '.')
+                else:
+                    current += part + ' '
         
-        # Check if text is short enough to not need chunking
-        token_count = self.estimate_tokens(text)
-        if token_count <= self.chunk_size:
-            return [text]
+        if current.strip():
+            sentences.append(current.strip())
         
-        # Split by sentences first for better boundaries
-        sentences = re.split(r'(?<=[.!?])\s+', text)
+        return [s.strip() for s in sentences if s.strip()]
+    
+    def chunk(self, text: str) -> List[str]:
+        """Create overlapping chunks of sentences."""
+        sentences = self.split_into_sentences(text)
+        
+        if len(sentences) <= self.chunk_size:
+            return [' '.join(sentences)]
         
         chunks = []
-        current_chunk = []
-        current_tokens = 0
-        stride = self.chunk_size - self.overlap
+        for i in range(0, len(sentences), self.chunk_size - self.overlap):
+            chunk_sentences = sentences[i:i + self.chunk_size]
+            if chunk_sentences:
+                chunks.append(' '.join(chunk_sentences))
         
-        for sentence in sentences:
-            sentence_tokens = self.estimate_tokens(sentence)
-            
-            if current_tokens + sentence_tokens > self.chunk_size and current_chunk:
-                # Flush current chunk
-                chunks.append(" ".join(current_chunk))
-                
-                # Keep last few sentences for overlap
-                overlap_count = 0
-                overlap_tokens = 0
-                for sent in reversed(current_chunk):
-                    overlap_tokens += self.estimate_tokens(sent)
-                    if overlap_tokens > self.overlap:
-                        break
-                    overlap_count += 1
-                
-                # Start new chunk with overlap
-                current_chunk = current_chunk[-overlap_count:] if overlap_count > 0 else []
-                current_tokens = sum(self.estimate_tokens(s) for s in current_chunk)
-            
-            current_chunk.append(sentence)
-            current_tokens += sentence_tokens
-        
-        # Add final chunk
-        if current_chunk:
-            chunks.append(" ".join(current_chunk))
-        
-        return chunks if chunks else [text]
+        return chunks
 
 
-class Extractor:
-    """Extracts structured data from text files using LLM."""
+class LLMExtractor:
+    """LLM-based entity and attribute extraction."""
     
-    def __init__(self, schema: Schema, logger: Optional[logging.Logger] = None):
-        """Initialize extractor.
-        
-        Args:
-            schema: Schema object defining what to extract
-            logger: Logger instance
+    def __init__(self, model: str = "qwen2.5:7b-instruct", base_url: str = "http://localhost:11434/v1"):
         """
-        self.schema = schema
-        self.logger = logger or logging.getLogger(__name__)
-        self.chunker = TextChunker()
-        self.client = self._init_client()
-        self.cache_dir = CACHE_DIR / "extractions" / schema.entity_name
-        self.cache_dir.mkdir(parents=True, exist_ok=True)
-    
-    def _init_client(self) -> Optional[Any]:
-        """Initialize OpenAI client for Ollama."""
+        Args:
+            model: Model name (default: Ollama qwen2.5)
+            base_url: LLM API base URL
+        """
+        self.model = model
+        self.base_url = base_url
+        
         if OpenAI is None:
-            self.logger.warning("OpenAI client not available, extraction will be skipped")
-            return None
-        
-        try:
-            client = OpenAI(
-                api_key=OLLAMA_API_KEY,
-                base_url=OLLAMA_URL
-            )
-            return client
-        except Exception as e:
-            self.logger.error(f"Failed to initialize OpenAI client: {e}")
-            return None
+            logger.warning("OpenAI client not available")
+            self.client = None
+        else:
+            self.client = OpenAI(api_key="not-needed", base_url=base_url)
     
-    def _get_cache_path(self, filepath: Path) -> Path:
-        """Get cache file path for a source file.
+    def judge_chunk(self, text: str, entity_type: str) -> bool:
+        """
+        Stage 1: Judge if chunk contains entity information.
         
         Args:
-            filepath: Source file path
+            text: Text chunk to judge
+            entity_type: "drug", "disease", or "institution"
             
         Returns:
-            Cache file path
-        """
-        # Hash filename to get cache key
-        file_hash = hashlib.md5(str(filepath).encode()).hexdigest()[:8]
-        return self.cache_dir / f"{filepath.stem}_{file_hash}.json"
-    
-    def _read_cache(self, filepath: Path) -> Optional[List[Dict]]:
-        """Read cached extraction results.
-        
-        Args:
-            filepath: Source file path
-            
-        Returns:
-            Cached records or None
-        """
-        cache_path = self._get_cache_path(filepath)
-        if cache_path.exists():
-            try:
-                with open(cache_path, "r") as f:
-                    return json.load(f)
-            except Exception as e:
-                self.logger.warning(f"Failed to read cache {cache_path}: {e}")
-        return None
-    
-    def _write_cache(self, filepath: Path, records: List[Dict]):
-        """Write extraction results to cache.
-        
-        Args:
-            filepath: Source file path
-            records: Extracted records
-        """
-        cache_path = self._get_cache_path(filepath)
-        try:
-            with open(cache_path, "w") as f:
-                json.dump(records, f, indent=2)
-        except Exception as e:
-            self.logger.warning(f"Failed to write cache {cache_path}: {e}")
-    
-    def _build_system_prompt(self) -> str:
-        """Build system prompt for extraction.
-        
-        Returns:
-            System prompt text
-        """
-        schema_text = self.schema.to_prompt_str()
-        return f"""You are a data extraction engine. Extract structured data from unstructured text.
-
-{schema_text}
-
-INSTRUCTIONS:
-1. Return ONLY valid JSON - no explanation or commentary
-2. Extract only fields you can identify with confidence
-3. Omit fields if data is not found (do NOT invent values)
-4. If multiple records exist, return a JSON array [{{...}}, {{...}}]
-5. If no matching data, return empty object {{}}
-6. All output MUST be valid JSON
-
-CRITICAL: Start output with {{ or [ only. No other text."""
-    
-    def _extract_from_text(self, text: str) -> List[Dict]:
-        """Extract structured data from a single text chunk using LLM.
-        
-        Args:
-            text: Text to extract from
-            
-        Returns:
-            List of extracted records
+            True if chunk likely contains entity info, False otherwise
         """
         if self.client is None:
-            self.logger.warning("Client not initialized, returning empty results")
-            return []
+            logger.error("LLM client not initialized")
+            return False
         
-        system_prompt = self._build_system_prompt()
+        prompt = f"""Analyze this text. Does it contain specific information about a {entity_type}?
+Consider: names, properties, treatments, symptoms, manufacturers, locations, etc.
+
+Text: {text[:500]}
+
+Answer with only: yes or no"""
         
-        # Retry logic with backoff
-        for attempt in range(EXTRACTION_MAX_RETRIES):
-            try:
-                response = self.client.chat.completions.create(
-                    model=OLLAMA_MODEL,
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": text[:8000]}  # Limit text to 8000 chars
-                    ],
-                    temperature=0.1,  # Low temperature for consistency
-                    timeout=EXTRACTION_TIMEOUT
-                )
-                
-                # Extract JSON from response
-                response_text = response.choices[0].message.content.strip()
-                
-                # Try multiple parsing strategies
-                records = self._parse_json_response(response_text)
-                return records
-                
-            except json.JSONDecodeError as e:
-                self.logger.warning(f"JSON parse error (attempt {attempt + 1}): {e}")
-                time.sleep(2 ** attempt)  # Exponential backoff
-            except Exception as e:
-                self.logger.error(f"Extraction error (attempt {attempt + 1}): {e}")
-                time.sleep(2 ** attempt)
-        
-        return []
-    
-    def _parse_json_response(self, response_text: str) -> List[Dict]:
-        """Parse JSON from LLM response with multiple fallback strategies.
-        
-        Args:
-            response_text: Raw LLM response
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.3,
+                max_tokens=10
+            )
             
-        Returns:
-            List of extracted records
-        """
-        if not response_text:
-            return []
+            answer = response.choices[0].message.content.strip().lower()
+            return "yes" in answer
         
-        # Strategy 1: Direct parse
-        try:
-            if response_text.startswith('['):
-                return json.loads(response_text)
-            elif response_text.startswith('{'):
-                obj = json.loads(response_text)
-                return [obj] if obj else []
-        except json.JSONDecodeError:
-            pass
-        
-        # Strategy 2: Try to fix truncated JSON by closing it
-        try:
-            if response_text.startswith('['):
-                # Try to close the array
-                fixed = response_text.rstrip() + ']'
-                if fixed.count('[') > fixed.count(']'):
-                    fixed = response_text.rstrip() + '}]'
-                records = json.loads(fixed)
-                return records if isinstance(records, list) else [records]
-            elif response_text.startswith('{'):
-                # Try to close the object
-                fixed = response_text.rstrip() + '}'
-                if fixed.count('[') > fixed.count(']'):
-                    fixed = fixed.rstrip() + ']'
-                obj = json.loads(fixed)
-                return [obj] if obj else []
-        except json.JSONDecodeError:
-            pass
-        
-        # Strategy 3: Extract JSON from text
-        # Look for {...} or [...]
-        for pattern in [r'\[[\s\S]*', r'\{[\s\S]*']:
-            try:
-                match = re.search(pattern, response_text)
-                if match:
-                    json_str = match.group()
-                    # Try to close it
-                    if json_str.startswith('['):
-                        try:
-                            records = json.loads(json_str + ']')
-                            return records if isinstance(records, list) else [records]
-                        except:
-                            pass
-                    else:
-                        try:
-                            obj = json.loads(json_str + '}')
-                            return [obj] if obj else []
-                        except:
-                            pass
-            except:
-                continue
-        
-        # No valid JSON found
-        self.logger.warning(f"Could not extract JSON from response: {response_text[:80]}")
-        return []
-    
-    def extract_from_file(self, filepath: Path, use_cache: bool = True) -> List[Dict]:
-        """Extract structured data from a file.
-        
-        Args:
-            filepath: Path to text file
-            use_cache: Whether to use cached results
-            
-        Returns:
-            List of extracted records
-        """
-        filepath = Path(filepath)
-        if not filepath.exists():
-            self.logger.warning(f"File not found: {filepath}")
-            return []
-        
-        # Check cache
-        if use_cache:
-            cached = self._read_cache(filepath)
-            if cached is not None:
-                self.logger.debug(f"Using cached extraction for {filepath.name}")
-                return cached
-        
-        # Read file
-        try:
-            with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
-                text = f.read()
         except Exception as e:
-            self.logger.error(f"Failed to read file {filepath}: {e}")
+            logger.error(f"Judge failed: {e}")
+            return False
+    
+    def extract_attributes(self, text: str, entity_type: str, 
+                          attributes: List[str]) -> Dict[str, Any]:
+        """
+        Stage 2: Extract structured attributes from chunk.
+        
+        Args:
+            text: Text chunk to extract from
+            entity_type: "drug", "disease", or "institution"
+            attributes: List of attribute names to extract
+            
+        Returns:
+            Dict mapping attribute names to extracted values
+        """
+        if self.client is None:
+            logger.error("LLM client not initialized")
+            return {}
+        
+        attributes_str = ", ".join(attributes)
+        
+        prompt = f"""Extract information from this text about a {entity_type}.
+Return a JSON object with these fields (use null if not found):
+{attributes_str}
+
+Text: {text[:1000]}
+
+Return only valid JSON, no markdown or explanation."""
+        
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.2,
+                max_tokens=500
+            )
+            
+            result_text = response.choices[0].message.content.strip()
+            
+            # Remove markdown code fence if present
+            if result_text.startswith("```json"):
+                result_text = result_text[7:]
+            if result_text.startswith("```"):
+                result_text = result_text[3:]
+            if result_text.endswith("```"):
+                result_text = result_text[:-3]
+            
+            result = json.loads(result_text.strip())
+            
+            # Filter to only requested attributes
+            return {k: v for k, v in result.items() if k in attributes}
+        
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse JSON response: {e}")
+            return {}
+        except Exception as e:
+            logger.error(f"Extraction failed: {e}")
+            return {}
+
+
+class EntityExtractor:
+    """High-level entity extraction from raw text files."""
+    
+    def __init__(self, llm_extractor: Optional[LLMExtractor] = None):
+        """
+        Args:
+            llm_extractor: LLMExtractor instance (creates default if None)
+        """
+        self.chunker = TextChunker(chunk_size=5, overlap=2)
+        self.llm = llm_extractor or LLMExtractor()
+        
+        # Define attributes for each entity type
+        self.entity_attributes = {
+            "drug": [
+                "generic_name", "brand_name", "disease_name", "indication",
+                "manufacturer", "mechanism_of_action", "side_effects",
+                "pharmaceutical_form", "administration_route", "dosage_frequency"
+            ],
+            "disease": [
+                "disease_name", "disease_type", "etiology", "pathogenesis",
+                "common_symptoms", "complications", "diagnostic_methods",
+                "treatments", "prognosis", "risk_factors", "preventive_measures"
+            ],
+            "institution": [
+                "institution_name", "institution_type", "institution_country",
+                "institution_city", "research_diseases", "key_technologies",
+                "key_achievements", "number_of_staff"
+            ]
+        }
+    
+    def extract_from_text(self, text: str, entity_type: str) -> List[Dict[str, Any]]:
+        """
+        Extract entities from raw text using two-stage LLM pipeline.
+        
+        Args:
+            text: Raw text to process
+            entity_type: "drug", "disease", or "institution"
+            
+        Returns:
+            List of extracted entity records
+        """
+        if entity_type not in self.entity_attributes:
+            logger.error(f"Unknown entity type: {entity_type}")
             return []
         
-        if not text.strip():
-            self.logger.warning(f"File is empty: {filepath}")
-            return []
+        logger.info(f"Extracting {entity_type} entities from text...")
         
-        # Chunk and extract
-        chunks = self.chunker.chunk_text(text)
-        all_records = []
+        # Step 1: Chunk text
+        chunks = self.chunker.chunk(text)
+        logger.info(f"Created {len(chunks)} chunks")
+        
+        # Step 2: Judge and extract
+        extracted_entities = []
         
         for i, chunk in enumerate(chunks):
-            self.logger.debug(f"Extracting chunk {i+1}/{len(chunks)} from {filepath.name}")
-            records = self._extract_from_text(chunk)
-            all_records.extend(records)
-            time.sleep(0.5)  # Rate limiting
+            # Judge if chunk contains entity info
+            if not self.llm.judge_chunk(chunk, entity_type):
+                logger.debug(f"Chunk {i}: Skipped (no relevant info)")
+                continue
+            
+            logger.debug(f"Chunk {i}: Relevant, extracting...")
+            
+            # Extract attributes
+            attributes = self.entity_attributes[entity_type]
+            extracted = self.llm.extract_attributes(chunk, entity_type, attributes)
+            
+            # Only add if we extracted something meaningful
+            if extracted and any(extracted.values()):
+                extracted_entities.append(extracted)
+                logger.debug(f"Chunk {i}: Extracted {len([v for v in extracted.values() if v])} fields")
         
-        # Write cache
-        self._write_cache(filepath, all_records)
-        
-        return all_records
+        logger.info(f"Extracted {len(extracted_entities)} entities from text")
+        return extracted_entities
     
-    def extract_from_directory(self, directory: Path, pattern: str = "*.txt") -> Tuple[List[Dict], Dict[str, int]]:
-        """Extract from all files in a directory.
+    def extract_from_file(self, file_path: Path, entity_type: str) -> List[Dict[str, Any]]:
+        """
+        Extract entities from a file.
         
         Args:
-            directory: Directory containing text files
-            pattern: File pattern to match
+            file_path: Path to text file
+            entity_type: "drug", "disease", or "institution"
             
         Returns:
-            Tuple of (all_records, stats)
+            List of extracted entity records
         """
-        directory = Path(directory)
-        if not directory.exists():
-            self.logger.warning(f"Directory not found: {directory}")
-            return [], {}
-        
-        all_records = []
-        stats = {"total_files": 0, "successful_files": 0, "total_records": 0}
-        
-        files = sorted(list(directory.glob(pattern)))
-        self.logger.info(f"Extracting from {len(files)} files in {directory}")
-        
-        for i, filepath in enumerate(files):
-            self.logger.info(f"[{i+1}/{len(files)}] Extracting {filepath.name}...")
-            records = self.extract_from_file(filepath)
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                text = f.read()
             
-            stats["total_files"] += 1
-            if records:
-                stats["successful_files"] += 1
-                stats["total_records"] += len(records)
-                all_records.extend(records)
+            return self.extract_from_text(text, entity_type)
         
-        self.logger.info(f"Extraction complete: {stats['total_records']} records from {stats['successful_files']}/{stats['total_files']} files")
+        except Exception as e:
+            logger.error(f"Failed to extract from {file_path}: {e}")
+            return []
+    
+    def extract_from_directory(self, dir_path: Path, entity_type: str,
+                             max_files: int = None) -> List[Dict[str, Any]]:
+        """
+        Extract entities from all files in a directory.
         
-        return all_records, stats
-
+        Args:
+            dir_path: Path to directory
+            entity_type: "drug", "disease", or "institution"
+            max_files: Maximum number of files to process
+            
+        Returns:
+            List of all extracted entity records
+        """
+        if not dir_path.exists():
+            logger.error(f"Directory not found: {dir_path}")
+            return []
+        
+        txt_files = sorted(list(dir_path.glob("*.txt")))
+        if max_files:
+            txt_files = txt_files[:max_files]
+        
+        logger.info(f"Processing {len(txt_files)} files from {dir_path}")
+        
+        all_entities = []
+        
+        for i, file_path in enumerate(txt_files, 1):
+            logger.info(f"[{i}/{len(txt_files)}] Processing {file_path.name}...")
+            entities = self.extract_from_file(file_path, entity_type)
+            all_entities.extend(entities)
+        
+        logger.info(f"Total extracted: {len(all_entities)} entities")
+        return all_entities
