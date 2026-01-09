@@ -128,7 +128,19 @@ def preprocess_with_gem(data: Dict[str, List[Dict]], db_engine: DBEngine,
             logger.warning(f"No {entity_type} records to process")
             continue
         
-        logger.info(f"\nProcessing {len(records)} {entity_type} records...")
+        # Filter out records with no meaningful data
+        filtered_records = []
+        for record in records:
+            # Count non-empty values
+            non_empty = sum(1 for v in record.values() if v and str(v).strip())
+            if non_empty > 0:
+                filtered_records.append(record)
+        
+        logger.info(f"\nProcessing {len(filtered_records)}/{len(records)} {entity_type} records (filtered empty)")
+        
+        if not filtered_records:
+            logger.warning(f"No valid {entity_type} records after filtering")
+            continue
         
         # Determine key field based on entity type
         key_fields = {
@@ -141,12 +153,13 @@ def preprocess_with_gem(data: Dict[str, List[Dict]], db_engine: DBEngine,
         
         # Extract mentions for entity resolution
         mentions = []
-        for record in records:
+        for record in filtered_records:
             mention = record.get(key_field, "")
-            if mention:
-                mentions.append(mention)
+            if mention and str(mention).strip():
+                mentions.append(str(mention).strip())
         
-        logger.info(f"Extracted {len(mentions)} mentions for {entity_type}")
+        mentions = list(set(mentions))  # Deduplicate mentions
+        logger.info(f"Extracted {len(mentions)} unique mentions for {entity_type}")
         
         if not mentions:
             logger.warning(f"No mentions extracted for {entity_type}")
@@ -162,11 +175,12 @@ def preprocess_with_gem(data: Dict[str, List[Dict]], db_engine: DBEngine,
         
         # Normalize records to use canonical names
         normalized_records = []
-        for record in records:
+        for record in filtered_records:
             norm_record = record.copy()
             mention = record.get(key_field, "")
-            canonical = canonical_map.get(mention, mention)
-            norm_record[key_field] = canonical
+            if mention:
+                canonical = canonical_map.get(str(mention).strip(), str(mention).strip())
+                norm_record[key_field] = canonical
             normalized_records.append(norm_record)
         
         # Insert into database
