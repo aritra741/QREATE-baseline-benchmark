@@ -237,6 +237,72 @@ def load_and_extract_data(data_dir: Path, extractor: EntityExtractor, blocker, l
         data[entity_type].extend(deduplicated)
         print(f"✓ {len(deduplicated)} resolved {entity_type} records (from {len(records)} raw, canonical map: {len(canonical_map)} mappings)")
     
+    # CROSS-TABLE DISEASE RESOLUTION
+    # Disease appears in two contexts: as disease records AND as references in drug records
+    # We must ensure they use unified canonical names for JOIN to work
+    print()
+    print("=" * 100)
+    print("PHASE 3: CROSS-TABLE DISEASE RESOLUTION")
+    print("=" * 100)
+    print()
+    
+    # Collect ALL disease mentions from both drug and disease tables
+    all_disease_mentions = set()
+    
+    for drug in data.get("drug", []):
+        disease_name = drug.get("disease_name", "")
+        if disease_name and str(disease_name).strip():
+            all_disease_mentions.add(str(disease_name).strip())
+    
+    for disease in data.get("disease", []):
+        disease_name = disease.get("disease_name", "")
+        if disease_name and str(disease_name).strip():
+            all_disease_mentions.add(str(disease_name).strip())
+    
+    logger.info(f"Found {len(all_disease_mentions)} unique disease mentions across both tables")
+    
+    if all_disease_mentions:
+        # Run GEM resolution on unified disease mentions
+        logger.info("Running unified disease name resolution...")
+        blocker.reset()
+        
+        disease_mentions_list = list(all_disease_mentions)
+        for mention in disease_mentions_list:
+            blocker.add_and_link(mention)
+        
+        disease_blocks_dict = blocker.get_blocks()
+        disease_blocks = list(disease_blocks_dict.values())
+        logger.info(f"Semantic blocking produced {len(disease_blocks)} blocks from {len(disease_mentions_list)} disease mentions")
+        
+        # Resolve with LLM
+        disease_canonical_map = {}
+        for block in disease_blocks:
+            resolved = llm_client.resolve_block(block)
+            for canonical, variants in resolved.items():
+                for variant in variants:
+                    disease_canonical_map[variant] = canonical
+        
+        logger.info(f"Built unified disease canonical map: {len(disease_canonical_map)} mappings")
+        
+        # Update drug records with unified disease names
+        for drug in data.get("drug", []):
+            disease_name = drug.get("disease_name", "")
+            if disease_name and str(disease_name).strip():
+                canonical = disease_canonical_map.get(str(disease_name).strip(), str(disease_name).strip())
+                drug["disease_name"] = canonical
+        
+        # Update disease records with unified disease names
+        for disease in data.get("disease", []):
+            disease_name = disease.get("disease_name", "")
+            if disease_name and str(disease_name).strip():
+                canonical = disease_canonical_map.get(str(disease_name).strip(), str(disease_name).strip())
+                disease["disease_name"] = canonical
+        
+        logger.info("Updated both drug and disease records with unified disease names")
+        print(f"✓ Updated drug and disease records with {len(disease_canonical_map)} unified disease name mappings")
+    
+    print()
+    
     # Cache results
     cache_file.parent.mkdir(parents=True, exist_ok=True)
     with open(cache_file, 'w') as f:
