@@ -28,6 +28,7 @@ sys.path.insert(0, str(PROJECT_ROOT / "systems"))
 from GEM.config import CACHE_DIR
 from GEM.blocking import SemanticBlocker
 from GEM.db_engine import DBEngine
+from GEM.schema_loader import SchemaLoader
 from GEM.llm import LLMClient
 from GEM.extractor import EntityExtractor
 
