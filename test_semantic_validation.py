@@ -14,7 +14,7 @@ def test_validation():
     
     extractor = LLMExtractor(
         model="qwen2.5:7b-instruct",
-        validator_model="qwen2.5:1.5b-instruct-q8_0"
+        validator_model="qwen2.5:7b-instruct"  # Use 7B for better discrimination
     )
     
     test_cases = [
