@@ -184,12 +184,14 @@ Answer with only: yes or no"""
             is_valid = "yes" in answer
             
             if not is_valid:
-                logger.debug(f"Validation REJECTED: {entity_type}='{value}' (response: '{answer}')")
+                logger.info(f"[VALIDATION] REJECTED: {entity_type}='{value}' (response: '{answer}')")
+            else:
+                logger.debug(f"[VALIDATION] ACCEPTED: {entity_type}='{value}'")
             
             return is_valid
         
         except Exception as e:
-            logger.debug(f"Validation failed for {entity_type}='{value}': {e}")
+            logger.debug(f"Validation error for {entity_type}='{value}': {e}")
             return True  # Default to accepting on error
     
     def extract_attributes(self, text: str, entity_type: str, 
