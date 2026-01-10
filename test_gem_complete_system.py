@@ -429,8 +429,8 @@ def main():
     llm_client = LLMClient()
     logger.info("✓ LLMClient initialized")
     
-    extractor = EntityExtractor()
-    logger.info("✓ EntityExtractor initialized")
+    extractor = EntityExtractor(schema=schema_dict)
+    logger.info("✓ EntityExtractor initialized with schema guidance")
     
     print()
     

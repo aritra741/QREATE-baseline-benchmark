@@ -134,7 +134,7 @@ Answer with only: yes or no"""
             return False
     
     def extract_attributes(self, text: str, entity_type: str, 
-                          attributes: List[str]) -> List[Dict[str, Any]]:
+                          attributes: List[str], schema_guidance: Optional[Dict] = None) -> List[Dict[str, Any]]:
         """
         Stage 2: Extract structured attributes from chunk.
         
@@ -147,6 +147,7 @@ Answer with only: yes or no"""
             text: Text chunk to extract from
             entity_type: "drug", "disease", or "institution"
             attributes: List of attribute names to extract
+            schema_guidance: Optional dict mapping field names to their descriptions/constraints
             
         Returns:
             List of dicts, each representing one entity with extracted values
@@ -156,6 +157,14 @@ Answer with only: yes or no"""
             return []
         
         attributes_str = ", ".join(attributes)
+        
+        # Build schema guidance section for prompt
+        guidance_section = ""
+        if schema_guidance:
+            guidance_lines = []
+            for attr, guidance in schema_guidance.items():
+                guidance_lines.append(f"  - {attr}: {guidance}")
+            guidance_section = "FIELD CONSTRAINTS:\n" + "\n".join(guidance_lines) + "\n\n"
         
         prompt = f"""Extract information from this text about {entity_type} entities.
 
@@ -169,6 +178,7 @@ IMPORTANT GUIDELINES:
 7. Extract factual data only - avoid descriptive or explanatory text
 8. If a field has no clear value, omit it (don't guess or infer)
 
+{guidance_section}
 Fields to extract: {attributes_str}
 
 Text: {text[:1000]}
@@ -244,13 +254,16 @@ Return ONLY valid JSON array, no markdown."""
 class EntityExtractor:
     """High-level entity extraction from raw text files."""
     
-    def __init__(self, llm_extractor: Optional[LLMExtractor] = None):
+    def __init__(self, llm_extractor: Optional[LLMExtractor] = None, schema: Optional[Dict] = None):
         """
         Args:
             llm_extractor: LLMExtractor instance (creates default if None)
+            schema: Optional schema dict with field descriptions (e.g., from Med_attributes.json)
+                   Format: {entity_type: {field_name: {description, is_fixed, ...}}}
         """
         self.chunker = TextChunker(chunk_size=5, overlap=2)
         self.llm = llm_extractor or LLMExtractor()
+        self.schema = schema or {}
         
         # Define attributes for each entity type
         self.entity_attributes = {
@@ -270,6 +283,28 @@ class EntityExtractor:
                 "key_achievements", "number_of_staff"
             ]
         }
+    
+    def _get_field_guidance(self, entity_type: str, field_name: str) -> Optional[str]:
+        """
+        Get field guidance from schema if available.
+        
+        Returns the description and choice options for fields with is_fixed=true.
+        """
+        if entity_type not in self.schema:
+            return None
+        
+        if field_name not in self.schema[entity_type]:
+            return None
+        
+        field_info = self.schema[entity_type][field_name]
+        description = field_info.get("description", "")
+        is_fixed = field_info.get("is_fixed", False)
+        
+        # If field has controlled vocabulary, include it in guidance
+        if is_fixed and description:
+            return description
+        
+        return None
     
     def extract_from_text(self, text: str, entity_type: str) -> List[Dict[str, Any]]:
         """
@@ -305,7 +340,15 @@ class EntityExtractor:
             
             # Extract attributes (returns list of entities)
             attributes = self.entity_attributes[entity_type]
-            entities = self.llm.extract_attributes(chunk, entity_type, attributes)
+            
+            # Build schema guidance for LLM
+            schema_guidance = {}
+            for attr in attributes:
+                guidance = self._get_field_guidance(entity_type, attr)
+                if guidance:
+                    schema_guidance[attr] = guidance
+            
+            entities = self.llm.extract_attributes(chunk, entity_type, attributes, schema_guidance)
             
             if entities:
                 all_entities.extend(entities)
