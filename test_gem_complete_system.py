@@ -562,6 +562,12 @@ def main():
     # Execute queries
     results = execute_join_queries(db_engine, query_file)
     
+    # Save results to file
+    results_file = Path(CACHE_DIR) / "query_results.json"
+    with open(results_file, 'w') as f:
+        json.dump(results, f, indent=2)
+    logger.info(f"Saved query results to {results_file}")
+    
     # Summary
     print("=" * 100)
     print("TEST SUMMARY")
@@ -576,6 +582,8 @@ def main():
     print(f"Failed: {total - successful}")
     if total > 0:
         print(f"Success rate: {successful/total*100:.1f}%")
+    print()
+    print(f"Results saved to: {results_file}")
     print()
     
     for query_id, result in sorted(results.items()):
