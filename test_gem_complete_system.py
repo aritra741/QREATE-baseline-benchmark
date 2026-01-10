@@ -27,7 +27,6 @@ sys.path.insert(0, str(PROJECT_ROOT / "systems"))
 
 from GEM.config import CACHE_DIR
 from GEM.blocking import SemanticBlocker
-from GEM.resolver import EntityResolver
 from GEM.db_engine import DBEngine
 from GEM.ingest import InlineDeduplicator
 from GEM.schema_loader import SchemaLoader
@@ -49,7 +48,7 @@ def get_medical_schema():
     return schema_dict
 
 
-def resolve_and_deduplicate_records(records: List[Dict], key_field: str, blocker, resolver) -> tuple:
+def resolve_and_deduplicate_records(records: List[Dict], key_field: str, blocker, llm_client) -> tuple:
     """
     Run full GEM entity resolution on extracted records.
     
@@ -89,7 +88,7 @@ def resolve_and_deduplicate_records(records: List[Dict], key_field: str, blocker
     
     for block in blocks:
         # Resolve this block with LLM
-        resolved = resolver.resolve_block(block)
+        resolved = llm_client.resolve_block(block)
         
         # resolved is {"Canonical Name": ["variant1", "variant2"], ...}
         for canonical, variants in resolved.items():
@@ -139,7 +138,7 @@ def resolve_and_deduplicate_records(records: List[Dict], key_field: str, blocker
     return deduplicated, canonical_map
 
 
-def load_and_extract_data(data_dir: Path, extractor: EntityExtractor, blocker, resolver, use_cache: bool = True, max_files: int = None) -> dict:
+def load_and_extract_data(data_dir: Path, extractor: EntityExtractor, blocker, llm_client, use_cache: bool = True, max_files: int = None) -> dict:
     """Extract entities from Healthcare dataset with full GEM resolution and caching."""
     cache_file = Path(CACHE_DIR) / "extracted_entities.json"
     
@@ -183,7 +182,7 @@ def load_and_extract_data(data_dir: Path, extractor: EntityExtractor, blocker, r
         
         # Run full GEM resolution on extracted records
         deduplicated, canonical_map = resolve_and_deduplicate_records(
-            extracted, key_field, blocker, resolver
+            extracted, key_field, blocker, llm_client
         )
         
         data[entity_key].extend(deduplicated)
@@ -226,7 +225,7 @@ def create_tables_and_db(schema_dict: dict) -> DBEngine:
 
 
 def preprocess_and_insert(data: dict, db_engine: DBEngine, 
-                          blocker: SemanticBlocker, resolver: EntityResolver):
+                          blocker: SemanticBlocker, llm_client: LLMClient):
     """Preprocess with GEM and insert into database."""
     
     print("=" * 100)
@@ -467,9 +466,6 @@ def main():
     blocker = SemanticBlocker(blocking_threshold=0.85)
     logger.info("✓ SemanticBlocker initialized")
     
-    resolver = EntityResolver()
-    logger.info("✓ EntityResolver initialized")
-    
     llm_client = LLMClient()
     logger.info("✓ LLMClient initialized")
     
@@ -479,13 +475,13 @@ def main():
     print()
     
     # Extract (with caching and full GEM resolution)
-    data = load_and_extract_data(data_dir, extractor, blocker, resolver, use_cache=not args.no_cache, max_files=args.max_files)
+    data = load_and_extract_data(data_dir, extractor, blocker, llm_client, use_cache=not args.no_cache, max_files=args.max_files)
     
     # Create DB
     db_engine = create_tables_and_db(schema_dict)
     
     # Preprocess and insert
-    preprocess_and_insert(data, db_engine, blocker, resolver)
+    preprocess_and_insert(data, db_engine, blocker, llm_client)
     
     # Execute queries
     results = execute_join_queries(db_engine, query_file)
