@@ -56,16 +56,27 @@ def resolve_and_deduplicate_records(records: List[Dict], key_field: str, blocker
     if not records:
         return [], {}
     
-    # Filter out incomplete records
+    # Filter out incomplete records and split pipe-delimited key fields
     valid_records = []
     key_mentions = []
     for record in records:
         key = record.get(key_field, "")
         if key and str(key).strip() and str(key).strip() != "not specified in the text":
+            key_str = str(key).strip()
+            
+            # Split pipe-delimited values (e.g., "disease1||disease2||disease3")
+            # into separate mentions for proper entity resolution
+            if "||" in key_str:
+                parts = [p.strip() for p in key_str.split("||") if p.strip()]
+                for part in parts:
+                    key_mentions.append(part)
+            else:
+                key_mentions.append(key_str)
+            
             valid_records.append(record)
-            key_mentions.append(str(key).strip())
     
     logger.info(f"Filtered {len(records)} records to {len(valid_records)} with valid key field")
+    logger.info(f"Split pipe-delimited values: {len(records)} records → {len(key_mentions)} mentions")
     
     if not valid_records:
         return [], {}
