@@ -166,40 +166,63 @@ Answer with only: yes or no"""
                 guidance_lines.append(f"  - {attr}: {guidance}")
             guidance_section = "FIELD CONSTRAINTS:\n" + "\n".join(guidance_lines) + "\n\n"
         
-        prompt = f"""Extract information from this text about {entity_type} entities.
+        prompt = f"""You are extracting structured entities from a text chunk.
 
-IMPORTANT GUIDELINES:
-1. Always return a JSON array, even if there's only ONE entity
-2. Each array element is a separate {entity_type} entity
-3. For multi-valued fields within the SAME entity, use pipe-delimiter (||)
-4. For DIFFERENT entities, create separate array entries
-5. Extract CONCISE, CANONICAL values (not full sentences or narratives)
-6. Provide the SHORTEST MEANINGFUL value for each field
-7. Extract factual data only - avoid descriptive or explanatory text
-8. If a field has no clear value, omit it (don't guess or infer)
+Output contract (STRICT):
+- Return ONLY a valid JSON array (no markdown, no prose).
+- Each array element is ONE distinct {entity_type} entity.
+- Only include keys from: {attributes_str}
+- Omit any field that is not explicitly supported by the text.
+- Do not guess, infer, or use world knowledge.
 
-{guidance_section}
-Fields to extract: {attributes_str}
+Grounding requirements (CRITICAL):
+- For every value you output, it MUST be directly supported by an explicit span in the text.
+- Do not output standalone properties/modifiers as entities.
+- Do not output fragments or context-dependent references (e.g., leading articles, vague noun phrases, dangling descriptors).
+- Numeric and unit values ARE valid for attribute fields (e.g., quantities, years, measurements).
+- But do not use numeric/unit-only values as primary entity identifiers unless they are explicitly named as such in the text.
+- If a value's meaning depends entirely on context (e.g., "12.5 mg" only makes sense as a dose of something), ground it to its parent entity.
 
-Text: {text[:1000]}
+Canonicalization rules:
+- Prefer the shortest self-contained surface form that still uniquely identifies the entity in the text.
+- If multiple surface forms refer to the same entity within this chunk, output only ONE entry and prefer the most informative canonical form present in the text.
 
-Example format:
+Multi-value rules:
+- If a single entity truly has multiple values for one field, join them with '||' in ONE string.
+- If the text mentions multiple distinct entities, they must be separate array elements (do NOT merge them into one field value).
+
+Schema constraints (apply when present; especially for fixed-vocabulary fields):
+{guidance_section}Fields to extract: {attributes_str}
+
+Text (verbatim excerpt):
+{text[:1000]}
+
+Return ONLY valid JSON array. Example shape (keys are illustrative only):
 [
-  {{"name": "Entity1", "field1": "value1", "field2": "value2a||value2b"}},
-  {{"name": "Entity2", "field1": "value3", "field2": "value4"}}
-]
-
-Return ONLY valid JSON array, no markdown."""
+  {{"<fieldA>": \"...\", "<fieldB>": \"...\"}},
+  {{"<fieldA>": \"...\"}}
+]"""
         
         try:
+            # Request logprobs to assess confidence in generated tokens
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.2,
-                max_tokens=800
+                max_tokens=800,
+                logprobs=True  # Enable logprobs for confidence scoring
             )
             
             result_text = response.choices[0].message.content.strip()
+            
+            # Extract mean logprob for confidence assessment
+            logprobs_data = response.choices[0].logprobs
+            if logprobs_data and hasattr(logprobs_data, 'token_logprobs'):
+                token_logprobs = [lp for lp in logprobs_data.token_logprobs if lp is not None]
+                mean_logprob = sum(token_logprobs) / len(token_logprobs) if token_logprobs else 0
+                logger.debug(f"Extract logprobs: mean={mean_logprob:.3f}, tokens={len(token_logprobs)}")
+            else:
+                mean_logprob = 0
             
             # Remove markdown code fence if present
             if result_text.startswith("```json"):
@@ -237,8 +260,15 @@ Return ONLY valid JSON array, no markdown."""
                     if v:
                         processed[k] = v
                 
-                # Only add if we extracted something meaningful (at least 2 fields with values)
+                # Quality filters (domain-agnostic, logprob-aware)
                 if len(processed) >= 1:
+                    # Reject if mean logprob is too low (high uncertainty)
+                    # Logprobs are negative; higher (closer to 0) = more confident
+                    # Threshold: -2.0 means model gave ~13% probability (exp(-2) ≈ 0.135)
+                    if mean_logprob < -2.5:
+                        logger.debug(f"Skipping entity due to low logprob: {processed}, logprob={mean_logprob:.3f}")
+                        continue
+                    
                     processed_entities.append(processed)
             
             return processed_entities
