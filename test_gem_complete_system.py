@@ -14,6 +14,7 @@ import json
 import logging
 import sys
 from pathlib import Path
+from typing import List, Dict
 
 logging.basicConfig(
     level=logging.INFO,
@@ -48,8 +49,98 @@ def get_medical_schema():
     return schema_dict
 
 
-def load_and_extract_data(data_dir: Path, extractor: EntityExtractor, use_cache: bool = True, max_files: int = None) -> dict:
-    """Extract entities from Healthcare dataset with caching."""
+def resolve_and_deduplicate_records(records: List[Dict], key_field: str, blocker, resolver) -> tuple:
+    """
+    Run full GEM entity resolution on extracted records.
+    
+    Returns: (deduplicated_records, canonical_map)
+    """
+    if not records:
+        return [], {}
+    
+    # Filter out incomplete records
+    valid_records = []
+    key_mentions = []
+    for record in records:
+        key = record.get(key_field, "")
+        if key and str(key).strip() and str(key).strip() != "not specified in the text":
+            valid_records.append(record)
+            key_mentions.append(str(key).strip())
+    
+    logger.info(f"Filtered {len(records)} records to {len(valid_records)} with valid key field")
+    
+    if not valid_records:
+        return [], {}
+    
+    # PHASE 1: Semantic blocking (cluster similar mentions)
+    logger.info(f"Phase 1: Semantic blocking on {len(key_mentions)} {key_field} mentions...")
+    blocker.reset()  # Clear any previous state
+    
+    for mention in key_mentions:
+        blocker.add_and_link(mention)
+    
+    blocks_dict = blocker.get_blocks()
+    blocks = list(blocks_dict.values())  # Convert dict values to list of blocks
+    logger.info(f"Semantic blocking produced {len(blocks)} blocks from {len(key_mentions)} mentions")
+    
+    # PHASE 2: LLM resolution (disambiguate within blocks)
+    logger.info(f"Phase 2: LLM resolution on {len(blocks)} blocks...")
+    canonical_map = {}  # mention -> canonical name
+    
+    for block in blocks:
+        # Resolve this block with LLM
+        resolved = resolver.resolve_block(block)
+        
+        # resolved is {"Canonical Name": ["variant1", "variant2"], ...}
+        for canonical, variants in resolved.items():
+            for variant in variants:
+                canonical_map[variant] = canonical
+    
+    logger.info(f"Built canonical map with {len(canonical_map)} mention -> canonical mappings")
+    
+    # PHASE 3: Normalize records using canonical map
+    logger.info(f"Phase 3: Normalizing records with canonical map...")
+    normalized_records = []
+    for record in valid_records:
+        record_copy = record.copy()
+        key_value = str(record_copy.get(key_field, "")).strip()
+        
+        # Use canonical map to get canonical name
+        canonical_key = canonical_map.get(key_value, key_value)
+        record_copy[key_field] = canonical_key
+        
+        normalized_records.append(record_copy)
+    
+    # PHASE 4: Deduplicate and merge by canonical key
+    logger.info(f"Phase 4: Deduplicating {len(normalized_records)} records by canonical {key_field}...")
+    grouped = {}
+    for record in normalized_records:
+        key = str(record.get(key_field, "")).strip().lower()
+        if key not in grouped:
+            grouped[key] = record.copy()
+        else:
+            # Merge: keep non-empty fields from current record
+            for field, value in record.items():
+                if value and str(value).strip() and str(value).strip() != "not specified in the text":
+                    if not grouped[key].get(field) or str(grouped[key].get(field)).strip() == "not specified in the text":
+                        grouped[key][field] = value
+    
+    # Restore original casing for canonical key
+    deduplicated = []
+    for key, record in grouped.items():
+        # Find original casing from any input record
+        for original_record in normalized_records:
+            if str(original_record.get(key_field, "")).strip().lower() == key:
+                record[key_field] = original_record.get(key_field)
+                break
+        deduplicated.append(record)
+    
+    logger.info(f"Deduplicated {len(normalized_records)} records to {len(deduplicated)} unique entities")
+    return deduplicated, canonical_map
+
+
+def load_and_extract_data(data_dir: Path, extractor: EntityExtractor, blocker, resolver, use_cache: bool = True, max_files: int = None) -> dict:
+    """Extract entities from Healthcare dataset with full GEM resolution and caching."""
     cache_file = Path(CACHE_DIR) / "extracted_entities.json"
     
     # Try to load from cache
@@ -66,8 +157,14 @@ def load_and_extract_data(data_dir: Path, extractor: EntityExtractor, use_cache:
         "institutes_small": data_dir / "institutes_small"
     }
     
+    key_fields = {
+        "drug": "generic_name",
+        "disease": "disease_name",
+        "institutes_small": "institution_name"
+    }
+    
     print("=" * 100)
-    print("PHASE 1: ENTITY EXTRACTION FROM HEALTHCARE DATASET")
+    print("PHASE 1: ENTITY EXTRACTION & RESOLUTION FROM HEALTHCARE DATASET")
     print("=" * 100)
     print()
     
@@ -77,12 +174,20 @@ def load_and_extract_data(data_dir: Path, extractor: EntityExtractor, use_cache:
             continue
         
         entity_key = "institution" if entity_type == "institutes_small" else entity_type
+        key_field = key_fields.get(entity_type)
         
         logger.info(f"Extracting {entity_key} entities from {entity_dir}...")
         extracted = extractor.extract_from_directory(entity_dir, entity_key, max_files=max_files)
         
-        data[entity_key].extend(extracted)
-        print(f"Extracted {len(extracted)} {entity_key} records")
+        logger.info(f"Extracted {len(extracted)} raw {entity_key} records")
+        
+        # Run full GEM resolution on extracted records
+        deduplicated, canonical_map = resolve_and_deduplicate_records(
+            extracted, key_field, blocker, resolver
+        )
+        
+        data[entity_key].extend(deduplicated)
+        print(f"✓ {len(deduplicated)} resolved {entity_key} records (from {len(extracted)} raw, canonical map: {len(canonical_map)} mappings)")
     
     # Cache results
     cache_file.parent.mkdir(parents=True, exist_ok=True)
@@ -202,31 +307,62 @@ def load_queries(query_file: Path):
     with open(query_file, 'r') as f:
         content = f.read()
     
-    # Parse queries (each query is a comment + SELECT statement)
+    # Parse queries - each query is preceded by a comment line starting with --
     queries = []
-    current_query = ""
+    lines = content.split('\n')
     current_comment = ""
+    current_query = ""
     
-    for line in content.split('\n'):
-        line = line.strip()
-        if not line:
+    for line in lines:
+        line_stripped = line.strip()
+        
+        if not line_stripped:
             continue
         
-        if line.startswith('--'):
-            current_comment = line
-            continue
-        
-        if line.startswith('SELECT'):
-            current_query = line + " "
-        elif current_query:
-            current_query += line + " "
-            if line.endswith(';'):
+        if line_stripped.startswith('--'):
+            # This is a comment line
+            if current_query:
+                # Save previous query
+                queries.append({
+                    'comment': current_comment,
+                    'query': current_query.strip()
+                })
+            current_comment = line_stripped
+            current_query = ""
+        elif line_stripped.startswith('SELECT'):
+            # Start of a SELECT query
+            current_query = line_stripped
+            if current_query.endswith(';'):
+                # Query is complete on one line
+                current_query = current_query[:-1]  # Remove trailing semicolon
                 queries.append({
                     'comment': current_comment,
                     'query': current_query.strip()
                 })
                 current_query = ""
                 current_comment = ""
+        else:
+            # Continuation of query
+            if current_query:
+                current_query += " " + line_stripped
+                if current_query.endswith(';'):
+                    # Query is complete
+                    current_query = current_query[:-1]  # Remove trailing semicolon
+                    queries.append({
+                        'comment': current_comment,
+                        'query': current_query.strip()
+                    })
+                    current_query = ""
+                    current_comment = ""
+    
+    # Don't forget last query if exists
+    if current_query:
+        if current_query.endswith(';'):
+            current_query = current_query[:-1]
+        queries.append({
+            'comment': current_comment,
+            'query': current_query.strip()
+        })
     
     logger.info(f"Loaded {len(queries)} queries from {query_file}")
     return queries
@@ -342,8 +478,8 @@ def main():
     
     print()
     
-    # Extract (with caching)
-    data = load_and_extract_data(data_dir, extractor, use_cache=not args.no_cache, max_files=args.max_files)
+    # Extract (with caching and full GEM resolution)
+    data = load_and_extract_data(data_dir, extractor, blocker, resolver, use_cache=not args.no_cache, max_files=args.max_files)
     
     # Create DB
     db_engine = create_tables_and_db(schema_dict)
