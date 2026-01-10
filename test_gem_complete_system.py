@@ -160,16 +160,17 @@ def load_and_extract_data(data_dir: Path, extractor: EntityExtractor, blocker, l
     
     data = {"drug": [], "disease": [], "institution": []}
     
-    entity_dirs = {
-        "drug": data_dir / "drug_small",
-        "disease": data_dir / "disease_small",
-        "institutes_small": data_dir / "institutes_small"
-    }
+    # Define all source directories (may contain mixed entity types)
+    source_dirs = [
+        data_dir / "drug_small",
+        data_dir / "disease_small",
+        data_dir / "institutes_small"
+    ]
     
     key_fields = {
         "drug": "generic_name",
         "disease": "disease_name",
-        "institutes_small": "institution_name"
+        "institution": "institution_name"
     }
     
     print("=" * 100)
@@ -177,26 +178,64 @@ def load_and_extract_data(data_dir: Path, extractor: EntityExtractor, blocker, l
     print("=" * 100)
     print()
     
-    for entity_type, entity_dir in entity_dirs.items():
-        if not entity_dir.exists():
-            logger.warning(f"Directory not found: {entity_dir}")
+    # Extract ALL entity types from ALL source directories
+    # (real-world data is not organized by entity type)
+    all_extracted = {"drug": [], "disease": [], "institution": []}
+    
+    for source_dir in source_dirs:
+        if not source_dir.exists():
+            logger.warning(f"Directory not found: {source_dir}")
             continue
         
-        entity_key = "institution" if entity_type == "institutes_small" else entity_type
+        logger.info(f"Processing files from {source_dir.name}...")
+        
+        # Get all text files
+        text_files = sorted(source_dir.glob("*.txt"))
+        if max_files:
+            text_files = text_files[:max_files]
+        
+        logger.info(f"Found {len(text_files)} text files")
+        
+        for file_path in text_files:
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    text = f.read()
+                
+                # Extract ALL entity types from this single file
+                for entity_type in ["drug", "disease", "institution"]:
+                    extracted = extractor.extract_from_text(text, entity_type)
+                    if extracted:
+                        all_extracted[entity_type].extend(extracted)
+                        logger.debug(f"  {file_path.name}: extracted {len(extracted)} {entity_type} entities")
+            
+            except Exception as e:
+                logger.error(f"Failed to process {file_path}: {e}")
+                continue
+    
+    print()
+    print("=" * 100)
+    print("PHASE 2: GEM ENTITY RESOLUTION")
+    print("=" * 100)
+    print()
+    
+    # Now run GEM resolution on each entity type
+    for entity_type in ["drug", "disease", "institution"]:
+        records = all_extracted.get(entity_type, [])
+        if not records:
+            logger.warning(f"No {entity_type} records extracted")
+            continue
+        
         key_field = key_fields.get(entity_type)
         
-        logger.info(f"Extracting {entity_key} entities from {entity_dir}...")
-        extracted = extractor.extract_from_directory(entity_dir, entity_key, max_files=max_files)
+        logger.info(f"Resolving {len(records)} raw {entity_type} records...")
         
-        logger.info(f"Extracted {len(extracted)} raw {entity_key} records")
-        
-        # Run full GEM resolution on extracted records
+        # Run full GEM resolution
         deduplicated, canonical_map = resolve_and_deduplicate_records(
-            extracted, key_field, blocker, llm_client
+            records, key_field, blocker, llm_client
         )
         
-        data[entity_key].extend(deduplicated)
-        print(f"✓ {len(deduplicated)} resolved {entity_key} records (from {len(extracted)} raw, canonical map: {len(canonical_map)} mappings)")
+        data[entity_type].extend(deduplicated)
+        print(f"✓ {len(deduplicated)} resolved {entity_type} records (from {len(records)} raw, canonical map: {len(canonical_map)} mappings)")
     
     # Cache results
     cache_file.parent.mkdir(parents=True, exist_ok=True)
