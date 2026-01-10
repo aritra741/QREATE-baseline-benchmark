@@ -315,7 +315,7 @@ Return ONLY valid JSON array. Example shape (keys are illustrative only):
                         primary_key = attributes[0]
                         if primary_key in processed:
                             if not self.validate_extraction(entity_type, processed[primary_key], text):
-                                logger.debug(f"Skipped entity: {processed} (validation failed)")
+                                logger.debug(f"Skipped entity: {processed} (validation failed for {primary_key}='{processed[primary_key]}')")
                                 continue
                     
                     processed_entities.append(processed)
