@@ -137,6 +137,16 @@ class SemanticBlocker:
             self.logger.error(f"Failed to load embedding model: {e}")
             self.model = None
     
+    def reset(self):
+        """Reset all state (mentions, embeddings, index, union-find) for new processing."""
+        self.mention_texts = []
+        self.embeddings = []
+        self.mention_to_idx = {}
+        self.union_find = None
+        self.next_idx = 0
+        self.index = None
+        self.logger.info("Reset blocker state")
+    
     def add_and_link(self, mention_text: str) -> int:
         """Add a mention to the index and link it to similar existing mentions.
         
