@@ -147,10 +147,7 @@ Answer with only: yes or no"""
     
     def validate_extraction(self, entity_type: str, value: str, chunk: str) -> bool:
         """
-        Semantic validation: Is this extracted value a genuine entity instance, not just a mention/attribute?
-        
-        Uses Qwen 7B to check if an extracted value represents an actual entity of the given type,
-        not a measurement, descriptor, or contextual mention.
+        Semantic validation using Qwen 7B: Does this value make sense as this entity type?
         
         Args:
             entity_type: Type of entity ("drug", "disease", "institution", etc.)
@@ -158,34 +155,59 @@ Answer with only: yes or no"""
             chunk: Source text chunk (for context)
             
         Returns:
-            True if value is a valid entity instance, False if it's a measurement/descriptor/false positive
+            True if value is valid for entity_type, False otherwise
         """
         if self.client is None:
             logger.debug(f"Validation skipped (no client): {entity_type}='{value}'")
-            return True  # Default to accepting if no validator available
+            return True
         
-        # Simple check: empty or very short values are likely invalid
-        if not value or len(value.strip()) < 2:
-            logger.info(f"[VALIDATION] REJECTED: {entity_type}='{value}' (empty/too short)")
+        # Quick filter: reject empty/too short
+        if not value or len(value.strip()) < 1:
+            logger.info(f"[VALIDATION] REJECTED: {entity_type}='{value}' (empty)")
             return False
         
-        # Quick heuristic filters for obvious junk before calling LLM
-        # Reject if it's ONLY numbers/punctuation
-        if not any(c.isalpha() for c in value):
-            logger.info(f"[VALIDATION] REJECTED: {entity_type}='{value}' (no letters)")
-            return False
+        # Use LLM for semantic validation with a stricter prompt
+        prompt = f"""Validate if this extracted value matches the expected field type.
+
+Field: {entity_type}
+Value: "{value}"
+Context: {chunk[:200]}
+
+Rules:
+- disease_name expects: disease/condition names (e.g., "Diabetes", "COVID-19")
+  NOT: measurements, dates, times, generic words
+- drug expects: drug/medication names (e.g., "Aspirin", "Metformin")
+  NOT: colors, measurements, generic adjectives
+- institution expects: organization names (e.g., "Harvard", "WHO")
+  NOT: numbers alone, dates, generic words
+- dosage expects: measurements with units (e.g., "25 mg", "10 ml")
+- year expects: year numbers (e.g., "2025", "1995")
+- color expects: color names (e.g., "red", "blue")
+
+Does "{value}" match what {entity_type} expects?
+Answer only: yes or no"""
         
-        # Reject if it's ONLY an adjective/descriptor (single short word without nouns)
-        words = value.split()
-        if len(words) == 1 and len(value) < 15:
-            # Single short words like "fatal", "severe", "red" are adjectives
-            # But allow them since they could be valid in context (color=red, severity=fatal)
-            pass
+        try:
+            response = self.client.chat.completions.create(
+                model=self.validator_model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.1,
+                max_tokens=5
+            )
+            
+            answer = response.choices[0].message.content.strip().lower()
+            is_valid = "yes" in answer
+            
+            if not is_valid:
+                logger.info(f"[VALIDATION] REJECTED: {entity_type}='{value}' (LLM said: '{answer}')")
+            else:
+                logger.debug(f"[VALIDATION] ACCEPTED: {entity_type}='{value}'")
+            
+            return is_valid
         
-        # For now, accept most things and let GEM handle deduplication
-        # The validation was too aggressive on institution names
-        logger.debug(f"[VALIDATION] ACCEPTED: {entity_type}='{value}'")
-        return True
+        except Exception as e:
+            logger.debug(f"Validation error for {entity_type}='{value}': {e}")
+            return True  # Default to accepting on error
     
     def extract_attributes(self, text: str, entity_type: str, 
                           attributes: List[str], schema_guidance: Optional[Dict] = None) -> List[Dict[str, Any]]:
