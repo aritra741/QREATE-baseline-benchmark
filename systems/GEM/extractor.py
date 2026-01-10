@@ -16,59 +16,68 @@ try:
 except ImportError:
     OpenAI = None
 
+try:
+    from langchain_text_splitters import SemanticChunker
+except ImportError:
+    SemanticChunker = None
+
 logger = logging.getLogger(__name__)
 
 
 class TextChunker:
-    """Split text into overlapping chunks."""
+    """Split text into semantically meaningful chunks using LangChain's SemanticChunker."""
     
-    def __init__(self, chunk_size: int = 5, overlap: int = 2):
+    def __init__(self, chunk_size: int = 500):
         """
         Args:
-            chunk_size: Number of sentences per chunk
-            overlap: Number of overlapping sentences between chunks
+            chunk_size: Target size for semantic chunks (approximate)
         """
         self.chunk_size = chunk_size
-        self.overlap = overlap
-    
-    def split_into_sentences(self, text: str) -> List[str]:
-        """Split text into sentences (simple approach)."""
-        # Simple sentence splitting on periods, newlines
-        sentences = []
-        current = ""
         
-        for line in text.split('\n'):
-            line = line.strip()
-            if not line:
-                continue
-            
-            # Split by periods but keep sentence together
-            parts = line.split('. ')
-            for i, part in enumerate(parts):
-                if i < len(parts) - 1:
-                    sentences.append(part + '.')
-                else:
-                    current += part + ' '
-        
-        if current.strip():
-            sentences.append(current.strip())
-        
-        return [s.strip() for s in sentences if s.strip()]
+        if SemanticChunker is None:
+            logger.warning("LangChain SemanticChunker not available, using fallback")
+            self.chunker = None
+        else:
+            try:
+                # Use Ollama with MiniLM embeddings (same as SemanticBlocker for consistency)
+                from langchain_community.embeddings import OllamaEmbeddings
+                embeddings = OllamaEmbeddings(
+                    model="sentence-transformers/all-MiniLM-L6-v2",
+                    base_url="http://localhost:11434"
+                )
+                self.chunker = SemanticChunker(embeddings=embeddings, breakpoint_threshold_type="percentile")
+            except Exception as e:
+                logger.warning(f"Failed to initialize SemanticChunker: {e}. Using fallback.")
+                self.chunker = None
     
     def chunk(self, text: str) -> List[str]:
-        """Create overlapping chunks of sentences."""
-        sentences = self.split_into_sentences(text)
-        
-        if len(sentences) <= self.chunk_size:
-            return [' '.join(sentences)]
-        
-        chunks = []
-        for i in range(0, len(sentences), self.chunk_size - self.overlap):
-            chunk_sentences = sentences[i:i + self.chunk_size]
-            if chunk_sentences:
-                chunks.append(' '.join(chunk_sentences))
-        
-        return chunks
+        """Create semantically meaningful chunks of text."""
+        if self.chunker:
+            try:
+                return self.chunker.split_text(text)
+            except Exception as e:
+                logger.warning(f"SemanticChunker failed: {e}. Using fallback.")
+                return self._fallback_chunk(text)
+        else:
+            return self._fallback_chunk(text)
+    
+    def _fallback_chunk(self, text: str) -> List[str]:
+        """Fallback: RecursiveCharacterTextSplitter for semantic boundaries."""
+        try:
+            from langchain_text_splitters import RecursiveCharacterTextSplitter
+            splitter = RecursiveCharacterTextSplitter(
+                chunk_size=self.chunk_size,
+                chunk_overlap=100,
+                separators=["\n\n", "\n", ". ", " ", ""]
+            )
+            return splitter.split_text(text)
+        except Exception as e:
+            logger.warning(f"RecursiveCharacterTextSplitter also failed: {e}. Using basic chunking.")
+            # Ultimate fallback: simple character-based chunking
+            chunks = []
+            for i in range(0, len(text), self.chunk_size - 100):
+                chunks.append(text[i:i + self.chunk_size])
+            return [c for c in chunks if c.strip()]
 
 
 class LLMExtractor:
@@ -157,42 +166,26 @@ Answer with only: yes or no"""
         
         # Simple check: empty or very short values are likely invalid
         if not value or len(value.strip()) < 2:
-            logger.debug(f"Validation REJECTED (empty/too short): {entity_type}='{value}'")
+            logger.info(f"[VALIDATION] REJECTED: {entity_type}='{value}' (empty/too short)")
             return False
         
-        # Simple, generic validation prompt - let LLM decide
-        prompt = f"""Given that we are extracting {entity_type}, is "{value}" a valid instance of this entity type?
-
-Context: {chunk[:300]}
-
-Consider:
-- Does "{value}" make sense as a {entity_type}?
-- Is it grounded in the text?
-- Or is it a generic descriptor/fragment that doesn't represent a real entity?
-
-Answer with only: yes or no"""
+        # Quick heuristic filters for obvious junk before calling LLM
+        # Reject if it's ONLY numbers/punctuation
+        if not any(c.isalpha() for c in value):
+            logger.info(f"[VALIDATION] REJECTED: {entity_type}='{value}' (no letters)")
+            return False
         
-        try:
-            response = self.client.chat.completions.create(
-                model=self.validator_model,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.1,
-                max_tokens=5
-            )
-            
-            answer = response.choices[0].message.content.strip().lower()
-            is_valid = "yes" in answer
-            
-            if not is_valid:
-                logger.info(f"[VALIDATION] REJECTED: {entity_type}='{value}' (response: '{answer}')")
-            else:
-                logger.debug(f"[VALIDATION] ACCEPTED: {entity_type}='{value}'")
-            
-            return is_valid
+        # Reject if it's ONLY an adjective/descriptor (single short word without nouns)
+        words = value.split()
+        if len(words) == 1 and len(value) < 15:
+            # Single short words like "fatal", "severe", "red" are adjectives
+            # But allow them since they could be valid in context (color=red, severity=fatal)
+            pass
         
-        except Exception as e:
-            logger.debug(f"Validation error for {entity_type}='{value}': {e}")
-            return True  # Default to accepting on error
+        # For now, accept most things and let GEM handle deduplication
+        # The validation was too aggressive on institution names
+        logger.debug(f"[VALIDATION] ACCEPTED: {entity_type}='{value}'")
+        return True
     
     def extract_attributes(self, text: str, entity_type: str, 
                           attributes: List[str], schema_guidance: Optional[Dict] = None) -> List[Dict[str, Any]]:
@@ -342,7 +335,8 @@ class EntityExtractor:
             schema: Optional schema dict with field descriptions (e.g., from Med_attributes.json)
                    Format: {entity_type: {field_name: {description, is_fixed, ...}}}
         """
-        self.chunker = TextChunker(chunk_size=5, overlap=2)
+        # Use LangChain's semantic chunking (500 chars per chunk, 100 chars overlap)
+        self.chunker = TextChunker(chunk_size=500, overlap=100)
         self.llm = llm_extractor or LLMExtractor()
         self.schema = schema or {}
         
