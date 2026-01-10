@@ -159,10 +159,15 @@ Answer with only: yes or no"""
         
         prompt = f"""Extract information from this text about {entity_type} entities.
 
-IMPORTANT: Always return a JSON array, even if there's only ONE entity.
-Each array element is a separate {entity_type} entity.
-For multi-valued fields within the SAME entity, use pipe-delimiter (||).
-For DIFFERENT entities, create separate array entries.
+IMPORTANT GUIDELINES:
+1. Always return a JSON array, even if there's only ONE entity
+2. Each array element is a separate {entity_type} entity
+3. For multi-valued fields within the SAME entity, use pipe-delimiter (||)
+4. For DIFFERENT entities, create separate array entries
+5. Extract CONCISE, CANONICAL values (not full sentences or narratives)
+6. Provide the SHORTEST MEANINGFUL value for each field
+7. Extract factual data only - avoid descriptive or explanatory text
+8. If a field has no clear value, omit it (don't guess or infer)
 
 Fields to extract: {attributes_str}
 
