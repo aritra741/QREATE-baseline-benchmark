@@ -138,10 +138,10 @@ Answer with only: yes or no"""
     
     def validate_extraction(self, entity_type: str, value: str, chunk: str) -> bool:
         """
-        Semantic validation: Does this extracted value semantically represent the entity type?
+        Semantic validation: Is this extracted value a genuine entity instance, not just a mention/attribute?
         
-        Uses a lightweight validator model (Qwen 1.5B) to check if an extracted value
-        makes sense for the given entity type, without requiring domain-specific rules.
+        Uses Qwen 7B to check if an extracted value represents an actual entity of the given type,
+        not a measurement, descriptor, or contextual mention.
         
         Args:
             entity_type: Type of entity ("drug", "disease", "institution", etc.)
@@ -149,7 +149,7 @@ Answer with only: yes or no"""
             chunk: Source text chunk (for context)
             
         Returns:
-            True if value is valid for the entity type, False if likely invalid/hallucinated
+            True if value is a valid entity instance, False if it's a measurement/descriptor/false positive
         """
         if self.client is None:
             logger.debug(f"Validation skipped (no client): {entity_type}='{value}'")
@@ -160,8 +160,16 @@ Answer with only: yes or no"""
             logger.debug(f"Validation REJECTED (empty/too short): {entity_type}='{value}'")
             return False
         
-        prompt = f"""Does the value "{value}" semantically represent or relate to a {entity_type}?
-Consider the context: {chunk[:300]}
+        # Simple, generic validation prompt - let LLM decide
+        prompt = f"""Given that we are extracting {entity_type}, is "{value}" a valid instance of this entity type?
+
+Context: {chunk[:300]}
+
+Consider:
+- Does "{value}" make sense as a {entity_type}?
+- Is it grounded in the text?
+- Or is it a generic descriptor/fragment that doesn't represent a real entity?
+
 Answer with only: yes or no"""
         
         try:
