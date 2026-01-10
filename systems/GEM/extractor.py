@@ -74,13 +74,16 @@ class TextChunker:
 class LLMExtractor:
     """LLM-based entity and attribute extraction."""
     
-    def __init__(self, model: str = "qwen2.5:7b-instruct", base_url: str = "http://localhost:11434/v1"):
+    def __init__(self, model: str = "qwen2.5:7b-instruct", base_url: str = "http://localhost:11434/v1",
+                 validator_model: str = "qwen2.5:1.5b-instruct-q8_0"):
         """
         Args:
-            model: Model name (default: Ollama qwen2.5)
+            model: Model name for extraction (default: Ollama qwen2.5 7b)
             base_url: LLM API base URL
+            validator_model: Model name for validation (default: Ollama qwen2.5 1.5b)
         """
         self.model = model
+        self.validator_model = validator_model
         self.base_url = base_url
         
         if OpenAI is None:
@@ -132,6 +135,54 @@ Answer with only: yes or no"""
         except Exception as e:
             logger.error(f"Judge failed: {e}")
             return False
+    
+    def validate_extraction(self, entity_type: str, value: str, chunk: str) -> bool:
+        """
+        Semantic validation: Does this extracted value semantically represent the entity type?
+        
+        Uses a lightweight validator model (Qwen 1.5B) to check if an extracted value
+        makes sense for the given entity type, without requiring domain-specific rules.
+        
+        Args:
+            entity_type: Type of entity ("drug", "disease", "institution", etc.)
+            value: Extracted value to validate
+            chunk: Source text chunk (for context)
+            
+        Returns:
+            True if value is valid for the entity type, False if likely invalid/hallucinated
+        """
+        if self.client is None:
+            logger.debug(f"Validation skipped (no client): {entity_type}='{value}'")
+            return True  # Default to accepting if no validator available
+        
+        # Simple check: empty or very short values are likely invalid
+        if not value or len(value.strip()) < 2:
+            logger.debug(f"Validation REJECTED (empty/too short): {entity_type}='{value}'")
+            return False
+        
+        prompt = f"""Does the value "{value}" semantically represent or relate to a {entity_type}?
+Consider the context: {chunk[:300]}
+Answer with only: yes or no"""
+        
+        try:
+            response = self.client.chat.completions.create(
+                model=self.validator_model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.1,
+                max_tokens=5
+            )
+            
+            answer = response.choices[0].message.content.strip().lower()
+            is_valid = "yes" in answer
+            
+            if not is_valid:
+                logger.debug(f"Validation REJECTED: {entity_type}='{value}' (response: '{answer}')")
+            
+            return is_valid
+        
+        except Exception as e:
+            logger.debug(f"Validation failed for {entity_type}='{value}': {e}")
+            return True  # Default to accepting on error
     
     def extract_attributes(self, text: str, entity_type: str, 
                           attributes: List[str], schema_guidance: Optional[Dict] = None) -> List[Dict[str, Any]]:
@@ -204,34 +255,14 @@ Return ONLY valid JSON array. Example shape (keys are illustrative only):
 ]"""
         
         try:
-            # Request logprobs to assess confidence in generated tokens
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.2,
-                max_tokens=800,
-                logprobs=True  # Enable logprobs for confidence scoring
+                max_tokens=800
             )
             
             result_text = response.choices[0].message.content.strip()
-            
-            # Extract logprobs for confidence assessment
-            logprobs_data = response.choices[0].logprobs
-            token_logprobs = []
-            if logprobs_data:
-                if hasattr(logprobs_data, 'token_logprobs'):
-                    token_logprobs = [lp for lp in logprobs_data.token_logprobs if lp is not None]
-                elif hasattr(logprobs_data, 'tokens') and hasattr(logprobs_data, 'token_logprobs'):
-                    token_logprobs = logprobs_data.token_logprobs
-            
-            if token_logprobs:
-                mean_logprob = sum(token_logprobs) / len(token_logprobs)
-                min_logprob = min(token_logprobs)
-                max_logprob = max(token_logprobs)
-                logger.info(f"Logprobs stats: mean={mean_logprob:.4f}, min={min_logprob:.4f}, max={max_logprob:.4f}, tokens={len(token_logprobs)}")
-            else:
-                mean_logprob = None
-                logger.warning("No logprobs available in response")
             
             # Remove markdown code fence if present
             if result_text.startswith("```json"):
@@ -271,6 +302,14 @@ Return ONLY valid JSON array. Example shape (keys are illustrative only):
                 
                 # Only add if we extracted something meaningful
                 if len(processed) >= 1:
+                    # Validate key fields (typically first attribute is the primary key)
+                    if attributes:
+                        primary_key = attributes[0]
+                        if primary_key in processed:
+                            if not self.validate_extraction(entity_type, processed[primary_key], text):
+                                logger.debug(f"Skipped entity: {processed} (validation failed)")
+                                continue
+                    
                     processed_entities.append(processed)
             
             return processed_entities
