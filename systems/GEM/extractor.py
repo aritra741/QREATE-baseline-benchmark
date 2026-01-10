@@ -215,14 +215,23 @@ Return ONLY valid JSON array. Example shape (keys are illustrative only):
             
             result_text = response.choices[0].message.content.strip()
             
-            # Extract mean logprob for confidence assessment
+            # Extract logprobs for confidence assessment
             logprobs_data = response.choices[0].logprobs
-            if logprobs_data and hasattr(logprobs_data, 'token_logprobs'):
-                token_logprobs = [lp for lp in logprobs_data.token_logprobs if lp is not None]
-                mean_logprob = sum(token_logprobs) / len(token_logprobs) if token_logprobs else 0
-                logger.debug(f"Extract logprobs: mean={mean_logprob:.3f}, tokens={len(token_logprobs)}")
+            token_logprobs = []
+            if logprobs_data:
+                if hasattr(logprobs_data, 'token_logprobs'):
+                    token_logprobs = [lp for lp in logprobs_data.token_logprobs if lp is not None]
+                elif hasattr(logprobs_data, 'tokens') and hasattr(logprobs_data, 'token_logprobs'):
+                    token_logprobs = logprobs_data.token_logprobs
+            
+            if token_logprobs:
+                mean_logprob = sum(token_logprobs) / len(token_logprobs)
+                min_logprob = min(token_logprobs)
+                max_logprob = max(token_logprobs)
+                logger.info(f"Logprobs stats: mean={mean_logprob:.4f}, min={min_logprob:.4f}, max={max_logprob:.4f}, tokens={len(token_logprobs)}")
             else:
-                mean_logprob = 0
+                mean_logprob = None
+                logger.warning("No logprobs available in response")
             
             # Remove markdown code fence if present
             if result_text.startswith("```json"):
@@ -260,15 +269,8 @@ Return ONLY valid JSON array. Example shape (keys are illustrative only):
                     if v:
                         processed[k] = v
                 
-                # Quality filters (domain-agnostic, logprob-aware)
+                # Only add if we extracted something meaningful
                 if len(processed) >= 1:
-                    # Reject if mean logprob is too low (high uncertainty)
-                    # Logprobs are negative; higher (closer to 0) = more confident
-                    # Threshold: -2.0 means model gave ~13% probability (exp(-2) ≈ 0.135)
-                    if mean_logprob < -2.5:
-                        logger.debug(f"Skipping entity due to low logprob: {processed}, logprob={mean_logprob:.3f}")
-                        continue
-                    
                     processed_entities.append(processed)
             
             return processed_entities
