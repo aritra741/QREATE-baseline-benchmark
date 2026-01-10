@@ -28,8 +28,6 @@ sys.path.insert(0, str(PROJECT_ROOT / "systems"))
 from GEM.config import CACHE_DIR
 from GEM.blocking import SemanticBlocker
 from GEM.db_engine import DBEngine
-from GEM.ingest import InlineDeduplicator
-from GEM.schema_loader import SchemaLoader
 from GEM.llm import LLMClient
 from GEM.extractor import EntityExtractor
 
@@ -224,12 +222,11 @@ def create_tables_and_db(schema_dict: dict) -> DBEngine:
     return db_engine
 
 
-def preprocess_and_insert(data: dict, db_engine: DBEngine, 
-                          blocker: SemanticBlocker, llm_client: LLMClient):
-    """Preprocess with GEM and insert into database."""
+def preprocess_and_insert(data: dict, db_engine: DBEngine):
+    """Insert preprocessed and resolved data into database."""
     
     print("=" * 100)
-    print("PHASE 3: GEM PREPROCESSING & INSERTION")
+    print("PHASE 3: INSERTION INTO DATABASE")
     print("=" * 100)
     print()
     
@@ -251,48 +248,10 @@ def preprocess_and_insert(data: dict, db_engine: DBEngine,
         if not filtered_records:
             continue
         
-        # Extract key field
-        key_fields = {
-            "drug": "generic_name",
-            "disease": "disease_name",
-            "institution": "institution_name"
-        }
-        
-        key_field = key_fields.get(entity_type)
-        
-        # Get unique mentions
-        mentions = set()
-        for record in filtered_records:
-            mention = record.get(key_field, "")
-            if mention and str(mention).strip():
-                mentions.add(str(mention).strip())
-        
-        mentions = list(mentions)
-        logger.info(f"Found {len(mentions)} unique mentions for {entity_type}")
-        
-        if not mentions:
-            continue
-        
-        # Resolve with GEM
-        dummy_records = [{"name": m} for m in mentions]
-        deduplicator = InlineDeduplicator(blocker, resolver, db_engine, None, logger=logger)
-        final_records, canonical_map = deduplicator.ingest_batch(dummy_records, ["name"])
-        
-        logger.info(f"Canonical map: {len(canonical_map)} mention->canonical mappings")
-        
-        # Normalize and insert
-        normalized_records = []
-        for record in filtered_records:
-            norm_record = record.copy()
-            mention = record.get(key_field, "")
-            if mention:
-                canonical = canonical_map.get(str(mention).strip(), str(mention).strip())
-                norm_record[key_field] = canonical
-            normalized_records.append(norm_record)
-        
+        # Data is already resolved at extraction time, just insert
         db_engine.set_schema(None)
-        db_engine.insert_records(entity_type, normalized_records)
-        logger.info(f"Inserted {len(normalized_records)} {entity_type} records")
+        db_engine.insert_records(entity_type, filtered_records)
+        logger.info(f"Inserted {len(filtered_records)} {entity_type} records")
     
     print()
 
@@ -481,7 +440,7 @@ def main():
     db_engine = create_tables_and_db(schema_dict)
     
     # Preprocess and insert
-    preprocess_and_insert(data, db_engine, blocker, llm_client)
+    preprocess_and_insert(data, db_engine)
     
     # Execute queries
     results = execute_join_queries(db_engine, query_file)
