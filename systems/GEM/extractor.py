@@ -27,57 +27,50 @@ logger = logging.getLogger(__name__)
 class TextChunker:
     """Split text into semantically meaningful chunks using LangChain's SemanticChunker."""
     
-    def __init__(self, chunk_size: int = 500):
+    def __init__(self, chunk_size: int = 500, overlap: int = 100):
         """
         Args:
-            chunk_size: Target size for semantic chunks (approximate)
+            chunk_size: Target size for chunks (approximate, in characters for fallbacks)
+            overlap: Overlap size for fallbacks (in characters). SemanticChunker does not use this directly,
+                     but we keep it for consistent context preservation if we fall back.
         """
         self.chunk_size = chunk_size
+        self.overlap = overlap
         
         if SemanticChunker is None:
-            logger.warning("LangChain SemanticChunker not available, using fallback")
-            self.chunker = None
-        else:
-            try:
-                # Use Ollama with MiniLM embeddings (same as SemanticBlocker for consistency)
-                from langchain_community.embeddings import OllamaEmbeddings
-                embeddings = OllamaEmbeddings(
-                    model="sentence-transformers/all-MiniLM-L6-v2",
-                    base_url="http://localhost:11434"
-                )
-                self.chunker = SemanticChunker(embeddings=embeddings, breakpoint_threshold_type="percentile")
-            except Exception as e:
-                logger.warning(f"Failed to initialize SemanticChunker: {e}. Using fallback.")
-                self.chunker = None
+            raise ImportError(
+                "LangChain SemanticChunker is required but not installed. "
+                "Install `langchain-text-splitters` and its dependencies."
+            )
+
+        # Use Ollama with MiniLM embeddings (same as SemanticBlocker for consistency)
+        try:
+            from langchain_community.embeddings import OllamaEmbeddings
+        except ImportError as e:
+            raise ImportError(
+                "LangChain Ollama embeddings are required for SemanticChunker. "
+                "Install `langchain-community`."
+            ) from e
+
+        try:
+            embeddings = OllamaEmbeddings(
+                model="sentence-transformers/all-MiniLM-L6-v2",
+                base_url="http://localhost:11434",
+            )
+            self.chunker = SemanticChunker(
+                embeddings=embeddings,
+                breakpoint_threshold_type="percentile",
+            )
+        except Exception as e:
+            raise RuntimeError(
+                "Failed to initialize LangChain SemanticChunker with Ollama embeddings. "
+                "Ensure Ollama is running and the embedding model is available."
+            ) from e
     
     def chunk(self, text: str) -> List[str]:
         """Create semantically meaningful chunks of text."""
-        if self.chunker:
-            try:
-                return self.chunker.split_text(text)
-            except Exception as e:
-                logger.warning(f"SemanticChunker failed: {e}. Using fallback.")
-                return self._fallback_chunk(text)
-        else:
-            return self._fallback_chunk(text)
-    
-    def _fallback_chunk(self, text: str) -> List[str]:
-        """Fallback: RecursiveCharacterTextSplitter for semantic boundaries."""
-        try:
-            from langchain_text_splitters import RecursiveCharacterTextSplitter
-            splitter = RecursiveCharacterTextSplitter(
-                chunk_size=self.chunk_size,
-                chunk_overlap=100,
-                separators=["\n\n", "\n", ". ", " ", ""]
-            )
-            return splitter.split_text(text)
-        except Exception as e:
-            logger.warning(f"RecursiveCharacterTextSplitter also failed: {e}. Using basic chunking.")
-            # Ultimate fallback: simple character-based chunking
-            chunks = []
-            for i in range(0, len(text), self.chunk_size - 100):
-                chunks.append(text[i:i + self.chunk_size])
-            return [c for c in chunks if c.strip()]
+        # No fallbacks by design: fail-fast so we don't silently degrade chunk quality.
+        return self.chunker.split_text(text)
 
 
 class LLMExtractor:
