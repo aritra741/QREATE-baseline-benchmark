@@ -75,7 +75,7 @@ class LLMExtractor:
     """LLM-based entity and attribute extraction."""
     
     def __init__(self, model: str = "qwen2.5:7b-instruct", base_url: str = "http://localhost:11434/v1",
-                 validator_model: str = "qwen2.5:1.5b-instruct-q8_0"):
+                 validator_model: str = "qwen2.5:7b-instruct"):
         """
         Args:
             model: Model name for extraction (default: Ollama qwen2.5 7b)
