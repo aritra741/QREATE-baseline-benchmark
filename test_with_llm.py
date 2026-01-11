@@ -38,22 +38,25 @@ print("-" * 60)
 start_time = time.time()
 
 try:
-    results = evaluator.execute_query(query_id=1, query_sql=test_query)
+    results_dict, cost, latency = evaluator.execute_query(query_id=1, query_sql=test_query)
     elapsed = time.time() - start_time
     
     print("-" * 60)
     print(f"\n✓ Query executed in {elapsed:.2f} seconds")
     print(f"\nResults:")
-    print(f"  Tuples extracted: {len(results.get('tuples', []))}")
-    print(f"  Cost (k-tokens/doc/query): {results.get('cost', 0):.4f}")
-    print(f"  Latency (sec/doc/query): {results.get('latency', 0):.4f}")
-    print(f"  Precision: {results.get('precision', 0):.2f}")
-    print(f"  Recall: {results.get('recall', 0):.2f}")
-    print(f"  F1-score: {results.get('f1', 0):.2f}")
+    print(f"  Tuples extracted: {len(results_dict.get('tuples', []))}")
+    print(f"  Cost (k-tokens/doc/query): {cost:.4f}")
+    print(f"  Latency (sec/doc/query): {latency:.4f}")
     
-    if results.get('tuples'):
-        print(f"\n  Sample extracted tuple:")
-        print(f"    {results['tuples'][0]}")
+    if results_dict.get('tuples'):
+        print(f"\n  Sample extracted tuples:")
+        for i, t in enumerate(results_dict['tuples'][:3]):
+            print(f"    {i+1}. {t}")
+    else:
+        print(f"\n  ⚠ No tuples extracted from join")
+        print(f"  Query type: {results_dict.get('query_type')}")
+        print(f"  Tokens used: {results_dict.get('token_count', 0)}")
+        print(f"  Docs processed: {results_dict.get('num_documents_processed', 0)}")
     
 except Exception as e:
     elapsed = time.time() - start_time
