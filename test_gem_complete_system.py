@@ -154,27 +154,27 @@ def resolve_cross_table_entities(data, schema_dict, blocker, llm_client):
     Identifies columns that share the same name across multiple tables and 
     performs a unified GEM resolution to ensure referential integrity.
     """
-    # schema_dict is: {entity_type: [Attribute(...), ...], ...}
-    # Build a field_name -> list of (table_name, field_name) mapping
+    # schema_dict is raw JSON: {entity_type: {field_name: {...}, ...}, ...}
+    # Build a field_name -> list of tables that have it
     field_to_tables = {}
     
-    for entity_type, attributes in schema_dict.items():
-        if not attributes:
+    for entity_type, attributes_dict in schema_dict.items():
+        if not isinstance(attributes_dict, dict):
             continue
-        for attr in attributes:
-            field_name = attr.get('name') if isinstance(attr, dict) else attr.name
+        
+        for field_name in attributes_dict.keys():
             if field_name not in field_to_tables:
                 field_to_tables[field_name] = []
-            field_to_tables[field_name].append((entity_type, field_name))
+            field_to_tables[field_name].append(entity_type)
     
     # For each field that appears in multiple tables, run unified resolution
     for field_name, table_list in field_to_tables.items():
         if len(table_list) <= 1:
-            continue  # Only cross-table if shared
+            continue  # Only cross-table if shared by 2+ tables
         
         # Collect all mentions of this field from all tables
         all_mentions = set()
-        for table_name, _ in table_list:
+        for table_name in table_list:
             for record in data.get(table_name, []):
                 val = record.get(field_name)
                 if val:
@@ -186,7 +186,7 @@ def resolve_cross_table_entities(data, schema_dict, blocker, llm_client):
         if not all_mentions:
             continue
         
-        logger.info(f"Found shared field '{field_name}' in tables: {[t for t, _ in table_list]}")
+        logger.info(f"Found shared field '{field_name}' in tables: {table_list}")
         logger.info(f"Running unified resolution for {len(all_mentions)} unique mentions...")
         
         blocker.reset()
@@ -204,7 +204,7 @@ def resolve_cross_table_entities(data, schema_dict, blocker, llm_client):
                     canonical_map[var] = canon
         
         # Apply unified canonical names back to all tables
-        for table_name, _ in table_list:
+        for table_name in table_list:
             count = 0
             for record in data.get(table_name, []):
                 val = record.get(field_name)
