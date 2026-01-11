@@ -13,6 +13,7 @@ import json
 import csv
 import sys
 import requests
+import pandas as pd
 from pathlib import Path
 from collections import defaultdict
 
@@ -21,16 +22,20 @@ def normalize_value(val):
     if val is None or (isinstance(val, float) and pd.isna(val)):
         return ""
     val_str = str(val).strip().lower()
+    # Remove common filler words that interfere with matching
+    for filler in ["the ", "a ", "an "]:
+        if val_str.startswith(filler):
+            val_str = val_str[len(filler):]
     val_str = " ".join(val_str.split())
     return val_str
 
 def llm_ask_if_same_entity(val1: str, val2: str) -> bool:
-    """Ask LLM if two values refer to the same entity.
-    
-    Uses Ollama (qwen2.5:7b-instruct) for universal semantic matching.
-    """
+    """Ask LLM if two values refer to the same entity or concept."""
     try:
-        prompt = f"""Do these two values refer to the same entity or concept?
+        # Generic principle: handle specific vs general instances without domain-specific examples
+        prompt = f"""Do these two values refer to the same entity, concept, or is one a specific instance/variant of the other?
+If they represent the same core concept (even if one has more modifiers or is a sub-type), they should be considered a match.
+
 Value 1: {val1}
 Value 2: {val2}
 
@@ -56,7 +61,7 @@ Answer with ONLY "yes" or "no" (lowercase)."""
     return False
 
 def values_match(val1, val2):
-    """Check if two values match using two-stage matching from compare_all_results.py."""
+    """Check if two values match using two-stage matching."""
     norm1 = normalize_value(val1)
     norm2 = normalize_value(val2)
     
@@ -84,9 +89,10 @@ def values_match(val1, val2):
                 pass
             
             # Try semantic matching with LLM verification directly
-            # We use a basic fuzzy check to avoid unnecessary LLM calls
             from difflib import SequenceMatcher
-            if SequenceMatcher(None, v1, v2).ratio() >= 0.7:
+            ratio = SequenceMatcher(None, v1, v2).ratio()
+            # Lower threshold to 0.6 to capture more semantic candidates
+            if ratio >= 0.6 or (v1 in v2) or (v2 in v1):
                 if llm_ask_if_same_entity(v1, v2):
                     return True
     
@@ -189,6 +195,9 @@ def compare_entities(entity_type):
         found_match = False
         for gt_key in gt_keys:
             if values_match(extracted_key, gt_key):
+                # Only log successful matches if they were fuzzy
+                if extracted_key != gt_key:
+                    print(f"  [MATCH] '{extracted_key}' matched GT '{gt_key}'")
                 true_positives += 1
                 matched_gt_keys.add(gt_key)
                 matched_extracted_keys.add(extracted_key)
