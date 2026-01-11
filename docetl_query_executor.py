@@ -338,12 +338,13 @@ Return ONLY a JSON object with the extracted values or "Not found" if attribute 
     def _call_docetl_map(self, prompt: str, output_attributes: List[str]) -> Dict:
         try:
             from litellm import completion
+            import re
             
             output_schema = {attr: "string" for attr in output_attributes}
             schema_str = json.dumps(output_schema, indent=2)
             
             messages = [
-                {"role": "system", "content": "You are a helpful assistant. Return valid JSON."},
+                {"role": "system", "content": "You are a helpful assistant. Return ONLY valid JSON, no markdown, no code blocks."},
                 {"role": "user", "content": f"{prompt}\n\nReturn response as JSON with this schema:\n{schema_str}"}
             ]
             
@@ -353,13 +354,32 @@ Return ONLY a JSON object with the extracted values or "Not found" if attribute 
                 temperature=0.0
             )
             
-            content = response.choices[0].message.content
+            content = response.choices[0].message.content.strip()
+            
+            # Remove markdown code blocks if present
+            if content.startswith("```"):
+                # Extract JSON from code block
+                match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', content, re.DOTALL)
+                if match:
+                    content = match.group(1)
+                else:
+                    # Try to find JSON object
+                    match = re.search(r'\{.*\}', content, re.DOTALL)
+                    if match:
+                        content = match.group(0)
+            
             try:
                 result = json.loads(content)
-            except:
-                result = {attr: content for attr in output_attributes}
+                # Ensure all required attributes are present
+                for attr in output_attributes:
+                    if attr not in result:
+                        result[attr] = "Not found"
+                return result
+            except json.JSONDecodeError as e:
+                logger.warning(f"Failed to parse JSON response: {e}")
+                logger.warning(f"Content: {content[:200]}")
+                return {attr: "Not found" for attr in output_attributes}
             
-            return result
         except Exception as e:
             logger.error(f"Error in _call_docetl_map: {e}")
             return {attr: "Not found" for attr in output_attributes}
