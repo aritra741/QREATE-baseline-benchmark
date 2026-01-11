@@ -118,7 +118,8 @@ Answer with only: yes or no"""
     
     def validate_extraction(self, entity_type: str, value: str, chunk: str) -> bool:
         """
-        Semantic validation using Qwen 7B: Does this value make sense as this entity type?
+        Semantic validation using LLM: Is this a REAL, MEANINGFUL entity instance?
+        STRICT criteria to prioritize precision over recall.
         
         Args:
             entity_type: Type of entity ("drug", "disease", "institution", etc.)
@@ -126,7 +127,7 @@ Answer with only: yes or no"""
             chunk: Source text chunk (for context)
             
         Returns:
-            True if value is valid for entity_type, False otherwise
+            True if value is valid, False otherwise (REJECT on doubt for precision)
         """
         if self.client is None:
             logger.debug(f"Validation skipped (no client): {entity_type}='{value}'")
@@ -134,52 +135,76 @@ Answer with only: yes or no"""
         
         # Quick filter: reject empty/too short
         if not value or len(value.strip()) < 1:
-            logger.info(f"[VALIDATION] REJECTED: {entity_type}='{value}' (empty)")
+            logger.debug(f"[VALIDATION] REJECTED: {entity_type}='{value}' (empty)")
             return False
         
-        # Use LLM for semantic validation with a stricter prompt
-        prompt = f"""Validate if this extracted value is a complete, self-sufficient entity instance of type "{entity_type}".
+        value_clean = value.strip()
+        
+        # Pre-validation: Reject obvious false positives
+        invalid_patterns = [
+            "not mentioned", "unknown", "unclear", "none", "n/a", "na",
+            "not specified", "not found", "not applicable", "not available",
+            "to be determined", "tbdt", "tbd", "pending",
+            "gov", "com", "org", "edu", "net", "http", "www",
+            "e.g.", "etc", "i.e.", "for example", "such as",
+            "see above", "as mentioned", "described below",
+            "[citation needed]", "[clarification needed]",
+        ]
+        
+        value_lower = value_clean.lower()
+        for pattern in invalid_patterns:
+            if pattern in value_lower:
+                logger.debug(f"[VALIDATION] REJECTED: {entity_type}='{value}' (invalid pattern: '{pattern}')")
+                return False
+        
+        # Reject if ONLY generic/structural words
+        generic_words = {"the", "a", "an", "and", "or", "of", "in", "at", "to", "by", "for"}
+        words = set(w.lower() for w in value_clean.split() if w)
+        if words.issubset(generic_words):
+            logger.debug(f"[VALIDATION] REJECTED: {entity_type}='{value}' (only generic words)")
+            return False
+        
+        # Use LLM with STRICT, GENERIC criteria (no domain examples)
+        prompt = f"""Is this extracted value a REAL, MEANINGFUL, GROUNDED instance?
 
-Field: {entity_type}
 Value: "{value}"
-Context: {chunk[:300]}
+Context: {chunk[:200]}
 
-Rules for VALID entities:
-- Must be a complete, proper name or specific instance (e.g., "Harvard University", "Aspirin", "2025")
-- Must be grounded in the context provided
-- Must stand alone as a distinct thing
+Be STRICT. REJECT unless:
+1. The value is SPECIFICALLY MENTIONED in the context (not inferred, not hallucinated, not world knowledge)
+2. It is COMPLETE and SELF-SUFFICIENT (can stand alone, not a fragment or modifier)
+3. It is CONCRETE and SPECIFIC (not a generic descriptor or placeholder)
 
-Rules for INVALID (Reject these):
-- Fragments/Partial names: "Unit of", "Department of", "Center for" (unless it's the full official name)
-- Acronyms/Abbreviations without expansion: "HMS", "NIH", "MIT" (prefer full names)
-- Generic descriptors: "Clinic", "Hospital", "Study", "Research" (without a proper name)
-- Technical metadata: "gov", "com", "http", "www"
-- Filler/Placeholder text: "not mentioned", "unknown", "none"
+ALWAYS REJECT (answer "no") for:
+- Placeholder/filler text: "not mentioned", "unknown", "pending", "unclear", "none", "n/a"
+- Bare category labels: Single generic nouns without qualification or specificity
+- Fragments: Partial phrases that depend on context to make sense
+- Bare abbreviations: Short forms without expansion in context
+- Generic modifiers: "various", "multiple", "different", "several", "many"
+- Subjective adjectives: "common", "important", "serious", "rare" (without entity grounding)
 
-Question: Is "{value}" a complete, valid {entity_type} entity?
-Answer only: yes or no"""
+Is "{value}" a real, concrete, grounded entity value?
+Answer ONLY: yes or no"""
         
         try:
             response = self.client.chat.completions.create(
                 model=self.validator_model,
                 messages=[{"role": "user", "content": prompt}],
-                temperature=0.1,
-                max_tokens=5
+                temperature=0.05,  # Very conservative
+                max_tokens=3
             )
             
             answer = response.choices[0].message.content.strip().lower()
-            is_valid = "yes" in answer
+            is_valid = answer.startswith("yes")
             
             if not is_valid:
-                logger.info(f"[VALIDATION] REJECTED: {entity_type}='{value}' (LLM said: '{answer}')")
-            else:
-                logger.debug(f"[VALIDATION] ACCEPTED: {entity_type}='{value}'")
+                logger.debug(f"[VALIDATION] REJECTED: {entity_type}='{value}' (LLM: '{answer}')")
             
             return is_valid
         
         except Exception as e:
             logger.debug(f"Validation error for {entity_type}='{value}': {e}")
-            return True  # Default to accepting on error
+            return False  # REJECT on error (safer for precision)
     
     def extract_attributes(self, text: str, entity_type: str, 
                           attributes: List[str], schema_guidance: Optional[Dict] = None) -> List[Dict[str, Any]]:
@@ -315,15 +340,16 @@ Return ONLY valid JSON array. Example shape (keys are illustrative only):
                 
                 # Only add if we extracted something meaningful
                 if len(processed) >= 1:
-                    # Validate key fields (typically first attribute is the primary key)
-                    if attributes:
-                        primary_key = attributes[0]
-                        if primary_key in processed:
-                            if not self.validate_extraction(entity_type, processed[primary_key], text):
-                                logger.debug(f"Skipped entity: {processed} (validation failed for {primary_key}='{processed[primary_key]}')")
-                                continue
+                    # Validate ALL fields (not just primary key) to catch false positives
+                    skip_entity = False
+                    for field_name, field_value in processed.items():
+                        if not self.validate_extraction(entity_type, field_value, text):
+                            logger.debug(f"Skipped entity: {processed} (validation failed for {field_name}='{field_value}')")
+                            skip_entity = True
+                            break
                     
-                    processed_entities.append(processed)
+                    if not skip_entity:
+                        processed_entities.append(processed)
             
             return processed_entities
         
