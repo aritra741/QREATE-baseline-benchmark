@@ -138,24 +138,25 @@ Answer with only: yes or no"""
             return False
         
         # Use LLM for semantic validation with a stricter prompt
-        prompt = f"""Validate if this extracted value matches the expected field type.
+        prompt = f"""Validate if this extracted value is a complete, self-sufficient entity instance of type "{entity_type}".
 
 Field: {entity_type}
 Value: "{value}"
-Context: {chunk[:200]}
+Context: {chunk[:300]}
 
-Rules:
-- disease_name expects: disease/condition names (e.g., "Diabetes", "COVID-19")
-  NOT: measurements, dates, times, generic words
-- drug expects: drug/medication names (e.g., "Aspirin", "Metformin")
-  NOT: colors, measurements, generic adjectives
-- institution expects: organization names (e.g., "Harvard", "WHO")
-  NOT: numbers alone, dates, generic words
-- dosage expects: measurements with units (e.g., "25 mg", "10 ml")
-- year expects: year numbers (e.g., "2025", "1995")
-- color expects: color names (e.g., "red", "blue")
+Rules for VALID entities:
+- Must be a complete, proper name or specific instance (e.g., "Harvard University", "Aspirin", "2025")
+- Must be grounded in the context provided
+- Must stand alone as a distinct thing
 
-Does "{value}" match what {entity_type} expects?
+Rules for INVALID (Reject these):
+- Fragments/Partial names: "Unit of", "Department of", "Center for" (unless it's the full official name)
+- Acronyms/Abbreviations without expansion: "HMS", "NIH", "MIT" (prefer full names)
+- Generic descriptors: "Clinic", "Hospital", "Study", "Research" (without a proper name)
+- Technical metadata: "gov", "com", "http", "www"
+- Filler/Placeholder text: "not mentioned", "unknown", "none"
+
+Question: Is "{value}" a complete, valid {entity_type} entity?
 Answer only: yes or no"""
         
         try:
