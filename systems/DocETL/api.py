@@ -46,15 +46,11 @@ import litellm
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-BASIC_MODELS = ["gpt-4o-mini", "gpt-4o", "ollama/qwen3:8b"]
+BASIC_MODELS = ["gpt-4o-mini", "gpt-4o", "ollama/qwen2.5:7b-instruct"]
 
-# Ollama configuration for qwen3:8b with no-think mode
+# Ollama configuration for qwen2.5:7b-instruct
 OLLAMA_BASE_URL = "http://localhost:11434"
-DEFAULT_MODEL = "ollama/qwen3:8b"
-
-def is_ollama_qwen3(model: str) -> bool:
-    model = model.lower()
-    return "ollama" in model and "qwen3" in model
+DEFAULT_MODEL = "ollama/qwen2.5:7b-instruct"
 
 
 def is_deepseek_r1(model: str) -> bool:
