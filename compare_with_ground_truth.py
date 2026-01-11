@@ -12,8 +12,85 @@ Metrics:
 import json
 import csv
 import sys
+import requests
 from pathlib import Path
 from collections import defaultdict
+
+def normalize_value(val):
+    """Normalize a value for comparison."""
+    if val is None or (isinstance(val, float) and pd.isna(val)):
+        return ""
+    val_str = str(val).strip().lower()
+    val_str = " ".join(val_str.split())
+    return val_str
+
+def llm_ask_if_same_entity(val1: str, val2: str) -> bool:
+    """Ask LLM if two values refer to the same entity.
+    
+    Uses Ollama (qwen2.5:7b-instruct) for universal semantic matching.
+    """
+    try:
+        prompt = f"""Do these two values refer to the same entity or concept?
+Value 1: {val1}
+Value 2: {val2}
+
+Answer with ONLY "yes" or "no" (lowercase)."""
+        
+        response = requests.post(
+            "http://localhost:11434/v1/chat/completions",
+            json={
+                "model": "qwen2.5:7b-instruct",
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.1
+            },
+            timeout=10
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            answer = result["choices"][0]["message"]["content"].strip().lower()
+            return "yes" in answer
+    except Exception:
+        pass
+    
+    return False
+
+def values_match(val1, val2):
+    """Check if two values match using two-stage matching from compare_all_results.py."""
+    norm1 = normalize_value(val1)
+    norm2 = normalize_value(val2)
+    
+    if not norm1 or not norm2:
+        return norm1 == norm2
+    
+    # Exact match
+    if norm1 == norm2:
+        return True
+    
+    # Split by || and try cross-matching
+    values1 = [v.strip() for v in norm1.split('||') if v.strip()]
+    values2 = [v.strip() for v in norm2.split('||') if v.strip()]
+    
+    for v1 in values1:
+        for v2 in values2:
+            if v1 == v2:
+                return True
+            
+            # Try numeric comparison
+            try:
+                if abs(float(v1) - float(v2)) < 0.001:
+                    return True
+            except ValueError:
+                pass
+            
+            # Try semantic matching with LLM verification directly
+            # We use a basic fuzzy check to avoid unnecessary LLM calls
+            from difflib import SequenceMatcher
+            if SequenceMatcher(None, v1, v2).ratio() >= 0.7:
+                if llm_ask_if_same_entity(v1, v2):
+                    return True
+    
+    return False
 
 PROJECT_ROOT = Path(__file__).parent
 CACHE_DIR = PROJECT_ROOT / "systems" / "GEM" / ".cache"
@@ -82,34 +159,51 @@ def compare_entities(entity_type):
     print(f"Extracted records: {len(extracted)}")
     print()
     
-    # Build sets of key values
+    # Build sets of unique key values from GT
     gt_keys = set()
-    gt_key_to_record = {}
     for record in ground_truth:
-        key = record.get(key_field, "").strip().lower()
-        if key:
-            gt_keys.add(key)
-            gt_key_to_record[key] = record
+        raw_key = record.get(key_field, "")
+        if raw_key:
+            for variant in raw_key.split("||"):
+                v = variant.strip()
+                if v:
+                    gt_keys.add(v)
     
+    # Build list of unique key values from extracted
     extracted_keys = set()
-    extracted_key_to_record = {}
     for record in extracted:
-        key = record.get(key_field, "").strip().lower()
-        if key:
-            extracted_keys.add(key)
-            extracted_key_to_record[key] = record
+        raw_key = record.get(key_field, "")
+        if raw_key:
+            for variant in raw_key.split("||"):
+                v = variant.strip()
+                if v:
+                    extracted_keys.add(v)
     
-    # Calculate metrics
-    true_positives = len(gt_keys & extracted_keys)  # Found in both
-    false_positives = len(extracted_keys - gt_keys)  # Extracted but not in GT
-    false_negatives = len(gt_keys - extracted_keys)  # In GT but not extracted
+    # Calculate metrics with semantic matching
+    true_positives = 0
+    matched_gt_keys = set()
+    matched_extracted_keys = set()
+    
+    # Check each extracted key against ground truth
+    for extracted_key in extracted_keys:
+        found_match = False
+        for gt_key in gt_keys:
+            if values_match(extracted_key, gt_key):
+                true_positives += 1
+                matched_gt_keys.add(gt_key)
+                matched_extracted_keys.add(extracted_key)
+                found_match = True
+                break
+    
+    false_positives = len(extracted_keys) - true_positives
+    false_negatives = len(gt_keys) - len(matched_gt_keys)
     
     precision = true_positives / len(extracted_keys) if extracted_keys else 0
-    recall = true_positives / len(gt_keys) if gt_keys else 0
+    recall = len(matched_gt_keys) / len(gt_keys) if gt_keys else 0
     f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
     
-    print(f"True Positives (extracted & in GT): {true_positives}")
-    print(f"False Positives (extracted but not in GT): {false_positives}")
+    print(f"True Positives (extracted & matched in GT): {true_positives}")
+    print(f"False Positives (extracted but no match in GT): {false_positives}")
     print(f"False Negatives (in GT but not extracted): {false_negatives}")
     print()
     print(f"Precision: {precision:.2%}")
@@ -118,16 +212,16 @@ def compare_entities(entity_type):
     print()
     
     # Show examples of missing entities
-    if false_negatives > 0 and false_negatives <= 10:
+    if 0 < false_negatives <= 10:
         print("Missing entities (not extracted):")
-        for key in sorted(gt_keys - extracted_keys):
+        for key in sorted(gt_keys - matched_gt_keys):
             print(f"  - {key}")
         print()
     
     # Show examples of extra entities
-    if false_positives > 0 and false_positives <= 10:
+    if 0 < false_positives <= 10:
         print("Extra entities (extracted but not in GT):")
-        for key in sorted(extracted_keys - gt_keys):
+        for key in sorted(extracted_keys - matched_extracted_keys):
             print(f"  - {key}")
         print()
     
