@@ -154,63 +154,69 @@ def resolve_cross_table_entities(data, schema_dict, blocker, llm_client):
     Identifies columns that share the same name across multiple tables and 
     performs a unified GEM resolution to ensure referential integrity.
     """
-    # 1. Map each entity type to its primary key field (usually the first field)
-    entity_to_key = {}
+    # schema_dict is: {entity_type: [Attribute(...), ...], ...}
+    # Build a field_name -> list of (table_name, field_name) mapping
+    field_to_tables = {}
+    
     for entity_type, attributes in schema_dict.items():
-        if attributes:
-            entity_to_key[entity_type] = attributes[0]['name']
-
-    # 2. For each known key field, find all tables that use it
-    for target_entity, key_field in entity_to_key.items():
-        relevant_columns = [] # List of (table_name, field_name)
+        if not attributes:
+            continue
+        for attr in attributes:
+            field_name = attr.get('name') if isinstance(attr, dict) else attr.name
+            if field_name not in field_to_tables:
+                field_to_tables[field_name] = []
+            field_to_tables[field_name].append((entity_type, field_name))
+    
+    # For each field that appears in multiple tables, run unified resolution
+    for field_name, table_list in field_to_tables.items():
+        if len(table_list) <= 1:
+            continue  # Only cross-table if shared
+        
+        # Collect all mentions of this field from all tables
         all_mentions = set()
-
-        for table_name, attributes in schema_dict.items():
-            for attr in attributes:
-                if attr['name'] == key_field:
-                    relevant_columns.append((table_name, attr['name']))
-                    # Collect mentions from this table
-                    for record in data.get(table_name, []):
-                        val = record.get(attr['name'])
-                        if val:
-                            for mention in str(val).split("||"):
-                                m = mention.strip()
-                                if m and m.lower() != "none" and m.lower() != "not specified":
-                                    all_mentions.add(m)
-
-        # 3. If the field exists in more than one table, resolve them together
-        if len(relevant_columns) > 1 and all_mentions:
-            logger.info(f"Found shared field '{key_field}' in tables: {[t for t, f in relevant_columns]}")
-            logger.info(f"Running unified resolution for {len(all_mentions)} unique mentions...")
-
-            blocker.reset()
-            for m in all_mentions:
-                blocker.add_and_link(m)
-            
-            blocks_dict = blocker.get_blocks()
-            blocks = list(blocks_dict.values())
-            
-            canonical_map = {}
-            for block in blocks:
-                resolved = llm_client.resolve_block(block)
-                for canon, variants in resolved.items():
-                    for var in variants:
-                        canonical_map[var] = canon
-            
-            # 4. Apply unified canonical names back to all tables
-            for table_name, field_name in relevant_columns:
-                count = 0
-                for record in data.get(table_name, []):
-                    val = record.get(field_name)
-                    if val:
-                        new_values = []
-                        for m in str(val).split("||"):
-                            m_clean = m.strip()
-                            if m_clean:
-                                new_values.append(canonical_map.get(m_clean, m_clean))
-                        record[field_name] = "||".join(sorted(list(set(new_values))))
-                        count += 1
-                logger.info(f"  -> Updated {count} records in '{table_name}.{field_name}'")
+        for table_name, _ in table_list:
+            for record in data.get(table_name, []):
+                val = record.get(field_name)
+                if val:
+                    for mention in str(val).split("||"):
+                        m = mention.strip()
+                        if m and m.lower() != "none" and m.lower() != "not specified":
+                            all_mentions.add(m)
+        
+        if not all_mentions:
+            continue
+        
+        logger.info(f"Found shared field '{field_name}' in tables: {[t for t, _ in table_list]}")
+        logger.info(f"Running unified resolution for {len(all_mentions)} unique mentions...")
+        
+        blocker.reset()
+        for m in all_mentions:
+            blocker.add_and_link(m)
+        
+        blocks_dict = blocker.get_blocks()
+        blocks = list(blocks_dict.values())
+        
+        canonical_map = {}
+        for block in blocks:
+            resolved = llm_client.resolve_block(block)
+            for canon, variants in resolved.items():
+                for var in variants:
+                    canonical_map[var] = canon
+        
+        # Apply unified canonical names back to all tables
+        for table_name, _ in table_list:
+            count = 0
+            for record in data.get(table_name, []):
+                val = record.get(field_name)
+                if val:
+                    new_values = []
+                    for m in str(val).split("||"):
+                        m_clean = m.strip()
+                        if m_clean:
+                            new_values.append(canonical_map.get(m_clean, m_clean))
+                    record[field_name] = "||".join(sorted(list(set(new_values))))
+                    count += 1
+            logger.info(f"  -> Updated {count} records in '{table_name}.{field_name}'")
 
 
 def load_and_extract_data(data_dir: Path, extractor: EntityExtractor, blocker, llm_client, schema_dict, use_cache: bool = True, max_files: int = None) -> dict:
