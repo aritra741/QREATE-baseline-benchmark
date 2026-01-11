@@ -148,7 +148,72 @@ def resolve_and_deduplicate_records(records: List[Dict], key_field: str, blocker
     return deduplicated, canonical_map
 
 
-def load_and_extract_data(data_dir: Path, extractor: EntityExtractor, blocker, llm_client, use_cache: bool = True, max_files: int = None) -> dict:
+def resolve_cross_table_entities(data, schema_dict, blocker, llm_client):
+    """
+    Generic cross-table entity resolution.
+    Identifies columns that share the same name across multiple tables and 
+    performs a unified GEM resolution to ensure referential integrity.
+    """
+    # 1. Map each entity type to its primary key field (usually the first field)
+    entity_to_key = {}
+    for entity_type, attributes in schema_dict.items():
+        if attributes:
+            entity_to_key[entity_type] = attributes[0]['name']
+
+    # 2. For each known key field, find all tables that use it
+    for target_entity, key_field in entity_to_key.items():
+        relevant_columns = [] # List of (table_name, field_name)
+        all_mentions = set()
+
+        for table_name, attributes in schema_dict.items():
+            for attr in attributes:
+                if attr['name'] == key_field:
+                    relevant_columns.append((table_name, attr['name']))
+                    # Collect mentions from this table
+                    for record in data.get(table_name, []):
+                        val = record.get(attr['name'])
+                        if val:
+                            for mention in str(val).split("||"):
+                                m = mention.strip()
+                                if m and m.lower() != "none" and m.lower() != "not specified":
+                                    all_mentions.add(m)
+
+        # 3. If the field exists in more than one table, resolve them together
+        if len(relevant_columns) > 1 and all_mentions:
+            logger.info(f"Found shared field '{key_field}' in tables: {[t for t, f in relevant_columns]}")
+            logger.info(f"Running unified resolution for {len(all_mentions)} unique mentions...")
+
+            blocker.reset()
+            for m in all_mentions:
+                blocker.add_and_link(m)
+            
+            blocks_dict = blocker.get_blocks()
+            blocks = list(blocks_dict.values())
+            
+            canonical_map = {}
+            for block in blocks:
+                resolved = llm_client.resolve_block(block)
+                for canon, variants in resolved.items():
+                    for var in variants:
+                        canonical_map[var] = canon
+            
+            # 4. Apply unified canonical names back to all tables
+            for table_name, field_name in relevant_columns:
+                count = 0
+                for record in data.get(table_name, []):
+                    val = record.get(field_name)
+                    if val:
+                        new_values = []
+                        for m in str(val).split("||"):
+                            m_clean = m.strip()
+                            if m_clean:
+                                new_values.append(canonical_map.get(m_clean, m_clean))
+                        record[field_name] = "||".join(sorted(list(set(new_values))))
+                        count += 1
+                logger.info(f"  -> Updated {count} records in '{table_name}.{field_name}'")
+
+
+def load_and_extract_data(data_dir: Path, extractor: EntityExtractor, blocker, llm_client, schema_dict, use_cache: bool = True, max_files: int = None) -> dict:
     """Extract entities from Healthcare dataset with full GEM resolution and caching."""
     cache_file = Path(CACHE_DIR) / "extracted_entities.json"
     
@@ -160,7 +225,7 @@ def load_and_extract_data(data_dir: Path, extractor: EntityExtractor, blocker, l
     
     data = {"drug": [], "disease": [], "institution": []}
     
-    # Define all source directories (may contain mixed entity types)
+    # Define all source directories
     source_dirs = [
         data_dir / "drug_small",
         data_dir / "disease_small",
@@ -174,144 +239,62 @@ def load_and_extract_data(data_dir: Path, extractor: EntityExtractor, blocker, l
     }
     
     print("=" * 100)
-    print("PHASE 1: ENTITY EXTRACTION & RESOLUTION FROM HEALTHCARE DATASET")
+    print("PHASE 1: ENTITY EXTRACTION & RESOLUTION")
     print("=" * 100)
     print()
     
-    # Extract ALL entity types from ALL source directories
-    # (real-world data is not organized by entity type)
     all_extracted = {"drug": [], "disease": [], "institution": []}
     
     for source_dir in source_dirs:
         if not source_dir.exists():
-            logger.warning(f"Directory not found: {source_dir}")
             continue
         
         logger.info(f"Processing files from {source_dir.name}...")
-        
-        # Get all text files
         text_files = sorted(source_dir.glob("*.txt"))
         if max_files:
             text_files = text_files[:max_files]
-        
-        logger.info(f"Found {len(text_files)} text files")
         
         for file_path in text_files:
             try:
                 with open(file_path, 'r', encoding='utf-8') as f:
                     text = f.read()
-                
-                # Extract ALL entity types from this single file
                 for entity_type in ["drug", "disease", "institution"]:
                     extracted = extractor.extract_from_text(text, entity_type)
                     if extracted:
                         all_extracted[entity_type].extend(extracted)
-                        logger.debug(f"  {file_path.name}: extracted {len(extracted)} {entity_type} entities")
-            
             except Exception as e:
                 logger.error(f"Failed to process {file_path}: {e}")
-                continue
-    
-    print()
-    print("=" * 100)
-    print("PHASE 2: GEM ENTITY RESOLUTION")
-    print("=" * 100)
-    print()
     
     # Now run GEM resolution on each entity type
     for entity_type in ["drug", "disease", "institution"]:
         records = all_extracted.get(entity_type, [])
         if not records:
-            logger.warning(f"No {entity_type} records extracted")
             continue
         
         key_field = key_fields.get(entity_type)
-        
         logger.info(f"Resolving {len(records)} raw {entity_type} records...")
         
-        # Run full GEM resolution
         deduplicated, canonical_map = resolve_and_deduplicate_records(
             records, key_field, blocker, llm_client
         )
-        
         data[entity_type].extend(deduplicated)
-        print(f"✓ {len(deduplicated)} resolved {entity_type} records (from {len(records)} raw, canonical map: {len(canonical_map)} mappings)")
     
-    # CROSS-TABLE DISEASE RESOLUTION
-    # Disease appears in two contexts: as disease records AND as references in drug records
-    # We must ensure they use unified canonical names for JOIN to work
+    # PHASE 3: GENERIC CROSS-TABLE RESOLUTION
     print()
     print("=" * 100)
-    print("PHASE 3: CROSS-TABLE DISEASE RESOLUTION")
+    print("PHASE 2: GENERIC CROSS-TABLE RESOLUTION")
     print("=" * 100)
     print()
     
-    # Collect ALL disease mentions from both drug and disease tables
-    all_disease_mentions = set()
-    
-    for drug in data.get("drug", []):
-        disease_name = drug.get("disease_name", "")
-        if disease_name and str(disease_name).strip():
-            all_disease_mentions.add(str(disease_name).strip())
-    
-    for disease in data.get("disease", []):
-        disease_name = disease.get("disease_name", "")
-        if disease_name and str(disease_name).strip():
-            all_disease_mentions.add(str(disease_name).strip())
-    
-    logger.info(f"Found {len(all_disease_mentions)} unique disease mentions across both tables")
-    
-    if all_disease_mentions:
-        # Run GEM resolution on unified disease mentions
-        logger.info("Running unified disease name resolution...")
-        blocker.reset()
-        
-        disease_mentions_list = list(all_disease_mentions)
-        for mention in disease_mentions_list:
-            blocker.add_and_link(mention)
-        
-        disease_blocks_dict = blocker.get_blocks()
-        disease_blocks = list(disease_blocks_dict.values())
-        logger.info(f"Semantic blocking produced {len(disease_blocks)} blocks from {len(disease_mentions_list)} disease mentions")
-        
-        # Resolve with LLM
-        disease_canonical_map = {}
-        for block in disease_blocks:
-            resolved = llm_client.resolve_block(block)
-            for canonical, variants in resolved.items():
-                for variant in variants:
-                    disease_canonical_map[variant] = canonical
-        
-        logger.info(f"Built unified disease canonical map: {len(disease_canonical_map)} mappings")
-        
-        # Update drug records with unified disease names
-        for drug in data.get("drug", []):
-            disease_name = drug.get("disease_name", "")
-            if disease_name and str(disease_name).strip():
-                canonical = disease_canonical_map.get(str(disease_name).strip(), str(disease_name).strip())
-                drug["disease_name"] = canonical
-        
-        # Update disease records with unified disease names
-        for disease in data.get("disease", []):
-            disease_name = disease.get("disease_name", "")
-            if disease_name and str(disease_name).strip():
-                canonical = disease_canonical_map.get(str(disease_name).strip(), str(disease_name).strip())
-                disease["disease_name"] = canonical
-        
-        logger.info("Updated both drug and disease records with unified disease names")
-        print(f"✓ Updated drug and disease records with {len(disease_canonical_map)} unified disease name mappings")
-    
-    print()
+    resolve_cross_table_entities(data, schema_dict, blocker, llm_client)
     
     # Cache results
     cache_file.parent.mkdir(parents=True, exist_ok=True)
     with open(cache_file, 'w') as f:
         json.dump(data, f, indent=2)
-    logger.info(f"Cached extraction results to {cache_file}")
+    logger.info(f"Cached results to {cache_file}")
     
-    print()
     return data
-
 
 def create_tables_and_db(schema_dict: dict) -> DBEngine:
     """Create database and tables."""
@@ -551,7 +534,7 @@ def main():
     print()
     
     # Extract (with caching and full GEM resolution)
-    data = load_and_extract_data(data_dir, extractor, blocker, llm_client, use_cache=not args.no_cache, max_files=args.max_files)
+    data = load_and_extract_data(data_dir, extractor, blocker, llm_client, schema_dict, use_cache=not args.no_cache, max_files=args.max_files)
     
     # Create DB
     db_engine = create_tables_and_db(schema_dict)
