@@ -17,60 +17,38 @@ except ImportError:
     OpenAI = None
 
 try:
-    from langchain_text_splitters import SemanticChunker
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
 except ImportError:
-    SemanticChunker = None
+    RecursiveCharacterTextSplitter = None
 
 logger = logging.getLogger(__name__)
 
 
 class TextChunker:
-    """Split text into semantically meaningful chunks using LangChain's SemanticChunker."""
+    """Split text into semantically meaningful chunks using recursive separators."""
     
     def __init__(self, chunk_size: int = 500, overlap: int = 100):
         """
         Args:
-            chunk_size: Target size for chunks (approximate, in characters for fallbacks)
-            overlap: Overlap size for fallbacks (in characters). SemanticChunker does not use this directly,
-                     but we keep it for consistent context preservation if we fall back.
+            chunk_size: Target size for chunks (approximate)
+            overlap: Number of overlapping characters between chunks
         """
         self.chunk_size = chunk_size
         self.overlap = overlap
         
-        if SemanticChunker is None:
-            raise ImportError(
-                "LangChain SemanticChunker is required but not installed. "
-                "Install `langchain-text-splitters` and its dependencies."
-            )
-
-        # Use Ollama with MiniLM embeddings (same as SemanticBlocker for consistency)
-        try:
-            from langchain_community.embeddings import OllamaEmbeddings
-        except ImportError as e:
-            raise ImportError(
-                "LangChain Ollama embeddings are required for SemanticChunker. "
-                "Install `langchain-community`."
-            ) from e
-
-        try:
-            embeddings = OllamaEmbeddings(
-                model="sentence-transformers/all-MiniLM-L6-v2",
-                base_url="http://localhost:11434",
-            )
-            self.chunker = SemanticChunker(
-                embeddings=embeddings,
-                breakpoint_threshold_type="percentile",
-            )
-        except Exception as e:
-            raise RuntimeError(
-                "Failed to initialize LangChain SemanticChunker with Ollama embeddings. "
-                "Ensure Ollama is running and the embedding model is available."
-            ) from e
+        if RecursiveCharacterTextSplitter is None:
+            raise ImportError("LangChain RecursiveCharacterTextSplitter not available. Install: pip install langchain-text-splitters")
+        
+        # Create splitter that respects semantic boundaries: paragraphs → sentences → words
+        self.splitter = RecursiveCharacterTextSplitter(
+            chunk_size=chunk_size,
+            chunk_overlap=overlap,
+            separators=["\n\n", "\n", ". ", " ", ""]  # Priority order: paragraph, newline, sentence, word, char
+        )
     
     def chunk(self, text: str) -> List[str]:
         """Create semantically meaningful chunks of text."""
-        # No fallbacks by design: fail-fast so we don't silently degrade chunk quality.
-        return self.chunker.split_text(text)
+        return self.splitter.split_text(text)
 
 
 class LLMExtractor:
