@@ -232,11 +232,19 @@ Grounding requirements (CRITICAL):
 - But do not use numeric/unit-only values as primary entity identifiers unless they are explicitly named as such in the text.
 - If a value's meaning depends entirely on context (e.g., "12.5 mg" only makes sense as a dose of something), ground it to its parent entity.
 
-For institution_name specifically:
-- Extract ONLY complete, proper institution names.
-- Reject fragments like "Unit of X" or "Department of Y" unless that is the actual official name.
-- Reject abbreviations like "HMS" or "NIH" - use the full name.
-- If multiple official names exist, join with '||' (e.g., "Harvard||Harvard University").
+Entity extraction quality rules:
+- Extract ONLY complete, self-sufficient entities that stand alone.
+- Reject abbreviations or acronyms UNLESS you cannot find the full name in the text.
+- Reject placeholder text or metadata (e.g., "not mentioned", "unknown").
+
+VALID extraction patterns:
+✓ Complete names or identifiers
+✓ Self-sufficient entities
+✓ Multi-word entries that make sense on their own
+
+INVALID - DO NOT extract patterns:
+✗ Standalone abbreviations without expansion
+✗ Descriptions or filler text
 
 Canonicalization rules:
 - Prefer the shortest self-contained surface form that still uniquely identifies the entity in the text.
