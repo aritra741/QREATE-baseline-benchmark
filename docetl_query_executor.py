@@ -7,10 +7,48 @@ Integration point with docetl_healthcare_evaluation.py
 
 import json
 import logging
+import hashlib
+import pickle
 from typing import Dict, List, Any
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
+
+# Cache for extracted attributes
+EXTRACTION_CACHE_DIR = Path("extraction_cache")
+EXTRACTION_CACHE_DIR.mkdir(exist_ok=True)
+
+
+def _get_cache_key(doc_content: str, entity_type: str) -> str:
+    """Generate cache key for a document extraction."""
+    content_hash = hashlib.md5(doc_content.encode()).hexdigest()
+    return f"{entity_type}_{content_hash}"
+
+
+def _get_cached_extraction(doc_content: str, entity_type: str) -> Dict | None:
+    """Retrieve cached extraction if available."""
+    cache_key = _get_cache_key(doc_content, entity_type)
+    cache_file = EXTRACTION_CACHE_DIR / f"{cache_key}.pkl"
+    
+    if cache_file.exists():
+        try:
+            with open(cache_file, 'rb') as f:
+                return pickle.load(f)
+        except Exception as e:
+            logger.warning(f"Failed to load cache for {cache_key}: {e}")
+    return None
+
+
+def _cache_extraction(doc_content: str, entity_type: str, result: Dict) -> None:
+    """Cache extraction result."""
+    cache_key = _get_cache_key(doc_content, entity_type)
+    cache_file = EXTRACTION_CACHE_DIR / f"{cache_key}.pkl"
+    
+    try:
+        with open(cache_file, 'wb') as f:
+            pickle.dump(result, f)
+    except Exception as e:
+        logger.warning(f"Failed to cache extraction for {cache_key}: {e}")
 
 
 class DocETLHealthcareQueryExecutor:
@@ -50,14 +88,13 @@ class DocETLHealthcareQueryExecutor:
     def extract_disease_attributes(self, document: str) -> Dict[str, Any]:
         """
         Extract disease attributes from document using DocETL map operator.
-        
-        Corresponds to:
-        - name: extract_diseases
-        - type: map
-        - Attributes: disease_name, disease_type, pathogenesis, diagnostic_methods, etc.
+        Results are cached to avoid re-running LLM inference.
         """
-        # This should call DocETL's map operator
-        # For now, placeholder showing what attributes to extract
+        # Check cache first
+        cached = _get_cached_extraction(document, "disease")
+        if cached is not None:
+            logger.debug("Using cached disease extraction")
+            return cached
         
         attributes_to_extract = [
             "disease_name",
@@ -82,13 +119,20 @@ class DocETLHealthcareQueryExecutor:
         
         # Call DocETL map operator (to be implemented)
         result = self._call_docetl_map(prompt, attributes_to_extract)
-        
+        _cache_extraction(document, "disease", result)
         return result
     
     def extract_drug_attributes(self, document: str) -> Dict[str, Any]:
         """
         Extract drug attributes from document using DocETL map operator.
+        Results are cached to avoid re-running LLM inference.
         """
+        # Check cache first
+        cached = _get_cached_extraction(document, "drug")
+        if cached is not None:
+            logger.debug("Using cached drug extraction")
+            return cached
+        
         attributes_to_extract = [
             "generic_name",
             "brand_name",
@@ -111,7 +155,7 @@ class DocETLHealthcareQueryExecutor:
         )
         
         result = self._call_docetl_map(prompt, attributes_to_extract)
-        
+        _cache_extraction(document, "drug", result)
         return result
     
     def extract_institution_attributes(self, document: str) -> Dict[str, Any]:
@@ -409,17 +453,27 @@ Return ONLY a JSON object with the extracted values or "Not found" if attribute 
                     # Add requested attributes
                     for attr in select_attributes:
                         if "." in attr:
-                            # Qualified attribute like "disease.name"
+                            # Qualified attribute like "disease.diagnostic_methods"
                             table, col = attr.split(".")
                             if table.lower() in ["disease", "drug"]:
                                 source = left if table.lower() == "disease" else right
-                                joined[attr] = source.get(col, "Not found")
+                                # Try exact match first, then try variations
+                                value = source.get(col, None)
+                                if value is None:
+                                    # Try common variations
+                                    for key in source.keys():
+                                        if key.lower() == col.lower() or key.replace("_", "") == col.replace("_", ""):
+                                            value = source[key]
+                                            break
+                                joined[attr] = value if value else "Not found"
                         else:
                             # Unqualified - try both
                             if attr in left:
                                 joined[attr] = left[attr]
                             elif attr in right:
                                 joined[attr] = right[attr]
+                            else:
+                                joined[attr] = "Not found"
                     
                     if joined:
                         result.append(joined)
