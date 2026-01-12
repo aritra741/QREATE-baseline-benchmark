@@ -51,10 +51,10 @@ for query_id, query_sql in enumerate(queries, 1):
         }
         results.append(result)
         
-        print(f"✓ {len(result['tuples'])} tuples, F1={result['f1']:.3f}")
+        print(f"✓ {result['tuples']} tuples, F1={result['f1']:.3f}")
         
     except Exception as e:
-        print(f"✗ Error: {e}")
+        print(f"✗ Error: {str(e)[:60]}")
         results.append({
             "query_id": query_id,
             "error": str(e)
