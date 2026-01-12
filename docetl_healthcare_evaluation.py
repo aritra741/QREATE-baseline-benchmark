@@ -363,12 +363,23 @@ class HealthcareEvaluationSystem:
         drug_docs = self.documents.get("drug", [])
         institution_docs = self.documents.get("institution", [])
         
-        results = executor.execute_join_query(
-            query_sql,
-            disease_docs,
-            drug_docs,
-            institution_docs
-        )
+        # Determine if this is a join or filter query
+        query_upper = query_sql.upper()
+        if "JOIN" in query_upper:
+            results = executor.execute_join_query(
+                query_sql,
+                disease_docs,
+                drug_docs,
+                institution_docs
+            )
+        else:
+            # Filter query
+            results = executor.execute_filter_query(
+                query_sql,
+                disease_docs,
+                drug_docs,
+                institution_docs
+            )
         
         return results
     
