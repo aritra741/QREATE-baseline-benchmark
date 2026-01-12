@@ -456,26 +456,26 @@ Return ONLY a JSON object with the extracted values or "Not found" if attribute 
                     for attr in select_attributes:
                         if "." in attr:
                             # Qualified attribute like "disease.diagnostic_methods"
-                            table, col = attr.split(".")
+                            table, col = attr.split(".", 1)  # Use maxsplit=1 in case col has dots
                             if table.lower() in ["disease", "drug"]:
                                 source = left if table.lower() == "disease" else right
-                                # Try exact match first, then try variations
+                                # Try exact match first
                                 value = source.get(col, None)
-                                if value is None:
-                                    # Try common variations
+                                if value is None or value == "Not found":
+                                    # Try case-insensitive match
                                     for key in source.keys():
-                                        if key.lower() == col.lower() or key.replace("_", "") == col.replace("_", ""):
+                                        if key.lower() == col.lower():
                                             value = source[key]
                                             break
-                                joined[attr] = value if value else "Not found"
+                                joined[attr] = value if (value and value != "Not found") else "Not found"
                         else:
                             # Unqualified - try both
+                            value = None
                             if attr in left:
-                                joined[attr] = left[attr]
+                                value = left[attr]
                             elif attr in right:
-                                joined[attr] = right[attr]
-                            else:
-                                joined[attr] = "Not found"
+                                value = right[attr]
+                            joined[attr] = value if (value and value != "Not found") else "Not found"
                     
                     if joined:
                         result.append(joined)
