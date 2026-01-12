@@ -511,11 +511,14 @@ class DocETLHealthcareQueryExecutor:
         E.g., "risk_factors != 'infection'" -> "risk_factors != 'infection'"
         E.g., "disease_type = 'iatrogenic'" -> "disease_type == 'iatrogenic'"
         """
-        # Replace SQL = with Python ==
+        # Clean up semicolons and whitespace
+        condition = condition.rstrip(';').strip()
+        
+        # Replace SQL = with Python == (but not !=, >=, <=)
         condition = condition.replace(" = ", " == ")
         
-        # Handle != (already correct for Python)
-        # Handle <>, >, <, >=, <=
+        # Handle <> (SQL not equal)
+        condition = condition.replace("<>", "!=")
         
         return condition
     
@@ -643,19 +646,28 @@ Return ONLY a JSON object with the extracted values or "Not found" if attribute 
         return result
     
     def _apply_filters(self, records: List[Dict], conditions: List[str]) -> List[Dict]:
+        """Apply WHERE conditions to filter records."""
         filtered = []
         for record in records:
             include = True
             for condition in conditions:
                 try:
-                    if not eval(condition, {"record": record, **record}):
+                    # Evaluate the condition with the record's attributes
+                    # Make attributes available both as direct variables and through record dict
+                    eval_globals = {"record": record}
+                    eval_globals.update(record)
+                    
+                    if not eval(condition, eval_globals):
                         include = False
                         break
-                except:
+                except Exception as e:
+                    logger.debug(f"Filter condition evaluation failed for record: {condition} - {e}")
                     include = False
                     break
+            
             if include:
                 filtered.append(record)
+        
         return filtered
     
     def _apply_aggregation(self, 
