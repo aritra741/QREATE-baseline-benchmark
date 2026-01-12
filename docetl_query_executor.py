@@ -140,12 +140,14 @@ class DocETLHealthcareQueryExecutor:
             "indication",
             "active_ingredients",
             "pharmaceutical_form",
+            "manufacturer",
             "mechanism_of_action",
             "side_effects",
             "administration_route",
             "recommended_usage",
             "single_dose",
             "prescription_status",
+            "storage_conditions",
         ]
         
         prompt = self._build_extraction_prompt(
