@@ -187,13 +187,22 @@ class HealthcareEvaluationSystem:
         extracted_tuples = results.get("tuples", [])
         valid_gt_pairs = self.ground_truth.get("valid_join_tuples", set())
         
+        # Debug: show first tuple structure
+        if extracted_tuples:
+            logger.debug(f"Sample extracted tuple keys: {list(extracted_tuples[0].keys())}")
+            logger.debug(f"Sample tuple: {extracted_tuples[0]}")
+        
         # Extract (disease_name, generic_name) pairs from results
+        # Try multiple possible key formats
         extracted_pairs = set()
         for tuple_data in extracted_tuples:
-            disease_name = tuple_data.get("disease.disease_name", "").strip()
-            drug_name = tuple_data.get("drug.generic_name", "").strip()
+            # Try different key formats
+            disease_name = (tuple_data.get("disease.disease_name", "") or 
+                          tuple_data.get("disease_name", "") or "").strip()
+            drug_name = (tuple_data.get("drug.generic_name", "") or 
+                        tuple_data.get("generic_name", "") or "").strip()
             
-            if disease_name and disease_name != "Not found" and drug_name and drug_name != "Not found":
+            if disease_name and disease_name.lower() != "not found" and drug_name and drug_name.lower() != "not found":
                 # Normalize for comparison
                 norm_disease = self._normalize_value(disease_name)
                 norm_drug = self._normalize_value(drug_name)
