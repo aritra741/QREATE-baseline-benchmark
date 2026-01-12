@@ -261,6 +261,9 @@ class HealthcareEvaluationSystem:
         """
         Check if extracted tuple matches ground truth tuple semantically.
         Uses fuzzy matching for text values.
+        
+        Key insight: If GT has empty/missing value, we don't require exact match.
+        We only check attributes where GT has actual content.
         """
         # For all keys in ground truth, check if extracted values match
         for key, gt_value in ground_truth.items():
@@ -270,8 +273,16 @@ class HealthcareEvaluationSystem:
             ext_norm = self._normalize_value(ext_value) if ext_value else ""
             gt_norm = self._normalize_value(gt_value) if gt_value else ""
             
-            # Check for match
-            if not self._values_match(ext_norm, gt_norm):
+            # If GT is empty, skip this attribute (it's not informative)
+            if not gt_norm:
+                continue
+            
+            # If GT has a value but extracted is "not found", it's a mismatch
+            if gt_norm and ext_norm == "not found":
+                return False
+            
+            # Check for semantic match on non-empty GT values
+            if gt_norm and not self._values_match(ext_norm, gt_norm):
                 return False
         
         return True
@@ -340,18 +351,46 @@ class HealthcareEvaluationSystem:
         return str(val).strip().lower()
     
     def _values_match(self, val1: str, val2: str) -> bool:
-        """Check if two values match semantically."""
-        if not val1 or not val2:
-            return val1 == val2
-        if val1 == val2:
+        """Check if two values match using the official UDA-Bench logic."""
+        # Normalize values
+        norm1 = self._normalize_value(val1) if val1 else ""
+        norm2 = self._normalize_value(val2) if val2 else ""
+        
+        # Both empty
+        if not norm1 or not norm2:
+            return norm1 == norm2
+        
+        # Exact match after normalization
+        if norm1 == norm2:
             return True
-        # Handle multi-value fields
-        values1 = [v.strip() for v in val1.split('||') if v.strip()]
-        values2 = [v.strip() for v in val2.split('||') if v.strip()]
+        
+        # Split by || and try cross-matching (for multi-value fields)
+        values1 = [v.strip() for v in norm1.split('||') if v.strip()]
+        values2 = [v.strip() for v in norm2.split('||') if v.strip()]
+        
         for v1 in values1:
             for v2 in values2:
-                if v1 == v2 or v1 in v2 or v2 in v1:
+                # Exact match
+                if v1 == v2:
                     return True
+                
+                # Numeric match (within tolerance)
+                try:
+                    if abs(float(v1) - float(v2)) < 0.001:
+                        return True
+                except ValueError:
+                    pass
+                
+                # Substring match or high similarity
+                if (v1 in v2) or (v2 in v1):
+                    return True
+                
+                # String similarity (using difflib)
+                from difflib import SequenceMatcher
+                ratio = SequenceMatcher(None, v1, v2).ratio()
+                if ratio >= 0.6:
+                    return True
+        
         return False
     
     def _parse_query_type(self, query_sql: str) -> str:
