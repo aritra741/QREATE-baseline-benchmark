@@ -116,14 +116,16 @@ def main():
             print(f"{result['query_id']:3d}    {result['dataset']:12s}  ERROR: {result['error'][:40]}")
         else:
             dataset = result['dataset'][:12]
-            tuples = result.get('tuples', 0)
+            tuples_val = result.get('tuples', 0)
+            if isinstance(tuples_val, list):
+                tuples_val = len(tuples_val)
             p = result['precision']
             r = result['recall']
             f1 = result['f1']
             cost = result['cost']
             lat = result['latency']
             
-            print(f"{result['query_id']:3d}    {dataset:12s}  {tuples:8d}  {p:8.3f}      {r:8.3f}      {f1:8.3f}   {cost:10.4f}  {lat:10.2f}")
+            print(f"{result['query_id']:3d}    {dataset:12s}  {tuples_val:8d}  {p:8.3f}      {r:8.3f}      {f1:8.3f}   {cost:10.4f}  {lat:10.2f}")
     
     print("-" * 90)
     
