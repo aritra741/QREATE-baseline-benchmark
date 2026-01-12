@@ -100,17 +100,35 @@ class HealthcareEvaluationSystem:
     
     def _load_ground_truth(self) -> Dict[str, Any]:
         """
-        Load ground truth labels for evaluation.
-        
-        Following UDA-Bench Section 3.3: manually labeled attribute values
-        Ground truth format: {query_id: {"precision": [...], "recall": [...]}}
+        Load ground truth from CSV files.
+        Structure: {entity_type: {id: {attribute: value, ...}}}
         """
-        ground_truth = {}
+        ground_truth = {"disease": {}, "drug": {}, "institution": {}}
         
-        if self.ground_truth_dir.exists():
-            for gt_file in self.ground_truth_dir.glob("*.json"):
-                with open(gt_file) as f:
-                    ground_truth.update(json.load(f))
+        # Load disease ground truth
+        disease_csv = Path("Data/Med/disease.csv")
+        if disease_csv.exists():
+            import csv
+            with open(disease_csv) as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    doc_id = row.get("ID", "")
+                    if doc_id:
+                        ground_truth["disease"][doc_id] = row
+        
+        # Load drug ground truth
+        drug_csv = Path("Data/Med/drug.csv")
+        if drug_csv.exists():
+            import csv
+            with open(drug_csv) as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    doc_id = row.get("ID", "")
+                    if doc_id:
+                        ground_truth["drug"][doc_id] = row
+        
+        logger.info(f"Loaded {len(ground_truth['disease'])} disease ground truth entries")
+        logger.info(f"Loaded {len(ground_truth['drug'])} drug ground truth entries")
         
         return ground_truth
     
@@ -119,7 +137,7 @@ class HealthcareEvaluationSystem:
         Execute a single query using DocETL and measure metrics.
         
         Returns:
-            (results_dict, cost_tokens, latency_seconds)
+            (results_dict with accuracy metrics, cost_tokens, latency_seconds)
         """
         logger.info(f"\n{'='*60}")
         logger.info(f"Executing Query {query_id}")
@@ -133,16 +151,126 @@ class HealthcareEvaluationSystem:
         logger.info(f"Query type: {query_type}")
         
         # Execute query with DocETL
-        # This will call your DocETL implementation
         extracted_results = self._execute_with_docetl(query_sql)
         
         latency = time.time() - start_time
         
         # Estimate cost (tokens used)
-        # Cost = (avg input tokens per document * num docs processed)
         cost = self._estimate_cost(extracted_results)
         
+        # Add accuracy metrics by comparing against ground truth
+        extracted_results = self._evaluate_accuracy_for_tuples(query_id, extracted_results)
+        
         return extracted_results, cost, latency
+    
+    def _normalize_value(self, val: str) -> str:
+        """Normalize a value for comparison."""
+        if not val:
+            return ""
+        val_str = str(val).strip().lower()
+        val_str = " ".join(val_str.split())
+        return val_str
+    
+    def _values_match(self, val1: str, val2: str) -> bool:
+        """Check if two values match using semantic matching."""
+        norm1 = self._normalize_value(val1)
+        norm2 = self._normalize_value(val2)
+        
+        if not norm1 or not norm2:
+            return norm1 == norm2
+        
+        # Exact match
+        if norm1 == norm2:
+            return True
+        
+        # Split by || and try cross-matching
+        values1 = [v.strip() for v in norm1.split('||') if v.strip()]
+        values2 = [v.strip() for v in norm2.split('||') if v.strip()]
+        
+        for v1 in values1:
+            for v2 in values2:
+                if v1 == v2:
+                    return True
+                
+                # Try substring matching (important for multi-value fields)
+                if v1 in v2 or v2 in v1:
+                    return True
+        
+        return False
+    
+    def _evaluate_accuracy_for_tuples(self, query_id: int, results: Dict) -> Dict:
+        """Add precision, recall, F1 to results by comparing tuples against ground truth."""
+        extracted_tuples = results.get("tuples", [])
+        disease_gt = self.ground_truth.get("disease", {})
+        drug_gt = self.ground_truth.get("drug", {})
+        
+        # Extract disease and drug names from ground truth
+        gt_disease_names = set()
+        gt_drug_names = set()
+        gt_disease_drug_pairs = set()
+        
+        for dis_id, dis_row in disease_gt.items():
+            disease_name = dis_row.get("disease_name", "")
+            if disease_name:
+                gt_disease_names.add(self._normalize_value(disease_name))
+                # Also track which drugs treat this disease
+                drugs_str = dis_row.get("drugs", "")
+                if drugs_str:
+                    for drug_name in drugs_str.split("||"):
+                        drug_name = drug_name.strip()
+                        if drug_name:
+                            gt_disease_drug_pairs.add((self._normalize_value(disease_name), self._normalize_value(drug_name)))
+        
+        for drug_id, drug_row in drug_gt.items():
+            drug_name = drug_row.get("generic_name", "")
+            if drug_name:
+                gt_drug_names.add(self._normalize_value(drug_name))
+        
+        # Extract disease and drug names from results
+        extracted_disease_names = set()
+        extracted_drug_names = set()
+        extracted_disease_drug_pairs = set()
+        
+        for tuple_data in extracted_tuples:
+            disease_name = tuple_data.get("disease.disease_name", "")
+            drug_name = tuple_data.get("drug.generic_name", "")
+            
+            if disease_name:
+                norm_disease = self._normalize_value(disease_name)
+                extracted_disease_names.add(norm_disease)
+            
+            if drug_name:
+                norm_drug = self._normalize_value(drug_name)
+                extracted_drug_names.add(norm_drug)
+            
+            if disease_name and drug_name:
+                extracted_disease_drug_pairs.add((self._normalize_value(disease_name), self._normalize_value(drug_name)))
+        
+        # Calculate accuracy on disease-drug pairs (most meaningful for join queries)
+        true_positives = 0
+        matched_pairs = set()
+        
+        for extracted_pair in extracted_disease_drug_pairs:
+            for gt_pair in gt_disease_drug_pairs:
+                # Match if both disease and drug match
+                if (self._values_match(extracted_pair[0], gt_pair[0]) and 
+                    self._values_match(extracted_pair[1], gt_pair[1])):
+                    true_positives += 1
+                    matched_pairs.add(gt_pair)
+                    break
+        
+        precision = true_positives / len(extracted_disease_drug_pairs) if extracted_disease_drug_pairs else 0.0
+        recall = len(matched_pairs) / len(gt_disease_drug_pairs) if gt_disease_drug_pairs else 0.0
+        f1 = (2 * precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
+        
+        results["precision"] = precision
+        results["recall"] = recall
+        results["f1"] = f1
+        
+        logger.info(f"Accuracy: P={precision:.3f}, R={recall:.3f}, F1={f1:.3f}")
+        logger.info(f"Matched {true_positives}/{len(extracted_disease_drug_pairs)} extracted pairs against {len(gt_disease_drug_pairs)} GT pairs")
+        
+        return results
     
     def _parse_query_type(self, query_sql: str) -> str:
         """Parse query to determine type: Extract, Filter, Join, Agg, etc."""
