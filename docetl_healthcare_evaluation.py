@@ -187,23 +187,42 @@ class HealthcareEvaluationSystem:
         extracted_tuples = results.get("tuples", [])
         valid_gt_pairs = self.ground_truth.get("valid_join_tuples", set())
         
-        # Debug: show first tuple structure
+        # Debug: show first tuple structure and keys
         if extracted_tuples:
-            logger.debug(f"Sample extracted tuple keys: {list(extracted_tuples[0].keys())}")
-            logger.debug(f"Sample tuple: {extracted_tuples[0]}")
+            sample = extracted_tuples[0]
+            logger.info(f"Sample tuple keys: {list(sample.keys())}")
+            logger.info(f"Sample tuple values: {sample}")
         
         # Extract (disease_name, generic_name) pairs from results
-        # Try multiple possible key formats
         extracted_pairs = set()
         for tuple_data in extracted_tuples:
-            # Try different key formats
-            disease_name = (tuple_data.get("disease.disease_name", "") or 
-                          tuple_data.get("disease_name", "") or "").strip()
-            drug_name = (tuple_data.get("drug.generic_name", "") or 
-                        tuple_data.get("generic_name", "") or "").strip()
+            # Try different key formats - the qualified names might not be there
+            disease_name = None
+            drug_name = None
             
-            if disease_name and disease_name.lower() != "not found" and drug_name and drug_name.lower() != "not found":
-                # Normalize for comparison
+            # Try qualified names first
+            if "disease.disease_name" in tuple_data:
+                val = tuple_data.get("disease.disease_name", "").strip()
+                if val and val.lower() != "not found":
+                    disease_name = val
+            
+            if "drug.generic_name" in tuple_data:
+                val = tuple_data.get("drug.generic_name", "").strip()
+                if val and val.lower() != "not found":
+                    drug_name = val
+            
+            # Fallback to unqualified names if qualified aren't found
+            if not disease_name and "disease_name" in tuple_data:
+                val = tuple_data.get("disease_name", "").strip()
+                if val and val.lower() != "not found":
+                    disease_name = val
+            
+            if not drug_name and "generic_name" in tuple_data:
+                val = tuple_data.get("generic_name", "").strip()
+                if val and val.lower() != "not found":
+                    drug_name = val
+            
+            if disease_name and drug_name:
                 norm_disease = self._normalize_value(disease_name)
                 norm_drug = self._normalize_value(drug_name)
                 extracted_pairs.add((norm_disease, norm_drug))
@@ -214,6 +233,12 @@ class HealthcareEvaluationSystem:
             norm_dis = self._normalize_value(dis_name)
             norm_drug = self._normalize_value(drug_name)
             normalized_gt_pairs.add((norm_dis, norm_drug))
+        
+        logger.info(f"Extracted pairs: {len(extracted_pairs)}, GT pairs: {len(normalized_gt_pairs)}")
+        if extracted_pairs:
+            logger.info(f"  Sample extracted: {list(extracted_pairs)[0]}")
+        if normalized_gt_pairs:
+            logger.info(f"  Sample GT: {list(normalized_gt_pairs)[0]}")
         
         # Calculate metrics
         true_positives = 0
@@ -232,7 +257,7 @@ class HealthcareEvaluationSystem:
         results["recall"] = recall
         results["f1"] = f1
         
-        logger.info(f"Accuracy: P={precision:.3f}, R={recall:.3f}, F1={f1:.3f} ({true_positives}/{len(extracted_pairs)} correct pairs)")
+        logger.info(f"Accuracy: P={precision:.3f}, R={recall:.3f}, F1={f1:.3f} ({true_positives} TP)")
         
         return results
     
