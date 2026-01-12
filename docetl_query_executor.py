@@ -394,9 +394,8 @@ class DocETLHealthcareQueryExecutor:
     
     def _parse_sql_query(self, query_sql: str) -> Dict:
         """
-        Parse SQL query to extract join conditions, select attributes, etc.
-        
-        Simple parser for Healthcare join queries.
+        Parse SQL query to extract select attributes, from table, where conditions, etc.
+        Handles both JOIN and FILTER queries.
         """
         query_upper = query_sql.upper()
         
@@ -408,6 +407,7 @@ class DocETLHealthcareQueryExecutor:
             "where_conditions": [],
             "group_by": None,
             "aggregation_functions": {},
+            "query_type": "Select",
         }
         
         # Extract SELECT attributes
@@ -417,43 +417,107 @@ class DocETLHealthcareQueryExecutor:
             select_part = query_sql[select_start:from_start].strip()
             parsed["select_attributes"] = [s.strip() for s in select_part.split(",")]
         
-        # Extract FROM and JOIN tables
+        # Extract FROM table
+        where_start = query_upper.find("WHERE")
         join_start = query_upper.find("JOIN")
+        group_start = query_upper.find("GROUP")
+        
+        # Determine the end of FROM clause
+        from_end = min(
+            x for x in [where_start, join_start, group_start] if x > from_start
+        ) if any(x > from_start for x in [where_start, join_start, group_start]) else len(query_sql)
+        
+        from_part = query_sql[from_start+4:from_end].strip()
+        parsed["from_tables"] = [t.strip() for t in from_part.split(",")]
+        
+        # Extract JOIN condition (if present)
         if join_start > 0:
-            from_part = query_sql[from_start+4:join_start].strip()
-            parsed["from_tables"] = [t.strip() for t in from_part.split(",")]
-            
-            # Extract join condition
             on_start = query_upper.find("ON", join_start)
-            where_start = query_upper.find("WHERE")
+            if where_start > on_start:
+                on_end = where_start
+            elif group_start > on_start:
+                on_end = group_start
+            else:
+                on_end = len(query_sql)
             
             if on_start > 0:
-                if where_start > on_start:
-                    on_part = query_sql[on_start+2:where_start].strip()
-                else:
-                    on_part = query_sql[on_start+2:].strip()
-                    # Remove GROUP BY if present
-                    group_start = on_part.upper().find("GROUP")
-                    if group_start > 0:
-                        on_part = on_part[:group_start]
+                on_part = query_sql[on_start+2:on_end].strip()
                 
                 # Parse ON condition: "disease.name = drug.disease"
                 if "=" in on_part:
-                    left, right = on_part.split("=")
+                    left, right = on_part.split("=", 1)
                     parsed["join_key"] = right.strip().split(".")[-1]
                     parsed["join_condition"] = (left.strip(), right.strip())
         
-        # Determine query type for reporting
+        # Extract WHERE conditions (if present)
+        if where_start > 0:
+            group_start = query_upper.find("GROUP", where_start)
+            if group_start > where_start:
+                where_end = group_start
+            else:
+                where_end = len(query_sql)
+            
+            where_part = query_sql[where_start+5:where_end].strip()
+            
+            # Split by AND/OR - for simplicity, treat each condition separately
+            # This is a simple approach; more complex parsing may be needed
+            import re
+            
+            # Split by AND or OR while preserving them
+            conditions = re.split(r'\s+(AND|OR)\s+', where_part, flags=re.IGNORECASE)
+            
+            # Now we have a list like ['condition1', 'AND', 'condition2', 'OR', 'condition3']
+            # Convert back to conditions: we'll create Python expressions
+            for i in range(0, len(conditions), 2):
+                condition = conditions[i].strip()
+                if condition:
+                    # Convert SQL condition to Python expression
+                    # e.g., "risk_factors != 'infection'" -> condition works as-is
+                    # e.g., "disease_type = 'iatrogenic'" -> needs quotes handled
+                    python_condition = self._sql_condition_to_python(condition)
+                    if python_condition:
+                        parsed["where_conditions"].append(python_condition)
+        
+        # Extract GROUP BY (if present)
+        if group_start > 0:
+            by_start = query_upper.find("BY", group_start) + 2
+            having_start = query_upper.find("HAVING", group_start)
+            
+            if having_start > by_start:
+                group_end = having_start
+            else:
+                group_end = len(query_sql)
+            
+            group_by_part = query_sql[by_start:group_end].strip()
+            parsed["group_by"] = group_by_part.split(",")[0].strip()
+        
+        # Determine query type
         if "WHERE" in query_upper and "GROUP BY" in query_upper:
-            parsed["query_type"] = "Select+Filter+Join+Aggregation"
+            parsed["query_type"] = "Select+Filter+Aggregation"
         elif "WHERE" in query_upper:
-            parsed["query_type"] = "Select+Filter+Join"
+            parsed["query_type"] = "Select+Filter"
         elif "GROUP BY" in query_upper:
-            parsed["query_type"] = "Select+Join+Aggregation"
-        else:
+            parsed["query_type"] = "Select+Aggregation"
+        elif "JOIN" in query_upper:
             parsed["query_type"] = "Select+Join"
+        else:
+            parsed["query_type"] = "Select"
         
         return parsed
+    
+    def _sql_condition_to_python(self, condition: str) -> str:
+        """
+        Convert SQL WHERE condition to Python expression.
+        E.g., "risk_factors != 'infection'" -> "risk_factors != 'infection'"
+        E.g., "disease_type = 'iatrogenic'" -> "disease_type == 'iatrogenic'"
+        """
+        # Replace SQL = with Python ==
+        condition = condition.replace(" = ", " == ")
+        
+        # Handle != (already correct for Python)
+        # Handle <>, >, <, >=, <=
+        
+        return condition
     
     def _build_extraction_prompt(self, 
                                  entity_type: str, 
