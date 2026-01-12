@@ -175,72 +175,119 @@ class HealthcareEvaluationSystem:
         # Estimate cost (tokens used)
         cost = self._estimate_cost(extracted_results)
         
-        # Add accuracy metrics by comparing against ground truth
-        extracted_results = self._evaluate_accuracy_for_tuples(query_id, extracted_results)
+        # Add accuracy metrics based on query type
+        if "Join" in query_type:
+            extracted_results = self._evaluate_accuracy_for_tuples(query_id, extracted_results)
+        else:
+            # For filter/extract-only queries, evaluate attribute extraction accuracy
+            extracted_results = self._evaluate_filter_query_accuracy(query_id, extracted_results, query_sql)
         
         return extracted_results, cost, latency
     
-    def _evaluate_accuracy_for_tuples(self, query_id: int, results: Dict) -> Dict:
+    def _evaluate_filter_query_accuracy(self, query_id: int, results: Dict, query_sql: str) -> Dict:
         """
-        Evaluate join accuracy by comparing extracted tuples against ground truth join pairs.
+        For filter queries (extract+filter only), evaluate extracted records against ground truth.
+        Simpler than join evaluation since there's no join key dependency.
+        """
+        extracted_tuples = results.get("tuples", [])
+        
+        # Determine which table this query is on
+        query_upper = query_sql.upper()
+        if "FROM DISEASE" in query_upper:
+            table = "disease"
+            gt_records = self.ground_truth.get("disease", {})
+        elif "FROM DRUG" in query_upper:
+            table = "drug"
+            gt_records = self.ground_truth.get("drug", {})
+        else:
+            # Unknown table
+            logger.warning(f"Could not determine table from query: {query_sql}")
+            results["precision"] = 0.0
+            results["recall"] = 0.0
+            results["f1"] = 0.0
+            return results
+        
+        if not gt_records:
+            logger.warning(f"No ground truth records for {table}")
+            results["precision"] = 0.0
+            results["recall"] = 0.0
+            results["f1"] = 0.0
+            return results
+        
+        # For filter queries, we simply check if extracted records are valid
+        # A record is valid if it matches something in ground truth
+        correct_tuples = 0
+        for ext_tuple in extracted_tuples:
+            for gt_record in gt_records.values():
+                # Check if this extracted tuple matches this GT record
+                # by seeing if all extracted attributes match GT values
+                if self._tuple_matches_gt_record(ext_tuple, gt_record):
+                    correct_tuples += 1
+                    break
+        
+        precision = correct_tuples / len(extracted_tuples) if extracted_tuples else 0.0
+        recall = correct_tuples / len(gt_records) if gt_records else 0.0
+        f1 = (2 * precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
+        
+        results["precision"] = precision
+        results["recall"] = recall
+        results["f1"] = f1
+        
+        logger.info(f"Filter accuracy: P={precision:.3f}, R={recall:.3f}, F1={f1:.3f} ({correct_tuples}/{len(extracted_tuples)} correct)")
+        
+        return results
+    
+    def _tuple_matches_gt_record(self, extracted_tuple: Dict, gt_record: Dict) -> bool:
+        """Check if an extracted tuple matches a ground truth record."""
+        # For filter queries, check if all extracted attributes match GT values
+        for key, ext_value in extracted_tuple.items():
+            gt_value = gt_record.get(key)
+            if not self._values_match(ext_value, gt_value):
+                return False
+        return True
+        """
+        Evaluate accuracy by comparing extracted tuples against ground truth.
+        Since join keys may not be extractable from noisy docs, we evaluate:
+        1. Join key extraction accuracy (disease_name match rate)
+        2. Join pair accuracy (if keys matched, are other attributes correct?)
         """
         extracted_tuples = results.get("tuples", [])
         valid_gt_pairs = self.ground_truth.get("valid_join_tuples", set())
         
-        # Debug: show first tuple structure and keys
-        if extracted_tuples:
-            sample = extracted_tuples[0]
-            logger.info(f"Sample tuple keys: {list(sample.keys())}")
-            logger.info(f"Sample tuple values: {sample}")
-        
-        # Extract (disease_name, generic_name) pairs from results
-        extracted_pairs = set()
+        # Count successful join keys
+        joined_tuples = []
         for tuple_data in extracted_tuples:
-            # Try different key formats - the qualified names might not be there
-            disease_name = None
-            drug_name = None
+            # Check if this tuple has valid join keys (both disease_name and generic_name are not "Not found")
+            disease_name = tuple_data.get("disease.disease_name", "").strip()
+            drug_name = tuple_data.get("drug.generic_name", "").strip()
             
-            # Try qualified names first
-            if "disease.disease_name" in tuple_data:
-                val = tuple_data.get("disease.disease_name", "").strip()
-                if val and val.lower() != "not found":
-                    disease_name = val
-            
-            if "drug.generic_name" in tuple_data:
-                val = tuple_data.get("drug.generic_name", "").strip()
-                if val and val.lower() != "not found":
-                    drug_name = val
-            
-            # Fallback to unqualified names if qualified aren't found
-            if not disease_name and "disease_name" in tuple_data:
-                val = tuple_data.get("disease_name", "").strip()
-                if val and val.lower() != "not found":
-                    disease_name = val
-            
-            if not drug_name and "generic_name" in tuple_data:
-                val = tuple_data.get("generic_name", "").strip()
-                if val and val.lower() != "not found":
-                    drug_name = val
-            
-            if disease_name and drug_name:
-                norm_disease = self._normalize_value(disease_name)
-                norm_drug = self._normalize_value(drug_name)
-                extracted_pairs.add((norm_disease, norm_drug))
+            # A "successful" join is one where both keys are populated
+            if (disease_name and disease_name.lower() != "not found" and 
+                drug_name and drug_name.lower() != "not found"):
+                joined_tuples.append(tuple_data)
         
-        # Normalize GT pairs for comparison
+        logger.info(f"Join key success: {len(joined_tuples)}/{len(extracted_tuples)} tuples have valid keys")
+        
+        # Now evaluate the joined tuples against ground truth pairs
+        extracted_pairs = set()
+        for tuple_data in joined_tuples:
+            disease_name = tuple_data.get("disease.disease_name", "").strip()
+            drug_name = tuple_data.get("drug.generic_name", "").strip()
+            
+            norm_disease = self._normalize_value(disease_name)
+            norm_drug = self._normalize_value(drug_name)
+            extracted_pairs.add((norm_disease, norm_drug))
+        
+        # Normalize GT pairs
         normalized_gt_pairs = set()
         for dis_name, drug_name in valid_gt_pairs:
             norm_dis = self._normalize_value(dis_name)
             norm_drug = self._normalize_value(drug_name)
             normalized_gt_pairs.add((norm_dis, norm_drug))
         
-        logger.info(f"Extracted pairs: {len(extracted_pairs)}, GT pairs: {len(normalized_gt_pairs)}")
-        if extracted_pairs:
-            logger.info(f"  Sample extracted: {list(extracted_pairs)[0]}")
-        if normalized_gt_pairs:
-            logger.info(f"  Sample GT: {list(normalized_gt_pairs)[0]}")
+        logger.info(f"Valid pairs: extracted={len(extracted_pairs)}, GT={len(normalized_gt_pairs)}")
         
-        # Calculate metrics
+        # Calculate metrics on the joined tuples
         true_positives = 0
         for pair in extracted_pairs:
             for gt_pair in normalized_gt_pairs:
@@ -249,15 +296,20 @@ class HealthcareEvaluationSystem:
                     true_positives += 1
                     break
         
+        # Precision: of the pairs we extracted, how many are correct?
         precision = true_positives / len(extracted_pairs) if extracted_pairs else 0.0
+        
+        # Recall: of all valid GT pairs, how many did we extract?
         recall = true_positives / len(normalized_gt_pairs) if normalized_gt_pairs else 0.0
+        
         f1 = (2 * precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
         
         results["precision"] = precision
         results["recall"] = recall
         results["f1"] = f1
+        results["join_key_extraction_rate"] = len(joined_tuples) / len(extracted_tuples) if extracted_tuples else 0.0
         
-        logger.info(f"Accuracy: P={precision:.3f}, R={recall:.3f}, F1={f1:.3f} ({true_positives} TP)")
+        logger.info(f"Accuracy: P={precision:.3f}, R={recall:.3f}, F1={f1:.3f} (Key extraction: {results['join_key_extraction_rate']:.1%})")
         
         return results
     
