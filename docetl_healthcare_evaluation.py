@@ -100,7 +100,7 @@ class HealthcareEvaluationSystem:
     
     def _load_ground_truth(self) -> Dict[str, Any]:
         """
-        Load ground truth from CSV files and compute valid join tuples.
+        Load ground truth from CSV files.
         """
         import csv
         
@@ -126,26 +126,8 @@ class HealthcareEvaluationSystem:
                     if doc_id:
                         ground_truth["drug"][doc_id] = row
         
-        # Compute valid join tuples (disease-drug pairs that should match)
-        valid_join_tuples = set()
-        for dis_id, dis_row in ground_truth["disease"].items():
-            disease_name = dis_row.get("disease_name", "").strip()
-            if disease_name:
-                # Find all drugs that treat this disease
-                for drug_id, drug_row in ground_truth["drug"].items():
-                    drug_diseases = drug_row.get("disease_name", "").strip()
-                    if drug_diseases:
-                        # Check if this disease is in the drug's disease list
-                        for disease in drug_diseases.split("||"):
-                            if disease.strip().lower() == disease_name.lower():
-                                valid_join_tuples.add((disease_name, drug_row.get("generic_name", "")))
-                                break
-        
-        ground_truth["valid_join_tuples"] = valid_join_tuples
-        
         logger.info(f"Loaded {len(ground_truth['disease'])} disease GT entries")
         logger.info(f"Loaded {len(ground_truth['drug'])} drug GT entries")
-        logger.info(f"Computed {len(valid_join_tuples)} valid disease-drug join pairs")
         
         return ground_truth
     
@@ -177,17 +159,126 @@ class HealthcareEvaluationSystem:
         
         # Add accuracy metrics based on query type
         if "Join" in query_type:
-            extracted_results = self._evaluate_accuracy_for_tuples(query_id, extracted_results)
+            extracted_results = self._evaluate_accuracy_for_tuples(query_id, extracted_results, query_sql)
         else:
             # For filter/extract-only queries, evaluate attribute extraction accuracy
             extracted_results = self._evaluate_filter_query_accuracy(query_id, extracted_results, query_sql)
         
         return extracted_results, cost, latency
     
+    def _evaluate_accuracy_for_tuples(self, query_id: int, results: Dict, query_sql: str) -> Dict:
+        """
+        Evaluate accuracy (Precision, Recall, F1) for extracted join tuples.
+        Compares extracted tuples against ground truth tuples using semantic matching.
+        """
+        extracted_tuples = results.get("tuples", [])
+        
+        # Get ground truth tuples for this query (generated from CSVs)
+        gt_tuples = self._get_ground_truth_tuples_for_query(query_id, query_sql)
+        
+        logger.info(f"Evaluating {len(extracted_tuples)} extracted tuples against {len(gt_tuples)} GT tuples")
+        
+        # Semantic matching: for each extracted tuple, find matches in GT
+        matched_extracted = []
+        matched_gt = set()
+        
+        for ext_tuple in extracted_tuples:
+            for gt_idx, gt_tuple in enumerate(gt_tuples):
+                if self._tuple_matches_semantically(ext_tuple, gt_tuple):
+                    matched_extracted.append(ext_tuple)
+                    matched_gt.add(gt_idx)
+                    break
+        
+        # Calculate metrics
+        precision = len(matched_extracted) / len(extracted_tuples) if extracted_tuples else 0.0
+        recall = len(matched_gt) / len(gt_tuples) if gt_tuples else 0.0
+        f1 = (2 * precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
+        
+        logger.info(f"Accuracy: P={precision:.3f}, R={recall:.3f}, F1={f1:.3f} ({len(matched_gt)}/{len(gt_tuples)} GT tuples matched)")
+        
+        results["precision"] = precision
+        results["recall"] = recall
+        results["f1"] = f1
+        results["matched_pairs"] = len(matched_gt)
+        results["extracted_pairs_count"] = len(extracted_tuples)
+        results["gt_pairs_count"] = len(gt_tuples)
+        
+        return results
+    
+    def _get_ground_truth_tuples_for_query(self, query_id: int, query_sql: str) -> List[Dict]:
+        """
+        Generate ground truth tuples for a join query by selecting from CSVs.
+        """
+        # Parse the SELECT clause to get the attributes being queried
+        from docetl_query_executor import DocETLHealthcareQueryExecutor
+        executor = DocETLHealthcareQueryExecutor(attributes_file=str(self.attributes_file))
+        parsed = executor._parse_sql_query(query_sql)
+        select_attributes = parsed.get("select_attributes", [])
+        
+        # For join queries, we need to generate tuples by matching disease names
+        gt_tuples = []
+        
+        # Get disease ground truth
+        disease_gt = self.ground_truth.get("disease", {})
+        drug_gt = self.ground_truth.get("drug", {})
+        
+        # For each disease, find matching drugs and create result tuples
+        for dis_id, dis_row in disease_gt.items():
+            disease_name = dis_row.get("disease_name", "").strip()
+            if not disease_name:
+                continue
+            
+            # Find drugs that treat this disease
+            for drug_id, drug_row in drug_gt.items():
+                drug_diseases = drug_row.get("disease_name", "").strip()
+                if not drug_diseases:
+                    continue
+                
+                # Check if this disease is in the drug's disease list
+                diseases_match = False
+                for disease in drug_diseases.split("||"):
+                    if disease.strip().lower() == disease_name.lower():
+                        diseases_match = True
+                        break
+                
+                if diseases_match:
+                    # Create a ground truth tuple with the selected attributes
+                    gt_tuple = {}
+                    for attr in select_attributes:
+                        attr_clean = attr.strip()
+                        if "disease." in attr_clean:
+                            field = attr_clean.replace("disease.", "")
+                            gt_tuple[attr_clean] = dis_row.get(field, "Not found")
+                        elif "drug." in attr_clean:
+                            field = attr_clean.replace("drug.", "")
+                            gt_tuple[attr_clean] = drug_row.get(field, "Not found")
+                    
+                    gt_tuples.append(gt_tuple)
+        
+        return gt_tuples
+    
+    def _tuple_matches_semantically(self, extracted: Dict, ground_truth: Dict) -> bool:
+        """
+        Check if extracted tuple matches ground truth tuple semantically.
+        Uses fuzzy matching for text values.
+        """
+        # For all keys in ground truth, check if extracted values match
+        for key, gt_value in ground_truth.items():
+            ext_value = extracted.get(key, "Not found")
+            
+            # Normalize values
+            ext_norm = self._normalize_value(ext_value) if ext_value else ""
+            gt_norm = self._normalize_value(gt_value) if gt_value else ""
+            
+            # Check for match
+            if not self._values_match(ext_norm, gt_norm):
+                return False
+        
+        return True
+    
     def _evaluate_filter_query_accuracy(self, query_id: int, results: Dict, query_sql: str) -> Dict:
         """
         For filter queries (extract+filter only), evaluate extracted records against ground truth.
-        Simpler than join evaluation since there's no join key dependency.
         """
         extracted_tuples = results.get("tuples", [])
         
@@ -200,7 +291,6 @@ class HealthcareEvaluationSystem:
             table = "drug"
             gt_records = self.ground_truth.get("drug", {})
         else:
-            # Unknown table
             logger.warning(f"Could not determine table from query: {query_sql}")
             results["precision"] = 0.0
             results["recall"] = 0.0
@@ -214,13 +304,10 @@ class HealthcareEvaluationSystem:
             results["f1"] = 0.0
             return results
         
-        # For filter queries, we simply check if extracted records are valid
-        # A record is valid if it matches something in ground truth
+        # Check if extracted records match GT records
         correct_tuples = 0
         for ext_tuple in extracted_tuples:
             for gt_record in gt_records.values():
-                # Check if this extracted tuple matches this GT record
-                # by seeing if all extracted attributes match GT values
                 if self._tuple_matches_gt_record(ext_tuple, gt_record):
                     correct_tuples += 1
                     break
@@ -239,79 +326,12 @@ class HealthcareEvaluationSystem:
     
     def _tuple_matches_gt_record(self, extracted_tuple: Dict, gt_record: Dict) -> bool:
         """Check if an extracted tuple matches a ground truth record."""
-        # For filter queries, check if all extracted attributes match GT values
+        # Check if all extracted attributes match GT values
         for key, ext_value in extracted_tuple.items():
             gt_value = gt_record.get(key)
             if not self._values_match(ext_value, gt_value):
                 return False
         return True
-        """
-        Evaluate accuracy by comparing extracted tuples against ground truth.
-        Since join keys may not be extractable from noisy docs, we evaluate:
-        1. Join key extraction accuracy (disease_name match rate)
-        2. Join pair accuracy (if keys matched, are other attributes correct?)
-        """
-        extracted_tuples = results.get("tuples", [])
-        valid_gt_pairs = self.ground_truth.get("valid_join_tuples", set())
-        
-        # Count successful join keys
-        joined_tuples = []
-        for tuple_data in extracted_tuples:
-            # Check if this tuple has valid join keys (both disease_name and generic_name are not "Not found")
-            disease_name = tuple_data.get("disease.disease_name", "").strip()
-            drug_name = tuple_data.get("drug.generic_name", "").strip()
-            
-            # A "successful" join is one where both keys are populated
-            if (disease_name and disease_name.lower() != "not found" and 
-                drug_name and drug_name.lower() != "not found"):
-                joined_tuples.append(tuple_data)
-        
-        logger.info(f"Join key success: {len(joined_tuples)}/{len(extracted_tuples)} tuples have valid keys")
-        
-        # Now evaluate the joined tuples against ground truth pairs
-        extracted_pairs = set()
-        for tuple_data in joined_tuples:
-            disease_name = tuple_data.get("disease.disease_name", "").strip()
-            drug_name = tuple_data.get("drug.generic_name", "").strip()
-            
-            norm_disease = self._normalize_value(disease_name)
-            norm_drug = self._normalize_value(drug_name)
-            extracted_pairs.add((norm_disease, norm_drug))
-        
-        # Normalize GT pairs
-        normalized_gt_pairs = set()
-        for dis_name, drug_name in valid_gt_pairs:
-            norm_dis = self._normalize_value(dis_name)
-            norm_drug = self._normalize_value(drug_name)
-            normalized_gt_pairs.add((norm_dis, norm_drug))
-        
-        logger.info(f"Valid pairs: extracted={len(extracted_pairs)}, GT={len(normalized_gt_pairs)}")
-        
-        # Calculate metrics on the joined tuples
-        true_positives = 0
-        for pair in extracted_pairs:
-            for gt_pair in normalized_gt_pairs:
-                if (self._values_match(pair[0], gt_pair[0]) and 
-                    self._values_match(pair[1], gt_pair[1])):
-                    true_positives += 1
-                    break
-        
-        # Precision: of the pairs we extracted, how many are correct?
-        precision = true_positives / len(extracted_pairs) if extracted_pairs else 0.0
-        
-        # Recall: of all valid GT pairs, how many did we extract?
-        recall = true_positives / len(normalized_gt_pairs) if normalized_gt_pairs else 0.0
-        
-        f1 = (2 * precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
-        
-        results["precision"] = precision
-        results["recall"] = recall
-        results["f1"] = f1
-        results["join_key_extraction_rate"] = len(joined_tuples) / len(extracted_tuples) if extracted_tuples else 0.0
-        
-        logger.info(f"Accuracy: P={precision:.3f}, R={recall:.3f}, F1={f1:.3f} (Key extraction: {results['join_key_extraction_rate']:.1%})")
-        
-        return results
     
     def _normalize_value(self, val: str) -> str:
         """Normalize a value for comparison."""
@@ -320,7 +340,7 @@ class HealthcareEvaluationSystem:
         return str(val).strip().lower()
     
     def _values_match(self, val1: str, val2: str) -> bool:
-        """Check if two values match."""
+        """Check if two values match semantically."""
         if not val1 or not val2:
             return val1 == val2
         if val1 == val2:
@@ -397,38 +417,9 @@ class HealthcareEvaluationSystem:
         # Return in thousands of tokens as per paper
         return (tokens / 1000.0) / num_docs
     
-    def evaluate_accuracy(self, query_id: int, extracted_tuples: List[Dict]) -> Tuple[float, float, float]:
-        if query_id not in self.ground_truth:
-            logger.warning(f"No ground truth for query {query_id}")
-            return 0.0, 0.0, 0.0
-        
-        # Extract ground truth tuples
-        gt_tuples = self.ground_truth[query_id]
-        matches = 0
-        for extracted in extracted_tuples:
-            for gt in gt_tuples:
-                if self._tuple_matches(extracted, gt):
-                    matches += 1
-                    break
-        
-        precision = matches / len(extracted_tuples) if extracted_tuples else 0.0
-        recall = matches / len(gt_tuples) if gt_tuples else 0.0
-        f1 = (2 * precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
-        return precision, recall, f1
-    
-    def _tuple_matches(self, extracted: Dict, ground_truth: Dict) -> bool:
-        """Check if extracted tuple matches ground truth tuple."""
-        # Simple exact match on all fields
-        return extracted == ground_truth
-    
     def generate_report(self) -> Dict:
         """
         Generate evaluation report matching UDA-Bench format.
-        
-        Reports:
-        - Precision, Recall, F1-score (average across all queries)
-        - Cost per document per query (tokens in thousands)
-        - Latency per document per query (seconds)
         """
         if not self.results["queries"]:
             logger.error("No queries executed - cannot generate report")
@@ -452,15 +443,15 @@ class HealthcareEvaluationSystem:
                 latencies.append(query_results["latency"])
         
         report = {
-            "model": "ollama/qwen2.5:7b-instruct",
+            "model": "ollama/gemma3:27b",
             "dataset": "Healthcare",
             "num_queries": len(self.results["queries"]),
             "metrics": {
                 "precision": sum(precisions) / len(precisions) if precisions else 0.0,
                 "recall": sum(recalls) / len(recalls) if recalls else 0.0,
                 "f1_score": sum(f1_scores) / len(f1_scores) if f1_scores else 0.0,
-                "cost_per_doc_query": sum(costs) / len(costs) if costs else 0.0,  # thousands of tokens
-                "latency_per_doc_query": sum(latencies) / len(latencies) if latencies else 0.0,  # seconds
+                "cost_per_doc_query": sum(costs) / len(costs) if costs else 0.0,
+                "latency_per_doc_query": sum(latencies) / len(latencies) if latencies else 0.0,
             },
             "query_results": self.results["queries"]
         }
@@ -484,18 +475,6 @@ class HealthcareEvaluationSystem:
         print(f"  Cost (k-tokens/doc/query): {report['metrics']['cost_per_doc_query']:.2f}")
         print(f"  Latency (sec/doc/query):   {report['metrics']['latency_per_doc_query']:.2f}")
         print("="*80 + "\n")
-        
-        # Print per-query results
-        print("Per-Query Results:")
-        print("-"*80)
-        for qid, qresults in report['query_results'].items():
-            print(f"Query {qid}:")
-            print(f"  Precision: {qresults.get('precision', 'N/A'):.4f}")
-            print(f"  Recall:    {qresults.get('recall', 'N/A'):.4f}")
-            print(f"  F1-score:  {qresults.get('f1', 'N/A'):.4f}")
-            print(f"  Cost:      {qresults.get('cost', 'N/A'):.2f}k tokens")
-            print(f"  Latency:   {qresults.get('latency', 'N/A'):.2f}s")
-        print("-"*80 + "\n")
 
 
 def run_evaluation():
@@ -517,7 +496,7 @@ def run_evaluation():
     with open(evaluator.queries_file) as f:
         queries_text = f.read()
     
-    # Parse queries (simple SQL parsing)
+    # Parse queries
     queries = [q.strip() for q in queries_text.split(';') if q.strip()]
     logger.info(f"Loaded {len(queries)} queries")
     
@@ -526,25 +505,23 @@ def run_evaluation():
         try:
             results, cost, latency = evaluator.execute_query(query_id, query_sql)
             
-            # Evaluate accuracy (requires ground truth)
-            extracted_tuples = results.get("tuples", [])
-            precision, recall, f1 = evaluator.evaluate_accuracy(query_id, extracted_tuples)
-            
             # Store results
             evaluator.results["queries"][query_id] = {
-                "sql": query_sql[:100],  # Truncate for display
-                "precision": precision,
-                "recall": recall,
-                "f1": f1,
+                "sql": query_sql[:100],
+                "precision": results.get("precision", 0.0),
+                "recall": results.get("recall", 0.0),
+                "f1": results.get("f1", 0.0),
                 "cost": cost,
                 "latency": latency,
-                "num_tuples": len(extracted_tuples),
+                "num_tuples": len(results.get("tuples", [])),
             }
             
-            logger.info(f"Query {query_id}: P={precision:.4f}, R={recall:.4f}, F1={f1:.4f}, Cost={cost:.2f}k, Latency={latency:.2f}s")
+            logger.info(f"Query {query_id}: P={results.get('precision', 0):.4f}, R={results.get('recall', 0):.4f}, F1={results.get('f1', 0):.4f}, Cost={cost:.2f}k, Latency={latency:.2f}s")
         
         except Exception as e:
             logger.error(f"Error executing query {query_id}: {e}")
+            import traceback
+            traceback.print_exc()
             continue
     
     # Print results
