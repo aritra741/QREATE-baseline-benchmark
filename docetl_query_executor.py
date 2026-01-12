@@ -458,30 +458,40 @@ class DocETLHealthcareQueryExecutor:
             select_part = query_sql[select_start:from_start].strip()
             parsed["select_attributes"] = [s.strip() for s in select_part.split(",")]
         
-        # Extract FROM table
+        # Extract FROM table (only the first table, before JOIN)
         where_start = query_upper.find("WHERE")
         join_start = query_upper.find("JOIN")
         group_start = query_upper.find("GROUP")
         
-        # Determine the end of FROM clause
-        from_end = min(
-            x for x in [where_start, join_start, group_start] if x > from_start
-        ) if any(x > from_start for x in [where_start, join_start, group_start]) else len(query_sql)
+        # Determine the end of FROM clause (stops at first JOIN if present)
+        if join_start > from_start:
+            from_end = join_start
+        else:
+            from_end = min(
+                x for x in [where_start, group_start] if x > from_start
+            ) if any(x > from_start for x in [where_start, group_start]) else len(query_sql)
         
         from_part = query_sql[from_start+4:from_end].strip()
-        parsed["from_tables"] = [t.strip() for t in from_part.split(",")]
+        parsed["from_tables"] = [t.strip() for t in from_part.split(",") if t.strip()]
         
-        # Extract JOIN condition (if present)
+        # Extract JOIN conditions (if present)
+        # For multi-table joins, we get the FIRST ON clause which should be between the first two tables
         if join_start > 0:
             on_start = query_upper.find("ON", join_start)
-            if where_start > on_start:
-                on_end = where_start
-            elif group_start > on_start:
-                on_end = group_start
-            else:
-                on_end = len(query_sql)
-            
             if on_start > 0:
+                # Find the end of this ON clause (before next JOIN or WHERE or END)
+                next_join = query_upper.find("JOIN", on_start + 4)
+                if next_join > 0 and where_start > 0 and next_join < where_start:
+                    on_end = next_join
+                elif next_join > 0:
+                    on_end = next_join
+                elif where_start > on_start:
+                    on_end = where_start
+                elif group_start > on_start:
+                    on_end = group_start
+                else:
+                    on_end = len(query_sql)
+                
                 on_part = query_sql[on_start+2:on_end].strip()
                 
                 # Parse ON condition: "disease.name = drug.disease"

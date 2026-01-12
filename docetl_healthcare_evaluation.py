@@ -47,7 +47,13 @@ class HealthcareEvaluationSystem:
             self.attributes = json.load(f)
         
         # Document categories in Healthcare (from uda-new.md Section 3.2)
+        # Note: directory is named "institutes_small" but internally we call it "institution"
         self.categories = ["disease", "drug", "institution"]
+        self.dir_mapping = {  # Map internal names to directory names
+            "disease": "disease_small",
+            "drug": "drug_small", 
+            "institution": "institutes_small"
+        }
         
         # Load documents by category
         self.documents = self._load_documents()
@@ -71,7 +77,8 @@ class HealthcareEvaluationSystem:
         """Load healthcare documents by category."""
         docs = {}
         for category in self.categories:
-            category_path = self.data_dir / f"{category}_small"
+            dir_name = self.dir_mapping.get(category, f"{category}_small")
+            category_path = self.data_dir / dir_name
             docs[category] = []
             
             if category_path.exists():
