@@ -346,18 +346,59 @@ class DocETLHealthcareQueryExecutor:
                 except Exception as e:
                     logger.warning(f"Error extracting institution doc {doc.get('id')}: {e}")
         
-        logger.info(f"Extracted: {len(disease_extracted)} disease, {len(drug_extracted)} drug")
+        logger.info(f"Extracted: {len(disease_extracted)} disease, {len(drug_extracted)} drug, {len(institution_extracted)} institution")
         
         # Step 2: Perform join
         logger.info("Step 2: Performing join operation...")
         
         join_key = parsed["join_key"]  # e.g., "disease_name"
-        result_tuples = self._perform_join(
-            disease_extracted,
-            drug_extracted,
-            join_key,
-            parsed["select_attributes"]
-        )
+        
+        # Check if multi-table join (institution involved)
+        if institution_extracted and ("institution." in query_sql or "institution" in str(parsed.get("from_tables", []))):
+            # Multi-table join: drug JOIN disease ON ... JOIN institution ON ...
+            # First join disease and drug
+            result_tuples = self._perform_join(
+                disease_extracted,
+                drug_extracted,
+                join_key,
+                ["disease_name"]  # Keep disease_name for institution join
+            )
+            
+            # Then join with institution on disease_name = institution.research_diseases
+            if result_tuples:
+                joined_with_institution = []
+                for drug_disease_tuple in result_tuples:
+                    disease_name = drug_disease_tuple.get("disease_name", "")
+                    for inst_record in institution_extracted:
+                        inst_research = inst_record.get("research_diseases", "")
+                        # Check if disease_name matches any of the research_diseases
+                        if disease_name and inst_research:
+                            for research in inst_research.split("||"):
+                                if research.strip().lower() == disease_name.lower():
+                                    # Create full triple join record with original select attributes
+                                    joined_triple = {}
+                                    for attr in parsed["select_attributes"]:
+                                        if "disease." in attr:
+                                            field = attr.replace("disease.", "")
+                                            joined_triple[attr] = drug_disease_tuple.get(field, "Not found")
+                                        elif "drug." in attr:
+                                            field = attr.replace("drug.", "")
+                                            joined_triple[attr] = drug_disease_tuple.get(field, "Not found")
+                                        elif "institution." in attr:
+                                            field = attr.replace("institution.", "")
+                                            joined_triple[attr] = inst_record.get(field, "Not found")
+                                    joined_with_institution.append(joined_triple)
+                                    break
+                
+                result_tuples = joined_with_institution
+        else:
+            # Binary join: just disease and drug
+            result_tuples = self._perform_join(
+                disease_extracted,
+                drug_extracted,
+                join_key,
+                parsed["select_attributes"]
+            )
         
         logger.info(f"Join produced {len(result_tuples)} result tuples")
         
