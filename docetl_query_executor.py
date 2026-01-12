@@ -185,6 +185,102 @@ class DocETLHealthcareQueryExecutor:
         
         return result
     
+    def execute_filter_query(self,
+                             query_sql: str,
+                             disease_docs: List[Dict] = None,
+                             drug_docs: List[Dict] = None,
+                             institution_docs: List[Dict] = None) -> Dict:
+        """
+        Execute a filter query (SELECT + WHERE, no JOIN).
+        
+        Args:
+            query_sql: SQL filter query to execute
+            disease_docs: List of disease documents
+            drug_docs: List of drug documents
+            institution_docs: Optional list of institution documents
+        
+        Returns:
+            {
+                "tuples": [...],  # Result tuples matching the WHERE clause
+                "token_count": int,  # Estimated tokens used
+                "num_documents_processed": int,
+            }
+        """
+        if disease_docs is None:
+            disease_docs = []
+        if drug_docs is None:
+            drug_docs = []
+        if institution_docs is None:
+            institution_docs = []
+        
+        logger.info(f"Executing filter query: {query_sql[:80]}...")
+        
+        # Parse query
+        parsed = self._parse_sql_query(query_sql)
+        logger.info(f"Parsed query: {parsed}")
+        
+        # Determine which table this query operates on
+        query_upper = query_sql.upper()
+        if "FROM DISEASE" in query_upper:
+            table = "disease"
+            docs = disease_docs
+            extract_fn = self.extract_disease_attributes
+        elif "FROM DRUG" in query_upper:
+            table = "drug"
+            docs = drug_docs
+            extract_fn = self.extract_drug_attributes
+        elif "FROM INSTITUTION" in query_upper:
+            table = "institution"
+            docs = institution_docs
+            extract_fn = self.extract_institution_attributes
+        else:
+            logger.error(f"Could not determine table from query: {query_sql}")
+            return {"tuples": [], "token_count": 0, "num_documents_processed": 0}
+        
+        logger.info(f"Query operates on {table} table with {len(docs)} documents")
+        
+        # Step 1: Extract attributes from documents
+        logger.info("Step 1: Extracting attributes from documents...")
+        extracted_records = []
+        for doc in docs:
+            try:
+                attrs = extract_fn(doc.get("content", ""))
+                extracted_records.append(attrs)
+            except Exception as e:
+                logger.warning(f"Error extracting {table} doc {doc.get('id')}: {e}")
+        
+        logger.info(f"Extracted: {len(extracted_records)} {table} records")
+        
+        # Step 2: Apply WHERE filters
+        logger.info("Step 2: Applying WHERE clause...")
+        where_conditions = parsed.get("where_conditions", [])
+        
+        if where_conditions:
+            filtered_records = self._apply_filters(extracted_records, where_conditions)
+        else:
+            filtered_records = extracted_records
+        
+        logger.info(f"After filtering: {len(filtered_records)} records")
+        
+        # Step 3: Select requested attributes
+        logger.info("Step 3: Selecting requested attributes...")
+        select_attrs = parsed.get("select_attributes", [])
+        
+        result_tuples = []
+        for record in filtered_records:
+            tuple_data = {}
+            for attr in select_attrs:
+                tuple_data[attr] = record.get(attr, "Not found")
+            result_tuples.append(tuple_data)
+        
+        logger.info(f"Filter produced {len(result_tuples)} result tuples")
+        
+        return {
+            "tuples": result_tuples,
+            "token_count": len(extracted_records) * 100,  # Rough estimate
+            "num_documents_processed": len(extracted_records),
+        }
+    
     def execute_join_query(self, 
                           query_sql: str,
                           disease_docs: List[Dict],
