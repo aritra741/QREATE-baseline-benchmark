@@ -100,15 +100,15 @@ class HealthcareEvaluationSystem:
     
     def _load_ground_truth(self) -> Dict[str, Any]:
         """
-        Load ground truth from CSV files.
-        Structure: {entity_type: {id: {attribute: value, ...}}}
+        Load ground truth from CSV files and compute valid join tuples.
         """
+        import csv
+        
         ground_truth = {"disease": {}, "drug": {}, "institution": {}}
         
         # Load disease ground truth
         disease_csv = Path("Data/Med/disease.csv")
         if disease_csv.exists():
-            import csv
             with open(disease_csv) as f:
                 reader = csv.DictReader(f)
                 for row in reader:
@@ -119,7 +119,6 @@ class HealthcareEvaluationSystem:
         # Load drug ground truth
         drug_csv = Path("Data/Med/drug.csv")
         if drug_csv.exists():
-            import csv
             with open(drug_csv) as f:
                 reader = csv.DictReader(f)
                 for row in reader:
@@ -127,8 +126,26 @@ class HealthcareEvaluationSystem:
                     if doc_id:
                         ground_truth["drug"][doc_id] = row
         
-        logger.info(f"Loaded {len(ground_truth['disease'])} disease ground truth entries")
-        logger.info(f"Loaded {len(ground_truth['drug'])} drug ground truth entries")
+        # Compute valid join tuples (disease-drug pairs that should match)
+        valid_join_tuples = set()
+        for dis_id, dis_row in ground_truth["disease"].items():
+            disease_name = dis_row.get("disease_name", "").strip()
+            if disease_name:
+                # Find all drugs that treat this disease
+                for drug_id, drug_row in ground_truth["drug"].items():
+                    drug_diseases = drug_row.get("disease_name", "").strip()
+                    if drug_diseases:
+                        # Check if this disease is in the drug's disease list
+                        for disease in drug_diseases.split("||"):
+                            if disease.strip().lower() == disease_name.lower():
+                                valid_join_tuples.add((disease_name, drug_row.get("generic_name", "")))
+                                break
+        
+        ground_truth["valid_join_tuples"] = valid_join_tuples
+        
+        logger.info(f"Loaded {len(ground_truth['disease'])} disease GT entries")
+        logger.info(f"Loaded {len(ground_truth['drug'])} drug GT entries")
+        logger.info(f"Computed {len(valid_join_tuples)} valid disease-drug join pairs")
         
         return ground_truth
     
@@ -163,114 +180,73 @@ class HealthcareEvaluationSystem:
         
         return extracted_results, cost, latency
     
-    def _normalize_value(self, val: str) -> str:
-        """Normalize a value for comparison."""
-        if not val:
-            return ""
-        val_str = str(val).strip().lower()
-        val_str = " ".join(val_str.split())
-        return val_str
-    
-    def _values_match(self, val1: str, val2: str) -> bool:
-        """Check if two values match using semantic matching."""
-        norm1 = self._normalize_value(val1)
-        norm2 = self._normalize_value(val2)
-        
-        if not norm1 or not norm2:
-            return norm1 == norm2
-        
-        # Exact match
-        if norm1 == norm2:
-            return True
-        
-        # Split by || and try cross-matching
-        values1 = [v.strip() for v in norm1.split('||') if v.strip()]
-        values2 = [v.strip() for v in norm2.split('||') if v.strip()]
-        
-        for v1 in values1:
-            for v2 in values2:
-                if v1 == v2:
-                    return True
-                
-                # Try substring matching (important for multi-value fields)
-                if v1 in v2 or v2 in v1:
-                    return True
-        
-        return False
-    
     def _evaluate_accuracy_for_tuples(self, query_id: int, results: Dict) -> Dict:
-        """Add precision, recall, F1 to results by comparing tuples against ground truth."""
+        """
+        Evaluate join accuracy by comparing extracted tuples against ground truth join pairs.
+        """
         extracted_tuples = results.get("tuples", [])
-        disease_gt = self.ground_truth.get("disease", {})
-        drug_gt = self.ground_truth.get("drug", {})
+        valid_gt_pairs = self.ground_truth.get("valid_join_tuples", set())
         
-        # Extract disease and drug names from ground truth
-        gt_disease_names = set()
-        gt_drug_names = set()
-        gt_disease_drug_pairs = set()
-        
-        for dis_id, dis_row in disease_gt.items():
-            disease_name = dis_row.get("disease_name", "")
-            if disease_name:
-                gt_disease_names.add(self._normalize_value(disease_name))
-                # Also track which drugs treat this disease
-                drugs_str = dis_row.get("drugs", "")
-                if drugs_str:
-                    for drug_name in drugs_str.split("||"):
-                        drug_name = drug_name.strip()
-                        if drug_name:
-                            gt_disease_drug_pairs.add((self._normalize_value(disease_name), self._normalize_value(drug_name)))
-        
-        for drug_id, drug_row in drug_gt.items():
-            drug_name = drug_row.get("generic_name", "")
-            if drug_name:
-                gt_drug_names.add(self._normalize_value(drug_name))
-        
-        # Extract disease and drug names from results
-        extracted_disease_names = set()
-        extracted_drug_names = set()
-        extracted_disease_drug_pairs = set()
-        
+        # Extract (disease_name, generic_name) pairs from results
+        extracted_pairs = set()
         for tuple_data in extracted_tuples:
-            disease_name = tuple_data.get("disease.disease_name", "")
-            drug_name = tuple_data.get("drug.generic_name", "")
+            disease_name = tuple_data.get("disease.disease_name", "").strip()
+            drug_name = tuple_data.get("drug.generic_name", "").strip()
             
-            if disease_name:
+            if disease_name and disease_name != "Not found" and drug_name and drug_name != "Not found":
+                # Normalize for comparison
                 norm_disease = self._normalize_value(disease_name)
-                extracted_disease_names.add(norm_disease)
-            
-            if drug_name:
                 norm_drug = self._normalize_value(drug_name)
-                extracted_drug_names.add(norm_drug)
-            
-            if disease_name and drug_name:
-                extracted_disease_drug_pairs.add((self._normalize_value(disease_name), self._normalize_value(drug_name)))
+                extracted_pairs.add((norm_disease, norm_drug))
         
-        # Calculate accuracy on disease-drug pairs (most meaningful for join queries)
+        # Normalize GT pairs for comparison
+        normalized_gt_pairs = set()
+        for dis_name, drug_name in valid_gt_pairs:
+            norm_dis = self._normalize_value(dis_name)
+            norm_drug = self._normalize_value(drug_name)
+            normalized_gt_pairs.add((norm_dis, norm_drug))
+        
+        # Calculate metrics
         true_positives = 0
-        matched_pairs = set()
-        
-        for extracted_pair in extracted_disease_drug_pairs:
-            for gt_pair in gt_disease_drug_pairs:
-                # Match if both disease and drug match
-                if (self._values_match(extracted_pair[0], gt_pair[0]) and 
-                    self._values_match(extracted_pair[1], gt_pair[1])):
+        for pair in extracted_pairs:
+            for gt_pair in normalized_gt_pairs:
+                if (self._values_match(pair[0], gt_pair[0]) and 
+                    self._values_match(pair[1], gt_pair[1])):
                     true_positives += 1
-                    matched_pairs.add(gt_pair)
                     break
         
-        precision = true_positives / len(extracted_disease_drug_pairs) if extracted_disease_drug_pairs else 0.0
-        recall = len(matched_pairs) / len(gt_disease_drug_pairs) if gt_disease_drug_pairs else 0.0
+        precision = true_positives / len(extracted_pairs) if extracted_pairs else 0.0
+        recall = true_positives / len(normalized_gt_pairs) if normalized_gt_pairs else 0.0
         f1 = (2 * precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
         
         results["precision"] = precision
         results["recall"] = recall
         results["f1"] = f1
         
-        logger.info(f"Accuracy: P={precision:.3f}, R={recall:.3f}, F1={f1:.3f}")
-        logger.info(f"Matched {true_positives}/{len(extracted_disease_drug_pairs)} extracted pairs against {len(gt_disease_drug_pairs)} GT pairs")
+        logger.info(f"Accuracy: P={precision:.3f}, R={recall:.3f}, F1={f1:.3f} ({true_positives}/{len(extracted_pairs)} correct pairs)")
         
         return results
+    
+    def _normalize_value(self, val: str) -> str:
+        """Normalize a value for comparison."""
+        if not val:
+            return ""
+        return str(val).strip().lower()
+    
+    def _values_match(self, val1: str, val2: str) -> bool:
+        """Check if two values match."""
+        if not val1 or not val2:
+            return val1 == val2
+        if val1 == val2:
+            return True
+        # Handle multi-value fields
+        values1 = [v.strip() for v in val1.split('||') if v.strip()]
+        values2 = [v.strip() for v in val2.split('||') if v.strip()]
+        for v1 in values1:
+            for v2 in values2:
+                if v1 == v2 or v1 in v2 or v2 in v1:
+                    return True
+        return False
     
     def _parse_query_type(self, query_sql: str) -> str:
         """Parse query to determine type: Extract, Filter, Join, Agg, etc."""
