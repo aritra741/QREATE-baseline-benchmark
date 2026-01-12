@@ -356,7 +356,7 @@ class HealthcareEvaluationSystem:
         
         executor = DocETLHealthcareQueryExecutor(
             attributes_file=str(self.attributes_file),
-            model="ollama/qwen2.5:7b-instruct"
+            model="ollama/gemma3:27b"
         )
         
         disease_docs = self.documents.get("disease", [])
