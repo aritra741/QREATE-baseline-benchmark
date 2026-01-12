@@ -355,42 +355,53 @@ class DocETLHealthcareQueryExecutor:
         
         # Check if multi-table join (institution involved)
         if institution_extracted and ("institution." in query_sql or "institution" in str(parsed.get("from_tables", []))):
-            # Multi-table join: drug JOIN disease ON ... JOIN institution ON ...
-            # First join disease and drug
-            result_tuples = self._perform_join(
-                disease_extracted,
-                drug_extracted,
-                join_key,
-                ["disease_name"]  # Keep disease_name for institution join
-            )
+            # Multi-table join: drug JOIN disease ON drug.disease_name = disease.disease_name 
+            #                              JOIN institution ON disease.disease_name = institution.research_diseases
             
-            # Then join with institution on disease_name = institution.research_diseases
-            if result_tuples:
-                joined_with_institution = []
-                for drug_disease_tuple in result_tuples:
-                    disease_name = drug_disease_tuple.get("disease_name", "")
-                    for inst_record in institution_extracted:
-                        inst_research = inst_record.get("research_diseases", "")
+            # Manually perform the triple join
+            result_tuples = []
+            
+            for disease_rec in disease_extracted:
+                disease_name_val = disease_rec.get("disease_name", "")
+                if not disease_name_val or disease_name_val == "Not found":
+                    continue
+                    
+                for drug_rec in drug_extracted:
+                    drug_disease_name = drug_rec.get("disease_name", "")
+                    if not drug_disease_name or drug_disease_name == "Not found":
+                        continue
+                    
+                    # Check if disease names match
+                    if disease_name_val.lower() != drug_disease_name.lower():
+                        continue
+                    
+                    # Now find matching institution
+                    for inst_rec in institution_extracted:
+                        inst_research = inst_rec.get("research_diseases", "")
+                        if not inst_research or inst_research == "Not found":
+                            continue
+                        
                         # Check if disease_name matches any of the research_diseases
-                        if disease_name and inst_research:
-                            for research in inst_research.split("||"):
-                                if research.strip().lower() == disease_name.lower():
-                                    # Create full triple join record with original select attributes
-                                    joined_triple = {}
-                                    for attr in parsed["select_attributes"]:
-                                        if "disease." in attr:
-                                            field = attr.replace("disease.", "")
-                                            joined_triple[attr] = drug_disease_tuple.get(field, "Not found")
-                                        elif "drug." in attr:
-                                            field = attr.replace("drug.", "")
-                                            joined_triple[attr] = drug_disease_tuple.get(field, "Not found")
-                                        elif "institution." in attr:
-                                            field = attr.replace("institution.", "")
-                                            joined_triple[attr] = inst_record.get(field, "Not found")
-                                    joined_with_institution.append(joined_triple)
-                                    break
-                
-                result_tuples = joined_with_institution
+                        found_match = False
+                        for research in inst_research.split("||"):
+                            if research.strip().lower() == disease_name_val.lower():
+                                found_match = True
+                                break
+                        
+                        if found_match:
+                            # Create the triple-joined record with selected attributes
+                            triple_record = {}
+                            for attr in parsed["select_attributes"]:
+                                if "disease." in attr:
+                                    field = attr.replace("disease.", "")
+                                    triple_record[attr] = disease_rec.get(field, "Not found")
+                                elif "drug." in attr:
+                                    field = attr.replace("drug.", "")
+                                    triple_record[attr] = drug_rec.get(field, "Not found")
+                                elif "institution." in attr:
+                                    field = attr.replace("institution.", "")
+                                    triple_record[attr] = inst_rec.get(field, "Not found")
+                            result_tuples.append(triple_record)
         else:
             # Binary join: just disease and drug
             result_tuples = self._perform_join(
@@ -460,7 +471,8 @@ class DocETLHealthcareQueryExecutor:
         
         # Extract FROM table (only the first table, before JOIN)
         where_start = query_upper.find("WHERE")
-        join_start = query_upper.find("JOIN")
+        # Look for JOIN AFTER the FROM keyword
+        join_start = query_upper.find("JOIN", from_start)
         group_start = query_upper.find("GROUP")
         
         # Determine the end of FROM clause (stops at first JOIN if present)
@@ -475,26 +487,30 @@ class DocETLHealthcareQueryExecutor:
         parsed["from_tables"] = [t.strip() for t in from_part.split(",") if t.strip()]
         
         # Extract JOIN conditions (if present)
+        # Look for JOIN AFTER the FROM keyword
+        join_start_search = query_upper.find("JOIN", from_start)
         # For multi-table joins, we get the FIRST ON clause which should be between the first two tables
-        if join_start > 0:
-            on_start = query_upper.find("ON", join_start)
+        if join_start_search > from_start:
+            on_start = query_upper.find("ON", join_start_search)
             if on_start > 0:
                 # Find the end of this ON clause (before next JOIN or WHERE or END)
                 next_join = query_upper.find("JOIN", on_start + 4)
-                if next_join > 0 and where_start > 0 and next_join < where_start:
-                    on_end = next_join
-                elif next_join > 0:
-                    on_end = next_join
-                elif where_start > on_start:
-                    on_end = where_start
-                elif group_start > on_start:
-                    on_end = group_start
+                candidates = []
+                if next_join > 0:
+                    candidates.append(next_join)
+                if where_start > 0:
+                    candidates.append(where_start)
+                if group_start > 0:
+                    candidates.append(group_start)
+                
+                if candidates:
+                    on_end = min(candidates)
                 else:
                     on_end = len(query_sql)
                 
                 on_part = query_sql[on_start+2:on_end].strip()
                 
-                # Parse ON condition: "disease.name = drug.disease"
+                # Parse ON condition: "drug.disease_name = disease.disease_name"
                 if "=" in on_part:
                     left, right = on_part.split("=", 1)
                     parsed["join_key"] = right.strip().split(".")[-1]
