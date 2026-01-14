@@ -195,56 +195,82 @@ def execute_zendb_query(indexer: ZenDBDocIndexer, query_num: int, query_type: st
     }
     
     try:
-        # Extract a meaningful query phrase from the SQL
-        # For example: "SELECT disease.diagnostic_methods, drug.manufacturer, drug.brand_name, disease.disease_name FROM drug JOIN disease"
-        # We'll use the join condition or table names as the query
+        # Extract key attributes from the SQL query
+        # Parse SELECT clause to get what we're looking for
+        sql_lower = query_sql.lower()
         
-        if "disease_name" in query_sql.lower():
-            query_phrase = "disease information and attributes"
-        elif "drug" in query_sql.lower():
-            query_phrase = "drug and medication information"
+        # Extract column names from SELECT
+        select_idx = sql_lower.find("select")
+        from_idx = sql_lower.find("from")
+        if select_idx >= 0 and from_idx > 0:
+            select_part = query_sql[select_idx+6:from_idx].strip()
+            # Get first few column names
+            columns = [col.strip().split('.')[-1] for col in select_part.split(',')[:3]]
+            query_phrase = " ".join(columns)
         else:
-            query_phrase = "healthcare information"
+            query_phrase = "disease drug information"
         
-        # Step 1: Query all nodes to find relevant ones
-        logger.info(f"  [Query {query_num}] Searching for relevant nodes...")
+        logger.info(f"  [Query {query_num}] Query phrase: '{query_phrase}'")
+        
+        # Step 1: Try to get the SHT root for this document
+        root = indexer.sht_tables.get(doc_id)
+        if not root:
+            result["status"] = "no_document"
+            logger.warning(f"    Document {doc_id} not found in index")
+            return result
+        
+        logger.info(f"    SHT root node: {root.name if hasattr(root, 'name') else 'root'}")
+        
+        # Step 2: Try level_traverse to get all nodes
         try:
-            relevant_nodes = indexer.topk_query_all_nodes(doc_id, query_phrase, topk)
-            result["execution_details"]["nodes_found"] = len(relevant_nodes)
-            logger.info(f"    Found {len(relevant_nodes)} relevant nodes")
+            context_list, node_id_list = indexer.level_traverse(doc_id)
+            logger.info(f"    Total nodes in SHT: {len(node_id_list)}")
+            result["execution_details"]["total_nodes"] = len(node_id_list)
             
-            # Step 2: Get the actual text chunks with their IDs
-            if relevant_nodes:
-                chunks = indexer.get_relative_chunks_text_with_id(doc_id, query_phrase, topk)
-                result["execution_details"]["chunks_retrieved"] = len(chunks)
+            if node_id_list:
+                # Step 3: Try semantic similarity search
+                sorted_node_ids = indexer._semantic_similarity_search(query_phrase, node_id_list, topk)
+                logger.info(f"    Semantic search returned {len(sorted_node_ids)} nodes")
+                result["execution_details"]["nodes_found"] = len(sorted_node_ids)
                 
-                # Extract evidence (text snippets)
-                evidence = []
-                for chunk_text, chunk_id in chunks[:3]:  # Top 3 chunks as evidence
-                    evidence.append({
-                        "node_id": chunk_id,
-                        "text_snippet": chunk_text[:200] + "..." if len(chunk_text) > 200 else chunk_text
-                    })
-                
-                result["evidence"] = evidence
-                result["status"] = "executed"
-                result["result_count"] = len(chunks)
-                
-                logger.info(f"    ✓ Retrieved {len(chunks)} text chunks with evidence")
-                
+                # Step 4: Build results from matching nodes
+                if sorted_node_ids:
+                    node_id_to_context = dict(zip(node_id_list, context_list))
+                    
+                    evidence = []
+                    for i, node_id in enumerate(sorted_node_ids[:3]):
+                        context = node_id_to_context.get(node_id, "")
+                        if context:
+                            evidence.append({
+                                "rank": i + 1,
+                                "node_id": node_id,
+                                "text_snippet": context[:300] + "..." if len(context) > 300 else context
+                            })
+                    
+                    if evidence:
+                        result["evidence"] = evidence
+                        result["status"] = "executed"
+                        result["result_count"] = len(evidence)
+                        logger.info(f"    ✓ Retrieved {len(evidence)} result(s) with evidence")
+                    else:
+                        result["status"] = "no_results"
+                        logger.info(f"    No valid contexts found")
+                else:
+                    result["status"] = "no_results"
+                    logger.info(f"    Semantic search found no matches")
             else:
-                result["status"] = "no_results"
-                logger.info(f"    No relevant nodes found")
+                result["status"] = "empty_sht"
+                logger.warning(f"    SHT has no nodes")
         
         except Exception as e:
             result["status"] = "query_error"
             result["error"] = str(e)
-            logger.error(f"    Query execution error: {e}")
+            logger.error(f"    Query execution error: {e}", exc_info=True)
     
     except Exception as e:
         result["status"] = "error"
         result["error"] = str(e)
-        logger.error(f"  [Query {query_num}] Execution failed: {e}")
+        logger.error(f"  [Query {query_num}] Execution failed: {e}", exc_info=True)
     
     return result
 
