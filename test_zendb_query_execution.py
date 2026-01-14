@@ -242,13 +242,31 @@ def execute_zendb_query(indexer: ZenDBDocIndexer, query_num: int, query_type: st
         result["execution_details"]["total_nodes"] = len(node_id_list)
         
         if node_id_list:
-            # Step 3: Semantic similarity search
+            # Step 3: Generate missing embeddings for nodes that don't have them
+            missing_node_ids = []
+            for node_id in node_id_list:
+                if node_id not in indexer.node_embeddings:
+                    missing_node_ids.append(node_id)
+            
+            if missing_node_ids:
+                logger.info(f"    Generating embeddings for {len(missing_node_ids)} nodes...")
+                node_id_to_context = dict(zip(node_id_list, context_list))
+                contexts_to_embed = [node_id_to_context[nid] for nid in missing_node_ids if nid in node_id_to_context]
+                
+                if contexts_to_embed:
+                    embeddings = indexer.embedding_model.embed_documents(contexts_to_embed)
+                    for node_id, embedding in zip(missing_node_ids, embeddings):
+                        if node_id in node_id_to_context:
+                            indexer.node_embeddings[node_id] = embedding
+                    logger.info(f"    Generated {len(embeddings)} embeddings")
+            
+            # Step 4: Semantic similarity search
             sorted_node_ids = indexer._semantic_similarity_search(query_phrase, node_id_list, topk)
             logger.info(f"    Semantic search returned {len(sorted_node_ids)} node(s)")
             result["execution_details"]["nodes_found"] = len(sorted_node_ids)
             
             if sorted_node_ids:
-                # Step 4: Build results from matching nodes
+                # Step 5: Build results from matching nodes
                 node_id_to_context = dict(zip(node_id_list, context_list))
                 
                 evidence = []
@@ -265,13 +283,13 @@ def execute_zendb_query(indexer: ZenDBDocIndexer, query_num: int, query_type: st
                     result["evidence"] = evidence
                     result["status"] = "executed"
                     result["result_count"] = len(evidence)
-                    logger.info(f"    ✓ Retrieved {len(evidence)} result(s)")
+                    logger.info(f"    ✓ Retrieved {len(evidence)} result(s) from document")
                 else:
                     result["status"] = "no_results"
                     logger.info(f"    No valid contexts found")
             else:
                 result["status"] = "no_results"
-                logger.info(f"    Semantic search found no matches")
+                logger.info(f"    No matching nodes")
         else:
             result["status"] = "empty_sht"
             logger.warning(f"    SHT has no nodes with content")
