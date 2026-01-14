@@ -32,10 +32,6 @@ results = []
 total_start = time.time()
 
 for query_id, query_sql in enumerate(queries, 1):
-    # TEMPORARY: Only test query 11
-    if query_id != 11:
-        continue
-    
     print(f"Query {query_id}/{len(queries)}...", end=" ", flush=True)
     start = time.time()
     
