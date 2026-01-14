@@ -32,7 +32,6 @@ results = []
 total_start = time.time()
 
 for query_id, query_sql in enumerate(queries, 1):
-    
     print(f"Query {query_id}/{len(queries)}...", end=" ", flush=True)
     start = time.time()
     
