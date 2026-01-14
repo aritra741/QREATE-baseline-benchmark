@@ -39,6 +39,7 @@ try:
 except ImportError as e:
     logger.error(f"✗ Failed to import ZenDB modules: {e}")
     logger.info("  Make sure quest and ZenDB packages are properly installed")
+    logger.info("  Run: bash systems/ZenDB/setup_zendb.sh")
     sys.exit(1)
 
 import torch

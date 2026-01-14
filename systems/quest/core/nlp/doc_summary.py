@@ -12,7 +12,11 @@ from quest.core.chunker.splitter import spacyCutStep
 
 nltk_user_path = os.path.join(ABS_PROJECT_ROOT_PATH, "model/nltk_data")
 nltk.data.path.clear()
-nltk.data.path.append(nltk_user_path)  # 将数据路径设置为当前目录下的data文件夹   
+nltk.data.path.append(nltk_user_path)
+# Also add home nltk_data directory as fallback
+home_nltk_path = os.path.expanduser("~/nltk_data")
+if os.path.exists(home_nltk_path):
+    nltk.data.path.append(home_nltk_path)   
 
 spacy_splitter = spacyCutStep()
 
