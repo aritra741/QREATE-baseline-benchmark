@@ -196,7 +196,6 @@ def execute_zendb_query(indexer: ZenDBDocIndexer, query_num: int, query_type: st
     
     try:
         # Extract key attributes from the SQL query
-        # Parse SELECT clause to get what we're looking for
         sql_lower = query_sql.lower()
         
         # Extract column names from SELECT
@@ -204,7 +203,6 @@ def execute_zendb_query(indexer: ZenDBDocIndexer, query_num: int, query_type: st
         from_idx = sql_lower.find("from")
         if select_idx >= 0 and from_idx > 0:
             select_part = query_sql[select_idx+6:from_idx].strip()
-            # Get first few column names
             columns = [col.strip().split('.')[-1] for col in select_part.split(',')[:3]]
             query_phrase = " ".join(columns)
         else:
@@ -212,7 +210,7 @@ def execute_zendb_query(indexer: ZenDBDocIndexer, query_num: int, query_type: st
         
         logger.info(f"  [Query {query_num}] Query phrase: '{query_phrase}'")
         
-        # Step 1: Try to get the SHT root for this document
+        # Step 1: Get the SHT root for this document
         root = indexer.sht_tables.get(doc_id)
         if not root:
             result["status"] = "no_document"
@@ -221,51 +219,62 @@ def execute_zendb_query(indexer: ZenDBDocIndexer, query_num: int, query_type: st
         
         logger.info(f"    SHT root node: {root.name if hasattr(root, 'name') else 'root'}")
         
-        # Step 2: Try level_traverse to get all nodes
-        try:
-            context_list, node_id_list = indexer.level_traverse(doc_id)
-            logger.info(f"    Total nodes in SHT: {len(node_id_list)}")
-            result["execution_details"]["total_nodes"] = len(node_id_list)
+        # Step 2: Manually traverse SHT since level_traverse only gets children
+        # For plain text documents, the root itself is often the only meaningful node
+        context_list = []
+        node_id_list = []
+        
+        # Add root
+        if root.context:
+            context_list.append(root.context)
+            node_id_list.append(root.node_id)
+        
+        # Add all children (BFS)
+        queue = list(root.children)
+        while queue:
+            node = queue.pop(0)
+            if node.context:
+                context_list.append(node.context)
+                node_id_list.append(node.node_id)
+            queue.extend(node.children)
+        
+        logger.info(f"    Total nodes in SHT (including root): {len(node_id_list)}")
+        result["execution_details"]["total_nodes"] = len(node_id_list)
+        
+        if node_id_list:
+            # Step 3: Semantic similarity search
+            sorted_node_ids = indexer._semantic_similarity_search(query_phrase, node_id_list, topk)
+            logger.info(f"    Semantic search returned {len(sorted_node_ids)} node(s)")
+            result["execution_details"]["nodes_found"] = len(sorted_node_ids)
             
-            if node_id_list:
-                # Step 3: Try semantic similarity search
-                sorted_node_ids = indexer._semantic_similarity_search(query_phrase, node_id_list, topk)
-                logger.info(f"    Semantic search returned {len(sorted_node_ids)} nodes")
-                result["execution_details"]["nodes_found"] = len(sorted_node_ids)
-                
+            if sorted_node_ids:
                 # Step 4: Build results from matching nodes
-                if sorted_node_ids:
-                    node_id_to_context = dict(zip(node_id_list, context_list))
-                    
-                    evidence = []
-                    for i, node_id in enumerate(sorted_node_ids[:3]):
-                        context = node_id_to_context.get(node_id, "")
-                        if context:
-                            evidence.append({
-                                "rank": i + 1,
-                                "node_id": node_id,
-                                "text_snippet": context[:300] + "..." if len(context) > 300 else context
-                            })
-                    
-                    if evidence:
-                        result["evidence"] = evidence
-                        result["status"] = "executed"
-                        result["result_count"] = len(evidence)
-                        logger.info(f"    ✓ Retrieved {len(evidence)} result(s) with evidence")
-                    else:
-                        result["status"] = "no_results"
-                        logger.info(f"    No valid contexts found")
+                node_id_to_context = dict(zip(node_id_list, context_list))
+                
+                evidence = []
+                for i, node_id in enumerate(sorted_node_ids[:3]):
+                    context = node_id_to_context.get(node_id, "")
+                    if context:
+                        evidence.append({
+                            "rank": i + 1,
+                            "node_id": node_id,
+                            "text_snippet": context[:300] + "..." if len(context) > 300 else context
+                        })
+                
+                if evidence:
+                    result["evidence"] = evidence
+                    result["status"] = "executed"
+                    result["result_count"] = len(evidence)
+                    logger.info(f"    ✓ Retrieved {len(evidence)} result(s)")
                 else:
                     result["status"] = "no_results"
-                    logger.info(f"    Semantic search found no matches")
+                    logger.info(f"    No valid contexts found")
             else:
-                result["status"] = "empty_sht"
-                logger.warning(f"    SHT has no nodes")
-        
-        except Exception as e:
-            result["status"] = "query_error"
-            result["error"] = str(e)
-            logger.error(f"    Query execution error: {e}", exc_info=True)
+                result["status"] = "no_results"
+                logger.info(f"    Semantic search found no matches")
+        else:
+            result["status"] = "empty_sht"
+            logger.warning(f"    SHT has no nodes with content")
     
     except Exception as e:
         result["status"] = "error"
