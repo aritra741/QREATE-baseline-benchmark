@@ -215,18 +215,18 @@ def crunch_schema(schema: Dict, embeddings_model) -> Dict:
     return final_schema
 
 def generate_definitions(schema: Dict, client: Client) -> Dict:
-    """Phase 2.5: Generate 1-sentence physical definitions and identify Primary Key for each table."""
-    print("Phase 2.5: Generating schema definitions and identifying Primary Keys...")
+    """Phase 2.5: Generate physical definitions and identify Primary Key."""
+    print("Phase 2.5: Generating schema definitions...")
     updated_schema = {}
     for table_name, table_info in schema.items():
         cols = [c["name"] for c in table_info["columns"]]
         
-        # 1. Generate Definition (More inclusive for Recall)
+        # 1. Generate SIMPLE Definition
         def_prompt = f"""Role: Data Architect.
 Task: Write a physical definition for the database table: **{table_name}**.
 Context: It contains columns: {json.dumps(cols)}.
-Constraint: Your definition must be broad enough to encompass all provided columns. 
-If the columns suggest multiple domains (e.g., corporate and biological), define it as a 'multi-faceted entity'.
+Constraint: Your definition MUST BE A SINGLE CONCISE SENTENCE (under 15 words).
+Example: 'A Device is a physical hardware unit or piece of equipment.'
 Output JSON: {{"definition": "string"}}"""
         
         try:

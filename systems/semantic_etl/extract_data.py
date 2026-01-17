@@ -100,9 +100,12 @@ JSON FORMAT:
     try:
         # Use a slightly higher temperature for Recall to avoid "Safe-Null" behavior
         response = client.chat(model=MODEL_NAME, messages=[{'role': 'user', 'content': prompt}], format='json', options={"temperature": 0.3})
-        content = json.loads(response['message']['content'])
+        raw_content = response['message']['content']
+        print(f"\n[DEBUG] LLM RAW OUTPUT (Table: {table_name}):\n{raw_content}", flush=True)
+        content = json.loads(raw_content)
         return content if isinstance(content, list) else []
-    except:
+    except Exception as e:
+        print(f"[DEBUG] LLM EXTRACTION ERROR (Table: {table_name}): {e}", flush=True)
         return []
 
 def main():
