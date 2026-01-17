@@ -151,13 +151,31 @@ INSTRUCTIONS:
     except Exception as e:
         print(f"Error answering query: {e}")
 
+def describe_tables():
+    if not os.path.exists("schema.json"):
+        print("schema.json missing")
+        return
+
+    with open("schema.json", 'r') as f:
+        schema = json.load(f)
+    
+    print("\nDATABASE STRUCTURE:")
+    for table, info in schema.items():
+        cols = [c["name"] for c in info["columns"]]
+        print(f"Table: {table}")
+        print(f"  Columns: {', '.join(cols)}")
+        print("-" * 20)
+
 if __name__ == "__main__":
     import sys
     if len(sys.argv) < 2:
         print("Usage:")
         print("  python interface.py build         # To build the DB")
+        print("  python interface.py describe      # To see table columns")
         print("  python interface.py query <text>  # To answer a question")
     elif sys.argv[1] == "build":
         build_database()
+    elif sys.argv[1] == "describe":
+        describe_tables()
     elif sys.argv[1] == "query":
         answer_query(" ".join(sys.argv[2:]))

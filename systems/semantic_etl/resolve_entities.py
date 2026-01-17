@@ -134,8 +134,22 @@ def main():
                 print(f"Hierarchy Filter: Removing {entity_name} from {t} (Winner: {winner_table})")
                 del final_data_map[t][entity_name]
 
-    # Convert to regular dict for JSON
-    output_data = {table_name: list(pk_map.values()) for table_name, pk_map in final_data_map.items()}
+    # Convert to regular dict for JSON and clean up values
+    output_data = {}
+    for table_name, pk_map in final_data_map.items():
+        table_rows = []
+        for row in pk_map.values():
+            clean_row = {}
+            for k, v in row.items():
+                # Flatten lists/dicts into clean comma-separated strings
+                if isinstance(v, list):
+                    clean_row[k] = ", ".join(str(item) for item in v if item)
+                elif isinstance(v, dict):
+                    clean_row[k] = ", ".join(f"{dk}: {dv}" for dk, dv in v.items())
+                else:
+                    clean_row[k] = v
+            table_rows.append(clean_row)
+        output_data[table_name] = table_rows
         
     with open("final_data.json", "w") as f:
         json.dump(output_data, f, indent=2)
