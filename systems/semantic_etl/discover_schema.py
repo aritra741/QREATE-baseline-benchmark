@@ -8,7 +8,7 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from collections import Counter
 
 # Configuration
-MODEL_NAME = "qwen2.5:7b-instruct" # Adjusted to match user request (they said Qwen2.5-7b-instruct)
+MODEL_NAME = "qwen2.5:7b-instruct"
 OLLAMA_HOST = "http://localhost:11434"
 
 def get_llm_client():
@@ -81,7 +81,7 @@ def cluster_observations(raw_observations: List[Dict], embeddings_model):
     for obs in raw_observations:
         if "type" not in obs:
             continue
-        attrs = sorted(obs.get("attributes", []))
+        attrs = sorted(obs.get("attributes", {}).keys())
         fp = f"{obs['type']}: {', '.join(attrs)}"
         fingerprints.append(fp)
         valid_observations.append(obs)
@@ -92,7 +92,6 @@ def cluster_observations(raw_observations: List[Dict], embeddings_model):
     vectors = embeddings_model.embed_documents(fingerprints)
     vectors = np.array(vectors)
     
-    # Agglomerative Clustering
     clustering = AgglomerativeClustering(
         n_clusters=None,
         distance_threshold=0.2,
@@ -107,11 +106,9 @@ def cluster_observations(raw_observations: List[Dict], embeddings_model):
     return valid_observations
 
 def audit_schema(draft_schema: Dict, raw_obs: List[Dict], client: Client) -> Dict:
-    """Uses LLM to merge synonymous tables and sanitize column names using data context."""
     if not draft_schema:
         return {}
 
-    # Step 1: Merge Synonymous Tables
     table_names = list(draft_schema.keys())
     merge_prompt = f"""You are a database normalization expert. Review these raw discovered table names:
 {json.dumps(table_names)}
@@ -136,7 +133,6 @@ Example Format: {{"RawA": "Canonical1", "RawB": "Canonical1"}}"""
                     merged_schema[new_name]["columns"].append(col)
                     existing_cols.add(col["name"])
             
-            # Aggregate sample values for the next step
             for obs in raw_obs:
                 if obs["type"] == old_name:
                     merged_schema[new_name]["samples"].append(obs["attributes"])
@@ -145,11 +141,9 @@ Example Format: {{"RawA": "Canonical1", "RawB": "Canonical1"}}"""
     except Exception as e:
         print(f"Warning: Table merge audit failed: {e}")
 
-    # Step 2: Sanitize Column Names using Data Context
     sanitized_schema = {}
     for table_name, table_info in draft_schema.items():
         col_names = [c["name"] for c in table_info["columns"]]
-        # Show top 5 sample extractions to help model distinguish values from columns
         samples = table_info.get("samples", [])[:5]
         
         sanitize_prompt = f"""Review the columns for table '{table_name}':
@@ -182,63 +176,69 @@ Output strictly a JSON object mapping OLD_NAME to NEW_NAME."""
     return sanitized_schema
 
 def compute_semantic_overlap(cols1: List[str], cols2: List[str], embeddings_model) -> float:
-    if not cols1 or not cols2:
-        return 0.0
-    
+    if not cols1 or not cols2: return 0.0
     vecs1 = embeddings_model.embed_documents(cols1)
     vecs2 = embeddings_model.embed_documents(cols2)
-    
     matches = 0
     for v1 in vecs1:
         for v2 in vecs2:
             similarity = np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
-            if similarity > 0.85: # Semantic match threshold
+            if similarity > 0.85:
                 matches += 1
                 break
-    
-    # Jaccard-like semantic similarity
     return matches / len(set(cols1 + cols2))
 
 def crunch_schema(schema: Dict, embeddings_model) -> Dict:
-    """Phase 2.6: The Cruncher - Force merge tables with high semantic column overlap."""
     table_names = list(schema.keys())
     merged_tables = set()
     final_schema = {}
-    
-    # Mapping to track where each table ended up
-    remap = {name: name for name in table_names}
-    
     for i in range(len(table_names)):
         t1 = table_names[i]
         if t1 in merged_tables: continue
-        
         for j in range(i + 1, len(table_names)):
             t2 = table_names[j]
             if t2 in merged_tables: continue
-            
             cols1 = [c["name"] for c in schema[t1]["columns"]]
             cols2 = [c["name"] for c in schema[t2]["columns"]]
-            
             overlap = compute_semantic_overlap(cols1, cols2, embeddings_model)
-            if overlap > 0.5: # Overlap threshold
-                print(f"Cruncher: Force-merging {t2} into {t1} (Overlap: {overlap:.2f})")
+            if overlap > 0.5:
                 merged_tables.add(t2)
-                remap[t2] = t1
-                
-                # Merge columns
                 existing_cols = {c["name"] for c in schema[t1]["columns"]}
                 for col in schema[t2]["columns"]:
                     if col["name"] not in existing_cols:
                         schema[t1]["columns"].append(col)
                         existing_cols.add(col["name"])
-    
     for name, info in schema.items():
         if name not in merged_tables:
             final_schema[name] = info
-            
     return final_schema
 
+def generate_definitions(schema: Dict, client: Client) -> Dict:
+    """Phase 2.5: Generate 1-sentence physical definitions for each table."""
+    print("Phase 2.5: Generating schema definitions (Truth Anchors)...")
+    updated_schema = {}
+    for table_name, table_info in schema.items():
+        cols = [c["name"] for c in table_info["columns"]]
+        prompt = f"""Role: Data Architect.
+Task: Write a 1-sentence physical definition for the database table: **{table_name}**.
+Context: It contains columns: {json.dumps(cols)}.
+Constraint: Be precise. (e.g., if table is 'Device', define it as 'Physical hardware equipment', not 'Technology').
+Output JSON: {{"definition": "string"}}"""
+        
+        try:
+            response = client.chat(model=MODEL_NAME, messages=[{'role': 'user', 'content': prompt}], format='json')
+            content = json.loads(response['message']['content'])
+            table_info["definition"] = content.get("definition", f"Data table for {table_name}")
+        except:
+            table_info["definition"] = f"Data table for {table_name}"
+        updated_schema[table_name] = table_info
+    return updated_schema
+
 def discover_schema(chunks_file: str):
+    if not os.path.exists(chunks_file):
+        print("chunks.json missing")
+        return
+
     with open(chunks_file, 'r') as f:
         chunks = json.load(f)
     
@@ -249,38 +249,27 @@ def discover_schema(chunks_file: str):
     raw_observations = get_observations(chunks)
     
     print("Clustering observations...")
-    raw_observations = cluster_observations(raw_observations, embeddings_model)
+    valid_observations = cluster_observations(raw_observations, embeddings_model)
     
-    # Step 2.3: Noise Filtering & Naming
-    cluster_counts = Counter(obs["cluster_id"] for obs in raw_observations)
-    total_chunks = len(chunks)
-    
+    cluster_counts = Counter(obs["cluster_id"] for obs in valid_observations)
     surviving_clusters = {}
     for cluster_id, count in cluster_counts.items():
-        if count >= max(3, 0.01 * total_chunks):
-            # Find canonical name
-            types_in_cluster = [obs["type"] for obs in raw_observations if obs["cluster_id"] == cluster_id]
+        if count >= 3:
+            types_in_cluster = [obs["type"] for obs in valid_observations if obs["cluster_id"] == cluster_id]
             canonical_name = Counter(types_in_cluster).most_common(1)[0][0]
             surviving_clusters[cluster_id] = canonical_name
     
-    # Step 2.4: Attribute Normalization
     draft_schema = {}
     for cluster_id, table_name in surviving_clusters.items():
         all_attrs = []
-        for obs in raw_observations:
+        for obs in valid_observations:
             if obs["cluster_id"] == cluster_id:
-                all_attrs.extend(obs.get("attributes", []))
+                all_attrs.extend(obs["attributes"].keys())
         
-        if not all_attrs:
-            continue
-            
+        if not all_attrs: continue
+        
         attr_vectors = embeddings_model.embed_documents(all_attrs)
-        attr_clustering = AgglomerativeClustering(
-            n_clusters=None,
-            distance_threshold=0.2,
-            metric='cosine',
-            linkage='average'
-        )
+        attr_clustering = AgglomerativeClustering(n_clusters=None, distance_threshold=0.2, metric='cosine', linkage='average')
         attr_labels = attr_clustering.fit_predict(np.array(attr_vectors))
         
         canonical_columns = []
@@ -293,30 +282,19 @@ def discover_schema(chunks_file: str):
             "columns": [{"name": col, "is_foreign_key": False, "references_table": None} for col in canonical_columns]
         }
     
-    print("Auditing and Sanitizing Schema (V4 Data-Aware Loop)...")
-    audited_schema = audit_schema(draft_schema, raw_observations, client)
+    print("Auditing and Sanitizing Schema...")
+    audited_schema = audit_schema(draft_schema, valid_observations, client)
     
-    print("Crunching Schema (V3 Force-Normalization)...")
+    print("Crunching Schema...")
     final_schema = crunch_schema(audited_schema, embeddings_model)
     
-    # Step 2.5: Linkage Detection
-    table_names = list(final_schema.keys())
-    for table_name, table_info in final_schema.items():
-        for col in table_info["columns"]:
-            col_vec = embeddings_model.embed_query(col["name"])
-            for other_table in table_names:
-                table_vec = embeddings_model.embed_query(other_table)
-                similarity = np.dot(col_vec, table_vec) / (np.linalg.norm(col_vec) * np.linalg.norm(table_vec))
-                
-                if similarity > 0.85:
-                    col["is_foreign_key"] = True
-                    col["references_table"] = other_table
-                    break
-                    
+    # Phase 2.5: Definitions
+    final_schema = generate_definitions(final_schema, client)
+    
     with open("schema.json", "w") as f:
         json.dump(final_schema, f, indent=2)
     
-    print(f"Schema discovered and saved to schema.json. Tables: {', '.join(table_names)}")
+    print(f"Schema discovered with definitions. Tables: {', '.join(final_schema.keys())}")
 
 if __name__ == "__main__":
     discover_schema("chunks.json")

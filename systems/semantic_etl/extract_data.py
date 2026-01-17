@@ -1,90 +1,124 @@
 import json
 import os
+import torch
 from typing import List, Dict
 from ollama import Client
+from sentence_transformers import CrossEncoder
 
 # Configuration
 MODEL_NAME = "qwen2.5:7b-instruct"
 OLLAMA_HOST = "http://localhost:11434"
+NLI_MODEL_NAME = "cross-encoder/nli-deberta-v3-base"
 
 def get_llm_client():
     return Client(host=OLLAMA_HOST)
 
-def get_relevant_tables(chunk_text: str, schema: Dict, client: Client) -> List[str]:
-    """Phase 3 Optimization: Pre-Flight check to identify relevant tables for a chunk."""
-    table_names = list(schema.keys())
-    prompt = f"""Identify which of these database tables are relevant to the provided text.
-    
-TABLES: {json.dumps(table_names)}
+class NLIGuardrail:
+    def __init__(self, model_name=NLI_MODEL_NAME):
+        print(f"Loading NLI model: {model_name}...")
+        self.model = CrossEncoder(model_name)
+        self.labels = self.model.config.id2label
+        
+    def validate_entities(self, table_name: str, definition: str, candidates: List[str]) -> List[str]:
+        if not candidates: return []
+        pairs = [[f"This is a {table_name}: {definition}.", f"{c} is a {table_name}."] for c in candidates]
+        logits = self.model.predict(pairs)
+        label_map = {v.lower(): k for k, v in self.labels.items()}
+        ent_idx = label_map.get('entailment', 2)
+        con_idx = label_map.get('contradiction', 0)
+        probs = torch.nn.functional.softmax(torch.tensor(logits), dim=1).numpy()
+        
+        valid = []
+        for i, c in enumerate(candidates):
+            if probs[i][ent_idx] > 0.5: valid.append(c)
+            elif probs[i][con_idx] > 0.5: continue
+            else: valid.append(c) # Neutral
+        return valid
 
-TEXT: {chunk_text}
+    def validate_attribute(self, column_name: str, value: str) -> bool:
+        if not value or str(value).lower() == "null": return False
+        # Premise: "The {column_name} is a data value."
+        # Hypothesis: "{value} is a valid {column_name}."
+        # This is a bit tricky. Let's use the user's example logic.
+        # "An active ingredient is a chemical substance." -> Hypothesis: "'Same compound' is a chemical substance."
+        # We need a generic premise for attributes.
+        premise = f"This is a valid {column_name}."
+        hypothesis = f"'{value}' is a {column_name}."
+        
+        logits = self.model.predict([premise, hypothesis])
+        probs = torch.nn.functional.softmax(torch.tensor(logits), dim=0).numpy()
+        label_map = {v.lower(): k for k, v in self.labels.items()}
+        ent_idx = label_map.get('entailment', 2)
+        return probs[ent_idx] > 0.3 # Lower threshold for attributes
 
-Output strictly a JSON list of relevant table names. If none are relevant, output []."""
+def extract_records(chunk: Dict, table_name: str, schema_info: Dict, client: Client) -> List[Dict]:
+    """Phase 3.1: LLM Extraction (Recall) - Extracts full records."""
+    cols = [c["name"] for c in schema_info["columns"]]
+    definition = schema_info.get("definition", "")
     
+    prompt = f"""Extract data for Table: **{table_name}**.
+**Definition:** {definition}
+**Columns:** {json.dumps(cols)}
+**Context:** {chunk.get('previous_context', '')}
+**Text:** {chunk['text']}
+
+**INSTRUCTIONS:**
+1. Extract every instance of '{table_name}' and its attributes.
+2. If an attribute is missing, use null.
+3. Output strictly a JSON list of objects.
+
+JSON FORMAT:
+[
+  {{"{cols[0]}": "value", ...}}
+]"""
+
     try:
         response = client.chat(model=MODEL_NAME, messages=[{'role': 'user', 'content': prompt}], format='json')
-        relevant = json.loads(response['message']['content'])
-        return [t for t in relevant if t in table_names]
+        content = json.loads(response['message']['content'])
+        return content if isinstance(content, list) else []
     except:
-        return table_names
-
-
-
-import json
-import os
-from typing import List, Dict
-from stanza.server import CoreNLPClient
-
-# Configuration
-# CORE_NLP_HOME should point to where stanza.install_corenlp() put it
-CORE_NLP_HOME = os.path.expanduser("~/stanza_corenlp")
-os.environ["CORENLP_HOME"] = CORE_NLP_HOME
-
-def extract_triples_corenlp(text: str) -> List[Dict]:
-    """True OpenIE extraction using Stanford CoreNLP."""
-    triples = []
-    # Start the CoreNLP server for each chunk to ensure it stays in the context of this process
-    with CoreNLPClient(
-        annotators=['openie'],
-        timeout=30000,
-        memory='4G',
-        be_quiet=True
-    ) as client:
-        ann = client.annotate(text)
-        for sentence in ann.sentence:
-            for triple in sentence.openieTriple:
-                triples.append({
-                    "subject": triple.subject,
-                    "relation": triple.relation,
-                    "object": triple.object
-                })
-    return triples
+        return []
 
 def main():
-    if not os.path.exists("chunks.json"):
-        print("Required file chunks.json missing.")
+    if not os.path.exists("schema.json") or not os.path.exists("chunks.json"):
+        print("Files missing.")
         return
 
+    with open("schema.json", 'r') as f: schema = json.load(f)
     with open("chunks.json", 'r') as f: chunks = json.load(f)
+    client = get_llm_client()
+    nli_guard = NLIGuardrail()
     
-    # We output raw triples. Schema binding happens in the next phase.
-    with open("raw_triples.jsonl", "w") as out_f:
-        for i, chunk in enumerate(chunks):
-            print(f"Mining OpenIE triples from chunk {i+1}/{len(chunks)}...")
-            try:
-                triples = extract_triples_corenlp(chunk["text"])
-                for t in triples:
-                    t["chunk_id"] = chunk["id"]
-                    out_f.write(json.dumps(t) + "\n")
-            except Exception as e:
-                print(f"Error in OpenIE extraction: {e}")
+    extracted_data = []
 
-    print("OpenIE mining complete. Raw triples saved to raw_triples.jsonl")
+    for i, chunk in enumerate(chunks):
+        print(f"Processing chunk {i+1}/{len(chunks)}...")
+        chunk_data = {"chunk_id": chunk["id"], "tables": {}}
+        
+        for table_name, table_info in schema.items():
+            # Step 3.1: Recall (Extract full records)
+            records = extract_records(chunk, table_name, table_info, client)
+            if not records: continue
+            
+            # Step 3.2: Precision (Validate PK)
+            col_names = [c["name"] for c in table_info["columns"]]
+            pk_col = next((p for p in ["name", "identifier", "id"] if p in col_names), col_names[0])
+            
+            pk_candidates = [str(r.get(pk_col, "")) for r in records if r.get(pk_col)]
+            valid_pks = set(nli_guard.validate_entities(table_name, table_info["definition"], pk_candidates))
+            
+            valid_records = [r for r in records if str(r.get(pk_col)) in valid_pks]
+            if valid_records:
+                chunk_data["tables"][table_name] = valid_records
+                
+        if chunk_data["tables"]:
+            extracted_data.append(chunk_data)
 
-if __name__ == "__main__":
-    main()
+    with open("extracted_data_v8.jsonl", "w") as f:
+        for entry in extracted_data:
+            f.write(json.dumps(entry) + "\n")
 
-    print("Extraction complete. Results saved to extracted_raw.jsonl")
+    print(f"Extraction complete. Results saved to extracted_data_v8.jsonl")
 
 if __name__ == "__main__":
     main()
