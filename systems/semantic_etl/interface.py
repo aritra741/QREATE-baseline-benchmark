@@ -65,7 +65,14 @@ def build_database():
                 insert_sql = f"INSERT INTO \"{table_name}\" ({', '.join(col_names)}) VALUES ({', '.join(placeholders)})"
                 
                 # Ensure all columns exist in the row dict, even if null
-                values = [row.get(c["name"]) for c in columns]
+                values = []
+                for c in columns:
+                    val = row.get(c["name"])
+                    # V3.1: Automatically serialize lists or dicts to strings for SQLite
+                    if isinstance(val, (list, dict)):
+                        val = json.dumps(val)
+                    values.append(val)
+                
                 cursor.execute(insert_sql, values)
     
     conn.commit()
