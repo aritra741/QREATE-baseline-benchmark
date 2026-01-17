@@ -71,30 +71,31 @@ def extract_records(chunk: Dict, table_name: str, schema_info: Dict, client: Cli
     """Phase 3.1: LLM Extraction (Recall) - Extracts full records with Context-Aware Resolution."""
     cols = [c["name"] for c in schema_info["columns"]]
     definition = schema_info.get("definition", "")
-    pk_col = schema_info.get("_meta", {}).get("primary_key", cols[0])
+    pk_col = schema_info.get("_meta", {}).get("primary_key")
     
-    prompt = f"""You are a database extraction agent.
-Table: **{table_name}**
-Definition: {definition}
-Target Columns: {json.dumps(cols)}
+    if not pk_col:
+        # Fallback if discovery failed to designate one
+        pk_col = cols[0] if cols else "name"
 
-CONTEXT (from previous text): 
-"{chunk.get('previous_context', '')}"
+    prompt = f"""Extract data for Table: **{table_name}**.
+**Definition:** {definition}
+**Columns:** {json.dumps(cols)}
 
-TARGET TEXT: 
-"{chunk['text']}"
+**Context:** "{chunk.get('previous_context', '')}"
+**Target Text:** "{chunk['text']}"
 
-TASK:
-1. Identify all entities in the Target Text that fit the definition of a '{table_name}'.
-2. RESOLVE PRONOUNS: If the text says 'It', 'The device', 'The subject', etc., use the CONTEXT to find the actual name.
-3. For each entity, extract all available attributes.
-4. If no clear name exists for an attribute set, use the most descriptive subject found.
-
-Output strictly a JSON list of objects. If none found, output [].
+**INSTRUCTIONS:**
+1. READ THE CONTEXT FIRST. Identify any entities mentioned there (e.g., people, organizations, products).
+2. READ THE TARGET TEXT. 
+3. PRONOUN RESOLUTION: If the target text uses 'It', 'They', 'He', 'She', or 'The company', you MUST resolve them to the specific entity name from the Context or previous sentences.
+4. For every instance of '{table_name}' found, extract its attributes into the specified columns.
+5. The column '{pk_col}' should contain the unique identifier/name of the entity. Prioritize proper nouns or clear identifiers.
+6. If an attribute is missing, use null.
+7. Output strictly a JSON list of objects.
 
 JSON FORMAT:
 [
-  {{"{pk_col}": "Resolved Name", "attribute": "value"}}
+  {{"{pk_col}": "Resolved Entity Name", ...}}
 ]"""
 
     try:
@@ -103,7 +104,61 @@ JSON FORMAT:
         raw_content = response['message']['content']
         print(f"\n[DEBUG] LLM RAW OUTPUT (Table: {table_name}):\n{raw_content}", flush=True)
         content = json.loads(raw_content)
-        return content if isinstance(content, list) else []
+        
+        # Robust Parsing
+        extracted = []
+        if isinstance(content, list):
+            extracted = content
+        elif isinstance(content, dict):
+            # 1. Check for wrapped lists (e.g., {"entities": [...]}, {"ChemicalSubstance": [...]})
+            found_list = False
+            for key, value in content.items():
+                if isinstance(value, list) and len(value) > 0:
+                    # Prioritize lists that look like the table name or generic "entities"/"records"
+                    if key.lower() in [table_name.lower(), "entities", "records", "data", "rows"]:
+                        extracted = value
+                        found_list = True
+                        break
+            
+            # 2. If no list found but it's a flat dict, treat as a single record
+            if not found_list:
+                # Check if it has keys that match target columns
+                if any(k in cols for k in content.keys()):
+                    extracted = [content]
+                # Fallback: if it's not empty, just take it
+                elif content:
+                    extracted = [content]
+        
+        # Clean and align keys
+        aligned_records = []
+        for rec in extracted:
+            if not isinstance(rec, dict): continue
+            new_rec = {}
+            # Map keys case-insensitively and look for PK
+            for k, v in rec.items():
+                matched = False
+                for target_col in cols:
+                    if k.lower() == target_col.lower():
+                        new_rec[target_col] = v
+                        matched = True
+                        break
+                if not matched:
+                    # Keep extra columns for now, they might be the PK with a different name
+                    new_rec[k] = v
+            
+            # Ensure the designated PK column is present
+            # If the LLM didn't output the exact PK column name, we might lose the record
+            # but we follow the instruction to be strict.
+            if pk_col not in new_rec:
+                # Last resort: if there is only one key and it's not a target col, it might be the PK
+                if len(new_rec) == 1:
+                    only_key = list(new_rec.keys())[0]
+                    if only_key not in cols:
+                        new_rec[pk_col] = new_rec[only_key]
+            
+            aligned_records.append(new_rec)
+            
+        return aligned_records
     except Exception as e:
         print(f"[DEBUG] LLM EXTRACTION ERROR (Table: {table_name}): {e}", flush=True)
         return []

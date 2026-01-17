@@ -256,6 +256,7 @@ Output JSON: {{"primary_key": "column_name"}}"""
             if pk in cols:
                 table_info["_meta"] = {"primary_key": pk}
             else:
+                # Fallback to first column if LLM fails or picks invalid PK
                 table_info["_meta"] = {"primary_key": cols[0] if cols else None}
         except:
             table_info["_meta"] = {"primary_key": cols[0] if cols else None}

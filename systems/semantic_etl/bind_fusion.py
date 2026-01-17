@@ -28,18 +28,7 @@ class ValidationGuard:
         print(f"\n    --- FUSION DEBUG: Column '{column_name}' ---")
         print(f"      Value: '{val_str}'")
         
-        # 1. Anti-Hallucination Length Cap
-        if len(val_str) > 50:
-            print("      Result: DISCARDED (Length Cap > 50)")
-            return False
-            
-        # 2. GLiNER Filter
-        labels = [table_name, column_name]
-        entities = self.gliner.predict_entities(val_str, labels, threshold=0.3)
-        gliner_found = [e['label'] for e in entities]
-        print(f"      GLiNER Labels Found: {gliner_found}")
-        
-        # 3. NLI Type Check
+        # 1. NLI Type Check First
         premise = f"This is a {column_name} of a {table_name}."
         hypothesis = f"'{val_str}' is a valid {column_name}."
         
@@ -52,19 +41,29 @@ class ValidationGuard:
         
         p_ent = probs[ent_idx]
         p_con = probs[con_idx]
-        
         print(f"      NLI Scores -> E: {p_ent:.4f}, C: {p_con:.4f}")
         
         if p_con > 0.6:
             print("      Result: DISCARDED (NLI Contradiction)")
             return False
-            
-        if p_ent > 0.2:
-            print("      Result: ACCEPTED (NLI Entailment)")
-            return True
+
+        # 2. GLiNER Filter
+        labels = [table_name, column_name]
+        entities = self.gliner.predict_entities(val_str, labels, threshold=0.3)
+        gliner_found = [e['label'] for e in entities]
+        print(f"      GLiNER Labels Found: {gliner_found}")
         
-        print("      Result: DISCARDED (Low Entailment)")
-        return False
+        if not gliner_found and p_ent < 0.4: # Require either GLiNER or strong NLI
+            print("      Result: DISCARDED (No GLiNER match & Low NLI)")
+            return False
+
+        # 3. Length Cap (Anti-Hallucination)
+        if len(val_str) > 50:
+            print(f"      Result: DISCARDED (Length {len(val_str)} > 50)")
+            return False
+            
+        print("      Result: ACCEPTED")
+        return True
 
 def fuse_records(records: List[Dict], pk_col: str, table_name: str, guard: ValidationGuard) -> Dict:
     """Validated String Wins: Quality check first, then length."""

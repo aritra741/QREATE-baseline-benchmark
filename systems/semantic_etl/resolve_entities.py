@@ -86,22 +86,10 @@ def main():
 
     with open("schema.json", 'r') as f: schema = json.load(f)
     
-    # table -> list of unique PKs
-    table_pks = defaultdict(set)
-    with open("extracted_data_v8.jsonl", 'r') as f:
-        for line in f:
-            entry = json.loads(line)
-            for table_name, records in entry["tables"].items():
-                col_names = [c["name"] for c in schema[table_name]["columns"]]
-                pk_col = next((p for p in ["name", "identifier", "id"] if p in col_names), col_names[0])
-                for r in records:
-                    if r.get(pk_col): table_pks[table_name].add(str(r[pk_col]))
-
     resolver = EntityResolver()
     global_resolution_map = {} # table -> {old -> new}
 
-    # table -> canonical_pk -> list of records
-    # We need the full records to construct rich vectors
+    # table -> list of all extracted records
     table_to_full_records = defaultdict(list)
     with open("extracted_data_v8.jsonl", 'r') as f:
         for line in f:
@@ -114,7 +102,10 @@ def main():
         
         table_info = schema.get(table_name, {})
         pk_col = table_info.get("_meta", {}).get("primary_key")
-        definition = table_info.get("definition", "")
+        if not pk_col:
+            pk_col = [c["name"] for c in table_info.get("columns", [])][0] if table_info.get("columns") else "name"
+            
+        definition = table_info.get("definition", "an entity")
         
         # 1. Construct Rich Vectors for each unique PK mention in this table
         pk_to_rich_text = defaultdict(list)
@@ -122,7 +113,7 @@ def main():
             pk_val = str(r.get(pk_col, ""))
             if not pk_val or pk_val.lower() == "null": continue
             
-            # Construct summary of attributes
+            # Construct summary of attributes (Rich Vector)
             attrs = [f"{k}: {v}" for k, v in r.items() if k != pk_col and v and str(v).lower() != "null"]
             rich_sentence = f"{pk_val} is a {definition}."
             if attrs:
