@@ -2,7 +2,7 @@
   "Organization": {
     "columns": [
       {
-        "name": "name",
+        "name": "organization_name",
         "is_foreign_key": false,
         "references_table": null
       },
@@ -10,46 +10,14 @@
         "name": "Industry",
         "is_foreign_key": false,
         "references_table": null
-      },
-      {
-        "name": "headquarters_location",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "CompanyName",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "PrestigeLevel",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "Position",
-        "is_foreign_key": false,
-        "references_table": null
       }
     ],
-    "definition": "A structured data storage for organizations including their name, industry, headquarters location, company-specific details, prestige level, and position information."
+    "definition": "Organizations are defined as entities engaged in a specific industry.",
+    "_meta": {
+      "primary_key": "organization_name"
+    }
   },
-  "Drug": {
-    "columns": [
-      {
-        "name": "Drug_Name",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "Drug_Purpose",
-        "is_foreign_key": false,
-        "references_table": null
-      }
-    ],
-    "definition": "A physical structure storing details of drugs including their names and intended purposes."
-  },
-  "Substance": {
+  "Treatment": {
     "columns": [
       {
         "name": "name",
@@ -57,42 +25,30 @@
         "references_table": null
       },
       {
-        "name": "dosage",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "specific_ingredient",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "brand_names",
+        "name": "purpose",
         "is_foreign_key": false,
         "references_table": null
       }
     ],
-    "definition": "A physical representation containing details of different substances, including their names, dosages, specific ingredients, and brand names."
+    "definition": "A record representing a specific treatment method along with its intended purpose.",
+    "_meta": {
+      "primary_key": "name"
+    }
   },
   "Item": {
     "columns": [
       {
-        "name": "Model",
+        "name": "model",
         "is_foreign_key": false,
         "references_table": null
       },
       {
-        "name": "performance",
+        "name": "Condition",
         "is_foreign_key": false,
         "references_table": null
       },
       {
         "name": "status",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "price_class",
         "is_foreign_key": false,
         "references_table": null
       },
@@ -102,62 +58,12 @@
         "references_table": null
       },
       {
-        "name": "Condition",
-        "is_foreign_key": false,
-        "references_table": null
-      }
-    ],
-    "definition": "A physical representation of distinct items including their model, performance metrics, current status, price class, category, and condition."
-  },
-  "Individual": {
-    "columns": [
-      {
-        "name": "Individual_Name",
+        "name": "Role",
         "is_foreign_key": false,
         "references_table": null
       },
       {
-        "name": "Individual_Trait",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "Individual_Title",
-        "is_foreign_key": false,
-        "references_table": null
-      }
-    ],
-    "definition": "A record representing a unique individual, characterized by their name, a specific trait, and a title."
-  },
-  "FoodItem": {
-    "columns": [
-      {
-        "name": "item_name",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "nutrition_type",
-        "is_foreign_key": false,
-        "references_table": null
-      }
-    ],
-    "definition": "A physical representation of food items and their corresponding nutritional categories in the database."
-  },
-  "Subject": {
-    "columns": [
-      {
-        "name": "status",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "action",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "symptoms",
+        "name": "Brand",
         "is_foreign_key": false,
         "references_table": null
       },
@@ -167,11 +73,60 @@
         "references_table": null
       },
       {
+        "name": "nutrient",
+        "is_foreign_key": false,
+        "references_table": null
+      }
+    ],
+    "definition": "A physical representation of items including their model, condition, status, category, role, brand, name, and nutrient content.",
+    "_meta": {
+      "primary_key": "name"
+    }
+  },
+  "Individual": {
+    "columns": [
+      {
+        "name": "Individual_Name",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "Personality_Trait",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "Professional_Title",
+        "is_foreign_key": false,
+        "references_table": null
+      }
+    ],
+    "definition": "A record representing a unique individual, including their name, personality trait, and professional title.",
+    "_meta": {
+      "primary_key": "Individual_Name"
+    }
+  },
+  "Individua": {
+    "columns": [
+      {
+        "name": "status",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "complaints",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
         "name": "condition",
         "is_foreign_key": false,
         "references_table": null
       }
     ],
-    "definition": "A record of health-related information including status, action taken, symptoms reported, name, and current condition."
+    "definition": "A record representing an individual entity with attributes including status, complaints, and condition.",
+    "_meta": {
+      "primary_key": "status"
+    }
   }
 }
