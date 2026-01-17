@@ -110,15 +110,33 @@ def main():
         # 1. Construct Rich Vectors for each unique PK mention in this table
         pk_to_rich_text = defaultdict(list)
         for r in records:
-            pk_val = str(r.get(pk_col, ""))
-            if not pk_val or pk_val.lower() == "null": continue
+            pk_val = r.get(pk_col)
+            if pk_val is None or str(pk_val).lower() == "null": continue
+            
+            # Sanitization: If PK is somehow a stringified list or dict, skip it
+            # This shouldn't happen with the new extract_data.py but good for robustness
+            val_str = str(pk_val).strip()
+            if val_str.startswith('[') or val_str.startswith('{'):
+                print(f"  [DEBUG] Skipping resolution for complex PK: {val_str[:50]}...")
+                continue
             
             # Construct summary of attributes (Rich Vector)
-            attrs = [f"{k}: {v}" for k, v in r.items() if k != pk_col and v and str(v).lower() != "null"]
-            rich_sentence = f"{pk_val} is a {definition}."
-            if attrs:
-                rich_sentence += f" It has {', '.join(attrs)}."
-            pk_to_rich_text[pk_val].append(rich_sentence)
+            # Filter out nulls, empty strings, and the PK itself
+            attrs_list = []
+            for k, v in r.items():
+                if k != pk_col and v and str(v).lower() != "null":
+                    # If attribute value is a list/dict, stringify it concisely
+                    if isinstance(v, (list, dict)):
+                        v_str = json.dumps(v)
+                    else:
+                        v_str = str(v)
+                    attrs_list.append(f"{k}: {v_str}")
+            
+            rich_sentence = f"{val_str} is a {definition}."
+            if attrs_list:
+                rich_sentence += f" It has {', '.join(attrs_list)}."
+            
+            pk_to_rich_text[val_str].append(rich_sentence)
             
         # For each unique PK mention, take its most descriptive (longest) rich sentence
         unique_mentions = []

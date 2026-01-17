@@ -74,29 +74,32 @@ def extract_records(chunk: Dict, table_name: str, schema_info: Dict, client: Cli
     pk_col = schema_info.get("_meta", {}).get("primary_key")
     
     if not pk_col:
-        # Fallback if discovery failed to designate one
-        pk_col = cols[0] if cols else "name"
+        # Strict requirement: if no PK was designated, extraction is impossible
+        print(f"[ERROR] No Primary Key designated for table {table_name}. Skipping.")
+        return []
 
-    prompt = f"""Extract data for Table: **{table_name}**.
+    prompt = f"""Task: Extract data for Table: **{table_name}**.
 **Definition:** {definition}
-**Columns:** {json.dumps(cols)}
+**Target Columns:** {json.dumps(cols)}
+**Primary Key Column:** '{pk_col}'
 
-**Context:** "{chunk.get('previous_context', '')}"
-**Target Text:** "{chunk['text']}"
+**Context (Information from previous text):**
+"{chunk.get('previous_context', '')}"
 
-**INSTRUCTIONS:**
-1. READ THE CONTEXT FIRST. Identify any entities mentioned there (e.g., people, organizations, products).
-2. READ THE TARGET TEXT. 
-3. PRONOUN RESOLUTION: If the target text uses 'It', 'They', 'He', 'She', or 'The company', you MUST resolve them to the specific entity name from the Context or previous sentences.
-4. For every instance of '{table_name}' found, extract its attributes into the specified columns.
-5. The column '{pk_col}' should contain the unique identifier/name of the entity. Prioritize proper nouns or clear identifiers.
-6. If an attribute is missing, use null.
-7. Output strictly a JSON list of objects.
+**Target Text (Extract from this):**
+"{chunk['text']}"
 
-JSON FORMAT:
-[
-  {{"{pk_col}": "Resolved Entity Name", ...}}
-]"""
+**Instructions:**
+1. ANALYZE CONTEXT: Note entities, titles, or subjects mentioned in the context.
+2. ANALYZE TARGET TEXT: Identify instances of '{table_name}'.
+3. RESOLVE PRONOUNS: If the Target Text uses 'It', 'They', 'He', 'She', or 'The company', you MUST resolve them to the specific entity name found in the Context or the text itself.
+4. ATOMIC EXTRACTION: Extract one object per distinct entity.
+5. NO NARRATIVE LEAKAGE: The '{pk_col}' MUST be a concise name or identifier (max 5 words). Do not put full sentences or JSON blocks in the '{pk_col}'.
+6. DATA ALIGNMENT: Map extracted values strictly to the Target Columns. Use 'null' for missing values.
+7. REASONING: (Internal) Resolve all anaphora before generating JSON.
+
+**Output Format:** Strictly a JSON list of objects.
+Example: [{"{pk_col}": "Resolved Name", ...}]"""
 
     try:
         # Use a slightly higher temperature for Recall to avoid "Safe-Null" behavior
@@ -110,22 +113,16 @@ JSON FORMAT:
         if isinstance(content, list):
             extracted = content
         elif isinstance(content, dict):
-            # 1. Check for wrapped lists (e.g., {"entities": [...]}, {"ChemicalSubstance": [...]})
             found_list = False
             for key, value in content.items():
                 if isinstance(value, list) and len(value) > 0:
-                    # Prioritize lists that look like the table name or generic "entities"/"records"
-                    if key.lower() in [table_name.lower(), "entities", "records", "data", "rows"]:
+                    if key.lower() in [table_name.lower(), "entities", "records", "data", "rows", table_name.lower() + "s"]:
                         extracted = value
                         found_list = True
                         break
-            
-            # 2. If no list found but it's a flat dict, treat as a single record
             if not found_list:
-                # Check if it has keys that match target columns
                 if any(k in cols for k in content.keys()):
                     extracted = [content]
-                # Fallback: if it's not empty, just take it
                 elif content:
                     extracted = [content]
         
@@ -134,8 +131,8 @@ JSON FORMAT:
         for rec in extracted:
             if not isinstance(rec, dict): continue
             new_rec = {}
-            # Map keys case-insensitively and look for PK
             for k, v in rec.items():
+                # Case-insensitive column matching
                 matched = False
                 for target_col in cols:
                     if k.lower() == target_col.lower():
@@ -143,20 +140,31 @@ JSON FORMAT:
                         matched = True
                         break
                 if not matched:
-                    # Keep extra columns for now, they might be the PK with a different name
+                    # Capture unmapped keys in case they are the PK
                     new_rec[k] = v
             
             # Ensure the designated PK column is present
-            # If the LLM didn't output the exact PK column name, we might lose the record
-            # but we follow the instruction to be strict.
             if pk_col not in new_rec:
-                # Last resort: if there is only one key and it's not a target col, it might be the PK
-                if len(new_rec) == 1:
-                    only_key = list(new_rec.keys())[0]
-                    if only_key not in cols:
-                        new_rec[pk_col] = new_rec[only_key]
+                # If the LLM returned a flat dict with a different key for PK, try to find it
+                # but ONLY if there's a strong candidate that isn't already a column
+                for k, v in list(new_rec.items()):
+                    if k not in cols and isinstance(v, str) and len(v.split()) < 10:
+                        new_rec[pk_col] = v
+                        break
             
-            aligned_records.append(new_rec)
+            # FINAL PK SANITIZATION: Kill JSON-in-Value or Narrative leakage
+            pk_val = new_rec.get(pk_col)
+            if pk_val:
+                # If PK is a list or dict, it's a hallucination/extraction error
+                if isinstance(pk_val, (list, dict)):
+                    print(f"  [DEBUG] Discarding record: PK is complex object: {pk_val}")
+                    continue
+                # If PK is too long, it's narrative leakage
+                if len(str(pk_val).split()) > 10:
+                    print(f"  [DEBUG] Discarding record: PK is too long (Narrative Leakage): {pk_val}")
+                    continue
+                
+                aligned_records.append(new_rec)
             
         return aligned_records
     except Exception as e:
