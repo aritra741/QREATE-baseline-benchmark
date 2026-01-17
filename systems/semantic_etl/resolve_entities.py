@@ -79,62 +79,63 @@ def main():
             resolution_map[ent] = canonical_id
 
     # Step 4.3: Rewrite and Fuse
-    final_data = defaultdict(lambda: defaultdict(dict)) # table -> pk_val -> record
+    # table -> pk_val -> record
+    final_data_map = defaultdict(lambda: defaultdict(dict)) 
 
     for data in records:
         for table_name, table_rows in data.items():
             if table_name not in schema: continue
             
-            # Identify PK for this table (V2.1 Robust PK detection)
+            # Identify PK for this table
             col_names = [c["name"] for c in schema[table_name]["columns"]]
-            # Look for common PK names
             potential_pks = ["name", "identifier", "model", "id", "title"]
-            pk_col = None
-            for p in potential_pks:
-                if p in col_names:
-                    pk_col = p
-                    break
-            if not pk_col and col_names:
-                pk_col = col_names[0]
+            pk_col = next((p for p in potential_pks if p in col_names), col_names[0] if col_names else None)
             
             for row in table_rows:
-                # Rewrite values in all columns (if they are in the resolution map)
-                new_row = {}
-                for col_name, val in row.items():
-                    if isinstance(val, str) and val in resolution_map:
-                        new_row[col_name] = resolution_map[val]
-                    else:
-                        new_row[col_name] = val
+                new_row = {k: (resolution_map.get(v, v) if isinstance(v, str) else v) for k, v in row.items()}
                 
                 if not pk_col: continue
-                
-                # If PK is missing, try to find another string column to use as PK temporarily
                 pk_val = new_row.get(pk_col)
                 if pk_val is None or str(pk_val).lower() == "null":
-                    for cname, cval in new_row.items():
-                        if cval and isinstance(cval, str) and str(cval).lower() != "null":
-                            pk_val = cval
-                            break
+                    pk_val = next((v for v in new_row.values() if v and isinstance(v, str) and str(v).lower() != "null"), None)
                 
-                if pk_val is None or str(pk_val).lower() == "null":
-                    continue
+                if pk_val is None or str(pk_val).lower() == "null": continue
                 
-                # Fuse records (V2 Additive Fusion Logic)
-                existing_record = final_data[table_name][pk_val]
+                existing_record = final_data_map[table_name][pk_val]
                 for k, v in new_row.items():
-                    # If we haven't seen this key or current value is None/null, add it
                     if k not in existing_record or existing_record[k] is None or str(existing_record[k]).lower() == "null":
                         existing_record[k] = v
-                    # If we have a value, and the new value is different and not None...
                     elif v is not None and str(v).lower() != "null" and v != existing_record[k]:
-                        # Keep Longest (Heuristic for better description/more data)
                         if len(str(v)) > len(str(existing_record[k])):
                             existing_record[k] = v
+
+    # Step 4.4: Phase 4.4 - Polymorphic Entity Filter (Dense Winner Strategy)
+    # If an entity exists in multiple tables, keep it where it is most "dense" (most non-null attributes)
+    entity_to_tables = defaultdict(list)
+    for table_name, pk_map in final_data_map.items():
+        for pk_val in pk_map.keys():
+            entity_to_tables[pk_val].append(table_name)
     
+    for entity_name, tables in entity_to_tables.items():
+        if len(tables) > 1:
+            # Calculate density for each table
+            densities = []
+            for t in tables:
+                record = final_data_map[t][entity_name]
+                non_null_count = sum(1 for v in record.values() if v is not None and str(v).lower() != "null")
+                densities.append((non_null_count, t))
+            
+            # Sort by density (descending)
+            densities.sort(key=lambda x: x[0], reverse=True)
+            winner_table = densities[0][1]
+            
+            # Remove from other tables
+            for _, t in densities[1:]:
+                print(f"Hierarchy Filter: Removing {entity_name} from {t} (Winner: {winner_table})")
+                del final_data_map[t][entity_name]
+
     # Convert to regular dict for JSON
-    output_data = {}
-    for table_name, pk_map in final_data.items():
-        output_data[table_name] = list(pk_map.values())
+    output_data = {table_name: list(pk_map.values()) for table_name, pk_map in final_data_map.items()}
         
     with open("final_data.json", "w") as f:
         json.dump(output_data, f, indent=2)

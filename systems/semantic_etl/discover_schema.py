@@ -127,20 +127,22 @@ def audit_schema(draft_schema: Dict, client: Client) -> Dict:
     if not draft_schema:
         return {}
 
-    # Step 1: Merge Synonymous Tables
+    # Step 1: Force-Merge Synonymous Tables
     table_names = list(draft_schema.keys())
-    merge_prompt = f"""You are a database architect. Here is a list of raw tables discovered by a crawler:
+    merge_prompt = f"""You are a database normalization expert. Your task is to collapse a list of raw discovered tables into a minimal, high-quality relational schema.
+
+RAW TABLES:
 {json.dumps(table_names)}
 
 INSTRUCTIONS:
-1. Consolidate these into a clean, normalized schema with NO REDUNDANCY.
-2. Merge tables that refer to the same domain (e.g., 'Person' and 'Patient' -> 'Person').
-3. Merge tables that refer to similar clinical/health concepts (e.g., 'HealthCondition' and 'MedicalCondition').
-4. If a table name is a specific value or very narrow (e.g., 'Fruit', 'Medication'), merge it into a broader category if appropriate.
-5. Every single table in the input list MUST be mapped to a canonical name.
+1. Identify tables that refer to identical or near-identical concepts and MERGE them into a single canonical table.
+2. Group tables that share a clear semantic domain (e.g., if multiple tables describe different aspects of the same high-level entity).
+3. If a table name appears to be a specific instance or value rather than a category, merge it into its most appropriate broader category table.
+4. Every single table in the input list MUST be mapped to a canonical name.
+5. Your goal is to reduce redundancy and produce a clean, normalized schema with a minimal number of high-level tables.
 
-Output strictly a JSON object mapping OLD_NAME to CANONICAL_NAME.
-Example: {{"Patient": "Person", "HealthCondition": "MedicalCondition", "Medication": "Drug", "Fruit": "InventoryItem"}}"""
+Output strictly a JSON object mapping EVERY old table name to its new CANONICAL name.
+Example Format: {{"RawTableA": "CanonicalTable1", "RawTableB": "CanonicalTable1", "RawTableC": "CanonicalTable2"}}"""
 
     try:
         response = client.chat(model=MODEL_NAME, messages=[{'role': 'user', 'content': merge_prompt}], format='json')
@@ -170,11 +172,11 @@ Example: {{"Patient": "Person", "HealthCondition": "MedicalCondition", "Medicati
         sanitize_prompt = f"""Review the columns for the table '{table_name}':
 {json.dumps(col_names)}
 
-Identify any 'Column Names' that act closer to specific data values or entity instances (e.g., 'iPhone 15', 'Aspirin') rather than categories (e.g., 'model_name', 'drug_type').
-Rename them to their appropriate generic category name.
+Identify any 'Column Names' that act closer to specific data values or entity instances rather than generic categories.
+Rename them to their appropriate generic category name (column name).
 
 Output strictly a JSON object mapping OLD_NAME to NEW_NAME. If no change is needed, map it to itself.
-Example: {{"iPhone 15": "model_name", "Q3": "quarter", "price": "price"}}"""
+Example Format: {{"SpecificValue1": "generic_category_name", "category_name": "category_name"}}"""
 
         try:
             response = client.chat(model=MODEL_NAME, messages=[{'role': 'user', 'content': sanitize_prompt}], format='json')
@@ -199,17 +201,74 @@ Example: {{"iPhone 15": "model_name", "Q3": "quarter", "price": "price"}}"""
 
     return sanitized_schema
 
+def compute_semantic_overlap(cols1: List[str], cols2: List[str], embeddings_model) -> float:
+    if not cols1 or not cols2:
+        return 0.0
+    
+    vecs1 = embeddings_model.embed_documents(cols1)
+    vecs2 = embeddings_model.embed_documents(cols2)
+    
+    matches = 0
+    for v1 in vecs1:
+        for v2 in vecs2:
+            similarity = np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
+            if similarity > 0.85: # Semantic match threshold
+                matches += 1
+                break
+    
+    # Jaccard-like semantic similarity
+    return matches / len(set(cols1 + cols2))
+
+def crunch_schema(schema: Dict, embeddings_model) -> Dict:
+    """Phase 2.6: The Cruncher - Force merge tables with high semantic column overlap."""
+    table_names = list(schema.keys())
+    merged_tables = set()
+    final_schema = {}
+    
+    # Mapping to track where each table ended up
+    remap = {name: name for name in table_names}
+    
+    for i in range(len(table_names)):
+        t1 = table_names[i]
+        if t1 in merged_tables: continue
+        
+        for j in range(i + 1, len(table_names)):
+            t2 = table_names[j]
+            if t2 in merged_tables: continue
+            
+            cols1 = [c["name"] for c in schema[t1]["columns"]]
+            cols2 = [c["name"] for c in schema[t2]["columns"]]
+            
+            overlap = compute_semantic_overlap(cols1, cols2, embeddings_model)
+            if overlap > 0.5: # Overlap threshold
+                print(f"Cruncher: Force-merging {t2} into {t1} (Overlap: {overlap:.2f})")
+                merged_tables.add(t2)
+                remap[t2] = t1
+                
+                # Merge columns
+                existing_cols = {c["name"] for c in schema[t1]["columns"]}
+                for col in schema[t2]["columns"]:
+                    if col["name"] not in existing_cols:
+                        schema[t1]["columns"].append(col)
+                        existing_cols.add(col["name"])
+    
+    for name, info in schema.items():
+        if name not in merged_tables:
+            final_schema[name] = info
+            
+    return final_schema
+
 def discover_schema(chunks_file: str):
     with open(chunks_file, 'r') as f:
         chunks = json.load(f)
     
     client = get_llm_client()
+    embeddings_model = get_embeddings()
     
     print("Collecting observations from chunks...")
     raw_observations = get_observations(chunks)
     
     print("Clustering observations...")
-    embeddings_model = get_embeddings()
     raw_observations = cluster_observations(raw_observations, embeddings_model)
     
     # Step 2.3: Noise Filtering & Naming
@@ -255,7 +314,10 @@ def discover_schema(chunks_file: str):
         }
     
     print("Auditing and Sanitizing Schema (V2 Corrective Loop)...")
-    final_schema = audit_schema(draft_schema, client)
+    audited_schema = audit_schema(draft_schema, client)
+    
+    print("Crunching Schema (V3 Force-Normalization)...")
+    final_schema = crunch_schema(audited_schema, embeddings_model)
     
     # Step 2.5: Linkage Detection
     table_names = list(final_schema.keys())
