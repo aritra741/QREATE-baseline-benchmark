@@ -2,12 +2,7 @@
   "Organization": {
     "columns": [
       {
-        "name": "Name",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "Profitability",
+        "name": "name",
         "is_foreign_key": false,
         "references_table": null
       },
@@ -17,42 +12,44 @@
         "references_table": null
       },
       {
-        "name": "Action",
+        "name": "headquarters_location",
         "is_foreign_key": false,
         "references_table": null
       },
       {
-        "name": "RevenueLevel",
+        "name": "CompanyName",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "PrestigeLevel",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "Position",
         "is_foreign_key": false,
         "references_table": null
       }
-    ]
-  },
-  "Item": {
-    "columns": [
-      {
-        "name": "Competitor",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "Brand",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "Name",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "sales_performance",
-        "is_foreign_key": false,
-        "references_table": null
-      }
-    ]
+    ],
+    "definition": "A structured data storage for organizations including their name, industry, headquarters location, company-specific details, prestige level, and position information."
   },
   "Drug": {
+    "columns": [
+      {
+        "name": "Drug_Name",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "Drug_Purpose",
+        "is_foreign_key": false,
+        "references_table": null
+      }
+    ],
+    "definition": "A physical structure storing details of drugs including their names and intended purposes."
+  },
+  "Substance": {
     "columns": [
       {
         "name": "name",
@@ -60,22 +57,12 @@
         "references_table": null
       },
       {
-        "name": "Dosage",
+        "name": "dosage",
         "is_foreign_key": false,
         "references_table": null
       },
       {
-        "name": "Action",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "effectiveness",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "active_ingredient",
+        "name": "specific_ingredient",
         "is_foreign_key": false,
         "references_table": null
       },
@@ -84,50 +71,28 @@
         "is_foreign_key": false,
         "references_table": null
       }
-    ]
+    ],
+    "definition": "A physical representation containing details of different substances, including their names, dosages, specific ingredients, and brand names."
   },
-  "Plan": {
+  "Item": {
     "columns": [
       {
-        "name": "monthlyFee",
+        "name": "Model",
         "is_foreign_key": false,
         "references_table": null
       },
       {
-        "name": "Name",
+        "name": "performance",
         "is_foreign_key": false,
         "references_table": null
       },
       {
-        "name": "tierName",
-        "is_foreign_key": false,
-        "references_table": null
-      }
-    ]
-  },
-  "Individual": {
-    "columns": [
-      {
-        "name": "name",
+        "name": "status",
         "is_foreign_key": false,
         "references_table": null
       },
       {
-        "name": "trait",
-        "is_foreign_key": false,
-        "references_table": null
-      }
-    ]
-  },
-  "FoodItem": {
-    "columns": [
-      {
-        "name": "nutrient_content",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "name",
+        "name": "price_class",
         "is_foreign_key": false,
         "references_table": null
       },
@@ -137,35 +102,67 @@
         "references_table": null
       },
       {
-        "name": "brand_name",
+        "name": "Condition",
         "is_foreign_key": false,
         "references_table": null
       }
-    ]
+    ],
+    "definition": "A physical representation of distinct items including their model, performance metrics, current status, price class, category, and condition."
   },
-  "Entity": {
+  "Individual": {
     "columns": [
       {
-        "name": "name",
+        "name": "Individual_Name",
         "is_foreign_key": false,
         "references_table": null
       },
       {
-        "name": "work_field",
+        "name": "Individual_Trait",
         "is_foreign_key": false,
         "references_table": null
       },
+      {
+        "name": "Individual_Title",
+        "is_foreign_key": false,
+        "references_table": null
+      }
+    ],
+    "definition": "A record representing a unique individual, characterized by their name, a specific trait, and a title."
+  },
+  "FoodItem": {
+    "columns": [
+      {
+        "name": "item_name",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "nutrition_type",
+        "is_foreign_key": false,
+        "references_table": null
+      }
+    ],
+    "definition": "A physical representation of food items and their corresponding nutritional categories in the database."
+  },
+  "Subject": {
+    "columns": [
       {
         "name": "status",
         "is_foreign_key": false,
         "references_table": null
-      }
-    ]
-  },
-  "Client": {
-    "columns": [
+      },
       {
-        "name": "symptom_status",
+        "name": "action",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "symptoms",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "name",
         "is_foreign_key": false,
         "references_table": null
       },
@@ -173,46 +170,8 @@
         "name": "condition",
         "is_foreign_key": false,
         "references_table": null
-      },
-      {
-        "name": "symptom",
-        "is_foreign_key": false,
-        "references_table": null
       }
-    ]
-  },
-  "Device": {
-    "columns": [
-      {
-        "name": "Competitor Brand",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "PriceTarget",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "Model Name",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "Brand",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "Market Position",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "Metric",
-        "is_foreign_key": false,
-        "references_table": null
-      }
-    ]
+    ],
+    "definition": "A record of health-related information including status, action taken, symptoms reported, name, and current condition."
   }
 }
