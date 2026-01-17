@@ -22,18 +22,18 @@ class EntityResolver:
         self.model = CrossEncoder(SIMILARITY_MODEL_NAME)
         self.embeddings = get_embeddings()
         
-    def resolve_table_entities(self, unique_entities: List[str]) -> Dict[str, str]:
+    def resolve_table_entities(self, unique_entities: List[str], rich_texts: List[str]) -> Dict[str, str]:
         if not unique_entities: return {}
         if len(unique_entities) == 1: return {unique_entities[0]: unique_entities[0]}
             
-        # 1. HNSW Indexing
+        # 1. HNSW Indexing using Rich Texts
         dim = 1024
         index = faiss.IndexHNSWFlat(dim, 32)
-        embs = np.array(self.embeddings.embed_documents(unique_entities), dtype='float32')
+        embs = np.array(self.embeddings.embed_documents(rich_texts), dtype='float32')
         faiss.normalize_L2(embs)
         index.add(embs)
         
-        # 2. Retrieve & Rank
+        # 2. Retrieve & Rank (Using the same rich texts)
         D, I = index.search(embs, min(TOP_K_NEIGHBORS, len(unique_entities)))
         pairs = []
         pair_indices = []
@@ -93,9 +93,47 @@ def main():
     resolver = EntityResolver()
     global_resolution_map = {} # table -> {old -> new}
 
-    for table_name, pks in table_pks.items():
+    # table -> canonical_pk -> list of records
+    # We need the full records to construct rich vectors
+    table_to_full_records = defaultdict(list)
+    with open("extracted_data_v8.jsonl", 'r') as f:
+        for line in f:
+            entry = json.loads(line)
+            for table_name, records in entry["tables"].items():
+                table_to_full_records[table_name].extend(records)
+
+    for table_name, records in table_to_full_records.items():
         print(f"Resolving entities for table: {table_name}")
-        mapping = resolver.resolve_table_entities(list(pks))
+        
+        table_info = schema.get(table_name, {})
+        pk_col = table_info.get("_meta", {}).get("primary_key")
+        definition = table_info.get("definition", "")
+        
+        # 1. Construct Rich Vectors for each unique PK mention in this table
+        pk_to_rich_text = defaultdict(list)
+        for r in records:
+            pk_val = str(r.get(pk_col, ""))
+            if not pk_val or pk_val.lower() == "null": continue
+            
+            # Construct summary of attributes
+            attrs = [f"{k}: {v}" for k, v in r.items() if k != pk_col and v and str(v).lower() != "null"]
+            rich_sentence = f"{pk_val} is a {definition}."
+            if attrs:
+                rich_sentence += f" It has {', '.join(attrs)}."
+            pk_to_rich_text[pk_val].append(rich_sentence)
+            
+        # For each unique PK mention, take its most descriptive (longest) rich sentence
+        unique_mentions = []
+        rich_texts = []
+        for pk_val, sentences in pk_to_rich_text.items():
+            unique_mentions.append(pk_val)
+            rich_texts.append(max(sentences, key=len))
+            
+        if not unique_mentions: continue
+        
+        # 2. Resolve using Rich Vectors
+        print(f"  Indexing {len(unique_mentions)} rich entities...")
+        mapping = resolver.resolve_table_entities(unique_mentions, rich_texts)
         global_resolution_map[table_name] = mapping
 
     with open("resolution_map_v8.json", "w") as f:

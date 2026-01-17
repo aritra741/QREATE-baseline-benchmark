@@ -214,23 +214,43 @@ def crunch_schema(schema: Dict, embeddings_model) -> Dict:
     return final_schema
 
 def generate_definitions(schema: Dict, client: Client) -> Dict:
-    """Phase 2.5: Generate 1-sentence physical definitions for each table."""
-    print("Phase 2.5: Generating schema definitions (Truth Anchors)...")
+    """Phase 2.5: Generate 1-sentence physical definitions and identify Primary Key for each table."""
+    print("Phase 2.5: Generating schema definitions and identifying Primary Keys...")
     updated_schema = {}
     for table_name, table_info in schema.items():
         cols = [c["name"] for c in table_info["columns"]]
-        prompt = f"""Role: Data Architect.
+        
+        # 1. Generate Definition
+        def_prompt = f"""Role: Data Architect.
 Task: Write a 1-sentence physical definition for the database table: **{table_name}**.
 Context: It contains columns: {json.dumps(cols)}.
 Constraint: Be precise. (e.g., if table is 'Device', define it as 'Physical hardware equipment', not 'Technology').
 Output JSON: {{"definition": "string"}}"""
         
         try:
-            response = client.chat(model=MODEL_NAME, messages=[{'role': 'user', 'content': prompt}], format='json')
+            response = client.chat(model=MODEL_NAME, messages=[{'role': 'user', 'content': def_prompt}], format='json')
             content = json.loads(response['message']['content'])
             table_info["definition"] = content.get("definition", f"Data table for {table_name}")
         except:
             table_info["definition"] = f"Data table for {table_name}"
+
+        # 2. Identify Primary Key (No Heuristics)
+        pk_prompt = f"""Identify which of these attributes represents the unique Identifier or Name of the entity in the table '{table_name}'. 
+Attributes: {json.dumps(cols)}
+Constraint: Return strictly the column name that acts as the primary subject.
+Output JSON: {{"primary_key": "column_name"}}"""
+
+        try:
+            response = client.chat(model=MODEL_NAME, messages=[{'role': 'user', 'content': pk_prompt}], format='json')
+            content = json.loads(response['message']['content'])
+            pk = content.get("primary_key")
+            if pk in cols:
+                table_info["_meta"] = {"primary_key": pk}
+            else:
+                table_info["_meta"] = {"primary_key": cols[0]}
+        except:
+            table_info["_meta"] = {"primary_key": cols[0]}
+            
         updated_schema[table_name] = table_info
     return updated_schema
 

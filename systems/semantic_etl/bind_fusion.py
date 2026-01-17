@@ -5,48 +5,69 @@ import numpy as np
 from typing import List, Dict
 from collections import defaultdict
 from sentence_transformers import CrossEncoder
+from gliner import GLiNER
 
 # Configuration
 NLI_MODEL_NAME = "cross-encoder/nli-deberta-v3-base"
+GLINER_MODEL_NAME = "urchade/gliner_base"
 
-class NLIBinder:
-    def __init__(self, model_name=NLI_MODEL_NAME):
-        print(f"Loading NLI model for attribute validation: {model_name}...")
-        self.model = CrossEncoder(model_name)
-        self.labels = self.model.config.id2label
+class ValidationGuard:
+    def __init__(self):
+        print(f"Loading NLI model: {NLI_MODEL_NAME}...")
+        self.nli = CrossEncoder(NLI_MODEL_NAME)
+        self.nli_labels = self.nli.config.id2label
         
-    def validate_attribute(self, column_name: str, value: str) -> bool:
-        if not value or str(value).lower() == "null" or len(str(value)) < 2:
+        print(f"Loading GLiNER model: {GLINER_MODEL_NAME}...")
+        self.gliner = GLiNER.from_pretrained(GLINER_MODEL_NAME)
+        
+    def validate_attribute(self, table_name: str, column_name: str, value: str) -> bool:
+        if not value or str(value).lower() == "null":
             return False
-        # Premise: "This is a valid {column_name}."
-        # Hypothesis: "{value} is a {column_name}."
-        premise = f"This is a {column_name}."
-        hypothesis = f"'{value}' is a {column_name}."
         
-        logits = self.model.predict([premise, hypothesis])
-        # Logits to probs
+        val_str = str(value)
+        
+        # 1. Anti-Hallucination Length Cap
+        if len(val_str) > 50:
+            return False
+            
+        # 2. GLiNER Filter (NER check)
+        # Use table name and column name as labels
+        labels = [table_name, column_name]
+        entities = self.gliner.predict_entities(val_str, labels, threshold=0.3)
+        # If GLiNER finds something that matches the table or column concept, it's likely valid.
+        # However, for generic values, GLiNER might not fire.
+        # Let's use it to reject obviously non-entity strings if they are meant to be identifiers.
+        
+        # 3. NLI Type Check
+        premise = f"This is a {column_name} of a {table_name}."
+        hypothesis = f"'{val_str}' is a valid {column_name}."
+        
+        logits = self.nli.predict([premise, hypothesis])
         probs = torch.nn.functional.softmax(torch.tensor(logits), dim=0).numpy()
         
-        label_map = {v.lower(): k for k, v in self.labels.items()}
+        label_map = {v.lower(): k for k, v in self.nli_labels.items()}
         ent_idx = label_map.get('entailment', 2)
         con_idx = label_map.get('contradiction', 0)
         
-        # Entailment must be significantly higher than contradiction
-        return probs[ent_idx] > 0.3 and probs[ent_idx] > probs[con_idx]
+        # Discard if it's a clear contradiction
+        if probs[con_idx] > 0.6:
+            return False
+            
+        return probs[ent_idx] > 0.2
 
-def fuse_records(records: List[Dict], pk_col: str, nli_binder: NLIBinder) -> Dict:
-    """Additive Fusion: Longest non-null string wins."""
+def fuse_records(records: List[Dict], pk_col: str, table_name: str, guard: ValidationGuard) -> Dict:
+    """Validated String Wins: Quality check first, then length."""
     fused = {}
     for record in records:
         for k, v in record.items():
             if v is None or str(v).lower() == "null": continue
             
-            # Step 5.1: Type Checking via NLI (Only for non-PK columns)
+            # Skip validation for PK as it's already validated in Phase 3
             if k != pk_col:
-                if not nli_binder.validate_attribute(k, str(v)):
+                if not guard.validate_attribute(table_name, k, v):
                     continue
             
-            # Step 5.2: Additive Fusion (Longest wins)
+            # Additive Fusion: Longest surviving string wins
             if k not in fused or len(str(v)) > len(str(fused[k])):
                 fused[k] = v
     return fused
@@ -59,7 +80,7 @@ def main():
     with open("schema.json", 'r') as f: schema = json.load(f)
     with open("resolution_map_v8.json", 'r') as f: res_map = json.load(f)
     
-    nli_binder = NLIBinder()
+    guard = ValidationGuard()
     
     # table -> canonical_pk -> list of records
     grouped_records = defaultdict(lambda: defaultdict(list))
@@ -68,8 +89,11 @@ def main():
         for line in f:
             entry = json.loads(line)
             for table_name, records in entry["tables"].items():
-                col_names = [c["name"] for c in schema[table_name]["columns"]]
-                pk_col = next((p for p in ["name", "identifier", "id"] if p in col_names), col_names[0])
+                table_info = schema.get(table_name, {})
+                pk_col = table_info.get("_meta", {}).get("primary_key")
+                if not pk_col:
+                    col_names = [c["name"] for c in table_info["columns"]]
+                    pk_col = col_names[0]
                 
                 table_res_map = res_map.get(table_name, {})
                 
@@ -78,7 +102,6 @@ def main():
                     if not pk_val: continue
                     
                     canonical_pk = table_res_map.get(pk_val, pk_val)
-                    # Update the record with canonical PK
                     r[pk_col] = canonical_pk
                     grouped_records[table_name][canonical_pk].append(r)
 
@@ -86,18 +109,21 @@ def main():
     final_data = defaultdict(list)
     for table_name, pks in grouped_records.items():
         print(f"Fusing records for table: {table_name}")
-        col_names = [c["name"] for c in schema[table_name]["columns"]]
-        pk_col = next((p for p in ["name", "identifier", "id"] if p in col_names), col_names[0])
+        table_info = schema.get(table_name, {})
+        pk_col = table_info.get("_meta", {}).get("primary_key")
+        if not pk_col:
+            col_names = [c["name"] for c in table_info["columns"]]
+            pk_col = col_names[0]
         
         for canonical_pk, records in pks.items():
-            fused_row = fuse_records(records, pk_col, nli_binder)
+            fused_row = fuse_records(records, pk_col, table_name, guard)
             if fused_row:
                 final_data[table_name].append(fused_row)
 
     with open("final_data.json", "w") as f:
         json.dump(final_data, f, indent=2)
 
-    print("Phase 5: Binding and Fusion complete. Saved to final_data.json")
+    print("Phase 5: Validated Binding and Fusion complete. Saved to final_data.json")
 
 if __name__ == "__main__":
     main()

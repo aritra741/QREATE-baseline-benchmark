@@ -52,24 +52,29 @@ class NLIGuardrail:
         return probs[ent_idx] > 0.3 # Lower threshold for attributes
 
 def extract_records(chunk: Dict, table_name: str, schema_info: Dict, client: Client) -> List[Dict]:
-    """Phase 3.1: LLM Extraction (Recall) - Extracts full records."""
+    """Phase 3.1: LLM Extraction (Recall) - Extracts full records with Context-Aware Resolution."""
     cols = [c["name"] for c in schema_info["columns"]]
     definition = schema_info.get("definition", "")
+    pk_col = schema_info.get("_meta", {}).get("primary_key", cols[0])
     
     prompt = f"""Extract data for Table: **{table_name}**.
 **Definition:** {definition}
 **Columns:** {json.dumps(cols)}
-**Context:** {chunk.get('previous_context', '')}
-**Text:** {chunk['text']}
+**Context:** "{chunk.get('previous_context', '')}"
+**Target Text:** "{chunk['text']}"
 
 **INSTRUCTIONS:**
-1. Extract every instance of '{table_name}' and its attributes.
-2. If an attribute is missing, use null.
-3. Output strictly a JSON list of objects.
+1. READ THE CONTEXT FIRST. Identify all entities mentioned there (e.g., people, organizations, products).
+2. READ THE TARGET TEXT. 
+3. PRONOUN RESOLUTION: If the target text uses 'It', 'They', 'He', 'She', or 'The company', you MUST resolve them to the specific entity name from the Context or previous sentences.
+4. For every instance of '{table_name}' found, extract its attributes into the specified columns.
+5. The column '{pk_col}' MUST contain the unique identifier/name of the entity.
+6. If an attribute is missing, use null.
+7. Output strictly a JSON list of objects.
 
 JSON FORMAT:
 [
-  {{"{cols[0]}": "value", ...}}
+  {{"{pk_col}": "Resolved Entity Name", ...}}
 ]"""
 
     try:
@@ -101,13 +106,18 @@ def main():
             if not records: continue
             
             # Step 3.2: Precision (Validate PK)
-            col_names = [c["name"] for c in table_info["columns"]]
-            pk_col = next((p for p in ["name", "identifier", "id"] if p in col_names), col_names[0])
+            pk_col = table_info.get("_meta", {}).get("primary_key")
+            if not pk_col:
+                col_names = [c["name"] for c in table_info["columns"]]
+                pk_col = col_names[0]
             
             pk_candidates = [str(r.get(pk_col, "")) for r in records if r.get(pk_col)]
-            valid_pks = set(nli_guard.validate_entities(table_name, table_info["definition"], pk_candidates))
+            if not pk_candidates: continue
             
-            valid_records = [r for r in records if str(r.get(pk_col)) in valid_pks]
+            valid_pks = nli_guard.validate_entities(table_name, table_info["definition"], pk_candidates)
+            valid_pks_set = set(valid_pks)
+            
+            valid_records = [r for r in records if str(r.get(pk_col)) in valid_pks_set]
             if valid_records:
                 chunk_data["tables"][table_name] = valid_records
                 
