@@ -124,6 +124,7 @@ Example Format: {{"RawA": "Canonical1", "RawB": "Canonical1"}}"""
         merged_schema = {}
         for old_name, info in draft_schema.items():
             new_name = mapping.get(old_name, old_name)
+            if new_name is None: new_name = old_name # Guard against null mappings
             if new_name not in merged_schema:
                 merged_schema[new_name] = {"columns": [], "samples": []}
             
@@ -311,10 +312,13 @@ def discover_schema(chunks_file: str):
     # Phase 2.5: Definitions
     final_schema = generate_definitions(final_schema, client)
     
+    # Final cleanup: Remove any None keys that might have slipped through
+    final_schema = {k: v for k, v in final_schema.items() if k is not None}
+    
     with open("schema.json", "w") as f:
         json.dump(final_schema, f, indent=2)
     
-    print(f"Schema discovered with definitions. Tables: {', '.join(final_schema.keys())}")
+    print(f"Schema discovered with definitions. Tables: {', '.join(str(k) for k in final_schema.keys())}")
 
 if __name__ == "__main__":
     discover_schema("chunks.json")
