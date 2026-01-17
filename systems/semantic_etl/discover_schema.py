@@ -221,11 +221,12 @@ def generate_definitions(schema: Dict, client: Client) -> Dict:
     for table_name, table_info in schema.items():
         cols = [c["name"] for c in table_info["columns"]]
         
-        # 1. Generate Definition
+        # 1. Generate Definition (More inclusive for Recall)
         def_prompt = f"""Role: Data Architect.
-Task: Write a 1-sentence physical definition for the database table: **{table_name}**.
+Task: Write a physical definition for the database table: **{table_name}**.
 Context: It contains columns: {json.dumps(cols)}.
-Constraint: Be precise. (e.g., if table is 'Device', define it as 'Physical hardware equipment', not 'Technology').
+Constraint: Your definition must be broad enough to encompass all provided columns. 
+If the columns suggest multiple domains (e.g., corporate and biological), define it as a 'multi-faceted entity'.
 Output JSON: {{"definition": "string"}}"""
         
         try:

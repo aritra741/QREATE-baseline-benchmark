@@ -73,28 +73,33 @@ def extract_records(chunk: Dict, table_name: str, schema_info: Dict, client: Cli
     definition = schema_info.get("definition", "")
     pk_col = schema_info.get("_meta", {}).get("primary_key", cols[0])
     
-    prompt = f"""Extract data for Table: **{table_name}**.
-**Definition:** {definition}
-**Columns:** {json.dumps(cols)}
-**Context:** "{chunk.get('previous_context', '')}"
-**Target Text:** "{chunk['text']}"
+    prompt = f"""You are a database extraction agent.
+Table: **{table_name}**
+Definition: {definition}
+Target Columns: {json.dumps(cols)}
 
-**INSTRUCTIONS:**
-1. READ THE CONTEXT FIRST. Identify all entities mentioned there (e.g., people, organizations, products).
-2. READ THE TARGET TEXT. 
-3. PRONOUN RESOLUTION: If the target text uses 'It', 'They', 'He', 'She', or 'The company', you MUST resolve them to the specific entity name from the Context or previous sentences.
-4. For every instance of '{table_name}' found, extract its attributes into the specified columns.
-5. The column '{pk_col}' MUST contain the unique identifier/name of the entity.
-6. If an attribute is missing, use null.
-7. Output strictly a JSON list of objects.
+CONTEXT (from previous text): 
+"{chunk.get('previous_context', '')}"
+
+TARGET TEXT: 
+"{chunk['text']}"
+
+TASK:
+1. Identify all entities in the Target Text that fit the definition of a '{table_name}'.
+2. RESOLVE PRONOUNS: If the text says 'It', 'The device', 'The subject', etc., use the CONTEXT to find the actual name.
+3. For each entity, extract all available attributes.
+4. If no clear name exists for an attribute set, use the most descriptive subject found.
+
+Output strictly a JSON list of objects. If none found, output [].
 
 JSON FORMAT:
 [
-  {{"{pk_col}": "Resolved Entity Name", ...}}
+  {{"{pk_col}": "Resolved Name", "attribute": "value"}}
 ]"""
 
     try:
-        response = client.chat(model=MODEL_NAME, messages=[{'role': 'user', 'content': prompt}], format='json')
+        # Use a slightly higher temperature for Recall to avoid "Safe-Null" behavior
+        response = client.chat(model=MODEL_NAME, messages=[{'role': 'user', 'content': prompt}], format='json', options={"temperature": 0.3})
         content = json.loads(response['message']['content'])
         return content if isinstance(content, list) else []
     except:
