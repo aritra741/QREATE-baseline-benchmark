@@ -85,9 +85,17 @@ def main():
         for table_name, table_rows in data.items():
             if table_name not in schema: continue
             
-            # Identify PK for this table
+            # Identify PK for this table (V2.1 Robust PK detection)
             col_names = [c["name"] for c in schema[table_name]["columns"]]
-            pk_col = "name" if "name" in col_names else (col_names[0] if col_names else None)
+            # Look for common PK names
+            potential_pks = ["name", "identifier", "model", "id", "title"]
+            pk_col = None
+            for p in potential_pks:
+                if p in col_names:
+                    pk_col = p
+                    break
+            if not pk_col and col_names:
+                pk_col = col_names[0]
             
             for row in table_rows:
                 # Rewrite values in all columns (if they are in the resolution map)
@@ -100,8 +108,16 @@ def main():
                 
                 if not pk_col: continue
                 
+                # If PK is missing, try to find another string column to use as PK temporarily
                 pk_val = new_row.get(pk_col)
-                if pk_val is None: continue
+                if pk_val is None or str(pk_val).lower() == "null":
+                    for cname, cval in new_row.items():
+                        if cval and isinstance(cval, str) and str(cval).lower() != "null":
+                            pk_val = cval
+                            break
+                
+                if pk_val is None or str(pk_val).lower() == "null":
+                    continue
                 
                 # Fuse records (V2 Additive Fusion Logic)
                 existing_record = final_data[table_name][pk_val]

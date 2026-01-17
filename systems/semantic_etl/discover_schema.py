@@ -129,33 +129,26 @@ def audit_schema(draft_schema: Dict, client: Client) -> Dict:
 
     # Step 1: Merge Synonymous Tables
     table_names = list(draft_schema.keys())
-    merge_prompt = f"""Here is a list of discovered database table names:
+    merge_prompt = f"""You are a database architect. Here is a list of raw tables discovered by a crawler:
 {json.dumps(table_names)}
 
-Identify groups of tables that are synonymous or should be merged into a single canonical table. 
-Focus on common-sense relationships (e.g., 'Drugs' and 'Medication' should be 'Medication').
+INSTRUCTIONS:
+1. Consolidate these into a clean, normalized schema with NO REDUNDANCY.
+2. Merge tables that refer to the same domain (e.g., 'Person' and 'Patient' -> 'Person').
+3. Merge tables that refer to similar clinical/health concepts (e.g., 'HealthCondition' and 'MedicalCondition').
+4. If a table name is a specific value or very narrow (e.g., 'Fruit', 'Medication'), merge it into a broader category if appropriate.
+5. Every single table in the input list MUST be mapped to a canonical name.
 
-Output strictly a JSON list of lists, where each sub-list contains table names to merge.
-If no tables should be merged, output [].
-
-Example: [["MedicalCondition", "HealthCondition"], ["Drugs", "Medication"]]"""
+Output strictly a JSON object mapping OLD_NAME to CANONICAL_NAME.
+Example: {{"Patient": "Person", "HealthCondition": "MedicalCondition", "Medication": "Drug", "Fruit": "InventoryItem"}}"""
 
     try:
         response = client.chat(model=MODEL_NAME, messages=[{'role': 'user', 'content': merge_prompt}], format='json')
-        merges = json.loads(response['message']['content'])
-        
-        # Apply merges
-        canonical_map = {} # old_name -> new_name
-        for group in merges:
-            if not group: continue
-            # Use the most frequent or first name as canonical
-            canonical_name = group[0]
-            for table in group:
-                canonical_map[table] = canonical_name
+        mapping = json.loads(response['message']['content'])
         
         merged_schema = {}
-        for table, info in draft_schema.items():
-            new_name = canonical_map.get(table, table)
+        for old_name, info in draft_schema.items():
+            new_name = mapping.get(old_name, old_name)
             if new_name not in merged_schema:
                 merged_schema[new_name] = {"columns": []}
             

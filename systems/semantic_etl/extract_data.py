@@ -23,7 +23,9 @@ INSTRUCTIONS:
 1. Extract data ONLY for the Tables and Columns defined in the TARGET SCHEMA. Do not invent new columns.
 2. Foreign Key Rule: If a column is marked as a Foreign Key (e.g., 'manufacturer' linking to 'Company'), you MUST extract the specific Name/ID of that entity from the text.
 3. Null Rule: If an attribute is not explicitly mentioned in the text, set the value to null.
-4. Output strictly a JSON object containing a list of records for each table found.
+4. Data Quality Rule: Values must be CONCISE (names, numbers, dates, short identifiers). 
+5. NEVER extract full sentences or descriptive paragraphs as values. If the text only contains a long description without a clear attribute value, use null.
+6. Output strictly a JSON object containing a list of records for each table found.
 
 JSON FORMAT:
 {
