@@ -40,17 +40,20 @@ DOMAIN-AGNOSTIC EXAMPLES:
 
 JSON FORMAT:
 [
-  {{
+  {
     "type": "EntityTypeName",
     "attributes": ["attribute_name_1", "attribute_name_2"]
-  }}
+  }
 ]"""
 
     for chunk in chunks:
         text = chunk["text"]
         try:
+            # Avoid .format() issues with braces in the input text
+            prompt = prompt_template.replace("{chunk_text}", text)
+            
             response = client.chat(model=MODEL_NAME, messages=[
-                {'role': 'user', 'content': prompt_template.format(chunk_text=text)}
+                {'role': 'user', 'content': prompt}
             ], format='json')
             
             content = response['message']['content']
@@ -73,10 +76,15 @@ JSON FORMAT:
             
             for o in observations_to_add:
                 if isinstance(o, dict) and "type" in o and "attributes" in o:
+                    # Ensure attributes is a list
+                    if isinstance(o["attributes"], str):
+                        o["attributes"] = [o["attributes"]]
+                    
                     o["chunk_id"] = chunk["id"]
                     raw_observations.append(o)
         except Exception as e:
-            print(f"Error processing chunk {chunk['id']}: {e}")
+            # More descriptive error logging
+            print(f"Error processing chunk {chunk['id']}: {type(e).__name__}: {e}")
             
     return raw_observations
 

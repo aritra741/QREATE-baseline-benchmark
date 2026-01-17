@@ -26,28 +26,31 @@ INSTRUCTIONS:
 4. Output strictly a JSON object containing a list of records for each table found.
 
 JSON FORMAT:
-{{
+{
   "TableName1": [
-    {{"column1": "value", "column2": "value"}}
+    {"column1": "value", "column2": "value"}
   ],
   "TableName2": []
-}}"""
+}"""
 
     retries = 1
     for attempt in range(retries + 1):
         try:
+            # Use replace instead of format to avoid KeyError from braces in text/schema
+            prompt = prompt_template.replace("{chunk_text}", chunk_text).replace("{schema_json}", schema_json)
+            
             response = client.chat(model=MODEL_NAME, messages=[
-                {'role': 'user', 'content': prompt_template.format(chunk_text=chunk_text, schema_json=schema_json)}
+                {'role': 'user', 'content': prompt}
             ], format='json')
             
             data = json.loads(response['message']['content'])
             return data
         except Exception as e:
             if attempt == retries:
-                print(f"Failed to extract data after {retries} retries: {e}")
+                print(f"Failed to extract data after {retries} retries: {type(e).__name__}: {e}")
                 return {}
-            print(f"Extraction failed, retrying... Error: {e}")
-            
+            print(f"Extraction failed, retrying... Error: {type(e).__name__}: {e}")
+    
     return {}
 
 def main():
