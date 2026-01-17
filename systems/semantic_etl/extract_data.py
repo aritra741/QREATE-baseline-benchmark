@@ -28,63 +28,61 @@ Output strictly a JSON list of relevant table names. If none are relevant, outpu
     except:
         return table_names
 
-def extract_from_chunk(chunk_text: str, schema_json: str, client: Client) -> List[Dict]:
-    """Phase 3 (OpenIE Pass): Extract atomic facts as triples."""
-    prompt = f"""You are an Open Information Extraction (OpenIE) agent.
-    
-TARGET SCHEMA (for context):
-{schema_json}
 
-TEXT:
-{chunk_text}
 
-TASK:
-Extract every atomic fact about the entities in the text that relate to the TARGET SCHEMA.
-Format each fact as a 'Triple': (Subject, Attribute, Value).
+import json
+import os
+from typing import List, Dict
+from stanza.server import CoreNLPClient
 
-RULES:
-1. SUBJECT: The specific name/ID of the entity (e.g., 'Apple Inc.', 'iPhone 15', 'Ibuprofen').
-2. ATTRIBUTE: Must be a column name from the TARGET SCHEMA.
-3. VALUE: A concise data point (number, date, or short string).
-4. NEVER extract full sentences as values.
-5. Output strictly a JSON list of objects.
+# Configuration
+# CORE_NLP_HOME should point to where stanza.install_corenlp() put it
+CORE_NLP_HOME = os.path.expanduser("~/stanza_corenlp")
+os.environ["CORENLP_HOME"] = CORE_NLP_HOME
 
-JSON FORMAT:
-[
-  {{"subject": "Entity Name", "table": "TableName", "attribute": "col_name", "value": "data_point"}}
-]"""
-
-    try:
-        response = client.chat(model=MODEL_NAME, messages=[{'role': 'user', 'content': prompt}], format='json')
-        facts = json.loads(response['message']['content'])
-        return facts if isinstance(facts, list) else []
-    except:
-        return []
+def extract_triples_corenlp(text: str) -> List[Dict]:
+    """True OpenIE extraction using Stanford CoreNLP."""
+    triples = []
+    # Start the CoreNLP server for each chunk to ensure it stays in the context of this process
+    with CoreNLPClient(
+        annotators=['openie'],
+        timeout=30000,
+        memory='4G',
+        be_quiet=True
+    ) as client:
+        ann = client.annotate(text)
+        for sentence in ann.sentence:
+            for triple in sentence.openieTriple:
+                triples.append({
+                    "subject": triple.subject,
+                    "relation": triple.relation,
+                    "object": triple.object
+                })
+    return triples
 
 def main():
-    if not os.path.exists("schema.json") or not os.path.exists("chunks.json"):
-        print("Required files missing.")
+    if not os.path.exists("chunks.json"):
+        print("Required file chunks.json missing.")
         return
 
-    with open("schema.json", 'r') as f: schema = json.load(f)
     with open("chunks.json", 'r') as f: chunks = json.load(f)
-    client = get_llm_client()
     
-    with open("extracted_facts.jsonl", "w") as out_f:
+    # We output raw triples. Schema binding happens in the next phase.
+    with open("raw_triples.jsonl", "w") as out_f:
         for i, chunk in enumerate(chunks):
-            print(f"Mining facts from chunk {i+1}/{len(chunks)}...")
-            facts = extract_from_chunk(chunk["text"], json.dumps(schema), client)
-            
-            # V5 Quality Filter
-            for fact in facts:
-                # Discard narrative leakage (long values or PKs)
-                if len(str(fact.get("subject", ""))) > 60 or len(str(fact.get("value", ""))) > 100:
-                    continue
-                # Ensure the table and attribute actually exist in our schema
-                if fact.get("table") in schema:
-                    out_f.write(json.dumps(fact) + "\n")
+            print(f"Mining OpenIE triples from chunk {i+1}/{len(chunks)}...")
+            try:
+                triples = extract_triples_corenlp(chunk["text"])
+                for t in triples:
+                    t["chunk_id"] = chunk["id"]
+                    out_f.write(json.dumps(t) + "\n")
+            except Exception as e:
+                print(f"Error in OpenIE extraction: {e}")
 
-    print("Fact mining complete. Atomic facts saved to extracted_facts.jsonl")
+    print("OpenIE mining complete. Raw triples saved to raw_triples.jsonl")
+
+if __name__ == "__main__":
+    main()
 
     print("Extraction complete. Results saved to extracted_raw.jsonl")
 
