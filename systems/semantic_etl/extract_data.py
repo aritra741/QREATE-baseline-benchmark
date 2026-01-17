@@ -86,6 +86,11 @@ def main():
             
             # Step 3 Optimization: Schema Sharding
             relevant_table_names = get_relevant_tables(chunk["text"], schema, client)
+            
+            # Fallback: if pre-flight is empty but text is long, use all tables
+            if not relevant_table_names and len(chunk["text"]) > 100:
+                relevant_table_names = list(schema.keys())
+            
             if not relevant_table_names:
                 continue
             

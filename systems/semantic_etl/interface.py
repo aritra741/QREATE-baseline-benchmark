@@ -22,6 +22,11 @@ def build_database():
         print("Required files missing (schema.json or final_data.json)")
         return
 
+    # V3 HARD RESET: Delete existing database to remove ghost tables from previous runs
+    if os.path.exists(DB_PATH):
+        os.remove(DB_PATH)
+        print(f"Clean slate: removed existing {DB_PATH}")
+
     with open("schema.json", 'r') as f:
         schema = json.load(f)
     
@@ -121,13 +126,20 @@ INSTRUCTIONS:
         print(f"Generated SQL: {sql_query}")
         
         conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row # Enable name-based access
         cursor = conn.cursor()
         cursor.execute(sql_query)
-        results = cursor.fetchall()
         
-        print("\nQuery Results:")
-        for row in results:
-            print(row)
+        # V3 Better Printing: Show Headers
+        rows = cursor.fetchall()
+        if rows:
+            headers = rows[0].keys()
+            print("\n" + " | ".join(headers))
+            print("-" * (len(" | ".join(headers)) + 2))
+            for row in rows:
+                print(" | ".join(str(v) if v is not None else "NULL" for v in row))
+        else:
+            print("\nNo results found.")
         conn.close()
     except Exception as e:
         print(f"Error answering query: {e}")
