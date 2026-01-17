@@ -122,9 +122,95 @@ def cluster_observations(raw_observations: List[Dict], embeddings_model):
         
     return valid_observations
 
+def audit_schema(draft_schema: Dict, client: Client) -> Dict:
+    """Uses LLM to merge synonymous tables and sanitize column names."""
+    if not draft_schema:
+        return {}
+
+    # Step 1: Merge Synonymous Tables
+    table_names = list(draft_schema.keys())
+    merge_prompt = f"""Here is a list of discovered database table names:
+{json.dumps(table_names)}
+
+Identify groups of tables that are synonymous or should be merged into a single canonical table. 
+Focus on common-sense relationships (e.g., 'Drugs' and 'Medication' should be 'Medication').
+
+Output strictly a JSON list of lists, where each sub-list contains table names to merge.
+If no tables should be merged, output [].
+
+Example: [["MedicalCondition", "HealthCondition"], ["Drugs", "Medication"]]"""
+
+    try:
+        response = client.chat(model=MODEL_NAME, messages=[{'role': 'user', 'content': merge_prompt}], format='json')
+        merges = json.loads(response['message']['content'])
+        
+        # Apply merges
+        canonical_map = {} # old_name -> new_name
+        for group in merges:
+            if not group: continue
+            # Use the most frequent or first name as canonical
+            canonical_name = group[0]
+            for table in group:
+                canonical_map[table] = canonical_name
+        
+        merged_schema = {}
+        for table, info in draft_schema.items():
+            new_name = canonical_map.get(table, table)
+            if new_name not in merged_schema:
+                merged_schema[new_name] = {"columns": []}
+            
+            # Combine columns, avoid duplicates
+            existing_cols = {c["name"] for c in merged_schema[new_name]["columns"]}
+            for col in info["columns"]:
+                if col["name"] not in existing_cols:
+                    merged_schema[new_name]["columns"].append(col)
+                    existing_cols.add(col["name"])
+        
+        draft_schema = merged_schema
+    except Exception as e:
+        print(f"Warning: Table merge audit failed: {e}")
+
+    # Step 2: Sanitize Column Names (Values as Columns)
+    sanitized_schema = {}
+    for table_name, table_info in draft_schema.items():
+        col_names = [c["name"] for c in table_info["columns"]]
+        sanitize_prompt = f"""Review the columns for the table '{table_name}':
+{json.dumps(col_names)}
+
+Identify any 'Column Names' that act closer to specific data values or entity instances (e.g., 'iPhone 15', 'Aspirin') rather than categories (e.g., 'model_name', 'drug_type').
+Rename them to their appropriate generic category name.
+
+Output strictly a JSON object mapping OLD_NAME to NEW_NAME. If no change is needed, map it to itself.
+Example: {{"iPhone 15": "model_name", "Q3": "quarter", "price": "price"}}"""
+
+        try:
+            response = client.chat(model=MODEL_NAME, messages=[{'role': 'user', 'content': sanitize_prompt}], format='json')
+            mapping = json.loads(response['message']['content'])
+            
+            new_columns = []
+            seen_cols = set()
+            for col in table_info["columns"]:
+                new_col_name = mapping.get(col["name"], col["name"])
+                if new_col_name not in seen_cols:
+                    new_columns.append({
+                        "name": new_col_name,
+                        "is_foreign_key": col["is_foreign_key"],
+                        "references_table": col["references_table"]
+                    })
+                    seen_cols.add(new_col_name)
+            
+            sanitized_schema[table_name] = {"columns": new_columns}
+        except Exception as e:
+            print(f"Warning: Column sanitization failed for table {table_name}: {e}")
+            sanitized_schema[table_name] = table_info
+
+    return sanitized_schema
+
 def discover_schema(chunks_file: str):
     with open(chunks_file, 'r') as f:
         chunks = json.load(f)
+    
+    client = get_llm_client()
     
     print("Collecting observations from chunks...")
     raw_observations = get_observations(chunks)
@@ -146,7 +232,7 @@ def discover_schema(chunks_file: str):
             surviving_clusters[cluster_id] = canonical_name
     
     # Step 2.4: Attribute Normalization
-    final_schema = {}
+    draft_schema = {}
     for cluster_id, table_name in surviving_clusters.items():
         all_attrs = []
         for obs in raw_observations:
@@ -171,9 +257,12 @@ def discover_schema(chunks_file: str):
             canonical_col = Counter(attrs_in_group).most_common(1)[0][0]
             canonical_columns.append(canonical_col)
             
-        final_schema[table_name] = {
+        draft_schema[table_name] = {
             "columns": [{"name": col, "is_foreign_key": False, "references_table": None} for col in canonical_columns]
         }
+    
+    print("Auditing and Sanitizing Schema (V2 Corrective Loop)...")
+    final_schema = audit_schema(draft_schema, client)
     
     # Step 2.5: Linkage Detection
     table_names = list(final_schema.keys())

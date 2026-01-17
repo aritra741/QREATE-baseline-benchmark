@@ -61,7 +61,7 @@ def main():
     
     clustering = AgglomerativeClustering(
         n_clusters=None,
-        distance_threshold=0.1,
+        distance_threshold=0.2, # Relaxed from 0.1 to 0.2 for more aggressive merging (V2)
         metric='cosine',
         linkage='average'
     )
@@ -103,12 +103,16 @@ def main():
                 pk_val = new_row.get(pk_col)
                 if pk_val is None: continue
                 
-                # Fuse records
+                # Fuse records (V2 Additive Fusion Logic)
                 existing_record = final_data[table_name][pk_val]
                 for k, v in new_row.items():
-                    if v is not None:
-                        # Merge Logic: If Record A has null and Record B has value, keep value
-                        if k not in existing_record or existing_record[k] is None:
+                    # If we haven't seen this key or current value is None/null, add it
+                    if k not in existing_record or existing_record[k] is None or str(existing_record[k]).lower() == "null":
+                        existing_record[k] = v
+                    # If we have a value, and the new value is different and not None...
+                    elif v is not None and str(v).lower() != "null" and v != existing_record[k]:
+                        # Keep Longest (Heuristic for better description/more data)
+                        if len(str(v)) > len(str(existing_record[k])):
                             existing_record[k] = v
     
     # Convert to regular dict for JSON
