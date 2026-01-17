@@ -99,7 +99,7 @@ def extract_records(chunk: Dict, table_name: str, schema_info: Dict, client: Cli
 7. REASONING: (Internal) Resolve all anaphora before generating JSON.
 
 **Output Format:** Strictly a JSON list of objects.
-Example: [{"{pk_col}": "Resolved Name", ...}]"""
+Example: [{{ "{pk_col}": "Resolved Name", ... }}]"""
 
     try:
         # Use a slightly higher temperature for Recall to avoid "Safe-Null" behavior
