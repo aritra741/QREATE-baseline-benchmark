@@ -25,18 +25,19 @@ class ValidationGuard:
             return False
         
         val_str = str(value)
+        print(f"\n    --- FUSION DEBUG: Column '{column_name}' ---")
+        print(f"      Value: '{val_str}'")
         
         # 1. Anti-Hallucination Length Cap
         if len(val_str) > 50:
+            print("      Result: DISCARDED (Length Cap > 50)")
             return False
             
-        # 2. GLiNER Filter (NER check)
-        # Use table name and column name as labels
+        # 2. GLiNER Filter
         labels = [table_name, column_name]
         entities = self.gliner.predict_entities(val_str, labels, threshold=0.3)
-        # If GLiNER finds something that matches the table or column concept, it's likely valid.
-        # However, for generic values, GLiNER might not fire.
-        # Let's use it to reject obviously non-entity strings if they are meant to be identifiers.
+        gliner_found = [e['label'] for e in entities]
+        print(f"      GLiNER Labels Found: {gliner_found}")
         
         # 3. NLI Type Check
         premise = f"This is a {column_name} of a {table_name}."
@@ -49,11 +50,21 @@ class ValidationGuard:
         ent_idx = label_map.get('entailment', 2)
         con_idx = label_map.get('contradiction', 0)
         
-        # Discard if it's a clear contradiction
-        if probs[con_idx] > 0.6:
+        p_ent = probs[ent_idx]
+        p_con = probs[con_idx]
+        
+        print(f"      NLI Scores -> E: {p_ent:.4f}, C: {p_con:.4f}")
+        
+        if p_con > 0.6:
+            print("      Result: DISCARDED (NLI Contradiction)")
             return False
             
-        return probs[ent_idx] > 0.2
+        if p_ent > 0.2:
+            print("      Result: ACCEPTED (NLI Entailment)")
+            return True
+        
+        print("      Result: DISCARDED (Low Entailment)")
+        return False
 
 def fuse_records(records: List[Dict], pk_col: str, table_name: str, guard: ValidationGuard) -> Dict:
     """Validated String Wins: Quality check first, then length."""

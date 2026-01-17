@@ -26,13 +26,29 @@ class NLIGuardrail:
         label_map = {v.lower(): k for k, v in self.labels.items()}
         ent_idx = label_map.get('entailment', 2)
         con_idx = label_map.get('contradiction', 0)
+        neu_idx = label_map.get('neutral', 1)
         probs = torch.nn.functional.softmax(torch.tensor(logits), dim=1).numpy()
         
         valid = []
+        print(f"\n--- NLI DEBUG: Table '{table_name}' ---")
         for i, c in enumerate(candidates):
-            if probs[i][ent_idx] > 0.5: valid.append(c)
-            elif probs[i][con_idx] > 0.5: continue
-            else: valid.append(c) # Neutral
+            p_ent = probs[i][ent_idx]
+            p_con = probs[i][con_idx]
+            p_neu = probs[i][neu_idx]
+            
+            status = "REJECTED"
+            if p_ent > 0.5:
+                valid.append(c)
+                status = "ACCEPTED (Entailment)"
+            elif p_con > 0.5:
+                status = "DISCARDED (Contradiction)"
+            else:
+                valid.append(c) # Neutral fallback
+                status = "ACCEPTED (Neutral Fallback)"
+            
+            print(f"  Candidate: '{c}'")
+            print(f"    Scores -> E: {p_ent:.4f}, N: {p_neu:.4f}, C: {p_con:.4f}")
+            print(f"    Result: {status}")
         return valid
 
     def validate_attribute(self, column_name: str, value: str) -> bool:

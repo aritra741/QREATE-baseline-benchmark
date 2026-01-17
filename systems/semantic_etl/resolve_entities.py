@@ -53,12 +53,19 @@ class EntityResolver:
         
         # 3. Subsumption Merge (Short -> Long)
         parent = {e: e for e in unique_entities}
+        print("\n--- ER DEBUG: Similarity Scoring ---")
         for idx, score in enumerate(scores):
+            e1, e2 = pairs[idx]
+            status = "NO MERGE"
             if score > SIMILARITY_THRESHOLD:
-                e1, e2 = pairs[idx]
+                status = "MERGED"
                 # Specific Wins: Longest entity is the parent
                 if len(e1) <= len(e2): self._union(parent, e1, e2)
                 else: self._union(parent, e2, e1)
+            
+            if score > 0.5: # Only log interesting candidates
+                print(f"  Pair: '{e1}' <-> '{e2}'")
+                print(f"    Similarity: {score:.4f} -> {status}")
                     
         return {e: self._find(parent, e) for e in unique_entities}
 
