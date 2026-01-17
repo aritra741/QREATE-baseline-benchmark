@@ -162,7 +162,10 @@ Output strictly a JSON object mapping OLD_NAME to NEW_NAME."""
             seen_cols = set()
             for col in table_info["columns"]:
                 new_col_name = mapping.get(col["name"], col["name"])
-                if new_col_name not in seen_cols:
+                if new_col_name is None: new_col_name = col["name"] # Guard against null mappings
+                if not isinstance(new_col_name, str): new_col_name = str(new_col_name) # Ensure string
+                
+                if new_col_name and new_col_name not in seen_cols:
                     new_columns.append({
                         "name": new_col_name,
                         "is_foreign_key": col["is_foreign_key"],
@@ -177,6 +180,10 @@ Output strictly a JSON object mapping OLD_NAME to NEW_NAME."""
     return sanitized_schema
 
 def compute_semantic_overlap(cols1: List[str], cols2: List[str], embeddings_model) -> float:
+    # Filter out None values and ensure they are strings
+    cols1 = [str(c) for c in cols1 if c is not None]
+    cols2 = [str(c) for c in cols2 if c is not None]
+    
     if not cols1 or not cols2: return 0.0
     vecs1 = embeddings_model.embed_documents(cols1)
     vecs2 = embeddings_model.embed_documents(cols2)
@@ -249,9 +256,9 @@ Output JSON: {{"primary_key": "column_name"}}"""
             if pk in cols:
                 table_info["_meta"] = {"primary_key": pk}
             else:
-                table_info["_meta"] = {"primary_key": cols[0]}
+                table_info["_meta"] = {"primary_key": cols[0] if cols else None}
         except:
-            table_info["_meta"] = {"primary_key": cols[0]}
+            table_info["_meta"] = {"primary_key": cols[0] if cols else None}
             
         updated_schema[table_name] = table_info
     return updated_schema
