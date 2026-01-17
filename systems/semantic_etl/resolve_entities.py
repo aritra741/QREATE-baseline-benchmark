@@ -9,6 +9,40 @@ from collections import defaultdict
 def get_embeddings():
     return HuggingFaceEmbeddings(model_name="BAAI/bge-m3")
 
+class UnionFind:
+    def __init__(self, elements):
+        self.parent = {e: e for e in elements}
+        self.rank = {e: 0 for e in elements}
+    
+    def find(self, x):
+        if x not in self.parent:
+            self.parent[x] = x
+            self.rank[x] = 0
+        if self.parent[x] != x:
+            self.parent[x] = self.find(self.parent[x])
+        return self.parent[x]
+    
+    def union(self, x, y):
+        root_x = self.find(x)
+        root_y = self.find(y)
+        if root_x != root_y:
+            if self.rank[root_x] < self.rank[root_y]:
+                self.parent[root_x] = root_y
+            elif self.rank[root_x] > self.rank[root_y]:
+                self.parent[root_y] = root_x
+            else:
+                self.parent[root_y] = root_x
+                self.rank[root_x] += 1
+            return True
+        return False
+
+    def get_groups(self):
+        groups = defaultdict(list)
+        for element in self.parent:
+            root = self.find(element)
+            groups[root].append(element)
+        return groups
+
 def main():
     if not os.path.exists("schema.json") or not os.path.exists("extracted_raw.jsonl"):
         print("Required files missing (schema.json or extracted_raw.jsonl)")
@@ -17,66 +51,91 @@ def main():
     with open("schema.json", 'r') as f:
         schema = json.load(f)
 
-    # Identify columns to resolve: PKs and FKs
-    resolve_cols = defaultdict(set) # table -> set of column names
+    # Identify columns to check for links: PKs, FKs, and common identifier names
+    link_cols = defaultdict(set)
     for table_name, table_info in schema.items():
-        # Heuristic: PK is "name" if it exists, otherwise the first column
         col_names = [c["name"] for c in table_info["columns"]]
-        pk = "name" if "name" in col_names else (col_names[0] if col_names else None)
-        if pk:
-            resolve_cols[table_name].add(pk)
+        potential_pks = ["name", "identifier", "model", "id", "title", "drug_name", "active_ingredient", "brand_names"]
+        for col in col_names:
+            if col in potential_pks:
+                link_cols[table_name].add(col)
         
         for col in table_info["columns"]:
             if col["is_foreign_key"]:
-                resolve_cols[table_name].add(col["name"])
+                link_cols[table_name].add(col["name"])
 
-    # Step 4.1: Collect Candidates
+    # Step 4.1: Collect Candidates and Hard Links
     candidate_entities = set()
+    hard_links = [] 
     records = []
+    
     with open("extracted_raw.jsonl", 'r') as f:
         for line in f:
             chunk_record = json.loads(line)
             data = chunk_record["data"]
             records.append(data)
             for table_name, table_rows in data.items():
-                if table_name in resolve_cols:
-                    cols_to_check = resolve_cols[table_name]
-                    for row in table_rows:
-                        for col in cols_to_check:
-                            val = row.get(col)
-                            if val and isinstance(val, str):
-                                candidate_entities.add(val)
+                cols_to_check = link_cols.get(table_name, set())
+                for row in table_rows:
+                    row_entities = set()
+                    for col in cols_to_check:
+                        val = row.get(col)
+                        if val and isinstance(val, str) and str(val).lower() != "null":
+                            # Handle comma-separated strings
+                            parts = [p.strip() for p in val.split(",")]
+                            for p in parts:
+                                if p:
+                                    candidate_entities.add(p)
+                                    row_entities.add(p)
+                    if len(row_entities) > 1:
+                        hard_links.append(row_entities)
 
     if not candidate_entities:
         print("No entities found to resolve.")
-        # Create an empty final_data.json anyway
         with open("final_data.json", "w") as f:
             json.dump({}, f)
         return
 
-    # Step 4.2: Resolution Clustering
+    # Step 4.2: Resolution using Union-Find (V4 - GEM Style)
+    uf = UnionFind(candidate_entities)
+    
+    # 4.2.1: Apply Hard Links (Explicit co-occurrence in the same row)
+    print(f"Applying {len(hard_links)} hard links from extraction rows...")
+    for link_set in hard_links:
+        entities = list(link_set)
+        for i in range(len(entities) - 1):
+            uf.union(entities[i], entities[i+1])
+            
+    # 4.2.2: Apply Soft Links (Semantic Similarity Fallback)
     entity_list = sorted(list(candidate_entities))
     embeddings_model = get_embeddings()
+    print(f"Embedding {len(entity_list)} entities for semantic resolution...")
     vectors = embeddings_model.embed_documents(entity_list)
     
     clustering = AgglomerativeClustering(
         n_clusters=None,
-        distance_threshold=0.2, # Relaxed from 0.1 to 0.2 for more aggressive merging (V2)
+        distance_threshold=0.2, 
         metric='cosine',
         linkage='average'
     )
     labels = clustering.fit_predict(np.array(vectors))
     
-    # Map raw_string -> canonical_id (longest string in cluster)
+    print("Applying semantic links...")
     cluster_to_entities = defaultdict(list)
     for i, label in enumerate(labels):
         cluster_to_entities[label].append(entity_list[i])
     
+    for entities in cluster_to_entities.values():
+        for i in range(len(entities) - 1):
+            uf.union(entities[i], entities[i+1])
+            
+    # Create final resolution map: raw_string -> canonical_id (longest string in group)
+    groups = uf.get_groups()
     resolution_map = {}
-    for label, entities in cluster_to_entities.items():
-        canonical_id = max(entities, key=len)
-        for ent in entities:
-            resolution_map[ent] = canonical_id
+    for root, members in groups.items():
+        canonical_id = max(members, key=len)
+        for member in members:
+            resolution_map[member] = canonical_id
 
     # Step 4.3: Rewrite and Fuse
     # table -> pk_val -> record
