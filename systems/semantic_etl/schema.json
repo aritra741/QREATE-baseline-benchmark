@@ -2,17 +2,70 @@
   "Organization": {
     "columns": [
       {
+        "name": "identifier",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "industry",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "currency",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "innovations",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
         "name": "status",
         "is_foreign_key": false,
         "references_table": null
       },
       {
-        "name": "financial_data",
+        "name": "category",
         "is_foreign_key": false,
         "references_table": null
       },
       {
-        "name": "document",
+        "name": "name",
+        "is_foreign_key": false,
+        "references_table": null
+      }
+    ]
+  },
+  "InventoryItem": {
+    "columns": [
+      {
+        "name": "category_name",
+        "is_foreign_key": false,
+        "references_table": null
+      }
+    ]
+  },
+  "ChemicalSubstance": {
+    "columns": [
+      {
+        "name": "rating",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "identifier",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "purpose",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "status",
         "is_foreign_key": false,
         "references_table": null
       },
@@ -22,7 +75,17 @@
         "references_table": null
       },
       {
-        "name": "activity",
+        "name": "dosage",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "brand_names",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "effect",
         "is_foreign_key": false,
         "references_table": null
       }
@@ -31,17 +94,12 @@
   "SupplyChain": {
     "columns": [
       {
-        "name": "sales_volume",
+        "name": "reliability",
         "is_foreign_key": false,
         "references_table": null
       },
       {
-        "name": "price",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "status",
+        "name": "identifier",
         "is_foreign_key": false,
         "references_table": null
       },
@@ -51,12 +109,12 @@
         "references_table": null
       },
       {
-        "name": "sales_ranking",
+        "name": "power",
         "is_foreign_key": false,
         "references_table": null
       },
       {
-        "name": "color",
+        "name": "resilience",
         "is_foreign_key": false,
         "references_table": null
       },
@@ -66,17 +124,17 @@
         "references_table": null
       },
       {
-        "name": "name",
+        "name": "value",
         "is_foreign_key": false,
         "references_table": null
       },
       {
-        "name": "brand",
+        "name": "unit_type",
         "is_foreign_key": false,
         "references_table": null
       },
       {
-        "name": "material",
+        "name": "cost",
         "is_foreign_key": false,
         "references_table": null
       },
@@ -86,7 +144,12 @@
         "references_table": null
       },
       {
-        "name": "product",
+        "name": "status",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "launch",
         "is_foreign_key": false,
         "references_table": null
       },
@@ -94,62 +157,23 @@
         "name": "item",
         "is_foreign_key": false,
         "references_table": null
-      },
-      {
-        "name": "optimization_status",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "content",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "source",
-        "is_foreign_key": false,
-        "references_table": null
       }
     ]
   },
-  "ChemicalSubstance": {
+  "Service": {
     "columns": [
       {
-        "name": "id",
+        "name": "cost",
         "is_foreign_key": false,
         "references_table": null
       },
       {
-        "name": "effectiveness",
+        "name": "subscription_type",
         "is_foreign_key": false,
         "references_table": null
       },
       {
-        "name": "status",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "quantity",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "type",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "concentration",
-        "is_foreign_key": false,
-        "references_table": null
-      }
-    ]
-  },
-  "Person": {
-    "columns": [
-      {
-        "name": "price",
+        "name": "monthly_fee",
         "is_foreign_key": false,
         "references_table": null
       },
@@ -159,27 +183,7 @@
         "references_table": null
       },
       {
-        "name": "tier",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "presentation_topic",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "name",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "condition",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "treatment",
+        "name": "features",
         "is_foreign_key": false,
         "references_table": null
       },
@@ -187,9 +191,33 @@
         "name": "status",
         "is_foreign_key": false,
         "references_table": null
+      }
+    ]
+  },
+  "Patient": {
+    "columns": [
+      {
+        "name": "id",
+        "is_foreign_key": false,
+        "references_table": null
       },
       {
-        "name": "topic",
+        "name": "trait",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "location",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "opinion",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "position",
         "is_foreign_key": false,
         "references_table": null
       }
