@@ -1,120 +1,46 @@
 {
-  "Organization": {
+  "Entity": {
     "columns": [
       {
-        "name": "organization_name",
+        "name": "company_name",
         "is_foreign_key": false,
         "references_table": null
       },
       {
-        "name": "Industry",
-        "is_foreign_key": false,
-        "references_table": null
-      }
-    ],
-    "definition": "Organizations are defined as entities engaged in a specific industry.",
-    "_meta": {
-      "primary_key": "organization_name"
-    }
-  },
-  "Treatment": {
-    "columns": [
-      {
-        "name": "name",
+        "name": "industry",
         "is_foreign_key": false,
         "references_table": null
       },
       {
-        "name": "purpose",
+        "name": "business_activity",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "nutritional_value",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "part_utilized",
         "is_foreign_key": false,
         "references_table": null
       }
     ],
-    "definition": "A record representing a specific treatment method along with its intended purpose.",
+    "definition": "A record representing a company, including its name, industry, primary business activity, nutritional value score, and the portion of the entity that is utilized.",
     "_meta": {
-      "primary_key": "name"
+      "primary_key": "company_name"
     }
   },
   "Item": {
     "columns": [
       {
-        "name": "model",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "Condition",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "status",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "category",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "Role",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "Brand",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
         "name": "name",
         "is_foreign_key": false,
         "references_table": null
       },
       {
-        "name": "nutrient",
-        "is_foreign_key": false,
-        "references_table": null
-      }
-    ],
-    "definition": "A physical representation of items including their model, condition, status, category, role, brand, name, and nutrient content.",
-    "_meta": {
-      "primary_key": "name"
-    }
-  },
-  "Individual": {
-    "columns": [
-      {
-        "name": "Individual_Name",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "Personality_Trait",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "Professional_Title",
-        "is_foreign_key": false,
-        "references_table": null
-      }
-    ],
-    "definition": "A record representing a unique individual, including their name, personality trait, and professional title.",
-    "_meta": {
-      "primary_key": "Individual_Name"
-    }
-  },
-  "Individua": {
-    "columns": [
-      {
         "name": "status",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "complaints",
         "is_foreign_key": false,
         "references_table": null
       },
@@ -122,11 +48,125 @@
         "name": "condition",
         "is_foreign_key": false,
         "references_table": null
+      },
+      {
+        "name": "sales_status",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "price_type",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "reason",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "placement_in_market",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "brand",
+        "is_foreign_key": false,
+        "references_table": null
       }
     ],
-    "definition": "A record representing an individual entity with attributes including status, complaints, and condition.",
+    "definition": "A physical representation of distinct items, including their name, current status, condition, sales status, price type, reason for any discrepancies, placement in the market, and associated brand.",
     "_meta": {
-      "primary_key": "status"
+      "primary_key": "name"
+    }
+  },
+  "Person": {
+    "columns": [
+      {
+        "name": "health_status",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "condition",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "symptoms",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "diet",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "Name",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "characteristic",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "Title",
+        "is_foreign_key": false,
+        "references_table": null
+      }
+    ],
+    "definition": "A record containing information about an individual's health status, conditions, symptoms, diet, name, characteristics, and titles.",
+    "_meta": {
+      "primary_key": "Name"
+    }
+  },
+  "Device": {
+    "columns": [
+      {
+        "name": "model",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "battery_type",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "display_type",
+        "is_foreign_key": false,
+        "references_table": null
+      }
+    ],
+    "definition": "A physical representation of a technological device including its model, battery type, and display type.",
+    "_meta": {
+      "primary_key": "model"
+    }
+  },
+  "Treatment": {
+    "columns": [
+      {
+        "name": "medication",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "condition",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "Purpose",
+        "is_foreign_key": false,
+        "references_table": null
+      }
+    ],
+    "definition": "A record of prescribed medications, associated health conditions, and their intended purposes.",
+    "_meta": {
+      "primary_key": "medication"
     }
   }
 }
