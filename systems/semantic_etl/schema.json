@@ -1,13 +1,23 @@
 {
-  "Company": {
+  "Organization": {
     "columns": [
       {
-        "name": "status",
+        "name": "earnings",
         "is_foreign_key": false,
         "references_table": null
       },
       {
-        "name": "type",
+        "name": "category",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "name",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "filing_status",
         "is_foreign_key": false,
         "references_table": null
       },
@@ -15,44 +25,31 @@
         "name": "revenue",
         "is_foreign_key": false,
         "references_table": null
-      }
-    ]
-  },
-  "Product": {
-    "columns": [
+      },
       {
-        "name": "product_type",
-        "is_foreign_key": false,
-        "references_table": null
-      }
-    ]
-  },
-  "Patient": {
-    "columns": [
-      {
-        "name": "condition",
+        "name": "activity",
         "is_foreign_key": false,
         "references_table": null
       },
       {
-        "name": "health_status",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "therapy",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "diagnosis",
+        "name": "focus",
         "is_foreign_key": false,
         "references_table": null
       }
     ]
   },
-  "Medication": {
+  "InventoryItem": {
     "columns": [
+      {
+        "name": "company",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "category",
+        "is_foreign_key": false,
+        "references_table": null
+      },
       {
         "name": "identifier",
         "is_foreign_key": false,
@@ -64,12 +61,42 @@
         "references_table": null
       },
       {
-        "name": "effectiveness",
+        "name": "product_name",
         "is_foreign_key": false,
         "references_table": null
       },
       {
-        "name": "availability",
+        "name": "source",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "content",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "nutrient",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "value",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "quantity",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "unit_type",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "cost",
         "is_foreign_key": false,
         "references_table": null
       }
@@ -78,17 +105,12 @@
   "Device": {
     "columns": [
       {
-        "name": "performance",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
         "name": "model_name",
         "is_foreign_key": false,
         "references_table": null
       },
       {
-        "name": "reliability",
+        "name": "performance",
         "is_foreign_key": false,
         "references_table": null
       },
@@ -98,21 +120,12 @@
         "references_table": null
       },
       {
-        "name": "resilience",
-        "is_foreign_key": false,
-        "references_table": null
-      }
-    ]
-  },
-  "Subscription": {
-    "columns": [
-      {
-        "name": "category",
+        "name": "reliability",
         "is_foreign_key": false,
         "references_table": null
       },
       {
-        "name": "price",
+        "name": "functionality",
         "is_foreign_key": false,
         "references_table": null
       }
@@ -136,7 +149,7 @@
         "references_table": null
       },
       {
-        "name": "topic",
+        "name": "profession",
         "is_foreign_key": false,
         "references_table": null
       },
@@ -146,40 +159,17 @@
         "references_table": null
       },
       {
-        "name": "position",
-        "is_foreign_key": false,
-        "references_table": null
-      }
-    ]
-  },
-  "InventoryItem": {
-    "columns": [
-      {
-        "name": "category",
+        "name": "opinion",
         "is_foreign_key": false,
         "references_table": null
       },
       {
-        "name": "quantity",
+        "name": "occupation",
         "is_foreign_key": false,
         "references_table": null
       },
       {
-        "name": "unit_type",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "cost",
-        "is_foreign_key": false,
-        "references_table": null
-      }
-    ]
-  },
-  "HealthCondition": {
-    "columns": [
-      {
-        "name": "treatment",
+        "name": "symptoms",
         "is_foreign_key": false,
         "references_table": null
       },
@@ -187,66 +177,42 @@
         "name": "status",
         "is_foreign_key": false,
         "references_table": null
-      }
-    ]
-  },
-  "Organization": {
-    "columns": [
-      {
-        "name": "name",
-        "is_foreign_key": false,
-        "references_table": null
       },
       {
-        "name": "type",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "document",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "event",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "status",
+        "name": "condition",
         "is_foreign_key": false,
         "references_table": null
       }
     ]
   },
-  "Fruit": {
+  "ResearchStudy": {
     "columns": [
       {
-        "name": "value",
+        "name": "study_status",
         "is_foreign_key": false,
         "references_table": null
       },
       {
-        "name": "name",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "identifier",
+        "name": "subject_area",
         "is_foreign_key": false,
         "references_table": null
       }
     ]
   },
-  "Study": {
+  "Drug": {
     "columns": [
       {
-        "name": "category",
+        "name": "drug_name",
         "is_foreign_key": false,
         "references_table": null
       },
       {
-        "name": "topic",
+        "name": "effectiveness",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "intended_use",
         "is_foreign_key": false,
         "references_table": null
       }
