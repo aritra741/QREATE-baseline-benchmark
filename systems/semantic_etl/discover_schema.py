@@ -21,54 +21,43 @@ def get_observations(chunks: List[Dict]) -> List[Dict]:
     client = get_llm_client()
     raw_observations = []
     
-    prompt_template = """Analyze the provided text to discover its underlying relational structure. Identify real-world Entity Types and the generic Attribute Names that define their properties.
+    prompt_template = """Analyze the provided text to discover its underlying relational structure. Identify real-world Entity Types and their Attributes.
 
 TEXT:
 {chunk_text}
 
 INSTRUCTIONS:
-1. Focus on "Noun-Property" relationships. What entities are being described, and what specific categories of information are provided about them?
-2. Attributes must be GENERIC CATEGORY NAMES (e.g., "identifier", "cost", "status", "category").
-3. NEVER use specific values from the text as attribute names.
+1. Identify Entity Types (things that store data) and their Attributes.
+2. For each Attribute, provide an EXAMPLE VALUE found in the text.
+3. Attributes must be GENERIC categories.
 4. Output strictly a JSON list of objects.
-5. If no entities are found, output an empty list [].
-
-DOMAIN-AGNOSTIC EXAMPLES:
-- For "The flight BA202 to London is delayed, costing $400", return: {"type": "Transport", "attributes": ["id", "destination", "status", "price"]}
-- For "Employee 101 in Sales earned a bonus of 5000", return: {"type": "Staff", "attributes": ["id", "department", "compensation"]}
-- For "The 5-star Hotel Ritz has 200 rooms", return: {"type": "Accommodation", "attributes": ["rating", "name", "capacity"]}
 
 JSON FORMAT:
 [
-  {
+  {{
     "type": "EntityTypeName",
-    "attributes": ["attribute_name_1", "attribute_name_2"]
-  }
+    "attributes": {{
+      "attribute_name": "example_value",
+      "attribute_name_2": "example_value"
+    }}
+  }}
 ]"""
 
     for chunk in chunks:
         text = chunk["text"]
         try:
-            # Avoid .format() issues with braces in the input text
             prompt = prompt_template.replace("{chunk_text}", text)
-            
-            response = client.chat(model=MODEL_NAME, messages=[
-                {'role': 'user', 'content': prompt}
-            ], format='json')
-            
+            response = client.chat(model=MODEL_NAME, messages=[{'role': 'user', 'content': prompt}], format='json')
             content = response['message']['content']
             obs = json.loads(content)
             
-            # Robust parsing of the LLM response
             observations_to_add = []
             if isinstance(obs, list):
                 observations_to_add = obs
             elif isinstance(obs, dict):
-                # Check if it's a single observation or a wrapper
                 if "type" in obs and "attributes" in obs:
                     observations_to_add = [obs]
                 else:
-                    # Look for any list in the dict that might contain observations
                     for key, value in obs.items():
                         if isinstance(value, list) and len(value) > 0 and isinstance(value[0], dict) and "type" in value[0]:
                             observations_to_add = value
@@ -76,15 +65,10 @@ JSON FORMAT:
             
             for o in observations_to_add:
                 if isinstance(o, dict) and "type" in o and "attributes" in o:
-                    # Ensure attributes is a list
-                    if isinstance(o["attributes"], str):
-                        o["attributes"] = [o["attributes"]]
-                    
                     o["chunk_id"] = chunk["id"]
                     raw_observations.append(o)
         except Exception as e:
-            # More descriptive error logging
-            print(f"Error processing chunk {chunk['id']}: {type(e).__name__}: {e}")
+            pass
             
     return raw_observations
 
@@ -122,27 +106,19 @@ def cluster_observations(raw_observations: List[Dict], embeddings_model):
         
     return valid_observations
 
-def audit_schema(draft_schema: Dict, client: Client) -> Dict:
-    """Uses LLM to merge synonymous tables and sanitize column names."""
+def audit_schema(draft_schema: Dict, raw_obs: List[Dict], client: Client) -> Dict:
+    """Uses LLM to merge synonymous tables and sanitize column names using data context."""
     if not draft_schema:
         return {}
 
-    # Step 1: Force-Merge Synonymous Tables
+    # Step 1: Merge Synonymous Tables
     table_names = list(draft_schema.keys())
-    merge_prompt = f"""You are a database normalization expert. Your task is to collapse a list of raw discovered tables into a minimal, high-quality relational schema.
-
-RAW TABLES:
+    merge_prompt = f"""You are a database normalization expert. Review these raw discovered table names:
 {json.dumps(table_names)}
 
-INSTRUCTIONS:
-1. Identify tables that refer to identical or near-identical concepts and MERGE them into a single canonical table.
-2. Group tables that share a clear semantic domain (e.g., if multiple tables describe different aspects of the same high-level entity).
-3. If a table name appears to be a specific instance or value rather than a category, merge it into its most appropriate broader category table.
-4. Every single table in the input list MUST be mapped to a canonical name.
-5. Your goal is to reduce redundancy and produce a clean, normalized schema with a minimal number of high-level tables.
-
+Identify tables that refer to identical or near-identical concepts and map them to a single CANONICAL name.
 Output strictly a JSON object mapping EVERY old table name to its new CANONICAL name.
-Example Format: {{"RawTableA": "CanonicalTable1", "RawTableB": "CanonicalTable1", "RawTableC": "CanonicalTable2"}}"""
+Example Format: {{"RawA": "Canonical1", "RawB": "Canonical1"}}"""
 
     try:
         response = client.chat(model=MODEL_NAME, messages=[{'role': 'user', 'content': merge_prompt}], format='json')
@@ -152,31 +128,36 @@ Example Format: {{"RawTableA": "CanonicalTable1", "RawTableB": "CanonicalTable1"
         for old_name, info in draft_schema.items():
             new_name = mapping.get(old_name, old_name)
             if new_name not in merged_schema:
-                merged_schema[new_name] = {"columns": []}
+                merged_schema[new_name] = {"columns": [], "samples": []}
             
-            # Combine columns, avoid duplicates
             existing_cols = {c["name"] for c in merged_schema[new_name]["columns"]}
             for col in info["columns"]:
                 if col["name"] not in existing_cols:
                     merged_schema[new_name]["columns"].append(col)
                     existing_cols.add(col["name"])
+            
+            # Aggregate sample values for the next step
+            for obs in raw_obs:
+                if obs["type"] == old_name:
+                    merged_schema[new_name]["samples"].append(obs["attributes"])
         
         draft_schema = merged_schema
     except Exception as e:
         print(f"Warning: Table merge audit failed: {e}")
 
-    # Step 2: Sanitize Column Names (Values as Columns)
+    # Step 2: Sanitize Column Names using Data Context
     sanitized_schema = {}
     for table_name, table_info in draft_schema.items():
         col_names = [c["name"] for c in table_info["columns"]]
-        sanitize_prompt = f"""Review the columns for the table '{table_name}':
-{json.dumps(col_names)}
+        # Show top 5 sample extractions to help model distinguish values from columns
+        samples = table_info.get("samples", [])[:5]
+        
+        sanitize_prompt = f"""Review the columns for table '{table_name}':
+Columns: {json.dumps(col_names)}
+Sample Data: {json.dumps(samples)}
 
-Identify any 'Column Names' that act closer to specific data values or entity instances rather than generic categories.
-Rename them to their appropriate generic category name (column name).
-
-Output strictly a JSON object mapping OLD_NAME to NEW_NAME. If no change is needed, map it to itself.
-Example Format: {{"SpecificValue1": "generic_category_name", "category_name": "category_name"}}"""
+Identify columns that act as specific data values rather than generic categories. Rename them.
+Output strictly a JSON object mapping OLD_NAME to NEW_NAME."""
 
         try:
             response = client.chat(model=MODEL_NAME, messages=[{'role': 'user', 'content': sanitize_prompt}], format='json')
@@ -196,8 +177,7 @@ Example Format: {{"SpecificValue1": "generic_category_name", "category_name": "c
             
             sanitized_schema[table_name] = {"columns": new_columns}
         except Exception as e:
-            print(f"Warning: Column sanitization failed for table {table_name}: {e}")
-            sanitized_schema[table_name] = table_info
+            sanitized_schema[table_name] = {"columns": table_info["columns"]}
 
     return sanitized_schema
 
@@ -313,8 +293,8 @@ def discover_schema(chunks_file: str):
             "columns": [{"name": col, "is_foreign_key": False, "references_table": None} for col in canonical_columns]
         }
     
-    print("Auditing and Sanitizing Schema (V2 Corrective Loop)...")
-    audited_schema = audit_schema(draft_schema, client)
+    print("Auditing and Sanitizing Schema (V4 Data-Aware Loop)...")
+    audited_schema = audit_schema(draft_schema, raw_observations, client)
     
     print("Crunching Schema (V3 Force-Normalization)...")
     final_schema = crunch_schema(audited_schema, embeddings_model)

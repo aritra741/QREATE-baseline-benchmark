@@ -64,31 +64,24 @@ def main():
             if col["is_foreign_key"]:
                 link_cols[table_name].add(col["name"])
 
-    # Step 4.1: Collect Candidates and Hard Links
+    # Step 4.1: Bind Facts to Schema (V5 Binder)
+    # table -> subject -> attributes_dict
+    bound_data = defaultdict(lambda: defaultdict(dict))
     candidate_entities = set()
-    hard_links = [] 
-    records = []
     
-    with open("extracted_raw.jsonl", 'r') as f:
-        for line in f:
-            chunk_record = json.loads(line)
-            data = chunk_record["data"]
-            records.append(data)
-            for table_name, table_rows in data.items():
-                cols_to_check = link_cols.get(table_name, set())
-                for row in table_rows:
-                    row_entities = set()
-                    for col in cols_to_check:
-                        val = row.get(col)
-                        if val and isinstance(val, str) and str(val).lower() != "null":
-                            # Handle comma-separated strings
-                            parts = [p.strip() for p in val.split(",")]
-                            for p in parts:
-                                if p:
-                                    candidate_entities.add(p)
-                                    row_entities.add(p)
-                    if len(row_entities) > 1:
-                        hard_links.append(row_entities)
+    if os.path.exists("extracted_facts.jsonl"):
+        with open("extracted_facts.jsonl", 'r') as f:
+            for line in f:
+                fact = json.loads(line)
+                table = fact["table"]
+                subject = fact["subject"]
+                attr = fact["attribute"]
+                val = fact["value"]
+                
+                candidate_entities.add(subject)
+                # Group all attributes for this subject in this table
+                if val and str(val).lower() != "null":
+                    bound_data[table][subject][attr] = val
 
     if not candidate_entities:
         print("No entities found to resolve.")
@@ -96,20 +89,13 @@ def main():
             json.dump({}, f)
         return
 
-    # Step 4.2: Resolution using Union-Find (V4 - GEM Style)
+    # Step 4.2: Resolution using Union-Find (V5 Semantic Resolver)
     uf = UnionFind(candidate_entities)
     
-    # 4.2.1: Apply Hard Links (Explicit co-occurrence in the same row)
-    print(f"Applying {len(hard_links)} hard links from extraction rows...")
-    for link_set in hard_links:
-        entities = list(link_set)
-        for i in range(len(entities) - 1):
-            uf.union(entities[i], entities[i+1])
-            
-    # 4.2.2: Apply Soft Links (Semantic Similarity Fallback)
+    # 4.2.1: Semantic Similarity Links
     entity_list = sorted(list(candidate_entities))
     embeddings_model = get_embeddings()
-    print(f"Embedding {len(entity_list)} entities for semantic resolution...")
+    print(f"Resolving {len(entity_list)} distinct subjects via Union-Find...")
     vectors = embeddings_model.embed_documents(entity_list)
     
     clustering = AgglomerativeClustering(
@@ -120,7 +106,6 @@ def main():
     )
     labels = clustering.fit_predict(np.array(vectors))
     
-    print("Applying semantic links...")
     cluster_to_entities = defaultdict(list)
     for i, label in enumerate(labels):
         cluster_to_entities[label].append(entity_list[i])
@@ -129,44 +114,29 @@ def main():
         for i in range(len(entities) - 1):
             uf.union(entities[i], entities[i+1])
             
-    # Create final resolution map: raw_string -> canonical_id (longest string in group)
+    # Map raw_string -> canonical_id
     groups = uf.get_groups()
-    resolution_map = {}
-    for root, members in groups.items():
-        canonical_id = max(members, key=len)
-        for member in members:
-            resolution_map[member] = canonical_id
+    resolution_map = {member: max(members, key=len) for members in groups.values() for member in members}
 
-    # Step 4.3: Rewrite and Fuse
-    # table -> pk_val -> record
-    final_data_map = defaultdict(lambda: defaultdict(dict)) 
-
-    for data in records:
-        for table_name, table_rows in data.items():
-            if table_name not in schema: continue
+    # Step 4.3: Additive Fusion (Combine triples into final rows)
+    final_data_map = defaultdict(lambda: defaultdict(dict))
+    
+    for table, subjects in bound_data.items():
+        for subject, attributes in subjects.items():
+            canonical_id = resolution_map.get(subject, subject)
             
-            # Identify PK for this table
-            col_names = [c["name"] for c in schema[table_name]["columns"]]
-            potential_pks = ["name", "identifier", "model", "id", "title"]
-            pk_col = next((p for p in potential_pks if p in col_names), col_names[0] if col_names else None)
+            # Identify PK column for this table
+            col_names = [c["name"] for c in schema.get(table, {}).get("columns", [])]
+            pk_col = next((p for p in ["name", "identifier", "model", "id"] if p in col_names), col_names[0] if col_names else "name")
             
-            for row in table_rows:
-                new_row = {k: (resolution_map.get(v, v) if isinstance(v, str) else v) for k, v in row.items()}
-                
-                if not pk_col: continue
-                pk_val = new_row.get(pk_col)
-                if pk_val is None or str(pk_val).lower() == "null":
-                    pk_val = next((v for v in new_row.values() if v and isinstance(v, str) and str(v).lower() != "null"), None)
-                
-                if pk_val is None or str(pk_val).lower() == "null": continue
-                
-                existing_record = final_data_map[table_name][pk_val]
-                for k, v in new_row.items():
-                    if k not in existing_record or existing_record[k] is None or str(existing_record[k]).lower() == "null":
-                        existing_record[k] = v
-                    elif v is not None and str(v).lower() != "null" and v != existing_record[k]:
-                        if len(str(v)) > len(str(existing_record[k])):
-                            existing_record[k] = v
+            record = final_data_map[table][canonical_id]
+            record[pk_col] = canonical_id
+            
+            for k, v in attributes.items():
+                if k not in record or record[k] is None or str(record[k]).lower() == "null":
+                    record[k] = v
+                elif len(str(v)) > len(str(record[k])): # Keep longer data point
+                    record[k] = v
 
     # Step 4.4: Phase 4.4 - Polymorphic Entity Filter (Dense Winner Strategy)
     # If an entity exists in multiple tables, keep it where it is most "dense" (most non-null attributes)
