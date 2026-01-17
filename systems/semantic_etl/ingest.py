@@ -32,40 +32,41 @@ def process_documents(input_dir: str) -> List[Dict]:
     
     all_chunks = []
     
-    # Process files
-    files = [f for f in os.listdir(input_dir) if f.endswith(".txt")]
-    for filename in files:
-        filepath = os.path.join(input_dir, filename)
-        with open(filepath, 'r', encoding='utf-8') as f:
-            content = f.read()
-        
-        # Initial semantic splitting
-        raw_chunks = semantic_splitter.split_text(content)
-        
-        final_chunks_for_file = []
-        for chunk in raw_chunks:
-            # Enforce 2k token limit
-            if len(chunk) > 8000:
-                sub_chunks = fallback_splitter.split_text(chunk)
-                final_chunks_for_file.extend(sub_chunks)
-            else:
-                final_chunks_for_file.append(chunk)
-        
-        # Shadow Context: Store context in metadata, do not prepend
-        for i, chunk_text in enumerate(final_chunks_for_file):
-            prev_context = ""
-            if i > 0:
-                # Take last 3 sentences from previous chunk as shadow context
-                prev_text = final_chunks_for_file[i-1]
-                sentences = split_sentences(prev_text)
-                prev_context = " ".join(sentences[-3:])
+    # Process files recursively
+    for root, dirs, files in os.walk(input_dir):
+        txt_files = [f for f in files if f.endswith(".txt")]
+        for filename in txt_files:
+            filepath = os.path.join(root, filename)
+            with open(filepath, 'r', encoding='utf-8') as f:
+                content = f.read()
             
-            all_chunks.append({
-                "id": str(uuid.uuid4()),
-                "source_file": filename,
-                "text": chunk_text,
-                "previous_context": prev_context
-            })
+            # Initial semantic splitting
+            raw_chunks = semantic_splitter.split_text(content)
+            
+            final_chunks_for_file = []
+            for chunk in raw_chunks:
+                # Enforce 2k token limit
+                if len(chunk) > 8000:
+                    sub_chunks = fallback_splitter.split_text(chunk)
+                    final_chunks_for_file.extend(sub_chunks)
+                else:
+                    final_chunks_for_file.append(chunk)
+            
+            # Shadow Context: Store context in metadata, do not prepend
+            for i, chunk_text in enumerate(final_chunks_for_file):
+                prev_context = ""
+                if i > 0:
+                    # Take last 3 sentences from previous chunk as shadow context
+                    prev_text = final_chunks_for_file[i-1]
+                    sentences = split_sentences(prev_text)
+                    prev_context = " ".join(sentences[-3:])
+                
+                all_chunks.append({
+                    "id": str(uuid.uuid4()),
+                    "source_file": filename,
+                    "text": chunk_text,
+                    "previous_context": prev_context
+                })
             
     return all_chunks
 
