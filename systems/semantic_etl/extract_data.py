@@ -288,55 +288,65 @@ def process_chunk(chunk: Dict, schema: Dict) -> Dict:
     return chunk_data
 
 def batch_nli_validation(extracted_raw_file: str, schema: Dict, output_file: str):
-    """Post-processing: Validate unique (Table, Entity) pairs in batches."""
+    """Post-processing: Validate unique (Table, Entity) pairs row-by-row to save memory."""
     print("\nStarting Batch NLI Validation (Precision Pass)...")
     nli_guard = NLIGuardrail()
     
-    # 1. Collect unique entities per table
+    # 1. Collect unique entities per table (This is small enough for RAM)
     table_entities = defaultdict(set)
-    records_cache = []
-    
     if not os.path.exists(extracted_raw_file): return
 
+    print("  Scanning raw extraction for unique entities...")
     with open(extracted_raw_file, 'r') as f:
         for line in f:
-            entry = json.loads(line)
-            records_cache.append(entry)
-            for table_name, records in entry["tables"].items():
-                pk_col = schema[table_name].get("_meta", {}).get("primary_key", [c["name"] for c in schema[table_name]["columns"]][0])
-                for r in records:
-                    if r.get(pk_col):
-                        table_entities[table_name].add(str(r[pk_col]))
+            try:
+                entry = json.loads(line)
+                for table_name, records in entry["tables"].items():
+                    pk_info = schema.get(table_name, {}).get("_meta", {})
+                    pk_col = pk_info.get("primary_key")
+                    if not pk_col:
+                        pk_col = [c["name"] for c in schema[table_name]["columns"]][0]
+                    
+                    for r in records:
+                        val = r.get(pk_col)
+                        if val: table_entities[table_name].add(str(val))
+            except: continue
 
-    # 2. Validate uniquely
-    valid_map = defaultdict(set) # table -> set of valid PKs
+    # 2. Validate unique entities in batches (GPU optimized)
+    valid_map = defaultdict(set)
     for table_name, entities in table_entities.items():
         if not entities: continue
         entity_list = list(entities)
-        print(f"  Validating {len(entity_list)} entities for table: {table_name}")
+        print(f"  Validating {len(entity_list)} unique entities for table: {table_name}")
         
         definition = schema[table_name].get("definition", "")
-        # Batch size for CrossEncoder
         batch_size = 128
         for i in range(0, len(entity_list), batch_size):
             batch = entity_list[i : i + batch_size]
             valid_batch = nli_guard.validate_entities(table_name, definition, batch)
             valid_map[table_name].update(valid_batch)
 
-    # 3. Filter and save
-    print(f"  Saving validated data to {output_file}...")
-    with open(output_file, "w") as f:
-        for entry in records_cache:
-            filtered_tables = {}
-            for table_name, records in entry["tables"].items():
-                pk_col = schema[table_name].get("_meta", {}).get("primary_key", [c["name"] for c in schema[table_name]["columns"]][0])
-                valid_records = [r for r in records if str(r.get(pk_col)) in valid_map[table_name]]
-                if valid_records:
-                    filtered_tables[table_name] = valid_records
-            
-            if filtered_tables:
-                entry["tables"] = filtered_tables
-                f.write(json.dumps(entry) + "\n")
+    # 3. Stream from disk to output file (Memory Safe)
+    print(f"  Filtering and saving validated data to {output_file}...")
+    with open(extracted_raw_file, 'r') as f_in, open(output_file, "w") as f_out:
+        for line in f_in:
+            try:
+                entry = json.loads(line)
+                filtered_tables = {}
+                for table_name, records in entry["tables"].items():
+                    pk_info = schema.get(table_name, {}).get("_meta", {})
+                    pk_col = pk_info.get("primary_key")
+                    if not pk_col:
+                        pk_col = [c["name"] for c in schema[table_name]["columns"]][0]
+                    
+                    valid_records = [r for r in records if str(r.get(pk_col)) in valid_map[table_name]]
+                    if valid_records:
+                        filtered_tables[table_name] = valid_records
+                
+                if filtered_tables:
+                    entry["tables"] = filtered_tables
+                    f_out.write(json.dumps(entry) + "\n")
+            except: continue
 
 def main():
     if not os.path.exists("schema.json") or not os.path.exists("chunks.json"):
@@ -344,35 +354,41 @@ def main():
         return
 
     with open("schema.json", 'r') as f: schema = json.load(f)
+    # Load chunks as a generator if possible, but for now we just process them in a safe loop
     with open("chunks.json", 'r') as f: chunks = json.load(f)
     
     file_lock = Lock()
     raw_output_file = "extracted_raw_v8.jsonl"
     final_output_file = "extracted_data_v8.jsonl"
     
+    # Ensure raw file is fresh
     with open(raw_output_file, "w") as f: pass
 
-    print(f"Starting RAW extraction on {len(chunks)} chunks with {MAX_WORKERS} threads...")
+    print(f"Starting RAW extraction on {len(chunks)} chunks with {MAX_WORKERS} threads (Memory Safe)...")
     
     completed = 0
+    # Use a sliding window of futures to avoid OOM
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-        futures = {executor.submit(process_chunk, chunk, schema): chunk for chunk in chunks}
-        
-        for future in as_completed(futures):
-            try:
-                chunk_result = future.result()
-                if chunk_result["tables"]:
-                    with file_lock:
-                        with open(raw_output_file, "a") as f:
-                            f.write(json.dumps(chunk_result) + "\n")
-            except Exception as e:
-                pass
+        # Submit tasks in manageable chunks
+        chunk_size = 1000
+        for i in range(0, len(chunks), chunk_size):
+            batch = chunks[i : i + chunk_size]
+            futures = {executor.submit(process_chunk, chunk, schema): chunk for chunk in batch}
             
-            completed += 1
-            if completed % 100 == 0:
-                print(f"  Progress: {completed}/{len(chunks)} chunks extracted.", flush=True)
+            for future in as_completed(futures):
+                try:
+                    chunk_result = future.result()
+                    if chunk_result and chunk_result.get("tables"):
+                        with file_lock:
+                            with open(raw_output_file, "a") as f:
+                                f.write(json.dumps(chunk_result) + "\n")
+                except: pass
+                
+                completed += 1
+                if completed % 100 == 0:
+                    print(f"  Progress: {completed}/{len(chunks)} chunks extracted.", flush=True)
 
-    # Decoupled Precision Pass
+    # Decoupled Precision Pass (Memory Safe)
     batch_nli_validation(raw_output_file, schema, final_output_file)
     print(f"\nExtraction complete. Final results saved to {final_output_file}")
 
