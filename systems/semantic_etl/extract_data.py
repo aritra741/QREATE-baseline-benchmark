@@ -12,10 +12,34 @@ from threading import Lock
 MODEL_NAME = "qwen2.5:7b-instruct"
 OLLAMA_HOST = "http://localhost:11434"
 NLI_MODEL_NAME = "cross-encoder/nli-deberta-v3-base"
-MAX_WORKERS = 10    # Number of parallel threads for extraction
+MAX_WORKERS = 20    # Increased for Blackwell 6000
 
 def get_llm_client():
     return Client(host=OLLAMA_HOST)
+
+def get_relevant_tables(chunk: Dict, schema_names: List[str], client: Client) -> List[str]:
+    """Pre-flight check: Ask LLM which tables are actually mentioned in this text."""
+    if not schema_names: return []
+    
+    prompt = f"""Review the text and identify which of these database tables are likely to have data present.
+TABLES: {json.dumps(schema_names)}
+TEXT: "{chunk['text']}"
+
+Output strictly a JSON list of table names found. If none, output []."""
+    
+    try:
+        response = client.chat(model=MODEL_NAME, messages=[{'role': 'user', 'content': prompt}], format='json')
+        content = json.loads(response['message']['content'])
+        if isinstance(content, list):
+            return [t for t in content if t in schema_names]
+        elif isinstance(content, dict):
+            # Handle cases where LLM returns {"tables": [...]}
+            for v in content.values():
+                if isinstance(v, list):
+                    return [t for t in v if t in schema_names]
+        return []
+    except:
+        return []
 
 class NLIGuardrail:
     _instance = None
@@ -179,7 +203,14 @@ def process_chunk(chunk: Dict, schema: Dict, nli_guard: NLIGuardrail) -> Dict:
     client = get_llm_client()
     chunk_data = {"chunk_id": chunk["id"], "tables": {}}
     
-    for table_name, table_info in schema.items():
+    # Step 1: Pre-flight Relevancy Check
+    # Instead of calling every table (slow), we only call tables the LLM thinks are present.
+    relevant_tables = get_relevant_tables(chunk, list(schema.keys()), client)
+    if not relevant_tables:
+        return chunk_data
+
+    for table_name in relevant_tables:
+        table_info = schema[table_name]
         records = extract_records(chunk, table_name, table_info, client)
         if not records: continue
         
