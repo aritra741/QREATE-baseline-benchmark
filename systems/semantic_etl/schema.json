@@ -12,22 +12,12 @@
         "references_table": null
       },
       {
-        "name": "headquarters_location",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "activity_type",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "prestige_level",
+        "name": "role",
         "is_foreign_key": false,
         "references_table": null
       }
     ],
-    "definition": "The Organization table is a multi-faceted entity designed to capture detailed information about various types of organizations, encompassing their name, industry, headquarters location, primary activity type, and prestige level. This table serves as a foundational structure for managing diverse organizational data across different domains such as corporate entities, non-profit organizations, or any other structured group.",
+    "definition": "An Organization is a record containing the name, industry, and role.",
     "_meta": {
       "primary_key": "name"
     }
@@ -40,45 +30,27 @@
         "references_table": null
       },
       {
-        "name": "indications",
+        "name": "effectiveness_level",
         "is_foreign_key": false,
         "references_table": null
       },
       {
-        "name": "application",
+        "name": "purpose",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "effect",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "generic_name",
         "is_foreign_key": false,
         "references_table": null
       }
     ],
-    "definition": "The Medication table is a multi-faceted entity that encompasses information related to pharmaceuticals used in both a corporate and biological context. Specifically, this table contains details about various medications, including their names, the medical conditions or symptoms they are indicated for (indications), and how they are typically applied in clinical settings or industrial practices.",
-    "_meta": {
-      "primary_key": "name"
-    }
-  },
-  "Product": {
-    "columns": [
-      {
-        "name": "name",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "success_status",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "manufacturer",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "Relationship",
-        "is_foreign_key": false,
-        "references_table": null
-      }
-    ],
-    "definition": "The Product table is designed to capture detailed information about various items or entities, which can be interpreted across different contexts such as corporate manufacturing and general product management. It includes the following attributes:\n\n- name: A unique identifier for each product.\n- success_status: Indicates the current status of the product's lifecycle (e.g., successful, discontinued).\n- manufacturer: The entity responsible for producing or distributing the product.\n- Relationship: Describes any associations or relationships between products, which could encompass parent-child relationships, variant relationships, or other interconnectedness within a broader product line.\nThis multi-faceted entity supports diverse applications ranging from inventory management and supply chain tracking to corporate performance analysis.",
+    "definition": "Medication is a record detailing a drug's name, effectiveness level, purpose, specific effect, and generic name.",
     "_meta": {
       "primary_key": "name"
     }
@@ -86,40 +58,75 @@
   "Person": {
     "columns": [
       {
-        "name": "PersonName",
+        "name": "Person_Name",
         "is_foreign_key": false,
         "references_table": null
       },
       {
-        "name": "PersonTrait",
+        "name": "Person_Title",
         "is_foreign_key": false,
         "references_table": null
       },
       {
-        "name": "PersonTitle",
+        "name": "Person_Role",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "Person_IntelligenceLevel",
         "is_foreign_key": false,
         "references_table": null
       }
     ],
-    "definition": "The Person table is a multi-faceted entity capable of storing diverse information about individuals, which can be relevant in both corporate and general contexts. It contains three key attributes:\n\n- PersonName: A textual identifier for the individual's name.\n- PersonTrait: An attribute that may represent various traits or characteristics associated with the person, such as a job title, role, or additional descriptive information.\n- PersonTitle: A designation that could denote a professional position, role, or any other form of title assigned to the person.\n\nThis table is designed to be flexible and can accommodate a wide range of data points related to individuals in different scenarios.",
+    "definition": "Person records include name, title, role, and intelligence level.",
     "_meta": {
-      "primary_key": "PersonName"
+      "primary_key": "Person_Name"
     }
   },
-  "Fruit": {
+  "Product": {
     "columns": [
+      {
+        "name": "model",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "status",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "success",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "SalesPerformance",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "rank_position",
+        "is_foreign_key": false,
+        "references_table": null
+      },
       {
         "name": "name",
         "is_foreign_key": false,
         "references_table": null
       },
       {
-        "name": "value",
+        "name": "condition",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "sales_status",
         "is_foreign_key": false,
         "references_table": null
       }
     ],
-    "definition": "The Fruit table is a multi-faceted entity that encompasses both biological and potentially corporate or commercial attributes of fruits. It contains two columns: 'name', which represents the name or type of fruit, and 'value', which could denote various metrics such as price, quantity, or any other relevant value associated with each fruit entry.",
+    "definition": "Product is a record detailing information about a merchandise item including its model, status, sales performance, and condition.",
     "_meta": {
       "primary_key": "name"
     }
@@ -132,19 +139,37 @@
         "references_table": null
       },
       {
-        "name": "complaint",
+        "name": "complaints",
         "is_foreign_key": false,
         "references_table": null
       },
       {
-        "name": "advice_on",
+        "name": "diagnosis",
         "is_foreign_key": false,
         "references_table": null
       }
     ],
-    "definition": "The Patient table is a multi-faceted entity that encompasses various aspects related to patient care, including their health status, recorded complaints, and advice received. This table likely supports a healthcare or medical management system by capturing essential data points for each patient's record.",
+    "definition": "Patient status, complaints, and diagnosis are recorded in the Patient table.",
     "_meta": {
       "primary_key": "status"
+    }
+  },
+  "Fruit": {
+    "columns": [
+      {
+        "name": "fruit_name",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "nutrient",
+        "is_foreign_key": false,
+        "references_table": null
+      }
+    ],
+    "definition": "Fruit is a table storing the names and nutrients of various fruits.",
+    "_meta": {
+      "primary_key": "fruit_name"
     }
   }
 }
