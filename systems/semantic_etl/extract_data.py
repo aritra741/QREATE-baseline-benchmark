@@ -7,12 +7,13 @@ from ollama import Client
 from sentence_transformers import CrossEncoder
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
+from collections import defaultdict
 
 # Configuration
 MODEL_NAME = "qwen2.5:7b-instruct"
 OLLAMA_HOST = "http://localhost:11434"
 NLI_MODEL_NAME = "cross-encoder/nli-deberta-v3-base"
-MAX_WORKERS = 20    # Increased for Blackwell 6000
+MAX_WORKERS = 50    # Significant increase for Blackwell 6000
 
 def get_llm_client():
     return Client(host=OLLAMA_HOST)
@@ -33,13 +34,88 @@ Output strictly a JSON list of table names found. If none, output []."""
         if isinstance(content, list):
             return [t for t in content if t in schema_names]
         elif isinstance(content, dict):
-            # Handle cases where LLM returns {"tables": [...]}
             for v in content.values():
                 if isinstance(v, list):
                     return [t for t in v if t in schema_names]
         return []
     except:
         return []
+
+def extract_multi_tables(chunk: Dict, tables: List[str], schema: Dict, client: Client) -> Dict[str, List[Dict]]:
+    """Phase 3.1: One-Shot Extraction for multiple tables at once."""
+    if not tables: return {}
+    
+    table_configs = {t: {
+        "definition": schema[t].get("definition", ""),
+        "columns": [c["name"] for c in schema[t]["columns"]],
+        "pk_col": schema[t].get("_meta", {}).get("primary_key", [c["name"] for c in schema[t]["columns"]][0])
+    } for t in tables}
+
+    prompt = f"""Task: Extract data for multiple tables from the provided Target Text.
+TARGET TABLES: {json.dumps(table_configs)}
+
+CONTEXT (Information from previous text):
+"{chunk.get('previous_context', '')}"
+
+TARGET TEXT (Extract from this):
+"{chunk['text']}"
+
+INSTRUCTIONS:
+1. READ CONTEXT: Note entities mentioned in context for pronoun resolution.
+2. RESOLVE PRONOUNS: If Target Text uses 'It', 'They', 'He', 'She', or 'The company', resolve them to the specific entity name from Context.
+3. EXTRACT: Extract data strictly for the specified columns of each table.
+4. NO LEAKAGE: Primary Keys MUST be concise names/IDs (max 5 words). No full sentences in PK columns.
+5. FORMAT: Output strictly a JSON object where keys are Table Names and values are lists of extracted records.
+
+JSON FORMAT:
+{{
+  "TableName": [{"pk_column": "Resolved Name", "attr": "value"}]
+}}"""
+
+    try:
+        response = client.chat(model=MODEL_NAME, messages=[{'role': 'user', 'content': prompt}], format='json', options={"temperature": 0.3})
+        content = json.loads(response['message']['content'])
+        
+        # Validation and Sanitization
+        final_extracted = {}
+        for table_name, records in content.items():
+            if table_name not in tables: continue
+            if not isinstance(records, list): continue
+            
+            sanitized_records = []
+            pk_col = table_configs[table_name]["pk_col"]
+            cols = table_configs[table_name]["columns"]
+            
+            for rec in records:
+                if not isinstance(rec, dict): continue
+                # Basic column alignment and PK check
+                new_rec = {}
+                for k, v in rec.items():
+                    matched = False
+                    for target_col in cols:
+                        if k.lower() == target_col.lower():
+                            new_rec[target_col] = v
+                            matched = True
+                            break
+                    if not matched: new_rec[k] = v
+                
+                # Check for PK presence or fallback
+                if pk_col not in new_rec:
+                    for k, v in list(new_rec.items()):
+                        if k not in cols and isinstance(v, str) and len(v.split()) < 10:
+                            new_rec[pk_col] = v
+                            break
+                
+                pk_val = new_rec.get(pk_col)
+                if pk_val and not isinstance(pk_val, (list, dict)) and len(str(pk_val).split()) <= 10:
+                    sanitized_records.append(new_rec)
+            
+            if sanitized_records:
+                final_extracted[table_name] = sanitized_records
+        
+        return final_extracted
+    except:
+        return {}
 
 class NLIGuardrail:
     _instance = None
@@ -198,37 +274,69 @@ Example: [{{ "{pk_col}": "Resolved Name", ... }}]"""
         # print(f"[DEBUG] LLM EXTRACTION ERROR (Table: {table_name}): {e}", flush=True)
         return []
 
-def process_chunk(chunk: Dict, schema: Dict, nli_guard: NLIGuardrail) -> Dict:
-    """Worker function for parallel extraction."""
+def process_chunk(chunk: Dict, schema: Dict) -> Dict:
+    """Worker function for parallel extraction - RAW Extraction only."""
     client = get_llm_client()
     chunk_data = {"chunk_id": chunk["id"], "tables": {}}
     
-    # Step 1: Pre-flight Relevancy Check
-    # Instead of calling every table (slow), we only call tables the LLM thinks are present.
+    # 1. Pre-flight check
     relevant_tables = get_relevant_tables(chunk, list(schema.keys()), client)
-    if not relevant_tables:
-        return chunk_data
+    if not relevant_tables: return chunk_data
 
-    for table_name in relevant_tables:
-        table_info = schema[table_name]
-        records = extract_records(chunk, table_name, table_info, client)
-        if not records: continue
-        
-        pk_col = table_info.get("_meta", {}).get("primary_key")
-        if not pk_col:
-            pk_col = [c["name"] for c in table_info["columns"]][0]
-        
-        pk_candidates = [str(r.get(pk_col, "")) for r in records if r.get(pk_col)]
-        if not pk_candidates: continue
-        
-        valid_pks = nli_guard.validate_entities(table_name, table_info["definition"], pk_candidates)
-        valid_pks_set = set(valid_pks)
-        
-        valid_records = [r for r in records if str(r.get(pk_col)) in valid_pks_set]
-        if valid_records:
-            chunk_data["tables"][table_name] = valid_records
-            
+    # 2. One-Shot Extraction for all relevant tables
+    chunk_data["tables"] = extract_multi_tables(chunk, relevant_tables, schema, client)
     return chunk_data
+
+def batch_nli_validation(extracted_raw_file: str, schema: Dict, output_file: str):
+    """Post-processing: Validate unique (Table, Entity) pairs in batches."""
+    print("\nStarting Batch NLI Validation (Precision Pass)...")
+    nli_guard = NLIGuardrail()
+    
+    # 1. Collect unique entities per table
+    table_entities = defaultdict(set)
+    records_cache = []
+    
+    if not os.path.exists(extracted_raw_file): return
+
+    with open(extracted_raw_file, 'r') as f:
+        for line in f:
+            entry = json.loads(line)
+            records_cache.append(entry)
+            for table_name, records in entry["tables"].items():
+                pk_col = schema[table_name].get("_meta", {}).get("primary_key", [c["name"] for c in schema[table_name]["columns"]][0])
+                for r in records:
+                    if r.get(pk_col):
+                        table_entities[table_name].add(str(r[pk_col]))
+
+    # 2. Validate uniquely
+    valid_map = defaultdict(set) # table -> set of valid PKs
+    for table_name, entities in table_entities.items():
+        if not entities: continue
+        entity_list = list(entities)
+        print(f"  Validating {len(entity_list)} entities for table: {table_name}")
+        
+        definition = schema[table_name].get("definition", "")
+        # Batch size for CrossEncoder
+        batch_size = 128
+        for i in range(0, len(entity_list), batch_size):
+            batch = entity_list[i : i + batch_size]
+            valid_batch = nli_guard.validate_entities(table_name, definition, batch)
+            valid_map[table_name].update(valid_batch)
+
+    # 3. Filter and save
+    print(f"  Saving validated data to {output_file}...")
+    with open(output_file, "w") as f:
+        for entry in records_cache:
+            filtered_tables = {}
+            for table_name, records in entry["tables"].items():
+                pk_col = schema[table_name].get("_meta", {}).get("primary_key", [c["name"] for c in schema[table_name]["columns"]][0])
+                valid_records = [r for r in records if str(r.get(pk_col)) in valid_map[table_name]]
+                if valid_records:
+                    filtered_tables[table_name] = valid_records
+            
+            if filtered_tables:
+                entry["tables"] = filtered_tables
+                f.write(json.dumps(entry) + "\n")
 
 def main():
     if not os.path.exists("schema.json") or not os.path.exists("chunks.json"):
@@ -238,34 +346,35 @@ def main():
     with open("schema.json", 'r') as f: schema = json.load(f)
     with open("chunks.json", 'r') as f: chunks = json.load(f)
     
-    nli_guard = NLIGuardrail()
     file_lock = Lock()
+    raw_output_file = "extracted_raw_v8.jsonl"
+    final_output_file = "extracted_data_v8.jsonl"
     
-    output_file = "extracted_data_v8.jsonl"
-    # Clear output file if it exists
-    with open(output_file, "w") as f: pass
+    with open(raw_output_file, "w") as f: pass
 
-    print(f"Starting extraction on {len(chunks)} chunks with {MAX_WORKERS} threads...")
+    print(f"Starting RAW extraction on {len(chunks)} chunks with {MAX_WORKERS} threads...")
     
     completed = 0
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-        futures = {executor.submit(process_chunk, chunk, schema, nli_guard): chunk for chunk in chunks}
+        futures = {executor.submit(process_chunk, chunk, schema): chunk for chunk in chunks}
         
         for future in as_completed(futures):
             try:
                 chunk_result = future.result()
                 if chunk_result["tables"]:
                     with file_lock:
-                        with open(output_file, "a") as f:
+                        with open(raw_output_file, "a") as f:
                             f.write(json.dumps(chunk_result) + "\n")
             except Exception as e:
-                print(f"Error processing chunk: {e}")
+                pass
             
             completed += 1
             if completed % 100 == 0:
                 print(f"  Progress: {completed}/{len(chunks)} chunks extracted.", flush=True)
 
-    print(f"Extraction complete. Results saved to {output_file}")
+    # Decoupled Precision Pass
+    batch_nli_validation(raw_output_file, schema, final_output_file)
+    print(f"\nExtraction complete. Final results saved to {final_output_file}")
 
 if __name__ == "__main__":
     main()
