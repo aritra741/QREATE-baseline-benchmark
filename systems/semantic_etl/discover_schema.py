@@ -1,15 +1,19 @@
 import json
 import os
 import numpy as np
+import random
 from typing import List, Dict
 from ollama import Client
 from sklearn.cluster import AgglomerativeClustering
 from langchain_huggingface import HuggingFaceEmbeddings
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Configuration
 MODEL_NAME = "qwen2.5:7b-instruct"
 OLLAMA_HOST = "http://localhost:11434"
+SAMPLE_SIZE = 2000  # Sample 2000 chunks for schema discovery
+MAX_WORKERS = 20    # Number of parallel threads for LLM calls
 
 def get_llm_client():
     return Client(host=OLLAMA_HOST)
@@ -17,8 +21,45 @@ def get_llm_client():
 def get_embeddings():
     return HuggingFaceEmbeddings(model_name="BAAI/bge-m3")
 
-def get_observations(chunks: List[Dict]) -> List[Dict]:
+def process_chunk_observation(chunk: Dict, prompt_template: str) -> List[Dict]:
+    """Worker function for parallel observation collection."""
     client = get_llm_client()
+    text = chunk["text"]
+    try:
+        prompt = prompt_template.replace("{chunk_text}", text)
+        response = client.chat(model=MODEL_NAME, messages=[{'role': 'user', 'content': prompt}], format='json')
+        content = response['message']['content']
+        obs = json.loads(content)
+        
+        observations_to_add = []
+        if isinstance(obs, list):
+            observations_to_add = obs
+        elif isinstance(obs, dict):
+            if "type" in obs and "attributes" in obs:
+                observations_to_add = [obs]
+            else:
+                for key, value in obs.items():
+                    if isinstance(value, list) and len(value) > 0 and isinstance(value[0], dict) and "type" in value[0]:
+                        observations_to_add = value
+                        break
+        
+        results = []
+        for o in observations_to_add:
+            if isinstance(o, dict) and "type" in o and "attributes" in o:
+                o["chunk_id"] = chunk["id"]
+                results.append(o)
+        return results
+    except Exception as e:
+        return []
+
+def get_observations(chunks: List[Dict]) -> List[Dict]:
+    # Sampling for schema discovery
+    if len(chunks) > SAMPLE_SIZE:
+        print(f"Sampling {SAMPLE_SIZE} chunks out of {len(chunks)} for schema discovery...")
+        sampled_chunks = random.sample(chunks, SAMPLE_SIZE)
+    else:
+        sampled_chunks = chunks
+
     raw_observations = []
     
     prompt_template = """Analyze the provided text to discover its underlying relational structure. Identify real-world Entity Types and their Attributes.
@@ -43,32 +84,18 @@ JSON FORMAT:
   }}
 ]"""
 
-    for chunk in chunks:
-        text = chunk["text"]
-        try:
-            prompt = prompt_template.replace("{chunk_text}", text)
-            response = client.chat(model=MODEL_NAME, messages=[{'role': 'user', 'content': prompt}], format='json')
-            content = response['message']['content']
-            obs = json.loads(content)
-            
-            observations_to_add = []
-            if isinstance(obs, list):
-                observations_to_add = obs
-            elif isinstance(obs, dict):
-                if "type" in obs and "attributes" in obs:
-                    observations_to_add = [obs]
-                else:
-                    for key, value in obs.items():
-                        if isinstance(value, list) and len(value) > 0 and isinstance(value[0], dict) and "type" in value[0]:
-                            observations_to_add = value
-                            break
-            
-            for o in observations_to_add:
-                if isinstance(o, dict) and "type" in o and "attributes" in o:
-                    o["chunk_id"] = chunk["id"]
-                    raw_observations.append(o)
-        except Exception as e:
-            pass
+    print(f"Processing {len(sampled_chunks)} chunks with {MAX_WORKERS} threads...")
+    
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        futures = {executor.submit(process_chunk_observation, chunk, prompt_template): chunk for chunk in sampled_chunks}
+        
+        completed = 0
+        for future in as_completed(futures):
+            results = future.result()
+            raw_observations.extend(results)
+            completed += 1
+            if completed % 100 == 0:
+                print(f"  Progress: {completed}/{len(sampled_chunks)} chunks processed.")
             
     return raw_observations
 

@@ -1,23 +1,39 @@
 import json
 import os
 import torch
+import sys
 from typing import List, Dict
 from ollama import Client
 from sentence_transformers import CrossEncoder
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from threading import Lock
 
 # Configuration
 MODEL_NAME = "qwen2.5:7b-instruct"
 OLLAMA_HOST = "http://localhost:11434"
 NLI_MODEL_NAME = "cross-encoder/nli-deberta-v3-base"
+MAX_WORKERS = 10    # Number of parallel threads for extraction
 
 def get_llm_client():
     return Client(host=OLLAMA_HOST)
 
 class NLIGuardrail:
+    _instance = None
+    _lock = Lock()
+
+    def __new__(cls, *args, **kwargs):
+        with cls._lock:
+            if cls._instance is None:
+                cls._instance = super(NLIGuardrail, cls).__new__(cls)
+                cls._instance._initialized = False
+            return cls._instance
+
     def __init__(self, model_name=NLI_MODEL_NAME):
+        if self._initialized: return
         print(f"Loading NLI model: {model_name}...")
         self.model = CrossEncoder(model_name)
         self.labels = self.model.config.id2label
+        self._initialized = True
         
     def validate_entities(self, table_name: str, definition: str, candidates: List[str]) -> List[str]:
         if not candidates: return []
@@ -30,34 +46,22 @@ class NLIGuardrail:
         probs = torch.nn.functional.softmax(torch.tensor(logits), dim=1).numpy()
         
         valid = []
-        print(f"\n--- NLI DEBUG: Table '{table_name}' ---")
         for i, c in enumerate(candidates):
             p_ent = probs[i][ent_idx]
             p_con = probs[i][con_idx]
-            p_neu = probs[i][neu_idx]
             
-            status = "REJECTED"
             if p_ent > 0.5:
                 valid.append(c)
-                status = "ACCEPTED (Entailment)"
             elif p_con > 0.5:
-                status = "DISCARDED (Contradiction)"
+                pass # Discarded
             else:
                 valid.append(c) # Neutral fallback
-                status = "ACCEPTED (Neutral Fallback)"
-            
-            print(f"  Candidate: '{c}'")
-            print(f"    Scores -> E: {p_ent:.4f}, N: {p_neu:.4f}, C: {p_con:.4f}")
-            print(f"    Result: {status}")
         return valid
 
     def validate_attribute(self, column_name: str, value: str) -> bool:
         if not value or str(value).lower() == "null": return False
         # Premise: "The {column_name} is a data value."
         # Hypothesis: "{value} is a valid {column_name}."
-        # This is a bit tricky. Let's use the user's example logic.
-        # "An active ingredient is a chemical substance." -> Hypothesis: "'Same compound' is a chemical substance."
-        # We need a generic premise for attributes.
         premise = f"This is a valid {column_name}."
         hypothesis = f"'{value}' is a {column_name}."
         
@@ -105,7 +109,8 @@ Example: [{{ "{pk_col}": "Resolved Name", ... }}]"""
         # Use a slightly higher temperature for Recall to avoid "Safe-Null" behavior
         response = client.chat(model=MODEL_NAME, messages=[{'role': 'user', 'content': prompt}], format='json', options={"temperature": 0.3})
         raw_content = response['message']['content']
-        print(f"\n[DEBUG] LLM RAW OUTPUT (Table: {table_name}):\n{raw_content}", flush=True)
+        # Keeping the debug log as per previous user request, but it might be noisy for 100k chunks
+        # print(f"\n[DEBUG] LLM RAW OUTPUT (Table: {table_name}):\n{raw_content}", flush=True)
         content = json.loads(raw_content)
         
         # Robust Parsing
@@ -157,19 +162,42 @@ Example: [{{ "{pk_col}": "Resolved Name", ... }}]"""
             if pk_val:
                 # If PK is a list or dict, it's a hallucination/extraction error
                 if isinstance(pk_val, (list, dict)):
-                    print(f"  [DEBUG] Discarding record: PK is complex object: {pk_val}")
                     continue
                 # If PK is too long, it's narrative leakage
                 if len(str(pk_val).split()) > 10:
-                    print(f"  [DEBUG] Discarding record: PK is too long (Narrative Leakage): {pk_val}")
                     continue
                 
                 aligned_records.append(new_rec)
             
         return aligned_records
     except Exception as e:
-        print(f"[DEBUG] LLM EXTRACTION ERROR (Table: {table_name}): {e}", flush=True)
+        # print(f"[DEBUG] LLM EXTRACTION ERROR (Table: {table_name}): {e}", flush=True)
         return []
+
+def process_chunk(chunk: Dict, schema: Dict, nli_guard: NLIGuardrail) -> Dict:
+    """Worker function for parallel extraction."""
+    client = get_llm_client()
+    chunk_data = {"chunk_id": chunk["id"], "tables": {}}
+    
+    for table_name, table_info in schema.items():
+        records = extract_records(chunk, table_name, table_info, client)
+        if not records: continue
+        
+        pk_col = table_info.get("_meta", {}).get("primary_key")
+        if not pk_col:
+            pk_col = [c["name"] for c in table_info["columns"]][0]
+        
+        pk_candidates = [str(r.get(pk_col, "")) for r in records if r.get(pk_col)]
+        if not pk_candidates: continue
+        
+        valid_pks = nli_guard.validate_entities(table_name, table_info["definition"], pk_candidates)
+        valid_pks_set = set(valid_pks)
+        
+        valid_records = [r for r in records if str(r.get(pk_col)) in valid_pks_set]
+        if valid_records:
+            chunk_data["tables"][table_name] = valid_records
+            
+    return chunk_data
 
 def main():
     if not os.path.exists("schema.json") or not os.path.exists("chunks.json"):
@@ -178,44 +206,35 @@ def main():
 
     with open("schema.json", 'r') as f: schema = json.load(f)
     with open("chunks.json", 'r') as f: chunks = json.load(f)
-    client = get_llm_client()
-    nli_guard = NLIGuardrail()
     
-    extracted_data = []
+    nli_guard = NLIGuardrail()
+    file_lock = Lock()
+    
+    output_file = "extracted_data_v8.jsonl"
+    # Clear output file if it exists
+    with open(output_file, "w") as f: pass
 
-    for i, chunk in enumerate(chunks):
-        print(f"Processing chunk {i+1}/{len(chunks)}...")
-        chunk_data = {"chunk_id": chunk["id"], "tables": {}}
+    print(f"Starting extraction on {len(chunks)} chunks with {MAX_WORKERS} threads...")
+    
+    completed = 0
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        futures = {executor.submit(process_chunk, chunk, schema, nli_guard): chunk for chunk in chunks}
         
-        for table_name, table_info in schema.items():
-            # Step 3.1: Recall (Extract full records)
-            records = extract_records(chunk, table_name, table_info, client)
-            if not records: continue
+        for future in as_completed(futures):
+            try:
+                chunk_result = future.result()
+                if chunk_result["tables"]:
+                    with file_lock:
+                        with open(output_file, "a") as f:
+                            f.write(json.dumps(chunk_result) + "\n")
+            except Exception as e:
+                print(f"Error processing chunk: {e}")
             
-            # Step 3.2: Precision (Validate PK)
-            pk_col = table_info.get("_meta", {}).get("primary_key")
-            if not pk_col:
-                col_names = [c["name"] for c in table_info["columns"]]
-                pk_col = col_names[0]
-            
-            pk_candidates = [str(r.get(pk_col, "")) for r in records if r.get(pk_col)]
-            if not pk_candidates: continue
-            
-            valid_pks = nli_guard.validate_entities(table_name, table_info["definition"], pk_candidates)
-            valid_pks_set = set(valid_pks)
-            
-            valid_records = [r for r in records if str(r.get(pk_col)) in valid_pks_set]
-            if valid_records:
-                chunk_data["tables"][table_name] = valid_records
-                
-        if chunk_data["tables"]:
-            extracted_data.append(chunk_data)
+            completed += 1
+            if completed % 100 == 0:
+                print(f"  Progress: {completed}/{len(chunks)} chunks extracted.", flush=True)
 
-    with open("extracted_data_v8.jsonl", "w") as f:
-        for entry in extracted_data:
-            f.write(json.dumps(entry) + "\n")
-
-    print(f"Extraction complete. Results saved to extracted_data_v8.jsonl")
+    print(f"Extraction complete. Results saved to {output_file}")
 
 if __name__ == "__main__":
     main()
