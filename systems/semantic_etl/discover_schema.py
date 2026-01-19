@@ -12,7 +12,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 # Configuration
 MODEL_NAME = "qwen2.5:7b-instruct"
 OLLAMA_HOST = "http://localhost:11434"
-SAMPLE_SIZE = 2000  # Sample 2000 chunks for schema discovery
+SAMPLE_SIZE = 1000  # Sample 2000 chunks for schema discovery
 MAX_WORKERS = 20    # Number of parallel threads for LLM calls
 
 def get_llm_client():
