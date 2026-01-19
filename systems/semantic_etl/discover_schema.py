@@ -268,6 +268,7 @@ def topology_weaver(schema: Dict, client: Client) -> Dict:
     for table_name, table_info in schema.items():
         weaver_prompt = f"""Role: Database Architect.
 Context: The database contains these tables: {json.dumps(all_table_names)}.
+Table Definition: {table_info.get('definition', '')}
 Task: We are defining the schema for '{table_name}'.
 
 Instruction:
@@ -277,25 +278,39 @@ Criteria: Only add a link if '{table_name}' is subordinate to, owned by, or stru
 
 Output JSON:
 A list of new columns to add to '{table_name}'.
-[[{{"column_name": "target_table_name_ref", "target_table": "TargetTableName", "description": "short explanation"}}]]
+[
+  {{"column_name": "target_table_name_ref", "target_table": "TargetTableName", "description": "short explanation"}}
+]
 If none, output empty list []."""
 
         try:
             response = client.chat(model=MODEL_NAME, messages=[{'role': 'user', 'content': weaver_prompt}], format='json')
-            new_links = json.loads(response['message']['content'])
+            content = json.loads(response['message']['content'])
             
-            if isinstance(new_links, list):
-                for link in new_links:
-                    col_name = link.get("column_name")
-                    target_table = link.get("target_table")
-                    if col_name and target_table and target_table in all_table_names:
-                        # Add the new link column
-                        table_info["columns"].append({
-                            "name": col_name,
-                            "is_foreign_key": True,
-                            "references_table": target_table,
-                            "description": link.get("description", "")
-                        })
+            # Flexible parsing
+            new_links = []
+            if isinstance(content, list):
+                new_links = content
+            elif isinstance(content, dict):
+                for v in content.values():
+                    if isinstance(v, list):
+                        new_links = v
+                        break
+            
+            for link in new_links:
+                if isinstance(link, list) and len(link) > 0: link = link[0] # Handle nested lists
+                if not isinstance(link, dict): continue
+                
+                col_name = link.get("column_name")
+                target_table = link.get("target_table")
+                if col_name and target_table and target_table in all_table_names:
+                    print(f"  Added Link: {table_name}.{col_name} -> {target_table}")
+                    table_info["columns"].append({
+                        "name": col_name,
+                        "is_foreign_key": True,
+                        "references_table": target_table,
+                        "description": link.get("description", "")
+                    })
         except Exception as e:
             print(f"  Warning: Topology Weaver failed for {table_name}: {e}")
             
@@ -402,11 +417,28 @@ def discover_schema(chunks_file: str):
     print("Crunching Schema...")
     final_schema = crunch_schema(audited_schema, embeddings_model)
     
-    # Phase 2.6: Topology Weaver
-    final_schema = topology_weaver(final_schema, client)
+    # Phase 2.4: Table Renaming Audit
+    print("Phase 2.4: Table Renaming Audit...")
+    renamed_schema = {}
+    for old_name, info in final_schema.items():
+        cols = [c["name"] for c in info["columns"]]
+        rename_prompt = f"""Role: Data Architect.
+Review the table name '{old_name}' and its columns: {json.dumps(cols)}.
+If the name is generic (like 'Entity', 'Item', 'Data'), suggest a more descriptive name based on the columns.
+Output JSON: {{"canonical_name": "string"}}"""
+        try:
+            response = client.chat(model=MODEL_NAME, messages=[{'role': 'user', 'content': rename_prompt}], format='json')
+            new_name = json.loads(response['message']['content']).get("canonical_name", old_name)
+            renamed_schema[new_name] = info
+        except:
+            renamed_schema[old_name] = info
+    final_schema = renamed_schema
 
     # Phase 2.5: Definitions
     final_schema = generate_definitions(final_schema, client)
+
+    # Phase 2.6: Topology Weaver (Needs definitions to work well)
+    final_schema = topology_weaver(final_schema, client)
     
     # Final cleanup: Remove any None keys that might have slipped through
     final_schema = {k: v for k, v in final_schema.items() if k is not None}
