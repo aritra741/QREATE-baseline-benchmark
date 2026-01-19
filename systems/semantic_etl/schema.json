@@ -1,23 +1,8 @@
 {
-  "Entity": {
+  "Person": {
     "columns": [
       {
-        "name": "lead_author",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "author_initials",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
         "name": "name",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "A",
         "is_foreign_key": false,
         "references_table": null
       },
@@ -27,90 +12,104 @@
         "references_table": null
       },
       {
-        "name": "co_author_initials",
+        "name": "name_initials",
         "is_foreign_key": false,
         "references_table": null
       },
       {
-        "name": "country",
+        "name": "title_A",
         "is_foreign_key": false,
         "references_table": null
       },
       {
-        "name": "degree",
+        "name": "title_Ms",
         "is_foreign_key": false,
         "references_table": null
       },
       {
-        "name": "first_name",
+        "name": "title_MD",
         "is_foreign_key": false,
         "references_table": null
       },
       {
-        "name": "is_author_of_publication",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "isAuthorOf",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "publication_date",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "author_names",
+        "name": "Dr.",
         "is_foreign_key": false,
         "references_table": null
       }
     ],
-    "definition": "Entity represents an individual author with details such as name, titles, and co-authors.",
+    "definition": "Person records include name, title, and various title initials.",
     "_meta": {
       "primary_key": "name"
     }
   },
-  "Publication": {
+  "PaperAuthor": {
     "columns": [
       {
-        "name": "issue_number",
+        "name": "paper_authors",
         "is_foreign_key": false,
         "references_table": null
       },
       {
-        "name": "journal_volume",
+        "name": "author_name",
         "is_foreign_key": false,
         "references_table": null
       },
       {
-        "name": "published in journal",
+        "name": "title",
         "is_foreign_key": false,
         "references_table": null
       },
       {
-        "name": "publication_year",
+        "name": "publication_authors",
         "is_foreign_key": false,
         "references_table": null
       },
       {
-        "name": "end_page",
+        "name": "author_list",
+        "is_foreign_key": false,
+        "references_table": null
+      }
+    ],
+    "definition": "PaperAuthor links papers to authors with fields for author names, titles, and publication details.",
+    "_meta": {
+      "primary_key": "author_name"
+    }
+  },
+  "NamedEntityType": {
+    "columns": [
+      {
+        "name": "entity_type",
+        "is_foreign_key": false,
+        "references_table": null
+      }
+    ],
+    "definition": "An entity type categorizes the kind of object or concept.",
+    "_meta": {
+      "primary_key": "entity_type"
+    }
+  },
+  "PublicationTitle": {
+    "columns": [
+      {
+        "name": "publication_name",
+        "is_foreign_key": false,
+        "references_table": null
+      }
+    ],
+    "definition": "PublicationTitle is a table storing the names of published works.",
+    "_meta": {
+      "primary_key": "publication_name"
+    }
+  },
+  "ResearchArticle": {
+    "columns": [
+      {
+        "name": "pages",
         "is_foreign_key": false,
         "references_table": null
       },
       {
-        "name": "page_range",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "page",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "start_page",
+        "name": "title",
         "is_foreign_key": false,
         "references_table": null
       },
@@ -120,7 +119,22 @@
         "references_table": null
       },
       {
-        "name": "topic",
+        "name": "doi",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "volume",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "page_end",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "year",
         "is_foreign_key": false,
         "references_table": null
       },
@@ -130,139 +144,47 @@
         "references_table": null
       },
       {
-        "name": "abstract_access",
+        "name": "page_range",
         "is_foreign_key": false,
         "references_table": null
       },
+      {
+        "name": "volume_issue",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "entitled",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "publisher",
+        "is_foreign_key": false,
+        "references_table": null
+      },
+      {
+        "name": "page_start",
+        "is_foreign_key": false,
+        "references_table": null
+      }
+    ],
+    "definition": "ResearchArticle captures details including title, authors, DOI, volume, page range, year, and publisher.",
+    "_meta": {
+      "primary_key": "doi"
+    }
+  },
+  "PublishedWorkTitle": {
+    "columns": [
       {
         "name": "title",
         "is_foreign_key": false,
         "references_table": null
-      },
-      {
-        "name": "publishedBy",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "authorship",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "digital_object_identifier",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "publication_date",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "name",
-        "is_foreign_key": false,
-        "references_table": null
       }
     ],
-    "definition": "Publication records include issue details, year, pages, authors, topic, journal, and metadata.",
+    "definition": "PublishedWorkTitle is a table storing the titles of published works.",
     "_meta": {
       "primary_key": "title"
-    }
-  },
-  "Abbreviation": {
-    "columns": [
-      {
-        "name": "list",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "relationship",
-        "is_foreign_key": false,
-        "references_table": null
-      }
-    ],
-    "definition": "Abbreviation links lists with their relationships.",
-    "_meta": {
-      "primary_key": "list"
-    }
-  },
-  "Content": {
-    "columns": [
-      {
-        "name": "value",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "content",
-        "is_foreign_key": false,
-        "references_table": null
-      }
-    ],
-    "definition": "Content stores text values and their associated contents.",
-    "_meta": {
-      "primary_key": "content"
-    }
-  },
-  "SideEffect": {
-    "columns": [
-      {
-        "name": "painRelief",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "inflammatoryEffect",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "medication",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "positiveEffect",
-        "is_foreign_key": false,
-        "references_table": null
-      },
-      {
-        "name": "effect",
-        "is_foreign_key": false,
-        "references_table": null
-      }
-    ],
-    "definition": "SideEffect records the relationship between medication and its effects including pain relief, inflammation, positive effect, and overall effect.",
-    "_meta": {
-      "primary_key": "medication"
-    }
-  },
-  "Action": {
-    "columns": [
-      {
-        "name": "description",
-        "is_foreign_key": false,
-        "references_table": null
-      }
-    ],
-    "definition": "Action is a record of a specific activity with a detailed description.",
-    "_meta": {
-      "primary_key": "description"
-    }
-  },
-  "Organization": {
-    "columns": [
-      {
-        "name": "name",
-        "is_foreign_key": false,
-        "references_table": null
-      }
-    ],
-    "definition": "Organization is a table storing the name of each entity.",
-    "_meta": {
-      "primary_key": "name"
     }
   }
 }
