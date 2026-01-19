@@ -151,15 +151,16 @@ Example Format: {{"RawA": "Canonical1", "RawB": "Canonical1"}}"""
         merged_schema = {}
         for old_name, info in draft_schema.items():
             new_name = mapping.get(old_name, old_name)
-            if new_name is None: new_name = old_name # Guard against null mappings
+            if new_name is None: new_name = old_name
             if new_name not in merged_schema:
                 merged_schema[new_name] = {"columns": [], "samples": []}
             
-            existing_cols = {c["name"] for c in merged_schema[new_name]["columns"]}
+            # Case-insensitive column merging
+            existing_cols_lower = {c["name"].lower(): c["name"] for c in merged_schema[new_name]["columns"]}
             for col in info["columns"]:
-                if col["name"] not in existing_cols:
+                if col["name"].lower() not in existing_cols_lower:
                     merged_schema[new_name]["columns"].append(col)
-                    existing_cols.add(col["name"])
+                    existing_cols_lower[col["name"].lower()] = col["name"]
             
             for obs in raw_obs:
                 if obs["type"] == old_name:
@@ -186,19 +187,20 @@ Output strictly a JSON object mapping OLD_NAME to NEW_NAME."""
             mapping = json.loads(response['message']['content'])
             
             new_columns = []
-            seen_cols = set()
+            seen_cols_lower = set()
             for col in table_info["columns"]:
                 new_col_name = mapping.get(col["name"], col["name"])
-                if new_col_name is None: new_col_name = col["name"] # Guard against null mappings
-                if not isinstance(new_col_name, str): new_col_name = str(new_col_name) # Ensure string
+                if new_col_name is None: new_col_name = col["name"]
+                if not isinstance(new_col_name, str): new_col_name = str(new_col_name)
                 
-                if new_col_name and new_col_name not in seen_cols:
+                # Case-insensitive check
+                if new_col_name and new_col_name.lower() not in seen_cols_lower:
                     new_columns.append({
                         "name": new_col_name,
                         "is_foreign_key": col["is_foreign_key"],
                         "references_table": col["references_table"]
                     })
-                    seen_cols.add(new_col_name)
+                    seen_cols_lower.add(new_col_name.lower())
             
             sanitized_schema[table_name] = {"columns": new_columns}
         except Exception as e:
@@ -238,11 +240,11 @@ def crunch_schema(schema: Dict, embeddings_model) -> Dict:
             overlap = compute_semantic_overlap(cols1, cols2, embeddings_model)
             if overlap > 0.5:
                 merged_tables.add(t2)
-                existing_cols = {c["name"] for c in schema[t1]["columns"]}
+                existing_cols_lower = {c["name"].lower() for c in schema[t1]["columns"]}
                 for col in schema[t2]["columns"]:
-                    if col["name"] not in existing_cols:
+                    if col["name"].lower() not in existing_cols_lower:
                         schema[t1]["columns"].append(col)
-                        existing_cols.add(col["name"])
+                        existing_cols_lower.add(col["name"].lower())
     for name, info in schema.items():
         if name not in merged_tables:
             final_schema[name] = info

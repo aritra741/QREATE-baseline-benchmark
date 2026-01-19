@@ -40,12 +40,26 @@ def build_database():
     for table_name, table_info in schema.items():
         columns = table_info["columns"]
         col_defs = []
+        seen_cols = set()
+        unique_columns = []
+        
         for col in columns:
-            col_name = f'"{col["name"]}"'
+            name = col["name"]
+            if not name: continue
+            
+            # Case-insensitive deduplication for SQLite safety
+            name_lower = name.lower()
+            if name_lower in seen_cols:
+                continue
+            
+            seen_cols.add(name_lower)
+            unique_columns.append(col)
+            
+            col_name = f'"{name}"'
             # Simple type detection: check first row of final_data if available
             col_type = "TEXT"
             if table_name in final_data and final_data[table_name]:
-                sample_val = final_data[table_name][0].get(col["name"])
+                sample_val = final_data[table_name][0].get(name)
                 if isinstance(sample_val, int):
                     col_type = "INTEGER"
                 elif isinstance(sample_val, float):
@@ -53,6 +67,10 @@ def build_database():
             
             col_defs.append(f"{col_name} {col_type}")
         
+        if not col_defs:
+            print(f"Warning: Table {table_name} has no valid columns. Skipping.")
+            continue
+
         create_sql = f"CREATE TABLE IF NOT EXISTS \"{table_name}\" ({', '.join(col_defs)});"
         cursor.execute(f"DROP TABLE IF EXISTS \"{table_name}\"")
         cursor.execute(create_sql)
@@ -60,20 +78,33 @@ def build_database():
         # Insert data
         if table_name in final_data:
             for row in final_data[table_name]:
-                col_names = [f'"{c["name"]}"' for c in columns]
-                placeholders = ["?" for _ in columns]
+                col_names = [f'"{c["name"]}"' for c in unique_columns]
+                placeholders = ["?" for _ in unique_columns]
                 insert_sql = f"INSERT INTO \"{table_name}\" ({', '.join(col_names)}) VALUES ({', '.join(placeholders)})"
                 
-                # Ensure all columns exist in the row dict, even if null
+                # Case-insensitive data mapping to prevent data loss from "Purpose" vs "purpose"
+                # Pre-map the row keys to lowercase for easy lookup
+                row_lower = {k.lower(): v for k, v in row.items() if v is not None and str(v).lower() != "null"}
+                
                 values = []
-                for c in columns:
-                    val = row.get(c["name"])
-                    # V3.1: Automatically serialize lists or dicts to strings for SQLite
+                for c in unique_columns:
+                    # Look for the data under the canonical name or any case variant
+                    target_name = c["name"]
+                    val = row.get(target_name)
+                    
+                    # If not found exactly, check the lowercase map
+                    if (val is None or str(val).lower() == "null") and target_name.lower() in row_lower:
+                        val = row_lower[target_name.lower()]
+                    
+                    # Automatically serialize lists or dicts to strings for SQLite
                     if isinstance(val, (list, dict)):
                         val = json.dumps(val)
                     values.append(val)
                 
-                cursor.execute(insert_sql, values)
+                try:
+                    cursor.execute(insert_sql, values)
+                except Exception as e:
+                    print(f"Error inserting row into {table_name}: {e}")
     
     conn.commit()
     conn.close()
