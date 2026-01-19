@@ -2,9 +2,11 @@ import json
 import os
 import torch
 import sys
+import numpy as np
 from typing import List, Dict
 from ollama import Client
 from sentence_transformers import CrossEncoder
+from langchain_huggingface import HuggingFaceEmbeddings
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
 from collections import defaultdict
@@ -13,36 +15,102 @@ from collections import defaultdict
 MODEL_NAME = "qwen2.5:7b-instruct"
 OLLAMA_HOST = "http://localhost:11434"
 NLI_MODEL_NAME = "cross-encoder/nli-deberta-v3-base"
-MAX_WORKERS = 50    # Significant increase for Blackwell 6000
+EMBEDDING_MODEL_NAME = "BAAI/bge-m3"
+MAX_WORKERS = 50    # Blackwell 6000 scale
+RELEVANCY_THRESHOLD = 0.35  # Semantic floor for candidates
+MAX_COGNITIVE_COLUMNS = 40  # Maximum columns allowed in a single LLM call
+TOP_K_CANDIDATES = 10       # Max candidates to check via LLM verification
 
 def get_llm_client():
     return Client(host=OLLAMA_HOST)
 
-def get_relevant_tables(chunk: Dict, schema_names: List[str], client: Client) -> List[str]:
-    """Pre-flight check: Ask LLM which tables are actually mentioned in this text."""
-    if not schema_names: return []
+class VectorRelevancyFilter:
+    _instance = None
+    _lock = Lock()
+
+    def __new__(cls, *args, **kwargs):
+        with cls._lock:
+            if cls._instance is None:
+                cls._instance = super(VectorRelevancyFilter, cls).__new__(cls)
+                cls._instance._initialized = False
+            return cls._instance
+
+    def __init__(self, schema: Dict = None):
+        if self._initialized: return
+        print(f"Initializing Vector Relevancy Filter with {EMBEDDING_MODEL_NAME}...")
+        self.embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL_NAME)
+        self.table_names = []
+        self.table_vectors = []
+        
+        if schema:
+            self.update_schema(schema)
+        self._initialized = True
+
+    def update_schema(self, schema: Dict):
+        self.table_names = list(schema.keys())
+        # Use table name + definition for better semantic matching
+        texts = [f"{name}: {info.get('definition', '')}" for name, info in schema.items()]
+        print(f"  Embedding {len(texts)} table definitions...")
+        self.table_vectors = np.array(self.embeddings.embed_documents(texts))
+        # L2 Normalize for fast cosine similarity via dot product
+        self.table_vectors = self.table_vectors / np.linalg.norm(self.table_vectors, axis=1, keepdims=True)
+
+    def get_candidate_tables(self, chunk_text: str) -> List[str]:
+        """Vector-based proposal: Get candidates within range of top score."""
+        if not self.table_names: return []
+        
+        chunk_vec = np.array(self.embeddings.embed_query(chunk_text))
+        norm = np.linalg.norm(chunk_vec)
+        if norm > 0:
+            chunk_vec = chunk_vec / norm
+        
+        # Matrix multiplication for all similarities at once
+        similarities = np.dot(self.table_vectors, chunk_vec)
+        
+        # Sort by similarity descending
+        sorted_indices = np.argsort(similarities)[::-1]
+        
+        candidates = []
+        top_score = similarities[sorted_indices[0]]
+        
+        for i in sorted_indices:
+            score = similarities[i]
+            # Solid logic: If it's semantically relevant (threshold) 
+            # OR if it's within 15% of the top score (adaptive), consider it.
+            if score >= RELEVANCY_THRESHOLD or score >= (top_score * 0.85):
+                candidates.append(self.table_names[i])
+            if len(candidates) >= TOP_K_CANDIDATES:
+                break
+                
+        return candidates
+
+def verify_relevancy(chunk: Dict, candidates: List[str], client: Client) -> List[str]:
+    """LLM-based verification: Confirm which candidates are actually in the text."""
+    if not candidates: return []
     
-    prompt = f"""Review the text and identify which of these database tables are likely to have data present.
-TABLES: {json.dumps(schema_names)}
+    prompt = f"""Review the text below and the list of database tables. Identify which tables have data mentioned in the text.
+
+CANDIDATE TABLES: {", ".join(candidates)}
 TEXT: "{chunk['text']}"
 
-Output strictly a JSON list of table names found. If none, output []."""
-    
+INSTRUCTIONS:
+1. Return a JSON object with a key "relevant_tables" and a list of table names.
+2. If no tables are relevant, return {{"relevant_tables": []}}.
+3. Base your decision on whether the text contains entities (names of people, organizations, etc.) or attributes (dates, costs, types) belonging to these tables."""
+
     try:
         response = client.chat(model=MODEL_NAME, messages=[{'role': 'user', 'content': prompt}], format='json')
         content = json.loads(response['message']['content'])
-        if isinstance(content, list):
-            return [t for t in content if t in schema_names]
-        elif isinstance(content, dict):
-            for v in content.values():
-                if isinstance(v, list):
-                    return [t for t in v if t in schema_names]
+        # Handle {"relevant_tables": [...]}
+        tables = content.get("relevant_tables", [])
+        if isinstance(tables, list):
+            return [t for t in tables if t in candidates]
         return []
     except:
         return []
 
 def extract_multi_tables(chunk: Dict, tables: List[str], schema: Dict, client: Client) -> Dict[str, List[Dict]]:
-    """Phase 3.1: One-Shot Extraction for multiple tables at once."""
+    """Phase 3.1: One-Shot Extraction for specific tables."""
     if not tables: return {}
     
     table_configs = {t: {
@@ -51,68 +119,40 @@ def extract_multi_tables(chunk: Dict, tables: List[str], schema: Dict, client: C
         "pk_col": schema[t].get("_meta", {}).get("primary_key", [c["name"] for c in schema[t]["columns"]][0])
     } for t in tables}
 
-    prompt = f"""Task: Extract data for multiple tables from the provided Target Text.
+    prompt = f"""Task: Extract data for the following tables from the Target Text.
 TARGET TABLES: {json.dumps(table_configs)}
 
-CONTEXT (Information from previous text):
-"{chunk.get('previous_context', '')}"
-
-TARGET TEXT (Extract from this):
-"{chunk['text']}"
+CONTEXT: "{chunk.get('previous_context', '')}"
+TARGET TEXT: "{chunk['text']}"
 
 INSTRUCTIONS:
-1. READ CONTEXT: Note entities mentioned in context for pronoun resolution.
-2. RESOLVE PRONOUNS: If Target Text uses 'It', 'They', 'He', 'She', or 'The company', resolve them to the specific entity name from Context.
-3. EXTRACT: Extract data strictly for the specified columns of each table.
-4. NO LEAKAGE: Primary Keys MUST be concise names/IDs (max 5 words). No full sentences in PK columns.
-5. FORMAT: Output strictly a JSON object where keys are Table Names and values are lists of extracted records.
+1. IDENTIFY: Find entities matching the definitions of the TARGET TABLES.
+2. RESOLVE: Use the CONTEXT to resolve pronouns.
+3. EXTRACT: strictly follow the specified columns. Use 'null' for missing data.
+4. PK RULE: The primary key MUST be a concise name or ID (max 5 words).
+5. FORMAT: Return strictly a JSON object mapping TableName -> List of Records.
 
 JSON FORMAT:
 {{
-  "TableName": [{"pk_column": "Resolved Name", "attr": "value"}]
+  "TableName": [ {{"pk_column": "Name", "attr": "val"}} ]
 }}"""
 
     try:
         response = client.chat(model=MODEL_NAME, messages=[{'role': 'user', 'content': prompt}], format='json', options={"temperature": 0.3})
         content = json.loads(response['message']['content'])
         
-        # Validation and Sanitization
         final_extracted = {}
         for table_name, records in content.items():
-            if table_name not in tables: continue
-            if not isinstance(records, list): continue
-            
-            sanitized_records = []
+            if table_name not in tables or not isinstance(records, list): continue
             pk_col = table_configs[table_name]["pk_col"]
-            cols = table_configs[table_name]["columns"]
-            
+            sanitized = []
             for rec in records:
                 if not isinstance(rec, dict): continue
-                # Basic column alignment and PK check
-                new_rec = {}
-                for k, v in rec.items():
-                    matched = False
-                    for target_col in cols:
-                        if k.lower() == target_col.lower():
-                            new_rec[target_col] = v
-                            matched = True
-                            break
-                    if not matched: new_rec[k] = v
-                
-                # Check for PK presence or fallback
-                if pk_col not in new_rec:
-                    for k, v in list(new_rec.items()):
-                        if k not in cols and isinstance(v, str) and len(v.split()) < 10:
-                            new_rec[pk_col] = v
-                            break
-                
-                pk_val = new_rec.get(pk_col)
+                pk_val = rec.get(pk_col)
                 if pk_val and not isinstance(pk_val, (list, dict)) and len(str(pk_val).split()) <= 10:
-                    sanitized_records.append(new_rec)
-            
-            if sanitized_records:
-                final_extracted[table_name] = sanitized_records
-        
+                    sanitized.append(rec)
+            if sanitized:
+                final_extracted[table_name] = sanitized
         return final_extracted
     except:
         return {}
@@ -274,17 +314,43 @@ Example: [{{ "{pk_col}": "Resolved Name", ... }}]"""
         # print(f"[DEBUG] LLM EXTRACTION ERROR (Table: {table_name}): {e}", flush=True)
         return []
 
-def process_chunk(chunk: Dict, schema: Dict) -> Dict:
-    """Worker function for parallel extraction - RAW Extraction only."""
+def process_chunk(chunk: Dict, schema: Dict, relevancy_filter: VectorRelevancyFilter) -> Dict:
+    """Worker function for parallel extraction with Cognitive Sharding."""
     client = get_llm_client()
     chunk_data = {"chunk_id": chunk["id"], "tables": {}}
     
-    # 1. Pre-flight check
-    relevant_tables = get_relevant_tables(chunk, list(schema.keys()), client)
-    if not relevant_tables: return chunk_data
+    # 1. Vector Proposal (Semantic Candidates)
+    candidates = relevancy_filter.get_candidate_tables(chunk["text"])
+    if not candidates: return chunk_data
 
-    # 2. One-Shot Extraction for all relevant tables
-    chunk_data["tables"] = extract_multi_tables(chunk, relevant_tables, schema, client)
+    # 2. Dynamic Cognitive Sharding 
+    # (We skip the separate LLM verification to avoid inconsistent 'pre-flight' failures.
+    # The sharded extraction calls themselves act as the verification.)
+    shards = []
+    current_shard = []
+    current_col_count = 0
+    
+    for t_name in candidates:
+        col_count = len(schema[t_name]["columns"])
+        if current_shard and (current_col_count + col_count > MAX_COGNITIVE_COLUMNS):
+            shards.append(current_shard)
+            current_shard = [t_name]
+            current_col_count = col_count
+        else:
+            current_shard.append(t_name)
+            current_col_count += col_count
+            
+    if current_shard:
+        shards.append(current_shard)
+
+    # 3. Sharded Extraction
+    for shard in shards:
+        shard_results = extract_multi_tables(chunk, shard, schema, client)
+        for table_name, records in shard_results.items():
+            if table_name not in chunk_data["tables"]:
+                chunk_data["tables"][table_name] = []
+            chunk_data["tables"][table_name].extend(records)
+            
     return chunk_data
 
 def batch_nli_validation(extracted_raw_file: str, schema: Dict, output_file: str):
@@ -354,9 +420,9 @@ def main():
         return
 
     with open("schema.json", 'r') as f: schema = json.load(f)
-    # Load chunks as a generator if possible, but for now we just process them in a safe loop
     with open("chunks.json", 'r') as f: chunks = json.load(f)
     
+    relevancy_filter = VectorRelevancyFilter(schema)
     file_lock = Lock()
     raw_output_file = "extracted_raw_v8.jsonl"
     final_output_file = "extracted_data_v8.jsonl"
@@ -373,7 +439,7 @@ def main():
         chunk_size = 1000
         for i in range(0, len(chunks), chunk_size):
             batch = chunks[i : i + chunk_size]
-            futures = {executor.submit(process_chunk, chunk, schema): chunk for chunk in batch}
+            futures = {executor.submit(process_chunk, chunk, schema, relevancy_filter): chunk for chunk in batch}
             
             for future in as_completed(futures):
                 try:
