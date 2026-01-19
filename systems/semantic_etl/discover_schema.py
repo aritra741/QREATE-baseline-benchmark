@@ -69,25 +69,26 @@ def process_chunk_observation(chunk: Dict, prompt_template: str) -> List[Dict]:
         return []
 
 def get_observations(chunks: List[Dict]) -> List[Dict]:
-    # Sampling for schema discovery
+    # Sampling for schema discovery - Spread samples across the dataset
     if len(chunks) > SAMPLE_SIZE:
-        print(f"Sampling {SAMPLE_SIZE} chunks out of {len(chunks)} for schema discovery...")
-        sampled_chunks = random.sample(chunks, SAMPLE_SIZE)
+        print(f"Sampling {SAMPLE_SIZE} chunks (stratified) out of {len(chunks)} for schema discovery...")
+        # Take a spread of chunks instead of purely random or first N
+        indices = np.linspace(0, len(chunks) - 1, SAMPLE_SIZE, dtype=int)
+        sampled_chunks = [chunks[i] for i in indices]
     else:
         sampled_chunks = chunks
 
     raw_observations = []
     
-    prompt_template = """Analyze the text. Identify distinct Entity Types.
-Instruction: Focus on the Primary Subjects of interest (the core actors, objects, and events described) and ignore information that describes the source, the format, or the administrative context of the text itself.
-
-For each Entity Type, separate its properties into two lists:
-
-1. Attributes: Intrinsic data that belongs inside this object (e.g., properties, metrics, status).
-2. Relationships: References or connections to other independent entities (e.g., 'Entity A interacts with Entity B', 'X is a part of Y').
+    prompt_template = """Analyze the text. Identify all distinct Entity Types.
+Instruction: Focus on the subjects of the text (the actors, objects, events, and metrics). 
+For each Entity Type, identify:
+1. Its Attributes.
+2. An EXAMPLE VALUE for at least one attribute.
+3. Its Relationships to other entities.
 
 Output JSON:
-[{"type": "EntityName", "attributes": ["list", "of", "strings"], "relationships": ["list", "of", "strings"]}]
+[{"type": "EntityType", "attributes": {"attr_name": "example_value"}, "relationships": ["list"]}]
 
 TEXT:
 {chunk_text}"""
@@ -377,15 +378,15 @@ def semantic_pruning(schema: Dict, client: Client) -> Dict:
     prune_prompt = f"""Role: Data Architect.
 We have discovered these tables from a dataset: {json.dumps(table_info_list)}.
 
-Task: Distinguish between 'Domain Entities' and 'Provenance Information'.
-
-Definitions:
-1. Domain Entities: The core subjects, actors, objects, or events the dataset describes (e.g., the primary knowledge content).
-2. Provenance Information: Information describing the source document, the recording process, the format, or the administrative context of the text itself.
+Task: Distinguish between 'Core Domain Objects' and 'Information Scaffolding'.
 
 Instruction:
-Return strictly a JSON list of the table names that represent 'Domain Entities' and should be kept for analytical querying.
-Output JSON: ["TableName1", "TableName2"]"""
+1. Keep 'Core Domain Objects' (the specific actors, items, events, and metrics the dataset describes).
+2. Discard ONLY tables that are purely 'Information Scaffolding' (e.g., table that only contains data about the source document, the URL, or the blog authorship).
+3. If a table contains ANY domain-relevant information, KEEP IT.
+
+Output JSON: A list of table names to keep.
+["TableName1", "TableName2"]"""
 
     try:
         response = client.chat(model=MODEL_NAME, messages=[{'role': 'user', 'content': prune_prompt}], format='json')
@@ -424,7 +425,7 @@ def discover_schema(chunks_file: str):
     cluster_counts = Counter(obs["cluster_id"] for obs in valid_observations)
     surviving_clusters = {}
     for cluster_id, count in cluster_counts.items():
-        if count >= 3:
+        if count >= 2: # Lowered threshold to increase domain recall
             types_in_cluster = [obs["type"] for obs in valid_observations if obs["cluster_id"] == cluster_id]
             canonical_name = Counter(types_in_cluster).most_common(1)[0][0]
             surviving_clusters[cluster_id] = canonical_name
