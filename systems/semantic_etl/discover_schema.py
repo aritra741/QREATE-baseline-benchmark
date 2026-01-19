@@ -277,7 +277,7 @@ Criteria: Only add a link if '{table_name}' is subordinate to, owned by, or stru
 
 Output JSON:
 A list of new columns to add to '{table_name}'.
-[{"column_name": "target_table_name_ref", "target_table": "TargetTableName", "description": "short explanation"}]
+[[{{"column_name": "target_table_name_ref", "target_table": "TargetTableName", "description": "short explanation"}}]]
 If none, output empty list []."""
 
         try:
