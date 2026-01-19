@@ -79,7 +79,7 @@ def get_observations(chunks: List[Dict]) -> List[Dict]:
     raw_observations = []
     
     prompt_template = """Analyze the text. Identify distinct Entity Types.
-Instruction: Focus on the Primary Subjects of the text (the core domain objects) rather than document metadata (like authors, dates, or blog titles).
+Instruction: Focus on the Primary Subjects of interest (the core actors, objects, and events described) and ignore information that describes the source, the format, or the administrative context of the text itself.
 
 For each Entity Type, separate its properties into two lists:
 
@@ -362,6 +362,48 @@ Output JSON: {{"primary_key": "column_name"}}"""
         updated_schema[table_name] = table_info
     return updated_schema
 
+def semantic_pruning(schema: Dict, client: Client) -> Dict:
+    """Phase 2.7: Semantic Pruning - Removes non-domain metadata tables."""
+    print("Phase 2.7: Semantic Pruning (Subject Filter)...")
+    if not schema: return {}
+    
+    table_info_list = []
+    for name, info in schema.items():
+        table_info_list.append({
+            "table": name,
+            "definition": info.get("definition", "")
+        })
+        
+    prune_prompt = f"""Role: Data Architect.
+We have discovered these tables from a dataset: {json.dumps(table_info_list)}.
+
+Task: Distinguish between 'Domain Entities' and 'Provenance Information'.
+
+Definitions:
+1. Domain Entities: The core subjects, actors, objects, or events the dataset describes (e.g., the primary knowledge content).
+2. Provenance Information: Information describing the source document, the recording process, the format, or the administrative context of the text itself.
+
+Instruction:
+Return strictly a JSON list of the table names that represent 'Domain Entities' and should be kept for analytical querying.
+Output JSON: ["TableName1", "TableName2"]"""
+
+    try:
+        response = client.chat(model=MODEL_NAME, messages=[{'role': 'user', 'content': prune_prompt}], format='json')
+        keep_list = json.loads(response['message']['content'])
+        if not isinstance(keep_list, list):
+            # Try to find the list if wrapped
+            for v in keep_list.values():
+                if isinstance(v, list):
+                    keep_list = v
+                    break
+        
+        pruned_schema = {name: info for name, info in schema.items() if name in keep_list}
+        print(f"  Pruning complete. Kept {len(pruned_schema)}/{len(schema)} tables.")
+        return pruned_schema
+    except Exception as e:
+        print(f"  Warning: Semantic pruning failed: {e}")
+        return schema
+
 def discover_schema(chunks_file: str):
     if not os.path.exists(chunks_file):
         print("chunks.json missing")
@@ -442,6 +484,9 @@ Output JSON: {{"canonical_name": "string"}}"""
 
     # Phase 2.6: Topology Weaver (Needs definitions to work well)
     final_schema = topology_weaver(final_schema, client)
+    
+    # Phase 2.7: Semantic Pruning
+    final_schema = semantic_pruning(final_schema, client)
     
     # Final cleanup: Remove any None keys that might have slipped through
     final_schema = {k: v for k, v in final_schema.items() if k is not None}
