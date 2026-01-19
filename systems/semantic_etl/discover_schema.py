@@ -78,11 +78,13 @@ def get_observations(chunks: List[Dict]) -> List[Dict]:
 
     raw_observations = []
     
-    prompt_template = """Analyze the text. Identify distinct Entity Types (e.g., specific business objects, people, or physical items).
+    prompt_template = """Analyze the text. Identify distinct Entity Types.
+Instruction: Focus on the Primary Subjects of the text (the core domain objects) rather than document metadata (like authors, dates, or blog titles).
+
 For each Entity Type, separate its properties into two lists:
 
-1. Attributes: Intrinsic data that belongs inside this object (e.g., size, color, age, value).
-2. Relationships: References or connections to other independent entities (e.g., 'X works for Y', 'A is a component of B', 'Z produced W').
+1. Attributes: Intrinsic data that belongs inside this object (e.g., properties, metrics, status).
+2. Relationships: References or connections to other independent entities (e.g., 'Entity A interacts with Entity B', 'X is a part of Y').
 
 Output JSON:
 [{"type": "EntityName", "attributes": ["list", "of", "strings"], "relationships": ["list", "of", "strings"]}]
@@ -424,7 +426,8 @@ def discover_schema(chunks_file: str):
         cols = [c["name"] for c in info["columns"]]
         rename_prompt = f"""Role: Data Architect.
 Review the table name '{old_name}' and its columns: {json.dumps(cols)}.
-If the name is generic (like 'Entity', 'Item', 'Data'), suggest a more descriptive name based on the columns.
+Task: Determine if the name can be more descriptive of its Role within its specific domain.
+Constraint: Avoid overly generic names (like 'Entity' or 'Object') if the columns suggest a specific functional role.
 Output JSON: {{"canonical_name": "string"}}"""
         try:
             response = client.chat(model=MODEL_NAME, messages=[{'role': 'user', 'content': rename_prompt}], format='json')
