@@ -113,11 +113,22 @@ def extract_multi_tables(chunk: Dict, tables: List[str], schema: Dict, client: C
     """Phase 3.1: One-Shot Extraction for specific tables."""
     if not tables: return {}
     
-    table_configs = {t: {
-        "definition": schema[t].get("definition", ""),
-        "columns": [c["name"] for c in schema[t]["columns"]],
-        "pk_col": schema[t].get("_meta", {}).get("primary_key", [c["name"] for c in schema[t]["columns"]][0])
-    } for t in tables}
+    table_configs = {}
+    for t in tables:
+        cols_info = []
+        fk_instructions = []
+        for c in schema[t]["columns"]:
+            cols_info.append(c["name"])
+            if c.get("is_foreign_key"):
+                target = c.get("references_table")
+                fk_instructions.append(f"Special Instruction for Column '{c['name']}': This column is a reference to the '{target}' table. Rule: You must extract the exact Name or Identifier of the '{target}' mentioned in the text. Negative Constraint: Do not extract verbs or descriptions (e.g., 'it is owned by...'). Extract ONLY the noun.")
+
+        table_configs[t] = {
+            "definition": schema[t].get("definition", ""),
+            "columns": cols_info,
+            "pk_col": schema[t].get("_meta", {}).get("primary_key", cols_info[0] if cols_info else None),
+            "fk_instructions": fk_instructions
+        }
 
     prompt = f"""Task: Extract data for the following tables from the Target Text.
 TARGET TABLES: {json.dumps(table_configs)}
@@ -131,6 +142,7 @@ INSTRUCTIONS:
 3. EXTRACT: strictly follow the specified columns. Use 'null' for missing data.
 4. PK RULE: The primary key MUST be a concise name or ID (max 5 words).
 5. FORMAT: Return strictly a JSON object mapping TableName -> List of Records.
+6. LINKAGE RULE: For any column identified as a reference/foreign key in the instructions above, extract ONLY the Name/ID of the target entity.
 
 JSON FORMAT:
 {{

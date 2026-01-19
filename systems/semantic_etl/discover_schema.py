@@ -35,17 +35,33 @@ def process_chunk_observation(chunk: Dict, prompt_template: str) -> List[Dict]:
         if isinstance(obs, list):
             observations_to_add = obs
         elif isinstance(obs, dict):
-            if "type" in obs and "attributes" in obs:
-                observations_to_add = [obs]
+            # Check for a dictionary wrapping the list (common LLM behavior)
+            for key, value in obs.items():
+                if isinstance(value, list) and len(value) > 0 and isinstance(value[0], dict):
+                    observations_to_add = value
+                    break
             else:
-                for key, value in obs.items():
-                    if isinstance(value, list) and len(value) > 0 and isinstance(value[0], dict) and "type" in value[0]:
-                        observations_to_add = value
-                        break
+                # If no list found, it might be a single object
+                if "type" in obs:
+                    observations_to_add = [obs]
         
         results = []
         for o in observations_to_add:
-            if isinstance(o, dict) and "type" in o and "attributes" in o:
+            if isinstance(o, dict) and "type" in o:
+                # Merge attributes and relationships for clustering
+                combined_attrs = {}
+                if "attributes" in o:
+                    if isinstance(o["attributes"], list):
+                        for attr in o["attributes"]:
+                            combined_attrs[attr] = "example"
+                    elif isinstance(o["attributes"], dict):
+                        combined_attrs.update(o["attributes"])
+                
+                if "relationships" in o and isinstance(o["relationships"], list):
+                    for rel in o["relationships"]:
+                        combined_attrs[rel] = "relationship"
+                
+                o["attributes"] = combined_attrs
                 o["chunk_id"] = chunk["id"]
                 results.append(o)
         return results
@@ -62,27 +78,17 @@ def get_observations(chunks: List[Dict]) -> List[Dict]:
 
     raw_observations = []
     
-    prompt_template = """Analyze the provided text to discover its underlying relational structure. Identify real-world Entity Types and their Attributes.
+    prompt_template = """Analyze the text. Identify distinct Entity Types (e.g., specific business objects, people, or physical items).
+For each Entity Type, separate its properties into two lists:
+
+1. Attributes: Intrinsic data that belongs inside this object (e.g., size, color, age, value).
+2. Relationships: References or connections to other independent entities (e.g., 'X works for Y', 'A is a component of B', 'Z produced W').
+
+Output JSON:
+[{"type": "EntityName", "attributes": ["list", "of", "strings"], "relationships": ["list", "of", "strings"]}]
 
 TEXT:
-{chunk_text}
-
-INSTRUCTIONS:
-1. Identify Entity Types (things that store data) and their Attributes.
-2. For each Attribute, provide an EXAMPLE VALUE found in the text.
-3. Attributes must be GENERIC categories.
-4. Output strictly a JSON list of objects.
-
-JSON FORMAT:
-[
-  {{
-    "type": "EntityTypeName",
-    "attributes": {{
-      "attribute_name": "example_value",
-      "attribute_name_2": "example_value"
-    }}
-  }}
-]"""
+{chunk_text}"""
 
     print(f"Processing {len(sampled_chunks)} chunks with {MAX_WORKERS} threads...")
     
@@ -197,8 +203,8 @@ Output strictly a JSON object mapping OLD_NAME to NEW_NAME."""
                 if new_col_name and new_col_name.lower() not in seen_cols_lower:
                     new_columns.append({
                         "name": new_col_name,
-                        "is_foreign_key": col["is_foreign_key"],
-                        "references_table": col["references_table"]
+                        "is_foreign_key": False,
+                        "references_table": None
                     })
                     seen_cols_lower.add(new_col_name.lower())
             
@@ -249,6 +255,49 @@ def crunch_schema(schema: Dict, embeddings_model) -> Dict:
         if name not in merged_tables:
             final_schema[name] = info
     return final_schema
+
+def topology_weaver(schema: Dict, client: Client) -> Dict:
+    """Phase 2.6: The Topology Weaver - Identifies Foreign Key relationships."""
+    print("Phase 2.6: The Topology Weaver (Relational Mapping)...")
+    all_table_names = list(schema.keys())
+    updated_schema = {}
+    
+    for table_name, table_info in schema.items():
+        weaver_prompt = f"""Role: Database Architect.
+Context: The database contains these tables: {json.dumps(all_table_names)}.
+Task: We are defining the schema for '{table_name}'.
+
+Instruction:
+Analyze the relationships inherent to a '{table_name}'.
+Does a '{table_name}' logically require a reference (Foreign Key) to any of the other tables in the list?
+Criteria: Only add a link if '{table_name}' is subordinate to, owned by, or structurally interacts with the other table.
+
+Output JSON:
+A list of new columns to add to '{table_name}'.
+[{"column_name": "target_table_name_ref", "target_table": "TargetTableName", "description": "short explanation"}]
+If none, output empty list []."""
+
+        try:
+            response = client.chat(model=MODEL_NAME, messages=[{'role': 'user', 'content': weaver_prompt}], format='json')
+            new_links = json.loads(response['message']['content'])
+            
+            if isinstance(new_links, list):
+                for link in new_links:
+                    col_name = link.get("column_name")
+                    target_table = link.get("target_table")
+                    if col_name and target_table and target_table in all_table_names:
+                        # Add the new link column
+                        table_info["columns"].append({
+                            "name": col_name,
+                            "is_foreign_key": True,
+                            "references_table": target_table,
+                            "description": link.get("description", "")
+                        })
+        except Exception as e:
+            print(f"  Warning: Topology Weaver failed for {table_name}: {e}")
+            
+        updated_schema[table_name] = table_info
+    return updated_schema
 
 def generate_definitions(schema: Dict, client: Client) -> Dict:
     """Phase 2.5: Generate physical definitions and identify Primary Key."""
@@ -347,6 +396,9 @@ def discover_schema(chunks_file: str):
     print("Crunching Schema...")
     final_schema = crunch_schema(audited_schema, embeddings_model)
     
+    # Phase 2.6: Topology Weaver
+    final_schema = topology_weaver(final_schema, client)
+
     # Phase 2.5: Definitions
     final_schema = generate_definitions(final_schema, client)
     
@@ -356,7 +408,7 @@ def discover_schema(chunks_file: str):
     with open("schema.json", "w") as f:
         json.dump(final_schema, f, indent=2)
     
-    print(f"Schema discovered with definitions. Tables: {', '.join(str(k) for k in final_schema.keys())}")
+    print(f"Schema discovered with definitions and links. Tables: {', '.join(str(k) for k in final_schema.keys())}")
 
 if __name__ == "__main__":
     discover_schema("chunks.json")

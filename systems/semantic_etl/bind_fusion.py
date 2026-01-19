@@ -12,10 +12,11 @@ NLI_MODEL_NAME = "cross-encoder/nli-deberta-v3-base"
 GLINER_MODEL_NAME = "urchade/gliner_base"
 
 class ValidationGuard:
-    def __init__(self):
+    def __init__(self, schema: Dict):
         print(f"Loading NLI model: {NLI_MODEL_NAME}...")
         self.nli = CrossEncoder(NLI_MODEL_NAME)
         self.nli_labels = self.nli.config.id2label
+        self.schema = schema
         
         print(f"Loading GLiNER model: {GLINER_MODEL_NAME}...")
         self.gliner = GLiNER.from_pretrained(GLINER_MODEL_NAME)
@@ -27,7 +28,44 @@ class ValidationGuard:
         val_str = str(value)
         print(f"\n    --- FUSION DEBUG: Column '{column_name}' ---")
         print(f"      Value: '{val_str}'")
+
+        # Check if this is a Foreign Key column
+        is_fk = False
+        target_table = None
+        for col in self.schema.get(table_name, {}).get("columns", []):
+            if col["name"] == column_name and col.get("is_foreign_key"):
+                is_fk = True
+                target_table = col.get("references_table")
+                break
+
+        if is_fk and target_table:
+            # CHANGE 4: The "Foreign Key" NLI Check
+            target_def = self.schema.get(target_table, {}).get("definition", f"a {target_table} entity")
+            premise = f"A {target_table} is defined as: {target_def}."
+            hypothesis = f"'{val_str}' is a {target_table}."
+            
+            logits = self.nli.predict([premise, hypothesis])
+            probs = torch.nn.functional.softmax(torch.tensor(logits), dim=0).numpy()
+            
+            label_map = {v.lower(): k for k, v in self.nli_labels.items()}
+            ent_idx = label_map.get('entailment', 2)
+            con_idx = label_map.get('contradiction', 0)
+            
+            p_ent = probs[ent_idx]
+            p_con = probs[con_idx]
+            print(f"      FK NLI Check (Target: {target_table}) -> E: {p_ent:.4f}, C: {p_con:.4f}")
+            
+            if p_ent > 0.5:
+                print("      Result: ACCEPTED (FK Entailment)")
+                return True
+            elif p_con > 0.5:
+                print("      Result: DISCARDED (FK Contradiction)")
+                return False
+            else:
+                print("      Result: DISCARDED (FK Neutral/Weak)")
+                return False
         
+        # Default Attribute Validation (Standard)
         # 1. NLI Type Check First
         premise = f"This is a {column_name} of a {table_name}."
         hypothesis = f"'{val_str}' is a valid {column_name}."
@@ -90,7 +128,7 @@ def main():
     with open("schema.json", 'r') as f: schema = json.load(f)
     with open("resolution_map_v8.json", 'r') as f: res_map = json.load(f)
     
-    guard = ValidationGuard()
+    guard = ValidationGuard(schema)
     
     # table -> canonical_pk -> list of records
     grouped_records = defaultdict(lambda: defaultdict(list))
