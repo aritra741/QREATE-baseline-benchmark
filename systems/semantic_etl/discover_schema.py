@@ -125,13 +125,16 @@ def cluster_observations(raw_observations: List[Dict], embeddings_model):
     vectors = embeddings_model.embed_documents(fingerprints)
     vectors = np.array(vectors)
     
-    clustering = AgglomerativeClustering(
-        n_clusters=None,
-        distance_threshold=0.2,
-        metric='cosine',
-        linkage='average'
-    )
-    cluster_ids = clustering.fit_predict(vectors)
+    if len(vectors) == 1:
+        cluster_ids = np.array([0])
+    else:
+        clustering = AgglomerativeClustering(
+            n_clusters=None,
+            distance_threshold=0.2,
+            metric='cosine',
+            linkage='average'
+        )
+        cluster_ids = clustering.fit_predict(vectors)
     
     for i, obs in enumerate(valid_observations):
         obs["cluster_id"] = int(cluster_ids[i])
@@ -377,8 +380,11 @@ def discover_schema(chunks_file: str):
         if not all_attrs: continue
         
         attr_vectors = embeddings_model.embed_documents(all_attrs)
-        attr_clustering = AgglomerativeClustering(n_clusters=None, distance_threshold=0.2, metric='cosine', linkage='average')
-        attr_labels = attr_clustering.fit_predict(np.array(attr_vectors))
+        if len(attr_vectors) == 1:
+            attr_labels = np.array([0])
+        else:
+            attr_clustering = AgglomerativeClustering(n_clusters=None, distance_threshold=0.2, metric='cosine', linkage='average')
+            attr_labels = attr_clustering.fit_predict(np.array(attr_vectors))
         
         canonical_columns = []
         for attr_label in set(attr_labels):
