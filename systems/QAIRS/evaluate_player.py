@@ -553,11 +553,24 @@ def main():
         for i, parsed_query in enumerate(query_predicates, 1):
             # Create predicate object from parsed query
             if parsed_query.conditions:
-                # Use the first condition as the predicate (simplified)
-                col, op, val = parsed_query.conditions[0]
-                predicate = Predicate(column=col, operator=op.value, value=val)
+                # Convert conditions to string format for Predicate model
+                condition_strings = []
+                for col, op, val in parsed_query.conditions:
+                    if op.value == 'eq':
+                        condition_strings.append(f"{col} = '{val}'")
+                    elif op.value == 'neq':
+                        condition_strings.append(f"{col} != '{val}'")
+                    elif op.value == 'gt':
+                        condition_strings.append(f"{col} > {val}")
+                    elif op.value == 'gte':
+                        condition_strings.append(f"{col} >= {val}")
+                    elif op.value == 'lt':
+                        condition_strings.append(f"{col} < {val}")
+                    elif op.value == 'lte':
+                        condition_strings.append(f"{col} <= {val}")
                 
-                logger.debug(f"  Query {i}: Extracting with predicate {col} {op.value} {val}")
+                predicate = Predicate(table_name=table_name, conditions=condition_strings)
+                logger.debug(f"  Query {i}: Extracting with predicate: {' AND '.join(condition_strings)}")
             else:
                 predicate = None
             
