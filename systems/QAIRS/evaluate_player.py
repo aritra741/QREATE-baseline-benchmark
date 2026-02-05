@@ -23,7 +23,7 @@ from typing import List, Dict, Set, Tuple
 sys.path.insert(0, str(Path(__file__).parent))
 
 from config import QAIRSConfig
-from models import TableSchema, ExtractionTask, create_tables
+from models import TableSchema, ExtractionTask, Predicate, create_tables
 from sieve import Sieve
 from registry import Registry
 from llm_client import OllamaClient
