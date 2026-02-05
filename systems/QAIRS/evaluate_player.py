@@ -281,47 +281,40 @@ def load_all_player_corpus(chunk_size=2000, chunk_overlap=200):
 
 def create_schemas_from_queries(train_queries: Dict[str, List[str]]) -> Dict[str, TableSchema]:
     """
-    Create schemas by parsing the query workload (not ground truth CSVs).
-    This implements the "Query-Aware" principle: the schema is derived from
-    what the queries expect, not what the source data has.
+    Create schemas by extracting column names from query workload.
+    This implements the "Query-Aware" principle: schema derived from queries only.
     """
+    import re
     schemas = {}
-    parser = SQLParser()
     
     for table_name, queries in train_queries.items():
         all_columns = set()
         
         for query_sql in queries:
-            try:
-                # Parse query to extract columns
-                parsed = parser.parse(query_sql)
-                if parsed and parsed.table == table_name:
-                    # Extract SELECT columns
-                    import sqlglot
-                    from sqlglot import exp
-                    
-                    ast = sqlglot.parse_one(query_sql)
-                    
-                    # Get SELECT columns
-                    for select in ast.find_all(exp.Select):
-                        for projection in select.expressions:
-                            if isinstance(projection, exp.Column):
-                                all_columns.add(projection.name)
-                            elif isinstance(projection, exp.Alias):
-                                if isinstance(projection.this, exp.Column):
-                                    all_columns.add(projection.this.name)
-                    
-                    # Get WHERE columns
-                    for where in ast.find_all(exp.Where):
-                        for col in where.find_all(exp.Column):
-                            all_columns.add(col.name)
+            # Extract column names using regex
+            # Pattern: SELECT col1, col2, col3 FROM table WHERE col4 = ...
             
-            except Exception as e:
-                logger.warning(f"Failed to parse query for schema extraction: {e}")
-                continue
+            # Get SELECT columns
+            select_match = re.search(r'SELECT\s+(.+?)\s+FROM', query_sql, re.IGNORECASE)
+            if select_match:
+                select_cols = select_match.group(1)
+                # Split by comma and clean
+                for col in select_cols.split(','):
+                    col = col.strip()
+                    # Remove aliases (AS something)
+                    col = re.sub(r'\s+AS\s+\w+', '', col, flags=re.IGNORECASE)
+                    if col and col != '*':
+                        all_columns.add(col)
+            
+            # Get WHERE columns
+            where_match = re.search(r'WHERE\s+(.+)', query_sql, re.IGNORECASE)
+            if where_match:
+                where_clause = where_match.group(1)
+                # Extract column names (word before =, !=, <, >, etc.)
+                col_matches = re.findall(r'(\w+)\s*(?:=|!=|<|>|<=|>=)', where_clause)
+                all_columns.update(col_matches)
         
         if all_columns:
-            # Create schema with all discovered columns as strings
             columns = {col: "string" for col in all_columns}
             schemas[table_name] = TableSchema(
                 table_name=table_name,
@@ -424,19 +417,19 @@ def main():
     ground_truth = load_ground_truth()
     timer.end("load_ground_truth")
     
-    # Step 2: Load queries (needed for schema derivation)
+    # Step 2: Load queries
     logger.info("\n[2/8] Loading filter queries...")
     timer.start("load_queries")
     train_queries, test_queries, all_queries = load_filter_queries()
     timer.end("load_queries")
     
-    # Step 3: Create schemas from query workload (Query-Aware principle)
+    # Step 3: Create schemas from query workload (Query-Aware)
     logger.info("\n[3/8] Deriving schemas from query workload...")
-    timer.start("derive_schemas")
+    timer.start("create_schemas")
     schemas = create_schemas_from_queries(train_queries)
-    timer.end("derive_schemas")
+    timer.end("create_schemas")
     
-    # Step 4: Setup ground truth database with schema mapping
+    # Step 4: Setup ground truth database (for evaluation only)
     logger.info("\n[4/8] Setting up ground truth database...")
     timer.start("setup_gt_db")
     gt_conn_str, gt_engine = setup_ground_truth_database(ground_truth, schemas)
