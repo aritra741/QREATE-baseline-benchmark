@@ -102,7 +102,7 @@ def main():
     # Load corpus
     logger.info("\nLoading all healthcare chunks...")
     timer.start("load_corpus")
-    base_path = Path("/Users/aritramazumder/Documents/UDA-Bench-main/source_data/Healthcare")
+    base_path = Path(__file__).parent.parent.parent / "source_data" / "Healthcare"
     chunks = {}
     
     # Disease

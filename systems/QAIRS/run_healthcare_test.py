@@ -22,7 +22,7 @@ from query_engine import QueryEngine
 
 def load_healthcare_corpus():
     """Load first 2 files from each healthcare subfolder."""
-    base_path = Path("/Users/aritramazumder/Documents/UDA-Bench-main/source_data/Healthcare")
+    base_path = Path(__file__).parent.parent.parent / "source_data" / "Healthcare"
     
     chunks = {}
     
@@ -62,7 +62,7 @@ def load_healthcare_corpus():
 
 def load_join_queries():
     """Load join queries from SQL file."""
-    query_path = Path("/Users/aritramazumder/Documents/UDA-Bench-main/Query/Med/Join/join_queries.sql")
+    query_path = Path(__file__).parent.parent.parent / "Query" / "Med" / "Join" / "join_queries.sql"
     
     with open(query_path, 'r') as f:
         content = f.read()

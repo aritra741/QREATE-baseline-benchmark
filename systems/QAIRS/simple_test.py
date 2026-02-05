@@ -31,7 +31,7 @@ def main():
     
     # Load one healthcare file
     logger.info("\nLoading corpus...")
-    disease_file = Path("/Users/aritramazumder/Documents/UDA-Bench-main/source_data/Healthcare/disease_small/103.txt")
+    disease_file = Path(__file__).parent.parent.parent / "source_data" / "Healthcare" / "disease_small" / "103.txt"
     with open(disease_file, 'r', encoding='utf-8', errors='ignore') as f:
         text = f.read()
     
