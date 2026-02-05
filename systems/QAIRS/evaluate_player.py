@@ -452,6 +452,15 @@ def main():
     # Step 5: Load corpus
     logger.info("\n[5/8] Loading corpus...")
     timer.start("load_corpus")
+    
+    # Check if synthetic corpus exists, if not, generate it
+    synthetic_path = Path(__file__).parent.parent.parent / "source_data" / "SyntheticPlayer"
+    if not synthetic_path.exists() or not any(synthetic_path.iterdir()):
+        logger.info("  Synthetic corpus not found. Generating...")
+        import subprocess
+        gen_script = Path(__file__).parent / "generate_synthetic_corpus.py"
+        subprocess.run([sys.executable, str(gen_script)], check=True)
+    
     chunks, corpus_stats = load_all_player_corpus(chunk_size=2000, chunk_overlap=200)
     timer.end("load_corpus")
     
@@ -529,11 +538,10 @@ def main():
             continue
         
         # Parse each train query to extract predicates
-        parser = SQLParser()
         query_predicates = []
-        for query_sql in query_list:
+        for i, query_sql in enumerate(query_list):
             try:
-                parsed = parser.parse(query_sql)
+                parsed = SQLParser.parse_query(query_sql, f"{table_name}_train_{i}")
                 if parsed and parsed.conditions:
                     query_predicates.append(parsed)
             except Exception as e:

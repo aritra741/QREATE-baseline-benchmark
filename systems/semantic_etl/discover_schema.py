@@ -2,17 +2,19 @@ import json
 import os
 import numpy as np
 import random
-from typing import List, Dict
+from typing import List, Dict, Set
 from ollama import Client
 from sklearn.cluster import AgglomerativeClustering
 from langchain_huggingface import HuggingFaceEmbeddings
-from collections import Counter
+from sentence_transformers import CrossEncoder
+from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Configuration
 MODEL_NAME = "qwen2.5:7b-instruct"
 OLLAMA_HOST = "http://localhost:11434"
-SAMPLE_SIZE = 1000  # Sample 2000 chunks for schema discovery
+CROSS_ENCODER_MODEL = "cross-encoder/stsb-distilroberta-base"
+SAMPLE_SIZE = 1000  # Sample 1000 chunks for schema discovery
 MAX_WORKERS = 20    # Number of parallel threads for LLM calls
 
 def get_llm_client():
@@ -20,6 +22,73 @@ def get_llm_client():
 
 def get_embeddings():
     return HuggingFaceEmbeddings(model_name="BAAI/bge-m3")
+
+def get_cross_encoder():
+    print(f"Loading Cross-Encoder: {CROSS_ENCODER_MODEL}...")
+    return CrossEncoder(CROSS_ENCODER_MODEL)
+
+def deduplicate_attributes(table_name: str, all_attrs: List[str], embeddings_model, cross_encoder) -> List[str]:
+    """Hierarchical Semantic Deduplication: Bi-Encoder Proposal + Cross-Encoder Verification."""
+    if not all_attrs: return []
+    
+    unique_attrs = sorted(list(set(all_attrs)))
+    if len(unique_attrs) == 1:
+        return unique_attrs
+        
+    # 1. Bi-Encoder Proposal (Contextualized)
+    # We wrap attributes in table context to disambiguate (e.g. "condition" of a Patient vs Building)
+    contextual_attrs = [f"The '{attr}' of a {table_name} entity." for attr in unique_attrs]
+    attr_vectors = embeddings_model.embed_documents(contextual_attrs)
+    
+    # Group potential synonyms using a loose threshold
+    # Threshold 0.2 means 80% similarity required for initial grouping
+    attr_clustering = AgglomerativeClustering(n_clusters=None, distance_threshold=0.2, metric='cosine', linkage='average')
+    attr_labels = attr_clustering.fit_predict(np.array(attr_vectors))
+    
+    # 2. Cross-Encoder Verification
+    parent = {attr: attr for attr in unique_attrs}
+    def find(i):
+        if parent[i] == i: return i
+        parent[i] = find(parent[i])
+        return parent[i]
+    
+    def union(i, j):
+        root_i, root_j = find(i), find(j)
+        if root_i != root_j: parent[root_i] = root_j
+
+    # Process each cluster found by Bi-Encoder
+    for label in set(attr_labels):
+        cluster_members = [unique_attrs[i] for i, l in enumerate(attr_labels) if l == label]
+        if len(cluster_members) < 2: continue
+        
+        # Check all pairs in the cluster with Cross-Encoder
+        for i in range(len(cluster_members)):
+            for j in range(i + 1, len(cluster_members)):
+                a1, a2 = cluster_members[i], cluster_members[j]
+                
+                # Cross-Encoder performs intensive attention-based comparison
+                # We format as [sentence_a, sentence_b]
+                pair = [f"{table_name} attribute: {a1}", f"{table_name} attribute: {a2}"]
+                score = cross_encoder.predict(pair)
+                
+                # Threshold 0.80 for semantic equivalence in Cross-Encoder space
+                if score > 0.80:
+                    union(a1, a2)
+                    
+    # 3. Canonical Election (Frequency Weighted)
+    # Map each raw attribute to its root in the Union-Find structure
+    attr_counts = Counter(all_attrs)
+    groups = defaultdict(list)
+    for attr in unique_attrs:
+        groups[find(attr)].append(attr)
+        
+    final_columns = []
+    for root, members in groups.items():
+        # The member that appeared most frequently in the raw observations becomes the winner
+        canonical_name = max(members, key=lambda m: attr_counts[m])
+        final_columns.append(canonical_name)
+        
+    return final_columns
 
 def process_chunk_observation(chunk: Dict, prompt_template: str) -> List[Dict]:
     """Worker function for parallel observation collection."""
@@ -415,6 +484,7 @@ def discover_schema(chunks_file: str):
     
     client = get_llm_client()
     embeddings_model = get_embeddings()
+    cross_encoder = get_cross_encoder()
     
     print("Collecting observations from chunks...")
     raw_observations = get_observations(chunks)
@@ -439,18 +509,8 @@ def discover_schema(chunks_file: str):
         
         if not all_attrs: continue
         
-        attr_vectors = embeddings_model.embed_documents(all_attrs)
-        if len(attr_vectors) == 1:
-            attr_labels = np.array([0])
-        else:
-            attr_clustering = AgglomerativeClustering(n_clusters=None, distance_threshold=0.2, metric='cosine', linkage='average')
-            attr_labels = attr_clustering.fit_predict(np.array(attr_vectors))
-        
-        canonical_columns = []
-        for attr_label in set(attr_labels):
-            attrs_in_group = [all_attrs[i] for i, label in enumerate(attr_labels) if label == attr_label]
-            canonical_col = Counter(attrs_in_group).most_common(1)[0][0]
-            canonical_columns.append(canonical_col)
+        print(f"  Deduplicating attributes for table: {table_name}")
+        canonical_columns = deduplicate_attributes(table_name, all_attrs, embeddings_model, cross_encoder)
             
         draft_schema[table_name] = {
             "columns": [{"name": col, "is_foreign_key": False, "references_table": None} for col in canonical_columns]
