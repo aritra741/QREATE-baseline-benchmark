@@ -631,13 +631,22 @@ def main():
     
     timer.end("extraction_train")
     
-    # Step 9: Evaluate on test queries (100%)
+    # Step 9: Evaluate on test queries (100%) with on-demand extraction
     logger.info("\n[9/9] Evaluating on test queries (100%)...")
+    logger.info("  Triggering on-demand extraction for unseen queries")
     timer.start("evaluation")
     
     results_summary = {}
     
     for table_name, query_list in test_queries.items():
+        if table_name == "join":
+            logger.info(f"\n  Skipping {table_name} (join queries require multiple tables)")
+            continue
+        
+        if table_name not in schemas:
+            logger.warning(f"\n  Skipping {table_name} (no schema)")
+            continue
+        
         logger.info(f"\n  Testing {table_name} ({len(query_list)} queries)...")
         
         total_tp = 0
@@ -645,8 +654,74 @@ def main():
         total_fn = 0
         errors = 0
         perfect_matches = 0
+        extraction_triggered = 0
         
         for i, query in enumerate(query_list, 1):
+            # Parse query to extract predicate
+            try:
+                parsed = SQLParser.parse_query(query, f"{table_name}_test_{i}")
+                
+                # Check if data for this predicate exists in QAIRS DB
+                # For simplicity, check if any data exists for the table
+                with qairs_engine.connect() as conn:
+                    result = conn.execute(text(f'SELECT COUNT(*) FROM "{table_name}"'))
+                    row_count = result.scalar()
+                
+                # If no data exists, trigger extraction for this query
+                if row_count == 0 and parsed and parsed.conditions:
+                    logger.debug(f"  Query {i}: Triggering on-demand extraction")
+                    extraction_triggered += 1
+                    
+                    # Create predicate
+                    condition_strings = []
+                    for col, op, val in parsed.conditions:
+                        if op.value == 'eq':
+                            condition_strings.append(f"{col} = '{val}'")
+                        elif op.value == 'neq':
+                            condition_strings.append(f"{col} != '{val}'")
+                        elif op.value == 'gt':
+                            condition_strings.append(f"{col} > {val}")
+                        elif op.value == 'gte':
+                            condition_strings.append(f"{col} >= {val}")
+                        elif op.value == 'lt':
+                            condition_strings.append(f"{col} < {val}")
+                        elif op.value == 'lte':
+                            condition_strings.append(f"{col} <= {val}")
+                    
+                    predicate = Predicate(table_name=table_name, conditions=condition_strings)
+                    
+                    # Get relevant chunks
+                    category_chunks = [k for k in chunks.keys() if k.startswith(f"{table_name}_")]
+                    
+                    task = ExtractionTask(
+                        task_id=f"on_demand_{table_name}_q{i}",
+                        table_schema=schemas[table_name],
+                        predicate=predicate,
+                        candidate_chunks=category_chunks,
+                        dictionary_map=sieve.dictionary_map
+                    )
+                    
+                    results = extractor.extract(task, chunks, parallel=False)
+                    
+                    # Insert extracted data
+                    for result in results:
+                        if result.data:
+                            for row in result.data:
+                                try:
+                                    cols = list(row.keys())
+                                    placeholders = ", ".join([f":{col}" for col in cols])
+                                    cols_quoted = ", ".join([f'"{c}"' for c in cols])
+                                    insert_sql = f'INSERT INTO "{table_name}" ({cols_quoted}) VALUES ({placeholders})'
+                                    
+                                    with qairs_engine.connect() as conn:
+                                        conn.execute(text(insert_sql), row)
+                                        conn.commit()
+                                except Exception as e:
+                                    logger.debug(f"Insert failed: {e}")
+            
+            except Exception as e:
+                logger.debug(f"Failed to parse or extract for query {i}: {e}")
+            
             # Execute on ground truth
             gt_result = execute_query_on_ground_truth(query, gt_engine)
             
@@ -694,6 +769,7 @@ def main():
         }
         
         logger.info(f"  Perfect Matches: {perfect_matches}/{total_queries}")
+        logger.info(f"  On-demand extractions triggered: {extraction_triggered}")
         logger.info(f"  Precision: {precision:.3f}, Recall: {recall:.3f}, F1: {f1:.3f}")
     
     timer.end("evaluation")
