@@ -351,22 +351,22 @@ def setup_ground_truth_database(ground_truth, query_schemas: Dict[str, TableSche
         }
     }
     
-    for table_name, rows in ground_truth.items():
-        if not rows:
-            continue
-        
-        # Get original CSV columns
-        csv_columns = list(rows[0].keys())
-        
-        # Apply column name mappings
-        table_mapping = column_mappings.get(table_name, {})
-        db_columns = [table_mapping.get(col, col) for col in csv_columns]
-        
-        # Create table with mapped column names
-        cols_sql = ", ".join([f'"{col}" TEXT' for col in db_columns])
-        create_sql = f'CREATE TABLE "{table_name}" ({cols_sql})'
-        
-        with engine.connect() as conn:
+    with engine.begin() as conn:
+        for table_name, rows in ground_truth.items():
+            if not rows:
+                continue
+            
+            # Get original CSV columns
+            csv_columns = list(rows[0].keys())
+            
+            # Apply column name mappings
+            table_mapping = column_mappings.get(table_name, {})
+            db_columns = [table_mapping.get(col, col) for col in csv_columns]
+            
+            # Create table with mapped column names
+            cols_sql = ", ".join([f'"{col}" TEXT' for col in db_columns])
+            create_sql = f'CREATE TABLE "{table_name}" ({cols_sql})'
+            
             conn.execute(text(create_sql))
             
             # Insert data with mapped column names
@@ -379,9 +379,7 @@ def setup_ground_truth_database(ground_truth, query_schemas: Dict[str, TableSche
                 mapped_row = {table_mapping.get(k, k): v for k, v in row.items()}
                 conn.execute(text(insert_sql), mapped_row)
             
-            conn.commit()
-        
-        logger.info(f"  {table_name}: {len(rows)} rows, columns: {db_columns}")
+            logger.info(f"  {table_name}: {len(rows)} rows, columns: {db_columns}")
     
     logger.info(f"✓ Ground truth database created: {db_path}")
     return conn_str, engine
