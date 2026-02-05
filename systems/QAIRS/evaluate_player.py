@@ -446,10 +446,10 @@ def main():
     ground_truth = load_ground_truth()
     timer.end("load_ground_truth")
     
-    # Step 2: Load queries (20% train, 100% test)
+    # Step 2: Load queries (0% train, 100% test)
     logger.info("\n[2/8] Loading all Player queries...")
     timer.start("load_queries")
-    train_queries, test_queries, all_queries = load_all_player_queries(train_ratio=0.2)
+    train_queries, test_queries, all_queries = load_all_player_queries(train_ratio=0.0)
     timer.end("load_queries")
     
     # Step 3: Create schemas from query workload (Query-Aware)
@@ -466,7 +466,7 @@ def main():
     
     total_train = sum(len(q) for q in train_queries.values())
     total_test = sum(len(q) for q in test_queries.values())
-    logger.info(f"Train queries (20%): {total_train}")
+    logger.info(f"Train queries (0%): {total_train}")
     logger.info(f"Test queries (100%): {total_test}")
     
     # Step 5: Load corpus
@@ -535,9 +535,9 @@ def main():
     
     timer.end("init_components")
     
-    # Step 8: Extract using train queries (20%) - Query-Aware Extraction
-    logger.info("\n[8/8] Extracting data using train queries (20%)...")
-    logger.info("  Using query-aware extraction (predicates from train queries)")
+    # Step 8: Extract using train queries (0%) - Zero-Shot Extraction
+    logger.info("\n[8/8] Extracting data (zero-shot, no train queries)...")
+    logger.info("  Extracting all data without query guidance")
     timer.start("extraction_train")
     
     # Track what's been extracted to avoid duplicates
