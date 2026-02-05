@@ -34,11 +34,14 @@ def main():
     
     logger.info(f"Schema: {schema.columns}")
     
-    # Sample chunk
+    # Sample chunk with player who played for multiple teams
     chunk_text = """
-    John Smith is a basketball player for the Los Angeles Lakers.
-    He is 28 years old and plays as a Guard. He was drafted in 2016
-    and has won 2 championships.
+    Andre Drummond was born on August 10, 1993. He is an American professional 
+    basketball player who plays as a Center. He was selected 9th overall in the 
+    2012 NBA draft. Over his career, he has played for the Detroit Pistons, 
+    Cleveland Cavaliers, Los Angeles Lakers, Brooklyn Nets, Chicago Bulls, 
+    and Philadelphia 76ers. He also played for the Connecticut Huskies in college.
+    He won a FIBA World Cup in 2014.
     """
     
     # Create extraction task
