@@ -180,50 +180,70 @@ def load_ground_truth():
     return ground_truth
 
 
-def load_filter_queries():
-    """Load filter queries and split into train/test."""
-    queries_dir = Path(__file__).parent.parent.parent / "Query" / "Player" / "Filter"
+def load_all_player_queries(train_ratio=0.5):
+    """
+    Load ALL Player queries (Filter, Join, Select) and split into train/test.
     
-    logger.info(f"Looking for queries at: {queries_dir.absolute()}")
+    Args:
+        train_ratio: Ratio of queries to use for training (default 0.5 = 50%)
+    """
+    queries_base = Path(__file__).parent.parent.parent / "Query" / "Player"
     
-    if not queries_dir.exists():
-        logger.error(f"Queries directory does not exist: {queries_dir.absolute()}")
-        return {}, []
+    logger.info(f"Looking for queries at: {queries_base.absolute()}")
     
     all_queries = {}
     
-    for sql_file in queries_dir.glob("*.sql"):
-        table_name = sql_file.stem.replace("filter_queries_", "")
-        with open(sql_file, 'r') as f:
-            content = f.read()
+    # Load from all query subdirectories
+    for query_type in ["Filter", "Join", "Select"]:
+        queries_dir = queries_base / query_type
         
-        # Parse queries
-        query_list = []
-        for line in content.split('\n'):
-            line = line.strip()
-            if line.startswith('SELECT'):
-                # Remove trailing semicolon
-                query = line.rstrip(';')
-                query_list.append(query)
+        if not queries_dir.exists():
+            logger.warning(f"Query directory not found: {queries_dir}")
+            continue
         
-        all_queries[table_name] = query_list
+        for sql_file in queries_dir.glob("*.sql"):
+            # Extract table name from filename
+            stem = sql_file.stem
+            if "filter_queries_" in stem:
+                table_name = stem.replace("filter_queries_", "")
+            elif "join_queries" in stem:
+                table_name = "join"  # Join queries span multiple tables
+            elif "select_queries_" in stem:
+                table_name = stem.replace("select_queries_", "")
+            else:
+                table_name = stem
+            
+            with open(sql_file, 'r') as f:
+                content = f.read()
+            
+            # Parse queries
+            query_list = []
+            for line in content.split('\n'):
+                line = line.strip()
+                if line.startswith('SELECT'):
+                    query = line.rstrip(';')
+                    query_list.append(query)
+            
+            if table_name not in all_queries:
+                all_queries[table_name] = []
+            all_queries[table_name].extend(query_list)
     
-    # Split 80/20 for train/test
+    # Split train/test
     train_queries = {}
     test_queries = {}
     
     for table, queries in all_queries.items():
-        random.seed(42)  # Reproducible split
+        random.seed(42)
         shuffled = queries.copy()
         random.shuffle(shuffled)
         
-        split_idx = int(len(shuffled) * 0.8)
+        split_idx = int(len(shuffled) * train_ratio)
         train_queries[table] = shuffled[:split_idx]
         test_queries[table] = shuffled  # Test on 100%
     
     logger.info("Queries loaded:")
     for table in all_queries:
-        logger.info(f"  {table}: {len(train_queries[table])} train, {len(test_queries[table])} test")
+        logger.info(f"  {table}: {len(train_queries[table])} train ({train_ratio*100:.0f}%), {len(test_queries[table])} test (100%)")
     
     return train_queries, test_queries, all_queries
 
@@ -426,10 +446,10 @@ def main():
     ground_truth = load_ground_truth()
     timer.end("load_ground_truth")
     
-    # Step 2: Load queries
-    logger.info("\n[2/8] Loading filter queries...")
+    # Step 2: Load queries (50% train, 100% test)
+    logger.info("\n[2/8] Loading all Player queries...")
     timer.start("load_queries")
-    train_queries, test_queries, all_queries = load_filter_queries()
+    train_queries, test_queries, all_queries = load_all_player_queries(train_ratio=0.5)
     timer.end("load_queries")
     
     # Step 3: Create schemas from query workload (Query-Aware)
@@ -446,7 +466,7 @@ def main():
     
     total_train = sum(len(q) for q in train_queries.values())
     total_test = sum(len(q) for q in test_queries.values())
-    logger.info(f"Train queries (80%): {total_train}")
+    logger.info(f"Train queries (50%): {total_train}")
     logger.info(f"Test queries (100%): {total_test}")
     
     # Step 5: Load corpus
@@ -515,8 +535,8 @@ def main():
     
     timer.end("init_components")
     
-    # Step 8: Extract using train queries (80%) - Query-Aware Extraction
-    logger.info("\n[8/8] Extracting data using train queries (80%)...")
+    # Step 8: Extract using train queries (50%) - Query-Aware Extraction
+    logger.info("\n[8/8] Extracting data using train queries (50%)...")
     logger.info("  Using query-aware extraction (predicates from train queries)")
     timer.start("extraction_train")
     
