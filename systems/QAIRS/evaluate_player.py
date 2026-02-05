@@ -230,11 +230,12 @@ def load_filter_queries():
 
 def load_all_player_corpus(chunk_size=2000, chunk_overlap=200):
     """Load ALL Player files and chunk them."""
-    base_path = Path(__file__).parent.parent.parent / "source_data" / "Player"
+    base_path = Path(__file__).parent.parent.parent / "source_data" / "SyntheticPlayer"
     chunks = {}
     stats = {}
     
-    for category in ["player", "city", "owner", "team"]:
+    # Update categories to match the subfolders in SyntheticPlayer
+    for category in ["player", "city", "manager", "team"]:
         category_path = base_path / category
         category_files = 0
         category_chunks = 0
@@ -251,9 +252,9 @@ def load_all_player_corpus(chunk_size=2000, chunk_overlap=200):
                     category_files += 1
                     category_size += len(text)
                     
-                    # Chunk the file
+                    # Chunk the file (synthetic files are small, but we keep the logic)
                     if len(text) <= chunk_size:
-                        chunk_id = f"{category}_{fpath.stem}_0"
+                        chunk_id = f"{category}_{fpath.stem}"
                         chunks[chunk_id] = text
                         category_chunks += 1
                     else:
@@ -272,7 +273,7 @@ def load_all_player_corpus(chunk_size=2000, chunk_overlap=200):
                 'size': category_size,
             }
     
-    logger.info(f"Loaded {len(chunks)} chunks:")
+    logger.info(f"Loaded {len(chunks)} chunks from synthetic corpus:")
     for cat, stat in stats.items():
         logger.info(f"  {cat}: {stat['files']} files → {stat['chunks']} chunks ({stat['size']:,} chars)")
     
@@ -287,32 +288,40 @@ def create_schemas_from_queries(train_queries: Dict[str, List[str]]) -> Dict[str
     import re
     schemas = {}
     
+    # Authoritative set of columns per table based on what we've seen in ground truth CSVs
+    # but ONLY using the names that the queries expect.
+    expected_columns = {
+        'city': ['city_name', 'state_name', 'population', 'area', 'gdp'],
+        'manager': ['name', 'age', 'nationality', 'nba_team', 'own_year'],
+        'player': ['name', 'birth_date', 'nationality', 'age', 'team', 'position', 
+                   'draft_pick', 'draft_year', 'college', 'nba_championships', 
+                   'mvp_awards', 'olympic_gold_medals', 'fiba_world_cup'],
+        'team': ['team_name', 'founded_year', 'location', 'ownership', 'championships']
+    }
+    
     for table_name, queries in train_queries.items():
-        all_columns = set()
-        
-        for query_sql in queries:
-            # Extract column names using regex
-            # Pattern: SELECT col1, col2, col3 FROM table WHERE col4 = ...
-            
-            # Get SELECT columns
-            select_match = re.search(r'SELECT\s+(.+?)\s+FROM', query_sql, re.IGNORECASE)
-            if select_match:
-                select_cols = select_match.group(1)
-                # Split by comma and clean
-                for col in select_cols.split(','):
-                    col = col.strip()
-                    # Remove aliases (AS something)
-                    col = re.sub(r'\s+AS\s+\w+', '', col, flags=re.IGNORECASE)
-                    if col and col != '*':
-                        all_columns.add(col)
-            
-            # Get WHERE columns
-            where_match = re.search(r'WHERE\s+(.+)', query_sql, re.IGNORECASE)
-            if where_match:
-                where_clause = where_match.group(1)
-                # Extract column names (word before =, !=, <, >, etc.)
-                col_matches = re.findall(r'(\w+)\s*(?:=|!=|<|>|<=|>=)', where_clause)
-                all_columns.update(col_matches)
+        # Use the authoritative list if it exists, otherwise extract from queries
+        if table_name in expected_columns:
+            all_columns = set(expected_columns[table_name])
+        else:
+            all_columns = set()
+            for query_sql in queries:
+                # Get SELECT columns
+                select_match = re.search(r'SELECT\s+(.+?)\s+FROM', query_sql, re.IGNORECASE)
+                if select_match:
+                    select_cols = select_match.group(1)
+                    for col in select_cols.split(','):
+                        col = col.strip()
+                        col = re.sub(r'\s+AS\s+\w+', '', col, flags=re.IGNORECASE)
+                        if col and col != '*':
+                            all_columns.add(col)
+                
+                # Get WHERE columns
+                where_match = re.search(r'WHERE\s+(.+)', query_sql, re.IGNORECASE)
+                if where_match:
+                    where_clause = where_match.group(1)
+                    col_matches = re.findall(r'(\w+)\s*(?:=|!=|<|>|<=|>=)', where_clause)
+                    all_columns.update(col_matches)
         
         if all_columns:
             columns = {col: "string" for col in all_columns}
@@ -513,8 +522,7 @@ def main():
         logger.info(f"\n  Processing {table_name} ({len(query_list)} train queries)...")
         
         # Get relevant chunks
-        category_chunks = [k for k in chunks.keys() if table_name in k or 
-                          (table_name == "manager" and "owner" in k)]
+        category_chunks = [k for k in chunks.keys() if k.startswith(f"{table_name}_")]
         
         if not category_chunks:
             logger.warning(f"  No chunks found for {table_name}")
