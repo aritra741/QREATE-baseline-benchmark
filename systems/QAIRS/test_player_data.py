@@ -79,8 +79,19 @@ class TimingTracker:
         logger.info(f"{'=' * 80}\n")
 
 
-def load_all_player_chunks(limit_per_category=5):
-    """Load chunks from all Player subdirectories."""
+def load_all_player_chunks(chunk_size=2000, chunk_overlap=200):
+    """
+    Load ALL files from Player subdirectories and chunk them.
+    
+    Args:
+        chunk_size: Size of each chunk in characters
+        chunk_overlap: Overlap between consecutive chunks
+    
+    Returns:
+        chunks: Dict mapping chunk_id -> chunk_text
+        stats: Statistics about loaded data
+        timer: TimingTracker object
+    """
     timer = TimingTracker()
     timer.start("load_all_chunks")
     
@@ -91,35 +102,52 @@ def load_all_player_chunks(limit_per_category=5):
     # Load from each subdirectory
     for category in ["player", "city", "owner", "team"]:
         category_path = base_path / category
+        category_files = 0
         category_chunks = 0
         category_size = 0
         
         if category_path.exists():
-            # Get up to limit_per_category files
-            files = sorted(category_path.glob("*.txt"))[:limit_per_category]
+            # Get ALL files
+            files = sorted(category_path.glob("*.txt"))
             
             for fpath in files:
                 try:
                     with open(fpath, 'r', encoding='utf-8', errors='ignore') as f:
                         text = f.read()
-                    chunk_id = f"{category}_{fpath.stem}"
-                    chunks[chunk_id] = text
-                    category_chunks += 1
+                    
+                    category_files += 1
                     category_size += len(text)
+                    
+                    # Chunk the file
+                    if len(text) <= chunk_size:
+                        # Small file - one chunk
+                        chunk_id = f"{category}_{fpath.stem}_0"
+                        chunks[chunk_id] = text
+                        category_chunks += 1
+                    else:
+                        # Large file - split into chunks
+                        for i in range(0, len(text), chunk_size - chunk_overlap):
+                            chunk_text = text[i:i + chunk_size]
+                            chunk_id = f"{category}_{fpath.stem}_{i}"
+                            chunks[chunk_id] = chunk_text
+                            category_chunks += 1
+                
                 except Exception as e:
                     logger.warning(f"Failed to load {fpath}: {e}")
             
             stats[category] = {
-                'count': category_chunks,
+                'files': category_files,
+                'chunks': category_chunks,
                 'size': category_size,
-                'avg_size': category_size / category_chunks if category_chunks > 0 else 0
+                'avg_file_size': category_size / category_files if category_files > 0 else 0
             }
     
     elapsed = timer.end("load_all_chunks")
     
-    logger.info(f"Loaded {len(chunks)} chunks in {elapsed:.2f}s:")
+    logger.info(f"Loaded {len(chunks)} chunks from all files in {elapsed:.2f}s:")
     for cat, stat in stats.items():
-        logger.info(f"  {cat}: {stat['count']} files, {stat['size']:,} chars (avg: {stat['avg_size']:,.0f})")
+        logger.info(f"  {cat}: {stat['files']} files → {stat['chunks']} chunks, "
+                   f"{stat['size']:,} chars (avg: {stat['avg_file_size']:,.0f} per file)")
     
     return chunks, stats, timer
 
@@ -172,9 +200,9 @@ def main():
     for table, qlist in queries.items():
         logger.info(f"  {table}: {len(qlist)} queries")
     
-    # Load all Player data
+    # Load all Player data with chunking
     logger.info("\nLoading all Player data...")
-    chunks, load_stats, load_timer = load_all_player_chunks(limit_per_category=5)
+    chunks, load_stats, load_timer = load_all_player_chunks(chunk_size=2000, chunk_overlap=200)
     
     # Merge timers
     for op, times in load_timer.timings.items():
@@ -214,17 +242,21 @@ def main():
     extractor = Extractor(config, llm_client, max_workers=1)
     timer.end("extractor_init")
     
-    # Define extraction tests
+    # Define extraction tests based on actual query schemas
     test_cases = [
         {
             "name": "Player Information",
             "schema": TableSchema(
                 table_name="player",
                 columns={
-                    "player_name": "string",
-                    "position": "string",
+                    "name": "string",
                     "team": "string",
-                    "salary": "float",
+                    "draft_pick": "string",
+                    "mvp_awards": "string",
+                    "birth_date": "string",
+                    "olympic_gold_medals": "string",
+                    "nba_championships": "string",
+                    "fiba_world_cup": "string",
                 }
             ),
             "chunks": [k for k in chunks.keys() if "player_" in k],
@@ -235,9 +267,10 @@ def main():
                 table_name="team",
                 columns={
                     "team_name": "string",
-                    "city": "string",
-                    "owner": "string",
-                    "founded": "string",
+                    "ownership": "string",
+                    "championships": "string",
+                    "founded_year": "string",
+                    "location": "string",
                 }
             ),
             "chunks": [k for k in chunks.keys() if "team_" in k],
@@ -248,25 +281,23 @@ def main():
                 table_name="city",
                 columns={
                     "city_name": "string",
-                    "state": "string",
-                    "population": "string",
-                    "teams": "string",
+                    "area": "string",
+                    "gdp": "string",
                 }
             ),
             "chunks": [k for k in chunks.keys() if "city_" in k],
         },
         {
-            "name": "Owner Information",
+            "name": "Manager Information",
             "schema": TableSchema(
-                table_name="owner",
+                table_name="manager",
                 columns={
-                    "owner_name": "string",
-                    "team": "string",
-                    "wealth": "string",
-                    "years_owned": "string",
+                    "name": "string",
+                    "nba_team": "string",
+                    "own_year": "string",
                 }
             ),
-            "chunks": [k for k in chunks.keys() if "owner_" in k],
+            "chunks": [k for k in chunks.keys() if "owner_" in k],  # owner files contain manager data
         },
     ]
     
@@ -326,7 +357,7 @@ def main():
     logger.info(f"Total corpus size: {total_size:,} characters ({total_size/1024/1024:.1f} MB)")
     logger.info(f"Categories loaded:")
     for cat, stat in load_stats.items():
-        logger.info(f"  {cat}: {stat['count']} files")
+        logger.info(f"  {cat}: {stat['files']} files → {stat['chunks']} chunks")
     logger.info(f"{'=' * 80}\n")
 
 
