@@ -16,6 +16,8 @@ from pathlib import Path
 from loguru import logger
 from collections import defaultdict
 import sqlite3
+from difflib import SequenceMatcher
+from typing import List, Dict, Set, Tuple
 
 # Add QAIRS to path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -62,6 +64,90 @@ class TimingTracker:
             total_time = sum(times)
             pct = (total_time / total * 100) if total > 0 else 0
             logger.info(f"{op:<40} {total_time:>9.2f}s ({pct:>5.1f}%)")
+
+
+def normalize_value(val: str) -> str:
+    """Normalize a value for comparison."""
+    if val is None:
+        return ""
+    return str(val).strip().lower()
+
+
+def fuzzy_match(val1: str, val2: str, threshold: float = 0.85) -> bool:
+    """Check if two values match using fuzzy string matching."""
+    v1 = normalize_value(val1)
+    v2 = normalize_value(val2)
+    
+    if v1 == v2:
+        return True
+    
+    # Use SequenceMatcher for fuzzy comparison
+    ratio = SequenceMatcher(None, v1, v2).ratio()
+    return ratio >= threshold
+
+
+def row_to_tuple(row: Dict, columns: List[str]) -> Tuple:
+    """Convert a row dict to a normalized tuple for comparison."""
+    return tuple(normalize_value(row.get(col, "")) for col in columns)
+
+
+def find_matching_rows(gt_rows: List[Dict], qairs_rows: List[Dict], 
+                       columns: List[str], use_fuzzy: bool = True) -> Tuple[int, int, int]:
+    """
+    Find matching rows between ground truth and QAIRS results.
+    
+    Returns:
+        (true_positives, false_positives, false_negatives)
+    """
+    # Convert to sets of tuples for exact matching
+    gt_tuples = {row_to_tuple(row, columns) for row in gt_rows}
+    qairs_tuples = {row_to_tuple(row, columns) for row in qairs_rows}
+    
+    # Exact matches
+    exact_matches = gt_tuples & qairs_tuples
+    true_positives = len(exact_matches)
+    
+    # Remaining unmatched rows
+    unmatched_gt = [row for row in gt_rows if row_to_tuple(row, columns) not in exact_matches]
+    unmatched_qairs = [row for row in qairs_rows if row_to_tuple(row, columns) not in exact_matches]
+    
+    # Try fuzzy matching on unmatched rows
+    if use_fuzzy and unmatched_gt and unmatched_qairs:
+        matched_qairs_indices = set()
+        
+        for gt_row in unmatched_gt:
+            for i, qairs_row in enumerate(unmatched_qairs):
+                if i in matched_qairs_indices:
+                    continue
+                
+                # Check if all columns match fuzzily
+                all_match = True
+                for col in columns:
+                    if not fuzzy_match(gt_row.get(col, ""), qairs_row.get(col, "")):
+                        all_match = False
+                        break
+                
+                if all_match:
+                    true_positives += 1
+                    matched_qairs_indices.add(i)
+                    break
+        
+        # Update unmatched counts
+        unmatched_qairs = [row for i, row in enumerate(unmatched_qairs) 
+                          if i not in matched_qairs_indices]
+    
+    false_positives = len(unmatched_qairs)
+    false_negatives = len(unmatched_gt)
+    
+    return true_positives, false_positives, false_negatives
+
+
+def calculate_f1(tp: int, fp: int, fn: int) -> Tuple[float, float, float]:
+    """Calculate precision, recall, and F1 score."""
+    precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+    recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+    f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
+    return precision, recall, f1
 
 
 def load_ground_truth():
@@ -193,27 +279,64 @@ def load_all_player_corpus(chunk_size=2000, chunk_overlap=200):
     return chunks, stats
 
 
-def create_schemas_from_ground_truth(ground_truth):
-    """Create schemas based on ground truth CSV columns."""
+def create_schemas_from_queries(train_queries: Dict[str, List[str]]) -> Dict[str, TableSchema]:
+    """
+    Create schemas by parsing the query workload (not ground truth CSVs).
+    This implements the "Query-Aware" principle: the schema is derived from
+    what the queries expect, not what the source data has.
+    """
     schemas = {}
+    parser = SQLParser()
     
-    for table_name, rows in ground_truth.items():
-        if not rows:
-            continue
+    for table_name, queries in train_queries.items():
+        all_columns = set()
         
-        # Get columns from first row
-        columns = {col: "string" for col in rows[0].keys()}
+        for query_sql in queries:
+            try:
+                # Parse query to extract columns
+                parsed = parser.parse(query_sql)
+                if parsed and parsed.table == table_name:
+                    # Extract SELECT columns
+                    import sqlglot
+                    from sqlglot import exp
+                    
+                    ast = sqlglot.parse_one(query_sql)
+                    
+                    # Get SELECT columns
+                    for select in ast.find_all(exp.Select):
+                        for projection in select.expressions:
+                            if isinstance(projection, exp.Column):
+                                all_columns.add(projection.name)
+                            elif isinstance(projection, exp.Alias):
+                                if isinstance(projection.this, exp.Column):
+                                    all_columns.add(projection.this.name)
+                    
+                    # Get WHERE columns
+                    for where in ast.find_all(exp.Where):
+                        for col in where.find_all(exp.Column):
+                            all_columns.add(col.name)
+            
+            except Exception as e:
+                logger.warning(f"Failed to parse query for schema extraction: {e}")
+                continue
         
-        schemas[table_name] = TableSchema(
-            table_name=table_name,
-            columns=columns
-        )
+        if all_columns:
+            # Create schema with all discovered columns as strings
+            columns = {col: "string" for col in all_columns}
+            schemas[table_name] = TableSchema(
+                table_name=table_name,
+                columns=columns
+            )
+            logger.info(f"Schema for {table_name}: {sorted(all_columns)}")
     
     return schemas
 
 
-def setup_ground_truth_database(ground_truth):
-    """Create SQLite database with ground truth data."""
+def setup_ground_truth_database(ground_truth, query_schemas: Dict[str, TableSchema]):
+    """
+    Create SQLite database with ground truth data.
+    Maps CSV column names to query-expected column names (e.g., championship → championships).
+    """
     db_path = Path(__file__).parent / "ground_truth.db"
     if db_path.exists():
         db_path.unlink()
@@ -221,27 +344,44 @@ def setup_ground_truth_database(ground_truth):
     conn_str = f"sqlite:///{db_path}"
     engine = create_engine(conn_str)
     
+    # Define column name mappings (CSV name → Query name)
+    column_mappings = {
+        'team': {
+            'championship': 'championships'  # Singular → Plural
+        }
+    }
+    
     for table_name, rows in ground_truth.items():
         if not rows:
             continue
         
-        # Create table
-        columns = list(rows[0].keys())
-        cols_sql = ", ".join([f'"{col}" TEXT' for col in columns])
+        # Get original CSV columns
+        csv_columns = list(rows[0].keys())
+        
+        # Apply column name mappings
+        table_mapping = column_mappings.get(table_name, {})
+        db_columns = [table_mapping.get(col, col) for col in csv_columns]
+        
+        # Create table with mapped column names
+        cols_sql = ", ".join([f'"{col}" TEXT' for col in db_columns])
         create_sql = f'CREATE TABLE "{table_name}" ({cols_sql})'
         
         with engine.connect() as conn:
             conn.execute(text(create_sql))
             
-            # Insert data
-            placeholders = ", ".join([f":{col}" for col in columns])
-            cols_quoted = ", ".join([f'"{col}"' for col in columns])
+            # Insert data with mapped column names
+            placeholders = ", ".join([f":{col}" for col in db_columns])
+            cols_quoted = ", ".join([f'"{col}"' for col in db_columns])
             insert_sql = f'INSERT INTO "{table_name}" ({cols_quoted}) VALUES ({placeholders})'
             
             for row in rows:
-                conn.execute(text(insert_sql), row)
+                # Map row keys from CSV names to DB names
+                mapped_row = {table_mapping.get(k, k): v for k, v in row.items()}
+                conn.execute(text(insert_sql), mapped_row)
             
             conn.commit()
+        
+        logger.info(f"  {table_name}: {len(rows)} rows, columns: {db_columns}")
     
     logger.info(f"✓ Ground truth database created: {db_path}")
     return conn_str, engine
@@ -286,25 +426,31 @@ def main():
     ground_truth = load_ground_truth()
     timer.end("load_ground_truth")
     
-    # Step 2: Setup ground truth database
-    logger.info("\n[2/8] Setting up ground truth database...")
-    timer.start("setup_gt_db")
-    gt_conn_str, gt_engine = setup_ground_truth_database(ground_truth)
-    timer.end("setup_gt_db")
-    
-    # Step 3: Load queries
-    logger.info("\n[3/8] Loading filter queries...")
+    # Step 2: Load queries (needed for schema derivation)
+    logger.info("\n[2/8] Loading filter queries...")
     timer.start("load_queries")
     train_queries, test_queries, all_queries = load_filter_queries()
     timer.end("load_queries")
+    
+    # Step 3: Create schemas from query workload (Query-Aware principle)
+    logger.info("\n[3/8] Deriving schemas from query workload...")
+    timer.start("derive_schemas")
+    schemas = create_schemas_from_queries(train_queries)
+    timer.end("derive_schemas")
+    
+    # Step 4: Setup ground truth database with schema mapping
+    logger.info("\n[4/8] Setting up ground truth database...")
+    timer.start("setup_gt_db")
+    gt_conn_str, gt_engine = setup_ground_truth_database(ground_truth, schemas)
+    timer.end("setup_gt_db")
     
     total_train = sum(len(q) for q in train_queries.values())
     total_test = sum(len(q) for q in test_queries.values())
     logger.info(f"Train queries (80%): {total_train}")
     logger.info(f"Test queries (100%): {total_test}")
     
-    # Step 4: Load corpus
-    logger.info("\n[4/8] Loading corpus...")
+    # Step 5: Load corpus
+    logger.info("\n[5/8] Loading corpus...")
     timer.start("load_corpus")
     chunks, corpus_stats = load_all_player_corpus(chunk_size=2000, chunk_overlap=200)
     timer.end("load_corpus")
@@ -312,8 +458,8 @@ def main():
     total_size = sum(len(text) for text in chunks.values())
     logger.info(f"Total: {len(chunks)} chunks, {total_size:,} chars ({total_size/1024/1024:.1f} MB)")
     
-    # Step 5: Build Sieve
-    logger.info("\n[5/8] Building Sieve...")
+    # Step 6: Build Sieve
+    logger.info("\n[6/8] Building Sieve...")
     timer.start("sieve_build")
     sieve = Sieve(config)
     
@@ -331,8 +477,8 @@ def main():
     sieve.build_index(chunks)
     timer.end("sieve_build")
     
-    # Step 6: Initialize extraction components
-    logger.info("\n[6/8] Initializing extraction components...")
+    # Step 7: Initialize extraction components
+    logger.info("\n[7/8] Initializing extraction components...")
     timer.start("init_components")
     
     # Create QAIRS database
@@ -343,10 +489,7 @@ def main():
     qairs_conn_str = f"sqlite:///{db_path}"
     qairs_engine = create_engine(qairs_conn_str)
     
-    # Create schemas
-    schemas = create_schemas_from_ground_truth(ground_truth)
-    
-    # Create tables in QAIRS database
+    # Create tables in QAIRS database (schemas already derived from queries)
     for schema in schemas.values():
         cols = ", ".join([f'"{col}" TEXT' for col in schema.columns.keys()])
         create_sql = f'CREATE TABLE "{schema.table_name}" ({cols})'
@@ -363,8 +506,8 @@ def main():
     
     timer.end("init_components")
     
-    # Step 7: Extract using train queries (80%)
-    logger.info("\n[7/8] Extracting data using train queries (80%)...")
+    # Step 8: Extract using train queries (80%)
+    logger.info("\n[8/8] Extracting data using train queries (80%)...")
     timer.start("extraction_train")
     
     for table_name, query_list in train_queries.items():
@@ -414,8 +557,8 @@ def main():
     
     timer.end("extraction_train")
     
-    # Step 8: Evaluate on test queries (100%)
-    logger.info("\n[8/8] Evaluating on test queries (100%)...")
+    # Step 9: Evaluate on test queries (100%)
+    logger.info("\n[9/9] Evaluating on test queries (100%)...")
     timer.start("evaluation")
     
     results_summary = {}
@@ -423,9 +566,11 @@ def main():
     for table_name, query_list in test_queries.items():
         logger.info(f"\n  Testing {table_name} ({len(query_list)} queries)...")
         
-        correct = 0
-        total = 0
+        total_tp = 0
+        total_fp = 0
+        total_fn = 0
         errors = 0
+        perfect_matches = 0
         
         for i, query in enumerate(query_list, 1):
             # Execute on ground truth
@@ -438,45 +583,74 @@ def main():
                 errors += 1
                 continue
             
-            total += 1
-            
-            # Compare results (simple set comparison)
-            gt_set = set(tuple(sorted(row.items())) for row in gt_result)
-            qairs_set = set(tuple(sorted(row.items())) for row in qairs_result)
-            
-            if gt_set == qairs_set:
-                correct += 1
+            # Get columns from query result
+            if gt_result and qairs_result:
+                columns = list(gt_result[0].keys()) if gt_result else (list(qairs_result[0].keys()) if qairs_result else [])
             else:
-                logger.debug(f"  Query {i} mismatch: GT={len(gt_result)} rows, QAIRS={len(qairs_result)} rows")
+                columns = []
+            
+            # Calculate F1 metrics with fuzzy matching
+            tp, fp, fn = find_matching_rows(gt_result, qairs_result, columns, use_fuzzy=True)
+            
+            total_tp += tp
+            total_fp += fp
+            total_fn += fn
+            
+            # Check for perfect match
+            if fp == 0 and fn == 0 and tp == len(gt_result):
+                perfect_matches += 1
+            else:
+                precision, recall, f1 = calculate_f1(tp, fp, fn)
+                logger.debug(f"  Query {i}: TP={tp}, FP={fp}, FN={fn}, P={precision:.2f}, R={recall:.2f}, F1={f1:.2f}")
         
-        accuracy = (correct / total * 100) if total > 0 else 0
+        # Calculate aggregate metrics
+        precision, recall, f1 = calculate_f1(total_tp, total_fp, total_fn)
+        total_queries = len(query_list) - errors
+        
         results_summary[table_name] = {
-            'total': total,
-            'correct': correct,
+            'queries': total_queries,
+            'perfect': perfect_matches,
             'errors': errors,
-            'accuracy': accuracy
+            'tp': total_tp,
+            'fp': total_fp,
+            'fn': total_fn,
+            'precision': precision,
+            'recall': recall,
+            'f1': f1
         }
         
-        logger.info(f"  Accuracy: {correct}/{total} ({accuracy:.1f}%)")
+        logger.info(f"  Perfect Matches: {perfect_matches}/{total_queries}")
+        logger.info(f"  Precision: {precision:.3f}, Recall: {recall:.3f}, F1: {f1:.3f}")
     
     timer.end("evaluation")
     timer.end("total")
     
     # Print final results
     logger.info(f"\n{'=' * 80}")
-    logger.info("EVALUATION RESULTS")
+    logger.info("EVALUATION RESULTS (F1 SCORING)")
     logger.info(f"{'=' * 80}")
     
-    overall_correct = sum(r['correct'] for r in results_summary.values())
-    overall_total = sum(r['total'] for r in results_summary.values())
-    overall_accuracy = (overall_correct / overall_total * 100) if overall_total > 0 else 0
+    # Calculate overall metrics
+    overall_tp = sum(r['tp'] for r in results_summary.values())
+    overall_fp = sum(r['fp'] for r in results_summary.values())
+    overall_fn = sum(r['fn'] for r in results_summary.values())
+    overall_precision, overall_recall, overall_f1 = calculate_f1(overall_tp, overall_fp, overall_fn)
     
-    logger.info(f"\nOverall Accuracy: {overall_correct}/{overall_total} ({overall_accuracy:.1f}%)\n")
+    overall_perfect = sum(r['perfect'] for r in results_summary.values())
+    overall_queries = sum(r['queries'] for r in results_summary.values())
     
-    logger.info(f"{'Table':<15} {'Correct':>8} {'Total':>8} {'Errors':>8} {'Accuracy':>10}")
+    logger.info(f"\nOverall Metrics:")
+    logger.info(f"  Perfect Query Matches: {overall_perfect}/{overall_queries} ({overall_perfect/overall_queries*100:.1f}%)")
+    logger.info(f"  Precision: {overall_precision:.3f}")
+    logger.info(f"  Recall: {overall_recall:.3f}")
+    logger.info(f"  F1 Score: {overall_f1:.3f}")
+    logger.info(f"  TP={overall_tp}, FP={overall_fp}, FN={overall_fn}\n")
+    
+    logger.info(f"{'Table':<12} {'Perfect':>7} {'Queries':>7} {'Precision':>10} {'Recall':>10} {'F1':>10}")
     logger.info("-" * 80)
     for table, res in results_summary.items():
-        logger.info(f"{table:<15} {res['correct']:>8} {res['total']:>8} {res['errors']:>8} {res['accuracy']:>9.1f}%")
+        logger.info(f"{table:<12} {res['perfect']:>7} {res['queries']:>7} "
+                   f"{res['precision']:>10.3f} {res['recall']:>10.3f} {res['f1']:>10.3f}")
     
     logger.info(f"{'=' * 80}\n")
     
