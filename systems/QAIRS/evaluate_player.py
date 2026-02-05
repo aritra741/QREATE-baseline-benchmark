@@ -497,16 +497,20 @@ def main():
     
     timer.end("init_components")
     
-    # Step 8: Extract using train queries (80%)
+    # Step 8: Extract using train queries (80%) - Query-Aware Extraction
     logger.info("\n[8/8] Extracting data using train queries (80%)...")
+    logger.info("  Using query-aware extraction (predicates from train queries)")
     timer.start("extraction_train")
+    
+    # Track what's been extracted to avoid duplicates
+    extracted_data = {table: set() for table in schemas.keys()}
     
     for table_name, query_list in train_queries.items():
         if table_name not in schemas:
             logger.warning(f"No schema for {table_name}")
             continue
         
-        logger.info(f"\n  Extracting {table_name} ({len(query_list)} queries)...")
+        logger.info(f"\n  Processing {table_name} ({len(query_list)} train queries)...")
         
         # Get relevant chunks
         category_chunks = [k for k in chunks.keys() if table_name in k or 
@@ -516,35 +520,65 @@ def main():
             logger.warning(f"  No chunks found for {table_name}")
             continue
         
-        task = ExtractionTask(
-            task_id=f"extract_{table_name}",
-            table_schema=schemas[table_name],
-            predicate=None,  # Extract all for now
-            candidate_chunks=category_chunks,
-            dictionary_map=sieve.dictionary_map
-        )
+        # Parse each train query to extract predicates
+        parser = SQLParser()
+        query_predicates = []
+        for query_sql in query_list:
+            try:
+                parsed = parser.parse(query_sql)
+                if parsed and parsed.conditions:
+                    query_predicates.append(parsed)
+            except Exception as e:
+                logger.debug(f"Failed to parse query: {e}")
         
-        results = extractor.extract(task, chunks, parallel=False)
+        logger.info(f"  Parsed {len(query_predicates)} predicates from train queries")
         
-        # Insert into QAIRS database
-        total_rows = 0
-        for result in results:
-            if result.data:
-                for row in result.data:
-                    try:
-                        cols = list(row.keys())
-                        placeholders = ", ".join([f":{col}" for col in cols])
-                        cols_quoted = ", ".join([f'"{c}"' for c in cols])
-                        insert_sql = f'INSERT INTO "{table_name}" ({cols_quoted}) VALUES ({placeholders})'
-                        
-                        with qairs_engine.connect() as conn:
-                            conn.execute(text(insert_sql), row)
-                            conn.commit()
-                        total_rows += 1
-                    except Exception as e:
-                        logger.debug(f"Insert failed: {e}")
+        # For each predicate, do targeted extraction
+        for i, parsed_query in enumerate(query_predicates, 1):
+            # Create predicate object from parsed query
+            if parsed_query.conditions:
+                # Use the first condition as the predicate (simplified)
+                col, op, val = parsed_query.conditions[0]
+                predicate = Predicate(column=col, operator=op.value, value=val)
+                
+                logger.debug(f"  Query {i}: Extracting with predicate {col} {op.value} {val}")
+            else:
+                predicate = None
+            
+            task = ExtractionTask(
+                task_id=f"extract_{table_name}_q{i}",
+                table_schema=schemas[table_name],
+                predicate=predicate,
+                candidate_chunks=category_chunks,
+                dictionary_map=sieve.dictionary_map
+            )
+            
+            results = extractor.extract(task, chunks, parallel=False)
+            
+            # Insert into QAIRS database (avoiding duplicates)
+            for result in results:
+                if result.data:
+                    for row in result.data:
+                        try:
+                            # Create a hashable tuple for deduplication
+                            row_tuple = tuple(sorted(row.items()))
+                            if row_tuple in extracted_data[table_name]:
+                                continue  # Skip duplicate
+                            
+                            extracted_data[table_name].add(row_tuple)
+                            
+                            cols = list(row.keys())
+                            placeholders = ", ".join([f":{col}" for col in cols])
+                            cols_quoted = ", ".join([f'"{c}"' for c in cols])
+                            insert_sql = f'INSERT INTO "{table_name}" ({cols_quoted}) VALUES ({placeholders})'
+                            
+                            with qairs_engine.connect() as conn:
+                                conn.execute(text(insert_sql), row)
+                                conn.commit()
+                        except Exception as e:
+                            logger.debug(f"Insert failed: {e}")
         
-        logger.info(f"  ✓ Extracted {total_rows} rows")
+        logger.info(f"  ✓ Extracted {len(extracted_data[table_name])} unique rows")
     
     timer.end("extraction_train")
     
