@@ -216,7 +216,8 @@ def setup_ground_truth_database(ground_truth):
             
             # Insert data
             placeholders = ", ".join([f":{col}" for col in columns])
-            insert_sql = f'INSERT INTO "{table_name}" ({", ".join([f\'"{col}\' for col in columns])}) VALUES ({placeholders})'
+            cols_quoted = ", ".join([f'"{col}"' for col in columns])
+            insert_sql = f'INSERT INTO "{table_name}" ({cols_quoted}) VALUES ({placeholders})'
             
             for row in rows:
                 conn.execute(text(insert_sql), row)
@@ -380,7 +381,8 @@ def main():
                     try:
                         cols = list(row.keys())
                         placeholders = ", ".join([f":{col}" for col in cols])
-                        insert_sql = f'INSERT INTO "{table_name}" ({", ".join([f\'"{c}\' for c in cols])}) VALUES ({placeholders})'
+                        cols_quoted = ", ".join([f'"{c}"' for c in cols])
+                        insert_sql = f'INSERT INTO "{table_name}" ({cols_quoted}) VALUES ({placeholders})'
                         
                         with qairs_engine.connect() as conn:
                             conn.execute(text(insert_sql), row)
