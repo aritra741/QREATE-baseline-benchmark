@@ -234,6 +234,8 @@ class Extractor:
         prompt_parts.append("3. Apply dictionary mappings consistently")
         prompt_parts.append("4. Set 'has_more' to true only if you see valid data you cannot extract")
         prompt_parts.append("5. Return empty 'data' array if no matching rows found")
+        prompt_parts.append("6. CRITICAL: All field values MUST be strings or numbers, NEVER arrays/lists")
+        prompt_parts.append("7. If multiple values exist (e.g., multiple teams), choose the MOST RECENT or PRIMARY one")
         prompt_parts.append("")
         
         # Input text
