@@ -67,10 +67,22 @@ class TimingTracker:
 def load_ground_truth():
     """Load ground truth from CSV files."""
     data_path = Path(__file__).parent.parent.parent / "Data" / "Player"
+    
+    # Debug: Log the path being used
+    logger.info(f"Looking for ground truth CSVs at: {data_path.absolute()}")
+    
+    if not data_path.exists():
+        logger.error(f"Ground truth directory does not exist: {data_path.absolute()}")
+        return {}
+    
     ground_truth = {}
     
-    for csv_file in data_path.glob("*.csv"):
+    csv_files = list(data_path.glob("*.csv"))
+    logger.info(f"Found {len(csv_files)} CSV files")
+    
+    for csv_file in csv_files:
         table_name = csv_file.stem
+        logger.info(f"  Loading {csv_file.name}...")
         with open(csv_file, 'r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             ground_truth[table_name] = list(reader)
@@ -85,6 +97,13 @@ def load_ground_truth():
 def load_filter_queries():
     """Load filter queries and split into train/test."""
     queries_dir = Path(__file__).parent.parent.parent / "Query" / "Player" / "Filter"
+    
+    logger.info(f"Looking for queries at: {queries_dir.absolute()}")
+    
+    if not queries_dir.exists():
+        logger.error(f"Queries directory does not exist: {queries_dir.absolute()}")
+        return {}, []
+    
     all_queries = {}
     
     for sql_file in queries_dir.glob("*.sql"):
