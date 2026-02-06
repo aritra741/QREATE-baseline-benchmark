@@ -13,15 +13,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from flashtext import KeywordProcessor
-
-# Make spaCy optional due to Python 3.14 compatibility issues
-try:
-    import spacy
-    SPACY_AVAILABLE = True
-except Exception as e:
-    SPACY_AVAILABLE = False
-    spacy = None
-    logging.warning(f"spaCy not available: {e}")
+import spacy
 
 from config import (
     SIEVE_SAMPLE_SIZE,
@@ -68,18 +60,13 @@ class SieveSynthesizer:
         """
         self.llm_client = llm_client
         
-        # Load spaCy model
-        if SPACY_AVAILABLE:
-            try:
-                self.nlp = spacy.load(spacy_model)
-                logger.info(f"Loaded spaCy model: {spacy_model}")
-            except OSError:
-                logger.warning(f"spaCy model {spacy_model} not found, downloading...")
-                subprocess.run(["python", "-m", "spacy", "download", spacy_model])
-                self.nlp = spacy.load(spacy_model)
-        else:
-            logger.warning("spaCy not available, using fallback NER")
-            self.nlp = None
+        # Load spaCy model - REQUIRED, no fallback
+        try:
+            self.nlp = spacy.load(spacy_model)
+            logger.info(f"Loaded spaCy model: {spacy_model}")
+        except OSError as e:
+            logger.error(f"spaCy model {spacy_model} not found. Please install it with: python -m spacy download {spacy_model}")
+            raise RuntimeError(f"Required spaCy model '{spacy_model}' not found. Install it with: python -m spacy download {spacy_model}") from e
         
         # Create sieve directory
         SIEVE_DIR.mkdir(parents=True, exist_ok=True)
@@ -156,18 +143,12 @@ class SieveSynthesizer:
         entity_types = set()
         
         for chunk in sample_chunks:
-            # Extract entities using spaCy if available
-            if self.nlp is not None:
-                doc = self.nlp(chunk)
-                
-                for ent in doc.ents:
-                    entity_types.add(ent.label_)
-                    keywords.add(ent.text.lower())
-            else:
-                # Fallback: extract capitalized words as potential entities
-                import re
-                words = re.findall(r'\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b', chunk)
-                keywords.update(w.lower() for w in words)
+            # Extract entities using spaCy
+            doc = self.nlp(chunk)
+            
+            for ent in doc.ents:
+                entity_types.add(ent.label_)
+                keywords.add(ent.text.lower())
             
             # Extract keywords based on schema
             for col_name, semantic_type in schema.items():
@@ -270,8 +251,7 @@ Generate ONLY the Python code, no explanations.
         
         except Exception as e:
             logger.error(f"Error generating sieve code: {e}")
-            # Return a simple fallback sieve
-            return self._generate_fallback_sieve(keywords, patterns)
+            raise RuntimeError(f"Failed to generate sieve code: {e}") from e
     
     def _extract_code(self, response: str) -> str:
         """Extract Python code from LLM response."""
@@ -289,39 +269,9 @@ Generate ONLY the Python code, no explanations.
         if match:
             return match.group(1)
         
-        # Return entire response as fallback
-        return response
-    
-    def _generate_fallback_sieve(
-        self,
-        keywords: List[str],
-        patterns: List[str]
-    ) -> str:
-        """Generate a simple fallback sieve function."""
-        keywords_str = ', '.join(f'"{k}"' for k in keywords[:20])
-        patterns_str = ', '.join(f'r"{p}"' for p in patterns[:5])
-        
-        code = f"""import re
-from flashtext import KeywordProcessor
-
-def is_relevant(text: str) -> bool:
-    # Keyword matching
-    keywords = [{keywords_str}]
-    keyword_processor = KeywordProcessor()
-    keyword_processor.add_keywords_from_list(keywords)
-    
-    if keyword_processor.extract_keywords(text.lower()):
-        return True
-    
-    # Pattern matching
-    patterns = [{patterns_str}]
-    for pattern in patterns:
-        if re.search(pattern, text, re.IGNORECASE):
-            return True
-    
-    return False
-"""
-        return code
+        # If no code block or function found, the LLM response is malformed
+        logger.error(f"Could not extract code from LLM response: {response[:200]}")
+        raise ValueError("LLM did not return valid Python code")
     
     def _refine_sieve(
         self,

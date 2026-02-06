@@ -295,6 +295,7 @@ class WDIRSRunner:
             
             except Exception as e:
                 logger.error(f"Error synthesizing sieve for {table_name}: {e}")
+                raise RuntimeError(f"Sieve synthesis failed for table '{table_name}': {e}") from e
     
     def _global_extraction(self, lattice) -> int:
         """Perform constrained global extraction."""
@@ -355,6 +356,7 @@ class WDIRSRunner:
             
             except Exception as e:
                 logger.error(f"Error extracting for {table_name}: {e}")
+                raise RuntimeError(f"Extraction failed for table '{table_name}': {e}") from e
         
         return total_records
     
@@ -368,6 +370,7 @@ class WDIRSRunner:
             
             except Exception as e:
                 logger.error(f"Error in entity resolution for {table_name}: {e}")
+                raise RuntimeError(f"Entity resolution failed for table '{table_name}': {e}") from e
     
     def _save_preprocessing_results(self, lattice) -> None:
         """Save preprocessing results to cache."""

@@ -337,14 +337,11 @@ class EntityResolver:
         """
         # Use LLM if available
         if self.llm_client:
-            try:
-                canonical, confidence = self._llm_canonical_form(values)
-                return canonical, confidence
-            except Exception as e:
-                logger.warning(f"LLM canonicalization failed: {e}")
-        
-        # Fallback to heuristics
-        return self._heuristic_canonical_form(values)
+            canonical, confidence = self._llm_canonical_form(values)
+            return canonical, confidence
+        else:
+            # No LLM available - use heuristics
+            return self._heuristic_canonical_form(values)
     
     def _llm_canonical_form(
         self,
