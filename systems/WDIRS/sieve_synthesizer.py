@@ -218,20 +218,41 @@ Relevant patterns: {', '.join(patterns[:10])}
 Relevant entity types: {', '.join(entity_types)}
 
 Requirements:
-1. The function should use keyword matching, regex patterns, or NER
-2. Import necessary libraries (re, spacy, flashtext)
+1. Use keyword matching with FlashText, regex patterns with re, and/or spaCy NER
+2. Import necessary libraries at the top
 3. Be conservative - prefer false positives over false negatives
-4. Return True if text likely contains data for this table
-5. Return False otherwise
+4. Return True if text likely contains data for this table, False otherwise
+5. IMPORTANT: Use correct Python syntax - do NOT use any() with a single boolean expression
+6. IMPORTANT: Check if variables are None before iterating over them
 
 Example structure:
 ```python
 import re
 from flashtext import KeywordProcessor
+import spacy
+
+nlp = spacy.load("en_core_web_sm")
 
 def is_relevant(text: str) -> bool:
-    # Your filtering logic here
-    return True  # or False
+    # Keyword matching
+    keyword_processor = KeywordProcessor()
+    keyword_processor.add_keywords_from_list(["keyword1", "keyword2"])
+    keywords_found = keyword_processor.extract_keywords(text.lower())
+    
+    if keywords_found:
+        return True
+    
+    # Pattern matching
+    if re.search(r'\\b\\d{{4}}\\b', text):
+        return True
+    
+    # NER matching
+    doc = nlp(text)
+    for ent in doc.ents:
+        if ent.label_ in ["PERSON", "ORG"]:
+            return True
+    
+    return False
 ```
 
 Generate ONLY the Python code, no explanations.
@@ -246,6 +267,35 @@ Generate ONLY the Python code, no explanations.
             
             # Extract code from response
             code = self._extract_code(response)
+            
+            # Validate syntax
+            try:
+                compile(code, '<string>', 'exec')
+            except SyntaxError as e:
+                logger.error(f"Generated code has syntax error: {e}")
+                raise RuntimeError(f"LLM generated code with syntax error: {e}") from e
+            
+            # Test the code on a sample chunk to catch runtime errors
+            try:
+                with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+                    f.write(code)
+                    temp_file = f.name
+                
+                import importlib.util
+                spec = importlib.util.spec_from_file_location("test_sieve", temp_file)
+                test_module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(test_module)
+                
+                # Test with sample text
+                test_text = "This is a test chunk with some data."
+                _ = test_module.is_relevant(test_text)
+                
+                # Clean up
+                Path(temp_file).unlink()
+                
+            except Exception as e:
+                logger.error(f"Generated code has runtime error: {e}")
+                raise RuntimeError(f"LLM generated code with runtime error: {e}") from e
             
             return code
         
@@ -465,12 +515,22 @@ Generate the corrected Python code. Return ONLY the code, no explanations.
         # Apply sieve
         relevant_indices = []
         
+        errors_count = 0
+        max_errors = 10  # Allow some errors before failing completely
+        
         for idx, chunk in enumerate(chunks):
             try:
                 if is_relevant(chunk):
                     relevant_indices.append(idx)
             except Exception as e:
+                errors_count += 1
                 logger.warning(f"Error applying sieve to chunk {idx}: {e}")
+                
+                # If too many errors, the sieve is broken
+                if errors_count > max_errors:
+                    logger.error(f"Sieve failed on {errors_count} chunks, aborting")
+                    raise RuntimeError(f"Sieve function is broken: {e}") from e
+                
                 # Include chunk if sieve fails (conservative)
                 relevant_indices.append(idx)
         
