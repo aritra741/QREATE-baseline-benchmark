@@ -344,14 +344,13 @@ def main():
     print(f"Training queries (80%): {len(train_queries)}")
     print(f"Testing on 100% of queries: {len(all_query_list)}")
     
-    # Create workload file for preprocessing
-    workload_file = RESULTS_DIR / "training_workload.sql"
-    with open(workload_file, 'w') as f:
-        for table_name, qnum, query in train_queries:
-            f.write(f"-- Query {qnum} ({table_name})\n")
-            f.write(f"{query};\n\n")
+    # Create training queries list (just the query strings, not tuples)
+    training_query_strings = [query for table_name, qnum, query in train_queries]
     
-    print(f"\nCreated training workload: {workload_file}")
+    # Parse with lattice planner
+    timer.start("lattice_parsing")
+    lattice = planner.parse_workload(training_query_strings)
+    timer.end("lattice_parsing")
     
     # Initialize WDIRS
     print("\n" + "=" * 80)
@@ -377,7 +376,7 @@ def main():
     
     timer.start("preprocessing")
     try:
-        preprocess_result = runner.preprocess(workload_path=str(workload_file))
+        preprocess_result = runner.preprocess()
         timer.end("preprocessing")
         
         if not preprocess_result.success:

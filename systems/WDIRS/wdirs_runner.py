@@ -124,13 +124,13 @@ class WDIRSRunner:
     
     def preprocess(
         self,
-        workload_path: Optional[str] = None
+        workload_queries: Optional[List[str]] = None
     ) -> PreprocessingResult:
         """
         Run complete preprocessing pipeline.
         
         Args:
-            workload_path: Optional path to workload directory
+            workload_queries: Optional list of SQL queries. If not provided, loads from Query directory.
             
         Returns:
             PreprocessingResult
@@ -144,11 +144,12 @@ class WDIRSRunner:
         try:
             # Step 1: Load and parse workload
             logger.info("\n[Step 1/6] Loading workload...")
-            if workload_path is None:
+            if workload_queries is None:
                 workload_path = str(QUERY_DIR / self.dataset)
+                from lattice_planner import load_workload_from_directory
+                workload_queries = load_workload_from_directory(workload_path)
             
-            queries = load_workload_from_directory(workload_path)
-            lattice = self.lattice_planner.parse_workload(queries)
+            lattice = self.lattice_planner.parse_workload(workload_queries)
             
             logger.info(f"Workload parsed: {len(lattice.tables)} tables")
             
