@@ -124,7 +124,7 @@ class EntityResolver:
         """Initialize entity resolver."""
         self.llm_client = llm_client
         
-        # Load models
+        # Load models - fail hard if download/network issues
         logger.info(f"Loading bi-encoder: {bi_encoder_model}")
         self.bi_encoder = SentenceTransformer(bi_encoder_model)
         
