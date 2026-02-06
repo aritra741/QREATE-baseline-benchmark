@@ -173,19 +173,29 @@ class LatticePlanner:
         """Extract (table, column) pairs from parsed query."""
         columns = []
         
+        # First, get the primary table from FROM clause
+        primary_table = None
+        for table in parsed.find_all(exp.Table):
+            primary_table = table.name.lower() if table.name else None
+            break  # Use first table as primary
+        
         # Get columns from SELECT clause
         for select in parsed.find_all(exp.Select):
             for projection in select.expressions:
                 if isinstance(projection, exp.Column):
-                    table = projection.table if projection.table else None
+                    table = projection.table if projection.table else primary_table
                     column = projection.name
                     if table and column:
                         columns.append((table.lower(), column.lower()))
+                elif isinstance(projection, exp.Star):
+                    # SELECT * - we'll handle this by not adding specific columns
+                    # The system will extract all columns it finds in the text
+                    pass
         
         # Get columns from WHERE clause
         for where in parsed.find_all(exp.Where):
             for column in where.find_all(exp.Column):
-                table = column.table if column.table else None
+                table = column.table if column.table else primary_table
                 col_name = column.name
                 if table and col_name:
                     columns.append((table.lower(), col_name.lower()))
@@ -202,6 +212,12 @@ class LatticePlanner:
         """
         predicates = []
         
+        # Get the primary table from FROM clause
+        primary_table = None
+        for table in parsed.find_all(exp.Table):
+            primary_table = table.name.lower() if table.name else None
+            break  # Use first table as primary
+        
         for where in parsed.find_all(exp.Where):
             # Find all comparison expressions
             for comparison in where.find_all(exp.EQ, exp.GT, exp.LT, exp.GTE, exp.LTE, exp.NEQ):
@@ -209,7 +225,7 @@ class LatticePlanner:
                 right = comparison.right
                 
                 if isinstance(left, exp.Column):
-                    table = left.table if left.table else None
+                    table = left.table if left.table else primary_table
                     column = left.name
                     
                     if table and column:
