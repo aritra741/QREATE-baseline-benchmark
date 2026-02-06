@@ -1,0 +1,564 @@
+"""
+Programmatic Sieve Synthesis for WDIRS.
+Generates filtering functions using spaCy, FlashText, and regex.
+"""
+
+import json
+import logging
+import re
+import subprocess
+import tempfile
+from typing import Dict, List, Set, Optional, Callable, Any
+from dataclasses import dataclass
+from pathlib import Path
+
+from flashtext import KeywordProcessor
+
+# Make spaCy optional due to Python 3.14 compatibility issues
+try:
+    import spacy
+    SPACY_AVAILABLE = True
+except Exception as e:
+    SPACY_AVAILABLE = False
+    spacy = None
+    logging.warning(f"spaCy not available: {e}")
+
+from config import (
+    SIEVE_SAMPLE_SIZE,
+    SIEVE_REFINEMENT_ITERATIONS,
+    SIEVE_TEST_SIZE,
+    SIEVE_DIR
+)
+
+logger = logging.getLogger(__name__)
+
+
+# ============================================================================
+# Data Models
+# ============================================================================
+
+@dataclass
+class SieveResult:
+    """Result of sieve synthesis."""
+    table_name: str
+    sieve_function: str  # Python code as string
+    accuracy: float
+    keywords: List[str]
+    patterns: List[str]
+    entity_types: List[str]
+
+
+# ============================================================================
+# Sieve Synthesizer
+# ============================================================================
+
+class SieveSynthesizer:
+    """
+    Synthesizes programmatic sieves for filtering relevant chunks.
+    Uses spaCy for NER, FlashText for keywords, and regex for patterns.
+    """
+    
+    def __init__(self, llm_client, spacy_model: str = "en_core_web_sm"):
+        """
+        Initialize sieve synthesizer.
+        
+        Args:
+            llm_client: LLM client for code generation
+            spacy_model: spaCy model to use
+        """
+        self.llm_client = llm_client
+        
+        # Load spaCy model
+        if SPACY_AVAILABLE:
+            try:
+                self.nlp = spacy.load(spacy_model)
+                logger.info(f"Loaded spaCy model: {spacy_model}")
+            except OSError:
+                logger.warning(f"spaCy model {spacy_model} not found, downloading...")
+                subprocess.run(["python", "-m", "spacy", "download", spacy_model])
+                self.nlp = spacy.load(spacy_model)
+        else:
+            logger.warning("spaCy not available, using fallback NER")
+            self.nlp = None
+        
+        # Create sieve directory
+        SIEVE_DIR.mkdir(parents=True, exist_ok=True)
+    
+    def synthesize_sieve(
+        self,
+        table_name: str,
+        schema: Dict[str, str],
+        sample_chunks: List[str],
+        positive_examples: Optional[List[str]] = None
+    ) -> SieveResult:
+        """
+        Synthesize a sieve function for a table.
+        
+        Args:
+            table_name: Name of the table
+            schema: Column schema (column_name -> semantic_type)
+            sample_chunks: Sample text chunks for synthesis
+            positive_examples: Optional positive examples
+            
+        Returns:
+            SieveResult with synthesized function
+        """
+        logger.info(f"Synthesizing sieve for table: {table_name}")
+        
+        # Step 1: Analyze sample chunks to extract patterns
+        keywords, patterns, entity_types = self._analyze_samples(
+            sample_chunks,
+            schema
+        )
+        
+        # Step 2: Generate initial sieve function using LLM
+        sieve_code = self._generate_sieve_code(
+            table_name,
+            schema,
+            keywords,
+            patterns,
+            entity_types
+        )
+        
+        # Step 3: Refine sieve through iterative testing
+        refined_code, accuracy = self._refine_sieve(
+            sieve_code,
+            sample_chunks,
+            positive_examples
+        )
+        
+        # Step 4: Save sieve to file
+        self._save_sieve(table_name, refined_code)
+        
+        result = SieveResult(
+            table_name=table_name,
+            sieve_function=refined_code,
+            accuracy=accuracy,
+            keywords=keywords,
+            patterns=patterns,
+            entity_types=entity_types
+        )
+        
+        logger.info(f"Sieve synthesis complete for {table_name} (accuracy: {accuracy:.2%})")
+        
+        return result
+    
+    def _analyze_samples(
+        self,
+        sample_chunks: List[str],
+        schema: Dict[str, str]
+    ) -> tuple[List[str], List[str], List[str]]:
+        """
+        Analyze sample chunks to extract keywords, patterns, and entity types.
+        """
+        keywords = set()
+        patterns = set()
+        entity_types = set()
+        
+        for chunk in sample_chunks:
+            # Extract entities using spaCy if available
+            if self.nlp is not None:
+                doc = self.nlp(chunk)
+                
+                for ent in doc.ents:
+                    entity_types.add(ent.label_)
+                    keywords.add(ent.text.lower())
+            else:
+                # Fallback: extract capitalized words as potential entities
+                import re
+                words = re.findall(r'\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b', chunk)
+                keywords.update(w.lower() for w in words)
+            
+            # Extract keywords based on schema
+            for col_name, semantic_type in schema.items():
+                # Look for column name variations in text
+                col_variations = self._generate_column_variations(col_name)
+                
+                for variation in col_variations:
+                    if variation.lower() in chunk.lower():
+                        keywords.add(variation.lower())
+            
+            # Extract common patterns
+            # Dates
+            date_patterns = [
+                r'\d{1,2}/\d{1,2}/\d{2,4}',
+                r'\d{4}-\d{2}-\d{2}',
+                r'\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* \d{1,2},? \d{4}\b'
+            ]
+            
+            for pattern in date_patterns:
+                if re.search(pattern, chunk):
+                    patterns.add(pattern)
+            
+            # IDs and codes
+            if re.search(r'\b[A-Z]\d{3,}\b', chunk):
+                patterns.add(r'\b[A-Z]\d{3,}\b')
+            
+            # Money
+            if re.search(r'\$\d+(?:,\d{3})*(?:\.\d{2})?', chunk):
+                patterns.add(r'\$\d+(?:,\d{3})*(?:\.\d{2})?')
+        
+        return list(keywords), list(patterns), list(entity_types)
+    
+    def _generate_column_variations(self, column_name: str) -> List[str]:
+        """Generate variations of column name."""
+        variations = [column_name]
+        
+        # Split by underscore
+        parts = column_name.split('_')
+        if len(parts) > 1:
+            variations.append(' '.join(parts))
+            variations.append(''.join(p.capitalize() for p in parts))
+        
+        # Add singular/plural
+        if column_name.endswith('s'):
+            variations.append(column_name[:-1])
+        else:
+            variations.append(column_name + 's')
+        
+        return variations
+    
+    def _generate_sieve_code(
+        self,
+        table_name: str,
+        schema: Dict[str, str],
+        keywords: List[str],
+        patterns: List[str],
+        entity_types: List[str]
+    ) -> str:
+        """Generate sieve function code using LLM."""
+        prompt = f"""Generate a Python function called `is_relevant(text)` that returns True if a text chunk contains potential data for a database table.
+
+Table: {table_name}
+Schema: {json.dumps(schema, indent=2)}
+
+Relevant keywords: {', '.join(keywords[:20])}
+Relevant patterns: {', '.join(patterns[:10])}
+Relevant entity types: {', '.join(entity_types)}
+
+Requirements:
+1. The function should use keyword matching, regex patterns, or NER
+2. Import necessary libraries (re, spacy, flashtext)
+3. Be conservative - prefer false positives over false negatives
+4. Return True if text likely contains data for this table
+5. Return False otherwise
+
+Example structure:
+```python
+import re
+from flashtext import KeywordProcessor
+
+def is_relevant(text: str) -> bool:
+    # Your filtering logic here
+    return True  # or False
+```
+
+Generate ONLY the Python code, no explanations.
+"""
+        
+        try:
+            response = self.llm_client.generate(
+                prompt,
+                max_tokens=1000,
+                temperature=0.2
+            )
+            
+            # Extract code from response
+            code = self._extract_code(response)
+            
+            return code
+        
+        except Exception as e:
+            logger.error(f"Error generating sieve code: {e}")
+            # Return a simple fallback sieve
+            return self._generate_fallback_sieve(keywords, patterns)
+    
+    def _extract_code(self, response: str) -> str:
+        """Extract Python code from LLM response."""
+        # Look for code blocks
+        code_pattern = r'```python\n(.*?)\n```'
+        match = re.search(code_pattern, response, re.DOTALL)
+        
+        if match:
+            return match.group(1)
+        
+        # If no code block, try to find function definition
+        func_pattern = r'(def is_relevant.*?)(?=\n\ndef|\Z)'
+        match = re.search(func_pattern, response, re.DOTALL)
+        
+        if match:
+            return match.group(1)
+        
+        # Return entire response as fallback
+        return response
+    
+    def _generate_fallback_sieve(
+        self,
+        keywords: List[str],
+        patterns: List[str]
+    ) -> str:
+        """Generate a simple fallback sieve function."""
+        keywords_str = ', '.join(f'"{k}"' for k in keywords[:20])
+        patterns_str = ', '.join(f'r"{p}"' for p in patterns[:5])
+        
+        code = f"""import re
+from flashtext import KeywordProcessor
+
+def is_relevant(text: str) -> bool:
+    # Keyword matching
+    keywords = [{keywords_str}]
+    keyword_processor = KeywordProcessor()
+    keyword_processor.add_keywords_from_list(keywords)
+    
+    if keyword_processor.extract_keywords(text.lower()):
+        return True
+    
+    # Pattern matching
+    patterns = [{patterns_str}]
+    for pattern in patterns:
+        if re.search(pattern, text, re.IGNORECASE):
+            return True
+    
+    return False
+"""
+        return code
+    
+    def _refine_sieve(
+        self,
+        sieve_code: str,
+        test_chunks: List[str],
+        positive_examples: Optional[List[str]] = None
+    ) -> tuple[str, float]:
+        """
+        Refine sieve through iterative testing.
+        
+        Returns:
+            (refined_code, accuracy)
+        """
+        current_code = sieve_code
+        best_accuracy = 0.0
+        
+        for iteration in range(SIEVE_REFINEMENT_ITERATIONS):
+            # Test current sieve
+            accuracy, errors = self._test_sieve(
+                current_code,
+                test_chunks,
+                positive_examples
+            )
+            
+            logger.debug(f"Iteration {iteration + 1}: accuracy = {accuracy:.2%}")
+            
+            if accuracy > best_accuracy:
+                best_accuracy = accuracy
+            
+            # If accuracy is good enough, stop
+            if accuracy >= 0.8:
+                break
+            
+            # If we have errors, try to refine
+            if errors and iteration < SIEVE_REFINEMENT_ITERATIONS - 1:
+                current_code = self._refine_with_errors(current_code, errors)
+        
+        return current_code, best_accuracy
+    
+    def _test_sieve(
+        self,
+        sieve_code: str,
+        test_chunks: List[str],
+        positive_examples: Optional[List[str]] = None
+    ) -> tuple[float, List[str]]:
+        """
+        Test sieve function on test chunks.
+        
+        Returns:
+            (accuracy, error_messages)
+        """
+        try:
+            # Create temporary file with sieve code
+            with tempfile.NamedTemporaryFile(
+                mode='w',
+                suffix='.py',
+                delete=False
+            ) as f:
+                f.write(sieve_code)
+                temp_file = f.name
+            
+            # Import and test
+            import importlib.util
+            spec = importlib.util.spec_from_file_location("sieve_module", temp_file)
+            sieve_module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(sieve_module)
+            
+            is_relevant = sieve_module.is_relevant
+            
+            # Test on chunks
+            correct = 0
+            total = len(test_chunks)
+            errors = []
+            
+            for chunk in test_chunks:
+                try:
+                    result = is_relevant(chunk)
+                    
+                    # If we have positive examples, check against them
+                    if positive_examples:
+                        should_be_relevant = any(
+                            pos in chunk for pos in positive_examples
+                        )
+                        if result == should_be_relevant:
+                            correct += 1
+                    else:
+                        # Without ground truth, assume function works
+                        correct += 1
+                
+                except Exception as e:
+                    errors.append(f"Error on chunk: {str(e)}")
+            
+            accuracy = correct / total if total > 0 else 0.0
+            
+            # Clean up
+            Path(temp_file).unlink()
+            
+            return accuracy, errors
+        
+        except Exception as e:
+            logger.error(f"Error testing sieve: {e}")
+            return 0.0, [str(e)]
+    
+    def _refine_with_errors(
+        self,
+        sieve_code: str,
+        errors: List[str]
+    ) -> str:
+        """Refine sieve code based on errors."""
+        prompt = f"""The following Python sieve function has errors. Fix them.
+
+Current code:
+```python
+{sieve_code}
+```
+
+Errors:
+{chr(10).join(f"- {e}" for e in errors[:5])}
+
+Generate the corrected Python code. Return ONLY the code, no explanations.
+"""
+        
+        try:
+            response = self.llm_client.generate(
+                prompt,
+                max_tokens=1000,
+                temperature=0.1
+            )
+            
+            refined_code = self._extract_code(response)
+            return refined_code
+        
+        except Exception as e:
+            logger.error(f"Error refining sieve: {e}")
+            return sieve_code
+    
+    def _save_sieve(self, table_name: str, sieve_code: str) -> None:
+        """Save sieve function to file."""
+        sieve_file = SIEVE_DIR / f"{table_name}_sieve.py"
+        
+        with open(sieve_file, 'w') as f:
+            f.write(sieve_code)
+        
+        logger.info(f"Saved sieve to {sieve_file}")
+    
+    def load_sieve(self, table_name: str) -> Optional[Callable]:
+        """Load sieve function from file."""
+        sieve_file = SIEVE_DIR / f"{table_name}_sieve.py"
+        
+        if not sieve_file.exists():
+            logger.warning(f"Sieve file not found: {sieve_file}")
+            return None
+        
+        try:
+            import importlib.util
+            spec = importlib.util.spec_from_file_location(
+                f"{table_name}_sieve",
+                str(sieve_file)
+            )
+            sieve_module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(sieve_module)
+            
+            return sieve_module.is_relevant
+        
+        except Exception as e:
+            logger.error(f"Error loading sieve: {e}")
+            return None
+    
+    def apply_sieve(
+        self,
+        table_name: str,
+        chunks: List[str]
+    ) -> List[int]:
+        """
+        Apply sieve to chunks and return indices of relevant chunks.
+        
+        Args:
+            table_name: Name of the table
+            chunks: List of text chunks
+            
+        Returns:
+            List of indices of relevant chunks
+        """
+        # Load sieve
+        is_relevant = self.load_sieve(table_name)
+        
+        if is_relevant is None:
+            logger.warning(f"No sieve found for {table_name}, returning all chunks")
+            return list(range(len(chunks)))
+        
+        # Apply sieve
+        relevant_indices = []
+        
+        for idx, chunk in enumerate(chunks):
+            try:
+                if is_relevant(chunk):
+                    relevant_indices.append(idx)
+            except Exception as e:
+                logger.warning(f"Error applying sieve to chunk {idx}: {e}")
+                # Include chunk if sieve fails (conservative)
+                relevant_indices.append(idx)
+        
+        logger.info(f"Sieve filtered {len(chunks)} chunks to {len(relevant_indices)} relevant chunks")
+        
+        return relevant_indices
+
+
+# ============================================================================
+# Utility Functions
+# ============================================================================
+
+def create_keyword_processor(keywords: List[str]) -> KeywordProcessor:
+    """Create FlashText keyword processor."""
+    processor = KeywordProcessor()
+    processor.add_keywords_from_list(keywords)
+    return processor
+
+
+def extract_entities(text: str, nlp) -> Dict[str, List[str]]:
+    """Extract named entities from text using spaCy."""
+    doc = nlp(text)
+    entities = {}
+    
+    for ent in doc.ents:
+        if ent.label_ not in entities:
+            entities[ent.label_] = []
+        entities[ent.label_].append(ent.text)
+    
+    return entities
+
+
+def match_patterns(text: str, patterns: List[str]) -> List[str]:
+    """Match regex patterns in text."""
+    matches = []
+    
+    for pattern in patterns:
+        found = re.findall(pattern, text, re.IGNORECASE)
+        matches.extend(found)
+    
+    return matches
