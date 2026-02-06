@@ -376,19 +376,53 @@ def main():
         timer.end("preprocessing")
         
         if not preprocess_result.success:
-            print(f"Preprocessing failed: {preprocess_result.error}")
+            print(f"\n{'='*80}")
+            print(f"PREPROCESSING FAILED!")
+            print(f"{'='*80}")
+            print(f"Error: {preprocess_result.error}")
+            
+            # Show log file location
+            log_file = Path(__file__).parent / "wdirs.log"
+            if log_file.exists():
+                print(f"\nCheck log file for details: {log_file}")
+                print("\nLast 50 lines of log:")
+                print("-" * 80)
+                with open(log_file, 'r') as f:
+                    lines = f.readlines()
+                    for line in lines[-50:]:
+                        print(line.rstrip())
             return
         
-        print(f"\nPreprocessing complete!")
-        print(f"Tables processed: {len(preprocess_result.tables_processed)}")
+        print(f"\n{'='*80}")
+        print(f"PREPROCESSING COMPLETE!")
+        print(f"{'='*80}")
+        print(f"Tables processed: {preprocess_result.tables_processed}")
         print(f"Total chunks: {preprocess_result.total_chunks}")
         print(f"Total records: {preprocess_result.total_records}")
         print(f"Time: {preprocess_result.preprocessing_time:.2f}s")
+        
+        # Verify we extracted data
+        if preprocess_result.total_records == 0:
+            print(f"\n{'='*80}")
+            print(f"WARNING: No records extracted!")
+            print(f"{'='*80}")
+            print("This will result in F1 score of 0. Check:")
+            print("1. Are the source text files in the correct location?")
+            print("2. Does the text contain relevant data?")
+            print("3. Check the log file for extraction errors")
     
     except Exception as e:
-        print(f"Preprocessing error: {e}")
+        print(f"\n{'='*80}")
+        print(f"PREPROCESSING ERROR!")
+        print(f"{'='*80}")
+        print(f"Error: {e}")
         import traceback
         traceback.print_exc()
+        
+        # Show log file
+        log_file = Path(__file__).parent / "wdirs.log"
+        if log_file.exists():
+            print(f"\nCheck log file: {log_file}")
         return
     
     # Query Execution and Evaluation

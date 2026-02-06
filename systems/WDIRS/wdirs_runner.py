@@ -151,7 +151,19 @@ class WDIRSRunner:
             
             lattice = self.lattice_planner.parse_workload(workload_queries)
             
-            logger.info(f"Workload parsed: {len(lattice.tables)} tables")
+            total_columns = sum(len(t.columns) for t in lattice.tables.values())
+            logger.info(f"Workload parsed: {len(lattice.tables)} tables, {total_columns} columns")
+            
+            # Check if we have columns
+            if total_columns == 0:
+                logger.warning("No columns extracted from workload! This will result in no data extraction.")
+                logger.warning("Sample queries:")
+                for i, q in enumerate(workload_queries[:3]):
+                    logger.warning(f"  Query {i+1}: {q[:100]}...")
+            
+            # Log table details
+            for table_name, table_info in lattice.tables.items():
+                logger.info(f"  Table '{table_name}': {len(table_info.columns)} columns - {list(table_info.columns.keys())}")
             
             # Step 2: Ingest text data
             logger.info("\n[Step 2/6] Ingesting text data...")
