@@ -29,6 +29,7 @@ os.environ['WDIRS_DB_PATH'] = str(Path(__file__).parent / '.databases' / 'wdirs_
 os.environ['OLLAMA_MODEL'] = 'qwen2.5:7b-instruct'
 
 from wdirs_runner import WDIRSRunner, PreprocessingResult, QueryResult
+from lattice_planner import LatticePlanner
 
 
 # ============================================================================
@@ -349,6 +350,7 @@ def main():
     
     # Parse with lattice planner
     timer.start("lattice_parsing")
+    planner = LatticePlanner()
     lattice = planner.parse_workload(training_query_strings)
     timer.end("lattice_parsing")
     
