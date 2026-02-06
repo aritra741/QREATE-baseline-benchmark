@@ -58,9 +58,9 @@ OLLAMA_MAX_RETRIES = 3
 OLLAMA_RETRY_DELAY = 2  # seconds
 
 # LLM extraction parameters
-EXTRACTION_BATCH_SIZE = 5  # chunks per batch
+EXTRACTION_BATCH_SIZE = 10  # chunks per batch (balanced for 7B model)
 EXTRACTION_TEMPERATURE = 0.1  # low temperature for consistency
-EXTRACTION_MAX_TOKENS = 2000
+EXTRACTION_MAX_TOKENS = 4000  # Reasonable for 10 chunks
 
 # ============================================================================
 # Entity Resolution Configuration
@@ -132,6 +132,7 @@ LOG_FILE = WDIRS_DIR / "wdirs.log"
 
 # Parallel processing
 MAX_WORKERS = int(os.getenv("MAX_WORKERS", "4"))
+MAX_PARALLEL_REQUESTS = int(os.getenv("MAX_PARALLEL_REQUESTS", "16"))  # Parallel LLM requests (leverage GPU)
 
 # Caching
 ENABLE_CACHE = True

@@ -313,6 +313,8 @@ class WDIRSRunner:
                     logger.warning(f"No candidate chunks for {table_name}")
                     continue
                 
+                logger.info(f"Processing {len(candidate_chunk_ids)} candidate chunks for {table_name}")
+                
                 candidate_chunks = self.data_layer.get_chunks_by_ids(candidate_chunk_ids)
                 
                 # Schema stabilization

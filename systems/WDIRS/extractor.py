@@ -254,7 +254,12 @@ class ConstrainedExtractor:
         """
         results = []
         
-        # Process in batches
+        # Process in batches with parallel requests for GPU utilization
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        from config import MAX_PARALLEL_REQUESTS
+        
+        max_parallel = MAX_PARALLEL_REQUESTS  # Number of parallel requests
+        
         for i in range(0, len(chunks), EXTRACTION_BATCH_SIZE):
             batch_chunks = chunks[i:i + EXTRACTION_BATCH_SIZE]
             batch_ids = chunk_ids[i:i + EXTRACTION_BATCH_SIZE]
@@ -262,43 +267,71 @@ class ConstrainedExtractor:
             logger.info(f"Extracting batch {i // EXTRACTION_BATCH_SIZE + 1} "
                        f"({len(batch_chunks)} chunks)")
             
-            for chunk, chunk_id in zip(batch_chunks, batch_ids):
-                # Check cache
-                cached_result = self._get_cached_result(chunk_id, table_name)
+            # Process chunks in parallel within each batch
+            with ThreadPoolExecutor(max_workers=max_parallel) as executor:
+                future_to_chunk = {}
                 
-                if cached_result:
-                    results.append(cached_result)
-                    continue
-                
-                # Extract
-                try:
-                    result = self._extract_single_chunk(
-                        chunk,
-                        table_name,
-                        schema,
-                        constrained_keys
+                for chunk, chunk_id in zip(batch_chunks, batch_ids):
+                    # Check cache first
+                    cached_result = self._get_cached_result(chunk_id, table_name)
+                    if cached_result:
+                        results.append(cached_result)
+                        continue
+                    
+                    # Submit extraction task
+                    future = executor.submit(
+                        self._extract_single_chunk_safe,
+                        chunk, chunk_id, table_name, schema, constrained_keys
                     )
-                    result.chunk_id = chunk_id
-                    
-                    # Cache result
-                    self._cache_result(chunk_id, table_name, result)
-                    
-                    results.append(result)
+                    future_to_chunk[future] = chunk_id
                 
-                except Exception as e:
-                    logger.error(f"Error extracting from chunk {chunk_id}: {e}")
-                    results.append(ExtractionResult(
-                        chunk_id=chunk_id,
-                        records=[],
-                        schema_keys=set(),
-                        extraction_time=0.0,
-                        error=str(e)
-                    ))
-                
-                # Rate limiting
-                time.sleep(0.5)
+                # Collect results as they complete
+                for future in as_completed(future_to_chunk):
+                    chunk_id = future_to_chunk[future]
+                    try:
+                        result = future.result()
+                        # Cache result
+                        self._cache_result(chunk_id, table_name, result)
+                        results.append(result)
+                    except Exception as e:
+                        logger.error(f"Error extracting from chunk {chunk_id}: {e}")
+                        results.append(ExtractionResult(
+                            chunk_id=chunk_id,
+                            records=[],
+                            schema_keys=set(),
+                            extraction_time=0.0,
+                            error=str(e)
+                        ))
         
         return results
+    
+    def _extract_single_chunk_safe(
+        self,
+        chunk: str,
+        chunk_id: str,
+        table_name: str,
+        schema: Dict[str, str],
+        constrained_keys: Optional[Set[str]] = None
+    ) -> ExtractionResult:
+        """Thread-safe wrapper for single chunk extraction."""
+        try:
+            result = self._extract_single_chunk(
+                chunk,
+                table_name,
+                schema,
+                constrained_keys
+            )
+            result.chunk_id = chunk_id
+            return result
+        except Exception as e:
+            logger.error(f"Error in chunk {chunk_id}: {e}")
+            return ExtractionResult(
+                chunk_id=chunk_id,
+                records=[],
+                schema_keys=set(),
+                extraction_time=0.0,
+                error=str(e)
+            )
     
     def _extract_single_chunk(
         self,
