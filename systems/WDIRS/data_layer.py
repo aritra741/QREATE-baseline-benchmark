@@ -146,15 +146,22 @@ class DataLayer:
         """Insert text chunks into database."""
         with self.Session() as session:
             try:
+                # Prepare chunk data for bulk insert
+                chunk_data = []
                 for chunk in chunks:
-                    stmt = insert(self.raw_chunks).values(
-                        chunk_id=str(chunk.chunk_id),
-                        doc_id=chunk.doc_id,
-                        content=chunk.content,
-                        chunk_index=chunk.chunk_index,
-                        metadata=json.dumps(chunk.metadata) if chunk.metadata else '{}'
-                    )
-                    session.execute(stmt)
+                    chunk_data.append({
+                        'chunk_id': str(chunk.chunk_id),
+                        'doc_id': chunk.doc_id,
+                        'content': chunk.content,
+                        'chunk_index': chunk.chunk_index,
+                        'metadata': json.dumps(chunk.metadata) if chunk.metadata else '{}'
+                    })
+                
+                # Batch insert in chunks to avoid parameter limit
+                batch_size = 500
+                for i in range(0, len(chunk_data), batch_size):
+                    batch = chunk_data[i:i + batch_size]
+                    session.execute(insert(self.raw_chunks), batch)
                 
                 session.commit()
                 logger.info(f"Inserted {len(chunks)} chunks")
@@ -433,26 +440,39 @@ class DataLayer:
                 if relevance_scores is None:
                     relevance_scores = [1] * len(chunk_ids)
                 
+                # Get existing chunk_ids to avoid duplicates
+                existing_ids = set()
+                existing_result = session.execute(
+                    select(self.candidate_index.c.chunk_id).where(
+                        self.candidate_index.c.table_name == table_name
+                    )
+                ).fetchall()
+                existing_ids = {str(row.chunk_id) for row in existing_result}
+                
+                # Prepare new candidates (filter out existing)
+                new_candidates = []
                 for chunk_id, score in zip(chunk_ids, relevance_scores):
-                    # Check if exists first (SQLite doesn't have ON CONFLICT DO NOTHING)
-                    exists = session.execute(
-                        select(self.candidate_index).where(
-                            (self.candidate_index.c.table_name == table_name) &
-                            (self.candidate_index.c.chunk_id == str(chunk_id))
-                        )
-                    ).fetchone()
-                    
-                    if not exists:
-                        stmt = insert(self.candidate_index).values(
-                            table_name=table_name,
-                            chunk_id=str(chunk_id),
-                            relevance_score=score
-                        )
-                        session.execute(stmt)
+                    chunk_id_str = str(chunk_id)
+                    if chunk_id_str not in existing_ids:
+                        new_candidates.append({
+                            'table_name': table_name,
+                            'chunk_id': chunk_id_str,
+                            'relevance_score': score
+                        })
+                
+                # Batch insert in chunks to avoid SQLite parameter limit (999)
+                batch_size = 500  # Safe batch size for SQLite
+                inserted_count = 0
+                
+                for i in range(0, len(new_candidates), batch_size):
+                    batch = new_candidates[i:i + batch_size]
+                    if batch:
+                        session.execute(insert(self.candidate_index), batch)
+                        inserted_count += len(batch)
                 
                 session.commit()
-                logger.info(f"Inserted {len(chunk_ids)} candidates for {table_name}")
-                return len(chunk_ids)
+                logger.info(f"Inserted {inserted_count} new candidates for {table_name} (skipped {len(chunk_ids) - inserted_count} duplicates)")
+                return inserted_count
             except Exception as e:
                 session.rollback()
                 logger.error(f"Error inserting candidates: {e}")
