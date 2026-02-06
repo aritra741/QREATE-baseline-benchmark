@@ -540,6 +540,31 @@ def main():
     # Cleanup
     runner.close()
     
+    # Show any errors from log file
+    log_file = Path(__file__).parent / "wdirs.log"
+    if log_file.exists():
+        print("\n" + "=" * 80)
+        print("CHECKING FOR ERRORS IN LOG")
+        print("=" * 80)
+        
+        with open(log_file, 'r') as f:
+            log_content = f.read()
+        
+        # Search for errors
+        error_lines = []
+        for line in log_content.split('\n'):
+            if any(keyword in line.lower() for keyword in ['error', 'exception', 'traceback', 'failed']):
+                if 'warning' not in line.lower():  # Exclude warnings for now
+                    error_lines.append(line)
+        
+        if error_lines:
+            print(f"\nFound {len(error_lines)} error/exception lines:")
+            print("-" * 80)
+            for line in error_lines[-20:]:  # Show last 20
+                print(line)
+        else:
+            print("\n✓ No errors found in log file")
+    
     print("\n" + "=" * 80)
     print("EVALUATION COMPLETE")
     print("=" * 80)
