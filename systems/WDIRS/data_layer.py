@@ -194,25 +194,35 @@ class DataLayer:
     
     def get_chunks_by_ids(self, chunk_ids: List[str]) -> List[TextChunk]:
         """Retrieve chunks by their IDs."""
+        if not chunk_ids:
+            return []
+        
+        # Batch requests to avoid SQLite parameter limit
+        batch_size = 900  # Safe for SQLite (limit is usually 999)
+        all_chunks = []
+        
         with self.Session() as session:
-            str_ids = [str(cid) for cid in chunk_ids]
-            stmt = select(self.raw_chunks).where(
-                self.raw_chunks.c.chunk_id.in_(str_ids)
-            )
-            
-            result = session.execute(stmt)
-            rows = result.fetchall()
-            
-            return [
-                TextChunk(
-                    chunk_id=str(row.chunk_id),
-                    doc_id=row.doc_id,
-                    content=row.content,
-                    chunk_index=row.chunk_index,
-                    metadata=row.metadata or {}
+            for i in range(0, len(chunk_ids), batch_size):
+                batch_ids = chunk_ids[i:i + batch_size]
+                str_ids = [str(cid) for cid in batch_ids]
+                
+                stmt = select(self.raw_chunks).where(
+                    self.raw_chunks.c.chunk_id.in_(str_ids)
                 )
-                for row in rows
-            ]
+                
+                result = session.execute(stmt)
+                rows = result.fetchall()
+                
+                for row in rows:
+                    all_chunks.append(TextChunk(
+                        chunk_id=str(row.chunk_id),
+                        doc_id=row.doc_id,
+                        content=row.content,
+                        chunk_index=row.chunk_index,
+                        metadata=row.metadata or {}
+                    ))
+            
+            return all_chunks
     
     def get_all_chunks(self, limit: Optional[int] = None) -> List[TextChunk]:
         """Retrieve all chunks, optionally limited."""
@@ -409,20 +419,38 @@ class DataLayer:
                 stmt = stmt.where(self.row_provenance.c.table_name == table_name)
             
             if row_ids:
-                str_ids = [str(rid) for rid in row_ids]
-                stmt = stmt.where(self.row_provenance.c.row_id.in_(str_ids))
-            
-            result = session.execute(stmt)
-            rows = result.fetchall()
-            
-            return [
-                ProvenanceRecord(
-                    row_id=str(row.row_id),
-                    table_name=row.table_name,
-                    chunk_ids=json.loads(row.chunk_ids) if isinstance(row.chunk_ids, str) else (row.chunk_ids or [])
-                )
-                for row in rows
-            ]
+                # Batch queries to avoid parameter limit
+                batch_size = 900
+                all_records = []
+                
+                for i in range(0, len(row_ids), batch_size):
+                    batch_ids = row_ids[i:i + batch_size]
+                    str_ids = [str(rid) for rid in batch_ids]
+                    
+                    batch_stmt = stmt.where(self.row_provenance.c.row_id.in_(str_ids))
+                    result = session.execute(batch_stmt)
+                    rows = result.fetchall()
+                    
+                    for row in rows:
+                        all_records.append(ProvenanceRecord(
+                            row_id=str(row.row_id),
+                            table_name=row.table_name,
+                            chunk_ids=json.loads(row.chunk_ids) if isinstance(row.chunk_ids, str) else (row.chunk_ids or [])
+                        ))
+                
+                return all_records
+            else:
+                result = session.execute(stmt)
+                rows = result.fetchall()
+                
+                return [
+                    ProvenanceRecord(
+                        row_id=str(row.row_id),
+                        table_name=row.table_name,
+                        chunk_ids=json.loads(row.chunk_ids) if isinstance(row.chunk_ids, str) else (row.chunk_ids or [])
+                    )
+                    for row in rows
+                ]
     
     # ========================================================================
     # Candidate Index Operations
