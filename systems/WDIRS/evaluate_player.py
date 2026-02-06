@@ -348,12 +348,6 @@ def main():
     # Create training queries list (just the query strings, not tuples)
     training_query_strings = [query for table_name, qnum, query in train_queries]
     
-    # Parse with lattice planner
-    timer.start("lattice_parsing")
-    planner = LatticePlanner()
-    lattice = planner.parse_workload(training_query_strings)
-    timer.end("lattice_parsing")
-    
     # Initialize WDIRS
     print("\n" + "=" * 80)
     print("INITIALIZING WDIRS")
@@ -378,7 +372,7 @@ def main():
     
     timer.start("preprocessing")
     try:
-        preprocess_result = runner.preprocess()
+        preprocess_result = runner.preprocess(workload_queries=training_query_strings)
         timer.end("preprocessing")
         
         if not preprocess_result.success:
