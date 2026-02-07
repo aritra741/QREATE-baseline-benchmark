@@ -70,6 +70,27 @@ class QueryResult:
 
 
 # ============================================================================
+# Helper Functions
+# ============================================================================
+
+def semantic_to_sql_type(semantic_type: str) -> str:
+    """Convert semantic type to SQL type."""
+    type_map = {
+        "PERSON": "TEXT",
+        "ORG": "TEXT",
+        "DATE": "TEXT",
+        "GPE": "TEXT",
+        "CODE": "TEXT",
+        "MONEY": "REAL",
+        "QUANTITY": "REAL",
+        "PRODUCT": "TEXT",
+        "EVENT": "TEXT",
+        "OTHER": "TEXT"
+    }
+    return type_map.get(semantic_type, "TEXT")
+
+
+# ============================================================================
 # WDIRS Runner
 # ============================================================================
 
@@ -364,6 +385,11 @@ class WDIRSRunner:
                     
                     # Insert extracted records into database
                     for extraction_result in results:
+                        # Skip if extraction had an error
+                        if extraction_result.error:
+                            logger.warning(f"Skipping chunk {extraction_result.chunk_id} due to error: {extraction_result.error}")
+                            continue
+                            
                         for record in extraction_result.records:
                             row_id = self.data_layer.insert_record(table_name, record)
                             self.data_layer.insert_provenance(
@@ -419,10 +445,13 @@ class WDIRSRunner:
                     self.data_layer.create_dynamic_table(table_name, schema)
                     
                     for extraction_result in results:
+                        # Skip if extraction had an error
+                        if extraction_result.error:
+                            logger.warning(f"Skipping chunk {extraction_result.chunk_id} due to error: {extraction_result.error}")
+                            continue
+                            
                         for record in extraction_result.records:
-                            import uuid
-                            row_id = str(uuid.uuid4())
-                            self.data_layer.insert_record(table_name, record)
+                            row_id = self.data_layer.insert_record(table_name, record)
                             self.data_layer.insert_provenance(
                                 row_id,
                                 table_name,
@@ -471,6 +500,11 @@ class WDIRSRunner:
                         
                         # Insert extracted records into database
                         for extraction_result in results:
+                            # Skip if extraction had an error
+                            if extraction_result.error:
+                                logger.warning(f"Skipping chunk {extraction_result.chunk_id} due to error: {extraction_result.error}")
+                                continue
+                                
                             for record in extraction_result.records:
                                 row_id = self.data_layer.insert_record(table_name, record)
                                 self.data_layer.insert_provenance(
@@ -793,23 +827,6 @@ def main():
     
     finally:
         runner.close()
-
-
-def semantic_to_sql_type(semantic_type: str) -> str:
-    """Convert semantic type to SQL type."""
-    type_map = {
-        "PERSON": "TEXT",
-        "ORG": "TEXT",
-        "DATE": "TEXT",
-        "GPE": "TEXT",
-        "CODE": "TEXT",
-        "MONEY": "REAL",
-        "QUANTITY": "REAL",
-        "PRODUCT": "TEXT",
-        "EVENT": "TEXT",
-        "OTHER": "TEXT"
-    }
-    return type_map.get(semantic_type, "TEXT")
 
 
 if __name__ == "__main__":

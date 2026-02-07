@@ -12,7 +12,7 @@ from datetime import datetime
 
 from sqlalchemy import (
     create_engine, Table, Column, String, Integer, Text, JSON,
-    MetaData, DateTime, ForeignKey, Index, Boolean, select, insert, update, delete
+    MetaData, DateTime, ForeignKey, Index, Boolean, select, insert, update, delete, text
 )
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import NullPool
@@ -560,13 +560,11 @@ class DataLayer:
     def table_exists(self, table_name: str) -> bool:
         """Check if a table exists."""
         with self.engine.connect() as conn:
-            result = conn.execute(f"""
-                SELECT EXISTS (
-                    SELECT FROM information_schema.tables 
-                    WHERE table_name = '{table_name}'
-                )
-            """)
-            return result.fetchone()[0]
+            result = conn.execute(text("""
+                SELECT name FROM sqlite_master 
+                WHERE type='table' AND name = :table_name
+            """), {"table_name": table_name})
+            return result.fetchone() is not None
     
     def close(self):
         """Close database connections."""
@@ -726,13 +724,12 @@ class RecursiveCharacterSplitter:
         """
         with self.engine.connect() as conn:
             try:
-                import uuid
                 row_id = str(uuid.uuid4())
                 
                 # Add row_id to record
                 full_record = {"row_id": row_id, **record}
                 
-                # Build INSERT statement
+                # Build INSERT statement - handle None values explicitly
                 columns = list(full_record.keys())
                 values = [full_record[col] for col in columns]
                 
@@ -741,8 +738,15 @@ class RecursiveCharacterSplitter:
                 
                 sql = f"INSERT INTO {table_name} ({columns_str}) VALUES ({placeholders})"
                 
-                # Create parameter dict
-                params = {col: val for col, val in zip(columns, values)}
+                # Create parameter dict - convert None to NULL-compatible value
+                params = {}
+                for col, val in zip(columns, values):
+                    if val is None:
+                        params[col] = None
+                    elif isinstance(val, (list, dict)):
+                        params[col] = json.dumps(val)
+                    else:
+                        params[col] = val
                 
                 conn.execute(text(sql), params)
                 conn.commit()
