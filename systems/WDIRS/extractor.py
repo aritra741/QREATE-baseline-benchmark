@@ -333,6 +333,238 @@ class ConstrainedExtractor:
                 error=str(e)
             )
     
+    def extract_batch_with_predicates(
+        self,
+        chunks: List[str],
+        chunk_ids: List[str],
+        table_name: str,
+        schema: Dict[str, str],
+        constrained_keys: Optional[Set[str]] = None,
+        predicates: Optional[List[str]] = None
+    ) -> List[ExtractionResult]:
+        """
+        Extract data matching specific predicates (QAIRS-style).
+        
+        Args:
+            chunks: List of text chunks
+            chunk_ids: List of chunk IDs
+            table_name: Name of the table
+            schema: Column schema
+            constrained_keys: Optional set of required keys
+            predicates: List of predicates to filter by (e.g., ["age > 25"])
+            
+        Returns:
+            List of ExtractionResult
+        """
+        results = []
+        
+        # Process in batches with parallel requests
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        from config import MAX_PARALLEL_REQUESTS
+        
+        max_parallel = MAX_PARALLEL_REQUESTS
+        
+        for i in range(0, len(chunks), EXTRACTION_BATCH_SIZE):
+            batch_chunks = chunks[i:i + EXTRACTION_BATCH_SIZE]
+            batch_ids = chunk_ids[i:i + EXTRACTION_BATCH_SIZE]
+            
+            logger.info(f"Extracting batch {i // EXTRACTION_BATCH_SIZE + 1} "
+                       f"({len(batch_chunks)} chunks) with predicates")
+            
+            # Process chunks in parallel
+            with ThreadPoolExecutor(max_workers=max_parallel) as executor:
+                future_to_chunk = {}
+                
+                for chunk, chunk_id in zip(batch_chunks, batch_ids):
+                    # Check cache
+                    cache_key = f"{chunk_id}_{table_name}_{'_'.join(predicates or [])}"
+                    cached_result = self._get_cached_result(cache_key, table_name)
+                    if cached_result:
+                        results.append(cached_result)
+                        continue
+                    
+                    # Submit extraction task with predicates
+                    future = executor.submit(
+                        self._extract_single_chunk_with_predicates,
+                        chunk, chunk_id, table_name, schema, constrained_keys, predicates
+                    )
+                    future_to_chunk[future] = (chunk_id, cache_key)
+                
+                # Collect results
+                for future in as_completed(future_to_chunk):
+                    chunk_id, cache_key = future_to_chunk[future]
+                    try:
+                        result = future.result()
+                        self._cache_result(cache_key, table_name, result)
+                        results.append(result)
+                    except Exception as e:
+                        logger.error(f"Error extracting from chunk {chunk_id}: {e}")
+                        results.append(ExtractionResult(
+                            chunk_id=chunk_id,
+                            records=[],
+                            schema_keys=set(),
+                            extraction_time=0.0,
+                            error=str(e)
+                        ))
+        
+        return results
+    
+    def _extract_single_chunk_with_predicates(
+        self,
+        chunk: str,
+        chunk_id: str,
+        table_name: str,
+        schema: Dict[str, str],
+        constrained_keys: Optional[Set[str]] = None,
+        predicates: Optional[List[str]] = None
+    ) -> ExtractionResult:
+        """Extract data matching specific predicates."""
+        start_time = time.time()
+        
+        # Build extraction prompt with predicate filtering
+        prompt = self._build_extraction_prompt_with_predicates(
+            chunk,
+            table_name,
+            schema,
+            constrained_keys,
+            predicates
+        )
+        
+        # Call LLM
+        response = self.llm_client.generate(
+            prompt,
+            max_tokens=EXTRACTION_MAX_TOKENS,
+            temperature=EXTRACTION_TEMPERATURE
+        )
+        
+        # Parse response
+        records = self._parse_extraction_response(response, constrained_keys)
+        
+        # Filter records by predicates if specified
+        if predicates and records:
+            records = self._filter_records_by_predicates(records, predicates)
+        
+        # Collect schema keys
+        schema_keys = set()
+        for record in records:
+            schema_keys.update(record.keys())
+        
+        extraction_time = time.time() - start_time
+        
+        return ExtractionResult(
+            chunk_id=chunk_id,
+            records=records,
+            schema_keys=schema_keys,
+            extraction_time=extraction_time
+        )
+    
+    def _build_extraction_prompt_with_predicates(
+        self,
+        chunk: str,
+        table_name: str,
+        schema: Dict[str, str],
+        constrained_keys: Optional[Set[str]] = None,
+        predicates: Optional[List[str]] = None
+    ) -> str:
+        """Build extraction prompt with predicate filtering."""
+        keys_to_use = constrained_keys if constrained_keys else schema.keys()
+        keys_str = ', '.join(f'"{k}"' for k in keys_to_use)
+        
+        # Add predicate filtering instructions
+        predicate_str = ""
+        if predicates:
+            predicate_str = f"\n\nIMPORTANT: Only extract records that match these conditions:\n"
+            for pred in predicates:
+                predicate_str += f"- {pred}\n"
+            predicate_str += "\nDo NOT extract records that don't match these conditions."
+        
+        prompt = f"""Extract data from the following text for table '{table_name}'.
+
+Schema (use these keys): {keys_str}
+{predicate_str}
+
+Text:
+{chunk}
+
+Instructions:
+1. Extract data matching the schema
+2. Return a JSON array of objects
+3. Use the exact keys specified above
+4. If no matching data is found, return an empty array []
+5. Be precise - only extract data that clearly matches
+
+Output (JSON only):"""
+        
+        return prompt
+    
+    def _filter_records_by_predicates(
+        self,
+        records: List[Dict[str, Any]],
+        predicates: List[str]
+    ) -> List[Dict[str, Any]]:
+        """Filter extracted records by predicates."""
+        filtered = []
+        
+        for record in records:
+            matches_all = True
+            
+            for pred in predicates:
+                # Parse predicate (e.g., "age > 25")
+                parts = pred.split()
+                if len(parts) >= 3:
+                    col = parts[0]
+                    op = parts[1]
+                    val_str = ' '.join(parts[2:]).strip("'\"")
+                    
+                    if col in record:
+                        record_val = record[col]
+                        
+                        try:
+                            # Try numeric comparison
+                            if op == '>':
+                                if not (float(record_val) > float(val_str)):
+                                    matches_all = False
+                                    break
+                            elif op == '<':
+                                if not (float(record_val) < float(val_str)):
+                                    matches_all = False
+                                    break
+                            elif op == '>=':
+                                if not (float(record_val) >= float(val_str)):
+                                    matches_all = False
+                                    break
+                            elif op == '<=':
+                                if not (float(record_val) <= float(val_str)):
+                                    matches_all = False
+                                    break
+                            elif op == '=' or op == '==':
+                                if str(record_val).lower() != val_str.lower():
+                                    matches_all = False
+                                    break
+                            elif op == '!=' or op == '<>':
+                                if str(record_val).lower() == val_str.lower():
+                                    matches_all = False
+                                    break
+                        except (ValueError, TypeError):
+                            # String comparison fallback
+                            if op == '=' or op == '==':
+                                if str(record_val).lower() != val_str.lower():
+                                    matches_all = False
+                                    break
+                            elif op == '!=' or op == '<>':
+                                if str(record_val).lower() == val_str.lower():
+                                    matches_all = False
+                                    break
+                    else:
+                        # Column not in record, doesn't match
+                        matches_all = False
+                        break
+            
+            if matches_all:
+                filtered.append(record)
+        
+        return filtered
+    
     def _extract_single_chunk(
         self,
         chunk: str,

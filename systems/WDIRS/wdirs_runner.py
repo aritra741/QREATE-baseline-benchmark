@@ -298,13 +298,22 @@ class WDIRSRunner:
                 raise RuntimeError(f"Sieve synthesis failed for table '{table_name}': {e}") from e
     
     def _global_extraction(self, lattice) -> int:
-        """Perform constrained global extraction."""
+        """Perform predicate-based extraction (like QAIRS)."""
         total_records = 0
+        
+        # Check if there are joins in the workload
+        has_joins = len(lattice.join_pairs) > 0
+        if has_joins:
+            logger.info(f"Workload has {len(lattice.join_pairs)} join pairs: {lattice.join_pairs}")
         
         for table_name, table_info in lattice.tables.items():
             try:
                 # Get schema
                 schema = self.lattice_planner.get_table_schema(table_name)
+                
+                # Convert semantic types to SQL types for table creation
+                sql_schema = {col: semantic_to_sql_type(sem_type) 
+                             for col, sem_type in schema.items()}
                 
                 # Get candidate chunks
                 candidate_chunk_ids = self.data_layer.get_candidates(table_name)
@@ -313,7 +322,9 @@ class WDIRSRunner:
                     logger.warning(f"No candidate chunks for {table_name}")
                     continue
                 
-                logger.info(f"Processing {len(candidate_chunk_ids)} candidate chunks for {table_name}")
+                logger.info(f"Table {table_name}: {len(candidate_chunk_ids)} candidates, "
+                           f"{len(table_info.predicates)} predicates, "
+                           f"in_joins={table_info.referenced_in_joins}")
                 
                 candidate_chunks = self.data_layer.get_chunks_by_ids(candidate_chunk_ids)
                 
@@ -328,33 +339,167 @@ class WDIRSRunner:
                 logger.info(f"Stabilized schema for {table_name}: "
                            f"{len(stabilized_schema.frozen_keys)} keys")
                 
-                # Extract from all candidate chunks
-                chunk_texts = [c.content for c in candidate_chunks]
-                chunk_ids = [c.chunk_id for c in candidate_chunks]
-                
-                results = self.extractor.extract_batch(
-                    chunk_texts,
-                    chunk_ids,
-                    table_name,
-                    schema,
-                    stabilized_schema.frozen_keys
-                )
-                
-                # Count records
-                table_records = sum(len(r.records) for r in results)
-                total_records += table_records
-                
-                logger.info(f"Extracted {table_records} records for {table_name}")
-                
-                # Update metadata
-                for col_name in schema.keys():
-                    self.data_layer.update_metadata(
+                # For tables in joins, extract ALL data to ensure referential integrity
+                # Phase 2 will handle join alignment
+                if table_info.referenced_in_joins:
+                    logger.info(f"{table_name} is in joins - extracting all data for referential integrity")
+                    chunk_texts = [c.content for c in candidate_chunks]
+                    chunk_ids = [c.chunk_id for c in candidate_chunks]
+                    
+                    results = self.extractor.extract_batch(
+                        chunk_texts,
+                        chunk_ids,
                         table_name,
-                        col_name,
-                        [],
-                        "PARTIAL",
-                        table_records
+                        schema,
+                        stabilized_schema.frozen_keys
                     )
+                    
+                    table_records = sum(len(r.records) for r in results)
+                    total_records += table_records
+                    
+                    logger.info(f"Extracted {table_records} records for {table_name} (join table)")
+                    
+                    # Create dynamic table if needed
+                    self.data_layer.create_dynamic_table(table_name, sql_schema)
+                    
+                    # Insert extracted records into database
+                    for extraction_result in results:
+                        for record in extraction_result.records:
+                            row_id = self.data_layer.insert_record(table_name, record)
+                            self.data_layer.insert_provenance(
+                                row_id,
+                                table_name,
+                                [extraction_result.chunk_id]
+                            )
+                    
+                    logger.info(f"Inserted {table_records} records into {table_name}")
+                    
+                    # Update metadata - FULL because we extracted everything for joins
+                    for col_name in schema.keys():
+                        self.data_layer.update_metadata(
+                            table_name,
+                            col_name,
+                            [],
+                            "FULL",
+                            table_records
+                        )
+                    continue
+                
+                # Group predicates by column to extract each predicate separately
+                # This follows QAIRS approach: one extraction task per predicate
+                predicate_groups = {}
+                for pred in table_info.predicates:
+                    # Extract column from predicate (e.g., "age > 25" -> "age")
+                    col = pred.split()[0].strip() if pred else None
+                    if col:
+                        if col not in predicate_groups:
+                            predicate_groups[col] = []
+                        predicate_groups[col].append(pred)
+                
+                # If no predicates, extract all data (fallback)
+                if not predicate_groups:
+                    logger.info(f"No predicates for {table_name}, extracting all data")
+                    chunk_texts = [c.content for c in candidate_chunks]
+                    chunk_ids = [c.chunk_id for c in candidate_chunks]
+                    
+                    results = self.extractor.extract_batch(
+                        chunk_texts,
+                        chunk_ids,
+                        table_name,
+                        schema,
+                        stabilized_schema.frozen_keys
+                    )
+                    
+                    table_records = sum(len(r.records) for r in results)
+                    total_records += table_records
+                    
+                    logger.info(f"Extracted {table_records} records for {table_name}")
+                    
+                    # Create dynamic table and insert records
+                    self.data_layer.create_dynamic_table(table_name, schema)
+                    
+                    for extraction_result in results:
+                        for record in extraction_result.records:
+                            import uuid
+                            row_id = str(uuid.uuid4())
+                            self.data_layer.insert_record(table_name, record)
+                            self.data_layer.insert_provenance(
+                                row_id,
+                                table_name,
+                                [extraction_result.chunk_id]
+                            )
+                    
+                    logger.info(f"Inserted {table_records} records into {table_name}")
+                    
+                    # Update metadata
+                    for col_name in schema.keys():
+                        self.data_layer.update_metadata(
+                            table_name,
+                            col_name,
+                            [],
+                            "FULL",
+                            table_records
+                        )
+                else:
+                    # Extract for each predicate group
+                    all_extracted = set()
+                    
+                    # Create dynamic table once before all extractions
+                    self.data_layer.create_dynamic_table(table_name, sql_schema)
+                    
+                    for col, predicates in predicate_groups.items():
+                        logger.info(f"Extracting {table_name}.{col} with {len(predicates)} predicates")
+                        
+                        # Add predicate context to extraction
+                        chunk_texts = [c.content for c in candidate_chunks]
+                        chunk_ids = [c.chunk_id for c in candidate_chunks]
+                        
+                        results = self.extractor.extract_batch_with_predicates(
+                            chunk_texts,
+                            chunk_ids,
+                            table_name,
+                            schema,
+                            stabilized_schema.frozen_keys,
+                            predicates
+                        )
+                        
+                        pred_records = sum(len(r.records) for r in results)
+                        total_records += pred_records
+                        all_extracted.add(col)
+                        
+                        logger.info(f"Extracted {pred_records} records for {table_name}.{col}")
+                        
+                        # Insert extracted records into database
+                        for extraction_result in results:
+                            for record in extraction_result.records:
+                                row_id = self.data_layer.insert_record(table_name, record)
+                                self.data_layer.insert_provenance(
+                                    row_id,
+                                    table_name,
+                                    [extraction_result.chunk_id]
+                                )
+                        
+                        logger.info(f"Inserted {pred_records} records into {table_name}")
+                        
+                        # Update metadata with predicate scope
+                        self.data_layer.update_metadata(
+                            table_name,
+                            col,
+                            predicates,
+                            "PARTIAL",
+                            pred_records
+                        )
+                    
+                    # Mark other columns as needing extraction
+                    for col_name in schema.keys():
+                        if col_name not in all_extracted:
+                            self.data_layer.update_metadata(
+                                table_name,
+                                col_name,
+                                [],
+                                "PARTIAL",
+                                0
+                            )
             
             except Exception as e:
                 logger.error(f"Error extracting for {table_name}: {e}")
@@ -363,16 +508,97 @@ class WDIRSRunner:
         return total_records
     
     def _proactive_entity_resolution(self, lattice) -> None:
-        """Perform proactive entity resolution."""
-        for table_name, table_info in lattice.tables.items():
-            try:
-                # Get extracted records (would load from cache/DB)
-                # For now, skip actual resolution
-                logger.info(f"Entity resolution for {table_name} (skipped in demo)")
+        """
+        Perform proactive entity resolution on join keys.
+        Aligns join columns so Phase 2 can execute joins instantly.
+        """
+        if not lattice.join_pairs:
+            logger.info("No joins in workload, skipping entity resolution")
+            return
+        
+        logger.info(f"Performing entity resolution on {len(lattice.join_pairs)} join pairs")
+        
+        for left_table, right_table in lattice.join_pairs:
+            # Identify join columns
+            left_schema = self.lattice_planner.get_table_schema(left_table)
+            right_schema = self.lattice_planner.get_table_schema(right_table)
             
-            except Exception as e:
-                logger.error(f"Error in entity resolution for {table_name}: {e}")
-                raise RuntimeError(f"Entity resolution failed for table '{table_name}': {e}") from e
+            # Find likely join keys
+            join_keys = []
+            for left_col in left_schema.keys():
+                for right_col in right_schema.keys():
+                    if (left_col == right_col or 
+                        left_table.lower() in right_col.lower() or
+                        right_table.lower() in left_col.lower()):
+                        join_keys.append((left_col, right_col))
+            
+            if not join_keys:
+                logger.warning(f"Could not identify join columns for {left_table} ↔ {right_table}")
+                continue
+            
+            left_col, right_col = join_keys[0]
+            logger.info(f"Resolving join: {left_table}.{left_col} ↔ {right_table}.{right_col}")
+            
+            # Get all unique values from both join columns
+            left_values = self.data_layer.get_distinct_values(left_table, left_col)
+            right_values = self.data_layer.get_distinct_values(right_table, right_col)
+            
+            logger.info(f"Found {len(left_values)} unique values in {left_table}.{left_col}")
+            logger.info(f"Found {len(right_values)} unique values in {right_table}.{right_col}")
+            
+            # Create entity mentions
+            from entity_resolver import EntityMention
+            mentions = []
+            
+            for value in left_values:
+                if value and str(value).strip():
+                    mentions.append(EntityMention(
+                        mention_id=f"{left_table}_{left_col}_{value}",
+                        value=str(value),
+                        table_name=left_table,
+                        column_name=left_col,
+                        semantic_type="JOIN_KEY"
+                    ))
+            
+            for value in right_values:
+                if value and str(value).strip():
+                    mentions.append(EntityMention(
+                        mention_id=f"{right_table}_{right_col}_{value}",
+                        value=str(value),
+                        table_name=right_table,
+                        column_name=right_col,
+                        semantic_type="JOIN_KEY"
+                    ))
+            
+            if len(mentions) < 2:
+                logger.warning(f"Not enough values to resolve for {left_table} ↔ {right_table}")
+                continue
+            
+            # Perform entity resolution
+            logger.info(f"Running entity resolution on {len(mentions)} mentions")
+            result = self.entity_resolver.resolve_entities(mentions)
+            
+            logger.info(f"Resolved into {result.total_clusters} clusters")
+            
+            # Update database with canonical forms
+            for mention_value, canonical_value in result.canonical_map.items():
+                # Update left table
+                self.data_layer.update_column_values(
+                    left_table,
+                    left_col,
+                    {mention_value: canonical_value}
+                )
+                
+                # Update right table
+                self.data_layer.update_column_values(
+                    right_table,
+                    right_col,
+                    {mention_value: canonical_value}
+                )
+            
+            logger.info(f"Updated {left_table}.{left_col} and {right_table}.{right_col} with canonical values")
+        
+        logger.info("Entity resolution complete - joins are now aligned")
     
     def _save_preprocessing_results(self, lattice) -> None:
         """Save preprocessing results to cache."""
@@ -567,6 +793,23 @@ def main():
     
     finally:
         runner.close()
+
+
+def semantic_to_sql_type(semantic_type: str) -> str:
+    """Convert semantic type to SQL type."""
+    type_map = {
+        "PERSON": "TEXT",
+        "ORG": "TEXT",
+        "DATE": "TEXT",
+        "GPE": "TEXT",
+        "CODE": "TEXT",
+        "MONEY": "REAL",
+        "QUANTITY": "REAL",
+        "PRODUCT": "TEXT",
+        "EVENT": "TEXT",
+        "OTHER": "TEXT"
+    }
+    return type_map.get(semantic_type, "TEXT")
 
 
 if __name__ == "__main__":

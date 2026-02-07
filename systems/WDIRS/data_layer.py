@@ -549,7 +549,7 @@ class DataLayer:
                 )
                 """
                 
-                conn.execute(create_stmt)
+                conn.execute(text(create_stmt))
                 conn.commit()
                 
                 logger.info(f"Created table: {table_name}")
@@ -661,6 +661,96 @@ class RecursiveCharacterSplitter:
             merged.append(chunk)
         
         return merged
+    
+    def get_distinct_values(self, table_name: str, column_name: str) -> List[str]:
+        """Get all distinct values from a column in a dynamic table."""
+        with self.Session() as session:
+            try:
+                # Query the dynamic table
+                stmt = text(f"SELECT DISTINCT {column_name} FROM {table_name} WHERE {column_name} IS NOT NULL")
+                result = session.execute(stmt)
+                values = [str(row[0]) for row in result.fetchall()]
+                return values
+            except Exception as e:
+                logger.error(f"Error getting distinct values from {table_name}.{column_name}: {e}")
+                return []
+    
+    def update_column_values(
+        self,
+        table_name: str,
+        column_name: str,
+        value_map: Dict[str, str]
+    ) -> int:
+        """
+        Update column values based on a mapping.
+        
+        Args:
+            table_name: Name of the table
+            column_name: Name of the column to update
+            value_map: Dictionary mapping old_value -> new_value
+            
+        Returns:
+            Number of rows updated
+        """
+        with self.Session() as session:
+            try:
+                updated_count = 0
+                for old_value, new_value in value_map.items():
+                    # Use parameterized query to prevent SQL injection
+                    stmt = text(
+                        f"UPDATE {table_name} SET {column_name} = :new_value "
+                        f"WHERE {column_name} = :old_value"
+                    )
+                    result = session.execute(
+                        stmt,
+                        {"new_value": new_value, "old_value": old_value}
+                    )
+                    updated_count += result.rowcount
+                
+                session.commit()
+                logger.info(f"Updated {updated_count} rows in {table_name}.{column_name}")
+                return updated_count
+            except Exception as e:
+                session.rollback()
+                logger.error(f"Error updating column values in {table_name}.{column_name}: {e}")
+                raise
+    
+    def insert_record(
+        self,
+        table_name: str,
+        record: Dict[str, Any]
+    ) -> str:
+        """
+        Insert a record into a dynamic table.
+        Returns the generated row_id.
+        """
+        with self.engine.connect() as conn:
+            try:
+                import uuid
+                row_id = str(uuid.uuid4())
+                
+                # Add row_id to record
+                full_record = {"row_id": row_id, **record}
+                
+                # Build INSERT statement
+                columns = list(full_record.keys())
+                values = [full_record[col] for col in columns]
+                
+                columns_str = ", ".join(columns)
+                placeholders = ", ".join([f":{col}" for col in columns])
+                
+                sql = f"INSERT INTO {table_name} ({columns_str}) VALUES ({placeholders})"
+                
+                # Create parameter dict
+                params = {col: val for col, val in zip(columns, values)}
+                
+                conn.execute(text(sql), params)
+                conn.commit()
+                
+                return row_id
+            except Exception as e:
+                logger.error(f"Error inserting record into {table_name}: {e}")
+                raise
     
     def create_chunks(
         self,
