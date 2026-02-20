@@ -237,7 +237,7 @@ def run_preprocessing_phase(dataset: str, dataset_query: str) -> Tuple[bool, Dic
         
         # Initialize WDIRS Runner
         logger.info(f"\nInitializing WDIRS Runner for {dataset}")
-        runner = WDIRSRunner(dataset_name=dataset)
+        runner = WDIRSRunner(dataset=dataset)
         
         # Run preprocessing (all steps 1-7 are handled internally)
         logger.info("\nRunning unified preprocessing pipeline...")
@@ -351,7 +351,7 @@ def run_test_phase(dataset: str, dataset_query: str, checkpoint_path: Path) -> T
             return False, test_metrics, stats
         
         logger.info(f"Loading preprocessed database from {checkpoint_path}")
-        runner = WDIRSRunner(dataset_name=dataset)
+        runner = WDIRSRunner(dataset=dataset)
         
         # Note: WDIRSRunner initializes from DATABASE_URI which points to DB_DIR
         # For testing, we'd need to copy checkpoint back or use it directly
