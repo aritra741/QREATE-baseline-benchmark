@@ -23,6 +23,7 @@ from config import (
     EXTRACTION_BATCH_SIZE,
     EXTRACTION_TEMPERATURE,
     EXTRACTION_MAX_TOKENS,
+    COLUMN_BATCH_SIZE,
     SCHEMA_SAMPLE_SIZE,
     SCHEMA_KEY_FREQUENCY_THRESHOLD,
     CACHE_DIR
@@ -231,6 +232,118 @@ class ConstrainedExtractor:
     # Extraction
     # ========================================================================
     
+    def _split_schema_into_batches(
+        self,
+        schema: Dict[str, str],
+        constrained_keys: Optional[Set[str]],
+        normalization_hints: Optional[Dict[str, List[str]]],
+    ) -> List[tuple]:
+        """
+        Split a wide schema into column batches of at most COLUMN_BATCH_SIZE.
+
+        Returns a list of (col_batch_schema, batch_constrained_keys,
+        batch_normalization_hints) tuples.
+
+        Keeping batches small prevents 7B-model confusion from overly wide
+        prompts while still doing a single sequential pass per chunk.
+        """
+        items = list(schema.items())
+        batches = []
+        for i in range(0, len(items), COLUMN_BATCH_SIZE):
+            col_batch = dict(items[i : i + COLUMN_BATCH_SIZE])
+            batch_ck = (
+                constrained_keys & col_batch.keys()
+                if constrained_keys
+                else None
+            )
+            batch_nh = (
+                {k: v for k, v in normalization_hints.items() if k in col_batch}
+                if normalization_hints
+                else None
+            )
+            batches.append((col_batch, batch_ck, batch_nh))
+        return batches
+
+    def _merge_column_batches(
+        self,
+        chunk_id: str,
+        batch_map: Dict[int, ExtractionResult],
+        total_batches: int,
+    ) -> ExtractionResult:
+        """
+        Merge partial ExtractionResults from column-batch LLM calls.
+
+        Merge strategy:
+        - If all non-empty batches return the same number of records, zip them
+          by position (record 0 from batch 0 + record 0 from batch 1 = merged
+          record 0).
+        - If counts differ (LLM returned different numbers of entities for
+          different column groups), use the largest batch as the base and merge
+          in additional fields from other batches at matching positions.  Any
+          batch records beyond the base length are appended as partial records.
+        """
+        records_per_batch: List[List[Dict[str, Any]]] = []
+        total_time = 0.0
+        last_error: Optional[str] = None
+
+        for batch_idx in range(total_batches):
+            if batch_idx not in batch_map:
+                continue
+            result = batch_map[batch_idx]
+            total_time += result.extraction_time
+            if result.error:
+                last_error = result.error
+                continue
+            if result.records:
+                records_per_batch.append(result.records)
+
+        if not records_per_batch:
+            return ExtractionResult(
+                chunk_id=chunk_id,
+                records=[],
+                schema_keys=set(),
+                extraction_time=total_time,
+                error=last_error,
+            )
+
+        counts = [len(r) for r in records_per_batch]
+
+        if all(c == counts[0] for c in counts):
+            # Happy path: all batches agree on entity count — zip by position.
+            merged_records = []
+            for idx in range(counts[0]):
+                merged: Dict[str, Any] = {}
+                for batch_records in records_per_batch:
+                    merged.update(batch_records[idx])
+                merged_records.append(merged)
+        else:
+            # Counts disagree — use the largest batch as base, merge others in
+            # by position, and append any overflow records as partial entries.
+            base = max(records_per_batch, key=len)
+            merged_records = [dict(r) for r in base]
+            for batch_records in records_per_batch:
+                if batch_records is base:
+                    continue
+                for i, record in enumerate(batch_records):
+                    if i < len(merged_records):
+                        for k, v in record.items():
+                            if k not in merged_records[i]:
+                                merged_records[i][k] = v
+                    else:
+                        merged_records.append(dict(record))
+
+        schema_keys: Set[str] = set()
+        for record in merged_records:
+            schema_keys.update(record.keys())
+
+        return ExtractionResult(
+            chunk_id=chunk_id,
+            records=merged_records,
+            schema_keys=schema_keys,
+            extraction_time=total_time,
+            error=last_error,
+        )
+
     def extract_batch(
         self,
         chunks: List[str],
@@ -238,75 +351,85 @@ class ConstrainedExtractor:
         table_name: str,
         schema: Dict[str, str],
         constrained_keys: Optional[Set[str]] = None,
-        normalization_hints: Optional[Dict[str, List[str]]] = None
+        normalization_hints: Optional[Dict[str, List[str]]] = None,
+        entity_col: Optional[str] = None,
     ) -> List[ExtractionResult]:
         """
-        Extract data from a batch of chunks.
-        
-        Args:
-            chunks: List of text chunks
-            chunk_ids: List of chunk IDs
-            table_name: Name of the table
-            schema: Column schema
-            constrained_keys: Optional set of required keys
-            normalization_hints: column → [expected literal values] from workload predicates
-            
-        Returns:
-            List of ExtractionResult
+        Extract data from all chunks with column batching.
+
+        The schema is split into groups of COLUMN_BATCH_SIZE columns.  For
+        each chunk, one LLM call is issued per column group (all submitted into
+        a single thread pool simultaneously).  Results are merged per chunk
+        before being returned.
+
+        entity_col: if provided, every LLM call includes a mandatory `_entity`
+        field instruction so each returned record identifies which entity it
+        belongs to.  This enables direct upsert routing without consolidation.
         """
-        results = []
-        
-        # Process in batches with parallel requests for GPU utilization
         from concurrent.futures import ThreadPoolExecutor, as_completed
         from config import MAX_PARALLEL_REQUESTS
-        
-        max_parallel = MAX_PARALLEL_REQUESTS  # Number of parallel requests
-        
-        for i in range(0, len(chunks), EXTRACTION_BATCH_SIZE):
-            batch_chunks = chunks[i:i + EXTRACTION_BATCH_SIZE]
-            batch_ids = chunk_ids[i:i + EXTRACTION_BATCH_SIZE]
-            
-            logger.info(f"Extracting batch {i // EXTRACTION_BATCH_SIZE + 1} "
-                       f"({len(batch_chunks)} chunks)")
-            
-            # Process chunks in parallel within each batch
-            with ThreadPoolExecutor(max_workers=max_parallel) as executor:
-                future_to_chunk = {}
-                
-                for chunk, chunk_id in zip(batch_chunks, batch_ids):
-                    # Check cache first
-                    cached_result = self._get_cached_result(chunk_id, table_name)
-                    if cached_result:
-                        results.append(cached_result)
-                        continue
-                    
-                    # Submit extraction task
+
+        col_batches = self._split_schema_into_batches(
+            schema, constrained_keys, normalization_hints
+        )
+        n_batches = len(col_batches)
+
+        pre_cached: List[ExtractionResult] = []
+        # chunk_id -> {batch_idx -> ExtractionResult}
+        chunk_batch_map: Dict[str, Dict[int, ExtractionResult]] = {}
+        future_to_key: Dict = {}
+
+        logger.info(
+            f"Extracting {len(chunks)} chunks for '{table_name}': "
+            f"{n_batches} column batch(es) of ≤{COLUMN_BATCH_SIZE} cols each, "
+            f"{MAX_PARALLEL_REQUESTS} parallel workers"
+            + (f", entity_col='{entity_col}'" if entity_col else "")
+        )
+
+        with ThreadPoolExecutor(max_workers=MAX_PARALLEL_REQUESTS) as executor:
+            for chunk, chunk_id in zip(chunks, chunk_ids):
+                cached = self._get_cached_result(chunk_id, table_name)
+                if cached:
+                    pre_cached.append(cached)
+                    continue
+
+                chunk_batch_map[chunk_id] = {}
+                for batch_idx, (col_batch, batch_ck, batch_nh) in enumerate(col_batches):
                     future = executor.submit(
                         self._extract_single_chunk_safe,
-                        chunk, chunk_id, table_name, schema, constrained_keys,
-                        normalization_hints
+                        chunk, chunk_id, table_name,
+                        col_batch, batch_ck, batch_nh, entity_col,
                     )
-                    future_to_chunk[future] = chunk_id
-                
-                # Collect results as they complete
-                for future in as_completed(future_to_chunk):
-                    chunk_id = future_to_chunk[future]
-                    try:
-                        result = future.result()
-                        # Cache result
-                        self._cache_result(chunk_id, table_name, result)
-                        results.append(result)
-                    except Exception as e:
-                        logger.error(f"Error extracting from chunk {chunk_id}: {e}")
-                        results.append(ExtractionResult(
-                            chunk_id=chunk_id,
-                            records=[],
-                            schema_keys=set(),
-                            extraction_time=0.0,
-                            error=str(e)
-                        ))
-        
-        return results
+                    future_to_key[future] = (chunk_id, batch_idx)
+
+            completed = 0
+            total_futures = len(future_to_key)
+            for future in as_completed(future_to_key):
+                chunk_id, batch_idx = future_to_key[future]
+                completed += 1
+                if completed % 200 == 0 or completed == total_futures:
+                    logger.info(f"  {completed}/{total_futures} tasks done")
+                try:
+                    result = future.result()
+                    chunk_batch_map[chunk_id][batch_idx] = result
+                except Exception as e:
+                    logger.error(f"Error chunk {chunk_id} batch {batch_idx}: {e}")
+                    chunk_batch_map[chunk_id][batch_idx] = ExtractionResult(
+                        chunk_id=chunk_id,
+                        records=[],
+                        schema_keys=set(),
+                        extraction_time=0.0,
+                        error=str(e),
+                    )
+
+        # Merge column batches per chunk and cache the unified result.
+        all_results: List[ExtractionResult] = list(pre_cached)
+        for chunk_id, batch_map in chunk_batch_map.items():
+            merged = self._merge_column_batches(chunk_id, batch_map, n_batches)
+            self._cache_result(chunk_id, table_name, merged)
+            all_results.append(merged)
+
+        return all_results
     
     def _extract_single_chunk_safe(
         self,
@@ -315,7 +438,8 @@ class ConstrainedExtractor:
         table_name: str,
         schema: Dict[str, str],
         constrained_keys: Optional[Set[str]] = None,
-        normalization_hints: Optional[Dict[str, List[str]]] = None
+        normalization_hints: Optional[Dict[str, List[str]]] = None,
+        entity_col: Optional[str] = None,
     ) -> ExtractionResult:
         """Thread-safe wrapper for single chunk extraction."""
         try:
@@ -324,7 +448,8 @@ class ConstrainedExtractor:
                 table_name,
                 schema,
                 constrained_keys,
-                normalization_hints
+                normalization_hints,
+                entity_col,
             )
             result.chunk_id = chunk_id
             return result
@@ -346,76 +471,79 @@ class ConstrainedExtractor:
         schema: Dict[str, str],
         constrained_keys: Optional[Set[str]] = None,
         predicates: Optional[List[str]] = None,
-        normalization_hints: Optional[Dict[str, List[str]]] = None
+        normalization_hints: Optional[Dict[str, List[str]]] = None,
+        entity_col: Optional[str] = None,
     ) -> List[ExtractionResult]:
         """
-        Extract data matching specific predicates (QAIRS-style).
-        
-        Args:
-            chunks: List of text chunks
-            chunk_ids: List of chunk IDs
-            table_name: Name of the table
-            schema: Column schema
-            constrained_keys: Optional set of required keys
-            predicates: List of predicates to filter by (e.g., ["age > 25"])
-            normalization_hints: column → [expected literal values] from workload predicates
-            
-        Returns:
-            List of ExtractionResult
+        Extract data matching specific predicates (used by delta engine row-delta).
+
+        Uses the same column-batching strategy as extract_batch to keep each
+        LLM call within the 7B model's reliable range (≤ COLUMN_BATCH_SIZE keys).
         """
-        results = []
-        
-        # Process in batches with parallel requests
         from concurrent.futures import ThreadPoolExecutor, as_completed
         from config import MAX_PARALLEL_REQUESTS
-        
-        max_parallel = MAX_PARALLEL_REQUESTS
-        
-        for i in range(0, len(chunks), EXTRACTION_BATCH_SIZE):
-            batch_chunks = chunks[i:i + EXTRACTION_BATCH_SIZE]
-            batch_ids = chunk_ids[i:i + EXTRACTION_BATCH_SIZE]
-            
-            logger.info(f"Extracting batch {i // EXTRACTION_BATCH_SIZE + 1} "
-                       f"({len(batch_chunks)} chunks) with predicates")
-            
-            # Process chunks in parallel
-            with ThreadPoolExecutor(max_workers=max_parallel) as executor:
-                future_to_chunk = {}
-                
-                for chunk, chunk_id in zip(batch_chunks, batch_ids):
-                    # Check cache
-                    cache_key = f"{chunk_id}_{table_name}_{'_'.join(predicates or [])}"
-                    cached_result = self._get_cached_result(cache_key, table_name)
-                    if cached_result:
-                        results.append(cached_result)
-                        continue
-                    
-                    # Submit extraction task with predicates
+
+        col_batches = self._split_schema_into_batches(
+            schema, constrained_keys, normalization_hints
+        )
+        n_batches = len(col_batches)
+        pred_key = "_".join(sorted(predicates or []))
+
+        pre_cached: List[ExtractionResult] = []
+        chunk_batch_map: Dict[str, Dict[int, ExtractionResult]] = {}
+        future_to_key: Dict = {}
+
+        logger.info(
+            f"Extracting {len(chunks)} chunks for '{table_name}' with predicates: "
+            f"{n_batches} column batch(es) of ≤{COLUMN_BATCH_SIZE} cols each, "
+            f"{MAX_PARALLEL_REQUESTS} parallel workers"
+        )
+
+        with ThreadPoolExecutor(max_workers=MAX_PARALLEL_REQUESTS) as executor:
+            for chunk, chunk_id in zip(chunks, chunk_ids):
+                cache_key = f"{chunk_id}_{table_name}_{pred_key}"
+                cached = self._get_cached_result(cache_key, table_name)
+                if cached:
+                    pre_cached.append(cached)
+                    continue
+
+                chunk_batch_map[chunk_id] = {}
+                for batch_idx, (col_batch, batch_ck, batch_nh) in enumerate(col_batches):
                     future = executor.submit(
                         self._extract_single_chunk_with_predicates,
-                        chunk, chunk_id, table_name, schema, constrained_keys,
-                        predicates, normalization_hints
+                        chunk, chunk_id, table_name,
+                        col_batch, batch_ck, predicates, batch_nh, entity_col,
                     )
-                    future_to_chunk[future] = (chunk_id, cache_key)
-                
-                # Collect results
-                for future in as_completed(future_to_chunk):
-                    chunk_id, cache_key = future_to_chunk[future]
-                    try:
-                        result = future.result()
-                        self._cache_result(cache_key, table_name, result)
-                        results.append(result)
-                    except Exception as e:
-                        logger.error(f"Error extracting from chunk {chunk_id}: {e}")
-                        results.append(ExtractionResult(
-                            chunk_id=chunk_id,
-                            records=[],
-                            schema_keys=set(),
-                            extraction_time=0.0,
-                            error=str(e)
-                        ))
-        
-        return results
+                    future_to_key[future] = (chunk_id, batch_idx, cache_key)
+
+            completed = 0
+            total_futures = len(future_to_key)
+            for future in as_completed(future_to_key):
+                chunk_id, batch_idx, cache_key = future_to_key[future]
+                completed += 1
+                if completed % 200 == 0 or completed == total_futures:
+                    logger.info(f"  {completed}/{total_futures} tasks done")
+                try:
+                    result = future.result()
+                    chunk_batch_map[chunk_id][batch_idx] = result
+                except Exception as e:
+                    logger.error(f"Error chunk {chunk_id} batch {batch_idx}: {e}")
+                    chunk_batch_map[chunk_id][batch_idx] = ExtractionResult(
+                        chunk_id=chunk_id,
+                        records=[],
+                        schema_keys=set(),
+                        extraction_time=0.0,
+                        error=str(e),
+                    )
+
+        all_results: List[ExtractionResult] = list(pre_cached)
+        for chunk_id, batch_map in chunk_batch_map.items():
+            merged = self._merge_column_batches(chunk_id, batch_map, n_batches)
+            cache_key = f"{chunk_id}_{table_name}_{pred_key}"
+            self._cache_result(cache_key, table_name, merged)
+            all_results.append(merged)
+
+        return all_results
     
     def _extract_single_chunk_with_predicates(
         self,
@@ -425,7 +553,8 @@ class ConstrainedExtractor:
         schema: Dict[str, str],
         constrained_keys: Optional[Set[str]] = None,
         predicates: Optional[List[str]] = None,
-        normalization_hints: Optional[Dict[str, List[str]]] = None
+        normalization_hints: Optional[Dict[str, List[str]]] = None,
+        entity_col: Optional[str] = None,
     ) -> ExtractionResult:
         """Extract data matching specific predicates."""
         start_time = time.time()
@@ -437,7 +566,8 @@ class ConstrainedExtractor:
             schema,
             constrained_keys,
             predicates,
-            normalization_hints
+            normalization_hints,
+            entity_col,
         )
         
         # Call LLM
@@ -475,7 +605,8 @@ class ConstrainedExtractor:
         schema: Dict[str, str],
         constrained_keys: Optional[Set[str]] = None,
         predicates: Optional[List[str]] = None,
-        normalization_hints: Optional[Dict[str, List[str]]] = None
+        normalization_hints: Optional[Dict[str, List[str]]] = None,
+        entity_col: Optional[str] = None,
     ) -> str:
         """Build extraction prompt with predicate filtering."""
         keys_to_use = constrained_keys if constrained_keys else schema.keys()
@@ -490,12 +621,14 @@ class ConstrainedExtractor:
             predicate_str += "\nDo NOT extract records that don't match these conditions."
 
         normalization_section = self._build_normalization_section(normalization_hints)
-        
+        entity_section = self._build_entity_section(entity_col)
+
         prompt = f"""Extract data from the following text for table '{table_name}'.
 
 Schema (use these keys): {keys_str}
 {predicate_str}
 {normalization_section}
+{entity_section}
 
 Text:
 {chunk}
@@ -585,7 +718,8 @@ Output (JSON only):"""
         table_name: str,
         schema: Dict[str, str],
         constrained_keys: Optional[Set[str]] = None,
-        normalization_hints: Optional[Dict[str, List[str]]] = None
+        normalization_hints: Optional[Dict[str, List[str]]] = None,
+        entity_col: Optional[str] = None,
     ) -> ExtractionResult:
         """Extract data from a single chunk."""
         start_time = time.time()
@@ -596,7 +730,8 @@ Output (JSON only):"""
             table_name,
             schema,
             constrained_keys,
-            normalization_hints
+            normalization_hints,
+            entity_col,
         )
         
         # Call LLM
@@ -653,13 +788,34 @@ Output (JSON only):"""
         )
         return "\n".join(lines)
 
+    def _build_entity_section(self, entity_col: Optional[str]) -> str:
+        """
+        Build the entity-routing section of an extraction prompt.
+
+        When entity_col is set, every record the LLM returns must include
+        a special `_entity` key whose value is the entity_col value for that
+        record.  This key is used after extraction to route each record to the
+        correct database row (UPDATE existing row or INSERT new row) and is
+        then stripped before writing to the DB.
+        """
+        if not entity_col:
+            return ""
+        return (
+            f"\nEntity routing (MANDATORY — never omit):\n"
+            f'Every record MUST include a field "_entity" whose value is the '
+            f'"{entity_col}" of the entity being described. '
+            f"If the text discusses multiple entities, return a separate record for each.\n"
+            f'Example: {{"_entity": "<{entity_col} value>", "other_col": "..."}}'
+        )
+
     def _build_extraction_prompt(
         self,
         chunk: str,
         table_name: str,
         schema: Dict[str, str],
         constrained_keys: Optional[Set[str]] = None,
-        normalization_hints: Optional[Dict[str, List[str]]] = None
+        normalization_hints: Optional[Dict[str, List[str]]] = None,
+        entity_col: Optional[str] = None,
     ) -> str:
         """Build extraction prompt for LLM."""
         # Build schema description
@@ -683,6 +839,7 @@ Output (JSON only):"""
         
         constraints_desc = "\n".join(constraints)
         normalization_section = self._build_normalization_section(normalization_hints)
+        entity_section = self._build_entity_section(entity_col)
         
         prompt = f"""Extract structured data from the following text for the table "{table_name}".
 
@@ -692,6 +849,7 @@ Schema:
 Constraints:
 {constraints_desc}
 {normalization_section}
+{entity_section}
 
 Text:
 {chunk}

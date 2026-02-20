@@ -68,12 +68,24 @@ class DataLayer:
     
     def __init__(self, connection_uri: str = DATABASE_URI):
         """Initialize database connection and schema."""
+        is_sqlite = 'sqlite' in connection_uri
         self.engine = create_engine(
             connection_uri,
             poolclass=NullPool,
             echo=False,
-            connect_args={'check_same_thread': False} if 'sqlite' in connection_uri else {}
+            connect_args={'check_same_thread': False} if is_sqlite else {}
         )
+
+        # Enable WAL mode for SQLite: allows concurrent reads during writes
+        # and dramatically reduces write contention from parallel extraction threads.
+        if is_sqlite:
+            with self.engine.connect() as conn:
+                conn.execute(text("PRAGMA journal_mode=WAL"))
+                conn.execute(text("PRAGMA synchronous=NORMAL"))
+                conn.execute(text("PRAGMA cache_size=-131072"))   # 128 MB page cache
+                conn.execute(text("PRAGMA temp_store=MEMORY"))
+                conn.commit()
+
         self.metadata = MetaData()
         self.Session = sessionmaker(bind=self.engine)
         
@@ -396,7 +408,7 @@ class DataLayer:
         table_name: str,
         chunk_ids: List[str]
     ) -> None:
-        """Insert provenance record."""
+        """Insert a single provenance record."""
         with self.Session() as session:
             try:
                 stmt = insert(self.row_provenance).values(
@@ -409,6 +421,81 @@ class DataLayer:
             except Exception as e:
                 session.rollback()
                 logger.error(f"Error inserting provenance: {e}")
+                raise
+
+    def bulk_insert_records(
+        self,
+        table_name: str,
+        extraction_results: list,
+    ) -> List[str]:
+        """
+        Insert all records from a list of ExtractionResult objects in a single
+        transaction and return the generated row_ids paired with chunk_ids for
+        provenance insertion.
+
+        Returns list of (row_id, chunk_id) tuples.
+        """
+        row_provenance_pairs: List[tuple] = []
+
+        with self.engine.connect() as conn:
+            try:
+                for extraction_result in extraction_results:
+                    if extraction_result.error:
+                        continue
+                    for record in extraction_result.records:
+                        row_id = str(uuid.uuid4())
+                        full_record = {"row_id": row_id, **record}
+                        columns = list(full_record.keys())
+                        params = {}
+                        for col in columns:
+                            val = full_record[col]
+                            if val is None:
+                                params[col] = None
+                            elif isinstance(val, (list, dict)):
+                                params[col] = json.dumps(val)
+                            else:
+                                params[col] = val
+
+                        columns_str = ", ".join(columns)
+                        placeholders = ", ".join([f":{c}" for c in columns])
+                        sql = f"INSERT INTO {table_name} ({columns_str}) VALUES ({placeholders})"
+                        conn.execute(text(sql), params)
+                        row_provenance_pairs.append((row_id, extraction_result.chunk_id))
+
+                conn.commit()
+            except Exception as e:
+                logger.error(f"Error bulk inserting into {table_name}: {e}")
+                raise
+
+        return row_provenance_pairs
+
+    def bulk_insert_provenance(
+        self,
+        table_name: str,
+        row_provenance_pairs: List[tuple],
+    ) -> None:
+        """
+        Insert provenance rows for all (row_id, chunk_id) pairs in one transaction.
+        """
+        if not row_provenance_pairs:
+            return
+        with self.Session() as session:
+            try:
+                session.execute(
+                    insert(self.row_provenance),
+                    [
+                        {
+                            "row_id": row_id,
+                            "table_name": table_name,
+                            "chunk_ids": json.dumps([chunk_id]),
+                        }
+                        for row_id, chunk_id in row_provenance_pairs
+                    ],
+                )
+                session.commit()
+            except Exception as e:
+                session.rollback()
+                logger.error(f"Error bulk inserting provenance: {e}")
                 raise
 
     def update_provenance_chunks(
@@ -804,6 +891,152 @@ class RecursiveCharacterSplitter:
             except Exception as e:
                 logger.error(f"Error inserting record into {table_name}: {e}")
                 raise
+
+    def upsert_by_entity(
+        self,
+        table_name: str,
+        identity_col: str,
+        record_chunk_pairs: List[tuple],
+    ) -> List[tuple]:
+        """
+        Bulk upsert records using the `_entity` routing field.
+
+        Each element of record_chunk_pairs is (record_dict, chunk_id).
+        record_dict must contain a key `_entity` whose value is the identity
+        value to match against identity_col in the DB.
+
+        For each unique entity:
+          - If a row with identity_col = entity_val already exists:
+              UPDATE only columns that are currently NULL (never overwrite data).
+          - Otherwise:
+              INSERT a new row.
+
+        `_entity` is stripped from the record before writing.
+
+        Returns a list of (row_id, chunk_id) pairs for provenance insertion.
+        """
+        # Group all (record, chunk_id) pairs by their canonical entity key.
+        entity_groups: Dict[str, List[tuple]] = {}
+        no_entity: List[tuple] = []
+        for record, chunk_id in record_chunk_pairs:
+            entity_val = record.get("_entity")
+            if not entity_val or not str(entity_val).strip():
+                no_entity.append((record, chunk_id))
+                continue
+            key = str(entity_val).strip().lower()
+            entity_groups.setdefault(key, []).append((record, chunk_id))
+
+        if no_entity:
+            logger.warning(
+                f"[upsert_by_entity] {len(no_entity)} records for '{table_name}' "
+                f"have no _entity value — inserting as new rows."
+            )
+
+        row_prov_pairs: List[tuple] = []
+
+        with self.engine.connect() as conn:
+            # --- Records with entity routing ---
+            for entity_key, group in entity_groups.items():
+                # Canonical entity value (from first record, preserving original case)
+                canonical_entity = group[0][0].get("_entity", "").strip()
+
+                # Check if a row already exists for this entity.
+                try:
+                    existing = conn.execute(
+                        text(
+                            f"SELECT row_id FROM {table_name} "
+                            f"WHERE LOWER(CAST({identity_col} AS TEXT)) = :val LIMIT 1"
+                        ),
+                        {"val": entity_key},
+                    ).fetchone()
+                except Exception:
+                    existing = None
+
+                if existing:
+                    existing_row_id = existing[0]
+                    # Merge all records for this entity into the existing row.
+                    # COALESCE: only fill columns that are currently NULL.
+                    merged: Dict[str, Any] = {}
+                    for record, _ in group:
+                        for k, v in record.items():
+                            if k == "_entity":
+                                continue
+                            if v is not None and k not in merged:
+                                merged[k] = v
+
+                    if merged:
+                        set_parts = [
+                            f"{col} = COALESCE({col}, :{col})" for col in merged
+                        ]
+                        params: Dict[str, Any] = {}
+                        for col, val in merged.items():
+                            params[col] = json.dumps(val) if isinstance(val, (list, dict)) else val
+                        params["_row_id"] = existing_row_id
+                        conn.execute(
+                            text(
+                                f"UPDATE {table_name} SET {', '.join(set_parts)} "
+                                f"WHERE row_id = :_row_id"
+                            ),
+                            params,
+                        )
+
+                    for _, chunk_id in group:
+                        row_prov_pairs.append((existing_row_id, chunk_id))
+
+                else:
+                    # INSERT new row — merge all records for this entity first.
+                    merged = {}
+                    for record, _ in group:
+                        for k, v in record.items():
+                            if k == "_entity":
+                                continue
+                            if k not in merged and v is not None:
+                                merged[k] = v
+                    # Ensure identity column carries the canonical value.
+                    if identity_col not in merged:
+                        merged[identity_col] = canonical_entity
+
+                    row_id = str(uuid.uuid4())
+                    full_record = {"row_id": row_id, **merged}
+                    columns = list(full_record.keys())
+                    params = {}
+                    for col in columns:
+                        val = full_record[col]
+                        params[col] = (
+                            json.dumps(val) if isinstance(val, (list, dict)) else val
+                        )
+                    sql = (
+                        f"INSERT INTO {table_name} "
+                        f"({', '.join(columns)}) "
+                        f"VALUES ({', '.join(':' + c for c in columns)})"
+                    )
+                    conn.execute(text(sql), params)
+                    for _, chunk_id in group:
+                        row_prov_pairs.append((row_id, chunk_id))
+
+            # --- Records without entity routing (fall back to plain insert) ---
+            for record, chunk_id in no_entity:
+                clean_record = {k: v for k, v in record.items() if k != "_entity"}
+                row_id = str(uuid.uuid4())
+                full_record = {"row_id": row_id, **clean_record}
+                columns = list(full_record.keys())
+                params = {}
+                for col in columns:
+                    val = full_record[col]
+                    params[col] = (
+                        json.dumps(val) if isinstance(val, (list, dict)) else val
+                    )
+                sql = (
+                    f"INSERT INTO {table_name} "
+                    f"({', '.join(columns)}) "
+                    f"VALUES ({', '.join(':' + c for c in columns)})"
+                )
+                conn.execute(text(sql), params)
+                row_prov_pairs.append((row_id, chunk_id))
+
+            conn.commit()
+
+        return row_prov_pairs
 
     def get_all_records(self, table_name: str) -> List[Dict[str, Any]]:
         """Return all rows from a dynamic table as a list of dicts."""

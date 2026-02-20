@@ -17,6 +17,7 @@ from sieve_synthesizer import SieveSynthesizer
 from extractor import ConstrainedExtractor, OllamaClient
 from entity_resolver import EntityResolver, extract_mentions_from_records, apply_canonical_map
 from delta_engine import DeltaEngine, DeltaType
+from entity_anchor import detect_identity_column, discover_entity_attribute
 
 from config import (
     SOURCE_DATA_DIR,
@@ -132,6 +133,11 @@ class WDIRSRunner:
         
         # Text splitter
         self.text_splitter = RecursiveCharacterSplitter()
+
+        # Identity columns detected/discovered per table.
+        # Populated by _build_identity_map before extraction.
+        # None value means the table has no reliable identity column (rare).
+        self.identity_columns: Dict[str, Optional[str]] = {}
         
         # Cache
         self.cache_dir = CACHE_DIR / dataset
@@ -192,24 +198,29 @@ class WDIRSRunner:
             logger.info(f"Ingested {total_chunks} chunks")
             
             # Step 3: Synthesize sieves
-            logger.info("\n[Step 3/6] Synthesizing programmatic sieves...")
+            logger.info("\n[Step 3/7] Synthesizing programmatic sieves...")
             self._synthesize_sieves(lattice)
-            
+
+            # Step 3.5: Detect identity columns — must happen after sieves so
+            # we have candidate chunks available for Evaporate-style fallback.
+            logger.info("\n[Step 4/7] Detecting entity identity columns...")
+            self._build_identity_map(lattice)
+
             # Step 4: Global extraction
-            logger.info("\n[Step 4/7] Performing constrained global extraction...")
+            logger.info("\n[Step 5/7] Performing constrained global extraction...")
             total_records = self._global_extraction(lattice)
             logger.info(f"Extracted {total_records} records")
 
-            # Step 4.5: Record consolidation — merge duplicate entity rows
-            logger.info("\n[Step 5/7] Consolidating extracted records (deduplication + merging)...")
+            # Step 5.5: Record consolidation — merge any remaining duplicates
+            logger.info("\n[Step 6/7] Consolidating extracted records (deduplication + merging)...")
             self._consolidate_records(lattice)
 
-            # Step 6: Entity resolution
-            logger.info("\n[Step 6/7] Performing proactive entity resolution...")
+            # Step 6: Entity resolution on join keys
+            logger.info("\n[Step 7/7] Performing proactive entity resolution...")
             self._proactive_entity_resolution(lattice)
 
             # Step 7: Save preprocessing results
-            logger.info("\n[Step 7/7] Saving preprocessing results...")
+            logger.info("\n[Step 8/8] Saving preprocessing results...")
             self._save_preprocessing_results(lattice)
             
             preprocessing_time = time.time() - start_time
@@ -322,6 +333,88 @@ class WDIRSRunner:
                 logger.error(f"Error synthesizing sieve for {table_name}: {e}")
                 raise RuntimeError(f"Sieve synthesis failed for table '{table_name}': {e}") from e
     
+    def _build_identity_map(self, lattice) -> None:
+        """
+        Detect the primary identity column for every table in the lattice.
+
+        Strategy A (workload has schema columns):
+          Call detect_identity_column from entity_anchor.  This asks the LLM
+          to pick the identity column from the workload-derived schema.
+
+        Strategy B (LLM says NULL → no identity in workload schema):
+          Call discover_entity_attribute from entity_anchor.  This runs an
+          Evaporate-inspired two-phase attribute discovery over sample chunks
+          and selects the most entity-like field from raw text.
+          The discovered attribute is added to the table's schema as a TEXT
+          column so the extractor and upsert logic can use it.
+
+        Results are stored in self.identity_columns[table_name].
+        """
+        for table_name, table_info in lattice.tables.items():
+            schema = self.lattice_planner.get_table_schema(table_name)
+            schema_columns = list(schema.keys())
+
+            logger.info(
+                f"[IdentityMap] Detecting identity column for '{table_name}' "
+                f"({len(schema_columns)} columns): {schema_columns}"
+            )
+
+            # Strategy A
+            identity_col = detect_identity_column(
+                table_name,
+                schema_columns,
+                self.extractor.llm_client,
+            )
+
+            if identity_col is None:
+                # Strategy B — Evaporate-style discovery from raw text
+                logger.info(
+                    f"[IdentityMap] No identity column in workload schema for "
+                    f"'{table_name}'. Running text-based discovery..."
+                )
+                candidate_chunk_ids = self.data_layer.get_candidates(table_name)
+                if not candidate_chunk_ids:
+                    logger.warning(
+                        f"[IdentityMap] No candidate chunks for '{table_name}'. "
+                        f"Cannot discover entity attribute."
+                    )
+                    self.identity_columns[table_name] = None
+                    continue
+
+                candidate_chunks = self.data_layer.get_chunks_by_ids(
+                    candidate_chunk_ids[:100]
+                )
+                sample_texts = [c.content for c in candidate_chunks]
+
+                discovered = discover_entity_attribute(
+                    table_name,
+                    sample_texts,
+                    self.extractor.llm_client,
+                )
+
+                if discovered:
+                    logger.info(
+                        f"[IdentityMap] Discovered entity attribute for "
+                        f"'{table_name}': '{discovered}'"
+                    )
+                    # Register the discovered attribute in the lattice schema
+                    # so the extractor includes it.
+                    table_info.columns[discovered] = type("ColInfo", (), {
+                        "semantic_type": "OTHER",
+                        "predicate_literals": set(),
+                    })()
+                    identity_col = discovered
+                else:
+                    logger.warning(
+                        f"[IdentityMap] Could not discover entity attribute for "
+                        f"'{table_name}'. Upsert will fall back to plain insert."
+                    )
+
+            self.identity_columns[table_name] = identity_col
+            logger.info(
+                f"[IdentityMap] '{table_name}' → identity_col = '{identity_col}'"
+            )
+
     def _global_extraction(self, lattice) -> int:
         """Perform predicate-based extraction (like QAIRS)."""
         total_records = 0
@@ -376,6 +469,8 @@ class WDIRSRunner:
 
                 # For tables in joins, extract ALL data to ensure referential integrity
                 # Phase 2 will handle join alignment
+                entity_col = self.identity_columns.get(table_name)
+
                 if table_info.referenced_in_joins:
                     logger.info(f"{table_name} is in joins - extracting all data for referential integrity")
                     chunk_texts = [c.content for c in candidate_chunks]
@@ -387,33 +482,33 @@ class WDIRSRunner:
                         table_name,
                         schema,
                         stabilized_schema.frozen_keys,
-                        normalization_hints
+                        normalization_hints,
+                        entity_col,
                     )
                     
                     table_records = sum(len(r.records) for r in results)
                     total_records += table_records
                     
                     logger.info(f"Extracted {table_records} records for {table_name} (join table)")
-                    
-                    # Create dynamic table if needed
+
+                    # Create table and upsert by entity, or plain bulk-insert if
+                    # no identity column was detected.
                     self.data_layer.create_dynamic_table(table_name, sql_schema)
-                    
-                    # Insert extracted records into database
-                    for extraction_result in results:
-                        # Skip if extraction had an error
-                        if extraction_result.error:
-                            logger.warning(f"Skipping chunk {extraction_result.chunk_id} due to error: {extraction_result.error}")
-                            continue
-                            
-                        for record in extraction_result.records:
-                            row_id = self.data_layer.insert_record(table_name, record)
-                            self.data_layer.insert_provenance(
-                                row_id,
-                                table_name,
-                                [extraction_result.chunk_id]
-                            )
-                    
-                    logger.info(f"Inserted {table_records} records into {table_name}")
+                    if entity_col:
+                        record_chunk_pairs = [
+                            (record, er.chunk_id)
+                            for er in results
+                            if not er.error
+                            for record in er.records
+                        ]
+                        prov_pairs = self.data_layer.upsert_by_entity(
+                            table_name, entity_col, record_chunk_pairs
+                        )
+                    else:
+                        prov_pairs = self.data_layer.bulk_insert_records(table_name, results)
+                    self.data_layer.bulk_insert_provenance(table_name, prov_pairs)
+
+                    logger.info(f"Inserted/upserted {len(prov_pairs)} records into {table_name}")
                     
                     # Update metadata - FULL because we extracted everything for joins
                     for col_name in schema.keys():
@@ -426,131 +521,57 @@ class WDIRSRunner:
                         )
                     continue
                 
-                # Group predicates by column to extract each predicate separately
-                # This follows QAIRS approach: one extraction task per predicate
-                predicate_groups = {}
-                for pred in table_info.predicates:
-                    # Extract column from predicate (e.g., "age > 25" -> "age")
-                    col = pred.split()[0].strip() if pred else None
-                    if col:
-                        if col not in predicate_groups:
-                            predicate_groups[col] = []
-                        predicate_groups[col].append(pred)
-                
-                # If no predicates, extract all data (fallback)
-                if not predicate_groups:
-                    logger.info(f"No predicates for {table_name}, extracting all data")
-                    chunk_texts = [c.content for c in candidate_chunks]
-                    chunk_ids = [c.chunk_id for c in candidate_chunks]
-                    
-                    results = self.extractor.extract_batch(
-                        chunk_texts,
-                        chunk_ids,
-                        table_name,
-                        schema,
-                        stabilized_schema.frozen_keys,
-                        normalization_hints
+                # Single extraction pass over all candidate chunks.
+                # The LLM extracts ALL columns from each chunk in one call.
+                # Normalization hints guide value standardization.
+                # SQL handles all filtering at query time — no per-predicate passes.
+                logger.info(
+                    f"Extracting {table_name}: {len(candidate_chunks)} candidate chunks, "
+                    f"single pass (all columns)"
+                )
+                chunk_texts = [c.content for c in candidate_chunks]
+                chunk_ids_list = [c.chunk_id for c in candidate_chunks]
+
+                results = self.extractor.extract_batch(
+                    chunk_texts,
+                    chunk_ids_list,
+                    table_name,
+                    schema,
+                    stabilized_schema.frozen_keys,
+                    normalization_hints,
+                    entity_col,
+                )
+
+                table_records = sum(len(r.records) for r in results)
+                total_records += table_records
+                logger.info(f"Extracted {table_records} records for {table_name}")
+
+                # Create table and upsert by entity, or plain bulk-insert if
+                # no identity column was detected.
+                self.data_layer.create_dynamic_table(table_name, sql_schema)
+
+                if entity_col:
+                    record_chunk_pairs = [
+                        (record, er.chunk_id)
+                        for er in results
+                        if not er.error
+                        for record in er.records
+                    ]
+                    prov_pairs = self.data_layer.upsert_by_entity(
+                        table_name, entity_col, record_chunk_pairs
                     )
-                    
-                    table_records = sum(len(r.records) for r in results)
-                    total_records += table_records
-                    
-                    logger.info(f"Extracted {table_records} records for {table_name}")
-                    
-                    # Create dynamic table and insert records
-                    self.data_layer.create_dynamic_table(table_name, schema)
-                    
-                    for extraction_result in results:
-                        # Skip if extraction had an error
-                        if extraction_result.error:
-                            logger.warning(f"Skipping chunk {extraction_result.chunk_id} due to error: {extraction_result.error}")
-                            continue
-                            
-                        for record in extraction_result.records:
-                            row_id = self.data_layer.insert_record(table_name, record)
-                            self.data_layer.insert_provenance(
-                                row_id,
-                                table_name,
-                                [extraction_result.chunk_id]
-                            )
-                    
-                    logger.info(f"Inserted {table_records} records into {table_name}")
-                    
-                    # Update metadata
-                    for col_name in schema.keys():
-                        self.data_layer.update_metadata(
-                            table_name,
-                            col_name,
-                            [],
-                            "FULL",
-                            table_records
-                        )
                 else:
-                    # Extract for each predicate group
-                    all_extracted = set()
-                    
-                    # Create dynamic table once before all extractions
-                    self.data_layer.create_dynamic_table(table_name, sql_schema)
-                    
-                    for col, predicates in predicate_groups.items():
-                        logger.info(f"Extracting {table_name}.{col} with {len(predicates)} predicates")
-                        
-                        # Add predicate context to extraction
-                        chunk_texts = [c.content for c in candidate_chunks]
-                        chunk_ids = [c.chunk_id for c in candidate_chunks]
-                        
-                        results = self.extractor.extract_batch_with_predicates(
-                            chunk_texts,
-                            chunk_ids,
-                            table_name,
-                            schema,
-                            stabilized_schema.frozen_keys,
-                            predicates,
-                            normalization_hints
-                        )
-                        
-                        pred_records = sum(len(r.records) for r in results)
-                        total_records += pred_records
-                        all_extracted.add(col)
-                        
-                        logger.info(f"Extracted {pred_records} records for {table_name}.{col}")
-                        
-                        # Insert extracted records into database
-                        for extraction_result in results:
-                            # Skip if extraction had an error
-                            if extraction_result.error:
-                                logger.warning(f"Skipping chunk {extraction_result.chunk_id} due to error: {extraction_result.error}")
-                                continue
-                                
-                            for record in extraction_result.records:
-                                row_id = self.data_layer.insert_record(table_name, record)
-                                self.data_layer.insert_provenance(
-                                    row_id,
-                                    table_name,
-                                    [extraction_result.chunk_id]
-                                )
-                        
-                        logger.info(f"Inserted {pred_records} records into {table_name}")
-                        
-                        # Update metadata with predicate scope
-                        self.data_layer.update_metadata(
-                            table_name,
-                            col,
-                            predicates,
-                            "PARTIAL",
-                            pred_records
-                        )
-                    
-                    # Mark other columns as needing extraction
-                    for col_name in schema.keys():
-                        if col_name not in all_extracted:
-                            self.data_layer.update_metadata(
-                                table_name,
-                                col_name,
-                                [],
-                                "PARTIAL",
-                                0
-                            )
+                    prov_pairs = self.data_layer.bulk_insert_records(table_name, results)
+
+                self.data_layer.bulk_insert_provenance(table_name, prov_pairs)
+                logger.info(f"Inserted/upserted {len(prov_pairs)} records into {table_name}")
+
+                # Mark every column FULL — we extracted everything we could find.
+                # Any runtime predicate on these columns is a cache hit.
+                for col_name in schema.keys():
+                    self.data_layer.update_metadata(
+                        table_name, col_name, [], "FULL", table_records
+                    )
             
             except Exception as e:
                 logger.error(f"Error extracting for {table_name}: {e}")
@@ -643,8 +664,8 @@ class WDIRSRunner:
                 logger.warning(f"[Consolidation] No data columns in '{table_name}', skipping.")
                 continue
 
-            # Step 1: Ask LLM for identity column
-            identity_col = self._get_identity_column_llm(table_name, data_columns)
+            # Use pre-detected identity column (avoids redundant LLM call).
+            identity_col = self.identity_columns.get(table_name)
             if identity_col is None:
                 logger.warning(
                     f"[Consolidation] No identity column for '{table_name}' — skipping consolidation."

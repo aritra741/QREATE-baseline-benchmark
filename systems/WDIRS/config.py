@@ -58,9 +58,10 @@ OLLAMA_MAX_RETRIES = 3
 OLLAMA_RETRY_DELAY = 2  # seconds
 
 # LLM extraction parameters
-EXTRACTION_BATCH_SIZE = 10  # chunks per batch (balanced for 7B model)
+EXTRACTION_BATCH_SIZE = 10  # kept for schema stabilization sampling
 EXTRACTION_TEMPERATURE = 0.1  # low temperature for consistency
-EXTRACTION_MAX_TOKENS = 4000  # Reasonable for 10 chunks
+EXTRACTION_MAX_TOKENS = 2048  # one chunk per call; 2048 is ample for JSON output
+COLUMN_BATCH_SIZE = 5  # max columns per LLM call (7B models degrade beyond ~6)
 
 # ============================================================================
 # Entity Resolution Configuration
@@ -131,8 +132,8 @@ LOG_FILE = WDIRS_DIR / "wdirs.log"
 # ============================================================================
 
 # Parallel processing
-MAX_WORKERS = int(os.getenv("MAX_WORKERS", "4"))
-MAX_PARALLEL_REQUESTS = int(os.getenv("MAX_PARALLEL_REQUESTS", "16"))  # Parallel LLM requests (leverage GPU)
+MAX_WORKERS = int(os.getenv("MAX_WORKERS", "8"))
+MAX_PARALLEL_REQUESTS = int(os.getenv("MAX_PARALLEL_REQUESTS", "32"))  # Parallel LLM requests (Blackwell GPU)
 
 # Caching
 ENABLE_CACHE = True
