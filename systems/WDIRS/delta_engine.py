@@ -166,40 +166,49 @@ class DeltaEngine:
                 tables.add(table.name.lower())
         return tables
     
+    def _primary_table(self, parsed: exp.Expression) -> Optional[str]:
+        """Return the first table name found in the FROM clause (for unqualified columns)."""
+        for table in parsed.find_all(exp.Table):
+            if table.name:
+                return table.name.lower()
+        return None
+
     def _extract_columns(self, parsed: exp.Expression) -> List[Tuple[str, str]]:
-        """Extract (table, column) pairs."""
+        """Extract (table, column) pairs, inferring table from FROM for unqualified columns."""
         columns = []
-        
+        primary_table = self._primary_table(parsed)
+
         for select in parsed.find_all(exp.Select):
             for projection in select.expressions:
                 if isinstance(projection, exp.Column):
-                    table = projection.table if projection.table else None
+                    table = (projection.table or primary_table)
                     column = projection.name
                     if table and column:
                         columns.append((table.lower(), column.lower()))
-        
+
         for where in parsed.find_all(exp.Where):
             for column in where.find_all(exp.Column):
-                table = column.table if column.table else None
+                table = (column.table or primary_table)
                 col_name = column.name
                 if table and col_name:
                     columns.append((table.lower(), col_name.lower()))
-        
+
         return columns
-    
+
     def _extract_predicates(self, parsed: exp.Expression) -> List[Tuple[str, str]]:
-        """Extract (table, predicate) pairs."""
+        """Extract (table, predicate) pairs, inferring table from FROM for unqualified columns."""
         predicates = []
-        
+        primary_table = self._primary_table(parsed)
+
         for where in parsed.find_all(exp.Where):
             for comparison in where.find_all(exp.EQ, exp.GT, exp.LT, exp.GTE, exp.LTE, exp.NEQ):
                 left = comparison.left
                 right = comparison.right
-                
+
                 if isinstance(left, exp.Column):
-                    table = left.table if left.table else None
+                    table = (left.table or primary_table)
                     column = left.name
-                    
+
                     if table and column:
                         operator = self._get_operator(comparison)
                         value = self._get_value(right)
@@ -388,6 +397,33 @@ class DeltaEngine:
                 error=str(e)
             )
     
+    def _build_runtime_normalization_hints(
+        self,
+        missing_predicates: List[str]
+    ) -> Dict[str, List[str]]:
+        """
+        Build normalization hints from runtime query predicate literals.
+
+        For a runtime predicate like 'country = UK', the extractor must be told
+        to store 'UK' — not 'United Kingdom' or any other form.  These hints are
+        derived solely from the runtime query, NOT from the workload, so they
+        reflect exactly what the query expects to find in the DB.
+        """
+        hints: Dict[str, List[str]] = {}
+        for pred in missing_predicates:
+            # Only equality predicates define an expected stored value.
+            # Predicates like "age > 25" don't constrain string form.
+            if "=" not in pred or "!=" in pred or ">=" in pred or "<=" in pred:
+                continue
+            col, _, val = pred.partition("=")
+            col = col.strip()
+            val = val.strip().strip("'\"")
+            if col and val:
+                hints.setdefault(col, [])
+                if val not in hints[col]:
+                    hints[col].append(val)
+        return hints
+
     def _execute_row_delta(
         self,
         tables: List[str],
@@ -395,80 +431,89 @@ class DeltaEngine:
     ) -> int:
         """
         Execute row delta: extract new rows matching missing predicates.
-        
+        Normalization hints are built from the RUNTIME predicate literals so the
+        extractor stores values in exactly the form the query expects (e.g. 'UK',
+        not 'United Kingdom').
+
         Returns:
             Number of rows extracted
         """
         logger.info(f"Executing row delta for {len(tables)} tables")
-        
+
+        # Build normalization hints from runtime predicate literals — this is the
+        # key difference from preprocessing: we use the query's own literals, not
+        # the workload's.
+        runtime_hints = self._build_runtime_normalization_hints(missing_predicates)
+        if runtime_hints:
+            logger.info(f"Runtime normalization hints: {runtime_hints}")
+
         total_rows = 0
-        
+
         for table_name in tables:
-            # Get candidate chunks
             candidate_chunk_ids = self.data_layer.get_candidates(table_name)
-            
             if not candidate_chunk_ids:
                 logger.warning(f"No candidate chunks for {table_name}")
                 continue
-            
-            # Get chunks
+
             chunks = self.data_layer.get_chunks_by_ids(candidate_chunk_ids)
-            
-            # Filter chunks for missing predicates
-            filtered_chunks = self._filter_chunks_by_predicates(
-                chunks,
-                missing_predicates
-            )
-            
+
+            # Keyword-filter chunks to those likely relevant to missing predicates
+            filtered_chunks = self._filter_chunks_by_predicates(chunks, missing_predicates)
             if not filtered_chunks:
                 logger.info(f"No chunks match missing predicates for {table_name}")
                 continue
-            
-            # Get schema
+
             schema = self.lattice_planner.get_table_schema(table_name)
-            
-            # Get stabilized schema
             stabilized = self.extractor.get_stabilized_schema(table_name)
             constrained_keys = stabilized.frozen_keys if stabilized else None
-            
-            # Extract from filtered chunks
+
             chunk_texts = [c.content for c in filtered_chunks]
-            chunk_ids = [c.chunk_id for c in filtered_chunks]
-            
-            results = self.extractor.extract_batch(
+            chunk_ids_list = [c.chunk_id for c in filtered_chunks]
+
+            results = self.extractor.extract_batch_with_predicates(
                 chunk_texts,
-                chunk_ids,
+                chunk_ids_list,
                 table_name,
                 schema,
-                constrained_keys
+                constrained_keys,
+                missing_predicates,
+                runtime_hints        # ← runtime query literals, not workload literals
             )
-            
-            # Insert into database
+
+            # Ensure the dynamic table exists before inserting
+            from wdirs_runner import semantic_to_sql_type
+            sql_schema = {col: semantic_to_sql_type(sem_type)
+                          for col, sem_type in schema.items()}
+            self.data_layer.create_dynamic_table(table_name, sql_schema)
+
+            table_rows = 0
             for result in results:
-                for record in result.records:
-                    row_id = str(uuid.uuid4())
-                    
-                    # Insert record (would need SQL generation here)
-                    # For now, just count
-                    total_rows += 1
-                    
-                    # Insert provenance
-                    self.data_layer.insert_provenance(
-                        row_id,
-                        table_name,
-                        [result.chunk_id]
+                if result.error:
+                    logger.warning(
+                        f"Skipping chunk {result.chunk_id} in row delta: {result.error}"
                     )
-            
-            # Update metadata registry
+                    continue
+                for record in result.records:
+                    row_id = self.data_layer.insert_record(table_name, record)
+                    self.data_layer.insert_provenance(
+                        row_id, table_name, [result.chunk_id]
+                    )
+                    table_rows += 1
+
+            total_rows += table_rows
+            logger.info(f"Row delta inserted {table_rows} rows into {table_name}")
+
+            # Mark these predicates as materialized in the registry
             for predicate in missing_predicates:
+                col = predicate.split()[0].strip()
                 self.data_layer.update_metadata(
                     table_name,
-                    predicate.split()[0],  # Extract column name
+                    col,
                     [predicate],
                     STATUS_PARTIAL,
-                    total_rows
+                    table_rows
                 )
-        
+
         logger.info(f"Row delta complete: {total_rows} rows extracted")
         return total_rows
     
@@ -478,68 +523,166 @@ class DeltaEngine:
         missing_columns: List[str]
     ) -> int:
         """
-        Execute column delta: enrich existing rows with missing columns.
-        
+        Execute column delta: enrich existing rows with missing column values.
+
+        For each existing row we:
+          1. Retrieve its source chunks via Row_Provenance.
+          2. Ask the LLM to extract ONLY the missing columns from those chunks,
+             providing the row's existing values as context so the LLM knows
+             which entity to focus on.
+          3. UPDATE the existing DB row with the newly extracted values.
+
         Returns:
             Number of rows enriched
         """
-        logger.info(f"Executing column delta for {len(tables)} tables")
-        
-        total_rows = 0
-        
+        logger.info(f"Executing column delta: missing columns={missing_columns}")
+
+        import json as _json
+
+        total_enriched = 0
+
         for table_name in tables:
-            # Get existing rows (would query from SQL table)
-            # For now, simulate
-            
-            # Get provenance for existing rows
-            provenance_records = self.data_layer.get_provenance(table_name=table_name)
-            
-            if not provenance_records:
-                logger.warning(f"No provenance records for {table_name}")
+            # Load all existing rows from the dynamic table
+            try:
+                existing_rows = self.data_layer.get_all_records(table_name)
+            except Exception as e:
+                raise RuntimeError(
+                    f"Column delta failed: cannot read rows from '{table_name}': {e}"
+                ) from e
+
+            if not existing_rows:
+                logger.warning(f"No existing rows in '{table_name}' to enrich")
                 continue
-            
-            # Get chunks for these rows
-            all_chunk_ids = []
-            for prov in provenance_records:
-                all_chunk_ids.extend(prov.chunk_ids)
-            
-            chunks = self.data_layer.get_chunks_by_ids(all_chunk_ids)
-            
-            # Get schema
+
             schema = self.lattice_planner.get_table_schema(table_name)
-            
-            # Enrich records (would need to load existing records from SQL)
-            # For now, just count
-            total_rows += len(provenance_records)
-            
-            # Update metadata registry
+            system_cols = {"row_id", "created_at"}
+
+            for row in existing_rows:
+                row_id = row["row_id"]
+
+                # Skip if row already has all missing columns populated
+                already_filled = all(
+                    row.get(col) not in (None, "", "null")
+                    for col in missing_columns
+                    if col in row
+                )
+                if already_filled and all(col in row for col in missing_columns):
+                    continue
+
+                # Retrieve source chunks for this row via provenance
+                provenance_list = self.data_layer.get_provenance(row_ids=[row_id])
+                if not provenance_list:
+                    logger.warning(f"No provenance for row {row_id} in '{table_name}'")
+                    continue
+
+                chunk_ids_for_row = []
+                for prov in provenance_list:
+                    chunk_ids_for_row.extend(_json.loads(prov.chunk_ids))
+
+                chunks = self.data_layer.get_chunks_by_ids(list(dict.fromkeys(chunk_ids_for_row)))
+                if not chunks:
+                    logger.warning(f"Source chunks missing for row {row_id}")
+                    continue
+
+                # Build context string from existing non-null values
+                existing_context = {
+                    k: v for k, v in row.items()
+                    if k not in system_cols and v not in (None, "", "null")
+                    and k not in missing_columns
+                }
+                context_str = ", ".join(
+                    f'{k}="{v}"' for k, v in existing_context.items()
+                )
+
+                # For each source chunk, run a targeted extraction prompt
+                # asking only for the missing columns for this specific entity.
+                merged_values: Dict[str, Any] = {}
+                for chunk in chunks:
+                    missing_keys_str = ", ".join(f'"{c}"' for c in missing_columns)
+                    prompt = (
+                        f"You are extracting data for table '{table_name}'.\n"
+                        f"We already have this record: {context_str}\n"
+                        f"From the text below, extract ONLY these missing fields: [{missing_keys_str}] "
+                        f"for the entity described above.\n"
+                        f"Return a JSON object with only those keys. "
+                        f"If a value is not present, use null.\n\n"
+                        f"Text:\n{chunk.content}\n\n"
+                        f"Output (JSON only):"
+                    )
+
+                    try:
+                        response = self.extractor.llm_client.generate(
+                            prompt,
+                            max_tokens=512,
+                            temperature=0.0
+                        )
+                        json_str = self.extractor._extract_json(response)
+                        if json_str:
+                            extracted = _json.loads(json_str)
+                            if isinstance(extracted, dict):
+                                for col in missing_columns:
+                                    if col in extracted and extracted[col] not in (None, "", "null"):
+                                        # First non-null value wins across chunks
+                                        if col not in merged_values:
+                                            merged_values[col] = extracted[col]
+                    except Exception as e:
+                        logger.warning(f"Column delta LLM call failed for row {row_id}: {e}")
+                        continue
+
+                if not merged_values:
+                    logger.warning(f"No values extracted for row {row_id} missing cols {missing_columns}")
+                    continue
+
+                # Update only the columns we actually extracted
+                self.data_layer.update_record(table_name, row_id, merged_values)
+                total_enriched += 1
+
+            logger.info(f"Column delta enriched {total_enriched} rows in '{table_name}'")
+
+            # Mark columns as materialized in the registry
             for column in missing_columns:
                 self.data_layer.update_metadata(
                     table_name,
                     column,
                     [],
                     STATUS_FULL,
-                    total_rows
+                    total_enriched
                 )
-        
-        logger.info(f"Column delta complete: {total_rows} rows enriched")
-        return total_rows
+
+        logger.info(f"Column delta complete: {total_enriched} rows enriched")
+        return total_enriched
     
     def _execute_join_alignment(self, query: str) -> None:
-        """Execute JIT join alignment."""
-        logger.info("Executing join alignment")
-        
-        # Parse query to find joins
+        """
+        JIT join alignment: resolve entity references across join-key columns
+        so that SQL joins produce correct matches.
+        """
+        logger.info("Executing JIT join alignment")
+
         parsed = parse_one(query, dialect="postgres")
         joins = self._extract_joins(parsed)
-        
+
         for left_table, right_table, join_column in joins:
-            # Get values from both tables (would query from SQL)
-            # For now, simulate
-            left_values = []
-            right_values = []
-            
-            # Align join keys
+            logger.info(
+                f"Aligning join: {left_table}.{join_column} ↔ {right_table}.{join_column}"
+            )
+
+            # Query actual distinct values from both tables
+            left_values = self.data_layer.get_distinct_values(left_table, join_column)
+            right_values = self.data_layer.get_distinct_values(right_table, join_column)
+
+            if not left_values or not right_values:
+                logger.warning(
+                    f"Skipping join alignment for {left_table}↔{right_table}: "
+                    f"one side has no values"
+                )
+                continue
+
+            logger.info(
+                f"  {left_table}.{join_column}: {len(left_values)} values, "
+                f"  {right_table}.{join_column}: {len(right_values)} values"
+            )
+
             canonical_map = self.entity_resolver.align_join_keys(
                 left_values,
                 right_values,
@@ -547,9 +690,19 @@ class DeltaEngine:
                 right_table,
                 join_column
             )
-            
-            # Update tables with aligned values (would update SQL tables)
-            logger.info(f"Aligned {len(canonical_map)} join keys")
+
+            if not canonical_map:
+                logger.info(f"No join key mismatches found for {left_table}↔{right_table}")
+                continue
+
+            # Apply canonical forms to both tables
+            self.data_layer.update_column_values(left_table, join_column, canonical_map)
+            self.data_layer.update_column_values(right_table, join_column, canonical_map)
+
+            logger.info(
+                f"Aligned {len(canonical_map)} join key(s) between "
+                f"{left_table} and {right_table}"
+            )
     
     def _filter_chunks_by_predicates(
         self,
@@ -584,33 +737,6 @@ class DeltaEngine:
     # Query Execution
     # ========================================================================
     
-    def execute_query(self, query: str) -> Tuple[List[Dict[str, Any]], DeltaExecutionResult]:
-        """
-        Execute query with delta calculation.
-        
-        Args:
-            query: SQL query string
-            
-        Returns:
-            (results, delta_execution_result)
-        """
-        logger.info("Executing query with delta engine")
-        
-        # Analyze query
-        plan = self.analyze_query(query)
-        
-        # Execute delta if needed
-        delta_result = self.execute_delta(plan, query)
-        
-        if not delta_result.success:
-            logger.error("Delta execution failed")
-            return [], delta_result
-        
-        # Execute SQL query (would use actual SQL engine here)
-        # For now, return empty results
-        results = []
-        
-        return results, delta_result
 
 
 # ============================================================================

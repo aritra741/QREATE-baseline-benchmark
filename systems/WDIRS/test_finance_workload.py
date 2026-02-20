@@ -352,10 +352,21 @@ def run_test_phase(dataset: str, dataset_query: str, checkpoint_path: Path) -> T
         
         logger.info(f"Loading preprocessed database from {checkpoint_path}")
         runner = WDIRSRunner(dataset=dataset)
-        
-        # Note: WDIRSRunner initializes from DATABASE_URI which points to DB_DIR
-        # For testing, we'd need to copy checkpoint back or use it directly
-        
+
+        # Restore the in-memory lattice from the training workload so the delta
+        # engine knows table schemas and predicate literals.  This is a fast,
+        # LLM-free SQL parse — no re-extraction of data.
+        logger.info("Restoring lattice from training workload...")
+        training_queries_for_restore = collect_training_workload(dataset_query)
+        if not training_queries_for_restore:
+            logger.error("Cannot restore lattice: no training queries found")
+            stats["success"] = False
+            stats["error"] = "Lattice restore failed: no training queries"
+            stats["total_time"] = time.time() - phase_start
+            return False, test_metrics, stats
+        runner.restore_lattice(training_queries_for_restore)
+        logger.info("Lattice restored successfully")
+
         # Collect test queries
         test_queries = collect_test_workload(dataset_query)
         

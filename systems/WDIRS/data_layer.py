@@ -370,9 +370,14 @@ class DataLayer:
         for pred in predicates:
             # Extract column from predicate (simple parsing)
             pred_col = pred.split('=')[0].strip() if '=' in pred else pred.split()[0].strip()
-            
+
             if pred_col in column_map:
-                if pred not in column_map[pred_col]['predicates']:
+                col_entry = column_map[pred_col]
+                # STATUS_FULL means ALL rows were extracted for this column —
+                # any predicate value is already covered, no re-extraction needed.
+                if col_entry['status'] == STATUS_FULL:
+                    continue
+                if pred not in col_entry['predicates']:
                     missing_predicates.append(pred)
             else:
                 missing_predicates.append(pred)
@@ -596,6 +601,20 @@ class DataLayer:
             """), {"table_name": table_name})
             return result.fetchone() is not None
     
+    def execute_sql(self, query: str) -> List[Dict[str, Any]]:
+        """
+        Execute an arbitrary read-only SQL query against the DB and return
+        results as a list of dicts.  Raises RuntimeError on failure.
+        """
+        with self.engine.connect() as conn:
+            try:
+                result = conn.execute(text(query))
+                col_names = list(result.keys())
+                return [dict(zip(col_names, row)) for row in result.fetchall()]
+            except Exception as e:
+                logger.error(f"SQL execution failed: {e}")
+                raise RuntimeError(f"SQL execution failed: {e}") from e
+
     def close(self):
         """Close database connections."""
         self.engine.dispose()

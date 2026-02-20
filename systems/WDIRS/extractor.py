@@ -237,7 +237,8 @@ class ConstrainedExtractor:
         chunk_ids: List[str],
         table_name: str,
         schema: Dict[str, str],
-        constrained_keys: Optional[Set[str]] = None
+        constrained_keys: Optional[Set[str]] = None,
+        normalization_hints: Optional[Dict[str, List[str]]] = None
     ) -> List[ExtractionResult]:
         """
         Extract data from a batch of chunks.
@@ -248,6 +249,7 @@ class ConstrainedExtractor:
             table_name: Name of the table
             schema: Column schema
             constrained_keys: Optional set of required keys
+            normalization_hints: column → [expected literal values] from workload predicates
             
         Returns:
             List of ExtractionResult
@@ -281,7 +283,8 @@ class ConstrainedExtractor:
                     # Submit extraction task
                     future = executor.submit(
                         self._extract_single_chunk_safe,
-                        chunk, chunk_id, table_name, schema, constrained_keys
+                        chunk, chunk_id, table_name, schema, constrained_keys,
+                        normalization_hints
                     )
                     future_to_chunk[future] = chunk_id
                 
@@ -311,7 +314,8 @@ class ConstrainedExtractor:
         chunk_id: str,
         table_name: str,
         schema: Dict[str, str],
-        constrained_keys: Optional[Set[str]] = None
+        constrained_keys: Optional[Set[str]] = None,
+        normalization_hints: Optional[Dict[str, List[str]]] = None
     ) -> ExtractionResult:
         """Thread-safe wrapper for single chunk extraction."""
         try:
@@ -319,7 +323,8 @@ class ConstrainedExtractor:
                 chunk,
                 table_name,
                 schema,
-                constrained_keys
+                constrained_keys,
+                normalization_hints
             )
             result.chunk_id = chunk_id
             return result
@@ -340,7 +345,8 @@ class ConstrainedExtractor:
         table_name: str,
         schema: Dict[str, str],
         constrained_keys: Optional[Set[str]] = None,
-        predicates: Optional[List[str]] = None
+        predicates: Optional[List[str]] = None,
+        normalization_hints: Optional[Dict[str, List[str]]] = None
     ) -> List[ExtractionResult]:
         """
         Extract data matching specific predicates (QAIRS-style).
@@ -352,6 +358,7 @@ class ConstrainedExtractor:
             schema: Column schema
             constrained_keys: Optional set of required keys
             predicates: List of predicates to filter by (e.g., ["age > 25"])
+            normalization_hints: column → [expected literal values] from workload predicates
             
         Returns:
             List of ExtractionResult
@@ -386,7 +393,8 @@ class ConstrainedExtractor:
                     # Submit extraction task with predicates
                     future = executor.submit(
                         self._extract_single_chunk_with_predicates,
-                        chunk, chunk_id, table_name, schema, constrained_keys, predicates
+                        chunk, chunk_id, table_name, schema, constrained_keys,
+                        predicates, normalization_hints
                     )
                     future_to_chunk[future] = (chunk_id, cache_key)
                 
@@ -416,7 +424,8 @@ class ConstrainedExtractor:
         table_name: str,
         schema: Dict[str, str],
         constrained_keys: Optional[Set[str]] = None,
-        predicates: Optional[List[str]] = None
+        predicates: Optional[List[str]] = None,
+        normalization_hints: Optional[Dict[str, List[str]]] = None
     ) -> ExtractionResult:
         """Extract data matching specific predicates."""
         start_time = time.time()
@@ -427,7 +436,8 @@ class ConstrainedExtractor:
             table_name,
             schema,
             constrained_keys,
-            predicates
+            predicates,
+            normalization_hints
         )
         
         # Call LLM
@@ -464,7 +474,8 @@ class ConstrainedExtractor:
         table_name: str,
         schema: Dict[str, str],
         constrained_keys: Optional[Set[str]] = None,
-        predicates: Optional[List[str]] = None
+        predicates: Optional[List[str]] = None,
+        normalization_hints: Optional[Dict[str, List[str]]] = None
     ) -> str:
         """Build extraction prompt with predicate filtering."""
         keys_to_use = constrained_keys if constrained_keys else schema.keys()
@@ -477,11 +488,14 @@ class ConstrainedExtractor:
             for pred in predicates:
                 predicate_str += f"- {pred}\n"
             predicate_str += "\nDo NOT extract records that don't match these conditions."
+
+        normalization_section = self._build_normalization_section(normalization_hints)
         
         prompt = f"""Extract data from the following text for table '{table_name}'.
 
 Schema (use these keys): {keys_str}
 {predicate_str}
+{normalization_section}
 
 Text:
 {chunk}
@@ -570,7 +584,8 @@ Output (JSON only):"""
         chunk: str,
         table_name: str,
         schema: Dict[str, str],
-        constrained_keys: Optional[Set[str]] = None
+        constrained_keys: Optional[Set[str]] = None,
+        normalization_hints: Optional[Dict[str, List[str]]] = None
     ) -> ExtractionResult:
         """Extract data from a single chunk."""
         start_time = time.time()
@@ -580,7 +595,8 @@ Output (JSON only):"""
             chunk,
             table_name,
             schema,
-            constrained_keys
+            constrained_keys,
+            normalization_hints
         )
         
         # Call LLM
@@ -607,12 +623,43 @@ Output (JSON only):"""
             extraction_time=extraction_time
         )
     
+    def _build_normalization_section(
+        self,
+        normalization_hints: Optional[Dict[str, List[str]]]
+    ) -> str:
+        """
+        Build the normalization section of the extraction prompt.
+
+        normalization_hints maps column_name → list of expected literal values
+        taken directly from the SQL workload predicates (e.g. {'country': ['USA', 'Canada']}).
+        The LLM must output exactly those strings, regardless of how the source text
+        phrases them ('United States' → 'USA', 'Kanada' → 'Canada', etc.).
+        """
+        if not normalization_hints:
+            return ""
+
+        lines = [
+            "\nValue normalization (CRITICAL — your output must use these exact strings):"
+        ]
+        for col, literals in sorted(normalization_hints.items()):
+            quoted = ", ".join(f'"{v}"' for v in literals)
+            lines.append(
+                f'  - Column "{col}": allowed values are [{quoted}]. '
+                f"If the text expresses the same concept with different wording, "
+                f"abbreviations, or aliases, map it to the closest value in this list."
+            )
+        lines.append(
+            "  Do NOT invent values outside the allowed list for these columns."
+        )
+        return "\n".join(lines)
+
     def _build_extraction_prompt(
         self,
         chunk: str,
         table_name: str,
         schema: Dict[str, str],
-        constrained_keys: Optional[Set[str]] = None
+        constrained_keys: Optional[Set[str]] = None,
+        normalization_hints: Optional[Dict[str, List[str]]] = None
     ) -> str:
         """Build extraction prompt for LLM."""
         # Build schema description
@@ -635,6 +682,7 @@ Output (JSON only):"""
         constraints.append("- If no data found, return empty list")
         
         constraints_desc = "\n".join(constraints)
+        normalization_section = self._build_normalization_section(normalization_hints)
         
         prompt = f"""Extract structured data from the following text for the table "{table_name}".
 
@@ -643,6 +691,7 @@ Schema:
 
 Constraints:
 {constraints_desc}
+{normalization_section}
 
 Text:
 {chunk}

@@ -364,6 +364,16 @@ class WDIRSRunner:
                 logger.info(f"Stabilized schema for {table_name}: "
                            f"{len(stabilized_schema.frozen_keys)} keys")
                 
+                # Build normalization hints from workload predicate literals so the
+                # LLM stores values in the exact form the queries expect
+                # (e.g. "USA" not "United States" if queries filter on 'USA').
+                normalization_hints = self.lattice_planner.get_normalization_hints(table_name)
+                if normalization_hints:
+                    logger.info(
+                        f"Normalization hints for {table_name}: "
+                        + ", ".join(f"{c}={v}" for c, v in normalization_hints.items())
+                    )
+
                 # For tables in joins, extract ALL data to ensure referential integrity
                 # Phase 2 will handle join alignment
                 if table_info.referenced_in_joins:
@@ -376,7 +386,8 @@ class WDIRSRunner:
                         chunk_ids,
                         table_name,
                         schema,
-                        stabilized_schema.frozen_keys
+                        stabilized_schema.frozen_keys,
+                        normalization_hints
                     )
                     
                     table_records = sum(len(r.records) for r in results)
@@ -437,7 +448,8 @@ class WDIRSRunner:
                         chunk_ids,
                         table_name,
                         schema,
-                        stabilized_schema.frozen_keys
+                        stabilized_schema.frozen_keys,
+                        normalization_hints
                     )
                     
                     table_records = sum(len(r.records) for r in results)
@@ -493,7 +505,8 @@ class WDIRSRunner:
                             table_name,
                             schema,
                             stabilized_schema.frozen_keys,
-                            predicates
+                            predicates,
+                            normalization_hints
                         )
                         
                         pred_records = sum(len(r.records) for r in results)
@@ -821,7 +834,25 @@ class WDIRSRunner:
     # ========================================================================
     # Phase 2: Runtime Execution
     # ========================================================================
-    
+
+    def restore_lattice(self, workload_queries: List[str]) -> None:
+        """
+        Re-parse the training workload to rebuild the in-memory lattice without
+        re-running any extraction.  Call this in Phase 2 after loading a
+        preprocessed DB so the delta engine knows the table schemas and predicate
+        literals.
+
+        Semantic type identification (LLM call) is skipped — the DB tables
+        already exist with the correct column types from Phase 1.
+        """
+        logger.info(f"Restoring lattice from {len(workload_queries)} training queries")
+        self.lattice_planner.parse_workload(workload_queries, identify_types=False)
+        logger.info(
+            f"Lattice restored: {len(self.lattice_planner.lattice.tables)} tables"
+        )
+
+    # ========================================================================
+
     def execute_query(self, query: str) -> QueryResult:
         """
         Execute query with delta engine.
@@ -847,14 +878,15 @@ class WDIRSRunner:
             logger.info(f"Missing columns: {plan.missing_columns}")
             logger.info(f"Missing predicates: {plan.missing_predicates}")
             
-            # Execute delta
+            # Execute delta (extracts / enriches / aligns as needed)
             delta_result = self.delta_engine.execute_delta(plan, query)
-            
+
             if not delta_result.success:
                 raise Exception(f"Delta execution failed: {delta_result.error}")
-            
-            # Execute SQL query (would use actual SQL engine)
-            results = []
+
+            # Execute the SQL query against the synthesized DB
+            results = self.data_layer.execute_sql(query)
+            logger.info(f"SQL executed: {len(results)} rows returned")
             
             execution_time = time.time() - start_time
             

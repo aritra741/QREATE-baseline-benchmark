@@ -29,6 +29,11 @@ class ColumnInfo:
     column_name: str
     semantic_type: str = "OTHER"
     predicates: Set[str] = field(default_factory=set)
+    # Raw literal values seen in equality predicates across the whole workload.
+    # e.g. WHERE country = 'USA' AND country = 'Canada'  →  {'USA', 'Canada'}
+    # These are used as normalization hints during extraction so the LLM stores
+    # values in exactly the form the queries expect.
+    predicate_literals: Set[str] = field(default_factory=set)
     is_join_key: bool = False
     is_group_by: bool = False
     is_aggregated: bool = False
@@ -64,34 +69,46 @@ class LatticePlanner:
         self.llm_client = llm_client
         self.lattice = WorkloadLattice()
     
-    def parse_workload(self, sql_queries: List[str]) -> WorkloadLattice:
+    def parse_workload(
+        self,
+        sql_queries: List[str],
+        identify_types: bool = True
+    ) -> WorkloadLattice:
         """
         Parse SQL workload and build lattice.
-        
+
         Args:
             sql_queries: List of SQL query strings
-            
+            identify_types: If True (default), call the LLM to classify column
+                semantic types.  Pass False when restoring the lattice in Phase 2
+                (tables already exist in DB, type info is not needed for SQL exec).
+
         Returns:
             WorkloadLattice with all tables, columns, and predicates
         """
         logger.info(f"Parsing workload with {len(sql_queries)} queries")
-        
+
+        # Reset lattice so we don't accumulate stale state on restore
+        self.lattice = WorkloadLattice()
+
         for query_idx, query in enumerate(sql_queries):
             try:
                 self._parse_query(query, query_idx)
             except Exception as e:
                 logger.warning(f"Failed to parse query {query_idx}: {e}")
                 logger.debug(f"Query: {query}")
-        
+
         # Build subsumption graph
         self._build_subsumption_graph()
-        
-        # Identify semantic types
-        self._identify_semantic_types()
-        
+
+        if identify_types:
+            self._identify_semantic_types()
+        else:
+            logger.info("Skipping LLM semantic type identification (restore mode)")
+
         logger.info(f"Parsed workload: {len(self.lattice.tables)} tables, "
                    f"{sum(len(t.columns) for t in self.lattice.tables.values())} columns")
-        
+
         return self.lattice
     
     def _parse_query(self, query: str, query_idx: int) -> None:
@@ -235,7 +252,18 @@ class LatticePlanner:
                         
                         predicate = f"{column} {operator} {value}"
                         predicates.append((table.lower(), column.lower(), predicate))
-        
+
+                        # For equality predicates, record the raw literal so
+                        # the extractor can normalize extracted values to match.
+                        if isinstance(comparison, exp.EQ) and isinstance(right, exp.Literal):
+                            literal_val = right.this  # raw string without quotes
+                            tbl_key = table.lower()
+                            col_key = column.lower()
+                            if tbl_key in self.lattice.tables:
+                                col_info = self.lattice.tables[tbl_key].columns.get(col_key)
+                                if col_info is not None:
+                                    col_info.predicate_literals.add(literal_val)
+
         return predicates
     
     def _get_operator(self, comparison: exp.Expression) -> str:
@@ -499,6 +527,37 @@ Respond with only the semantic type (one word).
             return set()
         
         return table_info.columns[column_name].predicates
+
+    def get_predicate_literals(
+        self,
+        table_name: str,
+        column_name: str
+    ) -> Set[str]:
+        """
+        Return the set of raw equality-predicate literal values for a column.
+        e.g. if queries have WHERE country = 'USA' and WHERE country = 'Canada'
+        this returns {'USA', 'Canada'}.
+        """
+        if table_name not in self.lattice.tables:
+            return set()
+        table_info = self.lattice.tables[table_name]
+        if column_name not in table_info.columns:
+            return set()
+        return table_info.columns[column_name].predicate_literals
+
+    def get_normalization_hints(self, table_name: str) -> Dict[str, List[str]]:
+        """
+        Build a column → [expected literal values] map for all columns in a table
+        that have equality predicates in the workload.  Used by the extractor to
+        guide value normalization at extraction time.
+        """
+        if table_name not in self.lattice.tables:
+            return {}
+        hints: Dict[str, List[str]] = {}
+        for col_name, col_info in self.lattice.tables[table_name].columns.items():
+            if col_info.predicate_literals:
+                hints[col_name] = sorted(col_info.predicate_literals)
+        return hints
     
     def should_extract_together(
         self,
