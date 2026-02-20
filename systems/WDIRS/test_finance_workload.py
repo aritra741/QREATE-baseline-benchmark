@@ -45,7 +45,8 @@ from config import (
 
 logger = logging.getLogger(__name__)
 
-DATASET = "Finance"
+DATASET = "Finance"              # Source data directory name
+DATASET_QUERY = "Finan"          # Query directory name (may differ from source data)
 TRAINING_QUERY_TYPES = ["Agg", "Filter", "Select", "Mixed"]
 TEST_QUERY_TYPES = ["Subsample", "Variations"]
 RESULTS_BASE_DIR = RESULTS_DIR / "finance_workload_test"
@@ -122,7 +123,7 @@ def load_sql_queries(sql_file: Path) -> List[Tuple[str, str]]:
     
     return queries
 
-def collect_training_workload(dataset: str) -> List[str]:
+def collect_training_workload(dataset_query: str) -> List[str]:
     """
     Collect all training queries from Agg, Filter, Select, Mixed.
     Returns list of SQL query strings.
@@ -138,7 +139,7 @@ def collect_training_workload(dataset: str) -> List[str]:
     }
     
     for query_type, filename in query_file_map.items():
-        query_file = QUERY_DIR / dataset / query_type / filename
+        query_file = QUERY_DIR / dataset_query / query_type / filename
         
         if query_file.exists():
             logger.info(f"Loading training queries from {query_file}")
@@ -151,7 +152,7 @@ def collect_training_workload(dataset: str) -> List[str]:
     logger.info(f"Total training queries collected: {len(all_queries)}")
     return all_queries
 
-def collect_test_workload(dataset: str) -> Dict[str, List[Tuple[str, str]]]:
+def collect_test_workload(dataset_query: str) -> Dict[str, List[Tuple[str, str]]]:
     """
     Collect all test queries from Subsample and Variations.
     Returns dict with test type as key, list of (query_id, query_text) as value.
@@ -159,7 +160,7 @@ def collect_test_workload(dataset: str) -> Dict[str, List[Tuple[str, str]]]:
     test_queries = {}
     
     # Test Subsample queries
-    subsample_dir = QUERY_DIR / dataset / "Subsample"
+    subsample_dir = QUERY_DIR / dataset_query / "Subsample"
     if subsample_dir.exists():
         logger.info(f"Loading test queries from Subsample")
         subsample_queries = []
@@ -170,7 +171,7 @@ def collect_test_workload(dataset: str) -> Dict[str, List[Tuple[str, str]]]:
             test_queries["Subsample"] = subsample_queries
     
     # Test Variations queries
-    variations_dir = QUERY_DIR / dataset / "Variations"
+    variations_dir = QUERY_DIR / dataset_query / "Variations"
     if variations_dir.exists():
         logger.info(f"Loading test queries from Variations")
         variations_queries = []
@@ -202,7 +203,7 @@ def verify_data_availability(dataset: str) -> bool:
 # Phase 1: Preprocessing
 # ============================================================================
 
-def run_preprocessing_phase(dataset: str) -> Tuple[bool, Dict[str, Any]]:
+def run_preprocessing_phase(dataset: str, dataset_query: str) -> Tuple[bool, Dict[str, Any]]:
     """
     Phase 1: Offline Relational Synthesis with Training Workload.
     """
@@ -213,6 +214,7 @@ def run_preprocessing_phase(dataset: str) -> Tuple[bool, Dict[str, Any]]:
     phase_start = time.time()
     stats = {
         "dataset": dataset,
+        "dataset_query": dataset_query,
         "training_workload": TRAINING_QUERY_TYPES,
         "steps": {}
     }
@@ -225,7 +227,7 @@ def run_preprocessing_phase(dataset: str) -> Tuple[bool, Dict[str, Any]]:
         
         # Collect training queries
         logger.info(f"\nCollecting training queries from {TRAINING_QUERY_TYPES}")
-        training_queries = collect_training_workload(dataset)
+        training_queries = collect_training_workload(dataset_query)
         
         if not training_queries:
             logger.error("No training queries collected!")
@@ -316,7 +318,7 @@ def run_preprocessing_phase(dataset: str) -> Tuple[bool, Dict[str, Any]]:
 # Phase 2: Testing
 # ============================================================================
 
-def run_test_phase(dataset: str, checkpoint_path: Path) -> Tuple[bool, List[TestQueryMetrics], Dict[str, Any]]:
+def run_test_phase(dataset: str, dataset_query: str, checkpoint_path: Path) -> Tuple[bool, List[TestQueryMetrics], Dict[str, Any]]:
     """
     Phase 2: Runtime Query Execution with Test Workload.
     
@@ -333,6 +335,7 @@ def run_test_phase(dataset: str, checkpoint_path: Path) -> Tuple[bool, List[Test
     test_metrics = []
     stats = {
         "dataset": dataset,
+        "dataset_query": dataset_query,
         "test_workload": TEST_QUERY_TYPES,
         "checkpoint_path": str(checkpoint_path),
         "test_results": {}
@@ -354,7 +357,7 @@ def run_test_phase(dataset: str, checkpoint_path: Path) -> Tuple[bool, List[Test
         # For testing, we'd need to copy checkpoint back or use it directly
         
         # Collect test queries
-        test_queries = collect_test_workload(dataset)
+        test_queries = collect_test_workload(dataset_query)
         
         total_queries = sum(len(queries) for queries in test_queries.values())
         logger.info(f"Loaded {total_queries} test queries")
@@ -749,17 +752,18 @@ def main():
     
     logger.info("Starting WDIRS Finance Workload Test")
     logger.info(f"Dataset: {DATASET}")
+    logger.info(f"Query Dataset: {DATASET_QUERY}")
     logger.info(f"Results Directory: {RESULTS_BASE_DIR}")
     logger.info(f"Log File: {log_file}")
     logger.info(f"Source Data: {SOURCE_DATA_DIR / DATASET}")
-    logger.info(f"Query Directory: {QUERY_DIR / DATASET}")
+    logger.info(f"Query Directory: {QUERY_DIR / DATASET_QUERY}")
     
     # Phase 1: Preprocessing
     logger.info("\n" + "=" * 80)
     logger.info("Starting Phase 1: Preprocessing")
     logger.info("=" * 80)
     
-    preprocessing_success, preprocessing_stats = run_preprocessing_phase(DATASET)
+    preprocessing_success, preprocessing_stats = run_preprocessing_phase(DATASET, DATASET_QUERY)
     
     if not preprocessing_success:
         logger.error("Preprocessing failed, skipping testing phase")
@@ -774,7 +778,7 @@ def main():
     logger.info("Starting Phase 2: Testing")
     logger.info("=" * 80)
     
-    test_success, test_metrics, test_stats = run_test_phase(DATASET, checkpoint_path)
+    test_success, test_metrics, test_stats = run_test_phase(DATASET, DATASET_QUERY, checkpoint_path)
     
     # Generate report
     generate_report(preprocessing_stats, test_metrics, test_stats)
