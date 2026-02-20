@@ -196,16 +196,20 @@ class WDIRSRunner:
             self._synthesize_sieves(lattice)
             
             # Step 4: Global extraction
-            logger.info("\n[Step 4/6] Performing constrained global extraction...")
+            logger.info("\n[Step 4/7] Performing constrained global extraction...")
             total_records = self._global_extraction(lattice)
             logger.info(f"Extracted {total_records} records")
-            
-            # Step 5: Entity resolution
-            logger.info("\n[Step 5/6] Performing proactive entity resolution...")
+
+            # Step 4.5: Record consolidation — merge duplicate entity rows
+            logger.info("\n[Step 5/7] Consolidating extracted records (deduplication + merging)...")
+            self._consolidate_records(lattice)
+
+            # Step 6: Entity resolution
+            logger.info("\n[Step 6/7] Performing proactive entity resolution...")
             self._proactive_entity_resolution(lattice)
-            
-            # Step 6: Save preprocessing results
-            logger.info("\n[Step 6/6] Saving preprocessing results...")
+
+            # Step 7: Save preprocessing results
+            logger.info("\n[Step 7/7] Saving preprocessing results...")
             self._save_preprocessing_results(lattice)
             
             preprocessing_time = time.time() - start_time
@@ -540,7 +544,176 @@ class WDIRSRunner:
                 raise RuntimeError(f"Extraction failed for table '{table_name}': {e}") from e
         
         return total_records
-    
+
+    # -------------------------------------------------------------------------
+    # Step 4.5: Record Consolidation
+    # -------------------------------------------------------------------------
+
+    def _get_identity_column_llm(self, table_name: str, columns: List[str]) -> Optional[str]:
+        """
+        Ask the LLM to identify the single column that is the primary identity
+        key for this table (i.e. the column that uniquely names the real-world entity).
+        Returns the column name, or None if it cannot be determined.
+        """
+        prompt = (
+            f"You are a database schema expert.\n"
+            f"Table name: '{table_name}'\n"
+            f"Columns: {columns}\n\n"
+            f"Which SINGLE column is the PRIMARY IDENTITY column — the one that uniquely "
+            f"identifies a real-world entity in this table "
+            f"(e.g. person name, company name, player name, team name)?\n\n"
+            f"Rules:\n"
+            f"- Respond with ONLY the exact column name from the list above.\n"
+            f"- Do NOT include any explanation, punctuation, or extra words.\n"
+            f"- If no single column clearly identifies the entity, respond with NULL."
+        )
+        try:
+            response = self.extractor.ollama_client.generate(
+                prompt,
+                max_tokens=20,
+                temperature=0.0
+            ).strip().strip('"').strip("'")
+
+            # Validate the response is actually one of the columns
+            col_lower = {c.lower(): c for c in columns}
+            if response.lower() in col_lower:
+                chosen = col_lower[response.lower()]
+                logger.info(f"LLM chose identity column for '{table_name}': {chosen}")
+                return chosen
+
+            if response.upper() == "NULL":
+                logger.warning(f"LLM could not identify an identity column for '{table_name}'")
+                return None
+
+            # LLM returned something not in the column list — fail loudly
+            raise RuntimeError(
+                f"LLM returned invalid identity column '{response}' for table '{table_name}'. "
+                f"Valid columns: {columns}"
+            )
+        except RuntimeError:
+            raise
+        except Exception as e:
+            raise RuntimeError(
+                f"LLM call failed while identifying identity column for '{table_name}': {e}"
+            ) from e
+
+    def _consolidate_records(self, lattice) -> None:
+        """
+        Post-extraction consolidation pass (Step 4.5).
+
+        For each synthesized table:
+          1. Ask the LLM which column is the identity key.
+          2. Group all rows by the lowercase canonical value of that column.
+          3. For groups with >1 row, merge using frequency-wins per attribute.
+          4. Keep one canonical row, delete the duplicates, and merge provenance.
+        """
+        from collections import defaultdict, Counter
+
+        for table_name in list(lattice.tables.keys()):
+            logger.info(f"[Consolidation] Processing table '{table_name}'...")
+
+            try:
+                all_rows = self.data_layer.get_all_records(table_name)
+            except Exception as e:
+                logger.error(f"[Consolidation] Cannot read records from '{table_name}': {e}")
+                raise
+
+            if len(all_rows) <= 1:
+                logger.info(f"[Consolidation] '{table_name}' has {len(all_rows)} rows — nothing to consolidate.")
+                continue
+
+            # Columns available in this table (excluding system columns)
+            system_cols = {"row_id", "created_at"}
+            data_columns = [c for c in all_rows[0].keys() if c not in system_cols]
+
+            if not data_columns:
+                logger.warning(f"[Consolidation] No data columns in '{table_name}', skipping.")
+                continue
+
+            # Step 1: Ask LLM for identity column
+            identity_col = self._get_identity_column_llm(table_name, data_columns)
+            if identity_col is None:
+                logger.warning(
+                    f"[Consolidation] No identity column for '{table_name}' — skipping consolidation."
+                )
+                continue
+
+            # Step 2: Group rows by canonical identity value
+            groups: Dict[str, List[Dict]] = defaultdict(list)
+            no_identity = []
+            for row in all_rows:
+                key = str(row.get(identity_col) or "").strip().lower()
+                if key:
+                    groups[key].append(row)
+                else:
+                    no_identity.append(row)
+
+            if no_identity:
+                logger.warning(
+                    f"[Consolidation] {len(no_identity)} rows in '{table_name}' "
+                    f"have no identity value — left as-is."
+                )
+
+            merged_count = 0
+            deleted_count = 0
+
+            for key, rows in groups.items():
+                if len(rows) == 1:
+                    continue  # already unique
+
+                # Step 3: Merge using frequency-wins
+                merged_data: Dict[str, Any] = {}
+                for col in data_columns:
+                    if col == identity_col:
+                        # Keep the most frequent spelling (frequency-wins)
+                        spellings = [str(r[col]).strip() for r in rows if r.get(col)]
+                        merged_data[col] = Counter(spellings).most_common(1)[0][0] if spellings else None
+                    else:
+                        non_null = [str(r[col]).strip() for r in rows if r.get(col) and str(r[col]).strip()]
+                        if not non_null:
+                            merged_data[col] = None
+                        elif len(set(non_null)) == 1:
+                            merged_data[col] = non_null[0]
+                        else:
+                            # Frequency-wins: most common non-null value
+                            merged_data[col] = Counter(non_null).most_common(1)[0][0]
+
+                canonical_row = rows[0]
+                duplicate_rows = rows[1:]
+
+                # Step 4a: Update canonical row with merged data
+                self.data_layer.update_record(table_name, canonical_row["row_id"], merged_data)
+
+                # Step 4b: Merge provenance — collect all chunk IDs from all duplicate rows
+                all_chunk_ids: List[str] = []
+                for row in rows:
+                    try:
+                        provenance_list = self.data_layer.get_provenance(
+                            row_ids=[row["row_id"]]
+                        )
+                        for p in provenance_list:
+                            all_chunk_ids.extend(json.loads(p.chunk_ids))
+                    except Exception as e:
+                        logger.warning(f"[Consolidation] Could not read provenance for {row['row_id']}: {e}")
+
+                # Deduplicate chunk IDs
+                all_chunk_ids = list(dict.fromkeys(all_chunk_ids))
+
+                self.data_layer.update_provenance_chunks(canonical_row["row_id"], all_chunk_ids)
+
+                # Step 4c: Delete duplicate rows and their provenance
+                for dup_row in duplicate_rows:
+                    self.data_layer.delete_provenance(dup_row["row_id"])
+                    self.data_layer.delete_record(table_name, dup_row["row_id"])
+                    deleted_count += 1
+
+                merged_count += 1
+
+            logger.info(
+                f"[Consolidation] '{table_name}': merged {merged_count} groups, "
+                f"deleted {deleted_count} duplicate rows."
+            )
+
     def _proactive_entity_resolution(self, lattice) -> None:
         """
         Perform proactive entity resolution on join keys.

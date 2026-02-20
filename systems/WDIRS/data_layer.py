@@ -405,6 +405,36 @@ class DataLayer:
                 session.rollback()
                 logger.error(f"Error inserting provenance: {e}")
                 raise
+
+    def update_provenance_chunks(
+        self,
+        row_id: str,
+        chunk_ids: List[str]
+    ) -> None:
+        """Replace the chunk_ids for an existing provenance record."""
+        with self.Session() as session:
+            try:
+                stmt = text(
+                    "UPDATE row_provenance SET chunk_ids = :chunk_ids WHERE row_id = :row_id"
+                )
+                session.execute(stmt, {"chunk_ids": json.dumps(chunk_ids), "row_id": row_id})
+                session.commit()
+            except Exception as e:
+                session.rollback()
+                logger.error(f"Error updating provenance chunks for {row_id}: {e}")
+                raise
+
+    def delete_provenance(self, row_id: str) -> None:
+        """Delete provenance record for a row."""
+        with self.Session() as session:
+            try:
+                stmt = text("DELETE FROM row_provenance WHERE row_id = :row_id")
+                session.execute(stmt, {"row_id": row_id})
+                session.commit()
+            except Exception as e:
+                session.rollback()
+                logger.error(f"Error deleting provenance for {row_id}: {e}")
+                raise
     
     def get_provenance(
         self,
@@ -755,7 +785,53 @@ class RecursiveCharacterSplitter:
             except Exception as e:
                 logger.error(f"Error inserting record into {table_name}: {e}")
                 raise
-    
+
+    def get_all_records(self, table_name: str) -> List[Dict[str, Any]]:
+        """Return all rows from a dynamic table as a list of dicts."""
+        with self.engine.connect() as conn:
+            try:
+                result = conn.execute(text(f"SELECT * FROM {table_name}"))
+                columns = result.keys()
+                return [dict(zip(columns, row)) for row in result.fetchall()]
+            except Exception as e:
+                logger.error(f"Error fetching all records from {table_name}: {e}")
+                raise
+
+    def update_record(
+        self,
+        table_name: str,
+        row_id: str,
+        data: Dict[str, Any]
+    ) -> None:
+        """Update specific fields of an existing row identified by row_id."""
+        if not data:
+            return
+        with self.engine.connect() as conn:
+            try:
+                set_clauses = ", ".join([f"{col} = :{col}" for col in data.keys()])
+                params = {col: (json.dumps(val) if isinstance(val, (list, dict)) else val)
+                          for col, val in data.items()}
+                params["_row_id"] = row_id
+                sql = f"UPDATE {table_name} SET {set_clauses} WHERE row_id = :_row_id"
+                conn.execute(text(sql), params)
+                conn.commit()
+            except Exception as e:
+                logger.error(f"Error updating record {row_id} in {table_name}: {e}")
+                raise
+
+    def delete_record(self, table_name: str, row_id: str) -> None:
+        """Delete a row from a dynamic table by row_id."""
+        with self.engine.connect() as conn:
+            try:
+                conn.execute(
+                    text(f"DELETE FROM {table_name} WHERE row_id = :row_id"),
+                    {"row_id": row_id}
+                )
+                conn.commit()
+            except Exception as e:
+                logger.error(f"Error deleting record {row_id} from {table_name}: {e}")
+                raise
+
     def create_chunks(
         self,
         text: str,
