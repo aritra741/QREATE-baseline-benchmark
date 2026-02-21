@@ -627,46 +627,70 @@ class WDIRSRunner:
         self.data_layer.create_dynamic_table(table_name, sql_schema)
         total_records = 0
 
-        # --- Per-entity targeted LLM extraction ---
+        # --- Per-entity targeted LLM extraction (parallel) ---
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        from config import EXTRACTION_MAX_WORKERS
+
         entity_items = list(entity_to_chunks.items())
         logger.info(
             f"[EntityFirst] Extracting {len(entity_items)} entities × "
-            f"≤{TOP_K_CHUNKS_PER_ENTITY} chunks each for '{table_name}'"
+            f"≤{TOP_K_CHUNKS_PER_ENTITY} chunks each for '{table_name}' "
+            f"using {EXTRACTION_MAX_WORKERS} workers"
         )
 
-        for entity_name, entity_chunks in entity_items:
-            chunk_texts = [c.content for c in entity_chunks]
-            chunk_ids_list = [c.chunk_id for c in entity_chunks]
-
+        def _extract_entity(entity_name: str, entity_chunks: list):
+            chunk_texts   = [c.content  for c in entity_chunks]
+            chunk_ids_lst = [c.chunk_id for c in entity_chunks]
             results = self.extractor.extract_batch(
                 chunk_texts,
-                chunk_ids_list,
+                chunk_ids_lst,
                 table_name,
                 schema,
                 normalization_hints=normalization_hints,
                 entity_col=identity_col,
             )
-
-            record_chunk_pairs = [
+            pairs = [
                 (record, er.chunk_id)
                 for er in results
                 if not er.error
                 for record in er.records
             ]
-
-            # If the LLM didn't populate _entity, inject the NER-detected name
-            for record, _ in record_chunk_pairs:
+            # Guarantee the _entity routing field is always populated
+            for record, _ in pairs:
                 if not record.get("_entity"):
                     record["_entity"] = entity_name
                 if identity_col not in record:
                     record[identity_col] = entity_name
+            return pairs
 
-            if record_chunk_pairs:
-                prov_pairs = self.data_layer.upsert_by_entity(
-                    table_name, identity_col, record_chunk_pairs
-                )
-                self.data_layer.bulk_insert_provenance(table_name, prov_pairs)
-                total_records += len(prov_pairs)
+        # Collect all results then bulk-upsert once per 1000 entities to
+        # amortise the DB round-trips without holding everything in RAM.
+        all_pairs: list = []
+        batch_size = 1000
+
+        with ThreadPoolExecutor(max_workers=EXTRACTION_MAX_WORKERS) as pool:
+            futs = {
+                pool.submit(_extract_entity, name, chunks): name
+                for name, chunks in entity_items
+            }
+            done_count = 0
+            for fut in as_completed(futs):
+                pairs = fut.result()
+                all_pairs.extend(pairs)
+                done_count += 1
+                if done_count % batch_size == 0:
+                    if all_pairs:
+                        pv = self.data_layer.upsert_by_entity(table_name, identity_col, all_pairs)
+                        self.data_layer.bulk_insert_provenance(table_name, pv)
+                        total_records += len(pv)
+                        all_pairs = []
+                    logger.info(f"[EntityFirst] {done_count}/{len(entity_items)} entities done")
+
+        # Flush remainder
+        if all_pairs:
+            pv = self.data_layer.upsert_by_entity(table_name, identity_col, all_pairs)
+            self.data_layer.bulk_insert_provenance(table_name, pv)
+            total_records += len(pv)
 
         # --- Unassigned chunks: process with standard path if not too many ---
         unassigned_limit = max(500, len(candidate_chunks) // 20)  # 5% cap
@@ -753,100 +777,58 @@ class WDIRSRunner:
                 # Phase 2 will handle join alignment
                 entity_col = self.identity_columns.get(table_name)
 
-                if table_info.referenced_in_joins:
-                    logger.info(f"{table_name} is in joins - extracting all data for referential integrity")
+                ner_label = self.identity_ner_labels.get(table_name)
+
+                if entity_col:
+                    # ── Entity-first extraction ──────────────────────────────
+                    # Use spaCy NER to group candidate chunks by entity, then
+                    # run the LLM on only the top-K chunks per entity.
+                    # LLM calls: N_entities × ceil(TOP_K / CHUNK_BATCH_SIZE)
+                    #            vs N_candidates / CHUNK_BATCH_SIZE (brute-force)
+                    suffix = "(join table)" if table_info.referenced_in_joins else ""
+                    logger.info(
+                        f"[EntityFirst] {table_name} {suffix}: "
+                        f"{len(candidate_chunks)} candidates → NER grouping → "
+                        f"targeted extraction"
+                    )
+                    table_records = self._entity_first_extraction(
+                        table_name=table_name,
+                        schema=schema,
+                        sql_schema=sql_schema,
+                        identity_col=entity_col,
+                        ner_label=ner_label,
+                        candidate_chunks=candidate_chunks,
+                        normalization_hints=normalization_hints,
+                    )
+                    total_records += table_records
+                else:
+                    # ── Brute-force extraction (no identity column) ──────────
+                    # Only for tables where no entity anchor was found at all.
+                    # This is the old path — every candidate chunk is processed.
+                    logger.info(
+                        f"[BruteForce] {table_name}: "
+                        f"{len(candidate_chunks)} candidates, no identity column"
+                    )
                     chunk_texts = [c.content for c in candidate_chunks]
-                    chunk_ids = [c.chunk_id for c in candidate_chunks]
-                    
+                    chunk_ids_list = [c.chunk_id for c in candidate_chunks]
+
                     results = self.extractor.extract_batch(
                         chunk_texts,
-                        chunk_ids,
+                        chunk_ids_list,
                         table_name,
                         schema,
                         stabilized_schema.frozen_keys,
                         normalization_hints,
-                        entity_col,
                     )
-                    
+
                     table_records = sum(len(r.records) for r in results)
                     total_records += table_records
-                    
-                    logger.info(f"Extracted {table_records} records for {table_name} (join table)")
+                    logger.info(f"Extracted {table_records} records for {table_name}")
 
-                    # Create table and upsert by entity, or plain bulk-insert if
-                    # no identity column was detected.
                     self.data_layer.create_dynamic_table(table_name, sql_schema)
-                    if entity_col:
-                        record_chunk_pairs = [
-                            (record, er.chunk_id)
-                            for er in results
-                            if not er.error
-                            for record in er.records
-                        ]
-                        prov_pairs = self.data_layer.upsert_by_entity(
-                            table_name, entity_col, record_chunk_pairs
-                        )
-                    else:
-                        prov_pairs = self.data_layer.bulk_insert_records(table_name, results)
-                    self.data_layer.bulk_insert_provenance(table_name, prov_pairs)
-
-                    logger.info(f"Inserted/upserted {len(prov_pairs)} records into {table_name}")
-                    
-                    # Update metadata - FULL because we extracted everything for joins
-                    for col_name in schema.keys():
-                        self.data_layer.update_metadata(
-                            table_name,
-                            col_name,
-                            [],
-                            "FULL",
-                            table_records
-                        )
-                    continue
-                
-                # Single extraction pass over all candidate chunks.
-                # The LLM extracts ALL columns from each chunk in one call.
-                # Normalization hints guide value standardization.
-                # SQL handles all filtering at query time — no per-predicate passes.
-                logger.info(
-                    f"Extracting {table_name}: {len(candidate_chunks)} candidate chunks, "
-                    f"single pass (all columns)"
-                )
-                chunk_texts = [c.content for c in candidate_chunks]
-                chunk_ids_list = [c.chunk_id for c in candidate_chunks]
-
-                results = self.extractor.extract_batch(
-                    chunk_texts,
-                    chunk_ids_list,
-                    table_name,
-                    schema,
-                    stabilized_schema.frozen_keys,
-                    normalization_hints,
-                    entity_col,
-                )
-
-                table_records = sum(len(r.records) for r in results)
-                total_records += table_records
-                logger.info(f"Extracted {table_records} records for {table_name}")
-
-                # Create table and upsert by entity, or plain bulk-insert if
-                # no identity column was detected.
-                self.data_layer.create_dynamic_table(table_name, sql_schema)
-
-                if entity_col:
-                    record_chunk_pairs = [
-                        (record, er.chunk_id)
-                        for er in results
-                        if not er.error
-                        for record in er.records
-                    ]
-                    prov_pairs = self.data_layer.upsert_by_entity(
-                        table_name, entity_col, record_chunk_pairs
-                    )
-                else:
                     prov_pairs = self.data_layer.bulk_insert_records(table_name, results)
-
-                self.data_layer.bulk_insert_provenance(table_name, prov_pairs)
-                logger.info(f"Inserted/upserted {len(prov_pairs)} records into {table_name}")
+                    self.data_layer.bulk_insert_provenance(table_name, prov_pairs)
+                    logger.info(f"Inserted {len(prov_pairs)} records into {table_name}")
 
                 # Mark every column FULL — we extracted everything we could find.
                 # Any runtime predicate on these columns is a cache hit.
