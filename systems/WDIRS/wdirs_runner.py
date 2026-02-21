@@ -17,7 +17,7 @@ from sieve_synthesizer import SieveSynthesizer
 from extractor import ConstrainedExtractor, OllamaClient
 from entity_resolver import EntityResolver, extract_mentions_from_records, apply_canonical_map
 from delta_engine import DeltaEngine, DeltaType
-from entity_anchor import detect_identity_column, discover_entity_attribute
+from entity_anchor import detect_identity_column
 
 from config import (
     SOURCE_DATA_DIR,
@@ -352,19 +352,30 @@ class WDIRSRunner:
         """
         Detect the primary identity column for every table in the lattice.
 
-        Strategy A (workload has schema columns):
-          Call detect_identity_column from entity_anchor.  This asks the LLM
-          to pick the identity column from the workload-derived schema.
+        Three-tier strategy, each tier falling through to the next only if it
+        produces no result:
 
-        Strategy B (LLM says NULL → no identity in workload schema):
-          Call discover_entity_attribute from entity_anchor.  This runs an
-          Evaporate-inspired two-phase attribute discovery over sample chunks
-          and selects the most entity-like field from raw text.
-          The discovered attribute is added to the table's schema as a TEXT
-          column so the extractor and upsert logic can use it.
+        Tier 1 — Semantic-type pre-filter (zero LLM cost):
+          The lattice planner already ran _identify_semantic_types and tagged
+          every column as PERSON, ORG, GPE, DATE, etc.  The identity column is
+          almost always the one with a PERSON, ORG, or GPE tag.  Collect those
+          candidates and, if exactly one exists, use it directly.  If several
+          exist, pass only those to the LLM (Tier 2) — much easier than 25+.
+
+        Tier 2 — LLM on pre-filtered candidates:
+          Ask the LLM to pick from the short candidate list (typically 1-3
+          columns).  This is reliable even for 7B models because the list is
+          small and all candidates are plausible identity types.
+
+        Tier 3 — Evaporate-style text discovery (last resort):
+          Used only when the workload has NO PERSON/ORG/GPE column at all
+          (e.g. pure aggregation queries with no entity reference).  Samples
+          raw text chunks and discovers the entity attribute by field frequency.
 
         Results are stored in self.identity_columns[table_name].
         """
+        ENTITY_SEMANTIC_TYPES = {"PERSON", "ORG", "GPE"}
+
         for table_name, table_info in lattice.tables.items():
             schema = self.lattice_planner.get_table_schema(table_name)
             schema_columns = list(schema.keys())
@@ -374,55 +385,113 @@ class WDIRSRunner:
                 f"({len(schema_columns)} columns): {schema_columns}"
             )
 
-            # Strategy A
-            identity_col = detect_identity_column(
-                table_name,
-                schema_columns,
-                self.extractor.llm_client,
+            # --- Tier 1: semantic-type pre-filter ---
+            entity_candidates = [
+                col for col, col_info in table_info.columns.items()
+                if getattr(col_info, "semantic_type", "OTHER") in ENTITY_SEMANTIC_TYPES
+                and col in schema_columns
+            ]
+
+            logger.info(
+                f"[IdentityMap] Tier-1 entity candidates for '{table_name}': "
+                f"{entity_candidates}"
             )
 
-            if identity_col is None:
-                # Strategy B — Evaporate-style discovery from raw text
+            identity_col: Optional[str] = None
+
+            if len(entity_candidates) == 1:
+                # Unambiguous — no LLM call needed.
+                identity_col = entity_candidates[0]
                 logger.info(
-                    f"[IdentityMap] No identity column in workload schema for "
-                    f"'{table_name}'. Running text-based discovery..."
+                    f"[IdentityMap] Single entity candidate → '{identity_col}' "
+                    f"(no LLM call needed)"
+                )
+            elif len(entity_candidates) > 1:
+                # --- Tier 2a: LLM on pre-filtered short list ---
+                identity_col = detect_identity_column(
+                    table_name,
+                    entity_candidates,
+                    self.extractor.llm_client,
+                )
+                if identity_col is None:
+                    # LLM couldn't choose — take the first candidate
+                    identity_col = entity_candidates[0]
+                    logger.warning(
+                        f"[IdentityMap] LLM returned NULL for pre-filtered candidates "
+                        f"{entity_candidates}; using first: '{identity_col}'"
+                    )
+            else:
+                # No PERSON/ORG/GPE columns — try full schema with LLM
+                # --- Tier 2b: LLM on full schema ---
+                identity_col = detect_identity_column(
+                    table_name,
+                    schema_columns,
+                    self.extractor.llm_client,
+                )
+
+            if identity_col is None:
+                # --- Tier 3: NER-based entity type detection ---
+                # Reached only when the workload has no PERSON/ORG/GPE column
+                # (e.g. pure aggregation queries).  We do NOT try to discover
+                # a column name from raw text — that always picks up document
+                # structure words ('attribute', 'value', 'subject') instead of
+                # real entity identifiers.  Instead, we let spaCy NER tell us
+                # which named-entity type dominates the candidate chunks, then
+                # inject a virtual '_entity' routing column.  During extraction
+                # the LLM is instructed to populate '_entity' with whatever name
+                # it finds for that entity type, and upsert_by_entity uses that
+                # as the key.
+                logger.info(
+                    f"[IdentityMap] No entity column in schema for '{table_name}'. "
+                    f"Running NER-based entity type detection (Tier 3)..."
                 )
                 candidate_chunk_ids = self.data_layer.get_candidates(table_name)
                 if not candidate_chunk_ids:
                     logger.warning(
                         f"[IdentityMap] No candidate chunks for '{table_name}'. "
-                        f"Cannot discover entity attribute."
+                        f"Skipping entity detection."
                     )
                     self.identity_columns[table_name] = None
                     continue
 
-                candidate_chunks = self.data_layer.get_chunks_by_ids(
-                    candidate_chunk_ids[:100]
+                sample_chunks = self.data_layer.get_chunks_by_ids(
+                    candidate_chunk_ids[:50]
                 )
-                sample_texts = [c.content for c in candidate_chunks]
+                sample_texts = [c.content for c in sample_chunks]
 
-                discovered = discover_entity_attribute(
-                    table_name,
-                    sample_texts,
-                    self.extractor.llm_client,
-                )
+                # Count named-entity types across the sample
+                from collections import Counter as _Counter
+                ner_type_counts: _Counter = _Counter()
+                for doc in self._nlp.pipe(
+                    sample_texts, batch_size=32,
+                    disable=["parser", "lemmatizer"]
+                ):
+                    for ent in doc.ents:
+                        if ent.label_ in {"PERSON", "ORG", "GPE"}:
+                            ner_type_counts[ent.label_] += 1
 
-                if discovered:
-                    logger.info(
-                        f"[IdentityMap] Discovered entity attribute for "
-                        f"'{table_name}': '{discovered}'"
-                    )
-                    # Register the discovered attribute in the lattice schema
-                    # so the extractor includes it.
-                    table_info.columns[discovered] = type("ColInfo", (), {
-                        "semantic_type": "OTHER",
+                if ner_type_counts:
+                    dominant_type = ner_type_counts.most_common(1)[0][0]
+                    # Virtual identity column: tells the extractor what to put
+                    # in _entity, and tells _group_chunks_by_entity which NER
+                    # label to look for.
+                    virtual_col = "_entity_discovered"
+                    table_info.columns[virtual_col] = type("ColInfo", (), {
+                        "semantic_type": dominant_type,
                         "predicate_literals": set(),
                     })()
-                    identity_col = discovered
+                    identity_col = virtual_col
+                    logger.info(
+                        f"[IdentityMap] Tier-3 NER: dominant entity type for "
+                        f"'{table_name}' is {dominant_type} "
+                        f"(counts: {dict(ner_type_counts.most_common(3))}). "
+                        f"Using virtual column '{virtual_col}'."
+                    )
                 else:
                     logger.warning(
-                        f"[IdentityMap] Could not discover entity attribute for "
-                        f"'{table_name}'. Upsert will fall back to plain insert."
+                        f"[IdentityMap] Tier-3 NER found no named entities in "
+                        f"sample chunks for '{table_name}'. "
+                        f"Upsert will fall back to plain insert."
                     )
 
             # Derive the spaCy NER label from the LLM-assigned semantic type of
