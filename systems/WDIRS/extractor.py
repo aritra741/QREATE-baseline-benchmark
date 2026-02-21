@@ -402,20 +402,24 @@ class ConstrainedExtractor:
         schema: Dict[str, str],
         constrained_keys: Optional[Set[str]],
         normalization_hints: Optional[Dict[str, List[str]]],
+        col_batch_size: Optional[int] = None,
     ) -> List[tuple]:
         """
-        Split a wide schema into column batches of at most COLUMN_BATCH_SIZE.
+        Split a wide schema into column batches of at most `col_batch_size`
+        (defaults to the global COLUMN_BATCH_SIZE setting).
+
+        Pass a value larger than len(schema) to disable batching and send all
+        columns in a single LLM call — safe for entity-first extraction where
+        the context is already focused on one specific entity.
 
         Returns a list of (col_batch_schema, batch_constrained_keys,
         batch_normalization_hints) tuples.
-
-        Keeping batches small prevents 7B-model confusion from overly wide
-        prompts while still doing a single sequential pass per chunk.
         """
+        batch_size = col_batch_size if col_batch_size is not None else COLUMN_BATCH_SIZE
         items = list(schema.items())
         batches = []
-        for i in range(0, len(items), COLUMN_BATCH_SIZE):
-            col_batch = dict(items[i : i + COLUMN_BATCH_SIZE])
+        for i in range(0, len(items), batch_size):
+            col_batch = dict(items[i : i + batch_size])
             batch_ck = (
                 constrained_keys & col_batch.keys()
                 if constrained_keys
@@ -518,6 +522,7 @@ class ConstrainedExtractor:
         constrained_keys: Optional[Set[str]] = None,
         normalization_hints: Optional[Dict[str, List[str]]] = None,
         entity_col: Optional[str] = None,
+        col_batch_size_override: Optional[int] = None,
     ) -> List[ExtractionResult]:
         """
         Extract data from all chunks using chunk-group × column-batch parallelism.
@@ -539,7 +544,8 @@ class ConstrainedExtractor:
         from config import MAX_PARALLEL_REQUESTS
 
         col_batches = self._split_schema_into_batches(
-            schema, constrained_keys, normalization_hints
+            schema, constrained_keys, normalization_hints,
+            col_batch_size=col_batch_size_override,
         )
         n_col_batches = len(col_batches)
 

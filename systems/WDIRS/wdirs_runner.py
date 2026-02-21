@@ -495,15 +495,38 @@ class WDIRSRunner:
                     )
 
             # Derive the spaCy NER label from the LLM-assigned semantic type of
-            # the identity column.  The semantic type was already determined by
-            # _identify_semantic_types during parse_workload — no extra LLM call
-            # needed, and the mapping is fully dataset-agnostic.
+            # the identity column.  The semantic type was determined by
+            # _identify_semantic_types during parse_workload.
+            # We then cross-check against workload normalization hint values to
+            # catch the common case where the LLM mistakenly labels an ORG
+            # column (e.g. company_name) as PERSON.  Value-based detection is
+            # dataset-agnostic and requires no extra LLM call.
             ner_label: Optional[str] = None
             if identity_col and identity_col in table_info.columns:
                 sem_type = getattr(
                     table_info.columns[identity_col], "semantic_type", None
                 )
                 ner_label = self._semantic_type_to_ner_label(sem_type)
+
+                # ── Validate / correct PERSON → ORG mislabel ─────────────
+                # If the LLM assigned PERSON but the workload hint values for
+                # this column contain org-suffix tokens ("Inc.", "Ltd.", etc.)
+                # the column is almost certainly an ORG column.
+                if ner_label == "PERSON":
+                    _ORG_SUFFIXES = {
+                        " inc", " ltd", " llc", " corp", " co.", " limited",
+                        " company", " plc", " gmbh", " s.a.", " ag", " lp",
+                        " llp", " group", " holdings", " bank", " fund",
+                        " trust", " association", " authority", " council",
+                    }
+                    _norm_hints = self.lattice_planner.get_normalization_hints(table_name)
+                    _hint_vals  = " ".join(_norm_hints.get(identity_col, [])).lower()
+                    if any(suf in _hint_vals for suf in _ORG_SUFFIXES):
+                        logger.info(
+                            f"[IdentityMap] Correcting NER label PERSON→ORG for "
+                            f"'{identity_col}': hint values contain org indicators"
+                        )
+                        ner_label = "ORG"
 
             self.identity_columns[table_name] = identity_col
             self.identity_ner_labels[table_name] = ner_label
@@ -545,41 +568,86 @@ class WDIRSRunner:
         top_k_per_entity: int,
     ) -> tuple:
         """
-        Use spaCy NER to group candidate chunks by the entity they describe.
+        Two-phase entity grouping designed to avoid running spaCy NER on every chunk.
 
-        For each chunk, detect named entities of `ner_label` type (or any
-        named entity if ner_label is None).  The most frequent entity in the
-        chunk is used as the key.
+        Phase 1 — Discovery (NER on a sample):
+            Run spaCy NER on up to ENTITY_DISCOVERY_SAMPLE chunks to collect all
+            entity names. This is fast (seconds, not minutes).
+
+        Phase 2 — Assignment (FlashText on all chunks):
+            Build a FlashText KeywordProcessor from the discovered names and run it
+            over every chunk. FlashText processes millions of strings/sec — far faster
+            than NER.
+
+        Chunks that FlashText cannot assign fall into `unassigned`.
 
         Returns:
             entity_to_chunks: Dict[str, List[TextChunk]] — top_k chunks per entity
-            unassigned: List[TextChunk] — chunks with no detected entity
+            unassigned: List[TextChunk] — chunks with no discovered entity string
         """
+        import random
         from collections import defaultdict, Counter as _Counter
+        from flashtext import KeywordProcessor
+        from config import NER_BATCH_SIZE
+
+        ENTITY_DISCOVERY_SAMPLE = 5000   # NER only on this many chunks
+        ACCEPTABLE_LABELS = {"PERSON", "ORG", "GPE", "PRODUCT"}
+        label_filter = {ner_label} if ner_label else ACCEPTABLE_LABELS
+
+        # ── Phase 1: Entity discovery via NER on a sample ────────────────────
+        total = len(candidate_chunks)
+        sample_size = min(ENTITY_DISCOVERY_SAMPLE, total)
+        sample_indices = random.sample(range(total), sample_size)
+        sample_chunks = [candidate_chunks[i] for i in sample_indices]
+
+        logger.info(
+            f"[EntityFirst] Phase-1 NER discovery on {sample_size}/{total} chunks "
+            f"(label filter: {ner_label or 'ALL'})"
+        )
+
+        entity_counter: "_Counter[str]" = _Counter()
+        sample_texts = [c.content for c in sample_chunks]
+        for doc in self._nlp.pipe(
+            sample_texts,
+            batch_size=NER_BATCH_SIZE,
+            disable=["tok2vec", "tagger", "parser", "attribute_ruler", "lemmatizer"],
+        ):
+            for ent in doc.ents:
+                if ent.label_ in label_filter:
+                    name = ent.text.strip()
+                    if len(name) > 1:
+                        entity_counter[name] += 1
+
+        if not entity_counter:
+            logger.warning(
+                "[EntityFirst] NER discovered no entities in sample — "
+                "all chunks will be unassigned"
+            )
+            return {}, candidate_chunks
+
+        discovered_entities = list(entity_counter.keys())
+        logger.info(
+            f"[EntityFirst] Phase-1 discovered {len(discovered_entities)} unique entities "
+            f"(top-5 by freq: {[e for e, _ in entity_counter.most_common(5)]})"
+        )
+
+        # ── Phase 2: FlashText assignment over all chunks ────────────────────
+        kp = KeywordProcessor(case_sensitive=False)
+        for ent_name in discovered_entities:
+            kp.add_keyword(ent_name)
+
+        logger.info(
+            f"[EntityFirst] Phase-2 FlashText assignment over {total} chunks"
+        )
 
         entity_to_all_chunks: Dict[str, list] = defaultdict(list)
         unassigned: list = []
 
-        logger.info(
-            f"[EntityFirst] NER pass over {len(candidate_chunks)} chunks "
-            f"(label filter: {ner_label or 'ALL'})"
-        )
-
-        # Use spaCy pipe for speed (processes many docs in one pass)
-        texts = [c.content for c in candidate_chunks]
-        docs = self._nlp.pipe(texts, batch_size=128, disable=["parser", "lemmatizer"])
-
-        for chunk, doc in zip(candidate_chunks, docs):
-            if ner_label:
-                ents = [ent.text.strip() for ent in doc.ents if ent.label_ == ner_label]
-            else:
-                ents = [ent.text.strip() for ent in doc.ents
-                        if ent.label_ in {"PERSON", "ORG", "GPE", "PRODUCT"}]
-
-            ents = [e for e in ents if len(e) > 1]   # drop single chars
-
-            if ents:
-                primary = _Counter(ents).most_common(1)[0][0]
+        for chunk in candidate_chunks:
+            hits = kp.extract_keywords(chunk.content)
+            # hits is a list of matched entity names; use the most frequent
+            if hits:
+                primary = _Counter(hits).most_common(1)[0][0]
                 entity_to_all_chunks[primary].append(chunk)
             else:
                 unassigned.append(chunk)
@@ -591,7 +659,7 @@ class WDIRSRunner:
         }
 
         logger.info(
-            f"[EntityFirst] {len(entity_to_chunks)} unique entities found, "
+            f"[EntityFirst] {len(entity_to_chunks)} entities assigned, "
             f"{len(unassigned)} unassigned chunks"
         )
         return entity_to_chunks, unassigned
@@ -618,11 +686,23 @@ class WDIRSRunner:
         """
         from collections import defaultdict as _dd
 
-        from config import TOP_K_CHUNKS_PER_ENTITY
+        from config import TOP_K_CHUNKS_PER_ENTITY, UNASSIGNED_CHUNK_CAP
 
+        # normalization_hints contain EXPECTED OUTPUT values (e.g. 'USA'),
+        # not the text forms as they appear in documents.  Do NOT seed FlashText
+        # with them — FlashText must match document text forms, and NER Phase-1
+        # discovers those from the corpus sample.  Normalization hints are only
+        # used later in the LLM extraction prompt to standardize output values.
         entity_to_chunks, unassigned = self._group_chunks_by_entity(
-            candidate_chunks, ner_label, top_k_per_entity=TOP_K_CHUNKS_PER_ENTITY
+            candidate_chunks, ner_label,
+            top_k_per_entity=TOP_K_CHUNKS_PER_ENTITY,
         )
+
+        # For entity-first extraction the context is tightly focused (all
+        # chunks belong to ONE entity), so the 7B model can reliably handle
+        # the full schema in a single call.  Pass col_batch_size_override that
+        # exceeds schema width to disable column batching entirely.
+        _no_batch_size = len(schema) + 1
 
         self.data_layer.create_dynamic_table(table_name, sql_schema)
         total_records = 0
@@ -648,6 +728,7 @@ class WDIRSRunner:
                 schema,
                 normalization_hints=normalization_hints,
                 entity_col=identity_col,
+                col_batch_size_override=_no_batch_size,
             )
             pairs = [
                 (record, er.chunk_id)
@@ -692,13 +773,16 @@ class WDIRSRunner:
             self.data_layer.bulk_insert_provenance(table_name, pv)
             total_records += len(pv)
 
-        # --- Unassigned chunks: process with standard path if not too many ---
-        unassigned_limit = max(500, len(candidate_chunks) // 20)  # 5% cap
+        # --- Unassigned chunks: hard-capped standard extraction ──────────────
+        # With the correct NER label and FlashText, unassigned should be rare
+        # (chunks with no detectable entity name).  A hard cap of
+        # UNASSIGNED_CHUNK_CAP prevents this from becoming a bottleneck even
+        # in pathological cases.
         if unassigned:
-            to_process = unassigned[:unassigned_limit]
+            to_process = unassigned[:UNASSIGNED_CHUNK_CAP]
             logger.info(
                 f"[EntityFirst] Processing {len(to_process)} unassigned chunks "
-                f"with standard extraction (capped at {unassigned_limit})"
+                f"(hard cap={UNASSIGNED_CHUNK_CAP}, total unassigned={len(unassigned)})"
             )
             ua_texts = [c.content for c in to_process]
             ua_ids   = [c.chunk_id for c in to_process]
@@ -706,6 +790,7 @@ class WDIRSRunner:
                 ua_texts, ua_ids, table_name, schema,
                 normalization_hints=normalization_hints,
                 entity_col=identity_col,
+                col_batch_size_override=_no_batch_size,
             )
             record_chunk_pairs = [
                 (record, er.chunk_id)
