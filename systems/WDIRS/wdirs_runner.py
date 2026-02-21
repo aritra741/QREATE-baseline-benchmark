@@ -11,7 +11,7 @@ from pathlib import Path
 from dataclasses import dataclass, asdict
 import sys
 
-from data_layer import DataLayer, RecursiveCharacterSplitter, TextChunk
+from data_layer import DataLayer, TextChunk
 from lattice_planner import LatticePlanner, load_workload_from_directory
 from sieve_synthesizer import SieveSynthesizer
 from extractor import ConstrainedExtractor, OllamaClient
@@ -131,9 +131,6 @@ class WDIRSRunner:
             self.entity_resolver
         )
         
-        # Text splitter
-        self.text_splitter = RecursiveCharacterSplitter()
-
         # Identity columns detected/discovered per table.
         # Populated by _build_identity_map before extraction.
         # None value means the table has no reliable identity column (rare).
@@ -289,7 +286,7 @@ class WDIRSRunner:
                 
                 # Create chunks
                 doc_id = str(text_file.relative_to(dataset_path))
-                chunks = self.text_splitter.create_chunks(
+                chunks = self.data_layer.create_chunks(
                     content,
                     doc_id,
                     metadata={"source_file": str(text_file)}

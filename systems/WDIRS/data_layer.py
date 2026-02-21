@@ -985,24 +985,10 @@ class DataLayer:
         self,
         text: str,
         doc_id: str,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> List[TextChunk]:
         """Create TextChunk objects from text using RecursiveCharacterSplitter."""
-        splitter = RecursiveCharacterSplitter()
-        splits = splitter.split_text(text)
-
-        chunks = []
-        for idx, content in enumerate(splits):
-            chunk = TextChunk(
-                chunk_id=str(uuid.uuid4()),
-                doc_id=doc_id,
-                content=content,
-                chunk_index=idx,
-                metadata=metadata or {}
-            )
-            chunks.append(chunk)
-
-        return chunks
+        return RecursiveCharacterSplitter().create_chunks(text, doc_id, metadata)
 
     def close(self):
         """Close database connections."""
@@ -1094,3 +1080,22 @@ class RecursiveCharacterSplitter:
             merged.append(chunk)
 
         return merged
+
+    def create_chunks(
+        self,
+        text: str,
+        doc_id: str,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> List[TextChunk]:
+        """Split text and wrap each piece in a TextChunk with a unique ID."""
+        splits = self.split_text(text)
+        return [
+            TextChunk(
+                chunk_id=str(uuid.uuid4()),
+                doc_id=doc_id,
+                content=content,
+                chunk_index=idx,
+                metadata=metadata or {},
+            )
+            for idx, content in enumerate(splits)
+        ]
