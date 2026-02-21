@@ -702,113 +702,21 @@ class DataLayer:
                 logger.error(f"SQL execution failed: {e}")
                 raise RuntimeError(f"SQL execution failed: {e}") from e
 
-    def close(self):
-        """Close database connections."""
-        self.engine.dispose()
-        logger.info("DataLayer connections closed")
-
-
-# ============================================================================
-# Text Chunking Utilities
-# ============================================================================
-
-class RecursiveCharacterSplitter:
-    """
-    Implements recursive character splitting for text chunking.
-    Based on LangChain's RecursiveCharacterTextSplitter.
-    """
-    
-    def __init__(
-        self,
-        chunk_size: int = CHUNK_SIZE,
-        chunk_overlap: int = CHUNK_OVERLAP,
-        separators: List[str] = CHUNK_SEPARATORS
-    ):
-        self.chunk_size = chunk_size
-        self.chunk_overlap = chunk_overlap
-        self.separators = separators
-    
-    def split_text(self, text: str) -> List[str]:
-        """Split text into chunks recursively."""
-        return self._split_text_recursive(text, self.separators)
-    
-    def _split_text_recursive(
-        self,
-        text: str,
-        separators: List[str]
-    ) -> List[str]:
-        """Recursively split text using separators."""
-        if not separators:
-            return self._split_by_length(text)
-        
-        separator = separators[0]
-        remaining_separators = separators[1:]
-        
-        if separator:
-            splits = text.split(separator)
-        else:
-            splits = list(text)
-        
-        # Merge small splits and recursively split large ones
-        chunks = []
-        current_chunk = ""
-        
-        for split in splits:
-            if len(current_chunk) + len(split) <= self.chunk_size:
-                current_chunk += split + separator
-            else:
-                if current_chunk:
-                    chunks.append(current_chunk.strip())
-                
-                if len(split) > self.chunk_size:
-                    # Recursively split large chunk
-                    sub_chunks = self._split_text_recursive(split, remaining_separators)
-                    chunks.extend(sub_chunks)
-                    current_chunk = ""
-                else:
-                    current_chunk = split + separator
-        
-        if current_chunk:
-            chunks.append(current_chunk.strip())
-        
-        return self._merge_with_overlap(chunks)
-    
-    def _split_by_length(self, text: str) -> List[str]:
-        """Split text by fixed length."""
-        chunks = []
-        for i in range(0, len(text), self.chunk_size - self.chunk_overlap):
-            chunks.append(text[i:i + self.chunk_size])
-        return chunks
-    
-    def _merge_with_overlap(self, chunks: List[str]) -> List[str]:
-        """Add overlap between chunks."""
-        if not chunks or self.chunk_overlap == 0:
-            return chunks
-        
-        merged = []
-        for i, chunk in enumerate(chunks):
-            if i > 0 and self.chunk_overlap > 0:
-                # Add overlap from previous chunk
-                prev_chunk = chunks[i - 1]
-                overlap = prev_chunk[-self.chunk_overlap:]
-                chunk = overlap + chunk
-            merged.append(chunk)
-        
-        return merged
-    
     def get_distinct_values(self, table_name: str, column_name: str) -> List[str]:
         """Get all distinct values from a column in a dynamic table."""
-        with self.Session() as session:
+        with self.engine.connect() as conn:
             try:
-                # Query the dynamic table
-                stmt = text(f"SELECT DISTINCT {column_name} FROM {table_name} WHERE {column_name} IS NOT NULL")
-                result = session.execute(stmt)
-                values = [str(row[0]) for row in result.fetchall()]
-                return values
+                result = conn.execute(
+                    text(
+                        f"SELECT DISTINCT {column_name} FROM {table_name} "
+                        f"WHERE {column_name} IS NOT NULL"
+                    )
+                )
+                return [str(row[0]) for row in result.fetchall()]
             except Exception as e:
                 logger.error(f"Error getting distinct values from {table_name}.{column_name}: {e}")
                 return []
-    
+
     def update_column_values(
         self,
         table_name: str,
@@ -816,36 +724,25 @@ class RecursiveCharacterSplitter:
         value_map: Dict[str, str]
     ) -> int:
         """
-        Update column values based on a mapping.
-        
-        Args:
-            table_name: Name of the table
-            column_name: Name of the column to update
-            value_map: Dictionary mapping old_value -> new_value
-            
-        Returns:
-            Number of rows updated
+        Update column values based on a mapping (old_value → new_value).
+        Returns the number of rows updated.
         """
-        with self.Session() as session:
+        with self.engine.connect() as conn:
             try:
                 updated_count = 0
                 for old_value, new_value in value_map.items():
-                    # Use parameterized query to prevent SQL injection
-                    stmt = text(
-                        f"UPDATE {table_name} SET {column_name} = :new_value "
-                        f"WHERE {column_name} = :old_value"
-                    )
-                    result = session.execute(
-                        stmt,
-                        {"new_value": new_value, "old_value": old_value}
+                    result = conn.execute(
+                        text(
+                            f"UPDATE {table_name} SET {column_name} = :new_value "
+                            f"WHERE {column_name} = :old_value"
+                        ),
+                        {"new_value": new_value, "old_value": old_value},
                     )
                     updated_count += result.rowcount
-                
-                session.commit()
+                conn.commit()
                 logger.info(f"Updated {updated_count} rows in {table_name}.{column_name}")
                 return updated_count
             except Exception as e:
-                session.rollback()
                 logger.error(f"Error updating column values in {table_name}.{column_name}: {e}")
                 raise
     
@@ -1090,9 +987,10 @@ class RecursiveCharacterSplitter:
         doc_id: str,
         metadata: Optional[Dict[str, Any]] = None
     ) -> List[TextChunk]:
-        """Create TextChunk objects from text."""
-        splits = self.split_text(text)
-        
+        """Create TextChunk objects from text using RecursiveCharacterSplitter."""
+        splitter = RecursiveCharacterSplitter()
+        splits = splitter.split_text(text)
+
         chunks = []
         for idx, content in enumerate(splits):
             chunk = TextChunk(
@@ -1103,5 +1001,96 @@ class RecursiveCharacterSplitter:
                 metadata=metadata or {}
             )
             chunks.append(chunk)
-        
+
         return chunks
+
+    def close(self):
+        """Close database connections."""
+        self.engine.dispose()
+        logger.info("DataLayer connections closed")
+
+
+# ============================================================================
+# Text Chunking Utilities
+# ============================================================================
+
+class RecursiveCharacterSplitter:
+    """
+    Implements recursive character splitting for text chunking.
+    Based on LangChain's RecursiveCharacterTextSplitter.
+    """
+
+    def __init__(
+        self,
+        chunk_size: int = CHUNK_SIZE,
+        chunk_overlap: int = CHUNK_OVERLAP,
+        separators: List[str] = CHUNK_SEPARATORS
+    ):
+        self.chunk_size = chunk_size
+        self.chunk_overlap = chunk_overlap
+        self.separators = separators
+
+    def split_text(self, text: str) -> List[str]:
+        """Split text into chunks recursively."""
+        return self._split_text_recursive(text, self.separators)
+
+    def _split_text_recursive(
+        self,
+        text: str,
+        separators: List[str]
+    ) -> List[str]:
+        """Recursively split text using separators."""
+        if not separators:
+            return self._split_by_length(text)
+
+        separator = separators[0]
+        remaining_separators = separators[1:]
+
+        if separator:
+            splits = text.split(separator)
+        else:
+            splits = list(text)
+
+        chunks = []
+        current_chunk = ""
+
+        for split in splits:
+            if len(current_chunk) + len(split) <= self.chunk_size:
+                current_chunk += split + separator
+            else:
+                if current_chunk:
+                    chunks.append(current_chunk.strip())
+
+                if len(split) > self.chunk_size:
+                    sub_chunks = self._split_text_recursive(split, remaining_separators)
+                    chunks.extend(sub_chunks)
+                    current_chunk = ""
+                else:
+                    current_chunk = split + separator
+
+        if current_chunk:
+            chunks.append(current_chunk.strip())
+
+        return self._merge_with_overlap(chunks)
+
+    def _split_by_length(self, text: str) -> List[str]:
+        """Split text by fixed length."""
+        chunks = []
+        for i in range(0, len(text), self.chunk_size - self.chunk_overlap):
+            chunks.append(text[i:i + self.chunk_size])
+        return chunks
+
+    def _merge_with_overlap(self, chunks: List[str]) -> List[str]:
+        """Add overlap between chunks."""
+        if not chunks or self.chunk_overlap == 0:
+            return chunks
+
+        merged = []
+        for i, chunk in enumerate(chunks):
+            if i > 0 and self.chunk_overlap > 0:
+                prev_chunk = chunks[i - 1]
+                overlap = prev_chunk[-self.chunk_overlap:]
+                chunk = overlap + chunk
+            merged.append(chunk)
+
+        return merged
