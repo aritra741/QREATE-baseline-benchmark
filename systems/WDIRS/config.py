@@ -60,8 +60,9 @@ OLLAMA_RETRY_DELAY = 2  # seconds
 # LLM extraction parameters
 EXTRACTION_BATCH_SIZE = 10  # kept for schema stabilization sampling
 EXTRACTION_TEMPERATURE = 0.1  # low temperature for consistency
-EXTRACTION_MAX_TOKENS = 2048  # one chunk per call; 2048 is ample for JSON output
-COLUMN_BATCH_SIZE = 5  # max columns per LLM call (7B models degrade beyond ~6)
+EXTRACTION_MAX_TOKENS = 4096  # multi-chunk calls produce more output tokens
+COLUMN_BATCH_SIZE = 10  # max columns per LLM call; qwen2.5:7b handles 10 reliably
+CHUNK_BATCH_SIZE = 5    # chunks processed in one LLM call (amortises HTTP overhead)
 
 # ============================================================================
 # Entity Resolution Configuration
