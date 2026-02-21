@@ -138,6 +138,21 @@ class WDIRSRunner:
         # Populated by _build_identity_map before extraction.
         # None value means the table has no reliable identity column (rare).
         self.identity_columns: Dict[str, Optional[str]] = {}
+
+        # spaCy NER label for each table's identity column.
+        # Used by entity-first extraction to group chunks by entity without LLM.
+        self.identity_ner_labels: Dict[str, Optional[str]] = {}
+
+        # Load spaCy model once; reused for all NER passes.
+        import spacy as _spacy
+        try:
+            self._nlp = _spacy.load("en_core_web_sm")
+            logger.info("spaCy en_core_web_sm loaded for entity-first extraction")
+        except OSError:
+            raise RuntimeError(
+                "spaCy model 'en_core_web_sm' not found. "
+                "Run: python -m spacy download en_core_web_sm"
+            )
         
         # Cache
         self.cache_dir = CACHE_DIR / dataset
@@ -410,10 +425,208 @@ class WDIRSRunner:
                         f"'{table_name}'. Upsert will fall back to plain insert."
                     )
 
+            # Derive the spaCy NER label from the LLM-assigned semantic type of
+            # the identity column.  The semantic type was already determined by
+            # _identify_semantic_types during parse_workload — no extra LLM call
+            # needed, and the mapping is fully dataset-agnostic.
+            ner_label: Optional[str] = None
+            if identity_col and identity_col in table_info.columns:
+                sem_type = getattr(
+                    table_info.columns[identity_col], "semantic_type", None
+                )
+                ner_label = self._semantic_type_to_ner_label(sem_type)
+
             self.identity_columns[table_name] = identity_col
+            self.identity_ner_labels[table_name] = ner_label
             logger.info(
-                f"[IdentityMap] '{table_name}' → identity_col = '{identity_col}'"
+                f"[IdentityMap] '{table_name}' → identity_col='{identity_col}', "
+                f"ner_label='{ner_label}'"
             )
+
+    @staticmethod
+    def _semantic_type_to_ner_label(semantic_type: Optional[str]) -> Optional[str]:
+        """
+        Map a lattice-planner semantic type to its spaCy NER label.
+
+        Semantic types are assigned by the LLM during parse_workload and are
+        fully dataset-agnostic (PERSON, ORG, GPE, etc.).  This mapping is the
+        single source of truth for how we translate those types into spaCy's
+        entity label vocabulary.
+
+        Returns None for types that have no direct NER analogue (CODE, DATE,
+        QUANTITY, OTHER) — in that case _group_chunks_by_entity sweeps all
+        named-entity types.
+        """
+        _MAP = {
+            "PERSON":   "PERSON",
+            "ORG":      "ORG",
+            "GPE":      "GPE",
+            "PRODUCT":  "PRODUCT",
+            "EVENT":    "EVENT",
+            "MONEY":    "MONEY",
+            "QUANTITY": "QUANTITY",
+            # DATE, CODE, OTHER have no reliable spaCy analogue; use all types.
+        }
+        return _MAP.get(semantic_type) if semantic_type else None
+
+    def _group_chunks_by_entity(
+        self,
+        candidate_chunks: list,
+        ner_label: Optional[str],
+        top_k_per_entity: int,
+    ) -> tuple:
+        """
+        Use spaCy NER to group candidate chunks by the entity they describe.
+
+        For each chunk, detect named entities of `ner_label` type (or any
+        named entity if ner_label is None).  The most frequent entity in the
+        chunk is used as the key.
+
+        Returns:
+            entity_to_chunks: Dict[str, List[TextChunk]] — top_k chunks per entity
+            unassigned: List[TextChunk] — chunks with no detected entity
+        """
+        from collections import defaultdict, Counter as _Counter
+
+        entity_to_all_chunks: Dict[str, list] = defaultdict(list)
+        unassigned: list = []
+
+        logger.info(
+            f"[EntityFirst] NER pass over {len(candidate_chunks)} chunks "
+            f"(label filter: {ner_label or 'ALL'})"
+        )
+
+        # Use spaCy pipe for speed (processes many docs in one pass)
+        texts = [c.content for c in candidate_chunks]
+        docs = self._nlp.pipe(texts, batch_size=128, disable=["parser", "lemmatizer"])
+
+        for chunk, doc in zip(candidate_chunks, docs):
+            if ner_label:
+                ents = [ent.text.strip() for ent in doc.ents if ent.label_ == ner_label]
+            else:
+                ents = [ent.text.strip() for ent in doc.ents
+                        if ent.label_ in {"PERSON", "ORG", "GPE", "PRODUCT"}]
+
+            ents = [e for e in ents if len(e) > 1]   # drop single chars
+
+            if ents:
+                primary = _Counter(ents).most_common(1)[0][0]
+                entity_to_all_chunks[primary].append(chunk)
+            else:
+                unassigned.append(chunk)
+
+        # Keep only top_k chunks per entity
+        entity_to_chunks: Dict[str, list] = {
+            entity: chunks[:top_k_per_entity]
+            for entity, chunks in entity_to_all_chunks.items()
+        }
+
+        logger.info(
+            f"[EntityFirst] {len(entity_to_chunks)} unique entities found, "
+            f"{len(unassigned)} unassigned chunks"
+        )
+        return entity_to_chunks, unassigned
+
+    def _entity_first_extraction(
+        self,
+        table_name: str,
+        schema: Dict[str, Any],
+        sql_schema: Dict[str, Any],
+        identity_col: str,
+        ner_label: Optional[str],
+        candidate_chunks: list,
+        normalization_hints: Dict[str, Any],
+    ) -> int:
+        """
+        Entity-first extraction pipeline.
+
+        1. Group candidate chunks by entity using spaCy NER (no LLM cost).
+        2. For each entity, run the LLM on only its top-K chunks.
+        3. Upsert results directly into the DB.
+        4. Process a small set of unassigned chunks with the standard path.
+
+        This reduces LLM calls from O(all_candidates) to O(entities × top_k).
+        """
+        from collections import defaultdict as _dd
+
+        from config import TOP_K_CHUNKS_PER_ENTITY
+
+        entity_to_chunks, unassigned = self._group_chunks_by_entity(
+            candidate_chunks, ner_label, top_k_per_entity=TOP_K_CHUNKS_PER_ENTITY
+        )
+
+        self.data_layer.create_dynamic_table(table_name, sql_schema)
+        total_records = 0
+
+        # --- Per-entity targeted LLM extraction ---
+        entity_items = list(entity_to_chunks.items())
+        logger.info(
+            f"[EntityFirst] Extracting {len(entity_items)} entities × "
+            f"≤{TOP_K_CHUNKS_PER_ENTITY} chunks each for '{table_name}'"
+        )
+
+        for entity_name, entity_chunks in entity_items:
+            chunk_texts = [c.content for c in entity_chunks]
+            chunk_ids_list = [c.chunk_id for c in entity_chunks]
+
+            results = self.extractor.extract_batch(
+                chunk_texts,
+                chunk_ids_list,
+                table_name,
+                schema,
+                normalization_hints=normalization_hints,
+                entity_col=identity_col,
+            )
+
+            record_chunk_pairs = [
+                (record, er.chunk_id)
+                for er in results
+                if not er.error
+                for record in er.records
+            ]
+
+            # If the LLM didn't populate _entity, inject the NER-detected name
+            for record, _ in record_chunk_pairs:
+                if not record.get("_entity"):
+                    record["_entity"] = entity_name
+                if identity_col not in record:
+                    record[identity_col] = entity_name
+
+            if record_chunk_pairs:
+                prov_pairs = self.data_layer.upsert_by_entity(
+                    table_name, identity_col, record_chunk_pairs
+                )
+                self.data_layer.bulk_insert_provenance(table_name, prov_pairs)
+                total_records += len(prov_pairs)
+
+        # --- Unassigned chunks: process with standard path if not too many ---
+        unassigned_limit = max(500, len(candidate_chunks) // 20)  # 5% cap
+        if unassigned:
+            to_process = unassigned[:unassigned_limit]
+            logger.info(
+                f"[EntityFirst] Processing {len(to_process)} unassigned chunks "
+                f"with standard extraction (capped at {unassigned_limit})"
+            )
+            ua_texts = [c.content for c in to_process]
+            ua_ids   = [c.chunk_id for c in to_process]
+            results  = self.extractor.extract_batch(
+                ua_texts, ua_ids, table_name, schema,
+                normalization_hints=normalization_hints,
+                entity_col=identity_col,
+            )
+            record_chunk_pairs = [
+                (record, er.chunk_id)
+                for er in results if not er.error
+                for record in er.records
+            ]
+            if record_chunk_pairs:
+                prov_pairs = self.data_layer.upsert_by_entity(
+                    table_name, identity_col, record_chunk_pairs
+                )
+                self.data_layer.bulk_insert_provenance(table_name, prov_pairs)
+                total_records += len(prov_pairs)
+
+        return total_records
 
     def _global_extraction(self, lattice) -> int:
         """Perform predicate-based extraction (like QAIRS)."""

@@ -63,6 +63,7 @@ EXTRACTION_TEMPERATURE = 0.1  # low temperature for consistency
 EXTRACTION_MAX_TOKENS = 4096  # multi-chunk calls produce more output tokens
 COLUMN_BATCH_SIZE = 10  # max columns per LLM call; qwen2.5:7b handles 10 reliably
 CHUNK_BATCH_SIZE = 5    # chunks processed in one LLM call (amortises HTTP overhead)
+TOP_K_CHUNKS_PER_ENTITY = 5  # max chunks fed to LLM per entity in entity-first extraction
 
 # ============================================================================
 # Entity Resolution Configuration
