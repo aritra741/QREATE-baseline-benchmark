@@ -47,6 +47,7 @@ logger = logging.getLogger(__name__)
 
 DATASET = "Finance"              # Source data directory name
 DATASET_QUERY = "Finan"          # Query directory name (may differ from source data)
+GT_TABLE_NAME = "finance"        # Table name used inside the SQL query files
 TRAINING_QUERY_TYPES = ["Agg", "Filter", "Select", "Mixed"]
 TEST_QUERY_TYPES = ["Subsample", "Variations"]
 RESULTS_BASE_DIR = RESULTS_DIR / "finance_workload_test"
@@ -67,10 +68,265 @@ class TestQueryMetrics:
     delta_type: str
     execution_time: float
     error: Optional[str] = None
+    # Official UDA-Bench evaluation metrics (macro-averaged over projected columns)
+    macro_f1: float = 0.0
+    macro_precision: float = 0.0
+    macro_recall: float = 0.0
+    gt_result_count: int = 0
+    matched_rows: int = 0
+    is_agg: bool = False
 
 # ============================================================================
 # Helper Functions
 # ============================================================================
+
+# ============================================================================
+# Official UDA-Bench Evaluation Integration
+# ============================================================================
+
+import re as _re
+import sqlite3 as _sqlite3
+import sys as _sys
+import sqlglot
+import sqlglot.expressions as _sqlglot_exp
+import pandas as pd
+
+_sys.path.insert(0, str(PROJECT_ROOT))  # make the top-level "evaluation" package importable
+
+from evaluation.config import EvalSettings as _EvalSettings, load_json as _load_json
+from evaluation.gt_runner import GtRunner as _GtRunner
+from evaluation.metrics import MetricCalculator as _MetricCalculator
+from evaluation.query_manifest import QueryManifest as _QueryManifest
+from evaluation.result_writer import ResultWriter as _ResultWriter
+from evaluation.row_matcher import RowMatcher as _RowMatcher
+from evaluation.sql_parser import SqlParser as _SqlParser
+from evaluation.utils import (
+    add_missing_columns as _add_missing_cols,
+    clean_string_columns as _clean_string_cols,
+    drop_unnamed_columns as _drop_unnamed,
+    normalize_file_name_columns as _norm_file_cols,
+    normalize_types as _norm_types,
+    standardize_column_name as _std_col,
+)
+
+# Paths for the official evaluator
+GROUND_TRUTH_CSV = PROJECT_ROOT / "Data" / "Finan" / "Finan.csv"
+ATTRIBUTES_FILE  = PROJECT_ROOT / "Query" / DATASET_QUERY / f"{DATASET_QUERY}_attributes.json"
+
+# Primary entity column (used to override "id"-based alignment for this dataset)
+GT_ENTITY_COL = "company_name"
+
+# Legal-entity suffixes stripped when normalizing group / entity keys for alignment.
+# This lets "KPMG LLP" and "KPMG" share the same normalized key without LLM.
+_LEGAL_SUFFIX_RE = _re.compile(
+    r"\b(plc|ltd|limited|inc|incorporated|corp|corporation|llc|llp|co|pty|"
+    r"gmbh|ag|sa|nv|bv|ab|as|asa|se|group|holdings)\b\.?",
+    _re.IGNORECASE,
+)
+
+
+def _norm_key(val: Any) -> str:
+    """Lowercase, strip legal suffixes, collapse whitespace — used for key normalization."""
+    s = " ".join(str(val).strip().lower().split())
+    s = _LEGAL_SUFFIX_RE.sub("", s)
+    s = _re.sub(r"[,\.\(\)]", "", s)
+    return " ".join(s.split())
+
+
+def _normalize_key_cols(df: "pd.DataFrame", key_cols: List[str]) -> "pd.DataFrame":
+    """
+    Apply entity-style normalization to key columns so that "KPMG LLP" and "KPMG"
+    share the same normalized key value and will match exactly without LLM.
+    """
+    df = df.copy()
+    for col in key_cols:
+        if col in df.columns:
+            df[col] = df[col].apply(lambda v: _norm_key(v) if pd.notna(v) else "")
+    return df
+
+
+def _augment_sql_with_entity(sql: str, entity_col: str, dialect: str = "duckdb") -> Optional[str]:
+    """
+    Rewrite a SELECT query to also fetch *entity_col* when it is absent from the
+    projection.  Returns None when no rewrite is needed (already present / SELECT *
+    / aggregation).
+    """
+    try:
+        parsed = sqlglot.parse_one(sql, error_level="ignore")
+    except Exception:
+        return None
+    if parsed.find(_sqlglot_exp.Star):
+        return None
+    if parsed.args.get("group"):
+        return None  # aggregation — don't touch
+    existing = {
+        c.name.lower()
+        for c in parsed.find_all(_sqlglot_exp.Column)
+        if isinstance(c.parent, _sqlglot_exp.Select)
+    }
+    if entity_col.lower() in existing:
+        return None
+    parsed = parsed.select(_sqlglot_exp.column(entity_col))
+    return parsed.sql(dialect=dialect)
+
+
+def _fetch_wdirs_with_entity(wdirs_db: Path, sql: str, entity_col: str) -> Optional[List[Dict]]:
+    """Query the phase-2 WDIRS SQLite DB with entity_col injected into the SELECT."""
+    aug = _augment_sql_with_entity(sql, entity_col, dialect="sqlite")
+    if aug is None:
+        return None
+    try:
+        con = _sqlite3.connect(str(wdirs_db))
+        con.row_factory = _sqlite3.Row
+        cur = con.execute(aug)
+        cols = [d[0] for d in cur.description]
+        rows = [dict(zip(cols, row)) for row in cur.fetchall()]
+        con.close()
+        return rows
+    except Exception as exc:
+        logger.warning(f"[Eval] Augmented WDIRS query failed: {exc}")
+        return None
+
+
+def _build_pred_df(
+    wdirs_rows: List[Dict],
+    expected_columns: List[str],
+    stop_columns: List[str],
+    attributes: Dict,
+) -> "pd.DataFrame":
+    """
+    Convert WDIRS result rows to a normalized DataFrame that mirrors what
+    ResultLoader would produce if it read a CSV file.
+    """
+    df = pd.DataFrame(wdirs_rows) if wdirs_rows else pd.DataFrame(columns=expected_columns)
+    df = _drop_unnamed(df)
+    df = df.rename(columns={c: _std_col(c) for c in df.columns})
+    df = _norm_file_cols(df)
+    df = _add_missing_cols(df, expected_columns)
+    df = _add_missing_cols(df, stop_columns)
+    df = _clean_string_cols(df)
+    df = _norm_types(df, attributes)
+    return df
+
+
+def evaluate_with_official_framework(
+    sql: str,
+    wdirs_rows: List[Dict],
+    *,
+    gt_runner: "_GtRunner",
+    sql_parser: "_SqlParser",
+    row_matcher: "_RowMatcher",
+    settings: "_EvalSettings",
+    attributes: Dict,
+    identity_col: Optional[str],
+    phase2_db: Path,
+    output_dir: Path,
+) -> Dict[str, Any]:
+    """
+    Evaluate one WDIRS query result against the official UDA-Bench evaluation
+    framework.
+
+    Differences from the CLI (run_eval.py):
+      • No file I/O for pred CSV — DataFrame is built directly from wdirs_rows.
+      • Primary-key alignment uses the dataset identity column (company_name),
+        not the GT 'id' column, because WDIRS does not produce id columns.
+      • Key columns are pre-normalized (lowercase + suffix stripping) so that
+        "KPMG LLP" ≡ "KPMG" without requiring an external LLM call.
+      • When entity_col is absent from the query projection, both the GT SQL
+        and the WDIRS query are augmented to include it for alignment only.
+
+    Returns a dict with keys:
+        macro_f1, macro_precision, macro_recall, is_agg,
+        column_metrics, gt_result_count, matched_rows, gt_results.
+    """
+    parsed   = sql_parser.parse(sql)
+    is_agg   = (parsed.query_type == "aggregation")
+    entity   = identity_col or GT_ENTITY_COL
+
+    # ── Ground-truth ─────────────────────────────────────────────────────────
+    if is_agg:
+        gt_sql           = sql
+        effective_wdirs  = wdirs_rows
+        primary_keys     = parsed.primary_keys  # GROUP BY cols
+    else:
+        # Ensure entity col is in GT result for row alignment
+        aug_gt = _augment_sql_with_entity(sql, entity, dialect="duckdb")
+        gt_sql = aug_gt if aug_gt else sql
+
+        # Mirror the augmentation on the WDIRS side if needed
+        wdirs_cols = {k.lower() for k in (wdirs_rows[0].keys() if wdirs_rows else {})}
+        if entity.lower() not in wdirs_cols and phase2_db.exists():
+            aug_wdirs       = _fetch_wdirs_with_entity(phase2_db, sql, entity)
+            effective_wdirs = aug_wdirs if aug_wdirs is not None else wdirs_rows
+        else:
+            effective_wdirs = wdirs_rows
+
+        primary_keys = [entity]
+
+    gold_df = gt_runner.run(gt_sql)
+
+    # Override primary_keys to entity col if it exists in gold_df;
+    # fallback to manifest primary_keys if the augmentation failed.
+    if not is_agg and entity not in gold_df.columns:
+        primary_keys = parsed.primary_keys
+
+    # ── Prediction DataFrame ──────────────────────────────────────────────────
+    manifest_for_pred = _QueryManifest(gt_sql, sql_parser.parse(gt_sql), attributes)
+    pred_df = _build_pred_df(
+        effective_wdirs,
+        expected_columns=list(gold_df.columns),
+        stop_columns=manifest_for_pred.stop_columns,
+        attributes=attributes,
+    )
+
+    # ── Pre-normalize key columns for LLM-free fuzzy alignment ───────────────
+    gold_norm = _normalize_key_cols(gold_df, primary_keys)
+    pred_norm = _normalize_key_cols(pred_df, primary_keys)
+
+    # ── Row alignment ─────────────────────────────────────────────────────────
+    try:
+        match_result = row_matcher.match(
+            gold_df=gold_norm,
+            pred_df=pred_norm,
+            primary_keys=primary_keys,
+            attr_descriptions=attributes,
+            query_type=parsed.query_type,
+        )
+    except KeyError as ke:
+        logger.warning(f"[Eval] RowMatcher key error ({ke}) — returning zero metrics")
+        return {
+            "macro_f1": 0.0, "macro_precision": 0.0, "macro_recall": 0.0,
+            "is_agg": is_agg, "column_metrics": {},
+            "gt_result_count": len(gold_df), "gt_results": gold_df.to_dict("records"),
+            "matched_rows": 0,
+        }
+
+    # ── Per-column metrics (using the augmented manifest) ────────────────────
+    calc    = _MetricCalculator(manifest_for_pred, settings)
+    metrics = calc.compute(match_result)
+
+    # ── Save per-query outputs ────────────────────────────────────────────────
+    try:
+        writer = _ResultWriter(output_dir=output_dir)
+        writer.write(gold_df, match_result.gold_aligned, match_result.pred_aligned, metrics)
+    except Exception as we:
+        logger.warning(f"[Eval] Could not write per-query outputs: {we}")
+
+    return {
+        "macro_f1":        metrics["macro_f1"],
+        "macro_precision": metrics["macro_precision"],
+        "macro_recall":    metrics["macro_recall"],
+        "is_agg":          is_agg,
+        "column_metrics":  metrics.get("columns", {}),
+        "gt_result_count": len(gold_df),
+        "gt_results":      gold_df.to_dict("records"),
+        "matched_rows":    match_result.matched_rows,
+    }
+
+
+
+
+
 
 def setup_logging(log_file: Path) -> None:
     """Configure logging to file and console."""
@@ -282,6 +538,17 @@ def run_preprocessing_phase(dataset: str, dataset_query: str) -> Tuple[bool, Dic
         else:
             logger.warning(f"Expected database not found at {db_path}")
         
+        # Persist the identity column map so Phase 2 can log and use it
+        # without re-running _build_identity_map.
+        identity_file = CHECKPOINT_DIR / f"{dataset}_identity_columns.json"
+        identity_payload = {
+            table: col
+            for table, col in runner.identity_columns.items()
+        }
+        with open(identity_file, "w") as _idf:
+            json.dump(identity_payload, _idf, indent=2)
+        logger.info(f"Saved identity column map to {identity_file}: {identity_payload}")
+
         # Also save statistics
         stats_file = CHECKPOINT_DIR / f"{dataset}_preprocessing_stats.json"
         with open(stats_file, 'w') as f:
@@ -351,8 +618,14 @@ def run_test_phase(dataset: str, dataset_query: str, checkpoint_path: Path) -> T
             stats["total_time"] = time.time() - phase_start
             return False, test_metrics, stats
         
-        logger.info(f"Loading preprocessed database from {checkpoint_path}")
-        runner = WDIRSRunner(dataset=dataset)
+        # Phase 2 works on an isolated copy of the checkpoint so that delta-engine
+        # writes (Row/Column Deltas) never pollute the Phase 1 DB.
+        phase2_db = checkpoint_path.parent / f"{dataset}_phase2_working.db"
+        shutil.copy2(checkpoint_path, phase2_db)
+        logger.info(f"Phase 2 working DB: {phase2_db}")
+
+        phase2_uri = f"sqlite:///{phase2_db}"
+        runner = WDIRSRunner(dataset=dataset, postgres_uri=phase2_uri)
 
         # Restore the in-memory lattice from the training workload so the delta
         # engine knows table schemas and predicate literals.  This is a fast,
@@ -367,6 +640,46 @@ def run_test_phase(dataset: str, dataset_query: str, checkpoint_path: Path) -> T
             return False, test_metrics, stats
         runner.restore_lattice(training_queries_for_restore)
         logger.info("Lattice restored successfully")
+
+        # Load persisted identity column map (written by Phase 1).
+        identity_file = CHECKPOINT_DIR / f"{dataset}_identity_columns.json"
+        identity_columns: Dict[str, Optional[str]] = {}
+        if identity_file.exists():
+            with open(identity_file) as _idf:
+                identity_columns = json.load(_idf)
+        logger.info("=" * 60)
+        logger.info("IDENTITY COLUMNS (primary entity attribute per table):")
+        for _tbl, _icol in identity_columns.items():
+            logger.info(f"  {_tbl}: {_icol!r}")
+        logger.info("=" * 60)
+
+        # Resolve the identity column for the main table in this workload.
+        identity_col: Optional[str] = (
+            identity_columns.get(GT_TABLE_NAME)
+            or identity_columns.get(GT_TABLE_NAME.capitalize())
+            or GT_ENTITY_COL
+        )
+
+        # ── Official UDA-Bench evaluator setup ────────────────────────────────
+        # GtRunner requires a directory whose CSV files are named after the SQL
+        # table names.  Finan.csv → finance.csv so DuckDB finds the right table.
+        gt_staging_dir = RESULTS_BASE_DIR / "gt_staging"
+        gt_staging_dir.mkdir(parents=True, exist_ok=True)
+        staged_gt_csv = gt_staging_dir / f"{GT_TABLE_NAME}.csv"
+        if not staged_gt_csv.exists() or staged_gt_csv.stat().st_size == 0:
+            shutil.copy2(GROUND_TRUTH_CSV, staged_gt_csv)
+            logger.info(f"Staged GT CSV as {staged_gt_csv}")
+
+        eval_attributes: Dict = (
+            _load_json(ATTRIBUTES_FILE) if ATTRIBUTES_FILE.exists() else {}
+        )
+        eval_settings = _EvalSettings(llm_provider="none")
+        eval_gt_runner = _GtRunner(gt_dir=gt_staging_dir, attributes=eval_attributes)
+        eval_sql_parser = _SqlParser()
+        eval_row_matcher = _RowMatcher(settings=eval_settings)
+
+        query_results_dir = RESULTS_BASE_DIR / "query_results"
+        query_results_dir.mkdir(parents=True, exist_ok=True)
 
         # Collect test queries
         test_queries = collect_test_workload(dataset_query)
@@ -407,6 +720,27 @@ def run_test_phase(dataset: str, dataset_query: str, checkpoint_path: Path) -> T
                         execution_time = time.time() - query_start
                         execution_times.append(execution_time)
                         
+                        # Evaluate against ground truth via official UDA-Bench framework
+                        eval_out: Dict[str, Any] = {}
+                        if result.success:
+                            try:
+                                eval_out = evaluate_with_official_framework(
+                                    query_text,
+                                    result.results,
+                                    gt_runner=eval_gt_runner,
+                                    sql_parser=eval_sql_parser,
+                                    row_matcher=eval_row_matcher,
+                                    settings=eval_settings,
+                                    attributes=eval_attributes,
+                                    identity_col=identity_col,
+                                    phase2_db=phase2_db,
+                                    output_dir=query_results_dir / query_id,
+                                )
+                            except Exception as _fe:
+                                logger.warning(f"  GT evaluation failed for {query_id}: {_fe}")
+
+                        is_agg = eval_out.get("is_agg", False)
+
                         metric = TestQueryMetrics(
                             query_id=query_id,
                             query_text=query_text[:80] + "..." if len(query_text) > 80 else query_text,
@@ -414,13 +748,25 @@ def run_test_phase(dataset: str, dataset_query: str, checkpoint_path: Path) -> T
                             success=result.success,
                             results_count=len(result.results),
                             delta_type=result.delta_type,
-                            execution_time=execution_time
+                            execution_time=execution_time,
+                            macro_f1=eval_out.get("macro_f1", 0.0),
+                            macro_precision=eval_out.get("macro_precision", 0.0),
+                            macro_recall=eval_out.get("macro_recall", 0.0),
+                            gt_result_count=eval_out.get("gt_result_count", 0),
+                            matched_rows=eval_out.get("matched_rows", 0),
+                            is_agg=is_agg,
                         )
-                        
+
                         if result.success:
                             successful_queries += 1
                             stats["test_results"][test_type]["successful"] += 1
-                            logger.info(f"  ✓ {query_id}: {len(result.results)} rows in {execution_time:.3f}s")
+                            logger.info(
+                                f"  ✓ {query_id}: {len(result.results)} rows "
+                                f"(GT={eval_out.get('gt_result_count', '?')}, "
+                                f"matched={eval_out.get('matched_rows', '?')}) "
+                                f"in {execution_time:.3f}s | "
+                                f"macro_F1={eval_out.get('macro_f1', 0):.3f}"
+                            )
                         else:
                             failed_queries += 1
                             stats["test_results"][test_type]["failed"] += 1
@@ -456,6 +802,29 @@ def run_test_phase(dataset: str, dataset_query: str, checkpoint_path: Path) -> T
             stats["failed_queries"] = failed_queries
             stats["success_rate"] = successful_queries / total_queries if total_queries > 0 else 0.0
             stats["success"] = True
+
+            # Aggregate official UDA-Bench metrics across all successful queries
+            scored        = [m for m in test_metrics if m.success]
+            select_scored = [m for m in scored if not m.is_agg]
+            agg_scored    = [m for m in scored if m.is_agg]
+
+            def _avg(lst): return sum(lst) / len(lst) if lst else 0.0
+
+            f1_eval: Dict[str, Any] = {}
+            if select_scored:
+                f1_eval["select_filter"] = {
+                    "macro_precision": _avg([m.macro_precision for m in select_scored]),
+                    "macro_recall":    _avg([m.macro_recall    for m in select_scored]),
+                    "macro_f1":        _avg([m.macro_f1        for m in select_scored]),
+                    "queries_scored":  len(select_scored),
+                }
+            if agg_scored:
+                f1_eval["aggregation"] = {
+                    "macro_f1":       _avg([m.macro_f1 for m in agg_scored]),
+                    "queries_scored": len(agg_scored),
+                }
+
+            stats["f1_evaluation"] = f1_eval
         
         total_time = time.time() - phase_start
         stats["total_time"] = total_time
@@ -464,6 +833,20 @@ def run_test_phase(dataset: str, dataset_query: str, checkpoint_path: Path) -> T
         logger.info(f"PHASE 2 COMPLETE - Total Time: {total_time:.2f}s")
         if total_queries > 0:
             logger.info(f"Success Rate: {stats['success_rate']*100:.1f}% ({stats['successful_queries']}/{total_queries})")
+        f1e = stats.get("f1_evaluation", {})
+        sf  = f1e.get("select_filter", {})
+        ag  = f1e.get("aggregation", {})
+        if sf:
+            logger.info(
+                f"SELECT/FILTER — macro F1={sf['macro_f1']:.3f}  "
+                f"P={sf['macro_precision']:.3f}  R={sf['macro_recall']:.3f}  "
+                f"({sf['queries_scored']} queries)"
+            )
+        if ag:
+            logger.info(
+                f"AGGREGATION   — macro F1={ag['macro_f1']:.3f}  "
+                f"({ag['queries_scored']} queries)"
+            )
         logger.info("=" * 80)
         
         return True, test_metrics, stats
@@ -690,6 +1073,30 @@ def generate_report(
         f.write(f"- **Successful**: {test_stats.get('successful_queries', 0)}\n")
         f.write(f"- **Failed**: {test_stats.get('failed_queries', 0)}\n")
         f.write(f"- **Success Rate**: {test_stats.get('success_rate', 0)*100:.1f}%\n\n")
+
+        f1e = test_stats.get("f1_evaluation", {})
+        sf  = f1e.get("select_filter", {})
+        ag  = f1e.get("aggregation", {})
+        if sf or ag:
+            f.write("### Official UDA-Bench Evaluation (vs Finan.csv via DuckDB)\n\n")
+            f.write("| Query Type | Macro Precision | Macro Recall | Macro F1 | Queries |\n")
+            f.write("|------------|-----------------|--------------|----------|---------|\n")
+        if sf:
+            f.write(
+                f"| SELECT/FILTER | {sf['macro_precision']:.3f} | "
+                f"{sf['macro_recall']:.3f} | {sf['macro_f1']:.3f} | "
+                f"{sf['queries_scored']} |\n"
+            )
+        if ag:
+            f.write(
+                f"| AGGREGATION   | — | — | {ag['macro_f1']:.3f} | "
+                f"{ag['queries_scored']} |\n"
+            )
+        if sf or ag:
+            f.write(
+                "\n_Agg F1 = mean of `1/(1+relative_error)` per group column "
+                "(from `AggComparator`). Per-query outputs in `query_results/`._\n\n"
+            )
         
         if test_stats.get('test_results'):
             f.write("### Test Results by Type\n\n")
