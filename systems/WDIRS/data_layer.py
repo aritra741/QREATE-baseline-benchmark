@@ -437,14 +437,23 @@ class DataLayer:
         """
         row_provenance_pairs: List[tuple] = []
 
+        # Fetch real column names once to strip LLM-hallucinated keys.
+        with self.engine.connect() as _c:
+            _rows = _c.execute(text(f"PRAGMA table_info({table_name})")).fetchall()
+        valid_cols: set = {row[1] for row in _rows}
+
         with self.engine.connect() as conn:
             try:
                 for extraction_result in extraction_results:
                     if extraction_result.error:
                         continue
                     for record in extraction_result.records:
+                        # Filter to only real DB columns
+                        clean = {k: v for k, v in record.items() if k in valid_cols}
+                        if not clean:
+                            continue
                         row_id = str(uuid.uuid4())
-                        full_record = {"row_id": row_id, **record}
+                        full_record = {"row_id": row_id, **clean}
                         columns = list(full_record.keys())
                         params = {}
                         for col in columns:
@@ -757,21 +766,24 @@ class DataLayer:
         """
         with self.engine.connect() as conn:
             try:
+                # Fetch valid columns and strip any LLM-hallucinated keys.
+                _valid = {
+                    row[1] for row in
+                    conn.execute(text(f"PRAGMA table_info({table_name})")).fetchall()
+                }
+                clean_record = {k: v for k, v in record.items() if k in _valid}
+
                 row_id = str(uuid.uuid4())
-                
-                # Add row_id to record
-                full_record = {"row_id": row_id, **record}
-                
-                # Build INSERT statement - handle None values explicitly
+                full_record = {"row_id": row_id, **clean_record}
+
                 columns = list(full_record.keys())
                 values = [full_record[col] for col in columns]
-                
+
                 columns_str = ", ".join(columns)
                 placeholders = ", ".join([f":{col}" for col in columns])
-                
+
                 sql = f"INSERT INTO {table_name} ({columns_str}) VALUES ({placeholders})"
-                
-                # Create parameter dict - convert None to NULL-compatible value
+
                 params = {}
                 for col, val in zip(columns, values):
                     if val is None:
@@ -780,7 +792,7 @@ class DataLayer:
                         params[col] = json.dumps(val)
                     else:
                         params[col] = val
-                
+
                 conn.execute(text(sql), params)
                 conn.commit()
                 
@@ -812,10 +824,23 @@ class DataLayer:
 
         Returns a list of (row_id, chunk_id) pairs for provenance insertion.
         """
+        # Fetch the real column names from the DB once to filter LLM hallucinations.
+        with self.engine.connect() as _c:
+            _rows = _c.execute(text(f"PRAGMA table_info({table_name})")).fetchall()
+        valid_cols: set = {row[1] for row in _rows}  # column name is index 1
+
+        def _sanitize(record: Dict[str, Any]) -> Dict[str, Any]:
+            """Drop keys that are not real DB columns (LLM hallucinations)."""
+            return {
+                k: v for k, v in record.items()
+                if k == "_entity" or k in valid_cols
+            }
+
         # Group all (record, chunk_id) pairs by their canonical entity key.
         entity_groups: Dict[str, List[tuple]] = {}
         no_entity: List[tuple] = []
         for record, chunk_id in record_chunk_pairs:
+            record = _sanitize(record)
             entity_val = record.get("_entity")
             if not entity_val or not str(entity_val).strip():
                 no_entity.append((record, chunk_id))
