@@ -273,8 +273,9 @@ def run_preprocessing_phase(dataset: str, dataset_query: str) -> Tuple[bool, Dic
         CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
         checkpoint_path = CHECKPOINT_DIR / f"{dataset}_preprocessed.db"
         
-        # Copy the WDIRS database to checkpoint location
-        db_path = DB_DIR / f"{dataset}.db"
+        # Copy the WDIRS database to checkpoint location.
+        # The runtime DB is always named wdirs.db (from config.DATABASE_URI).
+        db_path = DB_DIR / "wdirs.db"
         if db_path.exists():
             shutil.copy2(db_path, checkpoint_path)
             logger.info(f"Saved checkpoint to {checkpoint_path}")
@@ -753,7 +754,7 @@ def generate_report(
 # Main
 # ============================================================================
 
-def main():
+def main(skip_preprocessing: bool = False):
     """Main orchestration function."""
     
     # Setup
@@ -770,19 +771,37 @@ def main():
     logger.info(f"Query Directory: {QUERY_DIR / DATASET_QUERY}")
     
     # Phase 1: Preprocessing
-    logger.info("\n" + "=" * 80)
-    logger.info("Starting Phase 1: Preprocessing")
-    logger.info("=" * 80)
-    
-    preprocessing_success, preprocessing_stats = run_preprocessing_phase(DATASET, DATASET_QUERY)
-    
-    if not preprocessing_success:
-        logger.error("Preprocessing failed, skipping testing phase")
-        logger.info(f"Error: {preprocessing_stats.get('error')}")
-        return 1
-    
-    # Get checkpoint path
     checkpoint_path = CHECKPOINT_DIR / f"{DATASET}_preprocessed.db"
+
+    if skip_preprocessing:
+        logger.info("\nSkipping Phase 1 (--skip-preprocessing flag set)")
+        if not checkpoint_path.exists():
+            # Checkpoint not yet copied — try to copy from the live DB right now.
+            db_path = DB_DIR / "wdirs.db"
+            if db_path.exists():
+                import shutil as _shutil
+                CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
+                _shutil.copy2(db_path, checkpoint_path)
+                logger.info(f"Copied existing DB to checkpoint: {checkpoint_path}")
+            else:
+                logger.error(
+                    f"No existing DB at {db_path} and no checkpoint at {checkpoint_path}. "
+                    f"Run without --skip-preprocessing first."
+                )
+                return 1
+        preprocessing_success = True
+        preprocessing_stats = {"skipped": True}
+    else:
+        logger.info("\n" + "=" * 80)
+        logger.info("Starting Phase 1: Preprocessing")
+        logger.info("=" * 80)
+
+        preprocessing_success, preprocessing_stats = run_preprocessing_phase(DATASET, DATASET_QUERY)
+
+        if not preprocessing_success:
+            logger.error("Preprocessing failed, skipping testing phase")
+            logger.info(f"Error: {preprocessing_stats.get('error')}")
+            return 1
     
     # Phase 2: Testing
     logger.info("\n" + "=" * 80)
@@ -806,4 +825,12 @@ def main():
     return 0 if (preprocessing_success and test_success) else 1
 
 if __name__ == "__main__":
-    sys.exit(main())
+    import argparse as _ap
+    _parser = _ap.ArgumentParser()
+    _parser.add_argument(
+        "--skip-preprocessing",
+        action="store_true",
+        help="Skip Phase 1 and go straight to Phase 2 using the existing DB.",
+    )
+    _args, _unknown = _parser.parse_known_args()
+    sys.exit(main(_args.skip_preprocessing))
