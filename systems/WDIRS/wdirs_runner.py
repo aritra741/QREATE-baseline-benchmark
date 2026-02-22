@@ -404,19 +404,13 @@ class WDIRSRunner:
                     f"(no LLM call needed)"
                 )
             elif len(entity_candidates) > 1:
-                # --- Tier 2a: LLM on pre-filtered short list ---
+                # --- Tier 2a: binary YES/NO LLM check on pre-filtered list ---
                 identity_col = detect_identity_column(
                     table_name,
                     entity_candidates,
                     self.extractor.llm_client,
                 )
-                if identity_col is None:
-                    # LLM couldn't choose — take the first candidate
-                    identity_col = entity_candidates[0]
-                    logger.warning(
-                        f"[IdentityMap] LLM returned NULL for pre-filtered candidates "
-                        f"{entity_candidates}; using first: '{identity_col}'"
-                    )
+                # If None, fall through to Tier 3 (NER-based discovery).
             else:
                 # No PERSON/ORG/GPE columns — try full schema with LLM
                 # --- Tier 2b: LLM on full schema ---

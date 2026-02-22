@@ -24,59 +24,113 @@ logger = logging.getLogger(__name__)
 # Strategy 1 — identity column from workload schema
 # ---------------------------------------------------------------------------
 
+def _ask_is_identity(col: str, table_name: str, all_candidates: List[str],
+                     llm_client) -> bool:
+    """
+    Ask the LLM a single binary question: is *col* the primary identity column
+    of *table_name*?  Binary YES/NO questions are far more reliable for small
+    models than open-ended selection from a list.
+    """
+    others = [c for c in all_candidates if c != col]
+    prompt = (
+        f"Database table: '{table_name}'\n"
+        f"Column under review: '{col}'\n"
+        f"Other columns in the table: {others}\n\n"
+        f"The PRIMARY IDENTITY column is the single column that:\n"
+        f"  - Stores the unique name or identifier of the main real-world entity "
+        f"    (e.g. the company, person, patient, product, city).\n"
+        f"  - Has one value per row — NOT a list of multiple people or items.\n"
+        f"  - Each row in the table represents exactly ONE of these entities.\n\n"
+        f"Is '{col}' the PRIMARY IDENTITY column of this table?\n"
+        f"Answer with ONLY 'YES' or 'NO'."
+    )
+    response = llm_client.generate(prompt, max_tokens=5, temperature=0.0)
+    answer = response.strip().upper()
+    return answer.startswith("Y")
+
+
 def detect_identity_column(
     table_name: str,
     schema_columns: List[str],
     llm_client,
 ) -> Optional[str]:
     """
-    Ask the LLM which column in schema_columns is the primary identity key.
+    Identify the primary identity column for *table_name*.
 
-    Returns the exact column name (case-preserving) or None if the LLM
-    cannot find a clear candidate.
+    Uses pairwise binary YES/NO questioning instead of asking the model to
+    pick from a list.  Binary questions are far more reliable for small (7B)
+    models because each question has only two valid answers and a clear
+    definition.
 
-    Raises RuntimeError if the LLM returns a value that is not in the list,
-    which indicates a prompt-compliance failure that must not be silently
-    swallowed.
+    Strategy:
+      1. Ask the LLM YES/NO for each candidate: "Is X the primary identity column?"
+      2. Collect all YES answers.
+         - Exactly one YES  → return it directly.
+         - Multiple YES     → ask pairwise comparisons to break the tie.
+         - Zero YES         → return None (falls through to Tier-3 NER discovery).
+
+    Returns the exact column name (case-preserving) or None.
     """
     if not schema_columns:
         return None
 
-    prompt = (
-        f"You are a database schema expert.\n"
-        f"Table name: '{table_name}'\n"
-        f"Columns: {schema_columns}\n\n"
-        f"Which SINGLE column is the PRIMARY IDENTITY column — the one that "
-        f"uniquely identifies a real-world entity in this table "
-        f"(e.g. person name, company name, player name, team name)?\n\n"
-        f"Rules:\n"
-        f"- Respond with ONLY the exact column name from the list above.\n"
-        f"- Do NOT include any explanation, punctuation, or extra words.\n"
-        f"- If no single column clearly identifies the entity, respond with NULL."
+    logger.info(
+        f"[EntityAnchor] Running binary YES/NO identity check for "
+        f"'{table_name}' over {len(schema_columns)} candidates"
     )
 
-    response = llm_client.generate(prompt, max_tokens=20, temperature=0.0)
-    response = response.strip().strip('"').strip("'")
+    yes_cols: List[str] = []
+    for col in schema_columns:
+        try:
+            if _ask_is_identity(col, table_name, schema_columns, llm_client):
+                yes_cols.append(col)
+                logger.info(f"[EntityAnchor] '{col}' → YES")
+            else:
+                logger.info(f"[EntityAnchor] '{col}' → NO")
+        except Exception as exc:
+            logger.warning(f"[EntityAnchor] Binary check failed for '{col}': {exc}")
 
-    if response.upper() == "NULL":
+    if len(yes_cols) == 1:
         logger.info(
-            f"[EntityAnchor] LLM says no identity column in '{table_name}' schema."
+            f"[EntityAnchor] Identity column for '{table_name}': '{yes_cols[0]}'"
+        )
+        return yes_cols[0]
+
+    if len(yes_cols) == 0:
+        logger.warning(
+            f"[EntityAnchor] No candidate confirmed as identity column for "
+            f"'{table_name}' — returning None"
         )
         return None
 
-    col_lower = {c.lower(): c for c in schema_columns}
-    if response.lower() in col_lower:
-        chosen = col_lower[response.lower()]
-        logger.info(
-            f"[EntityAnchor] Identity column for '{table_name}': '{chosen}'"
-        )
-        return chosen
-
-    raise RuntimeError(
-        f"[EntityAnchor] LLM returned '{response}' which is not in the column "
-        f"list {schema_columns} for table '{table_name}'. "
-        f"This is a prompt-compliance failure."
+    # Multiple YES answers — break tie with direct comparison pairs
+    logger.info(
+        f"[EntityAnchor] Multiple YES answers for '{table_name}': {yes_cols} — "
+        f"running pairwise tiebreak"
     )
+    winner = yes_cols[0]
+    for challenger in yes_cols[1:]:
+        prompt = (
+            f"Table: '{table_name}'\n"
+            f"Two columns are both candidates for PRIMARY IDENTITY column.\n"
+            f"The PRIMARY IDENTITY column uniquely names the main entity of each "
+            f"row (e.g. company name, player name, patient id).\n\n"
+            f"Column A: '{winner}'\n"
+            f"Column B: '{challenger}'\n\n"
+            f"Which is more likely to be the PRIMARY IDENTITY column?\n"
+            f"Answer with ONLY 'A' or 'B'."
+        )
+        resp = llm_client.generate(prompt, max_tokens=5, temperature=0.0).strip().upper()
+        if resp.startswith("B"):
+            winner = challenger
+        logger.info(
+            f"[EntityAnchor] Tiebreak '{winner}' vs '{challenger}' → '{winner}'"
+        )
+
+    logger.info(
+        f"[EntityAnchor] Identity column for '{table_name}' after tiebreak: '{winner}'"
+    )
+    return winner
 
 
 # ---------------------------------------------------------------------------
