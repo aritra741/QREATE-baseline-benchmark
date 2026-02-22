@@ -484,27 +484,67 @@ class DataLayer:
         row_provenance_pairs: List[tuple],
     ) -> None:
         """
-        Insert provenance rows for all (row_id, chunk_id) pairs in one transaction.
+        Upsert provenance for all (row_id, chunk_id) pairs.
+
+        Multiple chunks may map to the same row_id (e.g. when entity-first
+        extraction assigns several chunks to the same entity row).  We
+        aggregate all chunk_ids per row_id first, then either INSERT a new
+        provenance row or append to the existing chunk_ids list.
         """
         if not row_provenance_pairs:
             return
-        with self.Session() as session:
+
+        # Aggregate chunk_ids per row_id so we write one provenance row
+        # per entity row, not one per chunk.
+        from collections import defaultdict as _dd
+        row_chunks: dict = _dd(list)
+        for row_id, chunk_id in row_provenance_pairs:
+            row_chunks[row_id].append(chunk_id)
+
+        with self.engine.connect() as conn:
             try:
-                session.execute(
-                    insert(self.row_provenance),
-                    [
-                        {
-                            "row_id": row_id,
-                            "table_name": table_name,
-                            "chunk_ids": json.dumps([chunk_id]),
-                        }
-                        for row_id, chunk_id in row_provenance_pairs
-                    ],
-                )
-                session.commit()
+                for row_id, chunk_ids in row_chunks.items():
+                    # Check if a provenance row already exists for this row_id.
+                    existing = conn.execute(
+                        text(
+                            "SELECT chunk_ids FROM row_provenance "
+                            "WHERE row_id = :rid"
+                        ),
+                        {"rid": row_id},
+                    ).fetchone()
+
+                    if existing:
+                        # Merge new chunk_ids into the stored list.
+                        try:
+                            stored: list = json.loads(existing[0]) if existing[0] else []
+                        except (TypeError, ValueError):
+                            stored = []
+                        merged = list(dict.fromkeys(stored + chunk_ids))  # dedup, preserve order
+                        conn.execute(
+                            text(
+                                "UPDATE row_provenance SET chunk_ids = :cids "
+                                "WHERE row_id = :rid"
+                            ),
+                            {"cids": json.dumps(merged), "rid": row_id},
+                        )
+                    else:
+                        conn.execute(
+                            text(
+                                "INSERT INTO row_provenance "
+                                "(row_id, table_name, chunk_ids, created_at) "
+                                "VALUES (:rid, :tname, :cids, :ts)"
+                            ),
+                            {
+                                "rid": row_id,
+                                "tname": table_name,
+                                "cids": json.dumps(chunk_ids),
+                                "ts": str(__import__("datetime").datetime.utcnow()),
+                            },
+                        )
+
+                conn.commit()
             except Exception as e:
-                session.rollback()
-                logger.error(f"Error bulk inserting provenance: {e}")
+                logger.error(f"Error upserting provenance: {e}")
                 raise
 
     def update_provenance_chunks(
