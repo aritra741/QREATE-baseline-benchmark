@@ -409,17 +409,27 @@ class DataLayer:
         chunk_ids: List[str]
     ) -> None:
         """Insert a single provenance record."""
-        with self.Session() as session:
+        # Use raw SQL so the JSON is stored as a plain array string, consistent
+        # with bulk_insert_provenance.  The ORM JSON column type would
+        # double-encode a pre-serialised string.
+        with self.engine.connect() as conn:
             try:
-                stmt = insert(self.row_provenance).values(
-                    row_id=str(row_id),
-                    table_name=table_name,
-                    chunk_ids=json.dumps(chunk_ids)
+                conn.execute(
+                    text(
+                        "INSERT OR IGNORE INTO row_provenance "
+                        "(row_id, table_name, chunk_ids, created_at) "
+                        "VALUES (:rid, :tname, :cids, :ts)"
+                    ),
+                    {
+                        "rid": str(row_id),
+                        "tname": table_name,
+                        "cids": json.dumps(chunk_ids if isinstance(chunk_ids, list)
+                                           else [chunk_ids]),
+                        "ts": str(datetime.utcnow()),
+                    },
                 )
-                session.execute(stmt)
-                session.commit()
+                conn.commit()
             except Exception as e:
-                session.rollback()
                 logger.error(f"Error inserting provenance: {e}")
                 raise
 
@@ -516,9 +526,12 @@ class DataLayer:
                     if existing:
                         # Merge new chunk_ids into the stored list.
                         try:
-                            stored: list = json.loads(existing[0]) if existing[0] else []
+                            parsed = json.loads(existing[0]) if existing[0] else []
                         except (TypeError, ValueError):
-                            stored = []
+                            parsed = []
+                        # json.loads may return a scalar (str/int) if the stored
+                        # value was not serialised as a JSON array — always coerce.
+                        stored: list = parsed if isinstance(parsed, list) else [parsed]
                         merged = list(dict.fromkeys(stored + chunk_ids))  # dedup, preserve order
                         conn.execute(
                             text(
@@ -538,7 +551,7 @@ class DataLayer:
                                 "rid": row_id,
                                 "tname": table_name,
                                 "cids": json.dumps(chunk_ids),
-                                "ts": str(__import__("datetime").datetime.utcnow()),
+                                "ts": str(datetime.utcnow()),
                             },
                         )
 
