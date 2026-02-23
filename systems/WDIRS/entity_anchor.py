@@ -24,113 +24,104 @@ logger = logging.getLogger(__name__)
 # Strategy 1 — identity column from workload schema
 # ---------------------------------------------------------------------------
 
-def _ask_is_identity(col: str, table_name: str, all_candidates: List[str],
-                     llm_client) -> bool:
-    """
-    Ask the LLM a single binary question: is *col* the primary identity column
-    of *table_name*?  Binary YES/NO questions are far more reliable for small
-    models than open-ended selection from a list.
-    """
-    others = [c for c in all_candidates if c != col]
-    prompt = (
-        f"Database table: '{table_name}'\n"
-        f"Column under review: '{col}'\n"
-        f"Other columns in the table: {others}\n\n"
-        f"The PRIMARY IDENTITY column is the single column that:\n"
-        f"  - Stores the unique name or identifier of the main real-world entity "
-        f"    (e.g. the company, person, patient, product, city).\n"
-        f"  - Has one value per row — NOT a list of multiple people or items.\n"
-        f"  - Each row in the table represents exactly ONE of these entities.\n\n"
-        f"Is '{col}' the PRIMARY IDENTITY column of this table?\n"
-        f"Answer with ONLY 'YES' or 'NO'."
-    )
-    response = llm_client.generate(prompt, max_tokens=5, temperature=0.0)
-    answer = response.strip().upper()
-    return answer.startswith("Y")
-
-
 def detect_identity_column(
     table_name: str,
     schema_columns: List[str],
     llm_client,
 ) -> Optional[str]:
     """
-    Identify the primary identity column for *table_name*.
+    Identify the primary identity column for *table_name* using a single LLM
+    call that shows all candidates at once.
 
-    Uses pairwise binary YES/NO questioning instead of asking the model to
-    pick from a list.  Binary questions are far more reliable for small (7B)
-    models because each question has only two valid answers and a clear
-    definition.
+    Design rationale
+    ────────────────
+    Binary YES/NO per candidate fails for small (7B) models because:
+      - Each question is answered in isolation with no comparative context.
+      - The model cannot see that 'company_name' is obviously better than
+        'auditor' when they are evaluated separately.
+      - The model defaults to NO when uncertain, so zero candidates pass.
 
-    Strategy:
-      1. Ask the LLM YES/NO for each candidate: "Is X the primary identity column?"
-      2. Collect all YES answers.
-         - Exactly one YES  → return it directly.
-         - Multiple YES     → ask pairwise comparisons to break the tie.
-         - Zero YES         → return None (falls through to Tier-3 NER discovery).
+    Showing all candidates simultaneously and asking "which is each row
+    *about*?" gives the model the comparative context it needs.  The prompt:
+      - Uses plain natural language, not database jargon ("PRIMARY IDENTITY").
+      - Frames the question as "what is this row about?" — intuitively clear.
+      - Gives NO escape hatch to say null/none: the caller guarantees at
+        least one of the candidates is the identity column (Tier-1 pre-filter
+        already confirmed they are PERSON/ORG/GPE type columns).
+      - Retries with a rephrased prompt if the response is not in the list.
 
-    Returns the exact column name (case-preserving) or None.
+    Returns the exact column name (case-preserving) or None if both attempts
+    fail (falls through to Tier-3 NER discovery in the caller).
     """
     if not schema_columns:
         return None
 
-    logger.info(
-        f"[EntityAnchor] Running binary YES/NO identity check for "
-        f"'{table_name}' over {len(schema_columns)} candidates"
-    )
+    col_lower = {c.lower(): c for c in schema_columns}
+    bullet_list = "\n".join(f"  - {c}" for c in schema_columns)
 
-    yes_cols: List[str] = []
-    for col in schema_columns:
-        try:
-            if _ask_is_identity(col, table_name, schema_columns, llm_client):
-                yes_cols.append(col)
-                logger.info(f"[EntityAnchor] '{col}' → YES")
-            else:
-                logger.info(f"[EntityAnchor] '{col}' → NO")
-        except Exception as exc:
-            logger.warning(f"[EntityAnchor] Binary check failed for '{col}': {exc}")
-
-    if len(yes_cols) == 1:
-        logger.info(
-            f"[EntityAnchor] Identity column for '{table_name}': '{yes_cols[0]}'"
-        )
-        return yes_cols[0]
-
-    if len(yes_cols) == 0:
-        logger.warning(
-            f"[EntityAnchor] No candidate confirmed as identity column for "
-            f"'{table_name}' — returning None"
-        )
+    def _call(prompt: str) -> Optional[str]:
+        resp = llm_client.generate(prompt, max_tokens=30, temperature=0.0)
+        resp = resp.strip().strip('"').strip("'").rstrip(".")
+        # Accept if the response matches a candidate (case-insensitive)
+        if resp.lower() in col_lower:
+            return col_lower[resp.lower()]
+        # Also accept if the response is contained in a candidate name
+        # (model sometimes adds/drops underscores)
+        for c_lower, c_orig in col_lower.items():
+            if resp.lower().replace(" ", "_") == c_lower:
+                return c_orig
         return None
 
-    # Multiple YES answers — break tie with direct comparison pairs
-    logger.info(
-        f"[EntityAnchor] Multiple YES answers for '{table_name}': {yes_cols} — "
-        f"running pairwise tiebreak"
+    # ── Attempt 1 ─────────────────────────────────────────────────────────────
+    # Pure structural description — no domain hints, no examples, no mention
+    # of what kinds of entities the table might contain.  The distinction
+    # between "the column that names each row's subject" and "columns that
+    # describe attributes of that subject" is a universal structural property
+    # that holds regardless of domain.
+    prompt1 = (
+        f"A relational table called '{table_name}' contains these candidate "
+        f"columns:\n{bullet_list}\n\n"
+        f"In any well-structured table, exactly one column serves as the "
+        f"subject identifier: its value tells you WHICH entity the row is "
+        f"about, while every other column describes a property of that entity.\n\n"
+        f"Which column from the list above is the subject identifier?\n"
+        f"Respond with ONLY the exact column name. You must pick one."
     )
-    winner = yes_cols[0]
-    for challenger in yes_cols[1:]:
-        prompt = (
-            f"Table: '{table_name}'\n"
-            f"Two columns are both candidates for PRIMARY IDENTITY column.\n"
-            f"The PRIMARY IDENTITY column uniquely names the main entity of each "
-            f"row (e.g. company name, player name, patient id).\n\n"
-            f"Column A: '{winner}'\n"
-            f"Column B: '{challenger}'\n\n"
-            f"Which is more likely to be the PRIMARY IDENTITY column?\n"
-            f"Answer with ONLY 'A' or 'B'."
-        )
-        resp = llm_client.generate(prompt, max_tokens=5, temperature=0.0).strip().upper()
-        if resp.startswith("B"):
-            winner = challenger
-        logger.info(
-            f"[EntityAnchor] Tiebreak '{winner}' vs '{challenger}' → '{winner}'"
-        )
 
     logger.info(
-        f"[EntityAnchor] Identity column for '{table_name}' after tiebreak: '{winner}'"
+        f"[EntityAnchor] Single-call identity selection for '{table_name}' "
+        f"over {len(schema_columns)} candidates"
     )
-    return winner
+    result = _call(prompt1)
+    if result:
+        logger.info(f"[EntityAnchor] Identity column for '{table_name}': '{result}'")
+        return result
+
+    # ── Attempt 2 ─────────────────────────────────────────────────────────────
+    # Rephrased without any vocabulary that echoes schema column names.
+    prompt2 = (
+        f"Table: '{table_name}'\n"
+        f"Columns: {schema_columns}\n\n"
+        f"One column is the anchor of every row — removing it would make "
+        f"the row unidentifiable. All other columns are attributes that only "
+        f"make sense once you know which row you are looking at.\n\n"
+        f"Which column is the anchor?\n"
+        f"Respond with ONLY the exact column name. You must pick one."
+    )
+
+    result = _call(prompt2)
+    if result:
+        logger.info(
+            f"[EntityAnchor] Identity column for '{table_name}' "
+            f"(attempt 2): '{result}'"
+        )
+        return result
+
+    logger.warning(
+        f"[EntityAnchor] Both prompts failed to return a valid column for "
+        f"'{table_name}' — returning None (Tier 3 will handle)"
+    )
+    return None
 
 
 # ---------------------------------------------------------------------------
