@@ -1098,6 +1098,19 @@ class DataLayer:
         """Create TextChunk objects from text using RecursiveCharacterSplitter."""
         return RecursiveCharacterSplitter().create_chunks(text, doc_id, metadata)
 
+    def reset_ingestion(self) -> None:
+        """
+        Delete all raw chunks and candidate index rows so ingestion can be
+        re-run with new chunking parameters (e.g. after changing CHUNK_SIZE).
+        Does NOT drop synthesized tables or provenance — only the input layer.
+        Call this when chunk size or overlap changes require re-ingestion.
+        """
+        with self.engine.connect() as conn:
+            conn.execute(text("DELETE FROM candidate_index"))
+            conn.execute(text("DELETE FROM raw_chunks"))
+            conn.commit()
+        logger.info("reset_ingestion: raw_chunks and candidate_index cleared")
+
     def close(self):
         """Close database connections."""
         self.engine.dispose()

@@ -315,7 +315,8 @@ class WDIRSRunner:
         for table_name, table_info in lattice.tables.items():
             try:
                 # ── Synthesis ────────────────────────────────────────────────
-                sample_chunks_objs = self.data_layer.get_all_chunks(limit=10)
+                # 50 random-ish chunks give better keyword coverage than 10.
+                sample_chunks_objs = self.data_layer.get_all_chunks(limit=50)
                 sample_chunks = [c.content for c in sample_chunks_objs]
                 schema = self.lattice_planner.get_table_schema(table_name)
 

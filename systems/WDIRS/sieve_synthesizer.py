@@ -138,49 +138,95 @@ class SieveSynthesizer:
         schema: Dict[str, str]
     ) -> tuple[List[str], List[str], List[str]]:
         """
-        Analyze sample chunks to extract keywords, patterns, and entity types.
+        Discover domain vocabulary and patterns from sample chunks.
+
+        Domain-agnostic strategy
+        ────────────────────────
+        Keywords are derived from two sources that require no manual
+        configuration and work for any domain:
+
+          1. Schema column names and their natural-language variations.
+             These come directly from the workload SQL and represent the
+             fields the dataset cares about (e.g. "company_name" →
+             "company name", "companies"; "net_profit_or_loss" →
+             "net profit or loss", "profit", "loss").
+
+          2. Frequent domain nouns from sample chunks.
+             spaCy POS-tags the samples and counts non-stop-word nouns
+             that appear in at least two chunks.  These are domain
+             vocabulary words (e.g. "revenue", "dividend", "diagnosis",
+             "prescription") — NOT named-entity values (which are too
+             specific and would only match one particular entity).
+             Named entities are explicitly excluded so the sieve catches
+             ALL entities in the domain, not just the ones that happen to
+             appear in the 50 sample chunks.
+
+        spaCy runs ONCE here at synthesis time.  The generated sieve
+        bakes the resulting keyword list into a module-level FlashText
+        processor, so scanning the full corpus costs only a fast
+        substring search — no NLP inference at scan time.
         """
-        keywords = set()
-        patterns = set()
-        entity_types = set()
-        
+        from collections import Counter as _Counter
+
+        keywords: set = set()
+        patterns: set = set()
+        entity_types: set = set()  # kept for prompt context only
+
+        # ── 1. Schema column variations ───────────────────────────────────────
+        # Column names are guaranteed domain signals for any dataset.
+        for col_name in schema:
+            for variation in self._generate_column_variations(col_name):
+                keywords.add(variation.lower())
+
+        # ── 2. Frequent domain nouns from sample chunks ───────────────────────
+        # Count nouns/adjectives across all samples.  We use the lemma so
+        # "revenues" and "revenue" map to the same entry.
+        # Named entities (ent_type_ != "") are excluded — they're too
+        # specific to individual entities and would under-cover the domain.
+        noun_counts: _Counter = _Counter()
         for chunk in sample_chunks:
-            # Extract entities using spaCy
             doc = self.nlp(chunk)
-            
+
+            # Collect entity type labels for the prompt (informational only).
             for ent in doc.ents:
                 entity_types.add(ent.label_)
-                keywords.add(ent.text.lower())
-            
-            # Extract keywords based on schema
-            for col_name, semantic_type in schema.items():
-                # Look for column name variations in text
-                col_variations = self._generate_column_variations(col_name)
-                
-                for variation in col_variations:
-                    if variation.lower() in chunk.lower():
-                        keywords.add(variation.lower())
-            
-            # Extract common patterns
-            # Dates
-            date_patterns = [
-                r'\d{1,2}/\d{1,2}/\d{2,4}',
-                r'\d{4}-\d{2}-\d{2}',
-                r'\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* \d{1,2},? \d{4}\b'
-            ]
-            
-            for pattern in date_patterns:
+
+            for token in doc:
+                if (
+                    token.pos_ in {"NOUN", "PROPN", "ADJ"}
+                    and not token.is_stop
+                    and not token.is_punct
+                    and not token.ent_type_   # skip named entity surface forms
+                    and len(token.text) > 3
+                ):
+                    noun_counts[token.lemma_.lower()] += 1
+
+        # Keep nouns that appear in at least 2 different chunks — single
+        # occurrences are noise; frequent ones are domain vocabulary.
+        min_freq = max(2, len(sample_chunks) // 10)
+        for noun, count in noun_counts.most_common(60):
+            if count >= min_freq:
+                keywords.add(noun)
+
+        # ── 3. Structural patterns present in samples ─────────────────────────
+        # These are domain-agnostic regex patterns for common data formats.
+        # Only added when actually observed in the sample, so a medical
+        # corpus without money amounts won't get the money pattern.
+        _CANDIDATE_PATTERNS = {
+            r'\d{1,2}/\d{1,2}/\d{2,4}',
+            r'\d{4}-\d{2}-\d{2}',
+            r'\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* \d{1,2},? \d{4}\b',
+            r'\b[A-Z]{2,5}:\s*[A-Z0-9]+\b',   # exchange/ticker codes
+            r'[\$£€¥]\s*\d[\d,]*(?:\.\d+)?',   # monetary values (any currency)
+            r'\b\d+(?:\.\d+)?\s*%',             # percentages
+            r'\b[A-Z]\d{3,}\b',                 # IDs / codes
+        }
+        for pattern in _CANDIDATE_PATTERNS:
+            for chunk in sample_chunks:
                 if re.search(pattern, chunk):
                     patterns.add(pattern)
-            
-            # IDs and codes
-            if re.search(r'\b[A-Z]\d{3,}\b', chunk):
-                patterns.add(r'\b[A-Z]\d{3,}\b')
-            
-            # Money
-            if re.search(r'\$\d+(?:,\d{3})*(?:\.\d{2})?', chunk):
-                patterns.add(r'\$\d+(?:,\d{3})*(?:\.\d{2})?')
-        
+                    break
+
         return list(keywords), list(patterns), list(entity_types)
     
     def _generate_column_variations(self, column_name: str) -> List[str]:
@@ -210,53 +256,50 @@ class SieveSynthesizer:
         entity_types: List[str]
     ) -> str:
         """Generate sieve function code using LLM."""
-        prompt = f"""Generate a Python function called `is_relevant(text)` that returns True if a text chunk contains potential data for a database table.
+        prompt = f"""Generate a Python module that filters text chunks for a database table.
+The module must define a module-level keyword processor and an `is_relevant(text)` function.
 
 Table: {table_name}
 Schema: {json.dumps(schema, indent=2)}
 
-Relevant keywords: {', '.join(keywords[:20])}
-Relevant patterns: {', '.join(patterns[:10])}
-Relevant entity types: {', '.join(entity_types)}
+Keywords that indicate relevance: {', '.join(keywords[:30])}
+Regex patterns that indicate relevance: {', '.join(patterns[:10])}
 
-Requirements:
-1. Use keyword matching with FlashText, regex patterns with re, and/or spaCy NER
-2. Import necessary libraries at the top
-3. Be conservative - prefer false positives over false negatives
-4. Return True if text likely contains data for this table, False otherwise
-5. IMPORTANT: Use correct Python syntax - do NOT use any() with a single boolean expression
-6. IMPORTANT: Check if variables are None before iterating over them
+STRICT REQUIREMENTS:
+1. Use ONLY FlashText for keyword matching and `re` for regex — do NOT import or use spaCy.
+   spaCy NER is too slow for large corpora; keyword + regex matching is sufficient here.
+2. Build the KeywordProcessor ONCE at MODULE LEVEL (outside the function), not inside it.
+   Building it inside the function recreates it on every call, which is extremely slow.
+3. The function must be conservative: prefer false positives over false negatives.
+4. Return True if the text likely contains data for this table, False otherwise.
+5. Use correct Python syntax — no bare `any(bool_value)`, always check for None before iterating.
 
-Example structure:
+Required structure (follow this exactly):
 ```python
 import re
 from flashtext import KeywordProcessor
-import spacy
 
-nlp = spacy.load("en_core_web_sm")
+# Build keyword processor ONCE at module level
+_kp = KeywordProcessor(case_sensitive=False)
+_kp.add_keywords_from_list(["keyword1", "keyword2", "keyword3"])
+
+# Compile regex patterns ONCE at module level
+_PATTERNS = [re.compile(r'pattern1', re.IGNORECASE), re.compile(r'pattern2', re.IGNORECASE)]
 
 def is_relevant(text: str) -> bool:
-    # Keyword matching
-    keyword_processor = KeywordProcessor()
-    keyword_processor.add_keywords_from_list(["keyword1", "keyword2"])
-    keywords_found = keyword_processor.extract_keywords(text.lower())
-    
-    if keywords_found:
+    if not text or not text.strip():
+        return False
+    # Fast keyword check
+    if _kp.extract_keywords(text):
         return True
-    
-    # Pattern matching
-    if re.search(r'\\b\\d{{4}}\\b', text):
-        return True
-    
-    # NER matching
-    doc = nlp(text)
-    for ent in doc.ents:
-        if ent.label_ in ["PERSON", "ORG"]:
+    # Regex check
+    for pat in _PATTERNS:
+        if pat.search(text):
             return True
-    
     return False
 ```
 
+Replace the placeholder keywords and patterns with real ones for the '{table_name}' table.
 Generate ONLY the Python code, no explanations.
 """
         

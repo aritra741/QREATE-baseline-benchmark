@@ -42,8 +42,8 @@ DATABASE_URI = f"sqlite:///{DB_PATH}"
 # ============================================================================
 
 # Recursive character splitting parameters
-CHUNK_SIZE = 500  # tokens
-CHUNK_OVERLAP = 50  # tokens
+CHUNK_SIZE = 2000  # characters (≈ 500 tokens at ~4 chars/token)
+CHUNK_OVERLAP = 200  # characters (≈ 50 tokens)
 CHUNK_SEPARATORS = ["\n\n", "\n", ". ", " ", ""]
 
 # ============================================================================
