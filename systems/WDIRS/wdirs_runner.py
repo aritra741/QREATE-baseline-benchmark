@@ -417,16 +417,21 @@ class WDIRSRunner:
                     f"(no LLM call needed)"
                 )
             elif len(entity_candidates) > 1:
-                # --- Tier 2a: binary YES/NO LLM check on pre-filtered list ---
+                # --- Tier 2a: Tournament LLM on pre-filtered entity candidates ---
+                # Columns compete in groups of TOURNAMENT_GROUP_SIZE; the LLM
+                # picks the best identity column from each group and winners
+                # advance until one remains.  Guaranteed to produce a result as
+                # long as Ollama is reachable — no heuristic fallback needed.
                 identity_col = detect_identity_column(
                     table_name,
                     entity_candidates,
                     self.extractor.llm_client,
                 )
-                # If None, fall through to Tier 3 (NER-based discovery).
             else:
-                # No PERSON/ORG/GPE columns — try full schema with LLM
-                # --- Tier 2b: LLM on full schema ---
+                # No PERSON/ORG/GPE columns at all — run the tournament on the
+                # full schema so the LLM can pick the most entity-like column
+                # from whatever is available.
+                # --- Tier 2b: Tournament LLM on full schema ---
                 identity_col = detect_identity_column(
                     table_name,
                     schema_columns,
@@ -435,16 +440,13 @@ class WDIRSRunner:
 
             if identity_col is None:
                 # --- Tier 3: NER-based entity type detection ---
-                # Reached only when the workload has no PERSON/ORG/GPE column
-                # (e.g. pure aggregation queries).  We do NOT try to discover
-                # a column name from raw text — that always picks up document
-                # structure words ('attribute', 'value', 'subject') instead of
-                # real entity identifiers.  Instead, we let spaCy NER tell us
-                # which named-entity type dominates the candidate chunks, then
-                # inject a virtual '_entity' routing column.  During extraction
-                # the LLM is instructed to populate '_entity' with whatever name
-                # it finds for that entity type, and upsert_by_entity uses that
-                # as the key.
+                # Reached only when entity_candidates AND schema_columns are
+                # both empty, or Ollama is completely unreachable and the
+                # tournament stall-safety path also returned None.
+                # Legitimate case: pure aggregation schema (GROUP BY exchange_code)
+                # with no column that could name an entity at all.  spaCy NER
+                # identifies the dominant entity type in candidate text so
+                # _global_extraction knows to use plain INSERTs (no upsert key).
                 logger.info(
                     f"[IdentityMap] No entity column in schema for '{table_name}'. "
                     f"Running NER-based entity type detection (Tier 3)..."

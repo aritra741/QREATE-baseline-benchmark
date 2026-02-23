@@ -4,8 +4,10 @@ Entity Anchor — identity-column detection for WDIRS.
 Two strategies depending on whether the workload provides an identity hint:
 
   1. detect_identity_column(table_name, schema_columns, llm_client)
-     Asks the LLM to pick the best identity column from the known schema.
-     Used when at least one workload query filters/selects on an entity name.
+     Tournament-style LLM elimination: columns compete in groups of
+     TOURNAMENT_GROUP_SIZE.  The LLM picks the best identity column from each
+     group; winners advance until one remains.  Works for any schema size and
+     any dataset — no hardcoded heuristics.
 
   2. discover_entity_attribute(table_name, sample_chunks, llm_client)
      Evaporate-inspired fallback: samples raw text chunks, asks the LLM to
@@ -15,113 +17,237 @@ Two strategies depending on whether the workload provides an identity hint:
 """
 
 import logging
+import random
 from collections import Counter
 from typing import List, Optional
 
 logger = logging.getLogger(__name__)
 
+# Columns per LLM call in each tournament round.  7 is large enough to give
+# the model comparative context but small enough for reliable 7B-model output.
+TOURNAMENT_GROUP_SIZE = 7
+
+
 # ---------------------------------------------------------------------------
-# Strategy 1 — identity column from workload schema
+# Internal helpers
+# ---------------------------------------------------------------------------
+
+def _normalize_response(resp: str, col_lower: dict) -> Optional[str]:
+    """
+    Try to match an LLM response string back to a canonical column name.
+    Handles case, surrounding punctuation, and underscore/space differences.
+    """
+    resp = resp.strip().strip('"').strip("'").rstrip(".").strip()
+    if resp.lower() in col_lower:
+        return col_lower[resp.lower()]
+    for c_lower, c_orig in col_lower.items():
+        if resp.lower().replace(" ", "_") == c_lower:
+            return c_orig
+    return None
+
+
+def _format_sample_block(group: List[str], sample_values: Optional[dict]) -> str:
+    """
+    Build a compact sample-values block for a subset of columns.
+    Each column shows up to 3 sample values so the LLM has concrete evidence.
+    """
+    if not sample_values:
+        return ""
+    lines = []
+    for col in group:
+        vals = sample_values.get(col, [])
+        if vals:
+            preview = [str(v)[:60] for v in vals[:3]]
+            lines.append(f"  {col}: {preview}")
+    return "\n".join(lines)
+
+
+def _pick_from_group(
+    table_name: str,
+    group: List[str],
+    llm_client,
+    round_num: int = 1,
+    sample_values: Optional[dict] = None,
+) -> Optional[str]:
+    """
+    Ask the LLM to pick the single best identity column from a small group.
+    When sample_values is provided, up to 3 example values per column are
+    shown so the model has concrete evidence rather than just column names.
+    Tries two differently-phrased prompts before giving up.
+
+    Returns the winning column name (case-preserving), or None if both
+    prompts fail (caller will keep all group members for the next round).
+    """
+    if len(group) == 1:
+        return group[0]
+
+    col_lower = {c.lower(): c for c in group}
+    bullet_list = "\n".join(f"  - {c}" for c in group)
+    sample_block = _format_sample_block(group, sample_values)
+
+    sample_section = (
+        f"\nSample values from the data:\n{sample_block}\n"
+        if sample_block else ""
+    )
+
+    prompt1 = (
+        f"A relational table called '{table_name}' has these candidate columns:\n"
+        f"{bullet_list}\n"
+        f"{sample_section}\n"
+        f"The PRIMARY IDENTIFIER is the column whose value is the NAME or UNIQUE "
+        f"LABEL of the real-world entity each row describes — the thing you would "
+        f"use to look up or reference a specific record.\n\n"
+        f"Rules:\n"
+        f"  ✓ Typically contains a proper name or a natural unique label "
+        f"(e.g., a person's name, an organisation's name, a product title, "
+        f"a patient ID).\n"
+        f"  ✗ NOT an address, location, date, financial metric, description, "
+        f"code/ticker, or any numeric attribute.\n\n"
+        f"Which column from the list is the PRIMARY IDENTIFIER?\n"
+        f"Respond with ONLY the exact column name. You must pick one."
+    )
+
+    prompt2 = (
+        f"Table: '{table_name}'\n"
+        f"Columns: {group}\n"
+        f"{sample_section}\n"
+        f"One column is the anchor identity of every row — it uniquely names "
+        f"the entity the row is about.  All other columns are attributes "
+        f"(measurements, descriptions, codes, addresses) that only make sense "
+        f"once you know WHICH entity you are looking at.\n\n"
+        f"Which column is the identity anchor?\n"
+        f"Respond with ONLY the exact column name. You must pick one."
+    )
+
+    for attempt, prompt in enumerate((prompt1, prompt2), start=1):
+        try:
+            resp = llm_client.generate(prompt, max_tokens=30, temperature=0.0)
+            winner = _normalize_response(resp, col_lower)
+            if winner:
+                logger.debug(
+                    f"[EntityAnchor] Round {round_num}, group {group}: "
+                    f"'{winner}' (attempt {attempt})"
+                )
+                return winner
+        except Exception as exc:
+            logger.warning(
+                f"[EntityAnchor] Round {round_num} group pick failed "
+                f"(attempt {attempt}): {exc}"
+            )
+
+    logger.debug(
+        f"[EntityAnchor] Round {round_num}, group {group}: "
+        f"both prompts failed — keeping all members"
+    )
+    return None
+
+
+
+# ---------------------------------------------------------------------------
+# Strategy 1 — Tournament identity detection
 # ---------------------------------------------------------------------------
 
 def detect_identity_column(
     table_name: str,
     schema_columns: List[str],
     llm_client,
+    group_size: int = TOURNAMENT_GROUP_SIZE,
+    sample_values: Optional[dict] = None,
 ) -> Optional[str]:
     """
-    Identify the primary identity column for *table_name* using a single LLM
-    call that shows all candidates at once.
+    Tournament-style identity column detection.
 
-    Design rationale
-    ────────────────
-    Binary YES/NO per candidate fails for small (7B) models because:
-      - Each question is answered in isolation with no comparative context.
-      - The model cannot see that 'company_name' is obviously better than
-        'auditor' when they are evaluated separately.
-      - The model defaults to NO when uncertain, so zero candidates pass.
+    Algorithm
+    ─────────
+    Columns compete in groups of `group_size`.  The LLM picks the best
+    identity column from each group; winners advance to the next round.
+    This repeats until only one column remains — the champion is returned
+    as the identity column.
 
-    Showing all candidates simultaneously and asking "which is each row
-    *about*?" gives the model the comparative context it needs.  The prompt:
-      - Uses plain natural language, not database jargon ("PRIMARY IDENTITY").
-      - Frames the question as "what is this row about?" — intuitively clear.
-      - Gives NO escape hatch to say null/none: the caller guarantees at
-        least one of the candidates is the identity column (Tier-1 pre-filter
-        already confirmed they are PERSON/ORG/GPE type columns).
-      - Retries with a rephrased prompt if the response is not in the list.
+    Why a tournament?
+    ─────────────────
+    • A single call with 25+ columns overwhelms small (7B) models — they
+      either pick randomly or refuse to commit.
+    • Binary yes/no per column has no comparative context, causing the model
+      to over-veto and return None for everything.
+    • Groups of 7-8 give the model enough context to make a meaningful
+      comparative judgement while staying within its reliable output range.
+    • The bracket structure guarantees a winner for any schema size and any
+      dataset — no hardcoded column names, no domain-specific heuristics.
 
-    Returns the exact column name (case-preserving) or None if both attempts
-    fail (falls through to Tier-3 NER discovery in the caller).
+    Failure safety
+    ──────────────
+    If the LLM fails to pick from a group (both prompts exhausted), ALL
+    members of that group survive to the next round with a randomised
+    ordering, so the group does not silently vanish from the bracket.
+    If ALL calls in a round fail (degenerate case: Ollama is down), the
+    first surviving candidate is returned so the pipeline never falls to
+    brute-force extraction due to this step alone.
+
+    Returns the exact column name (case-preserving), or None only if the
+    input list is empty.
+
+    Parameters
+    ──────────
+    sample_values : optional dict mapping column name → list of example values.
+        When provided, each LLM call shows up to 3 sample values per column so
+        the model has concrete evidence rather than just column names.  Callers
+        can build this from the first few rows of the source CSV/DataFrame.
     """
     if not schema_columns:
         return None
-
-    col_lower = {c.lower(): c for c in schema_columns}
-    bullet_list = "\n".join(f"  - {c}" for c in schema_columns)
-
-    def _call(prompt: str) -> Optional[str]:
-        resp = llm_client.generate(prompt, max_tokens=30, temperature=0.0)
-        resp = resp.strip().strip('"').strip("'").rstrip(".")
-        # Accept if the response matches a candidate (case-insensitive)
-        if resp.lower() in col_lower:
-            return col_lower[resp.lower()]
-        # Also accept if the response is contained in a candidate name
-        # (model sometimes adds/drops underscores)
-        for c_lower, c_orig in col_lower.items():
-            if resp.lower().replace(" ", "_") == c_lower:
-                return c_orig
-        return None
-
-    # ── Attempt 1 ─────────────────────────────────────────────────────────────
-    # Pure structural description — no domain hints, no examples, no mention
-    # of what kinds of entities the table might contain.  The distinction
-    # between "the column that names each row's subject" and "columns that
-    # describe attributes of that subject" is a universal structural property
-    # that holds regardless of domain.
-    prompt1 = (
-        f"A relational table called '{table_name}' contains these candidate "
-        f"columns:\n{bullet_list}\n\n"
-        f"In any well-structured table, exactly one column serves as the "
-        f"subject identifier: its value tells you WHICH entity the row is "
-        f"about, while every other column describes a property of that entity.\n\n"
-        f"Which column from the list above is the subject identifier?\n"
-        f"Respond with ONLY the exact column name. You must pick one."
-    )
-
-    logger.info(
-        f"[EntityAnchor] Single-call identity selection for '{table_name}' "
-        f"over {len(schema_columns)} candidates"
-    )
-    result = _call(prompt1)
-    if result:
-        logger.info(f"[EntityAnchor] Identity column for '{table_name}': '{result}'")
-        return result
-
-    # ── Attempt 2 ─────────────────────────────────────────────────────────────
-    # Rephrased without any vocabulary that echoes schema column names.
-    prompt2 = (
-        f"Table: '{table_name}'\n"
-        f"Columns: {schema_columns}\n\n"
-        f"One column is the anchor of every row — removing it would make "
-        f"the row unidentifiable. All other columns are attributes that only "
-        f"make sense once you know which row you are looking at.\n\n"
-        f"Which column is the anchor?\n"
-        f"Respond with ONLY the exact column name. You must pick one."
-    )
-
-    result = _call(prompt2)
-    if result:
+    if len(schema_columns) == 1:
         logger.info(
-            f"[EntityAnchor] Identity column for '{table_name}' "
-            f"(attempt 2): '{result}'"
+            f"[EntityAnchor] Single candidate for '{table_name}': "
+            f"'{schema_columns[0]}' (no tournament needed)"
         )
-        return result
+        return schema_columns[0]
 
-    logger.warning(
-        f"[EntityAnchor] Both prompts failed to return a valid column for "
-        f"'{table_name}' — returning None (Tier 3 will handle)"
+    candidates = list(schema_columns)
+    # Shuffle so bracket position isn't biased by column declaration order
+    random.shuffle(candidates)
+    round_num = 1
+
+    while len(candidates) > 1:
+        logger.info(
+            f"[EntityAnchor] Tournament round {round_num} for '{table_name}': "
+            f"{len(candidates)} candidates → groups of ≤{group_size}"
+        )
+
+        groups = [
+            candidates[i : i + group_size]
+            for i in range(0, len(candidates), group_size)
+        ]
+        winners: List[str] = []
+
+        for group in groups:
+            winner = _pick_from_group(
+                table_name, group, llm_client, round_num, sample_values=sample_values
+            )
+            if winner:
+                winners.append(winner)
+            else:
+                # LLM failed for this group — all members survive
+                winners.extend(group)
+
+        # Safety: if no elimination happened, avoid an infinite loop
+        if len(winners) >= len(candidates):
+            logger.warning(
+                f"[EntityAnchor] Tournament stalled at round {round_num} for "
+                f"'{table_name}' — all group LLM calls failed. "
+                f"Returning first surviving candidate."
+            )
+            break
+
+        candidates = winners
+        round_num += 1
+
+    result = candidates[0] if candidates else None
+    logger.info(
+        f"[EntityAnchor] Tournament champion for '{table_name}': "
+        f"'{result}' (decided in {round_num} round(s))"
     )
-    return None
+    return result
 
 
 # ---------------------------------------------------------------------------
