@@ -8,7 +8,9 @@ import logging
 import re
 import subprocess
 import tempfile
-from typing import Dict, List, Set, Optional, Callable, Any
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Dict, List, Iterator, Tuple, Set, Optional, Callable, Any
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -537,6 +539,83 @@ Generate the corrected Python code. Return ONLY the code, no explanations.
         logger.info(f"Sieve filtered {len(chunks)} chunks to {len(relevant_indices)} relevant chunks")
         
         return relevant_indices
+
+    def apply_sieve_streamed(
+        self,
+        table_name: str,
+        page_iterator: Iterator[List[Tuple[str, str]]],
+        total_chunks: int,
+        max_workers: int = 32,
+    ) -> List[str]:
+        """
+        Apply the sieve to the full corpus without loading it all into RAM.
+
+        Args:
+            table_name:     Name of the table whose sieve to apply.
+            page_iterator:  Iterator that yields pages of (chunk_id, text) tuples
+                            (e.g. from DataLayer.stream_chunks_paged()).
+            total_chunks:   Total corpus size — used only for ETA logging.
+            max_workers:    ThreadPoolExecutor width.  spaCy and regex both
+                            release the GIL so threads give near-linear speedup.
+
+        Returns:
+            List of chunk_id strings that passed the sieve.
+        """
+        is_relevant = self.load_sieve(table_name)
+        if is_relevant is None:
+            logger.warning(
+                f"[Sieve] No sieve found for '{table_name}' — accepting all chunks"
+            )
+            return [cid for page in page_iterator for cid, _ in page]
+
+        relevant_ids: List[str] = []
+        scanned = 0
+        errors = 0
+        MAX_ERRORS = 100
+        t_start = time.time()
+
+        for page in page_iterator:
+            page_hits: List[str] = []
+
+            with ThreadPoolExecutor(max_workers=max_workers) as pool:
+                future_to_cid = {
+                    pool.submit(is_relevant, text): cid
+                    for cid, text in page
+                }
+                for fut in as_completed(future_to_cid):
+                    cid = future_to_cid[fut]
+                    try:
+                        if fut.result():
+                            page_hits.append(cid)
+                    except Exception as exc:
+                        errors += 1
+                        page_hits.append(cid)  # conservative: include on error
+                        if errors > MAX_ERRORS:
+                            raise RuntimeError(
+                                f"[Sieve] '{table_name}' sieve failed on "
+                                f"{errors} chunks: {exc}"
+                            ) from exc
+
+            relevant_ids.extend(page_hits)
+            scanned += len(page)
+
+            elapsed = time.time() - t_start
+            rate = scanned / elapsed if elapsed > 0 else 1
+            remaining = total_chunks - scanned
+            eta_min = (remaining / rate) / 60 if rate > 0 else 0
+            logger.info(
+                f"[Sieve] '{table_name}': {scanned:,}/{total_chunks:,} scanned "
+                f"({rate:,.0f} chunks/s) → {len(relevant_ids):,} candidates "
+                f"| ETA {eta_min:.1f} min"
+            )
+
+        logger.info(
+            f"[Sieve] '{table_name}' complete: "
+            f"{total_chunks:,} → {len(relevant_ids):,} candidates "
+            f"({len(relevant_ids)/max(total_chunks,1)*100:.1f}% pass rate) "
+            f"in {(time.time()-t_start)/60:.1f} min"
+        )
+        return relevant_ids
 
 
 # ============================================================================

@@ -263,10 +263,40 @@ class DataLayer:
     
     def count_chunks(self) -> int:
         """Count total chunks in database."""
-        with self.Session() as session:
-            stmt = select(self.raw_chunks)
-            result = session.execute(stmt)
-            return len(result.fetchall())
+        with self.engine.connect() as conn:
+            row = conn.execute(
+                text("SELECT COUNT(*) FROM raw_chunks")
+            ).fetchone()
+            return row[0] if row else 0
+
+    def stream_chunks_paged(
+        self,
+        page_size: int = 10_000,
+    ):
+        """
+        Yield pages of (chunk_id, content) tuples directly from the DB using
+        LIMIT/OFFSET, so the full corpus is never held in RAM simultaneously.
+
+        Each yielded page is a list of (chunk_id: str, content: str) tuples
+        of length <= page_size.
+        """
+        offset = 0
+        while True:
+            with self.engine.connect() as conn:
+                rows = conn.execute(
+                    text(
+                        "SELECT chunk_id, content FROM raw_chunks "
+                        "ORDER BY doc_id, chunk_index "
+                        "LIMIT :lim OFFSET :off"
+                    ),
+                    {"lim": page_size, "off": offset},
+                ).fetchall()
+            if not rows:
+                break
+            yield [(str(r[0]), r[1]) for r in rows]
+            if len(rows) < page_size:
+                break
+            offset += page_size
     
     # ========================================================================
     # Metadata Registry Operations

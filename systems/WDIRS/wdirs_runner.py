@@ -305,46 +305,57 @@ class WDIRSRunner:
         return total_chunks
     
     def _synthesize_sieves(self, lattice) -> None:
-        """Synthesize sieves for all tables."""
+        """Synthesize sieves and apply them via streaming + parallel evaluation."""
+        from config import MAX_PARALLEL_REQUESTS
+
+        # Count once — used for ETA logging across all tables.
+        total_chunks = self.data_layer.count_chunks()
+        logger.info(f"[Sieve] Corpus size: {total_chunks:,} chunks")
+
         for table_name, table_info in lattice.tables.items():
             try:
-                # Get sample chunks
-                sample_chunks_objs = self.data_layer.get_all_chunks(
-                    limit=10
-                )
+                # ── Synthesis ────────────────────────────────────────────────
+                sample_chunks_objs = self.data_layer.get_all_chunks(limit=10)
                 sample_chunks = [c.content for c in sample_chunks_objs]
-                
-                # Get schema
                 schema = self.lattice_planner.get_table_schema(table_name)
-                
-                # Synthesize sieve
+
                 sieve_result = self.sieve_synthesizer.synthesize_sieve(
-                    table_name,
-                    schema,
-                    sample_chunks
+                    table_name, schema, sample_chunks
                 )
-                
-                logger.info(f"Synthesized sieve for {table_name} "
-                           f"(accuracy: {sieve_result.accuracy:.2%})")
-                
-                # Apply sieve to all chunks
-                all_chunks = self.data_layer.get_all_chunks()
-                chunk_texts = [c.content for c in all_chunks]
-                
-                relevant_indices = self.sieve_synthesizer.apply_sieve(
-                    table_name,
-                    chunk_texts
+                logger.info(
+                    f"[Sieve] Synthesized sieve for '{table_name}' "
+                    f"(accuracy: {sieve_result.accuracy:.2%})"
                 )
-                
-                # Store candidate indices
-                relevant_chunk_ids = [all_chunks[i].chunk_id for i in relevant_indices]
-                self.data_layer.insert_candidates(table_name, relevant_chunk_ids)
-                
-                logger.info(f"Indexed {len(relevant_chunk_ids)} candidate chunks for {table_name}")
-            
+
+                # ── Streaming parallel application ───────────────────────────
+                # Stream the corpus page-by-page (10k chunks at a time) and
+                # evaluate each page with a thread pool.  spaCy and regex both
+                # release the GIL so threads give near-linear speedup on the
+                # Blackwell GPU node's many CPU cores.
+                logger.info(
+                    f"[Sieve] Applying sieve to {total_chunks:,} chunks for "
+                    f"'{table_name}' using {MAX_PARALLEL_REQUESTS} threads …"
+                )
+                page_iter = self.data_layer.stream_chunks_paged(page_size=10_000)
+                candidate_ids = self.sieve_synthesizer.apply_sieve_streamed(
+                    table_name,
+                    page_iter,
+                    total_chunks,
+                    max_workers=MAX_PARALLEL_REQUESTS,
+                )
+
+                # ── Insert candidates ────────────────────────────────────────
+                self.data_layer.insert_candidates(table_name, candidate_ids)
+                logger.info(
+                    f"[Sieve] Indexed {len(candidate_ids):,} candidate chunks "
+                    f"for '{table_name}'"
+                )
+
             except Exception as e:
                 logger.error(f"Error synthesizing sieve for {table_name}: {e}")
-                raise RuntimeError(f"Sieve synthesis failed for table '{table_name}': {e}") from e
+                raise RuntimeError(
+                    f"Sieve synthesis failed for table '{table_name}': {e}"
+                ) from e
     
     def _build_identity_map(self, lattice) -> None:
         """
