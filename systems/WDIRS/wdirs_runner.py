@@ -11,6 +11,7 @@ from pathlib import Path
 from dataclasses import dataclass, asdict
 import sys
 
+from sqlalchemy import text as _sa_text
 from data_layer import DataLayer, TextChunk
 from lattice_planner import LatticePlanner, load_workload_from_directory
 from sieve_synthesizer import SieveSynthesizer
@@ -463,26 +464,27 @@ class WDIRSRunner:
 
                 if ner_type_counts:
                     dominant_type = ner_type_counts.most_common(1)[0][0]
-                    # Virtual identity column: tells the extractor what to put
-                    # in _entity, and tells _group_chunks_by_entity which NER
-                    # label to look for.
-                    virtual_col = "_entity_discovered"
-                    table_info.columns[virtual_col] = type("ColInfo", (), {
-                        "semantic_type": dominant_type,
-                        "predicate_literals": set(),
-                    })()
-                    identity_col = virtual_col
+                    # Store the NER label only — no real DB identity column
+                    # exists for this table, so identity_col stays None.
+                    # _global_extraction will take the brute-force path
+                    # (plain INSERTs).  The NER label is recorded so that
+                    # _group_chunks_by_entity can still group for efficiency
+                    # when called explicitly; it is NOT used for DB upserts.
                     logger.info(
                         f"[IdentityMap] Tier-3 NER: dominant entity type for "
                         f"'{table_name}' is {dominant_type} "
                         f"(counts: {dict(ner_type_counts.most_common(3))}). "
-                        f"Using virtual column '{virtual_col}'."
+                        f"No real identity column — brute-force extraction."
                     )
+                    # Expose the dominant NER type via a sentinel on table_info
+                    # so ner_label derivation below can pick it up without
+                    # polluting the column schema.
+                    table_info._tier3_ner_type = dominant_type  # type: ignore[attr-defined]
                 else:
                     logger.warning(
                         f"[IdentityMap] Tier-3 NER found no named entities in "
                         f"sample chunks for '{table_name}'. "
-                        f"Upsert will fall back to plain insert."
+                        f"Using brute-force plain insert."
                     )
 
             # Derive the spaCy NER label from the LLM-assigned semantic type of
@@ -518,6 +520,12 @@ class WDIRSRunner:
                             f"'{identity_col}': hint values contain org indicators"
                         )
                         ner_label = "ORG"
+
+            elif hasattr(table_info, "_tier3_ner_type"):
+                # Tier-3 case: NER type discovered from text but no real DB column.
+                ner_label = self._semantic_type_to_ner_label(
+                    table_info._tier3_ner_type  # type: ignore[attr-defined]
+                )
 
             self.identity_columns[table_name] = identity_col
             self.identity_ner_labels[table_name] = ner_label
@@ -797,9 +805,199 @@ class WDIRSRunner:
 
         return total_records
 
+    def _preflight_check(self, lattice, dataset_path: Path) -> None:
+        """
+        Comprehensive pre-flight validation executed BEFORE any LLM extraction.
+
+        Checks (in order):
+          1. Required config variables are importable and have valid values.
+          2. Source data directory exists and contains at least one text file.
+          3. Ollama LLM is reachable and returns a well-formed response.
+          4. Entity resolver models (bi-encoder, cross-encoder) are loaded.
+          5. DB is writable (scratch INSERT/DELETE to a temp row).
+          6. Per-table: identity column is a real workload column (not virtual).
+          7. Per-table: if the table already exists in the DB, its column set is
+             a superset of what the workload schema requires; missing columns are
+             added via ALTER TABLE so IF NOT EXISTS never silently omits them.
+          8. Per-table: candidate chunk count — warn when zero.
+
+        Raises RuntimeError on any hard failure so the run aborts immediately
+        instead of hours later.
+        """
+        failures: List[str] = []
+
+        # ── 1. Config variable imports ────────────────────────────────────────
+        logger.info("[PreFlight] 1/8 Checking config variables…")
+        _required_config_vars = [
+            "EXTRACTION_MAX_WORKERS",
+            "NER_BATCH_SIZE",
+            "UNASSIGNED_CHUNK_CAP",
+            "TOP_K_CHUNKS_PER_ENTITY",
+            "CHUNK_BATCH_SIZE",
+            "COLUMN_BATCH_SIZE",
+            "OLLAMA_URL",
+            "OLLAMA_MODEL",
+            "BI_ENCODER_MODEL",
+            "CROSS_ENCODER_MODEL",
+            "MAX_PARALLEL_REQUESTS",
+        ]
+        import config as _cfg
+        for var in _required_config_vars:
+            if not hasattr(_cfg, var):
+                failures.append(f"config.{var} is missing")
+            elif getattr(_cfg, var) is None:
+                failures.append(f"config.{var} is None")
+
+        # ── 2. Source data directory ──────────────────────────────────────────
+        logger.info("[PreFlight] 2/8 Checking source data…")
+        if not dataset_path.exists():
+            failures.append(
+                f"Source data directory does not exist: {dataset_path}"
+            )
+        else:
+            txt_files = list(dataset_path.rglob("*.txt"))
+            if not txt_files:
+                failures.append(
+                    f"No .txt files found under {dataset_path}. "
+                    f"Nothing to ingest."
+                )
+            else:
+                logger.info(
+                    f"[PreFlight] Source data OK: {len(txt_files)} .txt files"
+                )
+
+        # ── 3. LLM connectivity ───────────────────────────────────────────────
+        logger.info("[PreFlight] 3/8 Checking Ollama connectivity…")
+        try:
+            probe = self.llm_client.generate(
+                "Reply with the single word: OK", max_tokens=5, temperature=0.0
+            )
+            if not isinstance(probe, str) or not probe.strip():
+                failures.append(
+                    f"Ollama returned an empty or non-string response: {probe!r}"
+                )
+            else:
+                logger.info(f"[PreFlight] Ollama OK (probe response: {probe.strip()!r})")
+        except Exception as exc:
+            failures.append(f"Ollama unreachable: {exc}")
+
+        # ── 4. Entity resolver models ─────────────────────────────────────────
+        logger.info("[PreFlight] 4/8 Checking entity resolver models…")
+        try:
+            # Accessing the model attributes forces lazy-load if not yet done.
+            _ = self.entity_resolver.bi_encoder
+            _ = self.entity_resolver.cross_encoder
+            logger.info("[PreFlight] Entity resolver models OK")
+        except Exception as exc:
+            failures.append(f"Entity resolver model load failed: {exc}")
+
+        # ── 5. DB write permission ────────────────────────────────────────────
+        logger.info("[PreFlight] 5/8 Checking DB writability…")
+        try:
+            _PROBE_TABLE = "_preflight_probe"
+            with self.data_layer.engine.connect() as _conn:
+                _conn.execute(_sa_text(
+                    f"CREATE TABLE IF NOT EXISTS {_PROBE_TABLE} "
+                    f"(id TEXT PRIMARY KEY)"
+                ))
+                _conn.execute(_sa_text(
+                    f"INSERT OR IGNORE INTO {_PROBE_TABLE} (id) VALUES ('ok')"
+                ))
+                _conn.execute(_sa_text(f"DROP TABLE IF EXISTS {_PROBE_TABLE}"))
+                _conn.commit()
+            logger.info("[PreFlight] DB write test OK")
+        except Exception as exc:
+            failures.append(f"DB write test failed: {exc}")
+
+        # ── 6. Identity column vs workload schema ─────────────────────────────
+        logger.info("[PreFlight] 6/8 Checking identity columns vs schema…")
+        for table_name in lattice.tables:
+            schema = self.lattice_planner.get_table_schema(table_name)
+            identity_col = self.identity_columns.get(table_name)
+            if identity_col is not None and identity_col not in schema:
+                failures.append(
+                    f"Table '{table_name}': identity column '{identity_col}' "
+                    f"is not a real workload column "
+                    f"(schema={list(schema.keys())}). "
+                    f"This would cause a column-not-found error during extraction."
+                )
+
+        # ── 7. Existing table schema compatibility ────────────────────────────
+        logger.info("[PreFlight] 7/8 Checking existing DB table schemas…")
+        try:
+            for table_name, _tinfo in lattice.tables.items():
+                schema = self.lattice_planner.get_table_schema(table_name)
+                sql_schema = {
+                    col: semantic_to_sql_type(sem)
+                    for col, sem in schema.items()
+                }
+                with self.data_layer.engine.connect() as _conn:
+                    existing_rows = _conn.execute(
+                        _sa_text(f"PRAGMA table_info({table_name})")
+                    ).fetchall()
+                if not existing_rows:
+                    # Table doesn't exist yet — will be created during extraction.
+                    continue
+                existing_cols = {r[1] for r in existing_rows}
+                missing = set(sql_schema.keys()) - existing_cols
+                if missing:
+                    logger.warning(
+                        f"[PreFlight] Table '{table_name}' exists but is missing "
+                        f"columns {missing}. Adding via ALTER TABLE…"
+                    )
+                    with self.data_layer.engine.connect() as _conn:
+                        for col in missing:
+                            col_type = sql_schema[col]
+                            try:
+                                _conn.execute(_sa_text(
+                                    f"ALTER TABLE {table_name} "
+                                    f"ADD COLUMN {col} {col_type}"
+                                ))
+                                logger.info(
+                                    f"[PreFlight] Added column '{col}' "
+                                    f"({col_type}) to '{table_name}'"
+                                )
+                            except Exception as alter_exc:
+                                failures.append(
+                                    f"ALTER TABLE {table_name} ADD COLUMN "
+                                    f"{col}: {alter_exc}"
+                                )
+                        _conn.commit()
+        except Exception as exc:
+            failures.append(f"Table schema compatibility check failed: {exc}")
+
+        # ── 8. Candidate chunk counts ─────────────────────────────────────────
+        logger.info("[PreFlight] 8/8 Checking candidate chunk counts…")
+        for table_name in lattice.tables:
+            count = len(self.data_layer.get_candidates(table_name))
+            if count == 0:
+                logger.warning(
+                    f"[PreFlight] Table '{table_name}' has 0 candidate chunks. "
+                    f"The sieve may have filtered everything out, or ingestion "
+                    f"has not run yet. This table will produce no extracted rows."
+                )
+            else:
+                logger.info(
+                    f"[PreFlight] Table '{table_name}': {count} candidate chunks"
+                )
+
+        # ── Final verdict ─────────────────────────────────────────────────────
+        if failures:
+            msg = "\n".join(f"  • {f}" for f in failures)
+            raise RuntimeError(
+                f"[PreFlight] {len(failures)} check(s) failed — "
+                f"aborting before extraction:\n{msg}"
+            )
+
+        logger.info("[PreFlight] All 8 checks passed. Starting extraction.")
+
     def _global_extraction(self, lattice) -> int:
         """Perform predicate-based extraction (like QAIRS)."""
         total_records = 0
+
+        # Validate before spending any time on LLM calls.
+        dataset_path = get_dataset_path(self.dataset)
+        self._preflight_check(lattice, dataset_path)
         
         # Check if there are joins in the workload
         has_joins = len(lattice.join_pairs) > 0
