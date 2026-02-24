@@ -396,10 +396,14 @@ class WDIRSRunner:
             )
 
             # --- Tier 1: semantic-type pre-filter ---
+            # Intentionally NOT restricted to schema_columns: a query like
+            # "SELECT earnings_per_share FROM finance" omits company_name from
+            # the SELECT, but company_name is still the entity anchor for the
+            # whole table.  We look at ALL typed columns in table_info so the
+            # identity column is found even when it wasn't queried.
             entity_candidates = [
                 col for col, col_info in table_info.columns.items()
                 if getattr(col_info, "semantic_type", "OTHER") in ENTITY_SEMANTIC_TYPES
-                and col in schema_columns
             ]
 
             logger.info(
@@ -926,13 +930,17 @@ class WDIRSRunner:
         # ── 6. Identity column vs workload schema ─────────────────────────────
         logger.info("[PreFlight] 6/8 Checking identity columns vs schema…")
         for table_name in lattice.tables:
-            schema = self.lattice_planner.get_table_schema(table_name)
+            table_info = lattice.tables[table_name]
             identity_col = self.identity_columns.get(table_name)
-            if identity_col is not None and identity_col not in schema:
+            # The identity column may be absent from the queried schema (the
+            # shim injects it during extraction).  Validate it exists in
+            # table_info.columns (i.e. it is a real column the lattice knows
+            # about) rather than just in the narrow query SELECT list.
+            if identity_col is not None and identity_col not in table_info.columns:
                 failures.append(
                     f"Table '{table_name}': identity column '{identity_col}' "
-                    f"is not a real workload column "
-                    f"(schema={list(schema.keys())}). "
+                    f"is not a known table column "
+                    f"(known={list(table_info.columns.keys())}). "
                     f"This would cause a column-not-found error during extraction."
                 )
 
@@ -1064,6 +1072,26 @@ class WDIRSRunner:
                 # For tables in joins, extract ALL data to ensure referential integrity
                 # Phase 2 will handle join alignment
                 entity_col = self.identity_columns.get(table_name)
+
+                # ── Identity-column shim ─────────────────────────────────────
+                # If the identity column was detected but isn't in this query's
+                # SELECT list (e.g. "SELECT earnings_per_share FROM finance"
+                # omits company_name), inject it into the extraction schema now.
+                # The entity-first path needs it as an anchor; the original SQL
+                # runs against SQLite later and is never modified, so the extra
+                # column has zero effect on the final query results.
+                if entity_col and entity_col not in schema:
+                    col_info = table_info.columns.get(entity_col)
+                    sem_type = (
+                        getattr(col_info, "semantic_type", "ORG")
+                        if col_info else "ORG"
+                    )
+                    schema[entity_col] = sem_type
+                    sql_schema[entity_col] = "TEXT"
+                    logger.info(
+                        f"[IdentityShim] Injected '{entity_col}' into extraction "
+                        f"schema for '{table_name}' (not in query SELECT list)"
+                    )
 
                 ner_label = self.identity_ner_labels.get(table_name)
 
