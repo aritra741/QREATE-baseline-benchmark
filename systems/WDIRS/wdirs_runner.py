@@ -92,6 +92,92 @@ def semantic_to_sql_type(semantic_type: str) -> str:
     return type_map.get(semantic_type, "TEXT")
 
 
+_NUMERIC_SQL_TYPES = {"REAL", "INTEGER", "NUMERIC", "INT", "FLOAT", "DOUBLE"}
+
+
+def _validate_record(
+    record: Dict[str, Any],
+    sql_schema: Dict[str, str],
+    chunk_texts: List[str],
+    identity_col: str,
+    spans: Optional[Dict[str, str]] = None,
+) -> Dict[str, Any]:
+    """
+    Validate and clean one extracted record before writing to the DB.
+
+    Two checks are applied to every non-null, non-identity cell:
+
+    1. Type check (hard)
+       REAL/INTEGER/NUMERIC columns must hold a value castable to float
+       (after stripping commas and percent signs).  Failures are dropped.
+
+    2. Span grounding (evidence check)
+       Priority order:
+         a) If the LLM returned a supporting span for this field (from the
+            span-grounded prompt format), verify that span appears verbatim
+            (case-insensitive) in the source chunks.  Because the span is an
+            exact quote, any mismatch means the LLM fabricated it.
+         b) If no span was returned (old-format response or Pass-1 call),
+            fall back to checking that the value string itself appears in
+            the source chunks.  This is weaker but better than nothing.
+       JSON-shaped values ([... or {...) are always rejected — the LLM
+       should never return structured collections for a flat table cell.
+
+    The identity column is exempt — it is stamped by entity resolution.
+    """
+    if not chunk_texts:
+        return record
+
+    corpus = " ".join(t.lower() for t in chunk_texts)
+    spans = spans or {}
+
+    validated: Dict[str, Any] = {}
+    for col, val in record.items():
+        if col in ("_entity", "row_id", identity_col):
+            validated[col] = val
+            continue
+        if val is None:
+            continue
+
+        sql_type = sql_schema.get(col, "TEXT").upper()
+
+        if sql_type in _NUMERIC_SQL_TYPES:
+            try:
+                float(str(val).replace(",", "").replace("%", "").strip())
+                validated[col] = val
+            except (ValueError, TypeError):
+                logger.debug(f"[Validate] Dropped '{col}'={val!r}: expected numeric")
+        else:
+            val_str = str(val).strip()
+            if len(val_str) < 2:
+                continue
+            if val_str.startswith("[") or val_str.startswith("{"):
+                logger.debug(f"[Validate] Dropped '{col}'={val_str[:60]!r}: JSON shape")
+                continue
+
+            # Prefer span check; fall back to value check.
+            span = spans.get(col, "")
+            if span:
+                if span.lower() in corpus:
+                    validated[col] = val
+                else:
+                    logger.debug(
+                        f"[Validate] Dropped '{col}'={val_str[:40]!r}: "
+                        f"span {span[:40]!r} not found in source chunks"
+                    )
+            else:
+                # No span provided — check value itself as a fallback.
+                if val_str.lower() in corpus:
+                    validated[col] = val
+                else:
+                    logger.debug(
+                        f"[Validate] Dropped '{col}'={val_str[:60]!r}: "
+                        f"no span, value not in chunks"
+                    )
+
+    return validated
+
+
 # ============================================================================
 # WDIRS Runner
 # ============================================================================
@@ -270,38 +356,66 @@ class WDIRSRunner:
             )
     
     def _ingest_text_data(self) -> int:
-        """Ingest text data and create chunks."""
+        """
+        Ingest all source text files into the chunk store, in parallel.
+
+        Files are read and chunked concurrently (CPU-bound, GIL is released by
+        the splitter).  DB writes are batched and serialised — SQLite does not
+        support concurrent writers, so we collect all chunks from a worker pool
+        and flush to DB in a single call per batch.
+
+        Duplicate (doc_id, chunk_index) pairs are silently ignored by
+        insert_chunks (INSERT OR IGNORE), so re-running ingest is idempotent.
+        """
+        from concurrent.futures import ThreadPoolExecutor, as_completed as _asc
+        from config import MAX_PARALLEL_REQUESTS
+
         dataset_path = get_dataset_path(self.dataset)
-        
         if not dataset_path.exists():
             logger.warning(f"Dataset path not found: {dataset_path}")
             return 0
-        
-        total_chunks = 0
-        
-        # Process all text files
-        for text_file in dataset_path.glob("**/*.txt"):
+
+        text_files = list(dataset_path.glob("**/*.txt"))
+        logger.info(
+            f"[Ingest] {len(text_files)} source files, "
+            f"{MAX_PARALLEL_REQUESTS} reader threads"
+        )
+
+        def _read_and_chunk(text_file):
             try:
-                with open(text_file, 'r', encoding='utf-8') as f:
-                    content = f.read()
-                
-                # Create chunks
                 doc_id = str(text_file.relative_to(dataset_path))
-                chunks = self.data_layer.create_chunks(
-                    content,
-                    doc_id,
-                    metadata={"source_file": str(text_file)}
+                content = text_file.read_text(encoding="utf-8", errors="replace")
+                return self.data_layer.create_chunks(
+                    content, doc_id, metadata={"source_file": str(text_file)}
                 )
-                
-                # Insert into database
-                self.data_layer.insert_chunks(chunks)
-                total_chunks += len(chunks)
-                
-                logger.debug(f"Ingested {len(chunks)} chunks from {doc_id}")
-            
-            except Exception as e:
-                logger.error(f"Error ingesting {text_file}: {e}")
-        
+            except Exception as exc:
+                logger.error(f"[Ingest] Error reading {text_file}: {exc}")
+                return []
+
+        total_chunks = 0
+        DB_BATCH = 200  # files per DB flush — balances RAM vs round-trip cost
+
+        with ThreadPoolExecutor(max_workers=MAX_PARALLEL_REQUESTS) as pool:
+            futs = {pool.submit(_read_and_chunk, f): f for f in text_files}
+            pending_chunks: list = []
+            done = 0
+            for fut in _asc(futs):
+                chunks = fut.result()
+                pending_chunks.extend(chunks)
+                done += 1
+                if done % DB_BATCH == 0:
+                    if pending_chunks:
+                        self.data_layer.insert_chunks(pending_chunks)
+                        total_chunks += len(pending_chunks)
+                        pending_chunks = []
+                    logger.info(f"[Ingest] {done}/{len(text_files)} files processed")
+
+        # Flush remainder
+        if pending_chunks:
+            self.data_layer.insert_chunks(pending_chunks)
+            total_chunks += len(pending_chunks)
+
+        logger.info(f"[Ingest] Done: {total_chunks} chunks from {len(text_files)} files")
         return total_chunks
     
     def _synthesize_sieves(self, lattice) -> None:
@@ -578,108 +692,184 @@ class WDIRSRunner:
         }
         return _MAP.get(semantic_type) if semantic_type else None
 
+    def _identity_pass(
+        self,
+        table_name: str,
+        identity_col: str,
+        candidate_chunks: list,
+        predicate_hints: Optional[List[str]] = None,
+    ) -> Dict[str, List[str]]:
+        """
+        Pass 1: extract only the identity column from every candidate chunk,
+        in parallel.  Returns a mapping of raw_entity_value → [chunk_ids].
+
+        Each LLM call is cheap: short prompt, single column, high NULL rate
+        (most chunks don't name the entity directly).  The result feeds
+        directly into entity resolution without any top-K gating.
+
+        Predicate hints
+        ───────────────
+        If the workload contains literals for the identity column (e.g.
+        WHERE company_name = 'IBM'), they are passed as hints so the LLM
+        normalises to those exact forms when it sees them — query-aware
+        without hardcoding anything.
+        """
+        from concurrent.futures import ThreadPoolExecutor, as_completed as _asc
+        from config import MAX_PARALLEL_REQUESTS
+
+        llm = self.extractor.llm_client
+        hint_str = ""
+        if predicate_hints:
+            hint_str = (
+                f"\nKnown example values of '{identity_col}' in this dataset: "
+                + ", ".join(f"'{h}'" for h in predicate_hints[:20])
+                + ". There may be other values not in this list."
+            )
+
+        def _extract_identity(chunk) -> Optional[str]:
+            prompt = (
+                f"We are building a table called '{table_name}'. "
+                f"Each row is identified by the column '{identity_col}'."
+                f"{hint_str}\n\n"
+                f"From the text below, extract the value of '{identity_col}' "
+                f"if it is clearly present.\n"
+                f"Rules:\n"
+                f"  - Return ONLY the exact name/identifier (e.g. a company name, "
+                f"disease name, person name, drug name).\n"
+                f"  - Do NOT return committee names, section headings, or other "
+                f"entities that are merely mentioned but are not a '{identity_col}'.\n"
+                f"  - If no clear '{identity_col}' value is present, respond: NULL\n\n"
+                f"Text:\n{chunk.content[:1200]}\n\n"
+                f"{identity_col}:"
+            )
+            try:
+                resp = llm.generate(prompt, max_tokens=40, temperature=0.0).strip()
+                resp = resp.strip('"').strip("'").strip()
+                if not resp or resp.upper() == "NULL" or len(resp) < 2:
+                    return None
+                return resp
+            except Exception:
+                return None
+
+        raw: Dict[str, List[str]] = {}  # entity_value → [chunk_ids]
+        total = len(candidate_chunks)
+        logger.info(
+            f"[Pass1] Extracting '{identity_col}' from {total} chunks "
+            f"for '{table_name}' ({MAX_PARALLEL_REQUESTS} workers)"
+        )
+
+        with ThreadPoolExecutor(max_workers=MAX_PARALLEL_REQUESTS) as pool:
+            futs = {
+                pool.submit(_extract_identity, c): c.chunk_id
+                for c in candidate_chunks
+            }
+            done = 0
+            for fut in _asc(futs):
+                chunk_id = futs[fut]
+                done += 1
+                if done % 1000 == 0 or done == total:
+                    logger.info(f"[Pass1] {done}/{total} chunks processed")
+                val = fut.result()
+                if val:
+                    raw.setdefault(val, []).append(chunk_id)
+
+        non_null = sum(len(v) for v in raw.values())
+        logger.info(
+            f"[Pass1] Done: {len(raw)} unique raw entity values, "
+            f"{non_null}/{total} chunks had a match"
+        )
+        return raw
+
     def _group_chunks_by_entity(
         self,
         candidate_chunks: list,
         ner_label: Optional[str],
         top_k_per_entity: int,
+        table_name: str = "",
+        identity_col: str = "",
+        schema: Optional[Dict] = None,
+        pass1_raw: Optional[Dict[str, List[str]]] = None,
     ) -> tuple:
         """
-        Two-phase entity grouping designed to avoid running spaCy NER on every chunk.
+        Two-phase entity grouping driven by Pass 1 extraction results.
 
-        Phase 1 — Discovery (NER on a sample):
-            Run spaCy NER on up to ENTITY_DISCOVERY_SAMPLE chunks to collect all
-            entity names. This is fast (seconds, not minutes).
+        Pass 1 (done before this call) already extracted raw identity-column
+        values from every candidate chunk.  This method:
 
-        Phase 2 — Assignment (FlashText on all chunks):
-            Build a FlashText KeywordProcessor from the discovered names and run it
-            over every chunk. FlashText processes millions of strings/sec — far faster
-            than NER.
+        1. Runs entity resolution (bi-encoder blocking + cross-encoder matching)
+           on the raw Pass 1 values to collapse variants into canonical entities.
+           "Beazley", "Beazley plc", "BEAZLEYPLC" → "Beazley plc".
+           "COVID-19", "SARS-CoV-2" → "COVID-19".
 
-        Chunks that FlashText cannot assign fall into `unassigned`.
+        2. Builds the entity → [TextChunk] mapping directly from the chunk_ids
+           recorded during Pass 1.  No keyword matching, no NER, no top-K.
+           Every chunk that mentioned a variant of an entity is assigned to it.
 
         Returns:
-            entity_to_chunks: Dict[str, List[TextChunk]] — top_k chunks per entity
-            unassigned: List[TextChunk] — chunks with no discovered entity string
+            entity_to_chunks : Dict[str, List[TextChunk]] — chunks per canonical entity
+            unassigned       : List[TextChunk] — chunks with no Pass 1 match
         """
-        import random
-        from collections import defaultdict, Counter as _Counter
-        from flashtext import KeywordProcessor
-        from config import NER_BATCH_SIZE
+        from collections import defaultdict
 
-        ENTITY_DISCOVERY_SAMPLE = 5000   # NER only on this many chunks
-        ACCEPTABLE_LABELS = {"PERSON", "ORG", "GPE", "PRODUCT"}
-        label_filter = {ner_label} if ner_label else ACCEPTABLE_LABELS
-
-        # ── Phase 1: Entity discovery via NER on a sample ────────────────────
-        total = len(candidate_chunks)
-        sample_size = min(ENTITY_DISCOVERY_SAMPLE, total)
-        sample_indices = random.sample(range(total), sample_size)
-        sample_chunks = [candidate_chunks[i] for i in sample_indices]
-
-        logger.info(
-            f"[EntityFirst] Phase-1 NER discovery on {sample_size}/{total} chunks "
-            f"(label filter: {ner_label or 'ALL'})"
-        )
-
-        entity_counter: "_Counter[str]" = _Counter()
-        sample_texts = [c.content for c in sample_chunks]
-        for doc in self._nlp.pipe(
-            sample_texts,
-            batch_size=NER_BATCH_SIZE,
-            disable=["tok2vec", "tagger", "parser", "attribute_ruler", "lemmatizer"],
-        ):
-            for ent in doc.ents:
-                if ent.label_ in label_filter:
-                    name = ent.text.strip()
-                    if len(name) > 1:
-                        entity_counter[name] += 1
-
-        if not entity_counter:
+        if not pass1_raw:
             logger.warning(
-                "[EntityFirst] NER discovered no entities in sample — "
-                "all chunks will be unassigned"
+                "[GroupChunks] No Pass 1 results — all chunks unassigned"
             )
             return {}, candidate_chunks
 
-        discovered_entities = list(entity_counter.keys())
+        # Build chunk_id → TextChunk lookup for fast resolution.
+        chunk_lookup: Dict[str, object] = {c.chunk_id: c for c in candidate_chunks}
+        assigned_ids: set = set()
+
+        # ── Entity resolution on raw Pass 1 values ───────────────────────────
+        from entity_resolver import EntityMention
+        mentions = [
+            EntityMention(
+                mention_id=f"{table_name}_{identity_col}_{val}",
+                value=val,
+                table_name=table_name,
+                column_name=identity_col,
+                semantic_type="ORG",
+            )
+            for val in pass1_raw.keys()
+            if val and val.strip()
+        ]
+
+        canonical_map: Dict[str, str] = {}   # raw_value → canonical
+        if len(mentions) >= 2:
+            try:
+                result = self.entity_resolver.resolve_entities(mentions)
+                canonical_map = result.canonical_map   # raw_val → canonical
+                logger.info(
+                    f"[GroupChunks] Entity resolution: {len(pass1_raw)} raw values → "
+                    f"{result.total_clusters} canonical entities"
+                )
+            except Exception as exc:
+                logger.warning(f"[GroupChunks] Entity resolution failed: {exc}. "
+                               "Treating each raw value as its own canonical.")
+        # Fallback: identity mapping
+        for val in pass1_raw:
+            if val not in canonical_map:
+                canonical_map[val] = val
+
+        # ── Build entity → [TextChunk] from Pass 1 chunk_ids ─────────────────
+        entity_to_chunks: Dict[str, list] = defaultdict(list)
+        for raw_val, chunk_ids in pass1_raw.items():
+            canon = canonical_map.get(raw_val, raw_val)
+            for cid in chunk_ids:
+                chunk = chunk_lookup.get(cid)
+                if chunk:
+                    entity_to_chunks[canon].append(chunk)
+                    assigned_ids.add(cid)
+
+        unassigned = [c for c in candidate_chunks if c.chunk_id not in assigned_ids]
+
         logger.info(
-            f"[EntityFirst] Phase-1 discovered {len(discovered_entities)} unique entities "
-            f"(top-5 by freq: {[e for e, _ in entity_counter.most_common(5)]})"
+            f"[GroupChunks] {len(entity_to_chunks)} canonical entities, "
+            f"{sum(len(v) for v in entity_to_chunks.values())} assigned chunks, "
+            f"{len(unassigned)} unassigned"
         )
-
-        # ── Phase 2: FlashText assignment over all chunks ────────────────────
-        kp = KeywordProcessor(case_sensitive=False)
-        for ent_name in discovered_entities:
-            kp.add_keyword(ent_name)
-
-        logger.info(
-            f"[EntityFirst] Phase-2 FlashText assignment over {total} chunks"
-        )
-
-        entity_to_all_chunks: Dict[str, list] = defaultdict(list)
-        unassigned: list = []
-
-        for chunk in candidate_chunks:
-            hits = kp.extract_keywords(chunk.content)
-            # hits is a list of matched entity names; use the most frequent
-            if hits:
-                primary = _Counter(hits).most_common(1)[0][0]
-                entity_to_all_chunks[primary].append(chunk)
-            else:
-                unassigned.append(chunk)
-
-        # Keep only top_k chunks per entity
-        entity_to_chunks: Dict[str, list] = {
-            entity: chunks[:top_k_per_entity]
-            for entity, chunks in entity_to_all_chunks.items()
-        }
-
-        logger.info(
-            f"[EntityFirst] {len(entity_to_chunks)} entities assigned, "
-            f"{len(unassigned)} unassigned chunks"
-        )
-        return entity_to_chunks, unassigned
+        return dict(entity_to_chunks), unassigned
 
     def _entity_first_extraction(
         self,
@@ -690,29 +880,34 @@ class WDIRSRunner:
         ner_label: Optional[str],
         candidate_chunks: list,
         normalization_hints: Dict[str, Any],
+        pass1_raw: Optional[Dict[str, List[str]]] = None,
     ) -> int:
         """
         Entity-first extraction pipeline.
 
-        1. Group candidate chunks by entity using spaCy NER (no LLM cost).
-        2. For each entity, run the LLM on only its top-K chunks.
-        3. Upsert results directly into the DB.
-        4. Process a small set of unassigned chunks with the standard path.
+        1. Run Pass 1 (identity-col-only, all chunks, parallel) to get
+           raw entity values and the chunk_ids that mention them.
+        2. Entity resolution collapses raw variants into canonical entities
+           and maps each chunk to its canonical.
+        3. For each canonical entity, run full schema extraction on only
+           its linked chunks — no top-K gate, no NER, no sampling bias.
+        4. Stamp identity_col unconditionally with the canonical entity name
+           to prevent LLM hallucination on that column.
+        5. Process unassigned chunks (no entity mention found) with the
+           brute-force path, capped by UNASSIGNED_CHUNK_CAP.
 
-        This reduces LLM calls from O(all_candidates) to O(entities × top_k).
+        LLM calls ≈ N_entities × avg_chunks_per_entity (Pass 2)
+                  + N_candidate_chunks (Pass 1, cheap single-column calls)
         """
-        from collections import defaultdict as _dd
-
         from config import TOP_K_CHUNKS_PER_ENTITY, UNASSIGNED_CHUNK_CAP
 
-        # normalization_hints contain EXPECTED OUTPUT values (e.g. 'USA'),
-        # not the text forms as they appear in documents.  Do NOT seed FlashText
-        # with them — FlashText must match document text forms, and NER Phase-1
-        # discovers those from the corpus sample.  Normalization hints are only
-        # used later in the LLM extraction prompt to standardize output values.
         entity_to_chunks, unassigned = self._group_chunks_by_entity(
             candidate_chunks, ner_label,
             top_k_per_entity=TOP_K_CHUNKS_PER_ENTITY,
+            table_name=table_name,
+            identity_col=identity_col,
+            schema=schema,
+            pass1_raw=pass1_raw,
         )
 
         # For entity-first extraction the context is tightly focused (all
@@ -738,6 +933,8 @@ class WDIRSRunner:
         def _extract_entity(entity_name: str, entity_chunks: list):
             chunk_texts   = [c.content  for c in entity_chunks]
             chunk_ids_lst = [c.chunk_id for c in entity_chunks]
+            # Map chunk_id → doc_id so we can populate cell provenance.
+            chunk_doc_map = {c.chunk_id: c.doc_id for c in entity_chunks}
             results = self.extractor.extract_batch(
                 chunk_texts,
                 chunk_ids_lst,
@@ -747,23 +944,35 @@ class WDIRSRunner:
                 entity_col=identity_col,
                 col_batch_size_override=_no_batch_size,
             )
-            pairs = [
-                (record, er.chunk_id)
-                for er in results
-                if not er.error
-                for record in er.records
-            ]
-            # Guarantee the _entity routing field is always populated
-            for record, _ in pairs:
-                if not record.get("_entity"):
+            triples = []
+            for er in results:
+                if er.error:
+                    continue
+                doc_id = chunk_doc_map.get(er.chunk_id, "")
+                local_texts = [
+                    c.content for c in entity_chunks
+                    if c.chunk_id == er.chunk_id
+                ]
+                for rec_idx, record in enumerate(er.records):
+                    # Stamp identity unconditionally (prevent LLM override).
                     record["_entity"] = entity_name
-                if identity_col not in record:
                     record[identity_col] = entity_name
-            return pairs
+                    # Retrieve the per-column spans returned alongside values.
+                    rec_spans = (
+                        er.spans[rec_idx]
+                        if er.spans and rec_idx < len(er.spans)
+                        else None
+                    )
+                    # Type check + span-grounding validation on all other cols.
+                    record = _validate_record(
+                        record, sql_schema, local_texts, identity_col, rec_spans
+                    )
+                    triples.append((record, er.chunk_id, doc_id))
+            return triples
 
         # Collect all results then bulk-upsert once per 1000 entities to
         # amortise the DB round-trips without holding everything in RAM.
-        all_pairs: list = []
+        all_triples: list = []
         batch_size = 1000
 
         with ThreadPoolExecutor(max_workers=EXTRACTION_MAX_WORKERS) as pool:
@@ -773,28 +982,31 @@ class WDIRSRunner:
             }
             done_count = 0
             for fut in as_completed(futs):
-                pairs = fut.result()
-                all_pairs.extend(pairs)
+                all_triples.extend(fut.result())
                 done_count += 1
                 if done_count % batch_size == 0:
-                    if all_pairs:
-                        pv = self.data_layer.upsert_by_entity(table_name, identity_col, all_pairs)
-                        self.data_layer.bulk_insert_provenance(table_name, pv)
-                        total_records += len(pv)
-                        all_pairs = []
+                    if all_triples:
+                        row_pv, cell_pv = self.data_layer.upsert_by_entity(
+                            table_name, identity_col, all_triples
+                        )
+                        self.data_layer.bulk_insert_provenance(table_name, row_pv)
+                        self.data_layer.bulk_insert_cell_provenance(cell_pv)
+                        total_records += len(row_pv)
+                        all_triples = []
                     logger.info(f"[EntityFirst] {done_count}/{len(entity_items)} entities done")
 
         # Flush remainder
-        if all_pairs:
-            pv = self.data_layer.upsert_by_entity(table_name, identity_col, all_pairs)
-            self.data_layer.bulk_insert_provenance(table_name, pv)
-            total_records += len(pv)
+        if all_triples:
+            row_pv, cell_pv = self.data_layer.upsert_by_entity(
+                table_name, identity_col, all_triples
+            )
+            self.data_layer.bulk_insert_provenance(table_name, row_pv)
+            self.data_layer.bulk_insert_cell_provenance(cell_pv)
+            total_records += len(row_pv)
 
         # --- Unassigned chunks: hard-capped standard extraction ──────────────
-        # With the correct NER label and FlashText, unassigned should be rare
-        # (chunks with no detectable entity name).  A hard cap of
-        # UNASSIGNED_CHUNK_CAP prevents this from becoming a bottleneck even
-        # in pathological cases.
+        # Unassigned = chunks where Pass 1 found no entity mention.  A hard cap
+        # prevents this from becoming a bottleneck in pathological cases.
         if unassigned:
             to_process = unassigned[:UNASSIGNED_CHUNK_CAP]
             logger.info(
@@ -803,23 +1015,36 @@ class WDIRSRunner:
             )
             ua_texts = [c.content for c in to_process]
             ua_ids   = [c.chunk_id for c in to_process]
+            ua_doc_map = {c.chunk_id: c.doc_id for c in to_process}
             results  = self.extractor.extract_batch(
                 ua_texts, ua_ids, table_name, schema,
                 normalization_hints=normalization_hints,
                 entity_col=identity_col,
                 col_batch_size_override=_no_batch_size,
             )
-            record_chunk_pairs = [
-                (record, er.chunk_id)
-                for er in results if not er.error
-                for record in er.records
-            ]
-            if record_chunk_pairs:
-                prov_pairs = self.data_layer.upsert_by_entity(
-                    table_name, identity_col, record_chunk_pairs
+            ua_triples = []
+            for er in results:
+                if er.error:
+                    continue
+                doc_id = ua_doc_map.get(er.chunk_id, "")
+                local_texts = [c.content for c in to_process if c.chunk_id == er.chunk_id]
+                for rec_idx, record in enumerate(er.records):
+                    rec_spans = (
+                        er.spans[rec_idx]
+                        if er.spans and rec_idx < len(er.spans)
+                        else None
+                    )
+                    record = _validate_record(
+                        record, sql_schema, local_texts, identity_col, rec_spans
+                    )
+                    ua_triples.append((record, er.chunk_id, doc_id))
+            if ua_triples:
+                row_pv, cell_pv = self.data_layer.upsert_by_entity(
+                    table_name, identity_col, ua_triples
                 )
-                self.data_layer.bulk_insert_provenance(table_name, prov_pairs)
-                total_records += len(prov_pairs)
+                self.data_layer.bulk_insert_provenance(table_name, row_pv)
+                self.data_layer.bulk_insert_cell_provenance(cell_pv)
+                total_records += len(row_pv)
 
         return total_records
 
@@ -1096,16 +1321,25 @@ class WDIRSRunner:
                 ner_label = self.identity_ner_labels.get(table_name)
 
                 if entity_col:
-                    # ── Entity-first extraction ──────────────────────────────
-                    # Use spaCy NER to group candidate chunks by entity, then
-                    # run the LLM on only the top-K chunks per entity.
-                    # LLM calls: N_entities × ceil(TOP_K / CHUNK_BATCH_SIZE)
-                    #            vs N_candidates / CHUNK_BATCH_SIZE (brute-force)
+                    # ── Pass 1: cheap identity-column extraction, all chunks ──
+                    # Predicate literals for the identity column (if any) are
+                    # injected as hints so the LLM normalises to the forms the
+                    # queries expect.  This makes extraction query-aware without
+                    # hardcoding anything.
+                    id_hints = normalization_hints.get(entity_col) or []
+                    pass1_raw = self._identity_pass(
+                        table_name=table_name,
+                        identity_col=entity_col,
+                        candidate_chunks=candidate_chunks,
+                        predicate_hints=id_hints or None,
+                    )
+
+                    # ── Pass 2: full schema extraction on entity-linked chunks ─
                     suffix = "(join table)" if table_info.referenced_in_joins else ""
                     logger.info(
                         f"[EntityFirst] {table_name} {suffix}: "
-                        f"{len(candidate_chunks)} candidates → NER grouping → "
-                        f"targeted extraction"
+                        f"Pass1 found {len(pass1_raw)} raw entity values → "
+                        f"entity resolution → targeted Pass2 extraction"
                     )
                     table_records = self._entity_first_extraction(
                         table_name=table_name,
@@ -1115,6 +1349,7 @@ class WDIRSRunner:
                         ner_label=ner_label,
                         candidate_chunks=candidate_chunks,
                         normalization_hints=normalization_hints,
+                        pass1_raw=pass1_raw,
                     )
                     total_records += table_records
                 else:

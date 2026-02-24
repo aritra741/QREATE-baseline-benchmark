@@ -110,7 +110,9 @@ class DataLayer:
             Column('chunk_index', Integer, nullable=False),
             Column('metadata', JSON, default='{}'),
             Column('created_at', DateTime, default=datetime.utcnow),
-            Index('idx_doc_chunk', 'doc_id', 'chunk_index')
+            # Unique constraint ensures the same document chunk is never stored twice,
+            # even if ingest is called multiple times (e.g. once per query in a workload).
+            Index('idx_doc_chunk', 'doc_id', 'chunk_index', unique=True)
         )
         
         # Metadata_Registry: Tracks completeness of synthesized tables
@@ -149,13 +151,37 @@ class DataLayer:
             Column('created_at', DateTime, default=datetime.utcnow),
             Index('idx_table_chunk', 'table_name', 'chunk_id', unique=True)
         )
+
+        # Cell_Provenance: Per-cell source attribution (row × column → chunk + doc).
+        # Allows the UI/evaluation to show exactly which document chunk supported
+        # each extracted cell value.
+        self.cell_provenance = Table(
+            'cell_provenance',
+            self.metadata,
+            Column('id', Integer, primary_key=True, autoincrement=True),
+            Column('row_id', String(36), nullable=False),
+            Column('column_name', String(200), nullable=False),
+            Column('chunk_id', String(36), nullable=False),
+            Column('doc_id', String(500), nullable=False),
+            Column('created_at', DateTime, default=datetime.utcnow),
+            # (row_id, column_name) is unique: one source per cell.
+            # If multiple chunks supported the same cell we keep the first writer.
+            Index('idx_cell_prov', 'row_id', 'column_name', unique=True),
+        )
     
     # ========================================================================
     # Text Chunk Operations
     # ========================================================================
     
     def insert_chunks(self, chunks: List[TextChunk]) -> int:
-        """Insert text chunks into database."""
+        """Insert text chunks into database, skipping duplicates.
+
+        A chunk is a duplicate if the same (doc_id, chunk_index) pair already
+        exists — which happens when the ingest pipeline is called multiple times
+        for the same document (e.g. once per query in a multi-query workload).
+        Using INSERT OR IGNORE on the unique (doc_id, chunk_index) index prevents
+        the 13× inflation that otherwise turns ~222k unique chunks into 2.88M rows.
+        """
         with self.Session() as session:
             try:
                 # Prepare chunk data for bulk insert
@@ -169,14 +195,23 @@ class DataLayer:
                         'metadata': json.dumps(chunk.metadata) if chunk.metadata else '{}'
                     })
                 
-                # Batch insert in chunks to avoid parameter limit
+                # Batch insert with OR IGNORE so duplicate (doc_id, chunk_index)
+                # pairs are silently skipped instead of raising a constraint error.
                 batch_size = 500
+                inserted = 0
                 for i in range(0, len(chunk_data), batch_size):
                     batch = chunk_data[i:i + batch_size]
-                    session.execute(insert(self.raw_chunks), batch)
+                    result = session.execute(
+                        insert(self.raw_chunks).prefix_with("OR IGNORE"), batch
+                    )
+                    inserted += result.rowcount
                 
                 session.commit()
-                logger.info(f"Inserted {len(chunks)} chunks")
+                skipped = len(chunks) - inserted
+                if skipped:
+                    logger.debug(f"insert_chunks: {inserted} new, {skipped} duplicates skipped")
+                else:
+                    logger.info(f"Inserted {inserted} chunks")
                 return len(chunks)
             except Exception as e:
                 session.rollback()
@@ -590,6 +625,49 @@ class DataLayer:
                 logger.error(f"Error upserting provenance: {e}")
                 raise
 
+    def bulk_insert_cell_provenance(
+        self,
+        cell_prov_triples: List[tuple],
+    ) -> None:
+        """
+        Record per-cell source attribution.
+
+        Parameters
+        ----------
+        cell_prov_triples : list of (row_id, column_name, chunk_id, doc_id)
+            Each tuple says: "the value stored in column `column_name` of row
+            `row_id` was extracted from chunk `chunk_id` of document `doc_id`."
+
+        The unique index on (row_id, column_name) means only the FIRST writer
+        wins — subsequent chunks that filled the same cell are not re-recorded
+        (the COALESCE update path never overwrites a non-NULL cell anyway).
+        """
+        if not cell_prov_triples:
+            return
+
+        with self.engine.connect() as conn:
+            try:
+                ts = str(datetime.utcnow())
+                for row_id, col_name, chunk_id, doc_id in cell_prov_triples:
+                    conn.execute(
+                        text(
+                            "INSERT OR IGNORE INTO cell_provenance "
+                            "(row_id, column_name, chunk_id, doc_id, created_at) "
+                            "VALUES (:rid, :col, :cid, :did, :ts)"
+                        ),
+                        {
+                            "rid": row_id,
+                            "col": col_name,
+                            "cid": chunk_id,
+                            "did": doc_id,
+                            "ts": ts,
+                        },
+                    )
+                conn.commit()
+            except Exception as exc:
+                logger.error(f"Error inserting cell provenance: {exc}")
+                raise
+
     def update_provenance_chunks(
         self,
         row_id: str,
@@ -888,64 +966,71 @@ class DataLayer:
         self,
         table_name: str,
         identity_col: str,
-        record_chunk_pairs: List[tuple],
-    ) -> List[tuple]:
+        record_chunk_triples: List[tuple],
+    ) -> tuple:
         """
         Bulk upsert records using the `_entity` routing field.
 
-        Each element of record_chunk_pairs is (record_dict, chunk_id).
-        record_dict must contain a key `_entity` whose value is the identity
-        value to match against identity_col in the DB.
+        Each element of record_chunk_triples is (record_dict, chunk_id, doc_id).
+        record_dict must contain `_entity` whose value is the identity value to
+        match against identity_col in the DB.
 
         For each unique entity:
-          - If a row with identity_col = entity_val already exists:
-              UPDATE only columns that are currently NULL (never overwrite data).
-          - Otherwise:
-              INSERT a new row.
+          - If a row already exists: UPDATE only NULL columns (COALESCE, never
+            overwrite existing data).
+          - Otherwise: INSERT a new row.
 
         `_entity` is stripped from the record before writing.
 
-        Returns a list of (row_id, chunk_id) pairs for provenance insertion.
+        Returns
+        -------
+        row_prov_pairs : List[(row_id, chunk_id)]
+            For bulk_insert_provenance — one pair per (entity, chunk) that
+            contributed to the row.
+        cell_prov_triples : List[(row_id, col, chunk_id, doc_id)]
+            For bulk_insert_cell_provenance — one triple per non-null cell
+            that was written.  On UPDATE, only newly-filled cells are recorded.
         """
-        # Fetch the real column names from the DB once to filter LLM hallucinations.
+        # Fetch real column names once to strip LLM-hallucinated keys.
         with self.engine.connect() as _c:
             _rows = _c.execute(text(f"PRAGMA table_info({table_name})")).fetchall()
-        valid_cols: set = {row[1] for row in _rows}  # column name is index 1
+        valid_cols: set = {row[1] for row in _rows}
 
         def _sanitize(record: Dict[str, Any]) -> Dict[str, Any]:
-            """Drop keys that are not real DB columns (LLM hallucinations)."""
             return {
                 k: v for k, v in record.items()
                 if k == "_entity" or k in valid_cols
             }
 
-        # Group all (record, chunk_id) pairs by their canonical entity key.
+        # Group all triples by canonical entity key.
         entity_groups: Dict[str, List[tuple]] = {}
         no_entity: List[tuple] = []
-        for record, chunk_id in record_chunk_pairs:
+        for triple in record_chunk_triples:
+            # Support old 2-tuple callers (brute-force path) by defaulting doc_id.
+            record, chunk_id, *rest = triple
+            doc_id = rest[0] if rest else ""
             record = _sanitize(record)
             entity_val = record.get("_entity")
             if not entity_val or not str(entity_val).strip():
-                no_entity.append((record, chunk_id))
+                no_entity.append((record, chunk_id, doc_id))
                 continue
             key = str(entity_val).strip().lower()
-            entity_groups.setdefault(key, []).append((record, chunk_id))
+            entity_groups.setdefault(key, []).append((record, chunk_id, doc_id))
 
         if no_entity:
             logger.warning(
                 f"[upsert_by_entity] {len(no_entity)} records for '{table_name}' "
-                f"have no _entity value — inserting as new rows."
+                f"have no _entity — inserting as new rows."
             )
 
         row_prov_pairs: List[tuple] = []
+        cell_prov_triples: List[tuple] = []
 
         with self.engine.connect() as conn:
             # --- Records with entity routing ---
             for entity_key, group in entity_groups.items():
-                # Canonical entity value (from first record, preserving original case)
                 canonical_entity = group[0][0].get("_entity", "").strip()
 
-                # Check if a row already exists for this entity.
                 try:
                     existing = conn.execute(
                         text(
@@ -959,15 +1044,34 @@ class DataLayer:
 
                 if existing:
                     existing_row_id = existing[0]
-                    # Merge all records for this entity into the existing row.
-                    # COALESCE: only fill columns that are currently NULL.
+
+                    # Determine which columns are currently NULL so we can record
+                    # cell provenance only for cells that actually get filled.
+                    try:
+                        null_cols_row = conn.execute(
+                            text(f"SELECT * FROM {table_name} WHERE row_id = :rid"),
+                            {"rid": existing_row_id},
+                        ).fetchone()
+                        null_cols: set = {
+                            col for col, val in zip(
+                                null_cols_row._mapping.keys(),   # type: ignore[union-attr]
+                                null_cols_row,
+                            )
+                            if val is None
+                        }
+                    except Exception:
+                        null_cols = set()
+
+                    # Merge: first non-null value per column wins, track source.
                     merged: Dict[str, Any] = {}
-                    for record, _ in group:
+                    col_source: Dict[str, tuple] = {}  # col → (chunk_id, doc_id)
+                    for record, chunk_id, doc_id in group:
                         for k, v in record.items():
                             if k == "_entity":
                                 continue
                             if v is not None and k not in merged:
                                 merged[k] = v
+                                col_source[k] = (chunk_id, doc_id)
 
                     if merged:
                         set_parts = [
@@ -984,20 +1088,28 @@ class DataLayer:
                             ),
                             params,
                         )
+                        # Cell provenance only for columns that were NULL before.
+                        for col, val in merged.items():
+                            if col in null_cols and val is not None:
+                                cid, did = col_source.get(col, ("", ""))
+                                cell_prov_triples.append(
+                                    (existing_row_id, col, cid, did)
+                                )
 
-                    for _, chunk_id in group:
+                    for _, chunk_id, _doc_id in group:
                         row_prov_pairs.append((existing_row_id, chunk_id))
 
                 else:
-                    # INSERT new row — merge all records for this entity first.
+                    # INSERT new row.
                     merged = {}
-                    for record, _ in group:
+                    col_source = {}
+                    for record, chunk_id, doc_id in group:
                         for k, v in record.items():
                             if k == "_entity":
                                 continue
                             if k not in merged and v is not None:
                                 merged[k] = v
-                    # Ensure identity column carries the canonical value.
+                                col_source[k] = (chunk_id, doc_id)
                     if identity_col not in merged:
                         merged[identity_col] = canonical_entity
 
@@ -1016,14 +1128,19 @@ class DataLayer:
                         f"VALUES ({', '.join(':' + c for c in columns)})"
                     )
                     conn.execute(text(sql), params)
-                    for _, chunk_id in group:
+                    for _, chunk_id, _doc_id in group:
                         row_prov_pairs.append((row_id, chunk_id))
+                    # Cell provenance for all non-null cells of the new row.
+                    for col, val in merged.items():
+                        if val is not None and col != "row_id":
+                            cid, did = col_source.get(col, ("", ""))
+                            cell_prov_triples.append((row_id, col, cid, did))
 
-            # --- Records without entity routing (fall back to plain insert) ---
-            for record, chunk_id in no_entity:
-                clean_record = {k: v for k, v in record.items() if k != "_entity"}
+            # --- Records without entity routing ---
+            for record, chunk_id, doc_id in no_entity:
+                clean = {k: v for k, v in record.items() if k != "_entity"}
                 row_id = str(uuid.uuid4())
-                full_record = {"row_id": row_id, **clean_record}
+                full_record = {"row_id": row_id, **clean}
                 columns = list(full_record.keys())
                 params = {}
                 for col in columns:
@@ -1038,10 +1155,13 @@ class DataLayer:
                 )
                 conn.execute(text(sql), params)
                 row_prov_pairs.append((row_id, chunk_id))
+                for col, val in clean.items():
+                    if val is not None and col != "row_id":
+                        cell_prov_triples.append((row_id, col, chunk_id, doc_id))
 
             conn.commit()
 
-        return row_prov_pairs
+        return row_prov_pairs, cell_prov_triples
 
     def get_all_records(self, table_name: str) -> List[Dict[str, Any]]:
         """Return all rows from a dynamic table as a list of dicts."""

@@ -45,6 +45,10 @@ class ExtractionResult:
     schema_keys: Set[str]
     extraction_time: float
     error: Optional[str] = None
+    # Parallel to `records`: per-record {col: exact_quote_from_chunk}.
+    # Used by _validate_record for span-grounding instead of value matching.
+    # None when the LLM did not return span-grounded output.
+    spans: Optional[List[Dict[str, str]]] = None
 
 
 @dataclass
@@ -233,6 +237,99 @@ class ConstrainedExtractor:
     # Extraction
     # ========================================================================
 
+    # Semantic types that map to numeric SQL columns.
+    _NUMERIC_SEM_TYPES: Set[str] = {"MONEY", "QUANTITY"}
+
+    def _build_schema_desc(
+        self,
+        schema: Dict[str, str],
+        keys_to_use,
+        normalization_hints: Optional[Dict[str, List[str]]] = None,
+    ) -> str:
+        """
+        Build the schema description block for an extraction prompt.
+
+        Each column line carries:
+          - Output type tag (text / numeric) so the LLM knows the JSON type.
+          - Normalization examples when the workload has equality predicates
+            for that column.
+
+        Normalization examples are ALWAYS framing examples, never allowlists.
+        The workload may contain both a filtered query (WHERE country = 'USA')
+        and an unrestricted one (SELECT country FROM …).  In that case the LLM
+        must still extract every country value it finds — the hints only tell it
+        *how to write* values that are variants of a known form (e.g. write
+        "USA" not "United States", "The United States", or "U.S.").  The
+        instruction is: normalize to the example form when the meaning matches,
+        but never skip values that have no matching example.
+        """
+        lines = []
+        for col_name in keys_to_use:
+            sem_type = schema.get(col_name, "OTHER")
+            is_numeric = sem_type in self._NUMERIC_SEM_TYPES
+            type_tag = "numeric" if is_numeric else "text"
+
+            hints = (normalization_hints or {}).get(col_name, [])
+            if hints:
+                quoted = ", ".join(
+                    str(h) if is_numeric else f'"{h}"' for h in hints
+                )
+                # Framing: examples for output format, not an exhaustive list.
+                # "United States" → "USA", "one thousand" → 1000.
+                # Still extract every value found, even those not in the examples.
+                hint_note = (
+                    f" — output format examples: [{quoted}]. "
+                    f"If the text uses a synonym, abbreviation, or alias for one "
+                    f"of these examples, write the example form exactly "
+                    f"(e.g. write \"{hints[0]}\" not a paraphrase). "
+                    f"Extract ALL values you find, not only the ones in this list."
+                )
+            else:
+                hint_note = ""
+
+            lines.append(f"  - {col_name} ({type_tag}){hint_note}")
+        return "\n".join(lines)
+
+    def _build_generic_example(
+        self,
+        schema: Dict[str, str],
+        keys_to_use,
+        n_passages: int,
+    ) -> str:
+        """
+        Build a fully generic format example that does NOT contain any
+        domain-specific field names or values — just enough structure to
+        show the LLM the required JSON shape.
+
+        Using real column names from the schema avoids the overfitting
+        risk of hard-coded "company_name" / "revenue" examples while still
+        being concrete enough to be unambiguous.
+        """
+        col_list = list(keys_to_use)
+        # Pick the first two columns to illustrate text and numeric formats.
+        text_col = next(
+            (c for c in col_list if schema.get(c, "OTHER") not in self._NUMERIC_SEM_TYPES),
+            col_list[0] if col_list else "field_A",
+        )
+        num_col = next(
+            (c for c in col_list if schema.get(c, "OTHER") in self._NUMERIC_SEM_TYPES),
+            None,
+        )
+        parts = [
+            f'"{text_col}": {{"value": "<text value from passage>", '
+            f'"span": "<exact verbatim quote from passage>"}}'
+        ]
+        if num_col:
+            parts.append(
+                f'"{num_col}": {{"value": <number from passage>, '
+                f'"span": "<exact verbatim quote containing the number>"}}'
+            )
+        record_example = "{" + ", ".join(parts) + "}"
+        return (
+            f'{{"passage_1": [{record_example}], '
+            f'"passage_2": [], ..., "passage_{n_passages}": []}}'
+        )
+
     def _build_multi_chunk_prompt(
         self,
         chunk_texts: List[str],
@@ -249,15 +346,20 @@ class ConstrainedExtractor:
         value is the same JSON array format as the single-chunk prompts.  This
         amortises per-request overhead (HTTP round-trip, KV-cache setup) across
         N chunks instead of paying it N times.
-        """
-        schema_lines = []
-        keys_to_use = constrained_keys if constrained_keys else schema.keys()
-        for col_name in keys_to_use:
-            sem_type = schema.get(col_name, "OTHER")
-            schema_lines.append(f"  - {col_name} ({sem_type})")
-        schema_desc = "\n".join(schema_lines)
 
-        normalization_section = self._build_normalization_section(normalization_hints)
+        Query-awareness
+        ───────────────
+        The schema description includes per-column type tags (text / numeric)
+        and, when the workload has equality predicates, the exact literal values
+        those predicates expect — so 'USA', 'one thousand', 'United States' all
+        get normalised to the query-expected form at extraction time, not via a
+        post-processing heuristic.
+        """
+        keys_to_use = constrained_keys if constrained_keys else schema.keys()
+
+        # Schema description: annotated with output type and query-expected values.
+        schema_desc = self._build_schema_desc(schema, keys_to_use, normalization_hints)
+
         entity_section = self._build_entity_section(entity_col)
 
         passage_blocks = "\n\n".join(
@@ -266,19 +368,37 @@ class ConstrainedExtractor:
         )
 
         n = len(chunk_texts)
-        example_keys = '{"passage_1": [...], "passage_2": [], ..., "passage_N": [...]}'
+        example_keys = self._build_generic_example(schema, keys_to_use, n)
+        example_field = (
+            '{"value": <extracted value or null>, '
+            '"span": "<exact verbatim quote from passage, or null>"}'
+        )
+
+        # Numeric type rule — surfaced explicitly so the 7B model internalises it.
+        has_numeric = any(
+            schema.get(c, "OTHER") in self._NUMERIC_SEM_TYPES for c in keys_to_use
+        )
+        numeric_rule = (
+            "- Numeric columns: always return a JSON number (e.g. 1000000), "
+            "NEVER a text string (e.g. NOT \"one million\", NOT \"£1.2m\").\n"
+            if has_numeric else ""
+        )
 
         return (
             f'Extract structured data for table "{table_name}" from each passage below.\n\n'
-            f"Schema (extract ONLY these fields):\n{schema_desc}\n"
-            f"{normalization_section}"
+            f"Schema (extract ONLY these fields — do not add any other fields):\n"
+            f"{schema_desc}\n"
             f"{entity_section}\n\n"
             f"Rules:\n"
-            f"- Return a JSON **object** with keys passage_1 … passage_{n}.\n"
-            f"- Each value is a JSON array of record objects (or [] if nothing found).\n"
-            f"- Use null for missing values, never empty string.\n"
+            f"- Return a JSON object with keys passage_1 … passage_{n}.\n"
+            f"- Each value is a JSON array of record objects ([] if nothing found).\n"
+            f"- Each field must use this format: {example_field}\n"
+            f"- The span MUST be an exact verbatim copy from the passage. "
+            f"If you cannot find supporting text for a field, set both value and span to null.\n"
+            f"- Use null (never empty string) for any absent value or span.\n"
+            f"{numeric_rule}"
             f"- If a passage discusses multiple entities, return one record per entity.\n\n"
-            f"Format: {example_keys}\n\n"
+            f"Format example: {example_keys}\n\n"
             f"{passage_blocks}\n\n"
             f"Return ONLY the JSON object, no other text."
         )
@@ -325,13 +445,36 @@ class ConstrainedExtractor:
                 raw_records = []
 
             records: List[Dict[str, Any]] = []
+            spans_list: List[Dict[str, str]] = []
+
             for rec in raw_records:
                 if not isinstance(rec, dict):
                     continue
+                # Unpack span-grounded format: each field may be
+                #   {"value": <val>, "span": "<quote>"}  OR a plain scalar
+                #   (older LLM responses / Pass-1 single-column calls).
+                flat_record: Dict[str, Any] = {}
+                span_record: Dict[str, str] = {}
+                for col, cell in rec.items():
+                    if isinstance(cell, dict) and "value" in cell:
+                        flat_record[col] = cell.get("value")
+                        raw_span = cell.get("span")
+                        if raw_span and isinstance(raw_span, str):
+                            span_record[col] = raw_span
+                    else:
+                        # Plain scalar — treat as value with no span evidence.
+                        flat_record[col] = cell
+
                 # Apply constrained_keys filter
                 if constrained_keys:
-                    rec = {k: v for k, v in rec.items() if k in constrained_keys or k == "_entity"}
-                records.append(rec)
+                    flat_record = {
+                        k: v for k, v in flat_record.items()
+                        if k in constrained_keys or k == "_entity"
+                    }
+                    span_record = {k: v for k, v in span_record.items() if k in constrained_keys}
+
+                records.append(flat_record)
+                spans_list.append(span_record)
 
             schema_keys: Set[str] = set()
             for rec in records:
@@ -342,6 +485,7 @@ class ConstrainedExtractor:
                 records=records,
                 schema_keys=schema_keys,
                 extraction_time=extraction_time / max(len(chunk_ids), 1),
+                spans=spans_list if spans_list else None,
             ))
 
         return results
@@ -828,38 +972,39 @@ class ConstrainedExtractor:
     ) -> str:
         """Build extraction prompt with predicate filtering."""
         keys_to_use = constrained_keys if constrained_keys else schema.keys()
-        keys_str = ', '.join(f'"{k}"' for k in keys_to_use)
-        
-        # Add predicate filtering instructions
+        schema_desc = self._build_schema_desc(schema, keys_to_use, normalization_hints)
+
         predicate_str = ""
         if predicates:
-            predicate_str = f"\n\nIMPORTANT: Only extract records that match these conditions:\n"
-            for pred in predicates:
-                predicate_str += f"- {pred}\n"
-            predicate_str += "\nDo NOT extract records that don't match these conditions."
+            predicate_str = (
+                "\nIMPORTANT: Only extract records that match ALL of these conditions:\n"
+                + "".join(f"  - {p}\n" for p in predicates)
+                + "Do NOT extract records that don't match these conditions.\n"
+            )
 
-        normalization_section = self._build_normalization_section(normalization_hints)
+        has_numeric = any(
+            schema.get(c, "OTHER") in self._NUMERIC_SEM_TYPES for c in keys_to_use
+        )
+        numeric_rule = (
+            "- Numeric columns: return a JSON number (e.g. 1000000), "
+            "NEVER a text string.\n"
+            if has_numeric else ""
+        )
         entity_section = self._build_entity_section(entity_col)
 
-        prompt = f"""Extract data from the following text for table '{table_name}'.
-
-Schema (use these keys): {keys_str}
-{predicate_str}
-{normalization_section}
-{entity_section}
-
-Text:
-{chunk}
-
-Instructions:
-1. Extract data matching the schema
-2. Return a JSON array of objects
-3. Use the exact keys specified above
-4. If no matching data is found, return an empty array []
-5. Be precise - only extract data that clearly matches
-
-Output (JSON only):"""
-        
+        prompt = (
+            f'Extract data from the following text for table "{table_name}".\n\n'
+            f"Schema (extract ONLY these fields):\n{schema_desc}\n"
+            f"{predicate_str}"
+            f"{entity_section}\n\n"
+            f"Rules:\n"
+            f"- Return a JSON array of objects, one per entity found.\n"
+            f"- Use null (not empty string) for any absent value.\n"
+            f"- If no matching data is found, return [].\n"
+            f"{numeric_rule}"
+            f"\nText:\n{chunk}\n\n"
+            f"Output (JSON only):"
+        )
         return prompt
     
     def _filter_records_by_predicates(
@@ -991,19 +1136,15 @@ Output (JSON only):"""
         if not normalization_hints:
             return ""
 
-        lines = [
-            "\nValue normalization (CRITICAL — your output must use these exact strings):"
-        ]
+        lines = ["\nOutput format examples (normalization guidance):"]
         for col, literals in sorted(normalization_hints.items()):
             quoted = ", ".join(f'"{v}"' for v in literals)
             lines.append(
-                f'  - Column "{col}": allowed values are [{quoted}]. '
-                f"If the text expresses the same concept with different wording, "
-                f"abbreviations, or aliases, map it to the closest value in this list."
+                f'  - Column "{col}": when the text uses a synonym, abbreviation, '
+                f"or alias for one of [{quoted}], write that exact form. "
+                f"Still extract ALL values you find — these are format examples, "
+                f"not an exhaustive list of allowed values."
             )
-        lines.append(
-            "  Do NOT invent values outside the allowed list for these columns."
-        )
         return "\n".join(lines)
 
     def _build_entity_section(self, entity_col: Optional[str]) -> str:
@@ -1036,53 +1177,31 @@ Output (JSON only):"""
         entity_col: Optional[str] = None,
     ) -> str:
         """Build extraction prompt for LLM."""
-        # Build schema description
-        schema_lines = []
-        for col_name, semantic_type in schema.items():
-            schema_lines.append(f"  - {col_name} ({semantic_type})")
-        
-        schema_desc = "\n".join(schema_lines)
-        
-        # Build constraints
-        constraints = []
-        
-        if constrained_keys:
-            keys_list = ", ".join(sorted(constrained_keys))
-            constraints.append(f"- Use ONLY these keys: {keys_list}")
-        
-        constraints.append("- If a value is not found, use null (not empty string)")
-        constraints.append("- If text says 'diabetic', output 'Diabetes'")
-        constraints.append("- Normalize values to standard forms")
-        constraints.append("- If no data found, return empty list")
-        
-        constraints_desc = "\n".join(constraints)
-        normalization_section = self._build_normalization_section(normalization_hints)
+        keys_to_use = constrained_keys if constrained_keys else schema.keys()
+        schema_desc = self._build_schema_desc(schema, keys_to_use, normalization_hints)
+
+        has_numeric = any(
+            schema.get(c, "OTHER") in self._NUMERIC_SEM_TYPES for c in keys_to_use
+        )
+        numeric_rule = (
+            "- Numeric columns: return a JSON number (e.g. 1000000), "
+            "NEVER a text string (e.g. NOT \"one million\").\n"
+            if has_numeric else ""
+        )
         entity_section = self._build_entity_section(entity_col)
-        
-        prompt = f"""Extract structured data from the following text for the table "{table_name}".
 
-Schema:
-{schema_desc}
-
-Constraints:
-{constraints_desc}
-{normalization_section}
-{entity_section}
-
-Text:
-{chunk}
-
-Return a JSON array of objects. Each object should have keys matching the schema.
-
-Example format:
-[
-  {{"column1": "value1", "column2": "value2"}},
-  {{"column1": "value3", "column2": null}}
-]
-
-Return ONLY the JSON array, no other text.
-"""
-        
+        prompt = (
+            f'Extract structured data from the following text for table "{table_name}".\n\n'
+            f"Schema (extract ONLY these fields):\n{schema_desc}\n"
+            f"{entity_section}\n\n"
+            f"Rules:\n"
+            f"- Return a JSON array of objects, one per entity found.\n"
+            f"- Use null (not empty string) for any value that is not present.\n"
+            f"- If no matching data is found, return an empty array [].\n"
+            f"{numeric_rule}"
+            f"\nText:\n{chunk}\n\n"
+            f"Return ONLY the JSON array, no other text."
+        )
         return prompt
     
     def _parse_extraction_response(
