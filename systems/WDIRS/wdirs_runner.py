@@ -855,25 +855,25 @@ class WDIRSRunner:
             f"(2-pass LLM, {MAX_PARALLEL_REQUESTS} workers)"
         )
 
-        # Human-readable label derived from the column name, e.g.
-        # "company_name" → "company name", "disease_name" → "disease name".
-        entity_label = identity_col.replace("_", " ").lower()
-
         sys_prompt = (
             "You are a JSON-only extraction assistant. "
             "Output ONLY a raw JSON array — no explanation, no markdown, no code fences."
         )
 
-        # Prompt ends with [" to prime the model into starting the JSON array.
+        # Always pass both table name and column name explicitly so the LLM has
+        # full context regardless of how the column is named.  No hardcoded
+        # keyword lists needed: the LLM infers the domain from the table/column.
+        # Prompt ends with [" to prime the model into starting the array.
         pass1a_tmpl = (
-            f'What {entity_label}(s) is the following document about?\n'
-            f'Output ONLY a raw JSON array, e.g.: ["Acme Corp"]\n'
+            f'The following document is about a record in the "{table_name}" table.\n'
+            f'Extract the value of the "{identity_col}" column for that record.\n'
+            f'Output ONLY a raw JSON array of strings.\n'
             f'No other text.\n\nDocument:\n---\n{{document}}\n---\n["'
         )
         pass1b_tmpl = (
-            f'Extract the {entity_label}(s) from the following text and return '
-            f'them as a raw JSON array.\n'
-            f'Output ONLY the JSON array, e.g.: ["Acme Corp"]\n'
+            f'From the following text, extract the value of the "{identity_col}" '
+            f'column for a "{table_name}" record.\n'
+            f'Output ONLY a raw JSON array of strings.\n'
             f'No other text.\n\nText:\n---\n{{summary}}\n---\n["'
         )
 
