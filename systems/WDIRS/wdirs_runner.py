@@ -698,85 +698,273 @@ class WDIRSRunner:
         identity_col: str,
         candidate_chunks: list,
         predicate_hints: Optional[List[str]] = None,
+        ner_label: Optional[str] = None,
     ) -> Dict[str, List[str]]:
         """
-        Pass 1: extract only the identity column from every candidate chunk,
-        in parallel.  Returns a mapping of raw_entity_value → [chunk_ids].
+        Pass 1: extract the identity column value from every candidate chunk.
+        Returns a mapping of raw_entity_value → [chunk_ids].
 
-        Each LLM call is cheap: short prompt, single column, high NULL rate
-        (most chunks don't name the entity directly).  The result feeds
-        directly into entity resolution without any top-K gating.
+        Engine selection
+        ────────────────
+        spaCy NER is used as the primary engine.  It processes millions of
+        tokens per minute on GPU (via nlp.pipe with batch_size tuned to VRAM),
+        reducing a 13-hour LLM Pass 1 to roughly 10-20 minutes for 2.4M chunks.
 
-        Predicate hints
-        ───────────────
-        If the workload contains literals for the identity column (e.g.
-        WHERE company_name = 'IBM'), they are passed as hints so the LLM
-        normalises to those exact forms when it sees them — query-aware
-        without hardcoding anything.
+        spaCy's output is filtered to the semantic NER label that corresponds to
+        the identity column's type (ORG for company_name, PERSON for author, GPE
+        for country, etc.).  This is the same label already derived in
+        _build_identity_map and is passed in as `ner_label`.
+
+        When `ner_label` is None (DATE, CODE, OTHER — types with no direct spaCy
+        analogue), all entity types are considered.
+
+        Predicate hints as normalization anchors
+        ─────────────────────────────────────────
+        The raw NER surface form ("The United States of America") is compared
+        against predicate_hints ("USA") at entity-resolution time, not here.
+        Here hints are only used as a secondary check: if a chunk contains a
+        known predicate literal verbatim, it is attributed to that entity even
+        if NER did not extract anything.  This makes Pass 1 query-aware without
+        restricting what gets extracted.
+
+        Zero LLM calls
+        ──────────────
+        The LLM is no longer invoked in Pass 1.  Entity resolution (bi-encoder +
+        cross-encoder) in _group_chunks_by_entity handles deduplication and alias
+        collapsing on the raw NER output.
         """
-        from concurrent.futures import ThreadPoolExecutor, as_completed as _asc
-        from config import MAX_PARALLEL_REQUESTS
-
-        llm = self.extractor.llm_client
-        hint_str = ""
-        if predicate_hints:
-            hint_str = (
-                f"\nKnown example values of '{identity_col}' in this dataset: "
-                + ", ".join(f"'{h}'" for h in predicate_hints[:20])
-                + ". There may be other values not in this list."
-            )
-
-        def _extract_identity(chunk) -> Optional[str]:
-            prompt = (
-                f"We are building a table called '{table_name}'. "
-                f"Each row is identified by the column '{identity_col}'."
-                f"{hint_str}\n\n"
-                f"From the text below, extract the value of '{identity_col}' "
-                f"if it is clearly present.\n"
-                f"Rules:\n"
-                f"  - Return ONLY the exact name/identifier (e.g. a company name, "
-                f"disease name, person name, drug name).\n"
-                f"  - Do NOT return committee names, section headings, or other "
-                f"entities that are merely mentioned but are not a '{identity_col}'.\n"
-                f"  - If no clear '{identity_col}' value is present, respond: NULL\n\n"
-                f"Text:\n{chunk.content[:1200]}\n\n"
-                f"{identity_col}:"
-            )
-            try:
-                resp = llm.generate(prompt, max_tokens=40, temperature=0.0).strip()
-                resp = resp.strip('"').strip("'").strip()
-                if not resp or resp.upper() == "NULL" or len(resp) < 2:
-                    return None
-                return resp
-            except Exception:
-                return None
+        from config import NER_BATCH_SIZE  # default 256, tunable via env var
 
         raw: Dict[str, List[str]] = {}  # entity_value → [chunk_ids]
         total = len(candidate_chunks)
+
+        # NER labels to accept; None means accept all entity types.
+        accept_labels: Optional[set] = (
+            {ner_label} if ner_label else None
+        )
+        # Additional spaCy labels that are always useful alongside the primary type
+        # (e.g. if primary is ORG, PERSON and GPE can sometimes fill the same role).
+        if ner_label == "ORG":
+            accept_labels = {"ORG"}   # strict: only ORG for company_name
+        elif ner_label == "PERSON":
+            accept_labels = {"PERSON"}
+        elif ner_label == "GPE":
+            accept_labels = {"GPE", "LOC", "NORP"}  # countries + demonyms
+
+        # Build hint set for verbatim-match fallback (query-aware).
+        hint_set: set = {h.lower().strip() for h in (predicate_hints or [])}
+
         logger.info(
-            f"[Pass1] Extracting '{identity_col}' from {total} chunks "
-            f"for '{table_name}' ({MAX_PARALLEL_REQUESTS} workers)"
+            f"[Pass1-NER] Extracting '{identity_col}' (label={ner_label}) "
+            f"from {total:,} chunks for '{table_name}' "
+            f"using spaCy NER (batch_size={NER_BATCH_SIZE})"
         )
 
-        with ThreadPoolExecutor(max_workers=MAX_PARALLEL_REQUESTS) as pool:
-            futs = {
-                pool.submit(_extract_identity, c): c.chunk_id
-                for c in candidate_chunks
-            }
-            done = 0
-            for fut in _asc(futs):
-                chunk_id = futs[fut]
-                done += 1
-                if done % 1000 == 0 or done == total:
-                    logger.info(f"[Pass1] {done}/{total} chunks processed")
-                val = fut.result()
-                if val:
-                    raw.setdefault(val, []).append(chunk_id)
+        texts   = [c.content for c in candidate_chunks]
+        cids    = [c.chunk_id for c in candidate_chunks]
+
+        done = 0
+        # nlp.pipe releases the GIL and uses GPU when spaCy is GPU-enabled.
+        for doc, chunk_id in zip(
+            self._nlp.pipe(
+                texts,
+                batch_size=NER_BATCH_SIZE,
+                disable=["parser", "lemmatizer"],
+            ),
+            cids,
+        ):
+            done += 1
+            if done % 50_000 == 0 or done == total:
+                logger.info(f"[Pass1-NER] {done:,}/{total:,} chunks processed")
+
+            # Collect all entity mentions that match the target label.
+            found: List[str] = []
+            for ent in doc.ents:
+                if accept_labels is None or ent.label_ in accept_labels:
+                    name = ent.text.strip()
+                    if len(name) >= 2:
+                        found.append(name)
+
+            if found:
+                # Use the most-frequent entity in this chunk as the primary value.
+                from collections import Counter as _C
+                primary = _C(found).most_common(1)[0][0]
+                raw.setdefault(primary, []).append(chunk_id)
+            elif hint_set:
+                # Verbatim-hint fallback: if a known predicate literal appears in
+                # the chunk text, attribute the chunk to that entity even though
+                # NER returned nothing.  Case-insensitive substring match only.
+                text_lower = doc.text.lower()
+                for hint in predicate_hints or []:
+                    if hint.lower() in text_lower:
+                        raw.setdefault(hint, []).append(chunk_id)
+                        break  # attribute to the first matching hint only
 
         non_null = sum(len(v) for v in raw.values())
         logger.info(
-            f"[Pass1] Done: {len(raw)} unique raw entity values, "
-            f"{non_null}/{total} chunks had a match"
+            f"[Pass1-NER] Done: {len(raw):,} unique raw entity values, "
+            f"{non_null:,}/{total:,} chunks had a match"
+        )
+        return raw
+
+    def _doc_level_identity_pass(
+        self,
+        table_name: str,
+        identity_col: str,
+        candidate_chunks: list,
+    ) -> Dict[str, List[str]]:
+        """
+        Document-level Pass 1: one two-pass LLM call per source document to
+        discover the entity name for that document.
+
+        Each document contains exactly one primary entity (confirmed for Finance
+        and Healthcare), so all chunks from a given document are attributed
+        directly to the entity discovered for that document.  No per-chunk NER
+        or LLM scan.
+
+        Two-pass flow per document
+        ──────────────────────────
+        Pass 1a  Full document text → LLM → tries to return a JSON array.
+                 On very long documents the model often returns prose instead
+                 (ignoring the format instruction) but still names the entity.
+        Pass 1b  If Pass 1a did not return parseable JSON, feed the short prose
+                 summary back to the LLM with a tighter prompt.  This second
+                 call is near-instant (tiny input, always returns JSON).
+
+        Scale
+        ─────
+        Finance   : ~100 documents → ≤200 LLM calls total.
+        Healthcare: scales with doc count, fully parallelised.
+        Old NER path: 2.4M chunk-level passes.
+        """
+        import re as _re
+        from concurrent.futures import ThreadPoolExecutor, as_completed as _asc
+        from config import MAX_PARALLEL_REQUESTS
+
+        dataset_path = get_dataset_path(self.dataset)
+
+        # Group chunks by their source document.
+        doc_to_chunks: Dict[str, list] = {}
+        for chunk in candidate_chunks:
+            doc_to_chunks.setdefault(chunk.doc_id, []).append(chunk)
+
+        n_docs = len(doc_to_chunks)
+        logger.info(
+            f"[Pass1-Doc] '{table_name}': {n_docs} unique docs, "
+            f"discovering '{identity_col}' per doc "
+            f"(2-pass LLM, {MAX_PARALLEL_REQUESTS} workers)"
+        )
+
+        # Human-readable label derived from the column name, e.g.
+        # "company_name" → "company name", "disease_name" → "disease name".
+        entity_label = identity_col.replace("_", " ").lower()
+
+        sys_prompt = (
+            "You are a JSON-only extraction assistant. "
+            "Output ONLY a raw JSON array — no explanation, no markdown, no code fences."
+        )
+
+        # Prompt ends with [" to prime the model into starting the JSON array.
+        pass1a_tmpl = (
+            f'What {entity_label}(s) is the following document about?\n'
+            f'Output ONLY a raw JSON array, e.g.: ["Acme Corp"]\n'
+            f'No other text.\n\nDocument:\n---\n{{document}}\n---\n["'
+        )
+        pass1b_tmpl = (
+            f'Extract the {entity_label}(s) from the following text and return '
+            f'them as a raw JSON array.\n'
+            f'Output ONLY the JSON array, e.g.: ["Acme Corp"]\n'
+            f'No other text.\n\nText:\n---\n{{summary}}\n---\n["'
+        )
+
+        def _parse_json_array(text: str):
+            """Extract first JSON array from text, tolerating surrounding prose."""
+            # The prompt primes with [" so the model continues the array —
+            # prepend it before parsing.
+            for raw in ('["' + text.strip(), text.strip()):
+                try:
+                    val = json.loads(raw)
+                    if isinstance(val, list) and val:
+                        return val
+                except json.JSONDecodeError:
+                    pass
+            # Fallback: find any [...] block in the combined string.
+            match = _re.search(r'\[.*?\]', '["' + text, _re.DOTALL)
+            if match:
+                try:
+                    val = json.loads(match.group())
+                    if isinstance(val, list) and val:
+                        return val
+                except json.JSONDecodeError:
+                    pass
+            return None
+
+        def _discover_entity(doc_id: str) -> Optional[str]:
+            """Return the primary entity name for one document (two-pass LLM)."""
+            doc_path = dataset_path / doc_id
+            try:
+                doc_text = doc_path.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                logger.warning(f"[Pass1-Doc] Cannot read {doc_path}")
+                return None
+
+            # Pass 1a: full document → JSON (may return prose for long docs).
+            resp_a = ""
+            try:
+                resp_a = self.llm_client.generate(
+                    pass1a_tmpl.format(document=doc_text),
+                    max_tokens=128,
+                    temperature=0.0,
+                    system_prompt=sys_prompt,
+                )
+                entities = _parse_json_array(resp_a)
+                if entities:
+                    return str(entities[0]).strip()
+            except Exception as exc:
+                logger.warning(f"[Pass1-Doc] Pass 1a error for {doc_id}: {exc}")
+
+            # Pass 1b: extract entity name from the prose response.
+            if resp_a.strip():
+                try:
+                    resp_b = self.llm_client.generate(
+                        pass1b_tmpl.format(summary=resp_a),
+                        max_tokens=128,
+                        temperature=0.0,
+                        system_prompt=sys_prompt,
+                    )
+                    entities = _parse_json_array(resp_b)
+                    if entities:
+                        return str(entities[0]).strip()
+                except Exception as exc:
+                    logger.warning(f"[Pass1-Doc] Pass 1b error for {doc_id}: {exc}")
+
+            logger.warning(f"[Pass1-Doc] Could not extract entity for {doc_id}")
+            return None
+
+        # Parallel entity discovery across all documents.
+        raw: Dict[str, List[str]] = {}
+        done = 0
+
+        with ThreadPoolExecutor(max_workers=MAX_PARALLEL_REQUESTS) as pool:
+            fut_to_doc = {
+                pool.submit(_discover_entity, doc_id): doc_id
+                for doc_id in doc_to_chunks
+            }
+            for fut in _asc(fut_to_doc):
+                doc_id = fut_to_doc[fut]
+                done += 1
+                if done % 100 == 0 or done == n_docs:
+                    logger.info(f"[Pass1-Doc] {done}/{n_docs} docs processed")
+
+                entity_name = fut.result()
+                if entity_name:
+                    chunk_ids = [c.chunk_id for c in doc_to_chunks[doc_id]]
+                    raw.setdefault(entity_name, []).extend(chunk_ids)
+
+        non_null = sum(len(v) for v in raw.values())
+        logger.info(
+            f"[Pass1-Doc] Done: {len(raw)} unique entity values, "
+            f"{non_null}/{len(candidate_chunks)} chunks attributed"
         )
         return raw
 
@@ -1321,17 +1509,16 @@ class WDIRSRunner:
                 ner_label = self.identity_ner_labels.get(table_name)
 
                 if entity_col:
-                    # ── Pass 1: cheap identity-column extraction, all chunks ──
-                    # Predicate literals for the identity column (if any) are
-                    # injected as hints so the LLM normalises to the forms the
-                    # queries expect.  This makes extraction query-aware without
-                    # hardcoding anything.
-                    id_hints = normalization_hints.get(entity_col) or []
-                    pass1_raw = self._identity_pass(
+                    # ── Pass 1: document-level LLM entity discovery ──────────
+                    # One two-pass LLM call per source document (not per chunk).
+                    # Each document contains exactly one primary entity, so all
+                    # chunks from a document are attributed to the entity
+                    # discovered for it.  For Finance (~100 docs) this is ~200
+                    # LLM calls total vs 2.4M chunk-level calls in the old path.
+                    pass1_raw = self._doc_level_identity_pass(
                         table_name=table_name,
                         identity_col=entity_col,
                         candidate_chunks=candidate_chunks,
-                        predicate_hints=id_hints or None,
                     )
 
                     # ── Pass 2: full schema extraction on entity-linked chunks ─

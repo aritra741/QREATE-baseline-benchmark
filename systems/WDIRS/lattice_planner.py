@@ -387,37 +387,70 @@ class LatticePlanner:
         logger.info("Semantic type identification complete")
     
     def _heuristic_semantic_type(self, column_name: str) -> str:
-        """Use heuristics to identify semantic type."""
+        """
+        Use keyword heuristics to assign a semantic type to a column name.
+
+        Order matters: more-specific patterns are checked before generic ones.
+        In particular, 'name' is intentionally checked LAST so that
+        'company_name' → ORG (not PERSON), 'disease_name' → DISEASE, etc.
+        """
         col_lower = column_name.lower()
-        
-        # Person names
-        if any(keyword in col_lower for keyword in ['name', 'patient', 'doctor', 'physician', 'person', 'author']):
-            return "PERSON"
-        
-        # Organizations
-        if any(keyword in col_lower for keyword in ['company', 'organization', 'org', 'institution', 'hospital']):
+
+        # Biomedical entities (must come before generic 'name' check)
+        if any(k in col_lower for k in ['disease', 'diagnosis', 'condition', 'disorder',
+                                         'syndrome', 'infection', 'illness', 'pathology']):
+            return "DISEASE"
+        if any(k in col_lower for k in ['drug', 'medication', 'medicine', 'treatment',
+                                         'therapy', 'pharmaceutical', 'compound', 'substance']):
+            return "DRUG"
+
+        # Organizations (must come before generic 'name' check)
+        if any(k in col_lower for k in ['company', 'organization', 'org', 'institution',
+                                          'hospital', 'clinic', 'university', 'corp',
+                                          'firm', 'enterprise', 'entity', 'issuer']):
             return "ORG"
-        
-        # Dates
-        if any(keyword in col_lower for keyword in ['date', 'time', 'year', 'month', 'day', 'timestamp']):
-            return "DATE"
-        
+
         # Locations
-        if any(keyword in col_lower for keyword in ['city', 'state', 'country', 'location', 'address', 'place']):
+        if any(k in col_lower for k in ['city', 'state', 'country', 'location',
+                                          'address', 'place', 'region', 'territory',
+                                          'office', 'registered', 'domicile', 'jurisdiction']):
             return "GPE"
-        
-        # Codes
-        if any(keyword in col_lower for keyword in ['code', 'id', 'identifier', 'number', 'icd']):
+
+        # Dates
+        if any(k in col_lower for k in ['date', 'time', 'year', 'month', 'day', 'timestamp']):
+            return "DATE"
+
+        # Codes / identifiers
+        if any(k in col_lower for k in ['code', 'ticker', 'symbol', 'isin', 'cusip',
+                                          'identifier', 'icd', 'ndc']):
             return "CODE"
-        
+
+        # IDs — checked separately so 'id' in a compound like 'valid' doesn't match
+        if col_lower == 'id' or col_lower.endswith('_id') or col_lower.startswith('id_'):
+            return "CODE"
+
         # Money
-        if any(keyword in col_lower for keyword in ['price', 'cost', 'amount', 'salary', 'revenue', 'payment']):
+        if any(k in col_lower for k in ['price', 'cost', 'amount', 'salary', 'revenue',
+                                          'payment', 'earnings', 'income', 'profit',
+                                          'loss', 'asset', 'liability', 'dividend',
+                                          'capitalisation', 'capitalization', 'value']):
             return "MONEY"
-        
+
         # Quantities
-        if any(keyword in col_lower for keyword in ['count', 'quantity', 'total', 'sum', 'average']):
+        if any(k in col_lower for k in ['count', 'quantity', 'total', 'sum', 'average',
+                                          'ratio', 'rate', 'percent', 'share', 'volume']):
             return "QUANTITY"
-        
+
+        # Generic person names — checked LAST so *_name columns are handled above
+        if any(k in col_lower for k in ['patient', 'doctor', 'physician', 'person',
+                                          'author', 'plaintiff', 'defendant', 'applicant',
+                                          'claimant', 'respondent']):
+            return "PERSON"
+
+        # 'name' alone — fallback: let LLM decide using the table context
+        if 'name' in col_lower:
+            return "OTHER"   # LLM will be called to disambiguate
+
         return "OTHER"
     
     def _llm_semantic_type(self, column_name: str, table_name: str) -> str:
