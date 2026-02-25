@@ -53,7 +53,7 @@ CHUNK_SEPARATORS = ["\n\n", "\n", ". ", " ", ""]
 # Ollama settings
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434/v1")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:7b-instruct")
-OLLAMA_TIMEOUT = 120  # seconds
+OLLAMA_TIMEOUT = int(os.getenv("OLLAMA_TIMEOUT", "300"))  # seconds
 OLLAMA_MAX_RETRIES = 3
 OLLAMA_RETRY_DELAY = 2  # seconds
 
@@ -135,7 +135,8 @@ LOG_FILE = WDIRS_DIR / "wdirs.log"
 
 # Parallel processing
 MAX_WORKERS = int(os.getenv("MAX_WORKERS", "8"))
-MAX_PARALLEL_REQUESTS = int(os.getenv("MAX_PARALLEL_REQUESTS", "32"))  # Parallel LLM requests (Blackwell GPU)
+# Conservative default to avoid local Ollama saturation and retry storms.
+MAX_PARALLEL_REQUESTS = int(os.getenv("MAX_PARALLEL_REQUESTS", "8"))
 EXTRACTION_MAX_WORKERS = MAX_PARALLEL_REQUESTS  # alias used by entity-first extraction
 NER_BATCH_SIZE = int(os.getenv("NER_BATCH_SIZE", "512"))  # spaCy pipe batch for NER grouping pass
 # For strict prune-before-extract behavior, default to 0 so unassigned chunks
