@@ -6,6 +6,7 @@ Implements runtime incremental query execution with row and column deltas.
 import json
 import logging
 import time
+import re
 from typing import Dict, List, Set, Tuple, Optional, Any
 from dataclasses import dataclass
 from enum import Enum
@@ -79,6 +80,9 @@ class DeltaEngine:
         self.lattice_planner = lattice_planner
         self.extractor = extractor
         self.entity_resolver = entity_resolver
+        # Populated by WDIRSRunner; used to avoid row-delta duplicate explosions
+        # by upserting on known identity columns instead of blind inserts.
+        self.identity_columns: Dict[str, Optional[str]] = {}
         
         logger.info("DeltaEngine initialized")
     
@@ -469,6 +473,8 @@ class DeltaEngine:
 
             chunk_texts = [c.content for c in filtered_chunks]
             chunk_ids_list = [c.chunk_id for c in filtered_chunks]
+            chunk_doc_map = {c.chunk_id: c.doc_id for c in filtered_chunks}
+            chunk_text_map = {c.chunk_id: c.content for c in filtered_chunks}
 
             results = self.extractor.extract_batch_with_predicates(
                 chunk_texts,
@@ -486,19 +492,57 @@ class DeltaEngine:
                           for col, sem_type in schema.items()}
             self.data_layer.create_dynamic_table(table_name, sql_schema)
 
-            table_rows = 0
-            for result in results:
-                if result.error:
-                    logger.warning(
-                        f"Skipping chunk {result.chunk_id} in row delta: {result.error}"
+            # Prefer identity-key upsert when available to avoid inserting
+            # duplicate rows for the same entity across many chunks.
+            identity_col = (self.identity_columns or {}).get(table_name)
+            if identity_col:
+                triples: List[tuple] = []
+                dropped_invalid = 0
+                for result in results:
+                    if result.error:
+                        logger.warning(
+                            f"Skipping chunk {result.chunk_id} in row delta: {result.error}"
+                        )
+                        continue
+                    doc_id = chunk_doc_map.get(result.chunk_id, "")
+                    chunk_text = chunk_text_map.get(result.chunk_id, "")
+                    for record in result.records:
+                        rec = dict(record)
+                        ent = rec.get(identity_col)
+                        ent_str = str(ent).strip() if ent is not None else ""
+                        if not self._is_valid_identity_value(ent_str, chunk_text):
+                            dropped_invalid += 1
+                            continue
+                        rec["_entity"] = ent_str
+                        triples.append((rec, result.chunk_id, doc_id))
+
+                table_rows = 0
+                if triples:
+                    row_pv, cell_pv = self.data_layer.upsert_by_entity(
+                        table_name, identity_col, triples
                     )
-                    continue
-                for record in result.records:
-                    row_id = self.data_layer.insert_record(table_name, record)
-                    self.data_layer.insert_provenance(
-                        row_id, table_name, [result.chunk_id]
+                    self.data_layer.bulk_insert_provenance(table_name, row_pv)
+                    self.data_layer.bulk_insert_cell_provenance(cell_pv)
+                    table_rows = len({rid for rid, _ in row_pv})
+                if dropped_invalid:
+                    logger.info(
+                        f"[RowDelta] Dropped {dropped_invalid} records with invalid "
+                        f"identity for {table_name}.{identity_col}"
                     )
-                    table_rows += 1
+            else:
+                table_rows = 0
+                for result in results:
+                    if result.error:
+                        logger.warning(
+                            f"Skipping chunk {result.chunk_id} in row delta: {result.error}"
+                        )
+                        continue
+                    for record in result.records:
+                        row_id = self.data_layer.insert_record(table_name, record)
+                        self.data_layer.insert_provenance(
+                            row_id, table_name, [result.chunk_id]
+                        )
+                        table_rows += 1
 
             total_rows += table_rows
             logger.info(f"Row delta inserted {table_rows} rows into {table_name}")
@@ -516,6 +560,32 @@ class DeltaEngine:
 
         logger.info(f"Row delta complete: {total_rows} rows extracted")
         return total_rows
+
+    @staticmethod
+    def _normalize_text(s: str) -> str:
+        s = (s or "").strip().lower()
+        s = re.sub(r"[^\w\s]", " ", s)
+        return " ".join(s.split())
+
+    def _is_valid_identity_value(self, value: str, chunk_text: str) -> bool:
+        """
+        Generic identity validation for runtime row-delta:
+        - non-empty / non-placeholder
+        - not numeric-only
+        - must be grounded in source chunk text (exact or normalized)
+        """
+        v = (value or "").strip()
+        if not v:
+            return False
+        norm_v = self._normalize_text(v)
+        if norm_v in {"name", "id", "label", "title", "unknown", "none", "null", "n a"}:
+            return False
+        if re.fullmatch(r"\d+", v):
+            return False
+        chunk = chunk_text or ""
+        if v.lower() in chunk.lower():
+            return True
+        return norm_v in self._normalize_text(chunk)
     
     def _execute_column_delta(
         self,

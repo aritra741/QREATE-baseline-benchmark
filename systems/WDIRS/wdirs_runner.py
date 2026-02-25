@@ -226,6 +226,8 @@ class WDIRSRunner:
         # spaCy NER label for each table's identity column.
         # Used by entity-first extraction to group chunks by entity without LLM.
         self.identity_ner_labels: Dict[str, Optional[str]] = {}
+        # Share live identity map with delta engine for runtime upserts.
+        self.delta_engine.identity_columns = self.identity_columns
 
         # Load spaCy model once; reused for all NER passes.
         import spacy as _spacy

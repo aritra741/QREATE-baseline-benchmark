@@ -825,6 +825,7 @@ class DataLayer:
         """
         with self.engine.connect() as conn:
             try:
+                existed = self.table_exists(table_name)
                 # Build CREATE TABLE statement
                 columns = [
                     f"{col_name} {col_type}"
@@ -843,8 +844,10 @@ class DataLayer:
                 
                 conn.execute(text(create_stmt))
                 conn.commit()
-                
-                logger.info(f"Created table: {table_name}")
+                if existed:
+                    logger.info(f"Table already exists: {table_name}")
+                else:
+                    logger.info(f"Created table: {table_name}")
             except Exception as e:
                 logger.error(f"Error creating table {table_name}: {e}")
                 raise

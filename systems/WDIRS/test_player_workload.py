@@ -320,6 +320,9 @@ def setup_logging(log_file: Path) -> None:
 
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.INFO)
+    # Avoid duplicate log lines when imported modules already configured logging.
+    for h in list(root_logger.handlers):
+        root_logger.removeHandler(h)
     root_logger.addHandler(handler_file)
     root_logger.addHandler(handler_console)
 
@@ -607,6 +610,11 @@ def run_test_phase(dataset: str, dataset_query: str, checkpoint_path: Path) -> T
         if identity_file.exists():
             with open(identity_file) as _idf:
                 identity_columns = json.load(_idf)
+        # Rehydrate identity map into runner/delta engine so runtime row-delta
+        # can upsert by entity instead of blind inserts.
+        if identity_columns:
+            runner.identity_columns.update(identity_columns)
+            runner.delta_engine.identity_columns = runner.identity_columns
         logger.info("=" * 60)
         logger.info("IDENTITY COLUMNS (primary entity attribute per table):")
         for _tbl, _icol in identity_columns.items():
