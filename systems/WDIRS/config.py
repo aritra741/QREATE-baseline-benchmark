@@ -138,7 +138,10 @@ MAX_WORKERS = int(os.getenv("MAX_WORKERS", "8"))
 MAX_PARALLEL_REQUESTS = int(os.getenv("MAX_PARALLEL_REQUESTS", "32"))  # Parallel LLM requests (Blackwell GPU)
 EXTRACTION_MAX_WORKERS = MAX_PARALLEL_REQUESTS  # alias used by entity-first extraction
 NER_BATCH_SIZE = int(os.getenv("NER_BATCH_SIZE", "512"))  # spaCy pipe batch for NER grouping pass
-UNASSIGNED_CHUNK_CAP = int(os.getenv("UNASSIGNED_CHUNK_CAP", "200"))  # hard cap on brute-force unassigned processing
+# For strict prune-before-extract behavior, default to 0 so unassigned chunks
+# (typically rejected by table relevance/identity gate) do not trigger costly
+# brute-force extraction. Can be raised via env var if recall recovery is needed.
+UNASSIGNED_CHUNK_CAP = int(os.getenv("UNASSIGNED_CHUNK_CAP", "0"))
 
 # Caching
 ENABLE_CACHE = True

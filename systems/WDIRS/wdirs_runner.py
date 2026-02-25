@@ -633,25 +633,18 @@ class WDIRSRunner:
                 )
                 ner_label = self._semantic_type_to_ner_label(sem_type)
 
-                # ── Validate / correct PERSON → ORG mislabel ─────────────
-                # If the LLM assigned PERSON but the workload hint values for
-                # this column contain org-suffix tokens ("Inc.", "Ltd.", etc.)
-                # the column is almost certainly an ORG column.
-                if ner_label == "PERSON":
-                    _ORG_SUFFIXES = {
-                        " inc", " ltd", " llc", " corp", " co.", " limited",
-                        " company", " plc", " gmbh", " s.a.", " ag", " lp",
-                        " llp", " group", " holdings", " bank", " fund",
-                        " trust", " association", " authority", " council",
-                    }
-                    _norm_hints = self.lattice_planner.get_normalization_hints(table_name)
-                    _hint_vals  = " ".join(_norm_hints.get(identity_col, [])).lower()
-                    if any(suf in _hint_vals for suf in _ORG_SUFFIXES):
-                        logger.info(
-                            f"[IdentityMap] Correcting NER label PERSON→ORG for "
-                            f"'{identity_col}': hint values contain org indicators"
-                        )
-                        ner_label = "ORG"
+                # Dataset-agnostic hint cross-check:
+                # infer NER type from literal hint values using spaCy, then
+                # reconcile the semantic-type-derived label when evidence is strong.
+                _norm_hints = self.lattice_planner.get_normalization_hints(table_name)
+                _hint_vals = _norm_hints.get(identity_col, [])
+                inferred_label = self._infer_ner_label_from_hints(_hint_vals)
+                if inferred_label and ner_label != inferred_label:
+                    logger.info(
+                        f"[IdentityMap] Hint-based NER correction for "
+                        f"'{identity_col}': {ner_label} → {inferred_label}"
+                    )
+                    ner_label = inferred_label
 
             elif hasattr(table_info, "_tier3_ner_type"):
                 # Tier-3 case: NER type discovered from text but no real DB column.
@@ -691,6 +684,35 @@ class WDIRSRunner:
             # DATE, CODE, OTHER have no reliable spaCy analogue; use all types.
         }
         return _MAP.get(semantic_type) if semantic_type else None
+
+    def _infer_ner_label_from_hints(self, hint_values: List[str]) -> Optional[str]:
+        """
+        Infer coarse NER label (PERSON/ORG/GPE) from predicate hint literals.
+
+        This avoids dataset-specific hardcoded suffix/pattern lists.
+        Returns None when hint evidence is weak.
+        """
+        from collections import Counter
+
+        vals = [str(v).strip() for v in (hint_values or []) if str(v).strip()]
+        if not vals:
+            return None
+
+        labels = []
+        for doc in self._nlp.pipe(vals[:30], batch_size=30, disable=["parser", "lemmatizer"]):
+            ents = [e for e in doc.ents if e.label_ in {"PERSON", "ORG", "GPE"}]
+            if not ents:
+                continue
+            ents.sort(key=lambda e: len(e.text), reverse=True)
+            labels.append(ents[0].label_)
+
+        if not labels:
+            return None
+
+        top_label, top_count = Counter(labels).most_common(1)[0]
+        if top_count >= 2 and top_count / len(labels) >= 0.60:
+            return top_label
+        return None
 
     def _identity_pass(
         self,
@@ -812,30 +834,21 @@ class WDIRSRunner:
         table_name: str,
         identity_col: str,
         candidate_chunks: list,
+        predicate_hints: Optional[List[str]] = None,
+        ner_label: Optional[str] = None,
     ) -> Dict[str, List[str]]:
         """
-        Document-level Pass 1: one two-pass LLM call per source document to
-        discover the entity name for that document.
+        Hybrid document-level Pass 1.
 
-        Each document contains exactly one primary entity (confirmed for Finance
-        and Healthcare), so all chunks from a given document are attributed
-        directly to the entity discovered for that document.  No per-chunk NER
-        or LLM scan.
+        For each source document we run:
+          1) table relevance gate (is this doc about a record for table_name?)
+          2) single-identity extraction for identity_col (top-1 only)
+          3) strict acceptance checks (non-empty + non-trivial + in-doc evidence)
 
-        Two-pass flow per document
-        ──────────────────────────
-        Pass 1a  Full document text → LLM → tries to return a JSON array.
-                 On very long documents the model often returns prose instead
-                 (ignoring the format instruction) but still names the entity.
-        Pass 1b  If Pass 1a did not return parseable JSON, feed the short prose
-                 summary back to the LLM with a tighter prompt.  This second
-                 call is near-instant (tiny input, always returns JSON).
-
-        Scale
-        ─────
-        Finance   : ~100 documents → ≤200 LLM calls total.
-        Healthcare: scales with doc count, fully parallelised.
-        Old NER path: 2.4M chunk-level passes.
+        Docs rejected by the gate/validation are NOT forced into an entity;
+        they fall back to the existing chunk-level NER pass on only the
+        unresolved chunk subset. This keeps behavior dataset-agnostic and
+        robust when candidate sets are noisy.
         """
         import re as _re
         from concurrent.futures import ThreadPoolExecutor, as_completed as _asc
@@ -843,27 +856,27 @@ class WDIRSRunner:
 
         dataset_path = get_dataset_path(self.dataset)
 
-        # Group chunks by their source document.
+        # Group chunks by source document.
         doc_to_chunks: Dict[str, list] = {}
         for chunk in candidate_chunks:
             doc_to_chunks.setdefault(chunk.doc_id, []).append(chunk)
 
         n_docs = len(doc_to_chunks)
         logger.info(
-            f"[Pass1-Doc] '{table_name}': {n_docs} unique docs, "
-            f"discovering '{identity_col}' per doc "
-            f"(2-pass LLM, {MAX_PARALLEL_REQUESTS} workers)"
+            f"[Pass1-Doc] '{table_name}': {n_docs} docs, extracting '{identity_col}' "
+            f"(relevance gate + top1 + fallback NER, {MAX_PARALLEL_REQUESTS} workers)"
         )
 
         sys_prompt = (
             "You are a JSON-only extraction assistant. "
-            "Output ONLY a raw JSON array — no explanation, no markdown, no code fences."
+            "Return strict JSON only; no markdown, no explanations."
         )
 
-        # Always pass both table name and column name explicitly so the LLM has
-        # full context regardless of how the column is named.  No hardcoded
-        # keyword lists needed: the LLM infers the domain from the table/column.
-        # Prompt ends with [" to prime the model into starting the array.
+        relevance_prompt = (
+            f'You are checking whether a document is primarily about a record in the "{table_name}" table.\n'
+            f'Return ONLY a JSON object: {{"relevant": true|false, "confidence": 0.0-1.0}}\n\n'
+            f'Document:\n---\n{{document}}\n---'
+        )
         pass1a_tmpl = (
             f'The following document is about a record in the "{table_name}" table.\n'
             f'Extract the value of the "{identity_col}" column for that record.\n'
@@ -877,10 +890,13 @@ class WDIRSRunner:
             f'No other text.\n\nText:\n---\n{{summary}}\n---\n["'
         )
 
+        def _norm(s: str) -> str:
+            s = str(s or "").strip().lower()
+            s = _re.sub(r"[^\w\s]", " ", s)
+            return " ".join(s.split())
+
         def _parse_json_array(text: str):
-            """Extract first JSON array from text, tolerating surrounding prose."""
-            # The prompt primes with [" so the model continues the array —
-            # prepend it before parsing.
+            """Extract first non-empty JSON array from text."""
             for raw in ('["' + text.strip(), text.strip()):
                 try:
                     val = json.loads(raw)
@@ -888,8 +904,7 @@ class WDIRSRunner:
                         return val
                 except json.JSONDecodeError:
                     pass
-            # Fallback: find any [...] block in the combined string.
-            match = _re.search(r'\[.*?\]', '["' + text, _re.DOTALL)
+            match = _re.search(r"\[.*?\]", '["' + text, _re.DOTALL)
             if match:
                 try:
                     val = json.loads(match.group())
@@ -899,16 +914,79 @@ class WDIRSRunner:
                     pass
             return None
 
-        def _discover_entity(doc_id: str) -> Optional[str]:
-            """Return the primary entity name for one document (two-pass LLM)."""
+        def _parse_relevance(text: str) -> Tuple[bool, float]:
+            """
+            Parse JSON relevance payload: {"relevant": bool, "confidence": float}.
+            Conservative default when parsing fails.
+            """
+            raw = text.strip()
+            payload = None
+            try:
+                payload = json.loads(raw)
+            except json.JSONDecodeError:
+                m = _re.search(r"\{.*?\}", raw, _re.DOTALL)
+                if m:
+                    try:
+                        payload = json.loads(m.group())
+                    except json.JSONDecodeError:
+                        payload = None
+            if not isinstance(payload, dict):
+                return False, 0.0
+            relevant = bool(payload.get("relevant", False))
+            try:
+                conf = float(payload.get("confidence", 0.0))
+            except Exception:
+                conf = 0.0
+            return relevant, max(0.0, min(1.0, conf))
+
+        def _is_valid_identity(value: str, doc_text: str) -> bool:
+            """Accept only plausible identities grounded in document text."""
+            v = (value or "").strip()
+            if not v:
+                return False
+            # Filter obvious placeholders/noise.
+            if _norm(v) in {"name", "id", "label", "title", "unknown", "none", "null", "n a"}:
+                return False
+            if len(v) < 2:
+                return False
+            if _re.fullmatch(r"\d+", v):
+                return False
+            # Grounding check: exact or normalized containment.
+            if v.lower() in doc_text.lower():
+                return True
+            return _norm(v) in _norm(doc_text)
+
+        def _discover_entity(doc_id: str) -> Tuple[Optional[str], str]:
+            """
+            Return (entity, reason).
+            reason ∈ {"accepted", "irrelevant", "low_conf", "unparseable", "invalid", "read_error"}
+            """
             doc_path = dataset_path / doc_id
             try:
                 doc_text = doc_path.read_text(encoding="utf-8", errors="replace")
             except OSError:
                 logger.warning(f"[Pass1-Doc] Cannot read {doc_path}")
-                return None
+                return None, "read_error"
 
-            # Pass 1a: full document → JSON (may return prose for long docs).
+            # 1) Relevance gate (table-level).
+            try:
+                rel_resp = self.llm_client.generate(
+                    relevance_prompt.format(document=doc_text),
+                    max_tokens=48,
+                    temperature=0.0,
+                    system_prompt=sys_prompt,
+                )
+                relevant, conf = _parse_relevance(rel_resp)
+            except Exception as exc:
+                logger.warning(f"[Pass1-Doc] Relevance call error for {doc_id}: {exc}")
+                return None, "unparseable"
+
+            if not relevant:
+                return None, "irrelevant"
+            if conf < 0.55:
+                return None, "low_conf"
+
+            # 2) Identity extraction (top-1).
             resp_a = ""
             try:
                 resp_a = self.llm_client.generate(
@@ -919,11 +997,13 @@ class WDIRSRunner:
                 )
                 entities = _parse_json_array(resp_a)
                 if entities:
-                    return str(entities[0]).strip()
+                    entity = str(entities[0]).strip()
+                    if _is_valid_identity(entity, doc_text):
+                        return entity, "accepted"
             except Exception as exc:
                 logger.warning(f"[Pass1-Doc] Pass 1a error for {doc_id}: {exc}")
 
-            # Pass 1b: extract entity name from the prose response.
+            # 3) Pass 1b fallback from prose response.
             if resp_a.strip():
                 try:
                     resp_b = self.llm_client.generate(
@@ -934,15 +1014,17 @@ class WDIRSRunner:
                     )
                     entities = _parse_json_array(resp_b)
                     if entities:
-                        return str(entities[0]).strip()
+                        entity = str(entities[0]).strip()
+                        if _is_valid_identity(entity, doc_text):
+                            return entity, "accepted"
                 except Exception as exc:
                     logger.warning(f"[Pass1-Doc] Pass 1b error for {doc_id}: {exc}")
 
-            logger.warning(f"[Pass1-Doc] Could not extract entity for {doc_id}")
-            return None
+            return None, "invalid"
 
-        # Parallel entity discovery across all documents.
         raw: Dict[str, List[str]] = {}
+        assigned_chunk_ids: set = set()
+        rejected_docs: Dict[str, str] = {}
         done = 0
 
         with ThreadPoolExecutor(max_workers=MAX_PARALLEL_REQUESTS) as pool:
@@ -956,14 +1038,56 @@ class WDIRSRunner:
                 if done % 100 == 0 or done == n_docs:
                     logger.info(f"[Pass1-Doc] {done}/{n_docs} docs processed")
 
-                entity_name = fut.result()
+                entity_name, reason = fut.result()
                 if entity_name:
-                    chunk_ids = [c.chunk_id for c in doc_to_chunks[doc_id]]
-                    raw.setdefault(entity_name, []).extend(chunk_ids)
+                    cids = [c.chunk_id for c in doc_to_chunks[doc_id]]
+                    raw.setdefault(entity_name, []).extend(cids)
+                    assigned_chunk_ids.update(cids)
+                else:
+                    rejected_docs[doc_id] = reason
+
+        # Fallback NER is intentionally narrow: only docs that were not
+        # confidently resolved but were still plausibly processable.
+        # We do NOT run fallback on explicitly irrelevant/low-confidence docs.
+        fallback_doc_reasons = {"invalid", "unparseable"}
+        fallback_doc_ids = {
+            doc_id for doc_id, reason in rejected_docs.items()
+            if reason in fallback_doc_reasons
+        }
+        unresolved = [
+            c for c in candidate_chunks
+            if c.chunk_id not in assigned_chunk_ids and c.doc_id in fallback_doc_ids
+        ]
+        skipped_unresolved = (
+            len(candidate_chunks) - len(assigned_chunk_ids) - len(unresolved)
+        )
+        if unresolved:
+            reason_counts: Dict[str, int] = {}
+            for r in rejected_docs.values():
+                reason_counts[r] = reason_counts.get(r, 0) + 1
+            logger.info(
+                f"[Pass1-Doc] Rejected docs: {len(rejected_docs)}/{n_docs}; "
+                f"reasons={reason_counts}. Fallback NER on {len(unresolved)} chunks "
+                f"(skipped {max(0, skipped_unresolved)} unresolved chunks from "
+                f"irrelevant/low_conf docs)."
+            )
+            fallback_raw = self._identity_pass(
+                table_name=table_name,
+                identity_col=identity_col,
+                candidate_chunks=unresolved,
+                predicate_hints=predicate_hints,
+                ner_label=ner_label,
+            )
+            for entity, cids in fallback_raw.items():
+                raw.setdefault(entity, []).extend(cids)
+
+        # Deduplicate chunk lists per entity.
+        for entity, cids in raw.items():
+            raw[entity] = list(dict.fromkeys(cids))
 
         non_null = sum(len(v) for v in raw.values())
         logger.info(
-            f"[Pass1-Doc] Done: {len(raw)} unique entity values, "
+            f"[Pass1-Doc] Done: {len(raw)} raw entity values, "
             f"{non_null}/{len(candidate_chunks)} chunks attributed"
         )
         return raw
@@ -1195,7 +1319,7 @@ class WDIRSRunner:
         # --- Unassigned chunks: hard-capped standard extraction ──────────────
         # Unassigned = chunks where Pass 1 found no entity mention.  A hard cap
         # prevents this from becoming a bottleneck in pathological cases.
-        if unassigned:
+        if unassigned and UNASSIGNED_CHUNK_CAP > 0:
             to_process = unassigned[:UNASSIGNED_CHUNK_CAP]
             logger.info(
                 f"[EntityFirst] Processing {len(to_process)} unassigned chunks "
@@ -1233,6 +1357,11 @@ class WDIRSRunner:
                 self.data_layer.bulk_insert_provenance(table_name, row_pv)
                 self.data_layer.bulk_insert_cell_provenance(cell_pv)
                 total_records += len(row_pv)
+        elif unassigned:
+            logger.info(
+                f"[EntityFirst] Skipping {len(unassigned)} unassigned chunks "
+                f"(UNASSIGNED_CHUNK_CAP={UNASSIGNED_CHUNK_CAP})."
+            )
 
         return total_records
 
@@ -1515,10 +1644,13 @@ class WDIRSRunner:
                     # chunks from a document are attributed to the entity
                     # discovered for it.  For Finance (~100 docs) this is ~200
                     # LLM calls total vs 2.4M chunk-level calls in the old path.
+                    id_hints = normalization_hints.get(entity_col) or []
                     pass1_raw = self._doc_level_identity_pass(
                         table_name=table_name,
                         identity_col=entity_col,
                         candidate_chunks=candidate_chunks,
+                        predicate_hints=id_hints or None,
+                        ner_label=ner_label,
                     )
 
                     # ── Pass 2: full schema extraction on entity-linked chunks ─
