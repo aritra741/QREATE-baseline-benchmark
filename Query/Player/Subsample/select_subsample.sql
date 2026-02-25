@@ -5,7 +5,7 @@ SELECT draft_pick FROM player;
 SELECT team, name, mvp_awards, birth_date FROM player;
 
 -- Query 3: select (team)
-SELECT ownership, team_name, championships, founded_year FROM team;
+SELECT ownership, team_name, championship, founded_year FROM team;
 
 -- Query 4: select (city)
 SELECT area, city_name, gdp FROM city;

@@ -16,7 +16,7 @@ SELECT team, COUNT(*) AS count_all FROM player WHERE name = 'LeBron James' OR nb
 
 -- Inspiration: Query 1 (mixed_queries_filter_join.sql)
 -- Variation: Filter by nba_championships and select different columns.
-SELECT player.name, team.team_name, player.nba_championships, team.championships FROM player JOIN team ON player.team = team.team_name WHERE player.nba_championships > 0;
+SELECT player.name, team.team_name, player.nba_championships, team.championship FROM player JOIN team ON player.team = team.team_name WHERE player.nba_championships > 0;
 
 -- Inspiration: Query 2 (mixed_queries_filter_join.sql)
 -- Variation: Filter by player position and city population threshold.

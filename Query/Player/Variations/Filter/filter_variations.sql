@@ -11,8 +11,8 @@ SELECT name, team, position, birth_date FROM player WHERE team = 'Los Angeles La
 SELECT name, draft_year, nationality FROM player WHERE draft_year >= 2018 AND fiba_world_cup <= 0;
 
 -- Inspiration: Query 1 (filter_queries_team.sql)
--- Variation: Filtered by non-empty ownership and included championships.
-SELECT team_name, ownership, championships, founded_year FROM team WHERE ownership != '  ';
+-- Variation: Filtered by non-empty ownership and included championship.
+SELECT team_name, ownership, championship, founded_year FROM team WHERE ownership != '  ';
 
 -- Inspiration: Query 2 (filter_queries_team.sql)
 -- Variation: Filtered for teams founded after 2000.

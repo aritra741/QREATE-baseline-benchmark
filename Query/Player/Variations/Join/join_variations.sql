@@ -1,6 +1,6 @@
 -- Inspiration: Query 1 (join_queries.sql)
 -- Variation: Selected different columns from player and team.
-SELECT player.name, player.team, team.championships, team.founded_year FROM player JOIN team ON player.team = team.team_name;
+SELECT player.name, player.team, team.championship, team.founded_year FROM player JOIN team ON player.team = team.team_name;
 
 -- Inspiration: Query 3 (join_queries.sql)
 -- Variation: Focus on ownership and player awards.
@@ -12,7 +12,7 @@ SELECT team.team_name, team.location, city.area, city.gdp, city.state_name FROM 
 
 -- Inspiration: Query 7 (join_queries.sql)
 -- Variation: Manager with team name and own_year.
-SELECT manager.name, manager.own_year, team.team_name, team.championships FROM team JOIN manager ON team.ownership = manager.name;
+SELECT manager.name, manager.own_year, team.team_name, team.championship FROM team JOIN manager ON team.ownership = manager.name;
 
 -- Inspiration: Query 1 (join_queries.sql multi_table)
 -- Variation: Player, team, city with college and population.

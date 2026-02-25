@@ -8,7 +8,7 @@ SELECT name, nba_championships, olympic_gold_medals, mvp_awards, birth_date FROM
 
 -- Inspiration: Query 1 (select_queries_team.sql)
 -- Variation: Added location for full team profile.
-SELECT team_name, ownership, championships, founded_year, location FROM team;
+SELECT team_name, ownership, championship, founded_year, location FROM team;
 
 -- Inspiration: Query 1 (select_queries_city.sql)
 -- Variation: Included population for city context.
