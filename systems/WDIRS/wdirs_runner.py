@@ -874,8 +874,8 @@ class WDIRSRunner:
 
         relevance_prompt = (
             f'You are checking whether a document is primarily about a record in the "{table_name}" table.\n'
-            f'Return ONLY a JSON object: {{"relevant": true|false, "confidence": 0.0-1.0}}\n\n'
-            f'Document:\n---\n{{document}}\n---'
+            'Return ONLY a JSON object: {"relevant": true|false, "confidence": 0.0-1.0}\n\n'
+            'Document:\n---\n__DOCUMENT__\n---'
         )
         pass1a_tmpl = (
             f'The following document is about a record in the "{table_name}" table.\n'
@@ -971,7 +971,7 @@ class WDIRSRunner:
             # 1) Relevance gate (table-level).
             try:
                 rel_resp = self.llm_client.generate(
-                    relevance_prompt.format(document=doc_text),
+                    relevance_prompt.replace("__DOCUMENT__", doc_text),
                     max_tokens=48,
                     temperature=0.0,
                     system_prompt=sys_prompt,
