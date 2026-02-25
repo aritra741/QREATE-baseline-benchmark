@@ -1031,7 +1031,7 @@ def generate_report(
 # Main
 # ============================================================================
 
-def main(skip_preprocessing: bool = False):
+def main(skip_preprocessing: bool = False, preprocessing_only: bool = False):
     """Main orchestration function."""
     RESULTS_BASE_DIR.mkdir(parents=True, exist_ok=True)
     log_file = RESULTS_BASE_DIR / "test_execution.log"
@@ -1046,6 +1046,10 @@ def main(skip_preprocessing: bool = False):
     logger.info(f"Query Directory: {QUERY_DIR / DATASET_QUERY}")
 
     checkpoint_path = CHECKPOINT_DIR / f"{DATASET}_preprocessed.db"
+
+    if skip_preprocessing and preprocessing_only:
+        logger.error("Cannot use --skip-preprocessing and --preprocessing-only together.")
+        return 1
 
     if skip_preprocessing:
         logger.info("\nSkipping Phase 1 (--skip-preprocessing flag set)")
@@ -1073,6 +1077,12 @@ def main(skip_preprocessing: bool = False):
             logger.info(f"Error: {preprocessing_stats.get('error')}")
             return 1
 
+    if preprocessing_only:
+        logger.info("\nPreprocessing-only mode enabled (--preprocessing-only flag set)")
+        logger.info("Skipping Phase 2: Testing")
+        logger.info(f"Results saved to: {RESULTS_BASE_DIR}")
+        return 0 if preprocessing_success else 1
+
     logger.info("\n" + "=" * 80)
     logger.info("Starting Phase 2: Testing")
     logger.info("=" * 80)
@@ -1098,5 +1108,10 @@ if __name__ == "__main__":
         action="store_true",
         help="Skip Phase 1 and go straight to Phase 2 using the existing DB.",
     )
+    _parser.add_argument(
+        "--preprocessing-only",
+        action="store_true",
+        help="Run only Phase 1 preprocessing and skip Phase 2 testing.",
+    )
     _args, _unknown = _parser.parse_known_args()
-    sys.exit(main(_args.skip_preprocessing))
+    sys.exit(main(_args.skip_preprocessing, _args.preprocessing_only))
