@@ -840,17 +840,16 @@ class WDIRSRunner:
         ner_label: Optional[str] = None,
     ) -> Dict[str, List[str]]:
         """
-        Hybrid document-level Pass 1.
+        Deterministic low-cost document-level Pass 1.
 
-        For each source document we run:
-          1) table relevance gate (is this doc about a record for table_name?)
-          2) single-identity extraction for identity_col (top-1 only)
-          3) strict acceptance checks (non-empty + non-trivial + in-doc evidence)
+        For each source document:
+          1) Build a fixed-budget extractive summary (model-assisted).
+          2) Classify the summary to one table among all workload tables.
+          3) If class == current table, extract one identity value (top-1)
+             from the summary only.
 
-        Docs rejected by the gate/validation are NOT forced into an entity;
-        they fall back to the existing chunk-level NER pass on only the
-        unresolved chunk subset. This keeps behavior dataset-agnostic and
-        robust when candidate sets are noisy.
+        No confidence gating and no full-document / NER fallback — cost is
+        predictable and bounded per document.
         """
         import re as _re
         from concurrent.futures import ThreadPoolExecutor, as_completed as _asc
@@ -866,7 +865,7 @@ class WDIRSRunner:
         n_docs = len(doc_to_chunks)
         logger.info(
             f"[Pass1-Doc] '{table_name}': {n_docs} docs, extracting '{identity_col}' "
-            f"(relevance gate + top1 + fallback NER, {MAX_PARALLEL_REQUESTS} workers)"
+            f"(fixed-cost summary + contrastive gate + top1, {MAX_PARALLEL_REQUESTS} workers)"
         )
 
         sys_prompt = (
@@ -874,9 +873,21 @@ class WDIRSRunner:
             "Return strict JSON only; no markdown, no explanations."
         )
 
+        # Contrastive relevance gate: force the model to choose among peer
+        # tables, not just answer yes/no in isolation. This greatly reduces
+        # cross-table contamination when attributes overlap (e.g. nationality).
+        all_tables = []
+        try:
+            all_tables = sorted(list(self.lattice_planner.lattice.tables.keys()))
+        except Exception:
+            all_tables = []
+        if table_name not in all_tables:
+            all_tables.append(table_name)
+        table_choices = ", ".join(all_tables + ["none"])
         relevance_prompt = (
-            f'You are checking whether a document is primarily about a record in the "{table_name}" table.\n'
-            'Return ONLY a JSON object: {"relevant": true|false, "confidence": 0.0-1.0}\n\n'
+            f'Classify which table this document is primarily about.\n'
+            f'Allowed tables: [{table_choices}].\n'
+            'Return ONLY JSON: {"best_table":"<one_allowed_table>"}\n\n'
             'Document:\n---\n__DOCUMENT__\n---'
         )
         pass1a_tmpl = (
@@ -916,10 +927,11 @@ class WDIRSRunner:
                     pass
             return None
 
-        def _parse_relevance(text: str) -> Tuple[bool, float]:
+        def _parse_relevance(text: str) -> Optional[str]:
             """
-            Parse JSON relevance payload: {"relevant": bool, "confidence": float}.
-            Conservative default when parsing fails.
+            Parse JSON relevance payload:
+            {"best_table": "<table|none>"}.
+            Returns best_table_or_none. Conservative default on parse failure.
             """
             raw = text.strip()
             payload = None
@@ -933,13 +945,59 @@ class WDIRSRunner:
                     except json.JSONDecodeError:
                         payload = None
             if not isinstance(payload, dict):
-                return False, 0.0
-            relevant = bool(payload.get("relevant", False))
+                return None
+            best_table = str(payload.get("best_table", "")).strip().lower()
+            return best_table if best_table else None
+
+        def _build_summary(doc_text: str) -> str:
+            """
+            Build fixed-cost extractive summary for table disambiguation.
+            Uses existing bi-encoder + cross-encoder models already loaded in
+            entity_resolver. Falls back to head-truncation on any error.
+            """
+            SUMMARY_CHAR_BUDGET = 3500
+            MAX_SENTENCES = 12
+            PRESELECT = 40
+
+            text = (doc_text or "").strip()
+            if not text:
+                return ""
+
+            # Split into sentence-like units.
+            parts = []
+            for para in text.split("\n"):
+                para = para.strip()
+                if not para:
+                    continue
+                parts.extend([s.strip() for s in _re.split(r"(?<=[\.\!\?])\s+", para) if s.strip()])
+            if not parts:
+                return text[:SUMMARY_CHAR_BUDGET]
+
+            # Use table schema terms as the query for extractive retrieval.
+            schema_cols = list(self.lattice_planner.get_table_schema(table_name).keys())
+            query_terms = [table_name, identity_col] + schema_cols[:12] + (predicate_hints or [])[:8]
+            query = " ".join(t for t in query_terms if t)
+
             try:
-                conf = float(payload.get("confidence", 0.0))
+                # Stage 1: bi-encoder preselection
+                q_emb = self.entity_resolver.bi_encoder.encode([query], normalize_embeddings=True)
+                s_emb = self.entity_resolver.bi_encoder.encode(parts, normalize_embeddings=True)
+                # cosine for normalized embeddings = dot product
+                sims = (s_emb @ q_emb[0]).tolist()
+                top_idx = sorted(range(len(parts)), key=lambda i: sims[i], reverse=True)[: min(PRESELECT, len(parts))]
+
+                # Stage 2: cross-encoder rerank
+                pairs = [(query, parts[i]) for i in top_idx]
+                scores = self.entity_resolver.cross_encoder.predict(pairs)
+                ranked = sorted(zip(top_idx, scores), key=lambda x: float(x[1]), reverse=True)[: min(MAX_SENTENCES, len(top_idx))]
+
+                # Preserve document order in final summary.
+                chosen = [parts[i] for i, _ in sorted(ranked, key=lambda x: x[0])]
+                summary = "\n".join(chosen)
+                return summary[:SUMMARY_CHAR_BUDGET] if summary else text[:SUMMARY_CHAR_BUDGET]
             except Exception:
-                conf = 0.0
-            return relevant, max(0.0, min(1.0, conf))
+                # Deterministic fallback: first characters only.
+                return text[:SUMMARY_CHAR_BUDGET]
 
         def _is_valid_identity(value: str, doc_text: str) -> bool:
             """Accept only plausible identities grounded in document text."""
@@ -961,7 +1019,7 @@ class WDIRSRunner:
         def _discover_entity(doc_id: str) -> Tuple[Optional[str], str]:
             """
             Return (entity, reason).
-            reason ∈ {"accepted", "irrelevant", "low_conf", "unparseable", "invalid", "read_error"}
+            reason ∈ {"accepted", "irrelevant", "other_table", "unparseable", "invalid", "read_error"}
             """
             doc_path = dataset_path / doc_id
             try:
@@ -970,29 +1028,31 @@ class WDIRSRunner:
                 logger.warning(f"[Pass1-Doc] Cannot read {doc_path}")
                 return None, "read_error"
 
-            # 1) Relevance gate (table-level).
+            summary_text = _build_summary(doc_text)
+
+            # 1) Relevance gate (table-level) on summary only.
             try:
                 rel_resp = self.llm_client.generate(
-                    relevance_prompt.replace("__DOCUMENT__", doc_text),
+                    relevance_prompt.replace("__DOCUMENT__", summary_text),
                     max_tokens=48,
                     temperature=0.0,
                     system_prompt=sys_prompt,
                 )
-                relevant, conf = _parse_relevance(rel_resp)
+                best_table = _parse_relevance(rel_resp)
             except Exception as exc:
                 logger.warning(f"[Pass1-Doc] Relevance call error for {doc_id}: {exc}")
                 return None, "unparseable"
 
-            if not relevant:
+            if best_table in (None, "none"):
                 return None, "irrelevant"
-            if conf < 0.55:
-                return None, "low_conf"
+            if best_table != table_name.lower():
+                return None, "other_table"
 
-            # 2) Identity extraction (top-1).
+            # 2) Identity extraction (top-1) on summary only.
             resp_a = ""
             try:
                 resp_a = self.llm_client.generate(
-                    pass1a_tmpl.format(document=doc_text),
+                    pass1a_tmpl.format(document=summary_text),
                     max_tokens=128,
                     temperature=0.0,
                     system_prompt=sys_prompt,
@@ -1000,7 +1060,7 @@ class WDIRSRunner:
                 entities = _parse_json_array(resp_a)
                 if entities:
                     entity = str(entities[0]).strip()
-                    if _is_valid_identity(entity, doc_text):
+                    if _is_valid_identity(entity, summary_text):
                         return entity, "accepted"
             except Exception as exc:
                 logger.warning(f"[Pass1-Doc] Pass 1a error for {doc_id}: {exc}")
@@ -1017,7 +1077,7 @@ class WDIRSRunner:
                     entities = _parse_json_array(resp_b)
                     if entities:
                         entity = str(entities[0]).strip()
-                        if _is_valid_identity(entity, doc_text):
+                        if _is_valid_identity(entity, summary_text):
                             return entity, "accepted"
                 except Exception as exc:
                     logger.warning(f"[Pass1-Doc] Pass 1b error for {doc_id}: {exc}")
@@ -1048,40 +1108,14 @@ class WDIRSRunner:
                 else:
                     rejected_docs[doc_id] = reason
 
-        # Fallback NER is intentionally narrow: only docs that were not
-        # confidently resolved but were still plausibly processable.
-        # We do NOT run fallback on explicitly irrelevant/low-confidence docs.
-        fallback_doc_reasons = {"invalid", "unparseable"}
-        fallback_doc_ids = {
-            doc_id for doc_id, reason in rejected_docs.items()
-            if reason in fallback_doc_reasons
-        }
-        unresolved = [
-            c for c in candidate_chunks
-            if c.chunk_id not in assigned_chunk_ids and c.doc_id in fallback_doc_ids
-        ]
-        skipped_unresolved = (
-            len(candidate_chunks) - len(assigned_chunk_ids) - len(unresolved)
-        )
-        if unresolved:
-            reason_counts: Dict[str, int] = {}
-            for r in rejected_docs.values():
-                reason_counts[r] = reason_counts.get(r, 0) + 1
+        reason_counts: Dict[str, int] = {}
+        for r in rejected_docs.values():
+            reason_counts[r] = reason_counts.get(r, 0) + 1
+        if rejected_docs:
             logger.info(
                 f"[Pass1-Doc] Rejected docs: {len(rejected_docs)}/{n_docs}; "
-                f"reasons={reason_counts}. Fallback NER on {len(unresolved)} chunks "
-                f"(skipped {max(0, skipped_unresolved)} unresolved chunks from "
-                f"irrelevant/low_conf docs)."
+                f"reasons={reason_counts}. No fallback in fixed-cost mode."
             )
-            fallback_raw = self._identity_pass(
-                table_name=table_name,
-                identity_col=identity_col,
-                candidate_chunks=unresolved,
-                predicate_hints=predicate_hints,
-                ner_label=ner_label,
-            )
-            for entity, cids in fallback_raw.items():
-                raw.setdefault(entity, []).extend(cids)
 
         # Deduplicate chunk lists per entity.
         for entity, cids in raw.items():
