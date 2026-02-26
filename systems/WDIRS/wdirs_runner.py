@@ -863,9 +863,22 @@ class WDIRSRunner:
             doc_to_chunks.setdefault(chunk.doc_id, []).append(chunk)
 
         n_docs = len(doc_to_chunks)
+
+        def _doc_prefix(doc_id: str) -> str:
+            if "/" in doc_id:
+                return doc_id.split("/", 1)[0]
+            return doc_id or "[none]"
+
+        prefix_counts: Dict[str, int] = {}
+        for doc_id in doc_to_chunks.keys():
+            p = _doc_prefix(doc_id)
+            prefix_counts[p] = prefix_counts.get(p, 0) + 1
         logger.info(
             f"[Pass1-Doc] '{table_name}': {n_docs} docs, extracting '{identity_col}' "
             f"(fixed-cost summary + contrastive gate + top1, {MAX_PARALLEL_REQUESTS} workers)"
+        )
+        logger.info(
+            f"[Pass1-Doc] '{table_name}' candidate source prefixes: {prefix_counts}"
         )
 
         sys_prompt = (
@@ -1016,9 +1029,9 @@ class WDIRSRunner:
                 return True
             return _norm(v) in _norm(doc_text)
 
-        def _discover_entity(doc_id: str) -> Tuple[Optional[str], str]:
+        def _discover_entity(doc_id: str) -> Tuple[Optional[str], str, Optional[str]]:
             """
-            Return (entity, reason).
+            Return (entity, reason, best_table_seen).
             reason ∈ {"accepted", "irrelevant", "other_table", "unparseable", "invalid", "read_error"}
             """
             doc_path = dataset_path / doc_id
@@ -1026,7 +1039,7 @@ class WDIRSRunner:
                 doc_text = doc_path.read_text(encoding="utf-8", errors="replace")
             except OSError:
                 logger.warning(f"[Pass1-Doc] Cannot read {doc_path}")
-                return None, "read_error"
+                return None, "read_error", None
 
             summary_text = _build_summary(doc_text)
 
@@ -1041,12 +1054,12 @@ class WDIRSRunner:
                 best_table = _parse_relevance(rel_resp)
             except Exception as exc:
                 logger.warning(f"[Pass1-Doc] Relevance call error for {doc_id}: {exc}")
-                return None, "unparseable"
+                return None, "unparseable", None
 
             if best_table in (None, "none"):
-                return None, "irrelevant"
+                return None, "irrelevant", best_table
             if best_table != table_name.lower():
-                return None, "other_table"
+                return None, "other_table", best_table
 
             # 2) Identity extraction (top-1) on summary only.
             resp_a = ""
@@ -1061,7 +1074,7 @@ class WDIRSRunner:
                 if entities:
                     entity = str(entities[0]).strip()
                     if _is_valid_identity(entity, summary_text):
-                        return entity, "accepted"
+                        return entity, "accepted", best_table
             except Exception as exc:
                 logger.warning(f"[Pass1-Doc] Pass 1a error for {doc_id}: {exc}")
 
@@ -1078,15 +1091,17 @@ class WDIRSRunner:
                     if entities:
                         entity = str(entities[0]).strip()
                         if _is_valid_identity(entity, summary_text):
-                            return entity, "accepted"
+                            return entity, "accepted", best_table
                 except Exception as exc:
                     logger.warning(f"[Pass1-Doc] Pass 1b error for {doc_id}: {exc}")
 
-            return None, "invalid"
+            return None, "invalid", best_table
 
         raw: Dict[str, List[str]] = {}
         assigned_chunk_ids: set = set()
         rejected_docs: Dict[str, str] = {}
+        rejected_best_table: Dict[str, Optional[str]] = {}
+        accepted_docs: Dict[str, str] = {}
         done = 0
 
         with ThreadPoolExecutor(max_workers=MAX_PARALLEL_REQUESTS) as pool:
@@ -1100,22 +1115,49 @@ class WDIRSRunner:
                 if done % 100 == 0 or done == n_docs:
                     logger.info(f"[Pass1-Doc] {done}/{n_docs} docs processed")
 
-                entity_name, reason = fut.result()
+                entity_name, reason, best_table = fut.result()
                 if entity_name:
                     cids = [c.chunk_id for c in doc_to_chunks[doc_id]]
                     raw.setdefault(entity_name, []).extend(cids)
                     assigned_chunk_ids.update(cids)
+                    accepted_docs[doc_id] = entity_name
                 else:
                     rejected_docs[doc_id] = reason
+                    rejected_best_table[doc_id] = best_table
 
         reason_counts: Dict[str, int] = {}
         for r in rejected_docs.values():
             reason_counts[r] = reason_counts.get(r, 0) + 1
+        accepted_prefix_counts: Dict[str, int] = {}
+        for doc_id in accepted_docs.keys():
+            p = _doc_prefix(doc_id)
+            accepted_prefix_counts[p] = accepted_prefix_counts.get(p, 0) + 1
+
+        misclass_counts: Dict[str, int] = {}
+        misclass_examples: List[str] = []
+        for doc_id, reason in rejected_docs.items():
+            if reason != "other_table":
+                continue
+            bt = (rejected_best_table.get(doc_id) or "[none]").lower()
+            misclass_counts[bt] = misclass_counts.get(bt, 0) + 1
+            if len(misclass_examples) < 12:
+                misclass_examples.append(f"{doc_id} -> {bt}")
+
         if rejected_docs:
             logger.info(
                 f"[Pass1-Doc] Rejected docs: {len(rejected_docs)}/{n_docs}; "
                 f"reasons={reason_counts}. No fallback in fixed-cost mode."
             )
+            if misclass_counts:
+                logger.info(
+                    f"[Pass1-Doc] '{table_name}' misclassified-to tables: {misclass_counts}"
+                )
+                logger.info(
+                    f"[Pass1-Doc] '{table_name}' misclassification samples: {misclass_examples}"
+                )
+        logger.info(
+            f"[Pass1-Doc] '{table_name}' accepted doc source prefixes: {accepted_prefix_counts}"
+        )
 
         # Deduplicate chunk lists per entity.
         for entity, cids in raw.items():

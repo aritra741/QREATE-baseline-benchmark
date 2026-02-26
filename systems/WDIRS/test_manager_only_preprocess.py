@@ -14,6 +14,7 @@ Usage:
 import argparse
 import csv
 import json
+import logging
 from pathlib import Path
 import sys
 
@@ -24,6 +25,26 @@ if str(WDIRS_ROOT) not in sys.path:
     sys.path.insert(0, str(WDIRS_ROOT))
 
 from wdirs_runner import WDIRSRunner
+
+logger = logging.getLogger(__name__)
+
+
+def setup_logging(log_file: Path) -> None:
+    """Write logs to both console and a dedicated file."""
+    log_file.parent.mkdir(parents=True, exist_ok=True)
+    root = logging.getLogger()
+    root.setLevel(logging.INFO)
+    # Prevent duplicate log lines from prior/basicConfig handlers.
+    for h in list(root.handlers):
+        root.removeHandler(h)
+
+    fmt = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    fh = logging.FileHandler(log_file)
+    ch = logging.StreamHandler(sys.stdout)
+    fh.setFormatter(fmt)
+    ch.setFormatter(fmt)
+    root.addHandler(fh)
+    root.addHandler(ch)
 
 
 def build_manager_only_query() -> str:
@@ -99,22 +120,30 @@ def main() -> int:
         action="store_true",
         help="Delete existing DB file before run",
     )
+    ap.add_argument(
+        "--log",
+        default=str(WDIRS_ROOT / "manager_only_preprocess.log"),
+        help="Log file path (default: systems/WDIRS/manager_only_preprocess.log)",
+    )
     args = ap.parse_args()
+
+    log_path = Path(args.log).resolve()
+    setup_logging(log_path)
+    logger.info(f"Manager-only preprocess log: {log_path}")
 
     db_path = Path(args.db).resolve()
     if args.fresh and db_path.exists():
         db_path.unlink()
-        print(f"Deleted existing DB: {db_path}")
+        logger.info(f"Deleted existing DB: {db_path}")
 
     workload_query = build_manager_only_query()
-    print("manager-only workload query:")
-    print(workload_query)
+    logger.info(f"manager-only workload query: {workload_query}")
 
     runner = WDIRSRunner(dataset=args.dataset, postgres_uri=f"sqlite:///{db_path}")
     result = runner.preprocess(workload_queries=[workload_query])
 
-    print("\n=== preprocess result ===")
-    print(json.dumps(
+    logger.info("=== preprocess result ===")
+    logger.info(json.dumps(
         {
             "success": result.success,
             "tables_processed": result.tables_processed,
