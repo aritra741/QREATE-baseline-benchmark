@@ -786,7 +786,7 @@ def generate_filter_join_queries(base_path: str, output_path: str, num_queries: 
     
     # Create join graph
     join_graph = create_player_join_graph(base_path)
-    join_table_names = ["player", "team", "city", "manager"]
+    join_table_names = ["player", "team", "city", "owner"]
     
     queries = []
     for i in range(num_queries):
@@ -827,7 +827,7 @@ def generate_agg_join_queries(base_path: str, output_path: str, num_queries: int
     
     # Create join graph
     join_graph = create_player_join_graph(base_path)
-    join_table_names = ["player", "team", "city", "manager"]
+    join_table_names = ["player", "team", "city", "owner"]
     
     queries = []
     for i in range(num_queries):
@@ -868,7 +868,7 @@ def generate_filter_agg_join_queries(base_path: str, output_path: str, num_queri
     
     # Create join graph
     join_graph = create_player_join_graph(base_path)
-    join_table_names = ["player", "team", "city", "manager"]
+    join_table_names = ["player", "team", "city", "owner"]
     
     queries = []
     for i in range(num_queries):
@@ -943,7 +943,7 @@ if __name__ == "__main__":
     print("   - mixed_queries_filter_agg_player.sql")
     print("   - mixed_queries_filter_agg_team.sql") 
     print("   - mixed_queries_filter_agg_city.sql")
-    print("   - mixed_queries_filter_agg_manager.sql")
+    print("   - mixed_queries_filter_agg_owner.sql")
     print("   - mixed_queries_filter_join.sql")
     print("   - mixed_queries_agg_join.sql")
     print("   - mixed_queries_filter_agg_join.sql")

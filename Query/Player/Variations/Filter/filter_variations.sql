@@ -22,13 +22,13 @@ SELECT team_name, location, founded_year FROM team WHERE founded_year >= 2000;
 -- Variation: Different ownership and founded_year thresholds.
 SELECT team_name, ownership, location FROM team WHERE ownership != 'James L. Dolan' AND founded_year < 1970;
 
--- Inspiration: Query 1 (filter_queries_manager.sql)
+-- Inspiration: Query 1 (filter_queries_owner.sql)
 -- Variation: Filtered by Golden State Warriors and added own_year.
-SELECT name, nba_team, age, own_year FROM manager WHERE nba_team = 'Golden State Warriors';
+SELECT name, nba_team, age, own_year FROM owner WHERE nba_team = 'Golden State Warriors';
 
--- Inspiration: Query 2 (filter_queries_manager.sql)
--- Variation: Younger managers (age < 60) and different team exclusion.
-SELECT name, nba_team, nationality FROM manager WHERE age < 60 AND nba_team != 'Boston Celtics';
+-- Inspiration: Query 2 (filter_queries_owner.sql)
+-- Variation: Younger owners (age < 60) and different team exclusion.
+SELECT name, nba_team, nationality FROM owner WHERE age < 60 AND nba_team != 'Boston Celtics';
 
 -- Inspiration: Query 1 (filter_queries_city.sql)
 -- Variation: Filtered by different area and included gdp.

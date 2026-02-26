@@ -1,8 +1,8 @@
--- Query 1: filter1_agg1 (manager)
-SELECT nationality, MIN(age) AS min_age FROM manager WHERE nba_team != 'Cleveland Cavaliers' GROUP BY nationality;
+-- Query 1: filter1_agg1 (owner)
+SELECT nationality, MIN(age) AS min_age FROM owner WHERE nba_team != 'Cleveland Cavaliers' GROUP BY nationality;
 
--- Query 2: filter2_agg1 (manager)
-SELECT nationality, SUM(age) AS sum_age FROM manager WHERE age != 76 AND nba_team != 'Houston Rockets' GROUP BY nationality;
+-- Query 2: filter2_agg1 (owner)
+SELECT nationality, SUM(age) AS sum_age FROM owner WHERE age != 76 AND nba_team != 'Houston Rockets' GROUP BY nationality;
 
 -- Query 3: filter3_agg1 (player)
 SELECT nationality, COUNT(*) AS count_all FROM player WHERE name = 'Antonius Cleveland' OR nba_championships >= 0 GROUP BY nationality;

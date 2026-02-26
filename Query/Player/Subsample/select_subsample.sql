@@ -10,5 +10,5 @@ SELECT ownership, team_name, championship, founded_year FROM team;
 -- Query 4: select (city)
 SELECT area, city_name, gdp FROM city;
 
--- Query 5: select (manager)
-SELECT nba_team, name, own_year FROM manager;
+-- Query 5: select (owner)
+SELECT nba_team, name, own_year FROM owner;

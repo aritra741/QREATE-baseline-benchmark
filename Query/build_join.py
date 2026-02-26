@@ -409,7 +409,7 @@ def create_player_join_graph(base_path: str) -> JoinGraph:
     tables = {
         "player": TableConfig("player", f"{base_path}/player.csv", attrs_from_json(attrs_data["player"])),
         "team": TableConfig("team", f"{base_path}/team.csv", attrs_from_json(attrs_data["team"])),
-        "manager": TableConfig("manager", f"{base_path}/manager.csv", attrs_from_json(attrs_data["manager"])),
+        "owner": TableConfig("owner", f"{base_path}/owner.csv", attrs_from_json(attrs_data["owner"])),
         "city": TableConfig("city", f"{base_path}/city.csv", attrs_from_json(attrs_data["city"])),
     }
     
@@ -417,8 +417,8 @@ def create_player_join_graph(base_path: str) -> JoinGraph:
     join_paths = [
         JoinPath("player", "team", "team", "team_name"),
         JoinPath("team", "city", "location", "city_name"),
-        JoinPath("team", "manager", "ownership", "name"),
-        JoinPath("manager", "team", "nba_team", "team_name"),
+        JoinPath("team", "owner", "ownership", "name"),
+        JoinPath("owner", "team", "nba_team", "team_name"),
     ]
     
     return JoinGraph(tables, join_paths)
@@ -563,14 +563,14 @@ if __name__ == "__main__":
     # binary_join_pairs = [
     #     ("player", "team"),
     #     ("team", "city"),
-    #     ("team", "manager"),
+    #     ("team", "owner"),
     # ]
     
     # multi_join_combinations = [
     #     ["player", "team", "city"],
-    #     ["player", "team", "manager"],
-    #     ["team", "city", "manager"],
-    #     ["player", "team", "city", "manager"],
+    #     ["player", "team", "owner"],
+    #     ["team", "city", "owner"],
+    #     ["player", "team", "city", "owner"],
     # ]
 
     binary_join_pairs = [

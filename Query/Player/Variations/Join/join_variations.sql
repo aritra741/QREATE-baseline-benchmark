@@ -11,17 +11,17 @@ SELECT team.team_name, team.ownership, player.name, player.mvp_awards, player.nb
 SELECT team.team_name, team.location, city.area, city.gdp, city.state_name FROM team JOIN city ON team.location = city.city_name;
 
 -- Inspiration: Query 7 (join_queries.sql)
--- Variation: Manager with team name and own_year.
-SELECT manager.name, manager.own_year, team.team_name, team.championship FROM team JOIN manager ON team.ownership = manager.name;
+-- Variation: Owner with team name and own_year.
+SELECT owner.name, owner.own_year, team.team_name, team.championship FROM team JOIN owner ON team.ownership = owner.name;
 
 -- Inspiration: Query 1 (join_queries.sql multi_table)
 -- Variation: Player, team, city with college and population.
 SELECT player.name, player.college, team.team_name, city.city_name, city.population FROM player JOIN team ON player.team = team.team_name JOIN city ON team.location = city.city_name;
 
 -- Inspiration: Query 5 (join_queries.sql multi_table)
--- Variation: Player, team, manager with draft and ownership.
-SELECT player.name, player.draft_year, team.team_name, manager.name AS owner_name, manager.nationality FROM player JOIN team ON player.team = team.team_name JOIN manager ON team.ownership = manager.name;
+-- Variation: Player, team, owner with draft and ownership.
+SELECT player.name, player.draft_year, team.team_name, owner.name AS owner_name, owner.nationality FROM player JOIN team ON player.team = team.team_name JOIN owner ON team.ownership = owner.name;
 
 -- Inspiration: Query 9 (join_queries.sql)
 -- Variation: Four-table join with different column selection.
-SELECT player.name, team.team_name, city.city_name, manager.own_year FROM player JOIN team ON player.team = team.team_name JOIN manager ON team.ownership = manager.name JOIN city ON team.location = city.city_name;
+SELECT player.name, team.team_name, city.city_name, owner.own_year FROM player JOIN team ON player.team = team.team_name JOIN owner ON team.ownership = owner.name JOIN city ON team.location = city.city_name;

@@ -14,9 +14,9 @@ SELECT team_name, ownership, championship, founded_year, location FROM team;
 -- Variation: Included population for city context.
 SELECT city_name, area, gdp, population, state_name FROM city;
 
--- Inspiration: Query 1 (select_queries_manager.sql)
--- Variation: Added age and nationality for manager profile.
-SELECT name, nba_team, own_year, age, nationality FROM manager;
+-- Inspiration: Query 1 (select_queries_owner.sql)
+-- Variation: Added age and nationality for owner profile.
+SELECT name, nba_team, own_year, age, nationality FROM owner;
 
 -- Inspiration: Query 4 (select_queries_player.sql)
 -- Variation: Selection focused on international and team success.

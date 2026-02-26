@@ -24,7 +24,7 @@ LOG_PATH = Path(__file__).with_suffix(".txt")
 
 TABLE_CSVS = {
     "city": "city.csv",
-    "manager": "manager.csv",
+    "owner": "owner.csv",
     "player": "player.csv",
     "team": "team.csv",
 }

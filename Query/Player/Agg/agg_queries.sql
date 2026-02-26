@@ -19,12 +19,12 @@ SELECT nationality, MIN(age) AS min_age FROM player GROUP BY nationality;
 -- Query 7: aggregation (player)
 SELECT nationality, AVG(age) AS avg_age FROM player GROUP BY nationality;
 
--- Query 8: aggregation (manager)
-SELECT nationality, MIN(age) AS min_age FROM manager GROUP BY nationality;
+-- Query 8: aggregation (owner)
+SELECT nationality, MIN(age) AS min_age FROM owner GROUP BY nationality;
 
--- Query 9: aggregation (manager)
-SELECT nationality, COUNT(*) AS count_all FROM manager GROUP BY nationality;
+-- Query 9: aggregation (owner)
+SELECT nationality, COUNT(*) AS count_all FROM owner GROUP BY nationality;
 
--- Query 10: aggregation (manager)
-SELECT nationality, AVG(age) AS avg_age FROM manager GROUP BY nationality;
+-- Query 10: aggregation (owner)
+SELECT nationality, AVG(age) AS avg_age FROM owner GROUP BY nationality;
 

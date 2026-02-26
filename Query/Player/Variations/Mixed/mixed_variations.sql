@@ -1,10 +1,10 @@
--- Inspiration: Query 1 (mixed_queries_filter_agg_manager.sql)
+-- Inspiration: Query 1 (mixed_queries_filter_agg_owner.sql)
 -- Variation: MAX age instead of MIN, filtered by different team.
-SELECT nationality, MAX(age) AS max_age FROM manager WHERE nba_team != 'Golden State Warriors' GROUP BY nationality;
+SELECT nationality, MAX(age) AS max_age FROM owner WHERE nba_team != 'Golden State Warriors' GROUP BY nationality;
 
--- Inspiration: Query 2 (mixed_queries_filter_agg_manager.sql)
+-- Inspiration: Query 2 (mixed_queries_filter_agg_owner.sql)
 -- Variation: AVG age instead of SUM, different filter values.
-SELECT nationality, AVG(age) AS avg_age FROM manager WHERE age < 70 AND nba_team != 'Houston Rockets' GROUP BY nationality;
+SELECT nationality, AVG(age) AS avg_age FROM owner WHERE age < 70 AND nba_team != 'Houston Rockets' GROUP BY nationality;
 
 -- Inspiration: Query 1 (mixed_queries_filter_agg_player.sql)
 -- Variation: MAX olympic_gold_medals grouped by team, filtered by draft_pick.
@@ -20,7 +20,7 @@ SELECT player.name, team.team_name, player.nba_championships, team.championship 
 
 -- Inspiration: Query 2 (mixed_queries_filter_join.sql)
 -- Variation: Filter by player position and city population threshold.
-SELECT player.name, player.position, city.city_name, city.population FROM player JOIN team ON player.team = team.team_name JOIN manager ON team.ownership = manager.name JOIN city ON team.location = city.city_name WHERE player.position = 'Backcourt' AND city.population > '1000000';
+SELECT player.name, player.position, city.city_name, city.population FROM player JOIN team ON player.team = team.team_name JOIN owner ON team.ownership = owner.name JOIN city ON team.location = city.city_name WHERE player.position = 'Backcourt' AND city.population > '1000000';
 
 -- Inspiration: Query 6 (mixed_queries_filter_agg.sql)
 -- Variation: MIN mvp_awards by position with different composite filter.

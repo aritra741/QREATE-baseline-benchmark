@@ -15,9 +15,9 @@ SELECT position, MIN(age) AS min_age, MAX(age) AS max_age FROM player GROUP BY p
 SELECT nationality, MIN(age) AS min_age FROM player GROUP BY nationality;
 
 -- Inspiration: Query 8 (agg_queries.sql)
--- Variation: Changed MIN(age) to AVG(age) for managers grouped by nationality.
-SELECT nationality, AVG(age) AS avg_age FROM manager GROUP BY nationality;
+-- Variation: Changed MIN(age) to AVG(age) for owners grouped by nationality.
+SELECT nationality, AVG(age) AS avg_age FROM owner GROUP BY nationality;
 
 -- Inspiration: Query 9 (agg_queries.sql)
--- Variation: Count managers and find min own_year per nationality.
-SELECT nationality, COUNT(*) AS count_all, MIN(own_year) AS min_own_year FROM manager GROUP BY nationality;
+-- Variation: Count owners and find min own_year per nationality.
+SELECT nationality, COUNT(*) AS count_all, MIN(own_year) AS min_own_year FROM owner GROUP BY nationality;
