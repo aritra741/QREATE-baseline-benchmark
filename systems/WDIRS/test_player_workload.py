@@ -109,7 +109,7 @@ from evaluation.utils import (
     standardize_column_name as _std_col,
 )
 
-# Paths for the official evaluator (Player has multiple GT tables: player, team, city, manager)
+# Paths for the official evaluator (Player has multiple GT tables: player, team, city, owner)
 GROUND_TRUTH_DIR = PROJECT_ROOT / "Data" / "Player"
 ATTRIBUTES_FILE = PROJECT_ROOT / "Query" / DATASET_QUERY / "Player_attributes.json"
 
@@ -627,7 +627,7 @@ def run_test_phase(dataset: str, dataset_query: str, checkpoint_path: Path) -> T
             or GT_ENTITY_COL
         )
 
-        # Stage all Player GT CSVs (player, team, city, manager) for DuckDB
+        # Stage all Player GT CSVs (player, team, city, owner) for DuckDB
         gt_staging_dir = RESULTS_BASE_DIR / "gt_staging"
         gt_staging_dir.mkdir(parents=True, exist_ok=True)
         if GROUND_TRUTH_DIR.exists():

@@ -896,11 +896,13 @@ class WDIRSRunner:
             all_tables = []
         if table_name not in all_tables:
             all_tables.append(table_name)
-        table_choices = ", ".join(all_tables + ["none"])
+        allowed_tables = [t.lower() for t in all_tables] + ["none"]
+        allowed_table_set = set(allowed_tables)
+        table_choices = ", ".join(allowed_tables)
         relevance_prompt = (
             f'Classify which table this document is primarily about.\n'
             f'Allowed tables: [{table_choices}].\n'
-            'Return ONLY JSON: {"best_table":"<one_allowed_table>"}\n\n'
+            'Return ONLY one token from the allowed tables. No JSON.\n\n'
             'Document:\n---\n__DOCUMENT__\n---'
         )
         pass1a_tmpl = (
@@ -942,25 +944,16 @@ class WDIRSRunner:
 
         def _parse_relevance(text: str) -> Optional[str]:
             """
-            Parse JSON relevance payload:
-            {"best_table": "<table|none>"}.
-            Returns best_table_or_none. Conservative default on parse failure.
+            Parse table classification token from model output.
+            Output must be one allowed table token; any other value is treated
+            as invalid/none.
             """
             raw = text.strip()
-            payload = None
-            try:
-                payload = json.loads(raw)
-            except json.JSONDecodeError:
-                m = _re.search(r"\{.*?\}", raw, _re.DOTALL)
-                if m:
-                    try:
-                        payload = json.loads(m.group())
-                    except json.JSONDecodeError:
-                        payload = None
-            if not isinstance(payload, dict):
+            m = _re.search(r"[A-Za-z_][A-Za-z0-9_]*", raw)
+            if not m:
                 return None
-            best_table = str(payload.get("best_table", "")).strip().lower()
-            return best_table if best_table else None
+            tok = m.group(0).strip().lower()
+            return tok if tok in allowed_table_set else None
 
         def _build_summary(doc_text: str) -> str:
             """
@@ -971,10 +964,16 @@ class WDIRSRunner:
             SUMMARY_CHAR_BUDGET = 3500
             MAX_SENTENCES = 12
             PRESELECT = 40
+            LEAD_LINES = 10
 
             text = (doc_text or "").strip()
             if not text:
                 return ""
+
+            # Keep opening lines explicitly (many docs place the key entity in
+            # the first few lines) and then add retrieved evidence sentences.
+            lead_lines = [ln.strip() for ln in text.splitlines() if ln.strip()][:LEAD_LINES]
+            lead_text = "\n".join(lead_lines)
 
             # Split into sentence-like units.
             parts = []
@@ -1006,11 +1005,20 @@ class WDIRSRunner:
 
                 # Preserve document order in final summary.
                 chosen = [parts[i] for i, _ in sorted(ranked, key=lambda x: x[0])]
-                summary = "\n".join(chosen)
+                # Merge opening lines + retrieved sentences with dedup.
+                merged = []
+                seen = set()
+                for s in lead_lines + chosen:
+                    key = _norm(s)
+                    if not key or key in seen:
+                        continue
+                    seen.add(key)
+                    merged.append(s)
+                summary = "\n".join(merged)
                 return summary[:SUMMARY_CHAR_BUDGET] if summary else text[:SUMMARY_CHAR_BUDGET]
             except Exception:
                 # Deterministic fallback: first characters only.
-                return text[:SUMMARY_CHAR_BUDGET]
+                return lead_text[:SUMMARY_CHAR_BUDGET] if lead_text else text[:SUMMARY_CHAR_BUDGET]
 
         def _is_valid_identity(value: str, doc_text: str) -> bool:
             """Accept only plausible identities grounded in document text."""
