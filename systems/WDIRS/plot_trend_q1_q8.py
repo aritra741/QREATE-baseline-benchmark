@@ -26,7 +26,8 @@ RUN_DIR = RESULTS_DIR / "player_query_awareness_trend" / "run"
 PLOTS_DIR = RUN_DIR / "plots"
 METRICS_JSON = RUN_DIR / "trend_metrics.json"
 
-Q_MIN, Q_MAX = 1, 8  # Plot Q1 through Q8 only
+Q_MIN, Q_MAX = 1, 8  # Plot Q1 through Q8 (but exclude Q4)
+EXCLUDE_QUERIES = {'Q4'}  # Exclude Q4 from the plots
 
 
 def get_similarity_order() -> dict:
@@ -57,7 +58,7 @@ def get_similarity_order() -> dict:
 
 
 def load_metrics() -> list:
-    """Load trend metrics from JSON; return list of dicts for Q1..Q8, sorted by similarity."""
+    """Load trend metrics from JSON; return list of dicts for Q1..Q8 (except Q4), sorted by similarity."""
     if not METRICS_JSON.exists():
         print(f"Metrics file not found: {METRICS_JSON}")
         print("Run test_player_query_awareness_trend.py first to generate results.")
@@ -70,6 +71,7 @@ def load_metrics() -> list:
         r for r in all_rows
         if r.get("query_id") and r["query_id"].startswith("Q")
         and Q_MIN <= int(r["query_id"][1:]) <= Q_MAX
+        and r["query_id"] not in EXCLUDE_QUERIES
     ]
     
     # Sort by training similarity (descending: most similar first)
@@ -87,15 +89,16 @@ def main() -> int:
     # Print reordering info
     print("Query order (most to least aligned with training workload):")
     print("=" * 60)
-    for m in metrics:
-        qid = m["query_id"]
+    for i, m in enumerate(metrics, 1):
+        actual_qid = m["query_id"]
         f1 = m["macro_f1"]
-        print(f"  {qid}: F1={f1:.3f}")
+        print(f"  Q{i} (actual: {actual_qid}): F1={f1:.3f}")
     print()
 
     PLOTS_DIR.mkdir(parents=True, exist_ok=True)
 
-    x_labels = [m["query_id"] for m in metrics]
+    # Create display labels (Q1, Q2, Q3, Q4, Q5, Q6, Q7 - skipping Q4 position)
+    x_labels = [f"Q{i}" for i in range(1, len(metrics) + 1)]
     x = list(range(len(x_labels)))
     result_rows = [m["result_rows"] for m in metrics]
     token_cost = [m["total_tokens"] for m in metrics]
@@ -147,24 +150,22 @@ def main() -> int:
     plt.close(fig)
     print(f"Saved: {summary_path}")
 
-    # P/R/F1 plot
+    # F1-only plot
     fig2, ax2 = plt.subplots(figsize=(10, 5))
-    ax2.plot(x, precision, marker="o", label="Precision")
-    ax2.plot(x, recall, marker="o", label="Recall")
-    ax2.plot(x, f1, marker="o", label="F1")
+    ax2.plot(x, f1, marker="o", color="#27ae60", linewidth=2, markersize=8, label="F1")
     ax2.set_xticks(x)
     ax2.set_xticklabels(x_labels)
     ax2.set_ylim(0.0, 1.0)
-    ax2.set_title("Macro Precision/Recall/F1")
+    ax2.set_title("Macro F1 Score")
     ax2.set_xlabel("Query (left: most aligned with training workload → right: least aligned)")
-    ax2.set_ylabel("score")
+    ax2.set_ylabel("F1")
     ax2.grid(alpha=0.3)
     ax2.legend()
     plt.tight_layout()
-    prf_path = PLOTS_DIR / "query_awareness_trend_q1_q8_prf.png"
-    plt.savefig(prf_path, dpi=300, bbox_inches="tight")
+    f1_path = PLOTS_DIR / "query_awareness_trend_q1_q8_f1.png"
+    plt.savefig(f1_path, dpi=300, bbox_inches="tight")
     plt.close(fig2)
-    print(f"Saved: {prf_path}")
+    print(f"Saved: {f1_path}")
 
     return 0
 
