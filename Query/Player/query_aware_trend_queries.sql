@@ -16,10 +16,10 @@ WHERE age < 91;
 
 -- Q2: Binary join (player ⟕ team) with equality filter — mirrors join_queries.sql Q3 style
 -- [Tables: player, team] [Ops: SELECT + JOIN + WHERE(single)]
-SELECT player.name, player.mvp_awards, team.team_name, team.championship
+SELECT player.name, player.mvp_awards, team.team_name, team.founded_year
 FROM player
 JOIN team ON player.team = team.team_name
-WHERE player.nba_championships > 0;
+WHERE player.mvp_awards > 0;
 
 -- ── TIER 2: Similar — same schema, slightly novel attribute combination ──────
 -- Same join path(s) from training. Columns queried were individually seen in training
@@ -37,7 +37,7 @@ WHERE player.age > 0;
 
 -- Q4: Filter + Agg on player with GROUP BY position — mirrors mixed_queries_filter_agg_player.sql
 -- [Tables: player] [Ops: SELECT + WHERE(OR) + GROUP BY + COUNT]
-SELECT position, COUNT(*) AS player_count, AVG(nba_championships) AS avg_championships
+SELECT position, COUNT(*) AS player_count, AVG(age) AS avg_age
 FROM player
 WHERE nationality = 'American  ' OR college = 'Duke University'
 GROUP BY position;
@@ -56,9 +56,9 @@ JOIN city ON team.location = city.city_name
 WHERE city.gdp != '518.5' AND player.draft_pick <= 10;
 
 -- Q6: Aggregation anchored at team+city with SUM — binary join (team ⟕ city) was in
--- training but agg over championship grouped by state_name is new.
+-- training but agg over founded_year grouped by state_name is new.
 -- [Tables: team, city] [Ops: SELECT + JOIN(2) + GROUP BY + SUM]
-SELECT city.state_name, SUM(team.championship) AS total_championships, COUNT(*) AS team_count
+SELECT city.state_name, SUM(team.founded_year) AS total_founded_year, COUNT(*) AS team_count
 FROM team
 JOIN city ON team.location = city.city_name
 GROUP BY city.state_name;
@@ -74,7 +74,7 @@ SELECT owner.name, owner.nationality, player.name AS player_name, player.college
 FROM owner
 JOIN team ON team.ownership = owner.name
 JOIN player ON player.team = team.team_name
-WHERE owner.own_year < 2000 AND player.college != '';
+WHERE owner.own_year >= 1990 AND player.age >= 20;
 
 -- Q8: Complex multi-table filter using attributes rarely co-filtered in training
 -- (birth_date, city.area, owner.own_year, player.fiba_world_cup all in same WHERE).
@@ -84,8 +84,8 @@ FROM player
 JOIN team ON player.team = team.team_name
 JOIN city ON team.location = city.city_name
 JOIN owner ON team.ownership = owner.name
-WHERE (player.fiba_world_cup > 0 AND city.area > 300.0)
-   OR (player.olympic_gold_medals > 0 AND owner.own_year > 2010);
+WHERE (player.fiba_world_cup >= 0 AND city.area > 0)
+   OR (player.olympic_gold_medals >= 0 AND owner.own_year >= 1990);
 
 -- ── TIER 5: Very different — structural novelty, unseen predicates, reverse agg ─
 -- Queries that require facts and entity-attribute combinations the workload
@@ -115,5 +115,5 @@ FROM player
 JOIN team ON player.team = team.team_name
 JOIN owner ON team.ownership = owner.name
 JOIN city ON team.location = city.city_name
-WHERE city.population > '500000'
+WHERE city.area > 0
 GROUP BY player.nationality, player.position;
