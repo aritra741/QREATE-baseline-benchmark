@@ -234,6 +234,8 @@ class AggComparator(CellComparator):
             gold_val = float(gold)
         except Exception:
             return CellScore(precision=0.0, recall=0.0)
+        if not math.isfinite(pred_val) or not math.isfinite(gold_val):
+            return CellScore(precision=0.0, recall=0.0)
         if math.isnan(pred_val) and math.isnan(gold_val):
             return CellScore(precision=1.0, recall=1.0)
         if math.isnan(pred_val) or math.isnan(gold_val):

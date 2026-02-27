@@ -17,6 +17,7 @@ import sqlite3
 import sys
 import time
 import argparse
+import math
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -326,6 +327,15 @@ def evaluate_with_official_framework(
 
     calc = _MetricCalculator(manifest_for_pred, settings)
     metrics = calc.compute(match_result)
+    macro_f1 = metrics.get("macro_f1", 0.0)
+    macro_precision = metrics.get("macro_precision", 0.0)
+    macro_recall = metrics.get("macro_recall", 0.0)
+    if not math.isfinite(macro_f1):
+        macro_f1 = 0.0
+    if not math.isfinite(macro_precision):
+        macro_precision = 0.0
+    if not math.isfinite(macro_recall):
+        macro_recall = 0.0
 
     try:
         writer = _ResultWriter(output_dir=output_dir)
@@ -334,9 +344,9 @@ def evaluate_with_official_framework(
         logger.warning(f"[Eval] Could not write per-query outputs: {we}")
 
     return {
-        "macro_f1": metrics["macro_f1"],
-        "macro_precision": metrics["macro_precision"],
-        "macro_recall": metrics["macro_recall"],
+        "macro_f1": macro_f1,
+        "macro_precision": macro_precision,
+        "macro_recall": macro_recall,
         "is_agg": is_agg,
         "gt_result_count": len(gold_df),
         "matched_rows": match_result.matched_rows,

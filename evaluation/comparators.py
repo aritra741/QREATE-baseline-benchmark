@@ -200,6 +200,9 @@ class AggComparator(CellComparator):
             gold_val = float(gold)
         except Exception:
             return CellScore(precision=0.0, recall=0.0)
+        # Guard against NaN/Inf values from upstream aggregations.
+        if not math.isfinite(pred_val) or not math.isfinite(gold_val):
+            return CellScore(precision=0.0, recall=0.0)
         if gold_val == 0:
             ok = pred_val == gold_val
             score = 1.0 if ok else 0.0
