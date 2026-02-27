@@ -761,8 +761,8 @@ class DeltaEngine:
                 continue
 
             logger.info(
-                f"  {left_table}.{join_column}: {len(left_values)} values, "
-                f"  {right_table}.{join_column}: {len(right_values)} values"
+                f"  {left_table}.{left_column}: {len(left_values)} values, "
+                f"  {right_table}.{right_column}: {len(right_values)} values"
             )
 
             canonical_map = self.entity_resolver.align_join_keys(
