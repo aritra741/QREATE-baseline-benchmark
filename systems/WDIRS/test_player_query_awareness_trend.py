@@ -18,6 +18,7 @@ import sys
 import time
 import argparse
 import math
+import unicodedata
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -80,6 +81,127 @@ QUERY_TABLES_DIR = RUN_DIR / "query_tables"
 PLOTS_DIR = RUN_DIR / "plots"
 
 _ENTITY_SUFFIX_RE = re.compile(r"\b(jr\.?|sr\.?|iii|iv|ii)\b\.?", re.IGNORECASE)
+_NAME_LIKE_COLUMNS = {"name", "player_name", "team_name", "city_name", "owner_name"}
+
+
+def _strip_diacritics(s: str) -> str:
+    """Remove diacritical marks and replace mojibake '?' placeholders."""
+    nfkd = unicodedata.normalize("NFKD", s)
+    stripped = "".join(c for c in nfkd if not unicodedata.combining(c))
+    return stripped.replace("?", "")
+
+
+def _canon_token(tok: str) -> str:
+    """Aggressively normalize a single token for fuzzy comparison."""
+    t = tok.strip().lower()
+    t = t.replace('"', "").replace("'", "")
+    t = _strip_diacritics(t)
+    return t
+
+
+def _tokenize_name(s: str) -> List[str]:
+    """Split a normalized name into canonicalized non-empty tokens."""
+    return [_canon_token(t) for t in s.lower().split() if _canon_token(t)]
+
+
+def _fuzzy_align_name_keys(
+    gold_df: "pd.DataFrame",
+    pred_df: "pd.DataFrame",
+    key_cols: List[str],
+) -> "pd.DataFrame":
+    """
+    Rewrite pred key columns so that near-matching names are canonicalized
+    to the ground-truth spelling before the RowMatcher sees them.
+
+    Matching cascade (applied per name-like key column):
+      1. Exact normalized match (identity — no rewrite needed)
+      2. Canon-token exact match (diacritics/quotes stripped)
+      3. First + last canon-token match
+      4. Last-canon-token match with >=1 other shared token
+      5. >=2 shared canon-tokens overall
+    """
+    pred_out = pred_df.copy()
+    for col in key_cols:
+        if col.lower().replace("_", "") not in {
+            c.replace("_", "") for c in _NAME_LIKE_COLUMNS
+        }:
+            continue
+        if col not in gold_df.columns or col not in pred_out.columns:
+            continue
+
+        gt_vals = gold_df[col].dropna().unique().tolist()
+        gt_lookup: Dict[str, str] = {}
+        gt_canon_lookup: Dict[str, str] = {}
+        gt_first_last: Dict[Tuple[str, str], str] = {}
+        gt_by_last: Dict[str, List[str]] = {}
+        gt_token_sets: Dict[str, set] = {}
+
+        for gv in gt_vals:
+            gs = str(gv).strip()
+            gn = gs
+            gt_lookup[gn] = gn
+            canon_full = _strip_diacritics(gn.replace('"', "").replace("'", "").replace("?", ""))
+            gt_canon_lookup[" ".join(canon_full.lower().split())] = gn
+            toks = _tokenize_name(gn)
+            gt_token_sets[gn] = set(toks)
+            if len(toks) >= 2:
+                fl = (toks[0], toks[-1])
+                gt_first_last.setdefault(fl, gn)
+                gt_by_last.setdefault(toks[-1], []).append(gn)
+            elif toks:
+                gt_by_last.setdefault(toks[0], []).append(gn)
+
+        def _best_gt(pred_name: str) -> str:
+            pn = str(pred_name).strip()
+            if pn in gt_lookup:
+                return pn
+
+            canon_pn = _strip_diacritics(pn.replace('"', "").replace("'", "").replace("?", ""))
+            canon_pn = " ".join(canon_pn.lower().split())
+            if canon_pn in gt_canon_lookup:
+                return gt_canon_lookup[canon_pn]
+
+            ptoks = _tokenize_name(pn)
+            if not ptoks:
+                return pn
+
+            if len(ptoks) >= 2:
+                fl = (ptoks[0], ptoks[-1])
+                if fl in gt_first_last:
+                    return gt_first_last[fl]
+
+            last = ptoks[-1]
+            pset = set(ptoks)
+            if last in gt_by_last:
+                for candidate in gt_by_last[last]:
+                    shared = pset & gt_token_sets[candidate]
+                    if len(shared) >= 2:
+                        return candidate
+
+            for gn, gset in gt_token_sets.items():
+                if len(pset & gset) >= 2:
+                    return gn
+
+            if len(ptoks) >= 2 and last in gt_by_last:
+                pfirst = ptoks[0]
+                for candidate in gt_by_last[last]:
+                    ctoks = sorted(gt_token_sets[candidate])
+                    for ct in ctoks:
+                        if ct.startswith(pfirst) and len(pfirst) >= 2:
+                            return candidate
+
+            return pn
+
+        pred_out[col] = pred_out[col].apply(
+            lambda v: _best_gt(v) if pd.notna(v) and str(v).strip() else v
+        )
+
+    rewritten = (pred_out[key_cols] != pred_df[key_cols]).any(axis=None)
+    if rewritten:
+        changed = int((pred_out[key_cols] != pred_df[key_cols]).any(axis=1).sum())
+        logger.info(f"[FuzzyAlign] Rewrote {changed} pred rows to match GT name spelling")
+
+    return pred_out
 
 
 @dataclass
@@ -305,6 +427,8 @@ def evaluate_with_official_framework(
 
     gold_norm = _normalize_key_cols(gold_df, primary_keys)
     pred_norm = _normalize_key_cols(pred_df, primary_keys)
+
+    pred_norm = _fuzzy_align_name_keys(gold_norm, pred_norm, primary_keys)
 
     try:
         match_result = row_matcher.match(

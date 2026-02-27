@@ -360,25 +360,21 @@ class DeltaEngine:
         
         try:
             if plan.delta_type == DeltaType.CACHE_HIT:
-                # No delta needed
                 logger.info("Cache hit - no delta execution needed")
             
             elif plan.delta_type == DeltaType.ROW_DELTA:
-                # Execute row delta
                 rows_extracted = self._execute_row_delta(
                     plan.tables_involved,
                     plan.missing_predicates
                 )
             
             elif plan.delta_type == DeltaType.COLUMN_DELTA:
-                # Execute column delta
                 rows_enriched = self._execute_column_delta(
                     plan.tables_involved,
                     plan.missing_columns
                 )
             
             elif plan.delta_type == DeltaType.MIXED_DELTA:
-                # Execute both deltas
                 rows_extracted = self._execute_row_delta(
                     plan.tables_involved,
                     plan.missing_predicates
@@ -389,7 +385,10 @@ class DeltaEngine:
                 )
             
             elif plan.delta_type == DeltaType.JOIN_ALIGNMENT:
-                # Execute join alignment
+                self._execute_join_alignment(query)
+
+            if plan.requires_join_alignment and plan.delta_type != DeltaType.JOIN_ALIGNMENT:
+                logger.info("Running join alignment after extraction/enrichment")
                 self._execute_join_alignment(query)
             
             execution_time = time.time() - start_time

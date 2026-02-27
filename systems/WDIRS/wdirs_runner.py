@@ -1653,6 +1653,8 @@ class WDIRSRunner:
         has_joins = len(lattice.join_pairs) > 0
         if has_joins:
             logger.info(f"Workload has {len(lattice.join_pairs)} join pairs: {lattice.join_pairs}")
+            for lt, lc, rt, rc in getattr(lattice, "join_column_pairs", []):
+                logger.info(f"  Join ON: {lt}.{lc} = {rt}.{rc}")
         
         for table_name, table_info in lattice.tables.items():
             try:
@@ -1972,45 +1974,52 @@ class WDIRSRunner:
         """
         Perform proactive entity resolution on join keys.
         Aligns join columns so Phase 2 can execute joins instantly.
+
+        Uses the actual ON-clause column pairs stored in
+        ``lattice.join_column_pairs`` (populated from the workload SQL)
+        instead of guessing column names by substring heuristics.
         """
-        if not lattice.join_pairs:
+        column_pairs = getattr(lattice, "join_column_pairs", [])
+        if not column_pairs and not lattice.join_pairs:
             logger.info("No joins in workload, skipping entity resolution")
             return
-        
-        logger.info(f"Performing entity resolution on {len(lattice.join_pairs)} join pairs")
-        
-        for left_table, right_table in lattice.join_pairs:
-            # Identify join columns
-            left_schema = self.lattice_planner.get_table_schema(left_table)
-            right_schema = self.lattice_planner.get_table_schema(right_table)
-            
-            # Find likely join keys
-            join_keys = []
-            for left_col in left_schema.keys():
-                for right_col in right_schema.keys():
-                    if (left_col == right_col or 
-                        left_table.lower() in right_col.lower() or
-                        right_table.lower() in left_col.lower()):
-                        join_keys.append((left_col, right_col))
-            
-            if not join_keys:
-                logger.warning(f"Could not identify join columns for {left_table} ↔ {right_table}")
-                continue
-            
-            left_col, right_col = join_keys[0]
-            logger.info(f"Resolving join: {left_table}.{left_col} ↔ {right_table}.{right_col}")
-            
-            # Get all unique values from both join columns
+
+        if not column_pairs:
+            logger.warning(
+                "Lattice has join_pairs but no join_column_pairs "
+                "(ON-clause columns missing). Skipping entity resolution."
+            )
+            return
+
+        seen: set = set()
+        unique_pairs = []
+        for lt, lc, rt, rc in column_pairs:
+            key = (lt, lc, rt, rc)
+            rev = (rt, rc, lt, lc)
+            if key not in seen and rev not in seen:
+                seen.add(key)
+                unique_pairs.append((lt, lc, rt, rc))
+
+        logger.info(
+            f"Performing entity resolution on {len(unique_pairs)} join column pair(s)"
+        )
+
+        from entity_resolver import EntityMention
+
+        for left_table, left_col, right_table, right_col in unique_pairs:
+            logger.info(
+                f"Resolving join: {left_table}.{left_col} ↔ {right_table}.{right_col}"
+            )
+
             left_values = self.data_layer.get_distinct_values(left_table, left_col)
             right_values = self.data_layer.get_distinct_values(right_table, right_col)
-            
-            logger.info(f"Found {len(left_values)} unique values in {left_table}.{left_col}")
-            logger.info(f"Found {len(right_values)} unique values in {right_table}.{right_col}")
-            
-            # Create entity mentions
-            from entity_resolver import EntityMention
+
+            logger.info(
+                f"  {left_table}.{left_col}: {len(left_values)} values, "
+                f"  {right_table}.{right_col}: {len(right_values)} values"
+            )
+
             mentions = []
-            
             for value in left_values:
                 if value and str(value).strip():
                     mentions.append(EntityMention(
@@ -2018,9 +2027,8 @@ class WDIRSRunner:
                         value=str(value),
                         table_name=left_table,
                         column_name=left_col,
-                        semantic_type="JOIN_KEY"
+                        semantic_type="JOIN_KEY",
                     ))
-            
             for value in right_values:
                 if value and str(value).strip():
                     mentions.append(EntityMention(
@@ -2028,37 +2036,39 @@ class WDIRSRunner:
                         value=str(value),
                         table_name=right_table,
                         column_name=right_col,
-                        semantic_type="JOIN_KEY"
+                        semantic_type="JOIN_KEY",
                     ))
-            
+
             if len(mentions) < 2:
-                logger.warning(f"Not enough values to resolve for {left_table} ↔ {right_table}")
+                logger.warning(
+                    f"Not enough values to resolve for "
+                    f"{left_table}.{left_col} ↔ {right_table}.{right_col}"
+                )
                 continue
-            
-            # Perform entity resolution
+
             logger.info(f"Running entity resolution on {len(mentions)} mentions")
             result = self.entity_resolver.resolve_entities(mentions)
-            
             logger.info(f"Resolved into {result.total_clusters} clusters")
-            
-            # Update database with canonical forms
-            for mention_value, canonical_value in result.canonical_map.items():
-                # Update left table
-                self.data_layer.update_column_values(
-                    left_table,
-                    left_col,
-                    {mention_value: canonical_value}
+
+            if not result.canonical_map:
+                logger.info(
+                    f"No mismatches found for "
+                    f"{left_table}.{left_col} ↔ {right_table}.{right_col}"
                 )
-                
-                # Update right table
-                self.data_layer.update_column_values(
-                    right_table,
-                    right_col,
-                    {mention_value: canonical_value}
-                )
-            
-            logger.info(f"Updated {left_table}.{left_col} and {right_table}.{right_col} with canonical values")
-        
+                continue
+
+            self.data_layer.update_column_values(
+                left_table, left_col, result.canonical_map
+            )
+            self.data_layer.update_column_values(
+                right_table, right_col, result.canonical_map
+            )
+
+            logger.info(
+                f"Aligned {len(result.canonical_map)} value(s) for "
+                f"{left_table}.{left_col} ↔ {right_table}.{right_col}"
+            )
+
         logger.info("Entity resolution complete - joins are now aligned")
     
     def _save_preprocessing_results(self, lattice) -> None:

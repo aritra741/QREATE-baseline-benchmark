@@ -51,6 +51,8 @@ class WorkloadLattice:
     """Represents the lattice of extraction objectives."""
     tables: Dict[str, TableInfo] = field(default_factory=dict)
     join_pairs: List[Tuple[str, str]] = field(default_factory=list)
+    # Full column-level join info: (left_table, left_col, right_table, right_col)
+    join_column_pairs: List[Tuple[str, str, str, str]] = field(default_factory=list)
     subsumption_graph: Dict[str, List[str]] = field(default_factory=dict)
 
 
@@ -158,15 +160,17 @@ class LatticePlanner:
                     table_info.predicates.append(predicate)
             
             # Add joins
-            for left_table, right_table in joins:
-                if (left_table, right_table) not in self.lattice.join_pairs:
-                    self.lattice.join_pairs.append((left_table, right_table))
-                
+            for lt, lc, rt, rc in joins:
+                if (lt, rt) not in self.lattice.join_pairs:
+                    self.lattice.join_pairs.append((lt, rt))
+                if lc and rc and (lt, lc, rt, rc) not in self.lattice.join_column_pairs:
+                    self.lattice.join_column_pairs.append((lt, lc, rt, rc))
+
                 # Mark tables as referenced in joins
-                if left_table in self.lattice.tables:
-                    self.lattice.tables[left_table].referenced_in_joins = True
-                if right_table in self.lattice.tables:
-                    self.lattice.tables[right_table].referenced_in_joins = True
+                if lt in self.lattice.tables:
+                    self.lattice.tables[lt].referenced_in_joins = True
+                if rt in self.lattice.tables:
+                    self.lattice.tables[rt].referenced_in_joins = True
             
             # Identify aggregations and group by
             self._extract_aggregations(parsed)
@@ -292,16 +296,32 @@ class LatticePlanner:
         else:
             return str(expr)
     
-    def _extract_joins(self, parsed: exp.Expression) -> List[Tuple[str, str]]:
-        """Extract join pairs from query."""
-        joins = []
-        
+    def _extract_joins(self, parsed: exp.Expression) -> List[Tuple[str, str, str, str]]:
+        """Extract join column pairs from query ON clauses.
+
+        Returns list of (left_table, left_col, right_table, right_col).
+        Falls back to table-only pairs when columns cannot be determined.
+        """
+        joins: List[Tuple[str, str, str, str]] = []
+
         for join in parsed.find_all(exp.Join):
-            # Get left and right tables
+            on_expr = join.args.get("on")
+            if on_expr is not None:
+                for eq in on_expr.find_all(exp.EQ):
+                    left = eq.left
+                    right = eq.right
+                    if isinstance(left, exp.Column) and isinstance(right, exp.Column):
+                        lt = (left.table or "").lower()
+                        lc = left.name.lower()
+                        rt = (right.table or "").lower()
+                        rc = right.name.lower()
+                        if lt and rt and lc and rc:
+                            joins.append((lt, lc, rt, rc))
+                            continue
+
+            # Fallback: table-only (no column info)
             left_table = None
             right_table = None
-            
-            # Find tables in join condition
             for column in join.find_all(exp.Column):
                 table = column.table
                 if table:
@@ -309,10 +329,9 @@ class LatticePlanner:
                         left_table = table.lower()
                     elif right_table is None and table.lower() != left_table:
                         right_table = table.lower()
-            
             if left_table and right_table:
-                joins.append((left_table, right_table))
-        
+                joins.append((left_table, "", right_table, ""))
+
         return joins
     
     def _extract_aggregations(self, parsed: exp.Expression) -> None:
@@ -503,6 +522,7 @@ Respond with only the semantic type (one word).
         plan = {
             "tables": {},
             "join_pairs": self.lattice.join_pairs,
+            "join_column_pairs": self.lattice.join_column_pairs,
             "subsumption_groups": self.lattice.subsumption_graph
         }
         
