@@ -16,6 +16,7 @@ import shutil
 import sqlite3
 import sys
 import time
+import argparse
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -172,6 +173,35 @@ def _normalize_key_cols(df: "pd.DataFrame", key_cols: List[str]) -> "pd.DataFram
     return out
 
 
+def _resolve_primary_keys_for_alignment(
+    primary_keys: List[str],
+    gold_df: "pd.DataFrame",
+    pred_df: "pd.DataFrame",
+) -> List[str]:
+    """
+    Resolve evaluator key names against actual DataFrame columns.
+
+    sql_parser may return qualified keys (e.g., "city.state_name"), while
+    result DataFrames commonly contain unqualified columns ("state_name").
+    """
+    gold_cols = {str(c) for c in gold_df.columns}
+    pred_cols = {str(c) for c in pred_df.columns}
+
+    resolved: List[str] = []
+    for key in primary_keys:
+        candidates = [
+            key,
+            key.split(".")[-1],
+            _std_col(key),
+            _std_col(key.split(".")[-1]),
+        ]
+        chosen = next((c for c in candidates if c in gold_cols and c in pred_cols), None)
+        if chosen and chosen not in resolved:
+            resolved.append(chosen)
+
+    return resolved or primary_keys
+
+
 def _augment_sql_with_entity(sql: str, entity_col: str, dialect: str = "duckdb") -> Optional[str]:
     try:
         parsed = sqlglot.parse_one(sql, error_level="ignore")
@@ -269,6 +299,8 @@ def evaluate_with_official_framework(
         stop_columns=manifest_for_pred.stop_columns,
         attributes=attributes,
     )
+
+    primary_keys = _resolve_primary_keys_for_alignment(primary_keys, gold_df, pred_df)
 
     gold_norm = _normalize_key_cols(gold_df, primary_keys)
     pred_norm = _normalize_key_cols(pred_df, primary_keys)
@@ -406,7 +438,7 @@ def _first_existing(paths: List[Path]) -> Optional[Path]:
     return None
 
 
-def ensure_snapshot_artifacts() -> Tuple[Path, Optional[Path]]:
+def ensure_snapshot_artifacts(refresh_snapshot: bool = False) -> Tuple[Path, Optional[Path]]:
     """
     Ensure snapshot copies exist for:
     - DB file
@@ -416,11 +448,12 @@ def ensure_snapshot_artifacts() -> Tuple[Path, Optional[Path]]:
     """
     SNAPSHOT_DIR.mkdir(parents=True, exist_ok=True)
 
+    # Prefer the full Player workload checkpoint first.
     source_db_candidates = [
-        DB_DIR / "wdirs.db",
-        Path(__file__).parent / "wdirs-2.db",
-        Path(__file__).parent / "wdirs-owner-only.db",
         RESULTS_DIR / "player_workload_test" / "checkpoint" / "Player_preprocessed.db",
+        Path(__file__).parent / "wdirs-2.db",
+        DB_DIR / "wdirs.db",
+        Path(__file__).parent / "wdirs-owner-only.db",
     ]
     source_db = _first_existing(source_db_candidates)
     if source_db is None:
@@ -430,6 +463,9 @@ def ensure_snapshot_artifacts() -> Tuple[Path, Optional[Path]]:
         )
 
     snapshot_db = SNAPSHOT_DIR / "player_snapshot.db"
+    if refresh_snapshot and snapshot_db.exists():
+        snapshot_db.unlink()
+        logger.info(f"Removed existing snapshot DB (refresh): {snapshot_db}")
     if snapshot_db.exists():
         logger.info(f"Snapshot DB already exists: {snapshot_db}")
     else:
@@ -710,12 +746,19 @@ def plot_metrics(metrics: List[TrendQueryMetrics]) -> None:
 def main() -> int:
     RESULTS_BASE_DIR.mkdir(parents=True, exist_ok=True)
     setup_logging(RESULTS_BASE_DIR / "query_awareness_trend.log")
+    ap = argparse.ArgumentParser(description="Run Player query-awareness trend test")
+    ap.add_argument(
+        "--refresh-snapshot",
+        action="store_true",
+        help="Recreate snapshot DB from preferred source before running",
+    )
+    args = ap.parse_args()
 
     logger.info("Starting Player query-awareness trend test...")
     logger.info(f"Trend query source: {TREND_SQL_FILE}")
 
     try:
-        snapshot_db, identity_file = ensure_snapshot_artifacts()
+        snapshot_db, identity_file = ensure_snapshot_artifacts(refresh_snapshot=args.refresh_snapshot)
         metrics = run_trend_queries(snapshot_db, identity_file)
         save_metrics(metrics)
         plot_metrics(metrics)

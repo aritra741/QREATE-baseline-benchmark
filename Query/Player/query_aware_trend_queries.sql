@@ -10,9 +10,9 @@
 
 -- Q1: Single-table filter (player) — mirrors filter_queries_player.sql
 -- [Tables: player] [Ops: SELECT + WHERE(AND)]
-SELECT name, nationality, position, team
+SELECT position, nationality, age
 FROM player
-WHERE position = 'Backcourt' AND draft_year >= 2010;
+WHERE age < 91;
 
 -- Q2: Binary join (player ⟕ team) with equality filter — mirrors join_queries.sql Q3 style
 -- [Tables: player, team] [Ops: SELECT + JOIN + WHERE(single)]
@@ -33,7 +33,7 @@ FROM player
 JOIN team ON player.team = team.team_name
 JOIN owner ON team.ownership = owner.name
 JOIN city ON team.location = city.city_name
-WHERE player.position = 'Frontcourt';
+WHERE player.age > 0;
 
 -- Q4: Filter + Agg on player with GROUP BY position — mirrors mixed_queries_filter_agg_player.sql
 -- [Tables: player] [Ops: SELECT + WHERE(OR) + GROUP BY + COUNT]

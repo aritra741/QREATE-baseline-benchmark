@@ -221,29 +221,41 @@ class DeltaEngine:
         
         return predicates
     
-    def _extract_joins(self, parsed: exp.Expression) -> List[Tuple[str, str, str]]:
-        """Extract join information as (left_table, right_table, join_column)."""
-        joins = []
-        
+    def _extract_joins(self, parsed: exp.Expression) -> List[Tuple[str, str, str, str]]:
+        """
+        Extract join information as:
+            (left_table, left_column, right_table, right_column)
+
+        We only extract explicit column-to-column equality joins
+        (e.g. a.x = b.y), because join alignment requires both side-specific
+        column names and table names.
+        """
+        joins: List[Tuple[str, str, str, str]] = []
+        seen: Set[Tuple[str, str, str, str]] = set()
+
         for join in parsed.find_all(exp.Join):
-            left_table = None
-            right_table = None
-            join_column = None
-            
-            for column in join.find_all(exp.Column):
-                table = column.table
-                col_name = column.name
-                
-                if table:
-                    if left_table is None:
-                        left_table = table.lower()
-                        join_column = col_name.lower()
-                    elif right_table is None and table.lower() != left_table:
-                        right_table = table.lower()
-            
-            if left_table and right_table and join_column:
-                joins.append((left_table, right_table, join_column))
-        
+            on_expr = join.args.get("on")
+            if on_expr is None:
+                continue
+
+            for eq in on_expr.find_all(exp.EQ):
+                left = eq.left
+                right = eq.right
+                if not isinstance(left, exp.Column) or not isinstance(right, exp.Column):
+                    continue
+                if not left.table or not right.table:
+                    continue
+
+                key = (
+                    left.table.lower(),
+                    left.name.lower(),
+                    right.table.lower(),
+                    right.name.lower(),
+                )
+                if key not in seen:
+                    seen.add(key)
+                    joins.append(key)
+
         return joins
     
     def _get_operator(self, comparison: exp.Expression) -> str:
@@ -274,7 +286,7 @@ class DeltaEngine:
         self,
         missing_columns: List[str],
         missing_predicates: List[str],
-        joins: List[Tuple[str, str, str]]
+        joins: List[Tuple[str, str, str, str]]
     ) -> DeltaType:
         """Determine type of delta required."""
         has_missing_columns = len(missing_columns) > 0
@@ -732,14 +744,14 @@ class DeltaEngine:
         parsed = parse_one(query, dialect="postgres")
         joins = self._extract_joins(parsed)
 
-        for left_table, right_table, join_column in joins:
+        for left_table, left_column, right_table, right_column in joins:
             logger.info(
-                f"Aligning join: {left_table}.{join_column} ↔ {right_table}.{join_column}"
+                f"Aligning join: {left_table}.{left_column} ↔ {right_table}.{right_column}"
             )
 
             # Query actual distinct values from both tables
-            left_values = self.data_layer.get_distinct_values(left_table, join_column)
-            right_values = self.data_layer.get_distinct_values(right_table, join_column)
+            left_values = self.data_layer.get_distinct_values(left_table, left_column)
+            right_values = self.data_layer.get_distinct_values(right_table, right_column)
 
             if not left_values or not right_values:
                 logger.warning(
@@ -758,7 +770,7 @@ class DeltaEngine:
                 right_values,
                 left_table,
                 right_table,
-                join_column
+                f"{left_column}↔{right_column}"
             )
 
             if not canonical_map:
@@ -766,8 +778,8 @@ class DeltaEngine:
                 continue
 
             # Apply canonical forms to both tables
-            self.data_layer.update_column_values(left_table, join_column, canonical_map)
-            self.data_layer.update_column_values(right_table, join_column, canonical_map)
+            self.data_layer.update_column_values(left_table, left_column, canonical_map)
+            self.data_layer.update_column_values(right_table, right_column, canonical_map)
 
             logger.info(
                 f"Aligned {len(canonical_map)} join key(s) between "
