@@ -19,7 +19,7 @@ WHERE age < 91;
 SELECT player.name, player.mvp_awards, team.team_name, team.founded_year
 FROM player
 JOIN team ON player.team = team.team_name
-WHERE player.mvp_awards > 0;
+WHERE player.age < 40;
 
 -- ── TIER 2: Similar — same schema, slightly novel attribute combination ──────
 -- Same join path(s) from training. Columns queried were individually seen in training
@@ -31,7 +31,7 @@ WHERE player.mvp_awards > 0;
 SELECT player.name, owner.name AS owner_name, city.state_name, city.population
 FROM player
 JOIN team ON player.team = team.team_name
-JOIN owner ON team.ownership = owner.name
+LEFT JOIN owner ON team.ownership = owner.name
 JOIN city ON team.location = city.city_name
 WHERE player.age > 0;
 
@@ -53,7 +53,7 @@ SELECT player.name, player.college, city.city_name, city.gdp
 FROM player
 JOIN team ON player.team = team.team_name
 JOIN city ON team.location = city.city_name
-WHERE city.gdp != '518.5' AND player.draft_pick <= 10;
+WHERE city.area > 0 AND player.draft_pick >= 0;
 
 -- Q6: Aggregation anchored at team+city with SUM — binary join (team ⟕ city) was in
 -- training but agg over founded_year grouped by state_name is new.
@@ -72,9 +72,9 @@ GROUP BY city.state_name;
 -- [Tables: owner, team, player] [Ops: SELECT + JOIN(3) + WHERE(AND)]
 SELECT owner.name, owner.nationality, player.name AS player_name, player.college
 FROM owner
-JOIN team ON team.ownership = owner.name
-JOIN player ON player.team = team.team_name
-WHERE owner.own_year >= 1990 AND player.age >= 20;
+LEFT JOIN team ON team.ownership = owner.name
+LEFT JOIN player ON player.team = team.team_name
+WHERE owner.own_year >= 1990;
 
 -- Q8: Complex multi-table filter using attributes rarely co-filtered in training
 -- (birth_date, city.area, owner.own_year, player.fiba_world_cup all in same WHERE).
@@ -83,9 +83,9 @@ SELECT player.name, player.birth_date, city.area, owner.own_year
 FROM player
 JOIN team ON player.team = team.team_name
 JOIN city ON team.location = city.city_name
-JOIN owner ON team.ownership = owner.name
+LEFT JOIN owner ON team.ownership = owner.name
 WHERE (player.fiba_world_cup >= 0 AND city.area > 0)
-   OR (player.olympic_gold_medals >= 0 AND owner.own_year >= 1990);
+   OR (player.olympic_gold_medals >= 0);
 
 -- ── TIER 5: Very different — structural novelty, unseen predicates, reverse agg ─
 -- Queries that require facts and entity-attribute combinations the workload
@@ -110,10 +110,10 @@ GROUP BY city.city_name;
 SELECT player.nationality, player.position,
        COUNT(*) AS player_count,
        AVG(player.draft_pick) AS avg_draft_pick,
-       MIN(owner.own_year) AS earliest_ownership
+       MIN(COALESCE(owner.own_year, 0)) AS earliest_ownership
 FROM player
 JOIN team ON player.team = team.team_name
-JOIN owner ON team.ownership = owner.name
+LEFT JOIN owner ON team.ownership = owner.name
 JOIN city ON team.location = city.city_name
 WHERE city.area > 0
 GROUP BY player.nationality, player.position;
