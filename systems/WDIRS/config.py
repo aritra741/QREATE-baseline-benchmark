@@ -60,9 +60,10 @@ OLLAMA_RETRY_DELAY = 2  # seconds
 # LLM extraction parameters
 EXTRACTION_BATCH_SIZE = 10  # kept for schema stabilization sampling
 EXTRACTION_TEMPERATURE = 0.1  # low temperature for consistency
-EXTRACTION_MAX_TOKENS = 4096  # multi-chunk calls produce more output tokens
+EXTRACTION_MAX_TOKENS = 4096
 COLUMN_BATCH_SIZE = 10  # max columns per LLM call; qwen2.5:7b handles 10 reliably
-CHUNK_BATCH_SIZE = 5    # chunks processed in one LLM call (amortises HTTP overhead)
+# For smaller local models, single-document calls are far more stable.
+CHUNK_BATCH_SIZE = int(os.getenv("CHUNK_BATCH_SIZE", "1"))
 TOP_K_CHUNKS_PER_ENTITY = 5  # max chunks fed to LLM per entity in entity-first extraction
 
 # ============================================================================
