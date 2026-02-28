@@ -282,13 +282,22 @@ class ConstrainedExtractor:
                 # Framing: examples for output format, not an exhaustive list.
                 # "United States" → "USA", "one thousand" → 1000.
                 # Still extract every value found, even those not in the examples.
-                hint_note = (
-                    f" — output format examples: [{quoted}]. "
-                    f"If the text uses a synonym, abbreviation, or alias for one "
-                    f"of these examples, write the example form exactly "
-                    f"(e.g. write \"{hints[0]}\" not a paraphrase). "
-                    f"Extract ALL values you find, not only the ones in this list."
-                )
+                if is_numeric:
+                    hint_note = (
+                        f" — output/unit examples: [{quoted}]. "
+                        f"If the source presents the same quantity in multiple units "
+                        f"or scales, output the value in the same unit convention as "
+                        f"these examples. Extract ALL values you find, not only the "
+                        f"ones in this list."
+                    )
+                else:
+                    hint_note = (
+                        f" — output format examples: [{quoted}]. "
+                        f"If the text uses a synonym, abbreviation, or alias for one "
+                        f"of these examples, write the example form exactly "
+                        f"(e.g. write \"{hints[0]}\" not a paraphrase). "
+                        f"Extract ALL values you find, not only the ones in this list."
+                    )
             else:
                 hint_note = ""
 
@@ -1122,40 +1131,51 @@ class ConstrainedExtractor:
     ) -> ExtractionResult:
         """Extract data from a single chunk."""
         start_time = time.time()
-        
-        # Build extraction prompt
-        prompt = self._build_extraction_prompt(
-            chunk,
-            table_name,
-            schema,
-            constrained_keys,
-            normalization_hints,
-            entity_col,
-        )
-        
-        # Call extraction model, then run a dedicated JSON-repair pass if needed.
         parse_keys = (
             [k for k in schema.keys() if k in constrained_keys]
             if constrained_keys
             else list(schema.keys())
         )
-        response = self.llm_client.generate(
-            prompt,
-            max_tokens=EXTRACTION_MAX_TOKENS,
-            temperature=EXTRACTION_TEMPERATURE,
-        )
-        try:
-            records = self._parse_extraction_response(response, constrained_keys, parse_keys)
-        except ValueError as first_error:
-            repaired = self._repair_extraction_response(response, parse_keys)
+        subchunks = self._split_text_for_iterative_extraction(chunk, max_tokens=500)
+
+        if len(subchunks) == 1:
+            # Build extraction prompt
+            prompt = self._build_extraction_prompt(
+                chunk,
+                table_name,
+                schema,
+                constrained_keys,
+                normalization_hints,
+                entity_col,
+            )
+
+            # Call extraction model, then run a dedicated JSON-repair pass if needed.
+            response = self.llm_client.generate(
+                prompt,
+                max_tokens=EXTRACTION_MAX_TOKENS,
+                temperature=EXTRACTION_TEMPERATURE,
+            )
             try:
-                records = self._parse_extraction_response(repaired, constrained_keys, parse_keys)
-            except ValueError as repair_error:
-                raise ValueError(
-                    "Failed to parse extraction output after JSON repair pass: "
-                    f"initial_error={first_error}; repair_error={repair_error}"
-                )
-        records = self._normalize_records_for_schema(records, schema)
+                records = self._parse_extraction_response(response, constrained_keys, parse_keys)
+            except ValueError as first_error:
+                repaired = self._repair_extraction_response(response, parse_keys)
+                try:
+                    records = self._parse_extraction_response(repaired, constrained_keys, parse_keys)
+                except ValueError as repair_error:
+                    raise ValueError(
+                        "Failed to parse extraction output after JSON repair pass: "
+                        f"initial_error={first_error}; repair_error={repair_error}"
+                    )
+            records = self._normalize_records_for_schema(records, schema)
+        else:
+            records = self._extract_single_chunk_iterative(
+                subchunks=subchunks,
+                table_name=table_name,
+                schema=schema,
+                constrained_keys=constrained_keys,
+                normalization_hints=normalization_hints,
+                entity_col=entity_col,
+            )
         
         # Collect schema keys
         schema_keys = set()
@@ -1170,6 +1190,194 @@ class ConstrainedExtractor:
             schema_keys=schema_keys,
             extraction_time=extraction_time
         )
+
+    def _split_text_for_iterative_extraction(
+        self,
+        text: str,
+        max_tokens: int = 500,
+    ) -> List[str]:
+        """Split long text into whitespace-token chunks for iterative extraction."""
+        words = text.split()
+        if len(words) <= max_tokens:
+            return [text]
+        chunks: List[str] = []
+        for i in range(0, len(words), max_tokens):
+            chunks.append(" ".join(words[i : i + max_tokens]))
+        return chunks
+
+    @staticmethod
+    def _is_missing_value(value: Any) -> bool:
+        if value is None:
+            return True
+        if isinstance(value, str):
+            s = value.strip().lower()
+            return s in {"", "null", "none", "unknown", "n/a"}
+        return False
+
+    @staticmethod
+    def _normalize_for_match(text: str) -> str:
+        return " ".join(text.lower().replace(",", "").split())
+
+    def _value_grounded_in_text(self, value: Any, chunk_text: str) -> bool:
+        """
+        Require extracted/replacement values to be evidenced in the current chunk.
+        This prevents iterative refinement from "improving" values via hallucination.
+        """
+        if value is None:
+            return True
+        raw_text = chunk_text or ""
+        if not raw_text:
+            return False
+
+        text_lc = raw_text.lower()
+        text_norm = self._normalize_for_match(raw_text)
+
+        # Numeric grounding: match either exact surface form or comma-stripped form.
+        if isinstance(value, (int, float)):
+            candidates = {str(value)}
+            if isinstance(value, int):
+                candidates.add(f"{value:,}")
+            else:
+                candidates.add(f"{value:.1f}")
+                candidates.add(f"{value:.2f}")
+                candidates.add(f"{value:.3f}")
+            for c in candidates:
+                c_lc = c.lower()
+                if c_lc in text_lc:
+                    return True
+                if self._normalize_for_match(c_lc) in text_norm:
+                    return True
+            return False
+
+        s = str(value).strip()
+        if not s:
+            return False
+        s_lc = s.lower()
+        if s_lc in text_lc:
+            return True
+        return self._normalize_for_match(s_lc) in text_norm
+
+    def _parse_update_object_response(
+        self,
+        response: str,
+        allowed_keys: List[str],
+    ) -> Dict[str, Any]:
+        """Parse a repair/update JSON object response for iterative extraction."""
+        try:
+            json_match = self._extract_json(response)
+            payload = json.loads(json_match) if json_match else json.loads(response)
+        except Exception:
+            return {}
+
+        if isinstance(payload, list):
+            payload = payload[0] if payload and isinstance(payload[0], dict) else {}
+        if not isinstance(payload, dict):
+            return {}
+        return {k: v for k, v in payload.items() if k in allowed_keys}
+
+    def _build_refinement_prompt(
+        self,
+        chunk_text: str,
+        table_name: str,
+        current_values: Dict[str, Any],
+        remaining_keys: List[str],
+    ) -> str:
+        """Build prompt for iterative chunk-by-chunk refinement."""
+        populated_lines = []
+        for k, v in current_values.items():
+            if not self._is_missing_value(v):
+                populated_lines.append(f"- {k}: {v}")
+        populated_block = "\n".join(populated_lines) if populated_lines else "- (none)"
+        remaining_block = ", ".join(remaining_keys) if remaining_keys else "(none)"
+        return (
+            f"You are refining one structured record for table '{table_name}' from a long document.\n\n"
+            f"Already populated values:\n{populated_block}\n\n"
+            f"Remaining keys needing values:\n{remaining_block}\n\n"
+            "From the new text chunk below, return a JSON object with:\n"
+            "1) values for any remaining keys you can find, and\n"
+            "2) replacements for already populated keys only if this chunk has a more accurate,\n"
+            "   more specific, or more temporally current value.\n\n"
+            "Rules:\n"
+            "- Return ONLY a JSON object (or {} if no updates).\n"
+            "- Every value must be a single scalar (string/number/null), never lists.\n"
+            "- Prefer present-tense/current statements over historical lists.\n\n"
+            f"Text chunk:\n{chunk_text}\n\n"
+            "Output (JSON only):"
+        )
+
+    def _extract_single_chunk_iterative(
+        self,
+        subchunks: List[str],
+        table_name: str,
+        schema: Dict[str, str],
+        constrained_keys: Optional[Set[str]] = None,
+        normalization_hints: Optional[Dict[str, List[str]]] = None,
+        entity_col: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """Iterative extraction over 500-token subchunks with running updates."""
+        parse_keys = (
+            [k for k in schema.keys() if k in constrained_keys]
+            if constrained_keys
+            else list(schema.keys())
+        )
+        if not subchunks:
+            return []
+
+        # Seed extraction from first 500-token chunk.
+        prompt0 = self._build_extraction_prompt(
+            subchunks[0],
+            table_name,
+            schema,
+            constrained_keys,
+            normalization_hints,
+            entity_col,
+        )
+        response0 = self.llm_client.generate(
+            prompt0,
+            max_tokens=EXTRACTION_MAX_TOKENS,
+            temperature=EXTRACTION_TEMPERATURE,
+        )
+        try:
+            seed_records = self._parse_extraction_response(response0, constrained_keys, parse_keys)
+        except ValueError:
+            repaired0 = self._repair_extraction_response(response0, parse_keys)
+            seed_records = self._parse_extraction_response(repaired0, constrained_keys, parse_keys)
+        seed_records = self._normalize_records_for_schema(seed_records, schema)
+
+        current: Dict[str, Any] = {}
+        if seed_records:
+            for k, v in seed_records[0].items():
+                current[k] = v
+
+        # Refine with each subsequent chunk.
+        for sub in subchunks[1:]:
+            remaining = [k for k in parse_keys if self._is_missing_value(current.get(k))]
+            refine_prompt = self._build_refinement_prompt(
+                chunk_text=sub,
+                table_name=table_name,
+                current_values=current,
+                remaining_keys=remaining,
+            )
+            refine_resp = self.llm_client.generate(
+                refine_prompt,
+                max_tokens=min(1024, EXTRACTION_MAX_TOKENS),
+                temperature=0.0,
+            )
+            updates = self._parse_update_object_response(refine_resp, parse_keys)
+            for k, v in updates.items():
+                normalized = self._normalize_cell_value(v, schema.get(k, "OTHER"))
+                if self._is_missing_value(normalized):
+                    continue
+                # Accept only grounded values from this chunk.
+                if not self._value_grounded_in_text(normalized, sub):
+                    continue
+                current[k] = normalized
+
+        # Keep only constrained keys and non-empty record.
+        if constrained_keys:
+            current = {k: v for k, v in current.items() if k in constrained_keys}
+        has_any = any(not self._is_missing_value(v) for v in current.values())
+        return [current] if has_any else []
     
     def _build_normalization_section(
         self,
@@ -1430,8 +1638,8 @@ class ConstrainedExtractor:
         
         except json.JSONDecodeError as e:
             snippet = response if len(response) <= 4000 else response[:4000] + "...<truncated>"
-            logger.error(
-                "Failed to parse extraction response: %s | response_len=%d | response=%r",
+            logger.warning(
+                "Malformed extraction JSON (will trigger repair pass): %s | response_len=%d | response=%r",
                 e,
                 len(response),
                 snippet,
