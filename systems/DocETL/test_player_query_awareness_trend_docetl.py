@@ -11,7 +11,6 @@ import csv
 import json
 import logging
 import math
-import shutil
 import sqlite3
 import sys
 import time
@@ -20,8 +19,6 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
-import sqlglot
-import sqlglot.expressions as exp
 
 try:
     import matplotlib
@@ -62,16 +59,43 @@ DATASET_QUERY = "Player"
 TREND_SQL_FILE = QUERY_DIR / DATASET_QUERY / "query_aware_trend_queries.sql"
 GROUND_TRUTH_DIR = PROJECT_ROOT / "Data" / "Player"
 ATTRIBUTES_FILE = PROJECT_ROOT / "Query" / DATASET_QUERY / "Player_attributes.json"
+SOURCE_DATA_PLAYER_DIR = PROJECT_ROOT / "source_data" / "Player"
 
 RESULTS_BASE_DIR = RESULTS_DIR / "player_query_awareness_trend_docetl"
 RUN_DIR = RESULTS_BASE_DIR / "run"
 QUERY_RESULTS_DIR = RUN_DIR / "query_results"
 QUERY_TABLES_DIR = RUN_DIR / "query_tables"
 PLOTS_DIR = RUN_DIR / "plots"
+QUERY_EVAL_DB_DIR = RUN_DIR / "query_eval_dbs"
 
 OLLAMA_BASE_URL = "http://localhost:11434"
 DOCETL_MODEL = "ollama/qwen2.5:7b-instruct"
 DOCETL_THREADS = 4
+
+KNOWN_TABLE_COLUMNS: Dict[str, List[str]] = {
+    "player": {
+        "name",
+        "nationality",
+        "age",
+        "position",
+        "draft_pick",
+        "college",
+        "birth_date",
+        "team",
+    },
+    "team": {
+        "team_name",
+        "location",
+        "founded_year",
+    },
+    "city": {
+        "city_name",
+        "state_name",
+        "population",
+        "gdp",
+        "area",
+    },
+}
 
 
 @dataclass
@@ -172,99 +196,252 @@ def patch_docetl_for_token_tracking(token_tracker: TokenTracker) -> None:
     APIWrapper.call_llm = wrapped_call_llm
 
 
-def _load_tables(conn: sqlite3.Connection) -> Dict[str, pd.DataFrame]:
-    return {
-        "player": pd.read_sql_query("SELECT * FROM player", conn),
-        "team": pd.read_sql_query("SELECT * FROM team", conn),
-        "city": pd.read_sql_query("SELECT * FROM city", conn),
-    }
+def _load_source_docs(table: str) -> pd.DataFrame:
+    table_dir = SOURCE_DATA_PLAYER_DIR / table
+    if not table_dir.exists():
+        raise FileNotFoundError(f"Missing source table directory: {table_dir}")
+    rows: List[Dict[str, Any]] = []
+    for p in sorted(table_dir.glob("*.txt"), key=lambda x: int(x.stem)):
+        txt = p.read_text(errors="ignore")
+        rows.append({"doc_id": p.stem, "text": txt})
+    if not rows:
+        raise RuntimeError(f"No source files found for table: {table}")
+    return pd.DataFrame(rows)
 
 
-def _col_name(col_expr: exp.Column) -> str:
-    return col_expr.name
+def _coerce_numeric_columns(table: str, df: pd.DataFrame) -> pd.DataFrame:
+    out = df.copy()
+    numeric_cols = {
+        "player": ["age", "draft_pick"],
+        "team": ["founded_year"],
+        "city": ["population", "gdp", "area"],
+    }.get(table, [])
+    for col in numeric_cols:
+        if col in out.columns:
+            out[col] = (
+                out[col]
+                .astype(str)
+                .str.replace(",", "", regex=False)
+                .str.replace(" ", "", regex=False)
+            )
+            out[col] = pd.to_numeric(out[col], errors="coerce")
+    return out
 
 
-def _describe_sql_nl(query_id: str, sql: str) -> str:
-    parsed = sqlglot.parse_one(sql, read="sqlite")
-    selected = []
-    for sel in parsed.expressions:
-        if isinstance(sel, exp.Column):
-            selected.append(f"{sel.table}.{sel.name}" if sel.table else sel.name)
-        else:
-            selected.append(sel.sql(dialect="sqlite"))
-
-    from_table = parsed.args["from"].this.name
-    joins = []
-    for j in parsed.find_all(exp.Join):
-        j_table = j.this.name
-        on_expr = j.args.get("on")
-        joins.append(f"join {j_table} on {on_expr.sql(dialect='sqlite') if on_expr else 'condition'}")
-
-    where_expr = parsed.args.get("where")
-    where_txt = where_expr.this.sql(dialect="sqlite") if where_expr else "no filter"
-    return (
-        f"{query_id}: Select {', '.join(selected)} from {from_table}, "
-        f"{'; '.join(joins) if joins else 'no joins'}, and apply filter: {where_txt}."
+def _extract_table_for_query(table: str, needed_cols: List[str], nl_query: str) -> pd.DataFrame:
+    docs_df = _load_source_docs(table)
+    docs_df.semantic.set_config(
+        default_model=DOCETL_MODEL,
+        default_lm_api_base=OLLAMA_BASE_URL,
+        default_embedding_api_base=OLLAMA_BASE_URL,
+        max_threads=DOCETL_THREADS,
     )
 
-
-def _resolve_join_keys(on_expr: exp.Expression, right_table: str) -> Tuple[str, str]:
-    if not isinstance(on_expr, exp.EQ):
-        raise ValueError(f"Unsupported join predicate: {on_expr.sql()}")
-    if not isinstance(on_expr.this, exp.Column) or not isinstance(on_expr.expression, exp.Column):
-        raise ValueError(f"Unsupported join operands: {on_expr.sql()}")
-
-    c1 = on_expr.this
-    c2 = on_expr.expression
-    if c1.table and c1.table.lower() == right_table.lower():
-        return _col_name(c2), _col_name(c1)
-    if c2.table and c2.table.lower() == right_table.lower():
-        return _col_name(c1), _col_name(c2)
-    # Fallback to left/right expression order.
-    return _col_name(c1), _col_name(c2)
-
-
-def _apply_where_filter(df: pd.DataFrame, where_expr: Optional[exp.Expression]) -> pd.DataFrame:
-    if where_expr is None:
-        return df
-    if not isinstance(where_expr, (exp.GT, exp.GTE, exp.LT, exp.LTE, exp.EQ)):
-        raise ValueError(f"Unsupported WHERE predicate: {where_expr.sql()}")
-    if not isinstance(where_expr.this, exp.Column):
-        raise ValueError(f"Unsupported WHERE left operand: {where_expr.sql()}")
-    col = where_expr.this.name
-    rhs = where_expr.expression
-    if not isinstance(rhs, exp.Literal):
-        raise ValueError(f"Unsupported WHERE right operand: {where_expr.sql()}")
-
-    rhs_txt = rhs.sql(dialect="sqlite")
-    nl_operator = {
-        exp.GT: "greater than",
-        exp.GTE: "greater than or equal to",
-        exp.LT: "less than",
-        exp.LTE: "less than or equal to",
-        exp.EQ: "exactly equal to",
-    }[type(where_expr)]
+    output_schema = {c: "str" for c in needed_cols}
+    field_list = "\n".join(f"- {c}" for c in needed_cols)
     prompt = (
-        f"Given value {{input.{col}}}, return keep=true iff it is {nl_operator} {rhs_txt}. "
-        "Interpret numeric values numerically."
+        f"You are building a structured {table} table for this natural-language query:\n"
+        f"{nl_query}\n\n"
+        f"From this {table} document, extract exactly one record with these fields:\n"
+        f"{field_list}\n\n"
+        "Return empty string for unknown fields. Keep names concise and normalized."
     )
-    return df.semantic.filter(
-        prompt=prompt,
-        output={"schema": {"keep": "bool"}},
+
+    mapped = docs_df.semantic.map(
+        prompt=f"{prompt}\n\nDocument:\n{{{{input.text}}}}",
+        output={"schema": output_schema},
         model=DOCETL_MODEL,
-        timeout=180,
+        timeout=240,
         max_retries_per_timeout=1,
+        skip_on_error=True,
     )
 
+    keep_cols = [c for c in needed_cols if c in mapped.columns]
+    if not keep_cols:
+        raise RuntimeError(
+            f"Extraction produced no expected columns for table '{table}' in query ETL"
+        )
+    out = mapped[keep_cols].copy()
+    out = _coerce_numeric_columns(table, out)
+    return out
 
-def execute_sql_via_docetl_nl(sql: str, conn: sqlite3.Connection) -> List[Dict[str, Any]]:
-    parsed = sqlglot.parse_one(sql, read="sqlite")
-    table_map = _load_tables(conn)
-    from_table = parsed.args["from"].this.name.lower()
-    if from_table not in table_map:
-        raise ValueError(f"Unknown base table: {from_table}")
 
-    current = table_map[from_table].copy()
+def _write_query_tables_sqlite(table_map: Dict[str, pd.DataFrame], db_path: Path) -> None:
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    if db_path.exists():
+        db_path.unlink()
+    with sqlite3.connect(db_path) as conn:
+        for table, df in table_map.items():
+            df.to_sql(table, conn, if_exists="replace", index=False)
+
+
+NL_QUERY_SPECS: Dict[str, Dict[str, Any]] = {
+    "Q1": {
+        "nl_query": "List each player's name, nationality, and age with their team name and team location.",
+        "base_table": "player",
+        "tables": {"player": ["name", "nationality", "age", "team"], "team": ["team_name", "location"]},
+        "joins": [{"right_table": "team", "left_key": "team", "right_key": "team_name"}],
+        "filters": [],
+        "select": ["name", "nationality", "age", "team_name", "location"],
+    },
+    "Q2": {
+        "nl_query": "For players older than 25, list player name, position, team name, and team founded year.",
+        "base_table": "player",
+        "tables": {"player": ["name", "position", "age", "team"], "team": ["team_name", "founded_year"]},
+        "joins": [{"right_table": "team", "left_key": "team", "right_key": "team_name"}],
+        "filters": [{"column": "age", "operator": "greater than", "value": "25"}],
+        "select": ["name", "position", "team_name", "founded_year"],
+    },
+    "Q3": {
+        "nl_query": "For players with draft pick at least 0, list player name, draft pick, college, and team name.",
+        "base_table": "player",
+        "tables": {"player": ["name", "draft_pick", "college", "team"], "team": ["team_name"]},
+        "joins": [{"right_table": "team", "left_key": "team", "right_key": "team_name"}],
+        "filters": [{"column": "draft_pick", "operator": "greater than or equal to", "value": "0"}],
+        "select": ["name", "draft_pick", "college", "team_name"],
+    },
+    "Q4": {
+        "nl_query": "List team name and location with the matched city name and state name.",
+        "base_table": "team",
+        "tables": {"team": ["team_name", "location"], "city": ["city_name", "state_name"]},
+        "joins": [{"right_table": "city", "left_key": "location", "right_key": "city_name"}],
+        "filters": [],
+        "select": ["team_name", "location", "city_name", "state_name"],
+    },
+    "Q5": {
+        "nl_query": "List player name with team name, city name, and city state by linking player -> team -> city.",
+        "base_table": "player",
+        "tables": {
+            "player": ["name", "team"],
+            "team": ["team_name", "location"],
+            "city": ["city_name", "state_name"],
+        },
+        "joins": [
+            {"right_table": "team", "left_key": "team", "right_key": "team_name"},
+            {"right_table": "city", "left_key": "location", "right_key": "city_name"},
+        ],
+        "filters": [],
+        "select": ["name", "team_name", "city_name", "state_name"],
+    },
+    "Q6": {
+        "nl_query": "For players younger than 35, list player name, position, city name, and city population via player -> team -> city.",
+        "base_table": "player",
+        "tables": {
+            "player": ["name", "position", "age", "team"],
+            "team": ["team_name", "location"],
+            "city": ["city_name", "population"],
+        },
+        "joins": [
+            {"right_table": "team", "left_key": "team", "right_key": "team_name"},
+            {"right_table": "city", "left_key": "location", "right_key": "city_name"},
+        ],
+        "filters": [{"column": "age", "operator": "less than", "value": "35"}],
+        "select": ["name", "position", "city_name", "population"],
+    },
+    "Q7": {
+        "nl_query": "For players with draft pick greater than 0, list player name, college, team name, and city GDP via player -> team -> city.",
+        "base_table": "player",
+        "tables": {
+            "player": ["name", "college", "draft_pick", "team"],
+            "team": ["team_name", "location"],
+            "city": ["city_name", "gdp"],
+        },
+        "joins": [
+            {"right_table": "team", "left_key": "team", "right_key": "team_name"},
+            {"right_table": "city", "left_key": "location", "right_key": "city_name"},
+        ],
+        "filters": [{"column": "draft_pick", "operator": "greater than", "value": "0"}],
+        "select": ["name", "college", "team_name", "gdp"],
+    },
+    "Q8": {
+        "nl_query": "For cities with area greater than 100, list player name, player birth date, team name, and city area via player -> team -> city.",
+        "base_table": "player",
+        "tables": {
+            "player": ["name", "birth_date", "team"],
+            "team": ["team_name", "location"],
+            "city": ["city_name", "area"],
+        },
+        "joins": [
+            {"right_table": "team", "left_key": "team", "right_key": "team_name"},
+            {"right_table": "city", "left_key": "location", "right_key": "city_name"},
+        ],
+        "filters": [{"column": "area", "operator": "greater than", "value": "100"}],
+        "select": ["name", "birth_date", "team_name", "area"],
+    },
+    "Q9": {
+        "nl_query": "Starting from city and traversing city -> team -> player, list city name, state, team name, and player name for players younger than 40.",
+        "base_table": "city",
+        "tables": {
+            "city": ["city_name", "state_name"],
+            "team": ["team_name", "location"],
+            "player": ["name", "age", "team"],
+        },
+        "joins": [
+            {"right_table": "team", "left_key": "city_name", "right_key": "location"},
+            {"right_table": "player", "left_key": "team_name", "right_key": "team"},
+        ],
+        "filters": [{"column": "age", "operator": "less than", "value": "40"}],
+        "select": ["city_name", "state_name", "team_name", "name"],
+    },
+    "Q10": {
+        "nl_query": "Starting from city and traversing city -> team -> player, list city name, state, team name, player name, and player college for players older than 20.",
+        "base_table": "city",
+        "tables": {
+            "city": ["city_name", "state_name"],
+            "team": ["team_name", "location"],
+            "player": ["name", "college", "age", "team"],
+        },
+        "joins": [
+            {"right_table": "team", "left_key": "city_name", "right_key": "location"},
+            {"right_table": "player", "left_key": "team_name", "right_key": "team"},
+        ],
+        "filters": [{"column": "age", "operator": "greater than", "value": "20"}],
+        "select": ["city_name", "state_name", "team_name", "name", "college"],
+    },
+}
+
+
+def _apply_nl_filters(
+    df: pd.DataFrame, filters: List[Dict[str, str]], nl_query: str
+) -> pd.DataFrame:
+    out = df
+    for f in filters:
+        col = f["column"]
+        op = f["operator"]
+        value = f["value"]
+        prompt = (
+            f"Natural-language query: {nl_query}\n"
+            f"Keep this row iff {col} is {op} {value}. "
+            f"Current row value: {{{{input.{col}}}}}."
+        )
+        out = out.semantic.filter(
+            prompt=prompt,
+            output={"schema": {"keep": "bool"}},
+            model=DOCETL_MODEL,
+            timeout=180,
+            max_retries_per_timeout=1,
+        )
+    return out
+
+
+def execute_query_via_docetl_nl(
+    query_id: str,
+) -> Tuple[List[Dict[str, Any]], Dict[str, pd.DataFrame], str]:
+    if query_id not in NL_QUERY_SPECS:
+        raise ValueError(f"No NL query specification found for {query_id}")
+    spec = NL_QUERY_SPECS[query_id]
+    nl_query = spec["nl_query"]
+
+    table_map: Dict[str, pd.DataFrame] = {}
+    for table, cols in spec["tables"].items():
+        logger.info(f"[{query_id}] Query-local ETL for '{table}' with columns: {cols}")
+        table_map[table] = _extract_table_for_query(table, cols, nl_query)
+
+    base_table = spec["base_table"]
+    if base_table not in table_map:
+        raise ValueError(f"Unknown base table in spec: {base_table}")
+
+    current = table_map[base_table].copy()
     current.semantic.set_config(
         default_model=DOCETL_MODEL,
         default_lm_api_base=OLLAMA_BASE_URL,
@@ -272,18 +449,16 @@ def execute_sql_via_docetl_nl(sql: str, conn: sqlite3.Connection) -> List[Dict[s
         max_threads=DOCETL_THREADS,
     )
 
-    for join_expr in parsed.find_all(exp.Join):
-        right_table = join_expr.this.name.lower()
+    for join_spec in spec["joins"]:
+        right_table = join_spec["right_table"]
         if right_table not in table_map:
             raise ValueError(f"Unknown join table: {right_table}")
         right_df = table_map[right_table].copy()
-        on_expr = join_expr.args.get("on")
-        if on_expr is None:
-            raise ValueError("JOIN without ON is unsupported in this benchmark")
-
-        left_key, right_key = _resolve_join_keys(on_expr, right_table)
+        left_key = join_spec["left_key"]
+        right_key = join_spec["right_key"]
         join_prompt = (
-            "You are executing a database equijoin. Return true iff these keys match.\n"
+            f"Natural-language query: {nl_query}\n"
+            "Return true iff these records should be joined for this query using the relation below.\n"
             f"Left key ({left_key}): {{{{ left.{left_key} }}}}\n"
             f"Right key ({right_key}): {{{{ right.{right_key} }}}}\n"
             "Match rule: exact equality after trimming whitespace and lowercasing."
@@ -304,22 +479,15 @@ def execute_sql_via_docetl_nl(sql: str, conn: sqlite3.Connection) -> List[Dict[s
             max_retries_per_timeout=1,
         )
 
-    where_node = parsed.args.get("where")
-    current = _apply_where_filter(current, where_node.this if where_node else None)
-
-    selected_cols: List[str] = []
-    for sel in parsed.expressions:
-        if isinstance(sel, exp.Column):
-            selected_cols.append(sel.name)
-        else:
-            raise ValueError(f"Only column projections are supported, got: {sel.sql()}")
+    current = _apply_nl_filters(current, spec["filters"], nl_query)
+    selected_cols: List[str] = list(spec["select"])
 
     missing_cols = [c for c in selected_cols if c not in current.columns]
     if missing_cols:
         raise ValueError(f"Projected columns missing after execution: {missing_cols}")
 
     out_df = current[selected_cols].copy()
-    return out_df.to_dict("records")
+    return out_df.to_dict("records"), table_map, nl_query
 
 
 def _save_rows_csv(rows: List[Dict[str, Any]], out_csv: Path) -> None:
@@ -340,15 +508,14 @@ def _save_rows_csv(rows: List[Dict[str, Any]], out_csv: Path) -> None:
         writer.writerows(rows)
 
 
-def run_trend_queries_docetl(snapshot_db: Path, identity_file: Optional[Path]) -> List[TrendQueryMetrics]:
+def run_trend_queries_docetl(
+    identity_file: Optional[Path],
+) -> List[TrendQueryMetrics]:
     RUN_DIR.mkdir(parents=True, exist_ok=True)
     QUERY_RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     QUERY_TABLES_DIR.mkdir(parents=True, exist_ok=True)
     PLOTS_DIR.mkdir(parents=True, exist_ok=True)
-
-    working_db = RUN_DIR / "player_trend_working_docetl.db"
-    shutil.copy2(snapshot_db, working_db)
-    logger.info(f"Working DB copied from snapshot: {working_db}")
+    QUERY_EVAL_DB_DIR.mkdir(parents=True, exist_ok=True)
 
     identity_columns: Dict[str, str] = {}
     if identity_file and identity_file.exists():
@@ -373,89 +540,91 @@ def run_trend_queries_docetl(snapshot_db: Path, identity_file: Optional[Path]) -
         raise RuntimeError(f"No trend queries found in {TREND_SQL_FILE}")
 
     metrics: List[TrendQueryMetrics] = []
-    with sqlite3.connect(working_db) as conn:
-        for query_id, query_text in trend_queries:
-            logger.info("=" * 70)
-            logger.info(f"Executing {query_id} with DocETL")
-            nl_query = _describe_sql_nl(query_id, query_text)
+    for query_id, query_text in trend_queries:
+        logger.info("=" * 70)
+        logger.info(f"Executing {query_id} with DocETL")
+        before = token_tracker.snapshot()
+        t0 = time.time()
+
+        try:
+            rows, query_table_map, nl_query = execute_query_via_docetl_nl(query_id)
             logger.info(f"[NL] {nl_query}")
-            before = token_tracker.snapshot()
-            t0 = time.time()
+            latency = time.time() - t0
+            d_prompt, d_completion = token_tracker.delta(before)
+            d_total = d_prompt + d_completion
 
-            try:
-                rows = execute_sql_via_docetl_nl(query_text, conn)
-                latency = time.time() - t0
-                d_prompt, d_completion = token_tracker.delta(before)
-                d_total = d_prompt + d_completion
+            out_csv = QUERY_TABLES_DIR / f"{query_id}.csv"
+            out_json = QUERY_TABLES_DIR / f"{query_id}.json"
+            _save_rows_csv(rows, out_csv)
+            out_json.write_text(json.dumps(rows, indent=2, default=str))
 
-                out_csv = QUERY_TABLES_DIR / f"{query_id}.csv"
-                out_json = QUERY_TABLES_DIR / f"{query_id}.json"
-                _save_rows_csv(rows, out_csv)
-                out_json.write_text(json.dumps(rows, indent=2, default=str))
+            query_eval_db = QUERY_EVAL_DB_DIR / f"{query_id}.db"
+            _write_query_tables_sqlite(query_table_map, query_eval_db)
 
-                eval_out = baseline.evaluate_with_official_framework(
-                    query_text,
-                    rows,
-                    gt_runner=eval_gt_runner,
-                    sql_parser=eval_sql_parser,
-                    row_matcher=eval_row_matcher,
-                    settings=eval_settings,
-                    attributes=eval_attributes,
-                    identity_col=baseline._infer_identity_col_for_query(
-                        query_text, identity_columns
-                    ),
-                    phase2_db=working_db,
-                    output_dir=QUERY_RESULTS_DIR / query_id,
-                )
+            eval_out = baseline.evaluate_with_official_framework(
+                query_text,
+                rows,
+                gt_runner=eval_gt_runner,
+                sql_parser=eval_sql_parser,
+                row_matcher=eval_row_matcher,
+                settings=eval_settings,
+                attributes=eval_attributes,
+                identity_col=baseline._infer_identity_col_for_query(
+                    query_text, identity_columns
+                ),
+                phase2_db=query_eval_db,
+                output_dir=QUERY_RESULTS_DIR / query_id,
+            )
 
-                item = TrendQueryMetrics(
+            item = TrendQueryMetrics(
+                query_id=query_id,
+                query_text=query_text,
+                nl_query=nl_query,
+                success=True,
+                delta_type="DOCETL_NL",
+                latency_s=latency,
+                result_rows=len(rows),
+                prompt_tokens=d_prompt,
+                completion_tokens=d_completion,
+                total_tokens=d_total,
+                macro_f1=eval_out.get("macro_f1", 0.0),
+                macro_precision=eval_out.get("macro_precision", 0.0),
+                macro_recall=eval_out.get("macro_recall", 0.0),
+                gt_result_count=eval_out.get("gt_result_count", 0),
+                matched_rows=eval_out.get("matched_rows", 0),
+                is_agg=eval_out.get("is_agg", False),
+            )
+            metrics.append(item)
+            logger.info(
+                f"{query_id}: rows={item.result_rows} latency={item.latency_s:.3f}s "
+                f"tokens={item.total_tokens} F1={item.macro_f1:.3f}"
+            )
+        except Exception as exc:
+            latency = time.time() - t0
+            d_prompt, d_completion = token_tracker.delta(before)
+            nl_query = NL_QUERY_SPECS.get(query_id, {}).get("nl_query", "")
+            metrics.append(
+                TrendQueryMetrics(
                     query_id=query_id,
                     query_text=query_text,
                     nl_query=nl_query,
-                    success=True,
-                    delta_type="DOCETL_NL",
+                    success=False,
+                    delta_type="ERROR",
                     latency_s=latency,
-                    result_rows=len(rows),
+                    result_rows=0,
                     prompt_tokens=d_prompt,
                     completion_tokens=d_completion,
-                    total_tokens=d_total,
-                    macro_f1=eval_out.get("macro_f1", 0.0),
-                    macro_precision=eval_out.get("macro_precision", 0.0),
-                    macro_recall=eval_out.get("macro_recall", 0.0),
-                    gt_result_count=eval_out.get("gt_result_count", 0),
-                    matched_rows=eval_out.get("matched_rows", 0),
-                    is_agg=eval_out.get("is_agg", False),
+                    total_tokens=d_prompt + d_completion,
+                    macro_f1=0.0,
+                    macro_precision=0.0,
+                    macro_recall=0.0,
+                    gt_result_count=0,
+                    matched_rows=0,
+                    is_agg=False,
+                    error=str(exc),
                 )
-                metrics.append(item)
-                logger.info(
-                    f"{query_id}: rows={item.result_rows} latency={item.latency_s:.3f}s "
-                    f"tokens={item.total_tokens} F1={item.macro_f1:.3f}"
-                )
-            except Exception as exc:
-                latency = time.time() - t0
-                d_prompt, d_completion = token_tracker.delta(before)
-                metrics.append(
-                    TrendQueryMetrics(
-                        query_id=query_id,
-                        query_text=query_text,
-                        nl_query=nl_query,
-                        success=False,
-                        delta_type="ERROR",
-                        latency_s=latency,
-                        result_rows=0,
-                        prompt_tokens=d_prompt,
-                        completion_tokens=d_completion,
-                        total_tokens=d_prompt + d_completion,
-                        macro_f1=0.0,
-                        macro_precision=0.0,
-                        macro_recall=0.0,
-                        gt_result_count=0,
-                        matched_rows=0,
-                        is_agg=False,
-                        error=str(exc),
-                    )
-                )
-                logger.exception(f"{query_id} failed: {exc}")
+            )
+            logger.exception(f"{query_id} failed: {exc}")
 
     return metrics
 
@@ -543,19 +712,20 @@ def main() -> int:
     ap.add_argument(
         "--refresh-snapshot",
         action="store_true",
-        help="Recreate snapshot DB from preferred source before running",
+        help="Refresh identity snapshot artifacts before running",
     )
     args = ap.parse_args()
 
     logger.info("Starting Player query-awareness trend test (DocETL)...")
     logger.info(f"Trend query source: {TREND_SQL_FILE}")
+    logger.info(f"Source data dir: {SOURCE_DATA_PLAYER_DIR}")
     logger.info(f"Model: {DOCETL_MODEL} @ {OLLAMA_BASE_URL}")
 
     try:
-        snapshot_db, identity_file = baseline.ensure_snapshot_artifacts(
+        _, identity_file = baseline.ensure_snapshot_artifacts(
             refresh_snapshot=args.refresh_snapshot
         )
-        metrics = run_trend_queries_docetl(snapshot_db, identity_file)
+        metrics = run_trend_queries_docetl(identity_file)
         save_metrics(metrics)
         plot_metrics(metrics)
 
