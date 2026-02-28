@@ -1281,6 +1281,7 @@ class ConstrainedExtractor:
         table_name: str,
         current_values: Dict[str, Any],
         remaining_keys: List[str],
+        normalization_hints: Optional[Dict[str, List[str]]] = None,
     ) -> str:
         """Build prompt for iterative chunk-by-chunk refinement."""
         populated_lines = []
@@ -1289,10 +1290,22 @@ class ConstrainedExtractor:
                 populated_lines.append(f"- {k}: {v}")
         populated_block = "\n".join(populated_lines) if populated_lines else "- (none)"
         remaining_block = ", ".join(remaining_keys) if remaining_keys else "(none)"
+        hint_lines: List[str] = []
+        for k in remaining_keys:
+            vals = (normalization_hints or {}).get(k, [])
+            if vals:
+                hint_lines.append(f"- {k}: examples {vals}")
+        hints_block = (
+            "Normalization hints from workload predicates:\n"
+            + "\n".join(hint_lines)
+            + "\n\n"
+            if hint_lines else ""
+        )
         return (
             f"You are refining one structured record for table '{table_name}' from a long document.\n\n"
             f"Already populated values:\n{populated_block}\n\n"
             f"Remaining keys needing values:\n{remaining_block}\n\n"
+            f"{hints_block}"
             "From the new text chunk below, return a JSON object with:\n"
             "1) values for any remaining keys you can find, and\n"
             "2) replacements for already populated keys only if this chunk has a more accurate,\n"
@@ -1300,6 +1313,8 @@ class ConstrainedExtractor:
             "Rules:\n"
             "- Return ONLY a JSON object (or {} if no updates).\n"
             "- Every value must be a single scalar (string/number/null), never lists.\n"
+            "- If normalization hints are provided for a key, use the same output convention "
+            "(including numeric unit/scale convention) as those examples.\n"
             "- Prefer present-tense/current statements over historical lists.\n\n"
             f"Text chunk:\n{chunk_text}\n\n"
             "Output (JSON only):"
@@ -1357,6 +1372,7 @@ class ConstrainedExtractor:
                 table_name=table_name,
                 current_values=current,
                 remaining_keys=remaining,
+                normalization_hints=normalization_hints,
             )
             refine_resp = self.llm_client.generate(
                 refine_prompt,
