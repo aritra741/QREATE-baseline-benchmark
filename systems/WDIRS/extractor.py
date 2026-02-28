@@ -191,7 +191,8 @@ class ConstrainedExtractor:
                 
                 # Collect keys from all records
                 for record in result.records:
-                    all_keys.extend(record.keys())
+                    if isinstance(record, dict):
+                        all_keys.extend(record.keys())
             
             except Exception as e:
                 logger.warning(f"Error extracting from sample chunk: {e}")
@@ -200,10 +201,14 @@ class ConstrainedExtractor:
         key_counts = Counter(all_keys)
         total_records = len(all_keys)
         
-        key_frequencies = {
-            key: count / total_records
-            for key, count in key_counts.items()
-        }
+        key_frequencies = (
+            {
+                key: count / total_records
+                for key, count in key_counts.items()
+            }
+            if total_records > 0
+            else {}
+        )
         
         # Freeze keys above threshold
         frozen_keys = {
@@ -1224,6 +1229,15 @@ class ConstrainedExtractor:
             if not isinstance(records, list):
                 logger.warning("Extraction response is not a list, wrapping in list")
                 records = [records]
+
+            # Keep only dictionary records; occasionally models emit scalars/strings.
+            dict_records = [r for r in records if isinstance(r, dict)]
+            if len(dict_records) != len(records):
+                logger.warning(
+                    f"Extraction response contained {len(records) - len(dict_records)} "
+                    "non-object record(s); dropping them."
+                )
+            records = dict_records
             
             # Filter keys if constrained
             if constrained_keys:
@@ -1240,29 +1254,59 @@ class ConstrainedExtractor:
             return records
         
         except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse extraction response: {e}")
-            logger.debug(f"Response: {response[:500]}")
+            snippet = response if len(response) <= 4000 else response[:4000] + "...<truncated>"
+            logger.error(
+                "Failed to parse extraction response: %s | response_len=%d | response=%r",
+                e,
+                len(response),
+                snippet,
+            )
             return []
     
     def _extract_json(self, text: str) -> Optional[str]:
-        """Extract JSON from text."""
-        # Look for JSON array
-        import re
-        
-        # Try to find JSON array
-        pattern = r'\[[\s\S]*?\]'
-        match = re.search(pattern, text)
-        
-        if match:
-            return match.group(0)
-        
-        # Try to find JSON object
-        pattern = r'\{[\s\S]*?\}'
-        match = re.search(pattern, text)
-        
-        if match:
-            return match.group(0)
-        
+        """Extract first balanced JSON array/object from text."""
+        start = None
+        start_char = ""
+        for i, ch in enumerate(text):
+            if ch in "[{":
+                start = i
+                start_char = ch
+                break
+        if start is None:
+            return None
+
+        end_char = "]" if start_char == "[" else "}"
+        stack = []
+        in_string = False
+        escape = False
+
+        for j in range(start, len(text)):
+            ch = text[j]
+            if in_string:
+                if escape:
+                    escape = False
+                elif ch == "\\":
+                    escape = True
+                elif ch == '"':
+                    in_string = False
+                continue
+
+            if ch == '"':
+                in_string = True
+            elif ch in "[{":
+                stack.append(ch)
+            elif ch in "]}":
+                if not stack:
+                    return None
+                opener = stack.pop()
+                if (opener == "[" and ch != "]") or (opener == "{" and ch != "}"):
+                    return None
+                if not stack:
+                    # Completed the outermost JSON payload.
+                    if ch == end_char:
+                        return text[start : j + 1]
+                    # If outer payload started with array/object, but ended with the
+                    # other token, keep scanning for a valid close.
         return None
     
     # ========================================================================
