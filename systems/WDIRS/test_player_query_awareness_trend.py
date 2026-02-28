@@ -75,10 +75,6 @@ ATTRIBUTES_FILE = PROJECT_ROOT / "Query" / DATASET_QUERY / "Player_attributes.js
 
 RESULTS_BASE_DIR = RESULTS_DIR / "player_query_awareness_trend"
 SNAPSHOT_DIR = RESULTS_BASE_DIR / "snapshot"
-RUN_DIR = RESULTS_BASE_DIR / "run"
-QUERY_RESULTS_DIR = RUN_DIR / "query_results"
-QUERY_TABLES_DIR = RUN_DIR / "query_tables"
-PLOTS_DIR = RUN_DIR / "plots"
 
 _ENTITY_SUFFIX_RE = re.compile(r"\b(jr\.?|sr\.?|iii|iv|ii)\b\.?", re.IGNORECASE)
 _NAME_LIKE_COLUMNS = {"name", "player_name", "team_name", "city_name", "owner_name"}
@@ -663,13 +659,32 @@ def _infer_identity_col_for_query(sql: str, identity_columns: Dict[str, str]) ->
     return identity_columns.get("player", "name")
 
 
-def run_trend_queries(snapshot_db: Path, identity_file: Optional[Path]) -> List[TrendQueryMetrics]:
-    RUN_DIR.mkdir(parents=True, exist_ok=True)
-    QUERY_RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    QUERY_TABLES_DIR.mkdir(parents=True, exist_ok=True)
-    PLOTS_DIR.mkdir(parents=True, exist_ok=True)
+def _build_run_paths() -> Tuple[Path, Path, Path, Path]:
+    run_tag = time.strftime("%Y%m%d_%H%M%S")
+    run_dir = RESULTS_BASE_DIR / f"run_{run_tag}"
+    query_results_dir = run_dir / "query_results"
+    query_tables_dir = run_dir / "query_tables"
+    plots_dir = run_dir / "plots"
+    return run_dir, query_results_dir, query_tables_dir, plots_dir
 
-    working_db = RUN_DIR / "player_trend_working.db"
+
+def run_trend_queries(
+    snapshot_db: Path,
+    identity_file: Optional[Path],
+    run_dir: Path,
+    query_results_dir: Path,
+    query_tables_dir: Path,
+    plots_dir: Path,
+    *,
+    projection_fastpath: bool = False,
+    projection_fastpath_col_batch_size: int = 0,
+) -> List[TrendQueryMetrics]:
+    run_dir.mkdir(parents=True, exist_ok=True)
+    query_results_dir.mkdir(parents=True, exist_ok=True)
+    query_tables_dir.mkdir(parents=True, exist_ok=True)
+    plots_dir.mkdir(parents=True, exist_ok=True)
+
+    working_db = run_dir / "player_trend_working.db"
     shutil.copy2(snapshot_db, working_db)
     logger.info(f"Working DB copied from snapshot: {working_db}")
 
@@ -683,7 +698,12 @@ def run_trend_queries(snapshot_db: Path, identity_file: Optional[Path]) -> List[
     token_tracker = TokenTracker()
     patch_ollama_for_token_tracking(token_tracker)
 
-    runner = WDIRSRunner(dataset=DATASET, postgres_uri=f"sqlite:///{working_db}")
+    runner = WDIRSRunner(
+        dataset=DATASET,
+        postgres_uri=f"sqlite:///{working_db}",
+        use_projection_fastpath=projection_fastpath,
+        projection_fastpath_col_batch_size=projection_fastpath_col_batch_size,
+    )
     training_queries = collect_training_workload(DATASET_QUERY)
     if training_queries:
         runner.restore_lattice(training_queries)
@@ -715,8 +735,8 @@ def run_trend_queries(snapshot_db: Path, identity_file: Optional[Path]) -> List[
             d_prompt, d_completion = token_tracker.delta(before)
             d_total = d_prompt + d_completion
 
-            out_csv = QUERY_TABLES_DIR / f"{query_id}.csv"
-            out_json = QUERY_TABLES_DIR / f"{query_id}.json"
+            out_csv = query_tables_dir / f"{query_id}.csv"
+            out_json = query_tables_dir / f"{query_id}.json"
             _save_rows_csv(result.results, out_csv)
             out_json.write_text(json.dumps(result.results, indent=2, default=str))
 
@@ -732,7 +752,7 @@ def run_trend_queries(snapshot_db: Path, identity_file: Optional[Path]) -> List[
                     attributes=eval_attributes,
                     identity_col=_infer_identity_col_for_query(query_text, identity_columns),
                     phase2_db=working_db,
-                    output_dir=QUERY_RESULTS_DIR / query_id,
+                    output_dir=query_results_dir / query_id,
                 )
 
             item = TrendQueryMetrics(
@@ -787,10 +807,10 @@ def run_trend_queries(snapshot_db: Path, identity_file: Optional[Path]) -> List[
     return metrics
 
 
-def save_metrics(metrics: List[TrendQueryMetrics]) -> None:
+def save_metrics(metrics: List[TrendQueryMetrics], run_dir: Path) -> None:
     rows = [asdict(m) for m in metrics]
-    out_json = RUN_DIR / "trend_metrics.json"
-    out_csv = RUN_DIR / "trend_metrics.csv"
+    out_json = run_dir / "trend_metrics.json"
+    out_csv = run_dir / "trend_metrics.csv"
     out_json.write_text(json.dumps(rows, indent=2))
     with out_csv.open("w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()) if rows else [])
@@ -801,7 +821,7 @@ def save_metrics(metrics: List[TrendQueryMetrics]) -> None:
     logger.info(f"Saved metrics CSV:  {out_csv}")
 
 
-def plot_metrics(metrics: List[TrendQueryMetrics]) -> None:
+def plot_metrics(metrics: List[TrendQueryMetrics], plots_dir: Path) -> None:
     if not MATPLOTLIB_AVAILABLE:
         logger.warning("matplotlib not available - skipping plot generation")
         return
@@ -851,7 +871,7 @@ def plot_metrics(metrics: List[TrendQueryMetrics]) -> None:
     axes[1, 1].grid(alpha=0.3)
 
     plt.tight_layout()
-    summary_plot = PLOTS_DIR / "query_awareness_trend_summary.png"
+    summary_plot = plots_dir / "query_awareness_trend_summary.png"
     plt.savefig(summary_plot, dpi=300, bbox_inches="tight")
     plt.close(fig)
     logger.info(f"Saved trend summary plot: {summary_plot}")
@@ -871,7 +891,7 @@ def plot_metrics(metrics: List[TrendQueryMetrics]) -> None:
     ax2.grid(alpha=0.3)
     ax2.legend()
     plt.tight_layout()
-    prf_plot = PLOTS_DIR / "query_awareness_trend_prf.png"
+    prf_plot = plots_dir / "query_awareness_trend_prf.png"
     plt.savefig(prf_plot, dpi=300, bbox_inches="tight")
     plt.close(fig2)
     logger.info(f"Saved trend PRF plot: {prf_plot}")
@@ -880,22 +900,49 @@ def plot_metrics(metrics: List[TrendQueryMetrics]) -> None:
 def main() -> int:
     RESULTS_BASE_DIR.mkdir(parents=True, exist_ok=True)
     setup_logging(RESULTS_BASE_DIR / "query_awareness_trend.log")
+    run_dir, query_results_dir, query_tables_dir, plots_dir = _build_run_paths()
     ap = argparse.ArgumentParser(description="Run Player query-awareness trend test")
     ap.add_argument(
         "--refresh-snapshot",
         action="store_true",
         help="Recreate snapshot DB from preferred source before running",
     )
+    ap.add_argument(
+        "--projection-fastpath",
+        action="store_true",
+        help="Enable projection fast path in WDIRS runner.",
+    )
+    ap.add_argument(
+        "--projection-fastpath-col-batch-size",
+        type=int,
+        default=0,
+        help="Column batch size for projection fast path (0 = default behavior).",
+    )
     args = ap.parse_args()
 
     logger.info("Starting Player query-awareness trend test...")
     logger.info(f"Trend query source: {TREND_SQL_FILE}")
+    logger.info(f"Run output dir: {run_dir}")
+    logger.info(
+        "Projection fast path: %s (col_batch_size=%s)",
+        args.projection_fastpath,
+        args.projection_fastpath_col_batch_size,
+    )
 
     try:
         snapshot_db, identity_file = ensure_snapshot_artifacts(refresh_snapshot=args.refresh_snapshot)
-        metrics = run_trend_queries(snapshot_db, identity_file)
-        save_metrics(metrics)
-        plot_metrics(metrics)
+        metrics = run_trend_queries(
+            snapshot_db,
+            identity_file,
+            run_dir,
+            query_results_dir,
+            query_tables_dir,
+            plots_dir,
+            projection_fastpath=args.projection_fastpath,
+            projection_fastpath_col_batch_size=args.projection_fastpath_col_batch_size,
+        )
+        save_metrics(metrics, run_dir)
+        plot_metrics(metrics, plots_dir)
 
         success_count = sum(1 for m in metrics if m.success)
         avg_f1 = sum(m.macro_f1 for m in metrics) / len(metrics) if metrics else 0.0
@@ -904,7 +951,7 @@ def main() -> int:
             f"Completed: {success_count}/{len(metrics)} queries succeeded, "
             f"avg macro F1={avg_f1:.3f}"
         )
-        logger.info(f"Outputs under: {RUN_DIR}")
+        logger.info(f"Outputs under: {run_dir}")
         logger.info("=" * 80)
         return 0
     except Exception as exc:

@@ -144,6 +144,16 @@ NER_BATCH_SIZE = int(os.getenv("NER_BATCH_SIZE", "512"))  # spaCy pipe batch for
 # brute-force extraction. Can be raised via env var if recall recovery is needed.
 UNASSIGNED_CHUNK_CAP = int(os.getenv("UNASSIGNED_CHUNK_CAP", "0"))
 
+# Fast path: extract query/workload-inferred columns directly from source docs
+# (one doc ~= one extraction unit) instead of sweeping candidate chunks.
+USE_PROJECTION_FASTPATH = os.getenv("USE_PROJECTION_FASTPATH", "false").lower() in {
+    "1", "true", "yes", "y"
+}
+# If <=0, WDIRS passes all inferred columns in a single LLM call per document.
+PROJECTION_FASTPATH_COL_BATCH_SIZE = int(
+    os.getenv("PROJECTION_FASTPATH_COL_BATCH_SIZE", "0")
+)
+
 # Caching
 ENABLE_CACHE = True
 CACHE_TTL = 86400  # 24 hours in seconds

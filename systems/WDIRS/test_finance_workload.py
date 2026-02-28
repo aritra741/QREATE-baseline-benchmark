@@ -459,7 +459,13 @@ def verify_data_availability(dataset: str) -> bool:
 # Phase 1: Preprocessing
 # ============================================================================
 
-def run_preprocessing_phase(dataset: str, dataset_query: str) -> Tuple[bool, Dict[str, Any]]:
+def run_preprocessing_phase(
+    dataset: str,
+    dataset_query: str,
+    *,
+    projection_fastpath: bool = False,
+    projection_fastpath_col_batch_size: int = 0,
+) -> Tuple[bool, Dict[str, Any]]:
     """
     Phase 1: Offline Relational Synthesis with Training Workload.
     """
@@ -493,7 +499,11 @@ def run_preprocessing_phase(dataset: str, dataset_query: str) -> Tuple[bool, Dic
         
         # Initialize WDIRS Runner
         logger.info(f"\nInitializing WDIRS Runner for {dataset}")
-        runner = WDIRSRunner(dataset=dataset)
+        runner = WDIRSRunner(
+            dataset=dataset,
+            use_projection_fastpath=projection_fastpath,
+            projection_fastpath_col_batch_size=projection_fastpath_col_batch_size,
+        )
         
         # Run preprocessing (all steps 1-7 are handled internally)
         logger.info("\nRunning unified preprocessing pipeline...")
@@ -1161,7 +1171,11 @@ def generate_report(
 # Main
 # ============================================================================
 
-def main(skip_preprocessing: bool = False):
+def main(
+    skip_preprocessing: bool = False,
+    projection_fastpath: bool = False,
+    projection_fastpath_col_batch_size: int = 0,
+):
     """Main orchestration function."""
     
     # Setup
@@ -1176,6 +1190,11 @@ def main(skip_preprocessing: bool = False):
     logger.info(f"Log File: {log_file}")
     logger.info(f"Source Data: {SOURCE_DATA_DIR / DATASET}")
     logger.info(f"Query Directory: {QUERY_DIR / DATASET_QUERY}")
+    logger.info(
+        "Projection fast path: %s (col_batch_size=%s)",
+        projection_fastpath,
+        projection_fastpath_col_batch_size,
+    )
     
     # Phase 1: Preprocessing
     checkpoint_path = CHECKPOINT_DIR / f"{DATASET}_preprocessed.db"
@@ -1203,7 +1222,12 @@ def main(skip_preprocessing: bool = False):
         logger.info("Starting Phase 1: Preprocessing")
         logger.info("=" * 80)
 
-        preprocessing_success, preprocessing_stats = run_preprocessing_phase(DATASET, DATASET_QUERY)
+        preprocessing_success, preprocessing_stats = run_preprocessing_phase(
+            DATASET,
+            DATASET_QUERY,
+            projection_fastpath=projection_fastpath,
+            projection_fastpath_col_batch_size=projection_fastpath_col_batch_size,
+        )
 
         if not preprocessing_success:
             logger.error("Preprocessing failed, skipping testing phase")
@@ -1239,5 +1263,22 @@ if __name__ == "__main__":
         action="store_true",
         help="Skip Phase 1 and go straight to Phase 2 using the existing DB.",
     )
+    _parser.add_argument(
+        "--projection-fastpath",
+        action="store_true",
+        help="Use source-doc projection fast path during Phase 1 extraction.",
+    )
+    _parser.add_argument(
+        "--projection-fastpath-col-batch-size",
+        type=int,
+        default=0,
+        help="Column batch size override for projection fast path (0 = all inferred columns in one call).",
+    )
     _args, _unknown = _parser.parse_known_args()
-    sys.exit(main(_args.skip_preprocessing))
+    sys.exit(
+        main(
+            _args.skip_preprocessing,
+            _args.projection_fastpath,
+            _args.projection_fastpath_col_batch_size,
+        )
+    )

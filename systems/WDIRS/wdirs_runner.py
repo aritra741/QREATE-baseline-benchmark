@@ -29,7 +29,9 @@ from config import (
     CACHE_DIR,
     LOG_LEVEL,
     LOG_FORMAT,
-    LOG_FILE
+    LOG_FILE,
+    USE_PROJECTION_FASTPATH,
+    PROJECTION_FASTPATH_COL_BATCH_SIZE,
 )
 
 # Configure logging
@@ -191,7 +193,9 @@ class WDIRSRunner:
     def __init__(
         self,
         dataset: str,
-        postgres_uri: Optional[str] = None
+        postgres_uri: Optional[str] = None,
+        use_projection_fastpath: Optional[bool] = None,
+        projection_fastpath_col_batch_size: Optional[int] = None,
     ):
         """
         Initialize WDIRS runner.
@@ -201,8 +205,23 @@ class WDIRSRunner:
             postgres_uri: Optional PostgreSQL connection URI
         """
         self.dataset = dataset
+        self.use_projection_fastpath = (
+            USE_PROJECTION_FASTPATH
+            if use_projection_fastpath is None
+            else bool(use_projection_fastpath)
+        )
+        self.projection_fastpath_col_batch_size = (
+            PROJECTION_FASTPATH_COL_BATCH_SIZE
+            if projection_fastpath_col_batch_size is None
+            else int(projection_fastpath_col_batch_size)
+        )
         
         logger.info(f"Initializing WDIRS for dataset: {dataset}")
+        logger.info(
+            "Projection fast path: %s (col_batch_size=%s)",
+            self.use_projection_fastpath,
+            self.projection_fastpath_col_batch_size,
+        )
         
         # Initialize components
         self.data_layer = DataLayer(postgres_uri) if postgres_uri else DataLayer()
@@ -1641,6 +1660,33 @@ class WDIRSRunner:
 
         logger.info("[PreFlight] All 8 checks passed. Starting extraction.")
 
+    def _load_table_source_documents(
+        self,
+        dataset_path: Path,
+        table_name: str,
+    ) -> Tuple[List[str], List[str]]:
+        """
+        Load raw source documents for a table from source_data/<dataset>/<table_name>/*.txt.
+        Returns (texts, synthetic_chunk_ids) for projection fast-path extraction.
+        """
+        table_dir = dataset_path / table_name
+        if not table_dir.exists():
+            return [], []
+
+        doc_files = sorted(table_dir.glob("*.txt"), key=lambda p: p.stem)
+        texts: List[str] = []
+        chunk_ids: List[str] = []
+        for p in doc_files:
+            try:
+                txt = p.read_text(errors="ignore")
+            except Exception:
+                continue
+            if not txt.strip():
+                continue
+            texts.append(txt)
+            chunk_ids.append(f"doc::{table_name}::{p.stem}")
+        return texts, chunk_ids
+
     def _global_extraction(self, lattice) -> int:
         """Perform predicate-based extraction (like QAIRS)."""
         total_records = 0
@@ -1664,31 +1710,7 @@ class WDIRSRunner:
                 # Convert semantic types to SQL types for table creation
                 sql_schema = {col: semantic_to_sql_type(sem_type) 
                              for col, sem_type in schema.items()}
-                
-                # Get candidate chunks
-                candidate_chunk_ids = self.data_layer.get_candidates(table_name)
-                
-                if not candidate_chunk_ids:
-                    logger.warning(f"No candidate chunks for {table_name}")
-                    continue
-                
-                logger.info(f"Table {table_name}: {len(candidate_chunk_ids)} candidates, "
-                           f"{len(table_info.predicates)} predicates, "
-                           f"in_joins={table_info.referenced_in_joins}")
-                
-                candidate_chunks = self.data_layer.get_chunks_by_ids(candidate_chunk_ids)
-                
-                # Schema stabilization
-                sample_chunks = [c.content for c in candidate_chunks[:50]]
-                stabilized_schema = self.extractor.stabilize_schema(
-                    table_name,
-                    schema,
-                    sample_chunks
-                )
-                
-                logger.info(f"Stabilized schema for {table_name}: "
-                           f"{len(stabilized_schema.frozen_keys)} keys")
-                
+
                 # Build normalization hints from workload predicate literals so the
                 # LLM stores values in the exact form the queries expect
                 # (e.g. "USA" not "United States" if queries filter on 'USA').
@@ -1723,6 +1745,84 @@ class WDIRSRunner:
                         f"schema for '{table_name}' (not in query SELECT list)"
                     )
 
+                # ── Projection fast path: source docs -> inferred columns only ──
+                if self.use_projection_fastpath:
+                    source_texts, source_ids = self._load_table_source_documents(
+                        dataset_path, table_name
+                    )
+                    if source_texts:
+                        logger.info(
+                            f"[ProjectionFastPath] {table_name}: {len(source_texts)} source docs, "
+                            f"{len(schema)} inferred columns"
+                        )
+                        sample_chunks = source_texts[:50]
+                        stabilized_schema = self.extractor.stabilize_schema(
+                            table_name,
+                            schema,
+                            sample_chunks,
+                        )
+                        self.data_layer.create_dynamic_table(table_name, sql_schema)
+
+                        col_batch_override = (
+                            self.projection_fastpath_col_batch_size
+                            if self.projection_fastpath_col_batch_size > 0
+                            else max(1, len(schema))
+                        )
+                        results = self.extractor.extract_batch(
+                            source_texts,
+                            source_ids,
+                            table_name,
+                            schema,
+                            stabilized_schema.frozen_keys,
+                            normalization_hints,
+                            entity_col=entity_col,
+                            col_batch_size_override=col_batch_override,
+                        )
+
+                        table_records = sum(len(r.records) for r in results)
+                        total_records += table_records
+                        prov_pairs = self.data_layer.bulk_insert_records(table_name, results)
+                        self.data_layer.bulk_insert_provenance(table_name, prov_pairs)
+                        logger.info(
+                            f"[ProjectionFastPath] {table_name}: extracted {table_records} rows "
+                            f"from {len(source_texts)} source docs"
+                        )
+
+                        for col_name in schema.keys():
+                            self.data_layer.update_metadata(
+                                table_name, col_name, [], "FULL", table_records
+                            )
+                        continue
+                    else:
+                        logger.warning(
+                            f"[ProjectionFastPath] No source docs found for '{table_name}', "
+                            "falling back to chunk-based extraction."
+                        )
+                
+                # Get candidate chunks
+                candidate_chunk_ids = self.data_layer.get_candidates(table_name)
+                
+                if not candidate_chunk_ids:
+                    logger.warning(f"No candidate chunks for {table_name}")
+                    continue
+                
+                logger.info(f"Table {table_name}: {len(candidate_chunk_ids)} candidates, "
+                           f"{len(table_info.predicates)} predicates, "
+                           f"in_joins={table_info.referenced_in_joins}")
+                
+                candidate_chunks = self.data_layer.get_chunks_by_ids(candidate_chunk_ids)
+                
+                # Schema stabilization
+                sample_chunks = [c.content for c in candidate_chunks[:50]]
+                stabilized_schema = self.extractor.stabilize_schema(
+                    table_name,
+                    schema,
+                    sample_chunks
+                )
+                
+                logger.info(f"Stabilized schema for {table_name}: "
+                           f"{len(stabilized_schema.frozen_keys)} keys")
+                
                 ner_label = self.identity_ner_labels.get(table_name)
 
                 if entity_col:
