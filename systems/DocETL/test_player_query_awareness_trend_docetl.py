@@ -71,6 +71,10 @@ QUERY_EVAL_DB_DIR = RUN_DIR / "query_eval_dbs"
 OLLAMA_BASE_URL = "http://localhost:11434"
 DOCETL_MODEL = "ollama/qwen2.5:7b-instruct"
 DOCETL_THREADS = 4
+DOCETL_MAP_TIMEOUT = 420
+DOCETL_JOIN_TIMEOUT = 300
+DOCETL_FILTER_TIMEOUT = 300
+DOCETL_MAX_RETRIES_PER_TIMEOUT = 2
 
 KNOWN_TABLE_COLUMNS: Dict[str, List[str]] = {
     "player": {
@@ -267,8 +271,8 @@ def _extract_table_for_query(table: str, needed_cols: List[str], nl_query: str) 
         prompt=f"{prompt}\n\nDocument:\n{{{{input.text}}}}",
         output={"schema": output_schema},
         model=DOCETL_MODEL,
-        timeout=240,
-        max_retries_per_timeout=1,
+        timeout=DOCETL_MAP_TIMEOUT,
+        max_retries_per_timeout=DOCETL_MAX_RETRIES_PER_TIMEOUT,
         skip_on_error=True,
     )
 
@@ -434,8 +438,8 @@ def _apply_nl_filters(
             prompt=prompt,
             output={"schema": {"keep": "bool"}},
             model=DOCETL_MODEL,
-            timeout=180,
-            max_retries_per_timeout=1,
+            timeout=DOCETL_FILTER_TIMEOUT,
+            max_retries_per_timeout=DOCETL_MAX_RETRIES_PER_TIMEOUT,
         )
     return out
 
@@ -491,8 +495,8 @@ def execute_query_via_docetl_nl(
             model=DOCETL_MODEL,
             comparison_model=DOCETL_MODEL,
             blocking_conditions=[blocking_rule],
-            timeout=180,
-            max_retries_per_timeout=1,
+            timeout=DOCETL_JOIN_TIMEOUT,
+            max_retries_per_timeout=DOCETL_MAX_RETRIES_PER_TIMEOUT,
         )
 
     current = _apply_nl_filters(current, spec["filters"], nl_query)
