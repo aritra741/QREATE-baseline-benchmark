@@ -1775,7 +1775,10 @@ class WDIRSRunner:
                             schema,
                             stabilized_schema.frozen_keys,
                             normalization_hints,
-                            entity_col=entity_col,
+                            # Projection fast path uses plain INSERTs (no upsert-by-entity),
+                            # so forcing `_entity` in extraction output only adds a brittle
+                            # constraint and can suppress valid rows.
+                            entity_col=None,
                             col_batch_size_override=col_batch_override,
                         )
 
