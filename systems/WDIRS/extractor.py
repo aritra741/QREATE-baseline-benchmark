@@ -937,15 +937,36 @@ class ConstrainedExtractor:
             entity_col,
         )
         
-        # Call LLM
-        response = self.llm_client.generate(
-            prompt,
-            max_tokens=EXTRACTION_MAX_TOKENS,
-            temperature=EXTRACTION_TEMPERATURE
-        )
-        
-        # Parse response
-        records = self._parse_extraction_response(response, constrained_keys)
+        # Call LLM + parse. If we detect malformed top-level records, retry once
+        # with a stricter repair prompt instead of silently losing information.
+        records: List[Dict[str, Any]] = []
+        response = ""
+        for attempt in range(2):
+            response = self.llm_client.generate(
+                prompt,
+                max_tokens=EXTRACTION_MAX_TOKENS,
+                temperature=EXTRACTION_TEMPERATURE if attempt == 0 else 0.0
+            )
+            try:
+                records = self._parse_extraction_response(response, constrained_keys)
+                break
+            except ValueError as e:
+                if attempt == 0:
+                    keys_hint = (
+                        ", ".join(sorted(list(constrained_keys)))
+                        if constrained_keys
+                        else ", ".join(sorted(list(schema.keys())))
+                    )
+                    prompt = (
+                        "Your previous output was malformed.\n"
+                        "Return ONLY a valid JSON array where every item is an object.\n"
+                        f"Each object must use keys from: {keys_hint}.\n"
+                        "Do not return strings/numbers/null at top level.\n\n"
+                        f"Original extraction instruction:\n{prompt}\n\n"
+                        f"Malformed model output to fix:\n{response}"
+                    )
+                    continue
+                raise ValueError(f"Failed to parse extraction output after retry: {e}")
         
         # Filter records by predicates if specified
         if predicates and records:
@@ -1230,13 +1251,62 @@ class ConstrainedExtractor:
                 logger.warning("Extraction response is not a list, wrapping in list")
                 records = [records]
 
-            # Keep only dictionary records; occasionally models emit scalars/strings.
-            dict_records = [r for r in records if isinstance(r, dict)]
-            if len(dict_records) != len(records):
-                logger.warning(
-                    f"Extraction response contained {len(records) - len(dict_records)} "
-                    "non-object record(s); dropping them."
+            # Keep dictionary records and coerce common malformed shapes.
+            # We fail if unresolved records remain (no silent data loss).
+            keys = sorted(list(constrained_keys)) if constrained_keys else []
+            dict_records: List[Dict[str, Any]] = []
+            unresolved: List[Any] = []
+            for r in records:
+                if isinstance(r, dict):
+                    dict_records.append(r)
+                    continue
+
+                coerced: Optional[Dict[str, Any]] = None
+
+                # String that itself is JSON object/list.
+                if isinstance(r, str):
+                    s = r.strip()
+                    if (s.startswith("{") and s.endswith("}")) or (
+                        s.startswith("[") and s.endswith("]")
+                    ):
+                        try:
+                            parsed_inner = json.loads(s)
+                            if isinstance(parsed_inner, dict):
+                                coerced = parsed_inner
+                            elif isinstance(parsed_inner, list):
+                                for item in parsed_inner:
+                                    if isinstance(item, dict):
+                                        dict_records.append(item)
+                                coerced = {}
+                        except Exception:
+                            coerced = None
+                    elif len(keys) == 1:
+                        coerced = {keys[0]: r}
+                elif len(keys) == 1 and isinstance(r, (int, float, bool)):
+                    # Scalar for single-key extraction.
+                    coerced = {keys[0]: r}
+                elif isinstance(r, list) and keys and len(r) == len(keys):
+                    # Positional value list aligned to constrained keys.
+                    coerced = {k: v for k, v in zip(keys, r)}
+
+                if isinstance(coerced, dict):
+                    if coerced:
+                        dict_records.append(coerced)
+                else:
+                    unresolved.append(r)
+
+            if unresolved:
+                sample = unresolved[:3]
+                logger.error(
+                    "Unresolved non-object records in extraction response: count=%d sample=%r",
+                    len(unresolved),
+                    sample,
                 )
+                raise ValueError(
+                    f"Extraction response contained {len(unresolved)} non-object "
+                    f"record(s) that could not be coerced. Sample: {sample!r}"
+                )
+
             records = dict_records
             
             # Filter keys if constrained
