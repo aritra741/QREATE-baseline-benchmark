@@ -937,37 +937,28 @@ class ConstrainedExtractor:
             entity_col,
         )
         
-        # Call LLM + parse. If we detect malformed top-level records, retry once
-        # with a stricter repair prompt instead of silently losing information.
-        records: List[Dict[str, Any]] = []
-        response = ""
-        for attempt in range(2):
-            response = self.llm_client.generate(
-                prompt,
-                max_tokens=EXTRACTION_MAX_TOKENS,
-                temperature=EXTRACTION_TEMPERATURE if attempt == 0 else 0.0
-            )
+        # Call extraction model, then run a dedicated JSON-repair pass if needed.
+        parse_keys = (
+            [k for k in schema.keys() if k in constrained_keys]
+            if constrained_keys
+            else list(schema.keys())
+        )
+        response = self.llm_client.generate(
+            prompt,
+            max_tokens=EXTRACTION_MAX_TOKENS,
+            temperature=EXTRACTION_TEMPERATURE,
+        )
+        try:
+            records = self._parse_extraction_response(response, constrained_keys, parse_keys)
+        except ValueError as first_error:
+            repaired = self._repair_extraction_response(response, parse_keys)
             try:
-                parse_keys = sorted(list(constrained_keys)) if constrained_keys else sorted(list(schema.keys()))
-                records = self._parse_extraction_response(response, constrained_keys, parse_keys)
-                break
-            except ValueError as e:
-                if attempt == 0:
-                    keys_hint = (
-                        ", ".join(sorted(list(constrained_keys)))
-                        if constrained_keys
-                        else ", ".join(sorted(list(schema.keys())))
-                    )
-                    prompt = (
-                        "Your previous output was malformed.\n"
-                        "Return ONLY a valid JSON array where every item is an object.\n"
-                        f"Each object must use keys from: {keys_hint}.\n"
-                        "Do not return strings/numbers/null at top level.\n\n"
-                        f"Original extraction instruction:\n{prompt}\n\n"
-                        f"Malformed model output to fix:\n{response}"
-                    )
-                    continue
-                raise ValueError(f"Failed to parse extraction output after retry: {e}")
+                records = self._parse_extraction_response(repaired, constrained_keys, parse_keys)
+            except ValueError as repair_error:
+                raise ValueError(
+                    "Failed to parse extraction output after JSON repair pass: "
+                    f"initial_error={first_error}; repair_error={repair_error}"
+                )
         
         # Filter records by predicates if specified
         if predicates and records:
@@ -1019,8 +1010,14 @@ class ConstrainedExtractor:
         )
         entity_section = self._build_entity_section(entity_col)
 
+        format_contract = (
+            "OUTPUT FORMAT (MANDATORY): Return ONLY a JSON array of objects. "
+            "No markdown, no prose, no code fences."
+        )
+
         prompt = (
             f'Extract data from the following text for table "{table_name}".\n\n'
+            f"{format_contract}\n\n"
             f"Schema (extract ONLY these fields):\n{schema_desc}\n"
             f"{predicate_str}"
             f"{entity_section}\n\n"
@@ -1030,6 +1027,7 @@ class ConstrainedExtractor:
             f"- If no matching data is found, return [].\n"
             f"{numeric_rule}"
             f"\nText:\n{chunk}\n\n"
+            f"{format_contract}\n"
             f"Output (JSON only):"
         )
         return prompt
@@ -1124,32 +1122,28 @@ class ConstrainedExtractor:
             entity_col,
         )
         
-        # Call LLM + parse. Retry once with stricter repair instructions when malformed.
-        records: List[Dict[str, Any]] = []
-        response = ""
-        for attempt in range(2):
-            response = self.llm_client.generate(
-                prompt,
-                max_tokens=EXTRACTION_MAX_TOKENS,
-                temperature=EXTRACTION_TEMPERATURE if attempt == 0 else 0.0
-            )
+        # Call extraction model, then run a dedicated JSON-repair pass if needed.
+        parse_keys = (
+            [k for k in schema.keys() if k in constrained_keys]
+            if constrained_keys
+            else list(schema.keys())
+        )
+        response = self.llm_client.generate(
+            prompt,
+            max_tokens=EXTRACTION_MAX_TOKENS,
+            temperature=EXTRACTION_TEMPERATURE,
+        )
+        try:
+            records = self._parse_extraction_response(response, constrained_keys, parse_keys)
+        except ValueError as first_error:
+            repaired = self._repair_extraction_response(response, parse_keys)
             try:
-                parse_keys = sorted(list(constrained_keys)) if constrained_keys else sorted(list(schema.keys()))
-                records = self._parse_extraction_response(response, constrained_keys, parse_keys)
-                break
-            except ValueError as e:
-                if attempt == 0:
-                    keys_hint = ", ".join(sorted(list(schema.keys())))
-                    prompt = (
-                        "Your previous output was malformed.\n"
-                        "Return ONLY a valid JSON array where every item is an object.\n"
-                        f"Each object must use keys from: {keys_hint}.\n"
-                        "Do not return strings/numbers/null at top level.\n\n"
-                        f"Original extraction instruction:\n{prompt}\n\n"
-                        f"Malformed model output to fix:\n{response}"
-                    )
-                    continue
-                raise ValueError(f"Failed to parse extraction output after retry: {e}")
+                records = self._parse_extraction_response(repaired, constrained_keys, parse_keys)
+            except ValueError as repair_error:
+                raise ValueError(
+                    "Failed to parse extraction output after JSON repair pass: "
+                    f"initial_error={first_error}; repair_error={repair_error}"
+                )
         
         # Collect schema keys
         schema_keys = set()
@@ -1234,8 +1228,14 @@ class ConstrainedExtractor:
         )
         entity_section = self._build_entity_section(entity_col)
 
+        format_contract = (
+            "OUTPUT FORMAT (MANDATORY): Return ONLY a JSON array of objects. "
+            "No markdown, no prose, no code fences."
+        )
+
         prompt = (
             f'Extract structured data from the following text for table "{table_name}".\n\n'
+            f"{format_contract}\n\n"
             f"Schema (extract ONLY these fields):\n{schema_desc}\n"
             f"{entity_section}\n\n"
             f"Rules:\n"
@@ -1244,9 +1244,34 @@ class ConstrainedExtractor:
             f"- If no matching data is found, return an empty array [].\n"
             f"{numeric_rule}"
             f"\nText:\n{chunk}\n\n"
+            f"{format_contract}\n"
             f"Return ONLY the JSON array, no other text."
         )
         return prompt
+
+    def _repair_extraction_response(
+        self,
+        malformed_output: str,
+        expected_keys: List[str],
+    ) -> str:
+        """Ask the model to reformat malformed extraction output into valid JSON."""
+        keys_hint = ", ".join(expected_keys) if expected_keys else "(no explicit keys)"
+        repair_prompt = (
+            "Reformat the following malformed extraction output into strict JSON.\n\n"
+            "Requirements:\n"
+            "- Return ONLY a JSON array.\n"
+            "- Every array item MUST be a JSON object.\n"
+            f"- Object keys should come from: {keys_hint}.\n"
+            "- Keep all recoverable information.\n"
+            "- If a value is missing, use null.\n"
+            "- Do NOT include markdown, comments, or extra text.\n\n"
+            f"Malformed output:\n{malformed_output}"
+        )
+        return self.llm_client.generate(
+            repair_prompt,
+            max_tokens=EXTRACTION_MAX_TOKENS,
+            temperature=0.0,
+        )
     
     def _parse_extraction_response(
         self,
@@ -1270,31 +1295,14 @@ class ConstrainedExtractor:
                 logger.warning("Extraction response is not a list, wrapping in list")
                 records = [records]
 
-            # Keep dictionary records and coerce common malformed shapes.
-            # We fail if unresolved records remain (no silent data loss).
-            keys = (
-                sorted(list(constrained_keys))
-                if constrained_keys
-                else (expected_keys or [])
-            )
-
-            # Common malformed shape: model returns a flat top-level array of
-            # scalar values (one row), e.g. ["Stephen Curry", "NBA", "Warriors"].
-            if (
-                keys
-                and records
-                and len(records) == len(keys)
-                and all(not isinstance(x, (dict, list)) for x in records)
-            ):
-                records = [{k: v for k, v in zip(keys, records)}]
+            # Strict parsing: only object rows are accepted. We can unwrap
+            # stringified JSON, but we do not do positional coercion.
             dict_records: List[Dict[str, Any]] = []
             unresolved: List[Any] = []
             for r in records:
                 if isinstance(r, dict):
                     dict_records.append(r)
                     continue
-
-                coerced: Optional[Dict[str, Any]] = None
 
                 # String that itself is JSON object/list.
                 if isinstance(r, str):
@@ -1305,33 +1313,22 @@ class ConstrainedExtractor:
                         try:
                             parsed_inner = json.loads(s)
                             if isinstance(parsed_inner, dict):
-                                coerced = parsed_inner
+                                dict_records.append(parsed_inner)
                             elif isinstance(parsed_inner, list):
-                                if (
-                                    keys
-                                    and len(parsed_inner) == len(keys)
-                                    and all(not isinstance(x, (dict, list)) for x in parsed_inner)
-                                ):
-                                    coerced = {k: v for k, v in zip(keys, parsed_inner)}
-                                else:
-                                    for item in parsed_inner:
-                                        if isinstance(item, dict):
-                                            dict_records.append(item)
-                                    coerced = {}
+                                list_unresolved = 0
+                                for item in parsed_inner:
+                                    if isinstance(item, dict):
+                                        dict_records.append(item)
+                                    else:
+                                        list_unresolved += 1
+                                if list_unresolved > 0:
+                                    unresolved.append(r)
+                            else:
+                                unresolved.append(r)
                         except Exception:
-                            coerced = None
-                    elif len(keys) == 1:
-                        coerced = {keys[0]: r}
-                elif len(keys) == 1 and isinstance(r, (int, float, bool)):
-                    # Scalar for single-key extraction.
-                    coerced = {keys[0]: r}
-                elif isinstance(r, list) and keys and len(r) == len(keys):
-                    # Positional value list aligned to constrained keys.
-                    coerced = {k: v for k, v in zip(keys, r)}
-
-                if isinstance(coerced, dict):
-                    if coerced:
-                        dict_records.append(coerced)
+                            unresolved.append(r)
+                    else:
+                        unresolved.append(r)
                 else:
                     unresolved.append(r)
 
@@ -1343,8 +1340,8 @@ class ConstrainedExtractor:
                     sample,
                 )
                 raise ValueError(
-                    f"Extraction response contained {len(unresolved)} non-object "
-                    f"record(s) that could not be coerced. Sample: {sample!r}"
+                    "Extraction response contained non-object record(s). "
+                    f"count={len(unresolved)} expected_keys={expected_keys} sample={sample!r}"
                 )
 
             records = dict_records
@@ -1371,7 +1368,7 @@ class ConstrainedExtractor:
                 len(response),
                 snippet,
             )
-            return []
+            raise ValueError(f"JSON decode failed: {e}")
     
     def _extract_json(self, text: str) -> Optional[str]:
         """Extract first balanced JSON array/object from text."""
