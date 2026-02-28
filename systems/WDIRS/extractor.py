@@ -301,17 +301,8 @@ class ConstrainedExtractor:
         keys_to_use,
         n_passages: int,
     ) -> str:
-        """
-        Build a fully generic format example that does NOT contain any
-        domain-specific field names or values — just enough structure to
-        show the LLM the required JSON shape.
-
-        Using real column names from the schema avoids the overfitting
-        risk of hard-coded "company_name" / "revenue" examples while still
-        being concrete enough to be unambiguous.
-        """
+        """Build a simple DocETL-style JSON shape example."""
         col_list = list(keys_to_use)
-        # Pick the first two columns to illustrate text and numeric formats.
         text_col = next(
             (c for c in col_list if schema.get(c, "OTHER") not in self._NUMERIC_SEM_TYPES),
             col_list[0] if col_list else "field_A",
@@ -320,15 +311,9 @@ class ConstrainedExtractor:
             (c for c in col_list if schema.get(c, "OTHER") in self._NUMERIC_SEM_TYPES),
             None,
         )
-        parts = [
-            f'"{text_col}": {{"value": "<text value from passage>", '
-            f'"span": "<exact verbatim quote from passage>"}}'
-        ]
+        parts = [f'"{text_col}": "<text value or null>"']
         if num_col:
-            parts.append(
-                f'"{num_col}": {{"value": <number from passage>, '
-                f'"span": "<exact verbatim quote containing the number>"}}'
-            )
+            parts.append(f'"{num_col}": 123')
         record_example = "{" + ", ".join(parts) + "}"
         return (
             f'{{"passage_1": [{record_example}], '
@@ -374,9 +359,10 @@ class ConstrainedExtractor:
 
         n = len(chunk_texts)
         example_keys = self._build_generic_example(schema, keys_to_use, n)
-        example_field = (
-            '{"value": <extracted value or null>, '
-            '"span": "<exact verbatim quote from passage, or null>"}'
+        format_contract = (
+            "OUTPUT FORMAT (MANDATORY): Return ONLY JSON. "
+            "Top-level must be an object with keys passage_1..passage_N. "
+            "Each passage key maps to an array of plain record objects."
         )
 
         # Numeric type rule — surfaced explicitly so the 7B model internalises it.
@@ -391,20 +377,20 @@ class ConstrainedExtractor:
 
         return (
             f'Extract structured data for table "{table_name}" from each passage below.\n\n'
+            f"{format_contract}\n\n"
             f"Schema (extract ONLY these fields — do not add any other fields):\n"
             f"{schema_desc}\n"
             f"{entity_section}\n\n"
             f"Rules:\n"
             f"- Return a JSON object with keys passage_1 … passage_{n}.\n"
             f"- Each value is a JSON array of record objects ([] if nothing found).\n"
-            f"- Each field must use this format: {example_field}\n"
-            f"- The span MUST be an exact verbatim copy from the passage. "
-            f"If you cannot find supporting text for a field, set both value and span to null.\n"
-            f"- Use null (never empty string) for any absent value or span.\n"
+            f"- Record fields must be plain scalar values (string/number/null), not nested objects.\n"
+            f"- Use null (never empty string) for any absent value.\n"
             f"{numeric_rule}"
             f"- If a passage discusses multiple entities, return one record per entity.\n\n"
             f"Format example: {example_keys}\n\n"
             f"{passage_blocks}\n\n"
+            f"{format_contract}\n"
             f"Return ONLY the JSON object, no other text."
         )
 
@@ -737,11 +723,18 @@ class ConstrainedExtractor:
         with ThreadPoolExecutor(max_workers=MAX_PARALLEL_REQUESTS) as executor:
             for group_texts, group_ids in groups:
                 for batch_idx, (col_batch, batch_ck, batch_nh) in enumerate(col_batches):
-                    future = executor.submit(
-                        self._extract_chunk_group_safe,
-                        group_texts, group_ids, table_name,
-                        col_batch, batch_ck, batch_nh, entity_col,
-                    )
+                    if len(group_texts) == 1:
+                        future = executor.submit(
+                            self._extract_single_chunk_safe,
+                            group_texts[0], group_ids[0], table_name,
+                            col_batch, batch_ck, batch_nh, entity_col,
+                        )
+                    else:
+                        future = executor.submit(
+                            self._extract_chunk_group_safe,
+                            group_texts, group_ids, table_name,
+                            col_batch, batch_ck, batch_nh, entity_col,
+                        )
                     future_to_key[future] = (group_ids, batch_idx)
 
             completed = 0
@@ -751,7 +744,11 @@ class ConstrainedExtractor:
                 if completed % 100 == 0 or completed == total_tasks:
                     logger.info(f"  {completed}/{total_tasks} tasks done")
                 try:
-                    group_results = future.result()
+                    raw_result = future.result()
+                    group_results = (
+                        [raw_result] if isinstance(raw_result, ExtractionResult)
+                        else raw_result
+                    )
                     for er in group_results:
                         chunk_batch_map[er.chunk_id][batch_idx] = er
                 except Exception as e:
