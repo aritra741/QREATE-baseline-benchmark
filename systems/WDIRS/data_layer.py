@@ -970,6 +970,7 @@ class DataLayer:
         table_name: str,
         identity_col: str,
         record_chunk_triples: List[tuple],
+        allow_insert_new_entities: bool = True,
     ) -> tuple:
         """
         Bulk upsert records using the `_entity` routing field.
@@ -981,7 +982,9 @@ class DataLayer:
         For each unique entity:
           - If a row already exists: UPDATE only NULL columns (COALESCE, never
             overwrite existing data).
-          - Otherwise: INSERT a new row.
+          - Otherwise:
+              * if allow_insert_new_entities=True: INSERT a new row.
+              * if allow_insert_new_entities=False: skip (known-identity-only mode).
 
         `_entity` is stripped from the record before writing.
 
@@ -1021,10 +1024,16 @@ class DataLayer:
             entity_groups.setdefault(key, []).append((record, chunk_id, doc_id))
 
         if no_entity:
-            logger.warning(
-                f"[upsert_by_entity] {len(no_entity)} records for '{table_name}' "
-                f"have no _entity — inserting as new rows."
-            )
+            if allow_insert_new_entities:
+                logger.warning(
+                    f"[upsert_by_entity] {len(no_entity)} records for '{table_name}' "
+                    f"have no _entity — inserting as new rows."
+                )
+            else:
+                logger.info(
+                    f"[upsert_by_entity] {len(no_entity)} records for '{table_name}' "
+                    "have no _entity — skipped (known-identity-only mode)."
+                )
 
         row_prov_pairs: List[tuple] = []
         cell_prov_triples: List[tuple] = []
@@ -1103,7 +1112,9 @@ class DataLayer:
                         row_prov_pairs.append((existing_row_id, chunk_id))
 
                 else:
-                    # INSERT new row.
+                    # INSERT new row (or skip in known-identity-only mode).
+                    if not allow_insert_new_entities:
+                        continue
                     merged = {}
                     col_source = {}
                     for record, chunk_id, doc_id in group:
@@ -1140,27 +1151,28 @@ class DataLayer:
                             cell_prov_triples.append((row_id, col, cid, did))
 
             # --- Records without entity routing ---
-            for record, chunk_id, doc_id in no_entity:
-                clean = {k: v for k, v in record.items() if k != "_entity"}
-                row_id = str(uuid.uuid4())
-                full_record = {"row_id": row_id, **clean}
-                columns = list(full_record.keys())
-                params = {}
-                for col in columns:
-                    val = full_record[col]
-                    params[col] = (
-                        json.dumps(val) if isinstance(val, (list, dict)) else val
+            if allow_insert_new_entities:
+                for record, chunk_id, doc_id in no_entity:
+                    clean = {k: v for k, v in record.items() if k != "_entity"}
+                    row_id = str(uuid.uuid4())
+                    full_record = {"row_id": row_id, **clean}
+                    columns = list(full_record.keys())
+                    params = {}
+                    for col in columns:
+                        val = full_record[col]
+                        params[col] = (
+                            json.dumps(val) if isinstance(val, (list, dict)) else val
+                        )
+                    sql = (
+                        f"INSERT INTO {table_name} "
+                        f"({', '.join(columns)}) "
+                        f"VALUES ({', '.join(':' + c for c in columns)})"
                     )
-                sql = (
-                    f"INSERT INTO {table_name} "
-                    f"({', '.join(columns)}) "
-                    f"VALUES ({', '.join(':' + c for c in columns)})"
-                )
-                conn.execute(text(sql), params)
-                row_prov_pairs.append((row_id, chunk_id))
-                for col, val in clean.items():
-                    if val is not None and col != "row_id":
-                        cell_prov_triples.append((row_id, col, chunk_id, doc_id))
+                    conn.execute(text(sql), params)
+                    row_prov_pairs.append((row_id, chunk_id))
+                    for col, val in clean.items():
+                        if val is not None and col != "row_id":
+                            cell_prov_triples.append((row_id, col, chunk_id, doc_id))
 
             conn.commit()
 

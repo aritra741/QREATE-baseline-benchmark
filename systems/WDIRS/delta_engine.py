@@ -530,7 +530,10 @@ class DeltaEngine:
                 table_rows = 0
                 if triples:
                     row_pv, cell_pv = self.data_layer.upsert_by_entity(
-                        table_name, identity_col, triples
+                        table_name,
+                        identity_col,
+                        triples,
+                        allow_insert_new_entities=False,
                     )
                     self.data_layer.bulk_insert_provenance(table_name, row_pv)
                     self.data_layer.bulk_insert_cell_provenance(cell_pv)
