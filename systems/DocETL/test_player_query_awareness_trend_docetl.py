@@ -97,6 +97,15 @@ KNOWN_TABLE_COLUMNS: Dict[str, List[str]] = {
     },
 }
 
+NUMERIC_FIELDS = {
+    "age",
+    "draft_pick",
+    "founded_year",
+    "population",
+    "gdp",
+    "area",
+}
+
 
 @dataclass
 class TrendQueryMetrics:
@@ -237,14 +246,21 @@ def _extract_table_for_query(table: str, needed_cols: List[str], nl_query: str) 
         max_threads=DOCETL_THREADS,
     )
 
-    output_schema = {c: "str" for c in needed_cols}
+    output_schema = {
+        c: ("number" if c in NUMERIC_FIELDS else "str") for c in needed_cols
+    }
     field_list = "\n".join(f"- {c}" for c in needed_cols)
+    numeric_guidance = ", ".join([c for c in needed_cols if c in NUMERIC_FIELDS])
     prompt = (
         f"You are building a structured {table} table for this natural-language query:\n"
         f"{nl_query}\n\n"
         f"From this {table} document, extract exactly one record with these fields:\n"
         f"{field_list}\n\n"
-        "Return empty string for unknown fields. Keep names concise and normalized."
+        "For numeric fields, return numbers (not quoted strings). "
+        f"Numeric fields in this extraction: {numeric_guidance if numeric_guidance else 'none'}.\n"
+        "If a numeric field is unknown, return -1. "
+        "If a text field is unknown, return empty string. "
+        "Keep names concise and normalized."
     )
 
     mapped = docs_df.semantic.map(
