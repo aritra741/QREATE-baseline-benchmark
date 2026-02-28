@@ -4,7 +4,15 @@ import time
 from typing import Any
 
 import pyrate_limiter
-from pyrate_limiter import BucketFullException, LimiterDelayException
+try:
+    from pyrate_limiter import BucketFullException, LimiterDelayException
+except ImportError:
+    # Compatibility for pyrate-limiter versions where exceptions are not
+    # re-exported from the package root.
+    from pyrate_limiter.exceptions import (  # type: ignore
+        BucketFullException,
+        LimiterDelayException,
+    )
 from rich.console import Console
 
 from docetl.console import get_console
