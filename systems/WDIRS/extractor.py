@@ -948,7 +948,8 @@ class ConstrainedExtractor:
                 temperature=EXTRACTION_TEMPERATURE if attempt == 0 else 0.0
             )
             try:
-                records = self._parse_extraction_response(response, constrained_keys)
+                parse_keys = sorted(list(constrained_keys)) if constrained_keys else sorted(list(schema.keys()))
+                records = self._parse_extraction_response(response, constrained_keys, parse_keys)
                 break
             except ValueError as e:
                 if attempt == 0:
@@ -1123,15 +1124,32 @@ class ConstrainedExtractor:
             entity_col,
         )
         
-        # Call LLM
-        response = self.llm_client.generate(
-            prompt,
-            max_tokens=EXTRACTION_MAX_TOKENS,
-            temperature=EXTRACTION_TEMPERATURE
-        )
-        
-        # Parse response
-        records = self._parse_extraction_response(response, constrained_keys)
+        # Call LLM + parse. Retry once with stricter repair instructions when malformed.
+        records: List[Dict[str, Any]] = []
+        response = ""
+        for attempt in range(2):
+            response = self.llm_client.generate(
+                prompt,
+                max_tokens=EXTRACTION_MAX_TOKENS,
+                temperature=EXTRACTION_TEMPERATURE if attempt == 0 else 0.0
+            )
+            try:
+                parse_keys = sorted(list(constrained_keys)) if constrained_keys else sorted(list(schema.keys()))
+                records = self._parse_extraction_response(response, constrained_keys, parse_keys)
+                break
+            except ValueError as e:
+                if attempt == 0:
+                    keys_hint = ", ".join(sorted(list(schema.keys())))
+                    prompt = (
+                        "Your previous output was malformed.\n"
+                        "Return ONLY a valid JSON array where every item is an object.\n"
+                        f"Each object must use keys from: {keys_hint}.\n"
+                        "Do not return strings/numbers/null at top level.\n\n"
+                        f"Original extraction instruction:\n{prompt}\n\n"
+                        f"Malformed model output to fix:\n{response}"
+                    )
+                    continue
+                raise ValueError(f"Failed to parse extraction output after retry: {e}")
         
         # Collect schema keys
         schema_keys = set()
@@ -1233,7 +1251,8 @@ class ConstrainedExtractor:
     def _parse_extraction_response(
         self,
         response: str,
-        constrained_keys: Optional[Set[str]] = None
+        constrained_keys: Optional[Set[str]] = None,
+        expected_keys: Optional[List[str]] = None,
     ) -> List[Dict[str, Any]]:
         """Parse LLM extraction response."""
         try:
@@ -1253,7 +1272,21 @@ class ConstrainedExtractor:
 
             # Keep dictionary records and coerce common malformed shapes.
             # We fail if unresolved records remain (no silent data loss).
-            keys = sorted(list(constrained_keys)) if constrained_keys else []
+            keys = (
+                sorted(list(constrained_keys))
+                if constrained_keys
+                else (expected_keys or [])
+            )
+
+            # Common malformed shape: model returns a flat top-level array of
+            # scalar values (one row), e.g. ["Stephen Curry", "NBA", "Warriors"].
+            if (
+                keys
+                and records
+                and len(records) == len(keys)
+                and all(not isinstance(x, (dict, list)) for x in records)
+            ):
+                records = [{k: v for k, v in zip(keys, records)}]
             dict_records: List[Dict[str, Any]] = []
             unresolved: List[Any] = []
             for r in records:
@@ -1274,10 +1307,17 @@ class ConstrainedExtractor:
                             if isinstance(parsed_inner, dict):
                                 coerced = parsed_inner
                             elif isinstance(parsed_inner, list):
-                                for item in parsed_inner:
-                                    if isinstance(item, dict):
-                                        dict_records.append(item)
-                                coerced = {}
+                                if (
+                                    keys
+                                    and len(parsed_inner) == len(keys)
+                                    and all(not isinstance(x, (dict, list)) for x in parsed_inner)
+                                ):
+                                    coerced = {k: v for k, v in zip(keys, parsed_inner)}
+                                else:
+                                    for item in parsed_inner:
+                                        if isinstance(item, dict):
+                                            dict_records.append(item)
+                                    coerced = {}
                         except Exception:
                             coerced = None
                     elif len(keys) == 1:
