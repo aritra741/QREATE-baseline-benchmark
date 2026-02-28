@@ -764,13 +764,52 @@ class DeltaEngine:
                 f"  {right_table}.{right_column}: {len(right_values)} values"
             )
 
-            canonical_map = self.entity_resolver.align_join_keys(
-                left_values,
-                right_values,
-                left_table,
-                right_table,
-                f"{left_column}↔{right_column}"
+            # Pass 1 (deterministic): normalized exact matching across both sides.
+            # This is robust for common formatting drift (case, punctuation, spacing).
+            left_norm: Dict[str, List[str]] = {}
+            right_norm: Dict[str, List[str]] = {}
+            for v in left_values:
+                n = self._normalize_text(v)
+                if n:
+                    left_norm.setdefault(n, []).append(v)
+            for v in right_values:
+                n = self._normalize_text(v)
+                if n:
+                    right_norm.setdefault(n, []).append(v)
+
+            overlap_norms = set(left_norm.keys()) & set(right_norm.keys())
+            canonical_map: Dict[str, str] = {}
+            for n in overlap_norms:
+                # Prefer a stable canonical form from the right side (join target),
+                # choosing the shortest non-empty variant.
+                right_variants = sorted(
+                    [x for x in right_norm[n] if x and x.strip()],
+                    key=lambda s: (len(s.strip()), s.lower()),
+                )
+                canonical = right_variants[0] if right_variants else right_norm[n][0]
+                for raw in left_norm[n]:
+                    canonical_map[raw] = canonical
+                for raw in right_norm[n]:
+                    canonical_map[raw] = canonical
+
+            logger.info(
+                "  Normalized exact overlap: %d key group(s), %d mapped values",
+                len(overlap_norms),
+                len(canonical_map),
             )
+
+            # Pass 2 (semantic): only for values not matched by normalized overlap.
+            unresolved_left = [v for v in left_values if v not in canonical_map]
+            unresolved_right = [v for v in right_values if v not in canonical_map]
+            if unresolved_left and unresolved_right:
+                semantic_map = self.entity_resolver.align_join_keys(
+                    unresolved_left,
+                    unresolved_right,
+                    left_table,
+                    right_table,
+                    f"{left_column}↔{right_column}"
+                )
+                canonical_map.update(semantic_map)
 
             if not canonical_map:
                 logger.info(f"No join key mismatches found for {left_table}↔{right_table}")

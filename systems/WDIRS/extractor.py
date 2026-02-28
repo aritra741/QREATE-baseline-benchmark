@@ -374,6 +374,15 @@ class ConstrainedExtractor:
             "NEVER a text string (e.g. NOT \"one million\", NOT \"£1.2m\").\n"
             if has_numeric else ""
         )
+        scalar_rule = (
+            "- Every field must be a single scalar value (string/number/null), "
+            "never a list/array and never a nested object. "
+            "If multiple candidates are mentioned for a field, pick ONE value using "
+            "temporal/salience cues: prefer explicitly current or present-tense facts "
+            "(e.g. 'currently', 'is with', 'as of now'). If no current cue "
+            "exists, choose the most recent value mentioned; if still ambiguous, choose "
+            "the first clear canonical value.\n"
+        )
 
         return (
             f'Extract structured data for table "{table_name}" from each passage below.\n\n'
@@ -387,6 +396,7 @@ class ConstrainedExtractor:
             f"- Record fields must be plain scalar values (string/number/null), not nested objects.\n"
             f"- Use null (never empty string) for any absent value.\n"
             f"{numeric_rule}"
+            f"{scalar_rule}"
             f"- If a passage discusses multiple entities, return one record per entity.\n\n"
             f"Format example: {example_keys}\n\n"
             f"{passage_blocks}\n\n"
@@ -510,9 +520,12 @@ class ConstrainedExtractor:
                 temperature=EXTRACTION_TEMPERATURE,
             )
             elapsed = _time.time() - start
-            return self._parse_multi_chunk_response(
+            results = self._parse_multi_chunk_response(
                 response, chunk_ids, constrained_keys, elapsed
             )
+            for er in results:
+                er.records = self._normalize_records_for_schema(er.records, schema)
+            return results
         except Exception as e:
             logger.error(
                 f"Error extracting chunk group "
@@ -956,6 +969,7 @@ class ConstrainedExtractor:
                     "Failed to parse extraction output after JSON repair pass: "
                     f"initial_error={first_error}; repair_error={repair_error}"
                 )
+        records = self._normalize_records_for_schema(records, schema)
         
         # Filter records by predicates if specified
         if predicates and records:
@@ -1141,6 +1155,7 @@ class ConstrainedExtractor:
                     "Failed to parse extraction output after JSON repair pass: "
                     f"initial_error={first_error}; repair_error={repair_error}"
                 )
+        records = self._normalize_records_for_schema(records, schema)
         
         # Collect schema keys
         schema_keys = set()
@@ -1223,6 +1238,15 @@ class ConstrainedExtractor:
             "NEVER a text string (e.g. NOT \"one million\").\n"
             if has_numeric else ""
         )
+        scalar_rule = (
+            "- Every field must be a single scalar value (string/number/null), "
+            "never a list/array and never a nested object. "
+            "If multiple candidates are mentioned for a field, pick ONE value using "
+            "temporal/salience cues: prefer explicitly current or present-tense facts "
+            "(e.g. 'currently', 'is with', 'plays for', 'as of now'). If no current cue "
+            "exists, choose the most recent value mentioned; if still ambiguous, choose "
+            "the first clear canonical value.\n"
+        )
         entity_section = self._build_entity_section(entity_col)
 
         format_contract = (
@@ -1240,11 +1264,58 @@ class ConstrainedExtractor:
             f"- Use null (not empty string) for any value that is not present.\n"
             f"- If no matching data is found, return an empty array [].\n"
             f"{numeric_rule}"
+            f"{scalar_rule}"
             f"\nText:\n{chunk}\n\n"
             f"{format_contract}\n"
             f"Return ONLY the JSON array, no other text."
         )
         return prompt
+
+    def _normalize_records_for_schema(
+        self,
+        records: List[Dict[str, Any]],
+        schema: Dict[str, str],
+    ) -> List[Dict[str, Any]]:
+        """Normalize records to schema-compatible scalar values."""
+        out: List[Dict[str, Any]] = []
+        for record in records:
+            normalized: Dict[str, Any] = {}
+            for col, val in record.items():
+                sem_type = schema.get(col, "OTHER")
+                normalized[col] = self._normalize_cell_value(val, sem_type)
+            out.append(normalized)
+        return out
+
+    def _normalize_cell_value(self, value: Any, sem_type: str) -> Any:
+        """Collapse list-like outputs to single scalar values."""
+        if value is None:
+            return None
+
+        def _first_nonempty(items: List[Any]) -> Any:
+            for item in items:
+                s = str(item).strip()
+                if s:
+                    return item
+            return None
+
+        # Unwrap stringified JSON arrays.
+        if isinstance(value, str):
+            s = value.strip()
+            if s.startswith("[") and s.endswith("]"):
+                try:
+                    parsed = json.loads(s)
+                    if isinstance(parsed, list):
+                        value = parsed
+                except Exception:
+                    pass
+
+        # Universal scalar policy: collapse any list-like value to one scalar.
+        if isinstance(value, list):
+            picked = _first_nonempty(value)
+            return str(picked).strip() if picked is not None else None
+        if isinstance(value, str):
+            return value.strip() or None
+        return value
 
     def _repair_extraction_response(
         self,
