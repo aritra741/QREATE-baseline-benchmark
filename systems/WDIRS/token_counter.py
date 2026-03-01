@@ -1,11 +1,15 @@
 """
-Token Counter for WDIRS — Qwen2.5-7B-Instruct tokenizer via Ollama API.
+Token Counter for WDIRS — Qwen2.5-7B-Instruct tokenizer.
 
 Provides a process-wide singleton (GLOBAL_COUNTER) that accumulates input and
 output token counts for every LLM call made through OllamaClient.generate().
-Tokens are counted using Ollama's /api/tokenize endpoint (exact model tokens).
 Tokens are attributed to the calling component (extractor, entity_anchor,
 lattice_planner, etc.) by inspecting the Python call stack.
+
+Uses transformers.AutoTokenizer which respects standard HF cache env vars:
+- HF_HOME
+- HUGGINGFACE_HUB_CACHE
+- TRANSFORMERS_CACHE
 
 Usage
 -----
@@ -24,87 +28,78 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Optional
 
-import requests
-
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# Ollama tokenizer API client
+# Qwen2.5-7B-Instruct tokenizer — loaded once, shared across all threads
 # ---------------------------------------------------------------------------
 
-OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:7b-instruct")
-
-_tokenizer_ready = False
+_tokenizer = None
+_tokenizer_failed = False
+_tokenizer_name = "uninitialized"
 _tokenizer_lock = threading.Lock()
 
 
-def _verify_ollama_tokenize() -> bool:
-    """Check if Ollama /api/tokenize endpoint is available."""
-    try:
-        resp = requests.post(
-            f"{OLLAMA_URL}/api/tokenize",
-            json={"model": OLLAMA_MODEL, "prompt": "test"},
-            timeout=5,
-        )
-        return resp.status_code == 200
-    except Exception as e:
-        logger.error(f"[TokenCounter] Ollama tokenize API check failed: {e}")
-        return False
+def _load_tokenizer():
+    """Load Qwen2.5-7B-Instruct tokenizer using transformers (respects HF_HOME etc)."""
+    global _tokenizer, _tokenizer_failed, _tokenizer_name
+    if _tokenizer is not None:
+        return _tokenizer
+    if _tokenizer_failed:
+        return None
+
+    with _tokenizer_lock:
+        if _tokenizer is not None:
+            return _tokenizer
+        if _tokenizer_failed:
+            return None
+
+        try:
+            from transformers import AutoTokenizer
+
+            _tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen2.5-7B-Instruct")
+            _tokenizer_name = "Qwen2.5-7B-Instruct (from_pretrained)"
+            logger.info(
+                f"[TokenCounter] Loaded Qwen2.5-7B-Instruct tokenizer via transformers"
+            )
+            return _tokenizer
+        except Exception as exc:
+            _tokenizer_failed = True
+            hf_home = os.getenv("HF_HOME", "~/.cache/huggingface")
+            hf_cache = os.getenv("HUGGINGFACE_HUB_CACHE", f"{hf_home}/hub")
+            raise RuntimeError(
+                f"[TokenCounter] Precise tokenization required, but Qwen tokenizer could not be loaded.\n"
+                f"Reason: {exc}\n\n"
+                f"Fix: Download the tokenizer with:\n"
+                f"  python3 -c 'from transformers import AutoTokenizer; "
+                f"AutoTokenizer.from_pretrained(\"Qwen/Qwen2.5-7B-Instruct\"); print(\"OK\")'\n\n"
+                f"Cache location (will be used):\n"
+                f"  HF_HOME={hf_home}\n"
+                f"  HUGGINGFACE_HUB_CACHE={hf_cache}\n\n"
+                f"Or set these env vars to use a custom cache location:\n"
+                f"  export HF_HOME=/path/to/cache\n"
+                f"  export HUGGINGFACE_HUB_CACHE=/path/to/cache/hub"
+            )
 
 
 def count_tokens(text: str) -> int:
-    """
-    Return the number of tokens using Ollama's tokenize API.
-    Counts tokens from the exact model being used.
-    """
+    """Return the number of Qwen2.5-7B-Instruct tokens in *text*."""
     if not text:
         return 0
-
-    global _tokenizer_ready
-    if not _tokenizer_ready:
-        with _tokenizer_lock:
-            if not _tokenizer_ready:
-                if not _verify_ollama_tokenize():
-                    raise RuntimeError(
-                        f"[TokenCounter] Precise tokenization required: "
-                        f"Ollama /api/tokenize endpoint unavailable at {OLLAMA_URL}. "
-                        f"Ensure Ollama is running and accessible."
-                    )
-                _tokenizer_ready = True
-
-    try:
-        resp = requests.post(
-            f"{OLLAMA_URL}/api/tokenize",
-            json={"model": OLLAMA_MODEL, "prompt": text},
-            timeout=10,
-        )
-        if resp.status_code != 200:
-            raise RuntimeError(
-                f"[TokenCounter] Ollama tokenize failed with status {resp.status_code}: {resp.text}"
-            )
-        data = resp.json()
-        tokens = data.get("tokens", [])
-        return len(tokens)
-    except requests.RequestException as e:
+    tok = _load_tokenizer()
+    if tok is None:
         raise RuntimeError(
-            f"[TokenCounter] Failed to call Ollama tokenize API: {e}"
+            "[TokenCounter] Precise tokenization required, but tokenizer is unavailable."
         )
+    encoded = tok.encode(text)
+    if hasattr(encoded, "__len__"):
+        return len(encoded)
+    return len(list(encoded))
 
 
 def ensure_precise_tokenizer_ready() -> None:
     """Fail-fast check for strict token counting setups."""
-    if not _verify_ollama_tokenize():
-        raise RuntimeError(
-            f"[TokenCounter] Precise tokenization required: "
-            f"Ollama /api/tokenize endpoint unavailable at {OLLAMA_URL}. "
-            f"Ensure Ollama is running with model {OLLAMA_MODEL} loaded."
-        )
-    global _tokenizer_ready
-    _tokenizer_ready = True
-    logger.info(
-        f"[TokenCounter] Verified Ollama tokenize API ready at {OLLAMA_URL} ({OLLAMA_MODEL})"
-    )
+    _load_tokenizer()
 
 
 # ---------------------------------------------------------------------------
@@ -222,8 +217,8 @@ class TokenCounter:
             )
         }
         return {
-            "model": OLLAMA_MODEL,
-            "tokenizer": f"Ollama /api/tokenize ({OLLAMA_URL})",
+            "model": "qwen2.5:7b-instruct",
+            "tokenizer": _tokenizer_name,
             "elapsed_seconds": round(elapsed, 1),
             "llm_calls": self.call_count,
             "input_tokens": self.input_tokens,
