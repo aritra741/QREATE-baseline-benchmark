@@ -38,7 +38,7 @@ import sqlglot.expressions as _sqlglot_exp
 # Add systems/WDIRS to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from token_counter import GLOBAL_COUNTER
+from token_counter import GLOBAL_COUNTER, ensure_precise_tokenizer_ready
 from extractor import OllamaClient
 from wdirs_runner import WDIRSRunner
 from config import (
@@ -913,6 +913,8 @@ def plot_metrics(metrics: List[TrendQueryMetrics], plots_dir: Path) -> None:
 
 
 def main() -> int:
+    ensure_precise_tokenizer_ready()
+
     RESULTS_BASE_DIR.mkdir(parents=True, exist_ok=True)
     setup_logging(RESULTS_BASE_DIR / "query_awareness_trend.log")
     run_dir, query_results_dir, query_tables_dir, plots_dir = _build_run_paths()

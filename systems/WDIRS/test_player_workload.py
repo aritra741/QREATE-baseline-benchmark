@@ -26,7 +26,7 @@ from typing import Dict, List, Any, Optional, Tuple
 
 # Token counter must be imported before any WDIRS component.
 sys.path.insert(0, str(Path(__file__).parent))
-from token_counter import GLOBAL_COUNTER
+from token_counter import GLOBAL_COUNTER, ensure_precise_tokenizer_ready
 
 sys.path.insert(0, str(Path(__file__).parent))
 
@@ -262,6 +262,8 @@ def main(
     projection_fastpath_col_batch_size: int = 0,
 ) -> int:
     """Create a timestamped run dir, run preprocessing, and save token report."""
+    ensure_precise_tokenizer_ready()
+
     run_tag = time.strftime("%Y%m%d_%H%M%S")
     run_dir = RUN_BASE_DIR / f"run_{run_tag}"
     run_dir.mkdir(parents=True, exist_ok=True)

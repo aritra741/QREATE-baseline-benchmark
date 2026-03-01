@@ -114,10 +114,6 @@ class OllamaClient:
         
         messages.append({"role": "user", "content": prompt})
         
-        # Count input tokens (all messages concatenated)
-        input_text = " ".join(m["content"] for m in messages)
-        input_tok = count_tokens(input_text)
-
         for attempt in range(OLLAMA_MAX_RETRIES):
             try:
                 response = self.client.chat.completions.create(
@@ -130,12 +126,25 @@ class OllamaClient:
 
                 content = response.choices[0].message.content
 
-                # Prefer server-reported counts; fall back to local tokenizer
+                # Precise counting only: use complete server usage, otherwise
+                # tokenize both prompt and completion with the strict tokenizer.
                 usage = getattr(response, "usage", None)
-                if usage and getattr(usage, "prompt_tokens", None):
+                prompt_tokens = getattr(usage, "prompt_tokens", None) if usage else None
+                completion_tokens = (
+                    getattr(usage, "completion_tokens", None) if usage else None
+                )
+
+                if prompt_tokens is not None and completion_tokens is not None:
+                    recorded_in = int(prompt_tokens)
+                    recorded_out = int(completion_tokens)
+                elif prompt_tokens is not None and getattr(usage, "total_tokens", None) is not None:
                     recorded_in = usage.prompt_tokens
-                    recorded_out = usage.completion_tokens or count_tokens(content or "")
+                    recorded_out = int(usage.total_tokens) - int(usage.prompt_tokens)
                 else:
+                    # If Ollama does not provide full usage, require local precise
+                    # tokenizer for both prompt and completion.
+                    input_text = " ".join(m["content"] for m in messages)
+                    input_tok = count_tokens(input_text)
                     recorded_in = input_tok
                     recorded_out = count_tokens(content or "")
 

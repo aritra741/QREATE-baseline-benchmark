@@ -19,7 +19,7 @@ import logging
 import os
 import threading
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Optional
 
@@ -29,45 +29,105 @@ logger = logging.getLogger(__name__)
 # Qwen2.5-7B-Instruct tokenizer — loaded once, shared across all threads
 # ---------------------------------------------------------------------------
 
-_SNAPSHOT_PATH = Path(os.path.expanduser(
-    "~/.cache/huggingface/hub/"
-    "models--Qwen--Qwen2.5-7B-Instruct/snapshots/"
-    "a09a35458c702b33eeacc393d103063234e8bc28"
-))
-_TOKENIZER_FILE = _SNAPSHOT_PATH / "tokenizer.json"
+_HF_MODEL_CACHE = Path(
+    os.path.expanduser("~/.cache/huggingface/hub/models--Qwen--Qwen2.5-7B-Instruct")
+)
 
 _tokenizer = None
+_tokenizer_failed = False
+_tokenizer_name = "uninitialized"
 _tokenizer_lock = threading.Lock()
 
 
+def _resolve_tokenizer_file() -> Optional[Path]:
+    """Find a local Qwen tokenizer.json in the HF cache."""
+    snapshots_root = _HF_MODEL_CACHE / "snapshots"
+    if not snapshots_root.exists():
+        return None
+
+    candidates = list(snapshots_root.glob("*/tokenizer.json"))
+    if not candidates:
+        return None
+
+    # Prefer the most recently modified snapshot.
+    candidates.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+    return candidates[0]
+
+
 def _load_tokenizer():
-    global _tokenizer
+    global _tokenizer, _tokenizer_failed, _tokenizer_name
     if _tokenizer is not None:
         return _tokenizer
+    if _tokenizer_failed:
+        return None
+
     with _tokenizer_lock:
         if _tokenizer is not None:
             return _tokenizer
+        if _tokenizer_failed:
+            return None
+
+        tokenizer_file = _resolve_tokenizer_file()
+        if tokenizer_file is None:
+            _tokenizer_failed = True
+            raise RuntimeError(
+                "[TokenCounter] Precise tokenization required, but no local "
+                "Qwen tokenizer.json was found in HuggingFace cache."
+            )
+
         try:
-            from transformers import PreTrainedTokenizerFast
-            _tokenizer = PreTrainedTokenizerFast(tokenizer_file=str(_TOKENIZER_FILE))
+            # Primary path: load directly with the low-level tokenizers runtime.
+            # This avoids extra conversion logic from transformers.
+            from tokenizers import Tokenizer as _HFTokenizer
+
+            _tokenizer = _HFTokenizer.from_file(str(tokenizer_file))
+            _tokenizer_name = f"Qwen tokenizer.json ({tokenizer_file.parent.name})"
             logger.info(
-                f"[TokenCounter] Loaded Qwen2.5-7B-Instruct tokenizer from {_TOKENIZER_FILE}"
+                f"[TokenCounter] Loaded Qwen2.5 tokenizer from {tokenizer_file}"
             )
+            return _tokenizer
         except Exception as exc:
-            logger.warning(
-                f"[TokenCounter] Could not load Qwen tokenizer ({exc}); "
-                "falling back to char-based estimate (÷4)."
-            )
-            _tokenizer = None
+            try:
+                # Secondary path: transformers fast tokenizer from tokenizer.json.
+                from transformers import PreTrainedTokenizerFast
+
+                _tokenizer = PreTrainedTokenizerFast(tokenizer_file=str(tokenizer_file))
+                _tokenizer_name = (
+                    f"Qwen PreTrainedTokenizerFast ({tokenizer_file.parent.name})"
+                )
+                logger.info(
+                    f"[TokenCounter] Loaded Qwen tokenizer via transformers from {tokenizer_file}"
+                )
+                return _tokenizer
+            except Exception as exc2:
+                _tokenizer_failed = True
+                raise RuntimeError(
+                    "[TokenCounter] Precise tokenization required, but local Qwen "
+                    "tokenizer could not be loaded "
+                    f"(tokenizers error: {exc}; transformers error: {exc2})."
+                )
+
     return _tokenizer
 
 
 def count_tokens(text: str) -> int:
     """Return the number of Qwen2.5-7B-Instruct tokens in *text*."""
     tok = _load_tokenizer()
+    if not text:
+        return 0
     if tok is None:
-        return max(1, len(text) // 4)
-    return len(tok.encode(text))
+        raise RuntimeError(
+            "[TokenCounter] Precise tokenization required, but tokenizer is unavailable."
+        )
+    encoded = tok.encode(text)
+    if hasattr(encoded, "ids"):
+        return len(encoded.ids)
+    return len(encoded)
+
+
+def ensure_precise_tokenizer_ready() -> None:
+    """Fail-fast check for strict token counting setups."""
+    _load_tokenizer()
 
 
 # ---------------------------------------------------------------------------
@@ -185,7 +245,7 @@ class TokenCounter:
         }
         return {
             "model": "qwen2.5:7b-instruct",
-            "tokenizer": "Qwen/Qwen2.5-7B-Instruct (local)",
+            "tokenizer": _tokenizer_name,
             "elapsed_seconds": round(elapsed, 1),
             "llm_calls": self.call_count,
             "input_tokens": self.input_tokens,
