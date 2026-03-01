@@ -14,6 +14,8 @@ import hashlib
 import requests
 from openai import OpenAI
 
+from token_counter import GLOBAL_COUNTER, count_tokens
+
 from config import (
     OLLAMA_URL,
     OLLAMA_MODEL,
@@ -112,6 +114,10 @@ class OllamaClient:
         
         messages.append({"role": "user", "content": prompt})
         
+        # Count input tokens (all messages concatenated)
+        input_text = " ".join(m["content"] for m in messages)
+        input_tok = count_tokens(input_text)
+
         for attempt in range(OLLAMA_MAX_RETRIES):
             try:
                 response = self.client.chat.completions.create(
@@ -121,17 +127,33 @@ class OllamaClient:
                     temperature=temperature,
                     timeout=self.timeout
                 )
-                
-                return response.choices[0].message.content
-            
+
+                content = response.choices[0].message.content
+
+                # Prefer server-reported counts; fall back to local tokenizer
+                usage = getattr(response, "usage", None)
+                if usage and getattr(usage, "prompt_tokens", None):
+                    recorded_in = usage.prompt_tokens
+                    recorded_out = usage.completion_tokens or count_tokens(content or "")
+                else:
+                    recorded_in = input_tok
+                    recorded_out = count_tokens(content or "")
+
+                GLOBAL_COUNTER.record(
+                    input_tokens=recorded_in,
+                    output_tokens=recorded_out,
+                )
+
+                return content
+
             except Exception as e:
                 logger.warning(f"Ollama API error (attempt {attempt + 1}/{OLLAMA_MAX_RETRIES}): {e}")
-                
+
                 if attempt < OLLAMA_MAX_RETRIES - 1:
                     time.sleep(OLLAMA_RETRY_DELAY)
                 else:
                     raise
-        
+
         raise Exception("Failed to get response from Ollama after retries")
 
 
@@ -146,8 +168,9 @@ class ConstrainedExtractor:
     
     def __init__(self, llm_client: Optional[OllamaClient] = None):
         """Initialize extractor."""
+        import config as _config
         self.llm_client = llm_client or OllamaClient()
-        self.cache_dir = CACHE_DIR / "extractions"
+        self.cache_dir = _config.CACHE_DIR / "extractions"
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         
         # Schema cache

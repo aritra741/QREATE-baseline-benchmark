@@ -132,7 +132,8 @@ class EntityResolver:
         self.cross_encoder = CrossEncoder(cross_encoder_model)
         
         # Cache
-        self.cache_dir = CACHE_DIR / "entity_resolution"
+        import config as _config
+        self.cache_dir = _config.CACHE_DIR / "entity_resolution"
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         
         # Resolution cache

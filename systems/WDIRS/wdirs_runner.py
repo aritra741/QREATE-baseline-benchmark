@@ -259,8 +259,9 @@ class WDIRSRunner:
                 "Run: python -m spacy download en_core_web_sm"
             )
         
-        # Cache
-        self.cache_dir = CACHE_DIR / dataset
+        # Cache (read at runtime so tests can redirect via config.CACHE_DIR)
+        import config as _config
+        self.cache_dir = _config.CACHE_DIR / dataset
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         
         logger.info("WDIRS initialization complete")

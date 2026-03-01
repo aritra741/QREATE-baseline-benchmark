@@ -38,6 +38,7 @@ import sqlglot.expressions as _sqlglot_exp
 # Add systems/WDIRS to path
 sys.path.insert(0, str(Path(__file__).parent))
 
+from token_counter import GLOBAL_COUNTER
 from extractor import OllamaClient
 from wdirs_runner import WDIRSRunner
 from config import (
@@ -578,19 +579,34 @@ def ensure_snapshot_artifacts(refresh_snapshot: bool = False) -> Tuple[Path, Opt
     """
     SNAPSHOT_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Prefer the full Player workload checkpoint first.
+    # Prefer latest timestamped preprocessing run, then legacy paths.
+    preprocess_base = RESULTS_DIR / "player_workload_preprocess"
+    latest_run = None
+    if preprocess_base.exists():
+        runs = sorted(preprocess_base.glob("run_*"), key=lambda p: p.name, reverse=True)
+        for run_dir in runs:
+            candidate = run_dir / "Player_preprocessed.db"
+            if candidate.exists():
+                latest_run = candidate
+                break
     source_db_candidates = [
+        latest_run,
         RESULTS_DIR / "player_workload_test" / "checkpoint" / "Player_preprocessed.db",
         Path(__file__).parent / "wdirs-2.db",
         DB_DIR / "wdirs.db",
         Path(__file__).parent / "wdirs-owner-only.db",
     ]
-    source_db = _first_existing(source_db_candidates)
+    source_db = _first_existing([p for p in source_db_candidates if p is not None])
     if source_db is None:
         raise FileNotFoundError(
             "No source DB found. Checked: "
             + ", ".join(str(p) for p in source_db_candidates)
         )
+
+    # When using a timestamped run, cache lives in that run's .cache
+    source_run_dir = source_db.parent if source_db == latest_run else None
+    source_cache = source_run_dir / ".cache" if source_run_dir else CACHE_DIR
+    source_extractions = source_cache / "extractions"
 
     snapshot_db = SNAPSHOT_DIR / "player_snapshot.db"
     if refresh_snapshot and snapshot_db.exists():
@@ -602,7 +618,6 @@ def ensure_snapshot_artifacts(refresh_snapshot: bool = False) -> Tuple[Path, Opt
         shutil.copy2(source_db, snapshot_db)
         logger.info(f"Created snapshot DB: {snapshot_db} (from {source_db})")
 
-    source_cache = CACHE_DIR
     snapshot_cache = SNAPSHOT_DIR / "cache_snapshot"
     if snapshot_cache.exists():
         logger.info(f"Snapshot cache already exists: {snapshot_cache}")
@@ -612,7 +627,6 @@ def ensure_snapshot_artifacts(refresh_snapshot: bool = False) -> Tuple[Path, Opt
     else:
         logger.warning(f"Cache dir not found, skipping copy: {source_cache}")
 
-    source_extractions = CACHE_DIR / "extractions"
     snapshot_extractions = SNAPSHOT_DIR / "extractions_snapshot"
     if snapshot_extractions.exists():
         logger.info(f"Snapshot extraction cache already exists: {snapshot_extractions}")
@@ -623,10 +637,11 @@ def ensure_snapshot_artifacts(refresh_snapshot: bool = False) -> Tuple[Path, Opt
         logger.warning(f"Extraction cache dir not found, skipping copy: {source_extractions}")
 
     identity_candidates = [
+        (source_run_dir / "Player_identity_columns.json") if source_run_dir else None,
         RESULTS_DIR / "player_workload_test" / "checkpoint" / "Player_identity_columns.json",
         RESULTS_DIR / "player_workload_test" / "checkpoint" / "player_identity_columns.json",
     ]
-    source_identity = _first_existing(identity_candidates)
+    source_identity = _first_existing([p for p in identity_candidates if p is not None])
     snapshot_identity = SNAPSHOT_DIR / "Player_identity_columns.json"
     if source_identity and not snapshot_identity.exists():
         shutil.copy2(source_identity, snapshot_identity)
@@ -953,6 +968,14 @@ def main() -> int:
         )
         logger.info(f"Outputs under: {run_dir}")
         logger.info("=" * 80)
+
+        # Token cost report (Qwen2.5-7B-Instruct tokenizer)
+        token_summary = GLOBAL_COUNTER.summary_str()
+        logger.info(token_summary)
+        token_json_path = run_dir / "token_cost.json"
+        GLOBAL_COUNTER.save_json(token_json_path)
+        logger.info(f"Token cost JSON saved to: {token_json_path}")
+
         return 0
     except Exception as exc:
         logger.exception(f"Trend test failed: {exc}")
