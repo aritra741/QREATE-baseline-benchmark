@@ -789,6 +789,22 @@ def run_trend_queries(
                 error=result.error if not result.success else None,
             )
             metrics.append(item)
+
+            # Augment per-query acc.json with time and token cost (evaluation writes acc.json only)
+            acc_path = query_results_dir / query_id / "acc.json"
+            if acc_path.exists():
+                try:
+                    acc_data = json.loads(acc_path.read_text())
+                    acc_data["query_id"] = query_id
+                    acc_data["latency_s"] = round(latency, 4)
+                    acc_data["prompt_tokens"] = d_prompt
+                    acc_data["completion_tokens"] = d_completion
+                    acc_data["total_tokens"] = d_total
+                    acc_data["result_rows"] = len(result.results)
+                    acc_path.write_text(json.dumps(acc_data, indent=2))
+                except Exception as acc_err:
+                    logger.warning(f"Could not augment {acc_path} with time/cost: {acc_err}")
+
             logger.info(
                 f"{query_id}: success={item.success} rows={item.result_rows} "
                 f"latency={item.latency_s:.3f}s tokens={item.total_tokens} "
