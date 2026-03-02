@@ -137,7 +137,7 @@ LOG_FILE = WDIRS_DIR / "wdirs.log"
 # Parallel processing
 MAX_WORKERS = int(os.getenv("MAX_WORKERS", "8"))
 # Conservative default to avoid local Ollama saturation and retry storms.
-MAX_PARALLEL_REQUESTS = int(os.getenv("MAX_PARALLEL_REQUESTS", "8"))
+MAX_PARALLEL_REQUESTS = int(os.getenv("MAX_PARALLEL_REQUESTS", "16"))
 EXTRACTION_MAX_WORKERS = MAX_PARALLEL_REQUESTS  # alias used by entity-first extraction
 NER_BATCH_SIZE = int(os.getenv("NER_BATCH_SIZE", "512"))  # spaCy pipe batch for NER grouping pass
 # For strict prune-before-extract behavior, default to 0 so unassigned chunks
