@@ -1793,26 +1793,35 @@ class WDIRSRunner:
                         )
                         
                         # ── Attribute Discovery for Smart Column Delta ──────────────
+                        # NOTE: Projection fastpath uses synthetic chunk IDs (doc::table::name),
+                        # but Phase 2 delta engine uses actual chunk IDs from the chunk store.
+                        # We need to discover attributes from the CHUNKED versions.
                         logger.info(f"[AttributeIndex] Discovering attributes for {table_name}...")
-                        for chunk, chunk_id in zip(source_texts, source_ids):
-                            attributes = self.extractor.discover_attributes_from_chunk(
-                                chunk, chunk_id, table_name
-                            )
-                            if attributes:
-                                from attribute_index import AttributeDiscovery
-                                discovery = AttributeDiscovery(
-                                    chunk_id=chunk_id,
-                                    table_name=table_name,
-                                    discovered_attributes=attributes
+                        candidate_chunk_ids = self.data_layer.get_candidates(table_name)
+                        if candidate_chunk_ids:
+                            candidate_chunks = self.data_layer.get_chunks_by_ids(candidate_chunk_ids)
+                            logger.info(f"[AttributeIndex] Processing {len(candidate_chunks)} chunks for {table_name}...")
+                            for chunk in candidate_chunks:
+                                attributes = self.extractor.discover_attributes_from_chunk(
+                                    chunk.content, chunk.chunk_id, table_name
                                 )
-                                self.extractor.attribute_index.add_discovery(discovery)
+                                if attributes:
+                                    from attribute_index import AttributeDiscovery
+                                    discovery = AttributeDiscovery(
+                                        chunk_id=chunk.chunk_id,
+                                        table_name=table_name,
+                                        discovered_attributes=attributes
+                                    )
+                                    self.extractor.attribute_index.add_discovery(discovery)
                         
-                        # Log coverage stats
-                        coverage = self.extractor.attribute_index.get_coverage_stats(table_name)
-                        logger.info(
-                            f"[AttributeIndex] {table_name}: discovered {len(coverage)} unique attributes, "
-                            f"coverage: {dict(list(coverage.items())[:5])}"
-                        )
+                            # Log coverage stats
+                            coverage = self.extractor.attribute_index.get_coverage_stats(table_name)
+                            logger.info(
+                                f"[AttributeIndex] {table_name}: discovered {len(coverage)} unique attributes, "
+                                f"coverage: {dict(list(coverage.items())[:5])}"
+                            )
+                        else:
+                            logger.warning(f"[AttributeIndex] No candidate chunks found for {table_name}, skipping attribute discovery")
 
                         for col_name in schema.keys():
                             self.data_layer.update_metadata(
