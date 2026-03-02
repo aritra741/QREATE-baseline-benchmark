@@ -1886,6 +1886,28 @@ class WDIRSRunner:
                     table_records = sum(len(r.records) for r in results)
                     total_records += table_records
                     logger.info(f"Extracted {table_records} records for {table_name}")
+                    
+                    # ── Attribute Discovery for Smart Column Delta ──────────────
+                    logger.info(f"[AttributeIndex] Discovering attributes for {table_name}...")
+                    for chunk, chunk_id in zip(chunk_texts, chunk_ids_list):
+                        attributes = self.extractor.discover_attributes_from_chunk(
+                            chunk, chunk_id, table_name
+                        )
+                        if attributes:
+                            from attribute_index import AttributeDiscovery
+                            discovery = AttributeDiscovery(
+                                chunk_id=chunk_id,
+                                table_name=table_name,
+                                discovered_attributes=attributes
+                            )
+                            self.extractor.attribute_index.add_discovery(discovery)
+                    
+                    # Log coverage stats
+                    coverage = self.extractor.attribute_index.get_coverage_stats(table_name)
+                    logger.info(
+                        f"[AttributeIndex] {table_name}: discovered {len(coverage)} unique attributes, "
+                        f"coverage: {dict(list(coverage.items())[:5])}"
+                    )
 
                     self.data_layer.create_dynamic_table(table_name, sql_schema)
                     prov_pairs = self.data_layer.bulk_insert_records(table_name, results)
@@ -2185,6 +2207,11 @@ class WDIRSRunner:
             json.dump(extraction_plan, f, indent=2)
         
         logger.info(f"Saved preprocessing results to {results_file}")
+        
+        # Save attribute index
+        attr_index_file = self.cache_dir / "attribute_index.json"
+        self.extractor.attribute_index.save(attr_index_file)
+        logger.info(f"Saved attribute index to {attr_index_file}")
     
     # ========================================================================
     # Phase 2: Runtime Execution
@@ -2205,6 +2232,15 @@ class WDIRSRunner:
         logger.info(
             f"Lattice restored: {len(self.lattice_planner.lattice.tables)} tables"
         )
+        
+        # Load attribute index for smart column delta
+        from attribute_index import AttributeIndex
+        attr_index_file = self.cache_dir / "attribute_index.json"
+        if attr_index_file.exists():
+            self.extractor.attribute_index = AttributeIndex.load(attr_index_file)
+            logger.info(f"Loaded attribute index from {attr_index_file}")
+        else:
+            logger.warning("Attribute index not found - column delta will be slower")
 
     # ========================================================================
 

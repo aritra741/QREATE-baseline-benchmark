@@ -15,6 +15,7 @@ import requests
 from openai import OpenAI
 
 from token_counter import GLOBAL_COUNTER, count_tokens
+from attribute_index import AttributeIndex, AttributeDiscovery
 
 from config import (
     OLLAMA_URL,
@@ -175,15 +176,18 @@ class ConstrainedExtractor:
     Implements constrained global extraction with schema stabilization.
     """
     
-    def __init__(self, llm_client: Optional[OllamaClient] = None):
+    def __init__(self, llm_client: Optional[OllamaClient] = None, attribute_index: Optional[AttributeIndex] = None):
         """Initialize extractor."""
         import config as _config
         self.llm_client = llm_client or OllamaClient()
         self.cache_dir = _config.CACHE_DIR / "extractions"
         self.cache_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Schema cache
         self.stabilized_schemas: Dict[str, StabilizedSchema] = {}
+        
+        # Attribute index for smart column delta
+        self.attribute_index = attribute_index or AttributeIndex(cache_dir=_config.CACHE_DIR)
     
     # ========================================================================
     # Schema Stabilization
@@ -1530,6 +1534,70 @@ class ConstrainedExtractor:
             f"Return ONLY the JSON array, no other text."
         )
         return prompt
+
+    def discover_attributes_from_chunk(
+        self,
+        chunk: str,
+        chunk_id: str,
+        table_name: str
+    ) -> List[str]:
+        """
+        Ask LLM what other attributes about the table are mentioned in this chunk.
+        This builds the attribute index for smart column delta.
+        
+        Returns:
+            List of attribute names mentioned in the chunk (e.g., ["state", "population", "mayor"])
+        """
+        prompt = (
+            f'You are analyzing text to discover what ATTRIBUTE NAMES (column names/keys) about "{table_name}" are mentioned.\n\n'
+            f"TEXT:\n{chunk}\n\n"
+            f"TASK: List the NAMES of all attributes/properties/fields about {table_name} discussed in the text.\n"
+            f"Return attribute NAMES (keys), NOT values.\n\n"
+            f"RULES:\n"
+            f"- Return ONLY attribute names (column headers), NOT the actual data values\n"
+            f"- Use snake_case for attribute names (e.g., 'birth_date', 'team_name', 'population')\n"
+            f"- Include implicit attributes (e.g., if text mentions 'born in 1990', include 'birth_date')\n"
+            f"- If text says 'the city has 2 million people', return 'population' (NOT '2 million')\n"
+            f"- If text says 'founded in 1995', return 'founded_year' (NOT '1995')\n"
+            f"- Do NOT include entity names or specific values, only the attribute type names\n"
+            f"- Include attributes even if the text doesn't provide complete data\n"
+            f"- If no attributes are found, return an empty array []\n\n"
+            f"OUTPUT FORMAT: Return ONLY a JSON array of attribute name strings, no other text.\n"
+            f'Example input: "The Lakers were founded in 1947 and are located in Los Angeles"\n'
+            f'Example output: ["team_name", "founded_year", "location"]\n\n'
+            f"Return ONLY the JSON array, no markdown, no code fences:"
+        )
+        
+        try:
+            response = self.llm_client.generate(
+                prompt,
+                max_tokens=300,  # Attribute list should be short
+                temperature=0.0
+            )
+            
+            # Parse response
+            response = response.strip()
+            if response.startswith("```"):
+                response = response.split("```")[1]
+                if response.startswith("json"):
+                    response = response[4:]
+                response = response.strip()
+            
+            attributes = json.loads(response)
+            
+            if not isinstance(attributes, list):
+                logger.warning(f"Attribute discovery returned non-list for chunk {chunk_id}: {attributes}")
+                return []
+            
+            # Filter to strings only
+            attributes = [str(a) for a in attributes if isinstance(a, str)]
+            
+            logger.debug(f"Discovered {len(attributes)} attributes in chunk {chunk_id}: {attributes}")
+            return attributes
+            
+        except Exception as e:
+            logger.warning(f"Error discovering attributes for chunk {chunk_id}: {e}")
+            return []
 
     def _normalize_records_for_schema(
         self,

@@ -14,6 +14,7 @@ import uuid
 
 import sqlglot
 from sqlglot import parse_one, exp
+from sqlalchemy import text
 
 from data_layer import DataLayer, TextChunk
 from lattice_planner import LatticePlanner
@@ -654,6 +655,7 @@ class DeltaEngine:
                     continue
 
                 # Retrieve source chunks for this row via provenance
+                # OPTIMIZATION: Use entity → document mapping to only fetch chunks from the entity's document
                 provenance_list = self.data_layer.get_provenance(row_ids=[row_id])
                 if not provenance_list:
                     logger.warning(f"No provenance for row {row_id} in '{table_name}'")
@@ -662,6 +664,66 @@ class DeltaEngine:
                 chunk_ids_for_row = []
                 for prov in provenance_list:
                     chunk_ids_for_row.extend(_json.loads(prov.chunk_ids))
+                
+                # Get document ID(s) for this row from Cell_Provenance
+                # Each entity belongs to exactly one document, so we should only extract from that document's chunks
+                row_doc_ids = set()
+                try:
+                    cell_prov_query = f"""
+                        SELECT DISTINCT doc_id 
+                        FROM cell_provenance 
+                        WHERE row_id = ?
+                    """
+                    with self.data_layer.engine.connect() as conn:
+                        result = conn.execute(text(cell_prov_query), (row_id,))
+                        row_doc_ids = {row[0] for row in result}
+                except Exception as e:
+                    logger.warning(f"Could not fetch doc_ids for row {row_id}: {e}")
+                
+                # Filter chunk_ids to only those from the row's documents
+                if row_doc_ids:
+                    all_chunks_for_row = self.data_layer.get_chunks_by_ids(list(dict.fromkeys(chunk_ids_for_row)))
+                    document_scoped_chunks = [c for c in all_chunks_for_row if c.doc_id in row_doc_ids]
+                    
+                    if document_scoped_chunks:
+                        logger.debug(
+                            f"[Document-Scoped] Row {row_id}: narrowed from "
+                            f"{len(all_chunks_for_row)} chunks to {len(document_scoped_chunks)} "
+                            f"(document scope: {row_doc_ids})"
+                        )
+                        chunk_ids_for_row = [c.chunk_id for c in document_scoped_chunks]
+                    else:
+                        logger.warning(
+                            f"[Document-Scoped] No chunks found in document scope {row_doc_ids} "
+                            f"for row {row_id}, falling back to all provenance chunks"
+                        )
+                
+                # SMART COLUMN DELTA: Use attribute index to target relevant chunks within the document
+                # First, try to find chunks that likely contain the missing columns
+                targeted_chunk_ids = set()
+                for col in missing_columns:
+                    col_chunks = self.extractor.attribute_index.find_chunks_for_column(
+                        table_name, col, top_k=50
+                    )
+                    targeted_chunk_ids.update(col_chunks)
+                
+                # Intersect with row's document-scoped chunks (only extract from entity's document)
+                if targeted_chunk_ids:
+                    provenance_chunk_set = set(chunk_ids_for_row)
+                    filtered_chunk_ids = list(targeted_chunk_ids & provenance_chunk_set)
+                    
+                    if filtered_chunk_ids:
+                        logger.info(
+                            f"[Smart Column Delta] Row {row_id}: narrowed from "
+                            f"{len(chunk_ids_for_row)} document chunks to {len(filtered_chunk_ids)} "
+                            f"using attribute index for {missing_columns}"
+                        )
+                        chunk_ids_for_row = filtered_chunk_ids
+                    else:
+                        logger.info(
+                            f"[Smart Column Delta] No overlap between attribute index "
+                            f"and document-scoped chunks for row {row_id}, using all document chunks"
+                        )
 
                 chunks = self.data_layer.get_chunks_by_ids(list(dict.fromkeys(chunk_ids_for_row)))
                 if not chunks:
