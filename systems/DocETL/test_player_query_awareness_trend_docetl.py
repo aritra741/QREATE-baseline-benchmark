@@ -62,11 +62,6 @@ ATTRIBUTES_FILE = PROJECT_ROOT / "Query" / DATASET_QUERY / "Player_attributes.js
 SOURCE_DATA_PLAYER_DIR = PROJECT_ROOT / "source_data" / "Player"
 
 RESULTS_BASE_DIR = RESULTS_DIR / "player_query_awareness_trend_docetl"
-RUN_DIR = RESULTS_BASE_DIR / "run"
-QUERY_RESULTS_DIR = RUN_DIR / "query_results"
-QUERY_TABLES_DIR = RUN_DIR / "query_tables"
-PLOTS_DIR = RUN_DIR / "plots"
-QUERY_EVAL_DB_DIR = RUN_DIR / "query_eval_dbs"
 
 OLLAMA_BASE_URL = "http://localhost:11434"
 DOCETL_MODEL = "ollama/qwen2.5:7b-instruct"
@@ -533,12 +528,18 @@ def _save_rows_csv(rows: List[Dict[str, Any]], out_csv: Path) -> None:
 
 def run_trend_queries_docetl(
     identity_file: Optional[Path],
+    run_dir: Path,
 ) -> List[TrendQueryMetrics]:
-    RUN_DIR.mkdir(parents=True, exist_ok=True)
-    QUERY_RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    QUERY_TABLES_DIR.mkdir(parents=True, exist_ok=True)
-    PLOTS_DIR.mkdir(parents=True, exist_ok=True)
-    QUERY_EVAL_DB_DIR.mkdir(parents=True, exist_ok=True)
+    query_results_dir = run_dir / "query_results"
+    query_tables_dir = run_dir / "query_tables"
+    plots_dir = run_dir / "plots"
+    query_eval_db_dir = run_dir / "query_eval_dbs"
+
+    run_dir.mkdir(parents=True, exist_ok=True)
+    query_results_dir.mkdir(parents=True, exist_ok=True)
+    query_tables_dir.mkdir(parents=True, exist_ok=True)
+    plots_dir.mkdir(parents=True, exist_ok=True)
+    query_eval_db_dir.mkdir(parents=True, exist_ok=True)
 
     identity_columns: Dict[str, str] = {}
     if identity_file and identity_file.exists():
@@ -576,12 +577,12 @@ def run_trend_queries_docetl(
             d_prompt, d_completion = token_tracker.delta(before)
             d_total = d_prompt + d_completion
 
-            out_csv = QUERY_TABLES_DIR / f"{query_id}.csv"
-            out_json = QUERY_TABLES_DIR / f"{query_id}.json"
+            out_csv = query_tables_dir / f"{query_id}.csv"
+            out_json = query_tables_dir / f"{query_id}.json"
             _save_rows_csv(rows, out_csv)
             out_json.write_text(json.dumps(rows, indent=2, default=str))
 
-            query_eval_db = QUERY_EVAL_DB_DIR / f"{query_id}.db"
+            query_eval_db = query_eval_db_dir / f"{query_id}.db"
             _write_query_tables_sqlite(query_table_map, query_eval_db)
 
             eval_out = baseline.evaluate_with_official_framework(
@@ -596,7 +597,7 @@ def run_trend_queries_docetl(
                     query_text, identity_columns
                 ),
                 phase2_db=query_eval_db,
-                output_dir=QUERY_RESULTS_DIR / query_id,
+                output_dir=query_results_dir / query_id,
             )
 
             item = TrendQueryMetrics(
@@ -619,20 +620,26 @@ def run_trend_queries_docetl(
             )
             metrics.append(item)
 
-            # Include per-query time/cost in evaluator's acc.json for this query.
-            acc_path = QUERY_RESULTS_DIR / query_id / "acc.json"
-            if acc_path.exists():
-                try:
+            # Ensure acc.json has token and latency (merge with existing or create).
+            acc_path = query_results_dir / query_id / "acc.json"
+            acc_path.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                acc_data = {}
+                if acc_path.exists():
                     acc_data = json.loads(acc_path.read_text())
-                    acc_data["query_id"] = query_id
-                    acc_data["latency_s"] = round(latency, 4)
-                    acc_data["prompt_tokens"] = d_prompt
-                    acc_data["completion_tokens"] = d_completion
-                    acc_data["total_tokens"] = d_total
-                    acc_data["result_rows"] = len(rows)
-                    acc_path.write_text(json.dumps(acc_data, indent=2))
-                except Exception as acc_err:
-                    logger.warning(f"Could not augment {acc_path} with time/cost: {acc_err}")
+                acc_data["query_id"] = query_id
+                acc_data["latency_s"] = round(latency, 4)
+                acc_data["prompt_tokens"] = d_prompt
+                acc_data["completion_tokens"] = d_completion
+                acc_data["total_tokens"] = d_total
+                acc_data["result_rows"] = len(rows)
+                acc_data["success"] = True
+                acc_data.setdefault("macro_f1", eval_out.get("macro_f1", 0.0))
+                acc_data.setdefault("macro_precision", eval_out.get("macro_precision", 0.0))
+                acc_data.setdefault("macro_recall", eval_out.get("macro_recall", 0.0))
+                acc_path.write_text(json.dumps(acc_data, indent=2))
+            except Exception as acc_err:
+                logger.warning(f"Could not write {acc_path} with token/latency: {acc_err}")
 
             logger.info(
                 f"{query_id}: rows={item.result_rows} latency={item.latency_s:.3f}s "
@@ -641,6 +648,7 @@ def run_trend_queries_docetl(
         except Exception as exc:
             latency = time.time() - t0
             d_prompt, d_completion = token_tracker.delta(before)
+            d_total = d_prompt + d_completion
             nl_query = NL_QUERY_SPECS.get(query_id, {}).get("nl_query", "")
             metrics.append(
                 TrendQueryMetrics(
@@ -653,7 +661,7 @@ def run_trend_queries_docetl(
                     result_rows=0,
                     prompt_tokens=d_prompt,
                     completion_tokens=d_completion,
-                    total_tokens=d_prompt + d_completion,
+                    total_tokens=d_total,
                     macro_f1=0.0,
                     macro_precision=0.0,
                     macro_recall=0.0,
@@ -663,15 +671,35 @@ def run_trend_queries_docetl(
                     error=str(exc),
                 )
             )
+            # Write acc.json with token and latency for failed query too.
+            acc_path = query_results_dir / query_id / "acc.json"
+            acc_path.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                acc_data = {
+                    "query_id": query_id,
+                    "latency_s": round(latency, 4),
+                    "prompt_tokens": d_prompt,
+                    "completion_tokens": d_completion,
+                    "total_tokens": d_total,
+                    "result_rows": 0,
+                    "success": False,
+                    "error": str(exc),
+                    "macro_f1": 0.0,
+                    "macro_precision": 0.0,
+                    "macro_recall": 0.0,
+                }
+                acc_path.write_text(json.dumps(acc_data, indent=2))
+            except Exception as acc_err:
+                logger.warning(f"Could not write {acc_path}: {acc_err}")
             logger.exception(f"{query_id} failed: {exc}")
 
     return metrics
 
 
-def save_metrics(metrics: List[TrendQueryMetrics]) -> None:
+def save_metrics(metrics: List[TrendQueryMetrics], run_dir: Path) -> None:
     rows = [asdict(m) for m in metrics]
-    out_json = RUN_DIR / "trend_metrics.json"
-    out_csv = RUN_DIR / "trend_metrics.csv"
+    out_json = run_dir / "trend_metrics.json"
+    out_csv = run_dir / "trend_metrics.csv"
     out_json.write_text(json.dumps(rows, indent=2))
     with out_csv.open("w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()) if rows else [])
@@ -682,7 +710,7 @@ def save_metrics(metrics: List[TrendQueryMetrics]) -> None:
     logger.info(f"Saved metrics CSV:  {out_csv}")
 
 
-def plot_metrics(metrics: List[TrendQueryMetrics]) -> None:
+def plot_metrics(metrics: List[TrendQueryMetrics], run_dir: Path) -> None:
     if not MATPLOTLIB_AVAILABLE:
         logger.warning("matplotlib not available - skipping plot generation")
         return
@@ -736,7 +764,8 @@ def plot_metrics(metrics: List[TrendQueryMetrics]) -> None:
     axes[1, 1].grid(alpha=0.3)
 
     plt.tight_layout()
-    summary_plot = PLOTS_DIR / "query_awareness_trend_summary.png"
+    plots_dir = run_dir / "plots"
+    summary_plot = plots_dir / "query_awareness_trend_summary.png"
     plt.savefig(summary_plot, dpi=300, bbox_inches="tight")
     plt.close(fig)
     logger.info(f"Saved trend summary plot: {summary_plot}")
@@ -746,7 +775,11 @@ def main() -> int:
     ensure_precise_tokenizer_ready()
 
     RESULTS_BASE_DIR.mkdir(parents=True, exist_ok=True)
-    setup_logging(RESULTS_BASE_DIR / "query_awareness_trend_docetl.log")
+    run_tag = time.strftime("%Y%m%d_%H%M%S")
+    run_dir = RESULTS_BASE_DIR / f"run_{run_tag}"
+    run_dir.mkdir(parents=True, exist_ok=True)
+    setup_logging(run_dir / "query_awareness_trend_docetl.log")
+
     ap = argparse.ArgumentParser(
         description="Run Player query-awareness trend test using DocETL"
     )
@@ -758,6 +791,7 @@ def main() -> int:
     args = ap.parse_args()
 
     logger.info("Starting Player query-awareness trend test (DocETL)...")
+    logger.info(f"Run directory: {run_dir}")
     logger.info(f"Trend query source: {TREND_SQL_FILE}")
     logger.info(f"Source data dir: {SOURCE_DATA_PLAYER_DIR}")
     logger.info(f"Model: {DOCETL_MODEL} @ {OLLAMA_BASE_URL}")
@@ -766,9 +800,9 @@ def main() -> int:
         _, identity_file = baseline.ensure_snapshot_artifacts(
             refresh_snapshot=args.refresh_snapshot
         )
-        metrics = run_trend_queries_docetl(identity_file)
-        save_metrics(metrics)
-        plot_metrics(metrics)
+        metrics = run_trend_queries_docetl(identity_file, run_dir)
+        save_metrics(metrics, run_dir)
+        plot_metrics(metrics, run_dir)
 
         success_count = sum(1 for m in metrics if m.success)
         avg_f1 = sum(m.macro_f1 for m in metrics) / len(metrics) if metrics else 0.0
@@ -781,10 +815,10 @@ def main() -> int:
         )
         token_summary = GLOBAL_COUNTER.summary_str()
         logger.info(token_summary)
-        token_json_path = RUN_DIR / "token_cost.json"
+        token_json_path = run_dir / "token_cost.json"
         GLOBAL_COUNTER.save_json(token_json_path)
         logger.info(f"Token cost JSON saved to: {token_json_path}")
-        logger.info(f"Outputs under: {RUN_DIR}")
+        logger.info(f"Outputs under: {run_dir}")
         logger.info("=" * 80)
         return 0
     except Exception as exc:
