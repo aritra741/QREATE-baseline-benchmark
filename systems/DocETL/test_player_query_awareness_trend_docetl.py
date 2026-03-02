@@ -46,7 +46,7 @@ from config import QUERY_DIR, RESULTS_DIR  # type: ignore
 import test_player_query_awareness_trend as baseline  # type: ignore
 import docetl  # noqa: F401  # Registers pandas semantic accessor.
 from docetl.operations.utils.api import APIWrapper
-from docetl.operations.utils.llm import approx_count_tokens
+from token_counter import GLOBAL_COUNTER, ensure_precise_tokenizer_ready
 
 from evaluation.config import EvalSettings as _EvalSettings, load_json as _load_json
 from evaluation.gt_runner import GtRunner as _GtRunner
@@ -166,47 +166,50 @@ def setup_logging(log_file: Path) -> None:
     root.addHandler(ch)
 
 
-def _extract_usage_tokens(response_obj: Any) -> Tuple[int, int]:
+def _extract_usage_tokens_strict(response_obj: Any) -> Optional[Tuple[int, int]]:
+    """Return (prompt, completion) only when provider usage is explicitly available."""
     usage = getattr(response_obj, "usage", None)
     if usage is None:
-        return 0, 0
+        return None
     if isinstance(usage, dict):
-        return int(usage.get("prompt_tokens", 0)), int(usage.get("completion_tokens", 0))
-    return int(getattr(usage, "prompt_tokens", 0)), int(
-        getattr(usage, "completion_tokens", 0)
-    )
+        if "prompt_tokens" not in usage or "completion_tokens" not in usage:
+            return None
+        if usage["prompt_tokens"] is None or usage["completion_tokens"] is None:
+            return None
+        return int(usage["prompt_tokens"]), int(usage["completion_tokens"])
+    prompt = getattr(usage, "prompt_tokens", None)
+    completion = getattr(usage, "completion_tokens", None)
+    if prompt is None or completion is None:
+        return None
+    return int(prompt), int(completion)
 
 
 def patch_docetl_for_token_tracking(token_tracker: TokenTracker) -> None:
-    """Monkey-patch DocETL API wrapper to collect token counts per LLM call."""
-    original_call_llm = APIWrapper.call_llm
+    """
+    Monkey-patch at the lowest DocETL API layer so we count every actual LLM
+    completion call (including retries/internal loops), not just top-level
+    operation calls.
+    """
+    original_low_level = APIWrapper._call_llm_with_cache
 
-    def wrapped_call_llm(self, *args, **kwargs):  # noqa: ANN001
-        result = original_call_llm(self, *args, **kwargs)
-        prompt_toks = 0
-        completion_toks = 0
-        response_obj = getattr(result, "response", None)
-        if response_obj is not None:
-            prompt_toks, completion_toks = _extract_usage_tokens(response_obj)
-
-        # Fallback estimation when provider usage is absent.
-        if prompt_toks == 0 and completion_toks == 0:
-            messages = kwargs.get("messages")
-            if messages is None and len(args) >= 3:
-                messages = args[2]
-            if isinstance(messages, list):
-                prompt_toks = approx_count_tokens(messages)
-
-            try:
-                content = response_obj.choices[0].message.content if response_obj else ""
-                completion_toks = max(0, int(len(str(content)) / 4))
-            except Exception:
-                completion_toks = 0
-
+    def wrapped_low_level(self, *args, **kwargs):  # noqa: ANN001
+        response = original_low_level(self, *args, **kwargs)
+        usage = _extract_usage_tokens_strict(response)
+        if usage is None:
+            raise RuntimeError(
+                "[DocETL TokenCounter] Precise tokenization required, but provider "
+                "usage tokens are missing for a DocETL LLM call."
+            )
+        prompt_toks, completion_toks = usage
         token_tracker.add(prompt_toks, completion_toks)
-        return result
+        GLOBAL_COUNTER.record(
+            input_tokens=prompt_toks,
+            output_tokens=completion_toks,
+            operation="docetl",
+        )
+        return response
 
-    APIWrapper.call_llm = wrapped_call_llm
+    APIWrapper._call_llm_with_cache = wrapped_low_level
 
 
 def _load_source_docs(table: str) -> pd.DataFrame:
@@ -615,6 +618,22 @@ def run_trend_queries_docetl(
                 is_agg=eval_out.get("is_agg", False),
             )
             metrics.append(item)
+
+            # Include per-query time/cost in evaluator's acc.json for this query.
+            acc_path = QUERY_RESULTS_DIR / query_id / "acc.json"
+            if acc_path.exists():
+                try:
+                    acc_data = json.loads(acc_path.read_text())
+                    acc_data["query_id"] = query_id
+                    acc_data["latency_s"] = round(latency, 4)
+                    acc_data["prompt_tokens"] = d_prompt
+                    acc_data["completion_tokens"] = d_completion
+                    acc_data["total_tokens"] = d_total
+                    acc_data["result_rows"] = len(rows)
+                    acc_path.write_text(json.dumps(acc_data, indent=2))
+                except Exception as acc_err:
+                    logger.warning(f"Could not augment {acc_path} with time/cost: {acc_err}")
+
             logger.info(
                 f"{query_id}: rows={item.result_rows} latency={item.latency_s:.3f}s "
                 f"tokens={item.total_tokens} F1={item.macro_f1:.3f}"
@@ -724,6 +743,8 @@ def plot_metrics(metrics: List[TrendQueryMetrics]) -> None:
 
 
 def main() -> int:
+    ensure_precise_tokenizer_ready()
+
     RESULTS_BASE_DIR.mkdir(parents=True, exist_ok=True)
     setup_logging(RESULTS_BASE_DIR / "query_awareness_trend_docetl.log")
     ap = argparse.ArgumentParser(
@@ -758,6 +779,11 @@ def main() -> int:
             f"Completed: {success_count}/{len(metrics)} queries succeeded, "
             f"avg macro F1={avg_f1:.3f}"
         )
+        token_summary = GLOBAL_COUNTER.summary_str()
+        logger.info(token_summary)
+        token_json_path = RUN_DIR / "token_cost.json"
+        GLOBAL_COUNTER.save_json(token_json_path)
+        logger.info(f"Token cost JSON saved to: {token_json_path}")
         logger.info(f"Outputs under: {RUN_DIR}")
         logger.info("=" * 80)
         return 0
