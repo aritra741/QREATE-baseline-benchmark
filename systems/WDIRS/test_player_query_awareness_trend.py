@@ -702,6 +702,12 @@ def run_trend_queries(
     working_db = run_dir / "player_trend_working.db"
     shutil.copy2(snapshot_db, working_db)
     logger.info(f"Working DB copied from snapshot: {working_db}")
+    
+    # Point to snapshot cache for attribute index and other cached data
+    snapshot_cache = SNAPSHOT_DIR / "cache_snapshot"
+    if not snapshot_cache.exists():
+        logger.warning(f"Snapshot cache not found: {snapshot_cache}")
+        snapshot_cache = None
 
     identity_columns: Dict[str, str] = {}
     if identity_file and identity_file.exists():
@@ -718,6 +724,7 @@ def run_trend_queries(
         postgres_uri=f"sqlite:///{working_db}",
         use_projection_fastpath=projection_fastpath,
         projection_fastpath_col_batch_size=projection_fastpath_col_batch_size,
+        cache_dir=snapshot_cache,  # Use snapshot cache for attribute index
     )
     training_queries = collect_training_workload(DATASET_QUERY)
     if training_queries:

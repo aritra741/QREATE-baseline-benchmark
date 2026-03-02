@@ -196,6 +196,7 @@ class WDIRSRunner:
         postgres_uri: Optional[str] = None,
         use_projection_fastpath: Optional[bool] = None,
         projection_fastpath_col_batch_size: Optional[int] = None,
+        cache_dir: Optional[Path] = None,
     ):
         """
         Initialize WDIRS runner.
@@ -203,6 +204,7 @@ class WDIRSRunner:
         Args:
             dataset: Name of the dataset
             postgres_uri: Optional PostgreSQL connection URI
+            cache_dir: Optional cache directory (defaults to CACHE_DIR / dataset)
         """
         self.dataset = dataset
         self.use_projection_fastpath = (
@@ -216,7 +218,15 @@ class WDIRSRunner:
             else int(projection_fastpath_col_batch_size)
         )
         
+        # Set cache directory (for attribute index and other cached artifacts)
+        if cache_dir is not None:
+            self.cache_dir = Path(cache_dir) / dataset if not str(cache_dir).endswith(dataset) else Path(cache_dir)
+        else:
+            self.cache_dir = CACHE_DIR / dataset
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        
         logger.info(f"Initializing WDIRS for dataset: {dataset}")
+        logger.info(f"Cache directory: {self.cache_dir}")
         logger.info(
             "Projection fast path: %s (col_batch_size=%s)",
             self.use_projection_fastpath,
@@ -258,11 +268,6 @@ class WDIRSRunner:
                 "spaCy model 'en_core_web_sm' not found. "
                 "Run: python -m spacy download en_core_web_sm"
             )
-        
-        # Cache (read at runtime so tests can redirect via config.CACHE_DIR)
-        import config as _config
-        self.cache_dir = _config.CACHE_DIR / dataset
-        self.cache_dir.mkdir(parents=True, exist_ok=True)
         
         logger.info("WDIRS initialization complete")
     
