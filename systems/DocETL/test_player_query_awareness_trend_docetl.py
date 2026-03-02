@@ -6,7 +6,6 @@ queries through DocETL operators (equijoin/filter) driven by natural-language
 instructions derived from SQL.
 """
 
-import argparse
 import csv
 import json
 import logging
@@ -43,7 +42,6 @@ sys.path.insert(0, str(DOCETL_MAIN_DIR))
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from config import QUERY_DIR, RESULTS_DIR  # type: ignore
-import test_player_query_awareness_trend as baseline  # type: ignore
 import docetl  # noqa: F401  # Registers pandas semantic accessor.
 from docetl.operations.utils.api import APIWrapper
 from token_counter import GLOBAL_COUNTER, ensure_precise_tokenizer_ready
@@ -52,6 +50,13 @@ from evaluation.config import EvalSettings as _EvalSettings, load_json as _load_
 from evaluation.gt_runner import GtRunner as _GtRunner
 from evaluation.row_matcher import RowMatcher as _RowMatcher
 from evaluation.sql_parser import SqlParser as _SqlParser
+
+# Import only utility functions from WDIRS trend script (no system-level dependencies)
+from test_player_query_awareness_trend import (  # type: ignore
+    parse_trend_queries,
+    evaluate_with_official_framework,
+    _infer_identity_col_for_query,
+)
 
 
 DATASET = "Player"
@@ -103,6 +108,14 @@ NUMERIC_FIELDS = {
     "population",
     "gdp",
     "area",
+}
+
+# Identity columns for evaluation (table -> identity_column_name)
+IDENTITY_COLUMNS: Dict[str, str] = {
+    "city": "city_name",
+    "player": "name",
+    "team": "team_name",
+    "owner": "name",
 }
 
 
@@ -527,7 +540,6 @@ def _save_rows_csv(rows: List[Dict[str, Any]], out_csv: Path) -> None:
 
 
 def run_trend_queries_docetl(
-    identity_file: Optional[Path],
     run_dir: Path,
 ) -> List[TrendQueryMetrics]:
     query_results_dir = run_dir / "query_results"
@@ -541,12 +553,8 @@ def run_trend_queries_docetl(
     plots_dir.mkdir(parents=True, exist_ok=True)
     query_eval_db_dir.mkdir(parents=True, exist_ok=True)
 
-    identity_columns: Dict[str, str] = {}
-    if identity_file and identity_file.exists():
-        identity_columns = json.loads(identity_file.read_text())
-        logger.info(f"Loaded identity columns: {identity_columns}")
-    else:
-        logger.warning("No identity columns file found; fallback identity rules will be used.")
+    identity_columns = IDENTITY_COLUMNS.copy()
+    logger.info(f"Using hardcoded identity columns: {identity_columns}")
 
     token_tracker = TokenTracker()
     patch_docetl_for_token_tracking(token_tracker)
@@ -559,7 +567,7 @@ def run_trend_queries_docetl(
     eval_sql_parser = _SqlParser()
     eval_row_matcher = _RowMatcher(settings=eval_settings)
 
-    trend_queries = baseline.parse_trend_queries(TREND_SQL_FILE)
+    trend_queries = parse_trend_queries(TREND_SQL_FILE)
     if not trend_queries:
         raise RuntimeError(f"No trend queries found in {TREND_SQL_FILE}")
 
@@ -585,7 +593,7 @@ def run_trend_queries_docetl(
             query_eval_db = query_eval_db_dir / f"{query_id}.db"
             _write_query_tables_sqlite(query_table_map, query_eval_db)
 
-            eval_out = baseline.evaluate_with_official_framework(
+            eval_out = evaluate_with_official_framework(
                 query_text,
                 rows,
                 gt_runner=eval_gt_runner,
@@ -593,7 +601,7 @@ def run_trend_queries_docetl(
                 row_matcher=eval_row_matcher,
                 settings=eval_settings,
                 attributes=eval_attributes,
-                identity_col=baseline._infer_identity_col_for_query(
+                identity_col=_infer_identity_col_for_query(
                     query_text, identity_columns
                 ),
                 phase2_db=query_eval_db,
@@ -780,27 +788,15 @@ def main() -> int:
     run_dir.mkdir(parents=True, exist_ok=True)
     setup_logging(run_dir / "query_awareness_trend_docetl.log")
 
-    ap = argparse.ArgumentParser(
-        description="Run Player query-awareness trend test using DocETL"
-    )
-    ap.add_argument(
-        "--refresh-snapshot",
-        action="store_true",
-        help="Refresh identity snapshot artifacts before running",
-    )
-    args = ap.parse_args()
-
     logger.info("Starting Player query-awareness trend test (DocETL)...")
     logger.info(f"Run directory: {run_dir}")
     logger.info(f"Trend query source: {TREND_SQL_FILE}")
     logger.info(f"Source data dir: {SOURCE_DATA_PLAYER_DIR}")
     logger.info(f"Model: {DOCETL_MODEL} @ {OLLAMA_BASE_URL}")
+    logger.info(f"Identity columns (for eval): {IDENTITY_COLUMNS}")
 
     try:
-        _, identity_file = baseline.ensure_snapshot_artifacts(
-            refresh_snapshot=args.refresh_snapshot
-        )
-        metrics = run_trend_queries_docetl(identity_file, run_dir)
+        metrics = run_trend_queries_docetl(run_dir)
         save_metrics(metrics, run_dir)
         plot_metrics(metrics, run_dir)
 
