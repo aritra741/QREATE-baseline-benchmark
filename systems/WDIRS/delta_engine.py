@@ -472,6 +472,46 @@ class DeltaEngine:
                 continue
 
             chunks = self.data_layer.get_chunks_by_ids(candidate_chunk_ids)
+            
+            # SMART ROW DELTA: Use attribute index to target chunks mentioning predicate columns
+            # Extract column names from predicates (e.g., "draft_pick >= 0" → "draft_pick")
+            predicate_columns = set()
+            for pred in missing_predicates:
+                # Simple extraction: find identifiers before comparison operators
+                import re
+                tokens = re.findall(r'[a-zA-Z_][a-zA-Z0-9_]*', pred)
+                predicate_columns.update(tokens)
+            
+            # Remove SQL keywords
+            sql_keywords = {'and', 'or', 'not', 'in', 'like', 'between', 'is', 'null', 'true', 'false'}
+            predicate_columns = {col for col in predicate_columns if col.lower() not in sql_keywords}
+            
+            if predicate_columns:
+                # Query attribute index for chunks that mention these columns
+                targeted_chunk_ids = set()
+                for col in predicate_columns:
+                    col_chunks = self.extractor.attribute_index.find_chunks_for_column(
+                        table_name, col, top_k=500  # More permissive for row delta
+                    )
+                    targeted_chunk_ids.update(col_chunks)
+                
+                if targeted_chunk_ids:
+                    # Intersect with candidate chunks
+                    candidate_set = set(c.chunk_id for c in chunks)
+                    filtered_chunk_ids = targeted_chunk_ids & candidate_set
+                    
+                    if filtered_chunk_ids:
+                        chunks = [c for c in chunks if c.chunk_id in filtered_chunk_ids]
+                        logger.info(
+                            f"[Smart Row Delta] {table_name}: narrowed from "
+                            f"{len(candidate_chunk_ids)} candidates to {len(chunks)} chunks "
+                            f"using attribute index for predicate columns {predicate_columns}"
+                        )
+                    else:
+                        logger.info(
+                            f"[Smart Row Delta] No overlap with attribute index for {table_name}, "
+                            f"using keyword filter fallback"
+                        )
 
             # Keyword-filter chunks to those likely relevant to missing predicates
             filtered_chunks = self._filter_chunks_by_predicates(chunks, missing_predicates)

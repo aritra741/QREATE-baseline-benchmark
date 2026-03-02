@@ -1791,6 +1791,28 @@ class WDIRSRunner:
                             f"[ProjectionFastPath] {table_name}: extracted {table_records} rows "
                             f"from {len(source_texts)} source docs"
                         )
+                        
+                        # ── Attribute Discovery for Smart Column Delta ──────────────
+                        logger.info(f"[AttributeIndex] Discovering attributes for {table_name}...")
+                        for chunk, chunk_id in zip(source_texts, source_ids):
+                            attributes = self.extractor.discover_attributes_from_chunk(
+                                chunk, chunk_id, table_name
+                            )
+                            if attributes:
+                                from attribute_index import AttributeDiscovery
+                                discovery = AttributeDiscovery(
+                                    chunk_id=chunk_id,
+                                    table_name=table_name,
+                                    discovered_attributes=attributes
+                                )
+                                self.extractor.attribute_index.add_discovery(discovery)
+                        
+                        # Log coverage stats
+                        coverage = self.extractor.attribute_index.get_coverage_stats(table_name)
+                        logger.info(
+                            f"[AttributeIndex] {table_name}: discovered {len(coverage)} unique attributes, "
+                            f"coverage: {dict(list(coverage.items())[:5])}"
+                        )
 
                         for col_name in schema.keys():
                             self.data_layer.update_metadata(
@@ -1863,6 +1885,30 @@ class WDIRSRunner:
                         pass1_raw=pass1_raw,
                     )
                     total_records += table_records
+                    
+                    # ── Attribute Discovery for Smart Column Delta ──────────────
+                    logger.info(f"[AttributeIndex] Discovering attributes for {table_name}...")
+                    chunk_texts = [c.content for c in candidate_chunks]
+                    chunk_ids_list = [c.chunk_id for c in candidate_chunks]
+                    for chunk, chunk_id in zip(chunk_texts, chunk_ids_list):
+                        attributes = self.extractor.discover_attributes_from_chunk(
+                            chunk, chunk_id, table_name
+                        )
+                        if attributes:
+                            from attribute_index import AttributeDiscovery
+                            discovery = AttributeDiscovery(
+                                chunk_id=chunk_id,
+                                table_name=table_name,
+                                discovered_attributes=attributes
+                            )
+                            self.extractor.attribute_index.add_discovery(discovery)
+                    
+                    # Log coverage stats
+                    coverage = self.extractor.attribute_index.get_coverage_stats(table_name)
+                    logger.info(
+                        f"[AttributeIndex] {table_name}: discovered {len(coverage)} unique attributes, "
+                        f"coverage: {dict(list(coverage.items())[:5])}"
+                    )
                 else:
                     # ── Brute-force extraction (no identity column) ──────────
                     # Only for tables where no entity anchor was found at all.
