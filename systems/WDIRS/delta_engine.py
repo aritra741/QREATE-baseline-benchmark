@@ -43,6 +43,7 @@ class DeltaPlan:
     delta_type: DeltaType
     missing_columns: List[str]
     missing_predicates: List[str]
+    missing_predicates_by_table: Dict[str, List[str]]  # table → predicates that apply to it
     tables_involved: List[str]
     requires_extraction: bool
     requires_enrichment: bool
@@ -122,6 +123,7 @@ class DeltaEngine:
         # Check materialization for each table
         missing_columns_all = []
         missing_predicates_all = []
+        missing_predicates_by_table: Dict[str, List[str]] = {}
         
         for table_name in tables:
             # Get required columns for this table
@@ -137,6 +139,8 @@ class DeltaEngine:
             
             missing_columns_all.extend(missing_cols)
             missing_predicates_all.extend(missing_preds)
+            if missing_preds:
+                missing_predicates_by_table[table_name] = missing_preds
         
         # Determine delta type
         delta_type = self._determine_delta_type(
@@ -150,6 +154,7 @@ class DeltaEngine:
             delta_type=delta_type,
             missing_columns=missing_columns_all,
             missing_predicates=missing_predicates_all,
+            missing_predicates_by_table=missing_predicates_by_table,
             tables_involved=list(tables),
             requires_extraction=delta_type in [DeltaType.ROW_DELTA, DeltaType.MIXED_DELTA],
             requires_enrichment=delta_type in [DeltaType.COLUMN_DELTA, DeltaType.MIXED_DELTA],
@@ -366,19 +371,21 @@ class DeltaEngine:
             elif plan.delta_type == DeltaType.ROW_DELTA:
                 rows_extracted = self._execute_row_delta(
                     plan.tables_involved,
-                    plan.missing_predicates
+                    plan.missing_predicates,
+                    plan.missing_predicates_by_table
                 )
-            
+
             elif plan.delta_type == DeltaType.COLUMN_DELTA:
                 rows_enriched = self._execute_column_delta(
                     plan.tables_involved,
                     plan.missing_columns
                 )
-            
+
             elif plan.delta_type == DeltaType.MIXED_DELTA:
                 rows_extracted = self._execute_row_delta(
                     plan.tables_involved,
-                    plan.missing_predicates
+                    plan.missing_predicates,
+                    plan.missing_predicates_by_table
                 )
                 rows_enriched = self._execute_column_delta(
                     plan.tables_involved,
@@ -443,22 +450,18 @@ class DeltaEngine:
     def _execute_row_delta(
         self,
         tables: List[str],
-        missing_predicates: List[str]
+        missing_predicates: List[str],
+        missing_predicates_by_table: Optional[Dict[str, List[str]]] = None
     ) -> int:
         """
         Execute row delta: extract new rows matching missing predicates.
-        Normalization hints are built from the RUNTIME predicate literals so the
-        extractor stores values in exactly the form the query expects (e.g. 'UK',
-        not 'United Kingdom').
-
-        Returns:
-            Number of rows extracted
+        
+        Uses missing_predicates_by_table (table → predicates) to only extract
+        from tables that actually have the missing predicate. Falls back to
+        all tables if the per-table mapping is not available.
         """
         logger.info(f"Executing row delta for {len(tables)} tables")
 
-        # Build normalization hints from runtime predicate literals — this is the
-        # key difference from preprocessing: we use the query's own literals, not
-        # the workload's.
         runtime_hints = self._build_runtime_normalization_hints(missing_predicates)
         if runtime_hints:
             logger.info(f"Runtime normalization hints: {runtime_hints}")
@@ -466,60 +469,73 @@ class DeltaEngine:
         total_rows = 0
 
         for table_name in tables:
+            # Determine which predicates apply to this table
+            if missing_predicates_by_table is not None:
+                table_preds = missing_predicates_by_table.get(table_name, [])
+                if not table_preds:
+                    logger.info(
+                        f"[Smart Row Delta] Skipping '{table_name}': "
+                        f"no missing predicates apply to this table"
+                    )
+                    continue
+            else:
+                table_preds = missing_predicates
             candidate_chunk_ids = self.data_layer.get_candidates(table_name)
             if not candidate_chunk_ids:
                 logger.warning(f"No candidate chunks for {table_name}")
                 continue
 
             chunks = self.data_layer.get_chunks_by_ids(candidate_chunk_ids)
+            schema = self.lattice_planner.get_table_schema(table_name)
             
             # SMART ROW DELTA: Use attribute index to target chunks mentioning predicate columns
-            # Extract column names from predicates (e.g., "draft_pick >= 0" → "draft_pick")
-            predicate_columns = set()
-            for pred in missing_predicates:
-                # Simple extraction: find identifiers before comparison operators
-                import re
-                tokens = re.findall(r'[a-zA-Z_][a-zA-Z0-9_]*', pred)
-                predicate_columns.update(tokens)
-            
-            # Remove SQL keywords
+            # Extract column names from this table's predicates only
+            import re
             sql_keywords = {'and', 'or', 'not', 'in', 'like', 'between', 'is', 'null', 'true', 'false'}
-            predicate_columns = {col for col in predicate_columns if col.lower() not in sql_keywords}
+            predicate_columns = set()
+            for pred in table_preds:
+                tokens = re.findall(r'[a-zA-Z_][a-zA-Z0-9_]*', pred)
+                predicate_columns.update(
+                    t for t in tokens if t.lower() not in sql_keywords
+                )
             
             if predicate_columns:
                 # Query attribute index for chunks that mention these columns
                 targeted_chunk_ids = set()
                 for col in predicate_columns:
                     col_chunks = self.extractor.attribute_index.find_chunks_for_column(
-                        table_name, col, top_k=500  # More permissive for row delta
+                        table_name, col, top_k=500
                     )
                     targeted_chunk_ids.update(col_chunks)
                 
                 if targeted_chunk_ids:
-                    # Intersect with candidate chunks
                     candidate_set = set(c.chunk_id for c in chunks)
                     filtered_chunk_ids = targeted_chunk_ids & candidate_set
-                    
                     if filtered_chunk_ids:
                         chunks = [c for c in chunks if c.chunk_id in filtered_chunk_ids]
                         logger.info(
                             f"[Smart Row Delta] {table_name}: narrowed from "
-                            f"{len(candidate_chunk_ids)} candidates to {len(chunks)} chunks "
-                            f"using attribute index for predicate columns {predicate_columns}"
+                            f"{len(candidate_chunk_ids)} to {len(chunks)} chunks "
+                            f"using attribute index for {predicate_columns}"
                         )
                     else:
                         logger.info(
-                            f"[Smart Row Delta] No overlap with attribute index for {table_name}, "
+                            f"[Smart Row Delta] {table_name}: attribute index had no "
+                            f"overlap with candidate chunks for {predicate_columns}, "
                             f"using keyword filter fallback"
                         )
+                else:
+                    logger.info(
+                        f"[Smart Row Delta] {table_name}: no attribute index entries "
+                        f"for {predicate_columns}, using keyword filter fallback"
+                    )
 
             # Keyword-filter chunks to those likely relevant to missing predicates
-            filtered_chunks = self._filter_chunks_by_predicates(chunks, missing_predicates)
+            filtered_chunks = self._filter_chunks_by_predicates(chunks, table_preds)
             if not filtered_chunks:
                 logger.info(f"No chunks match missing predicates for {table_name}")
                 continue
 
-            schema = self.lattice_planner.get_table_schema(table_name)
             stabilized = self.extractor.get_stabilized_schema(table_name)
             constrained_keys = stabilized.frozen_keys if stabilized else None
 
@@ -534,8 +550,8 @@ class DeltaEngine:
                 table_name,
                 schema,
                 constrained_keys,
-                missing_predicates,
-                runtime_hints        # ← runtime query literals, not workload literals
+                table_preds,
+                runtime_hints
             )
 
             # Ensure the dynamic table exists before inserting
@@ -603,7 +619,7 @@ class DeltaEngine:
             logger.info(f"Row delta inserted {table_rows} rows into {table_name}")
 
             # Mark these predicates as materialized in the registry
-            for predicate in missing_predicates:
+            for predicate in table_preds:
                 col = predicate.split()[0].strip()
                 self.data_layer.update_metadata(
                     table_name,
