@@ -41,6 +41,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from token_counter import GLOBAL_COUNTER, ensure_precise_tokenizer_ready
 from extractor import OllamaClient
 from wdirs_runner import WDIRSRunner
+import config as config_module
 from config import (
     CACHE_DIR,
     DB_DIR,
@@ -716,133 +717,147 @@ def run_trend_queries(
     else:
         logger.warning("No identity columns file found; fallback identity rules will be used.")
 
+    # IMPORTANT: isolate extraction cache per run so one full trend run cannot
+    # warm the next run. Queries inside the same run still share this cache.
+    run_cache_root = run_dir / ".cache"
+    run_cache_root.mkdir(parents=True, exist_ok=True)
+    original_cache_dir = config_module.CACHE_DIR
+    config_module.CACHE_DIR = run_cache_root
+    logger.info(
+        "Using run-isolated extraction cache root: %s (restored after run)",
+        run_cache_root,
+    )
+
     token_tracker = TokenTracker()
     patch_ollama_for_token_tracking(token_tracker)
 
-    runner = WDIRSRunner(
-        dataset=DATASET,
-        postgres_uri=f"sqlite:///{working_db}",
-        use_projection_fastpath=projection_fastpath,
-        projection_fastpath_col_batch_size=projection_fastpath_col_batch_size,
-        cache_dir=snapshot_cache,  # Use snapshot cache for attribute index
-    )
-    training_queries = collect_training_workload(DATASET_QUERY)
-    if training_queries:
-        runner.restore_lattice(training_queries)
-        logger.info(f"Restored lattice with {len(training_queries)} training queries.")
-    if identity_columns:
-        runner.identity_columns.update(identity_columns)
-        runner.delta_engine.identity_columns = runner.identity_columns
+    try:
+        runner = WDIRSRunner(
+            dataset=DATASET,
+            postgres_uri=f"sqlite:///{working_db}",
+            use_projection_fastpath=projection_fastpath,
+            projection_fastpath_col_batch_size=projection_fastpath_col_batch_size,
+            cache_dir=snapshot_cache,  # Use snapshot cache for attribute index
+        )
+        training_queries = collect_training_workload(DATASET_QUERY)
+        if training_queries:
+            runner.restore_lattice(training_queries)
+            logger.info(f"Restored lattice with {len(training_queries)} training queries.")
+        if identity_columns:
+            runner.identity_columns.update(identity_columns)
+            runner.delta_engine.identity_columns = runner.identity_columns
 
-    eval_attributes: Dict[str, Any] = _load_json(ATTRIBUTES_FILE) if ATTRIBUTES_FILE.exists() else {}
-    eval_settings = _EvalSettings(llm_provider="none")
-    eval_gt_runner = _GtRunner(gt_dir=GROUND_TRUTH_DIR, attributes=eval_attributes)
-    eval_sql_parser = _SqlParser()
-    eval_row_matcher = _RowMatcher(settings=eval_settings)
+        eval_attributes: Dict[str, Any] = _load_json(ATTRIBUTES_FILE) if ATTRIBUTES_FILE.exists() else {}
+        eval_settings = _EvalSettings(llm_provider="none")
+        eval_gt_runner = _GtRunner(gt_dir=GROUND_TRUTH_DIR, attributes=eval_attributes)
+        eval_sql_parser = _SqlParser()
+        eval_row_matcher = _RowMatcher(settings=eval_settings)
 
-    trend_queries = parse_trend_queries(TREND_SQL_FILE)
-    if not trend_queries:
-        raise RuntimeError(f"No trend queries found in {TREND_SQL_FILE}")
+        trend_queries = parse_trend_queries(TREND_SQL_FILE)
+        if not trend_queries:
+            raise RuntimeError(f"No trend queries found in {TREND_SQL_FILE}")
 
-    metrics: List[TrendQueryMetrics] = []
-    for query_id, query_text in trend_queries:
-        logger.info("=" * 70)
-        logger.info(f"Executing {query_id}")
-        before = token_tracker.snapshot()
-        t0 = time.time()
+        metrics: List[TrendQueryMetrics] = []
+        for query_id, query_text in trend_queries:
+            logger.info("=" * 70)
+            logger.info(f"Executing {query_id}")
+            before = token_tracker.snapshot()
+            t0 = time.time()
 
-        try:
-            result = runner.execute_query(query_text)
-            latency = time.time() - t0
-            d_prompt, d_completion = token_tracker.delta(before)
-            d_total = d_prompt + d_completion
+            try:
+                result = runner.execute_query(query_text)
+                latency = time.time() - t0
+                d_prompt, d_completion = token_tracker.delta(before)
+                d_total = d_prompt + d_completion
 
-            out_csv = query_tables_dir / f"{query_id}.csv"
-            out_json = query_tables_dir / f"{query_id}.json"
-            _save_rows_csv(result.results, out_csv)
-            out_json.write_text(json.dumps(result.results, indent=2, default=str))
+                out_csv = query_tables_dir / f"{query_id}.csv"
+                out_json = query_tables_dir / f"{query_id}.json"
+                _save_rows_csv(result.results, out_csv)
+                out_json.write_text(json.dumps(result.results, indent=2, default=str))
 
-            eval_out: Dict[str, Any] = {}
-            if result.success:
-                eval_out = evaluate_with_official_framework(
-                    query_text,
-                    result.results,
-                    gt_runner=eval_gt_runner,
-                    sql_parser=eval_sql_parser,
-                    row_matcher=eval_row_matcher,
-                    settings=eval_settings,
-                    attributes=eval_attributes,
-                    identity_col=_infer_identity_col_for_query(query_text, identity_columns),
-                    phase2_db=working_db,
-                    output_dir=query_results_dir / query_id,
-                )
+                eval_out: Dict[str, Any] = {}
+                if result.success:
+                    eval_out = evaluate_with_official_framework(
+                        query_text,
+                        result.results,
+                        gt_runner=eval_gt_runner,
+                        sql_parser=eval_sql_parser,
+                        row_matcher=eval_row_matcher,
+                        settings=eval_settings,
+                        attributes=eval_attributes,
+                        identity_col=_infer_identity_col_for_query(query_text, identity_columns),
+                        phase2_db=working_db,
+                        output_dir=query_results_dir / query_id,
+                    )
 
-            item = TrendQueryMetrics(
-                query_id=query_id,
-                query_text=query_text,
-                success=result.success,
-                delta_type=result.delta_type,
-                latency_s=latency,
-                result_rows=len(result.results),
-                prompt_tokens=d_prompt,
-                completion_tokens=d_completion,
-                total_tokens=d_total,
-                macro_f1=eval_out.get("macro_f1", 0.0),
-                macro_precision=eval_out.get("macro_precision", 0.0),
-                macro_recall=eval_out.get("macro_recall", 0.0),
-                gt_result_count=eval_out.get("gt_result_count", 0),
-                matched_rows=eval_out.get("matched_rows", 0),
-                is_agg=eval_out.get("is_agg", False),
-                error=result.error if not result.success else None,
-            )
-            metrics.append(item)
-
-            # Augment per-query acc.json with time and token cost (evaluation writes acc.json only)
-            acc_path = query_results_dir / query_id / "acc.json"
-            if acc_path.exists():
-                try:
-                    acc_data = json.loads(acc_path.read_text())
-                    acc_data["query_id"] = query_id
-                    acc_data["latency_s"] = round(latency, 4)
-                    acc_data["prompt_tokens"] = d_prompt
-                    acc_data["completion_tokens"] = d_completion
-                    acc_data["total_tokens"] = d_total
-                    acc_data["result_rows"] = len(result.results)
-                    acc_path.write_text(json.dumps(acc_data, indent=2))
-                except Exception as acc_err:
-                    logger.warning(f"Could not augment {acc_path} with time/cost: {acc_err}")
-
-            logger.info(
-                f"{query_id}: success={item.success} rows={item.result_rows} "
-                f"latency={item.latency_s:.3f}s tokens={item.total_tokens} "
-                f"F1={item.macro_f1:.3f}"
-            )
-        except Exception as exc:
-            latency = time.time() - t0
-            d_prompt, d_completion = token_tracker.delta(before)
-            metrics.append(
-                TrendQueryMetrics(
+                item = TrendQueryMetrics(
                     query_id=query_id,
                     query_text=query_text,
-                    success=False,
-                    delta_type="ERROR",
+                    success=result.success,
+                    delta_type=result.delta_type,
                     latency_s=latency,
-                    result_rows=0,
+                    result_rows=len(result.results),
                     prompt_tokens=d_prompt,
                     completion_tokens=d_completion,
-                    total_tokens=d_prompt + d_completion,
-                    macro_f1=0.0,
-                    macro_precision=0.0,
-                    macro_recall=0.0,
-                    gt_result_count=0,
-                    matched_rows=0,
-                    is_agg=False,
-                    error=str(exc),
+                    total_tokens=d_total,
+                    macro_f1=eval_out.get("macro_f1", 0.0),
+                    macro_precision=eval_out.get("macro_precision", 0.0),
+                    macro_recall=eval_out.get("macro_recall", 0.0),
+                    gt_result_count=eval_out.get("gt_result_count", 0),
+                    matched_rows=eval_out.get("matched_rows", 0),
+                    is_agg=eval_out.get("is_agg", False),
+                    error=result.error if not result.success else None,
                 )
-            )
-            logger.exception(f"{query_id} failed: {exc}")
+                metrics.append(item)
 
-    return metrics
+                # Augment per-query acc.json with time and token cost (evaluation writes acc.json only)
+                acc_path = query_results_dir / query_id / "acc.json"
+                if acc_path.exists():
+                    try:
+                        acc_data = json.loads(acc_path.read_text())
+                        acc_data["query_id"] = query_id
+                        acc_data["latency_s"] = round(latency, 4)
+                        acc_data["prompt_tokens"] = d_prompt
+                        acc_data["completion_tokens"] = d_completion
+                        acc_data["total_tokens"] = d_total
+                        acc_data["result_rows"] = len(result.results)
+                        acc_path.write_text(json.dumps(acc_data, indent=2))
+                    except Exception as acc_err:
+                        logger.warning(f"Could not augment {acc_path} with time/cost: {acc_err}")
+
+                logger.info(
+                    f"{query_id}: success={item.success} rows={item.result_rows} "
+                    f"latency={item.latency_s:.3f}s tokens={item.total_tokens} "
+                    f"F1={item.macro_f1:.3f}"
+                )
+            except Exception as exc:
+                latency = time.time() - t0
+                d_prompt, d_completion = token_tracker.delta(before)
+                metrics.append(
+                    TrendQueryMetrics(
+                        query_id=query_id,
+                        query_text=query_text,
+                        success=False,
+                        delta_type="ERROR",
+                        latency_s=latency,
+                        result_rows=0,
+                        prompt_tokens=d_prompt,
+                        completion_tokens=d_completion,
+                        total_tokens=d_prompt + d_completion,
+                        macro_f1=0.0,
+                        macro_precision=0.0,
+                        macro_recall=0.0,
+                        gt_result_count=0,
+                        matched_rows=0,
+                        is_agg=False,
+                        error=str(exc),
+                    )
+                )
+                logger.exception(f"{query_id} failed: {exc}")
+
+        return metrics
+    finally:
+        config_module.CACHE_DIR = original_cache_dir
 
 
 def save_metrics(metrics: List[TrendQueryMetrics], run_dir: Path) -> None:
