@@ -21,7 +21,7 @@ GT_DATA = {
     'Player': {
         'player': 'Data/Player/player.csv',
         'team': 'Data/Player/team.csv',
-        'manager': 'Data/Player/manager.csv',
+        'owner': 'Data/Player/owner.csv',
         'city': 'Data/Player/city.csv'
     },
     'Art': {

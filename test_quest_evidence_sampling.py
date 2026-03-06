@@ -48,12 +48,12 @@ DATASETS = {
         }
     },
     "Player": {
-        "entities": ["player", "team", "manager", "city"],
+        "entities": ["player", "team", "owner", "city"],
         "attr_file": "Query/Player/Player_attributes.json",
         "csv_files": {
             "player": "Data/Player/player.csv",
             "team": "Data/Player/team.csv",
-            "manager": "Data/Player/manager.csv",
+            "owner": "Data/Player/owner.csv",
             "city": "Data/Player/city.csv",
         }
     },

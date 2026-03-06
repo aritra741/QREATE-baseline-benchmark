@@ -62,7 +62,7 @@ DATA_PATHS = {
     "Player": {
         "player": PROJECT_ROOT / "Data" / "Player" / "player.csv",
         "team": PROJECT_ROOT / "Data" / "Player" / "team.csv",
-        "manager": PROJECT_ROOT / "Data" / "Player" / "manager.csv",
+        "owner": PROJECT_ROOT / "Data" / "Player" / "owner.csv",
         "city": PROJECT_ROOT / "Data" / "Player" / "city.csv",
     },
     "Art": {
@@ -151,10 +151,10 @@ SCHEMAS = {
                 {"name": "player_count", "type": "INTEGER"},
             ]}
         ],
-        "manager": [
-            {"table_name": "manager", "columns": [
+        "owner": [
+            {"table_name": "owner", "columns": [
                 {"name": "id", "type": "INTEGER", "primary_key": True},
-                {"name": "manager_name", "type": "TEXT"},
+                {"name": "owner_name", "type": "TEXT"},
                 {"name": "team", "type": "TEXT"},
                 {"name": "years_coaching", "type": "INTEGER"},
                 {"name": "championships_won", "type": "INTEGER"},
@@ -636,7 +636,7 @@ def run_squid_pipeline(skip_pipeline: bool, datasets_to_process: List[str], logg
     # Map datasets to their entities
     dataset_entities = {
         "Med": ["disease", "drug", "institution"],
-        "Player": ["player", "team", "manager", "city"],
+        "Player": ["player", "team", "owner", "city"],
         "Art": ["art"],
         "Legal": ["legal_case"],
         "Finan": ["finance"]

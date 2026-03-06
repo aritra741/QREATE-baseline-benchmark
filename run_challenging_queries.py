@@ -62,7 +62,7 @@ DATA_PATHS = {
     "Player": {
         "player": PROJECT_ROOT / "Data" / "Player" / "player.csv",
         "team": PROJECT_ROOT / "Data" / "Player" / "team.csv",
-        "manager": PROJECT_ROOT / "Data" / "Player" / "manager.csv",
+        "owner": PROJECT_ROOT / "Data" / "Player" / "owner.csv",
         "city": PROJECT_ROOT / "Data" / "Player" / "city.csv",
     },
     "Art": {

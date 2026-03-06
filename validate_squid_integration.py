@@ -97,7 +97,7 @@ def check_data_paths():
     
     data_paths = {
         "Med": ["disease.csv", "drug.csv", "institution.csv"],
-        "Player": ["player.csv", "team.csv", "manager.csv", "city.csv"],
+        "Player": ["player.csv", "team.csv", "owner.csv", "city.csv"],
         "Art": ["Art.csv"],
         "Legal": ["Legal.csv"],
         "Finan": ["Finan.csv"],

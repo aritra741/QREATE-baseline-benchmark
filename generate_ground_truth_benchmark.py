@@ -23,7 +23,7 @@ RAW_DATA = {
     'Player': {
         'player': 'Data/Player/player.csv',
         'team': 'Data/Player/team.csv',
-        'manager': 'Data/Player/manager.csv',
+        'owner': 'Data/Player/owner.csv',
         'city': 'Data/Player/city.csv'
     },
     'Art': {
@@ -128,9 +128,9 @@ QUERIES = [
         'id': 'join_2',
         'type': 'join',
         'dataset': 'Player',
-        'entity': 'player,team,manager,city',
+        'entity': 'player,team,owner,city',
         'requires_manual': True,
-        'note': 'Four-way join across player, team, manager, and city tables'
+        'note': 'Four-way join across player, team, owner, and city tables'
     },
     {
         'id': 'join_3',
