@@ -12,30 +12,22 @@ import argparse
 import csv
 import json
 import logging
-import math
 import os
 import pickle
 import shutil
 import sys
 import time
-import types
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
-import pandas as pd
 from openai import OpenAI
 
-try:
-    import matplotlib
+import matplotlib
 
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-
-    MATPLOTLIB_AVAILABLE = True
-except Exception:
-    MATPLOTLIB_AVAILABLE = False
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 
 
 logger = logging.getLogger(__name__)
@@ -85,11 +77,7 @@ from test_player_query_awareness_trend import (  # type: ignore
 
 
 # Unify imports need cwd safety because prompt modules read local files at import time.
-if "vllm" not in sys.modules:
-    try:
-        import vllm  # noqa: F401
-    except Exception:
-        sys.modules["vllm"] = types.ModuleType("vllm")
+import vllm  # noqa: F401
 
 sys.path.insert(0, str(UNIFY_MAIN_DIR))
 _ORIG_CWD = os.getcwd()
@@ -98,7 +86,6 @@ try:
     from unify import recursive_plan_generation  # type: ignore
     from PlanManager import planManager  # type: ignore
     from semanticParse import semantic_parse, replace_parsed_elements_with_identifiers, BQMatcher  # type: ignore
-    from chunk import load_process_data_chunks, ChunkExtractor  # type: ignore
     from embed import EmbedModel  # type: ignore
     from index import indexHNSW  # type: ignore
     from utils.llm_config import ModelConfig  # type: ignore
@@ -175,19 +162,29 @@ def _messages_token_count(messages: Optional[List[Dict[str, Any]]]) -> int:
 
 
 def patch_unify_for_token_tracking(token_tracker: TokenTracker) -> None:
-    """Monkey-patch Unify ModelConfig.create_completion for global token tracking."""
-    original = ModelConfig.create_completion
+    """
+    Monkey-patch Unify ModelConfig.create_completion with strict behavior:
+    - no internal fallback model
+    - fail fast on API/model errors
+    - explicit token tracking
+    """
 
     def wrapped_create_completion(self, client, temperature=0.1, top_p=0.9, max_tokens=1000, messages=None):  # noqa: ANN001
         prompt_toks = _messages_token_count(messages)
-        response = original(
-            self,
-            client,
+        response_text = ""
+        stream = client.chat.completions.create(
+            model=self.model_path,
+            messages=messages,
             temperature=temperature,
             top_p=top_p,
             max_tokens=max_tokens,
-            messages=messages,
+            stream=True,
         )
+        for chunk in stream:
+            delta = chunk.choices[0].delta.content
+            if delta:
+                response_text += delta
+        response = response_text
         completion_toks = count_tokens(response or "")
         token_tracker.add(prompt_toks, completion_toks)
         GLOBAL_COUNTER.record(
@@ -233,9 +230,11 @@ def _copy_player_corpus_to_single_dir(dst_dir: Path) -> Path:
     for table in PLAYER_TABLES:
         src = SOURCE_DATA_PLAYER_DIR / table
         if not src.exists():
-            logger.warning("Player table dir missing, skipping: %s", src)
-            continue
-        for p in sorted(src.glob("*.txt"), key=lambda x: int(x.stem)):
+            raise FileNotFoundError(f"Missing required Player table dir: {src}")
+        txt_files = sorted(src.glob("*.txt"), key=lambda x: int(x.stem))
+        if not txt_files:
+            raise RuntimeError(f"No .txt files found in required table dir: {src}")
+        for p in txt_files:
             # Prefix table name to avoid collisions between 1.txt, 2.txt, ...
             dst = dst_dir / f"{table}__{p.stem}.txt"
             if not dst.exists():
@@ -245,16 +244,16 @@ def _copy_player_corpus_to_single_dir(dst_dir: Path) -> Path:
     return dst_dir
 
 
-def _try_load_preprocessed_index(run_dir: Path) -> Optional[Dict[str, Any]]:
+def _load_preprocessed_index_strict(run_dir: Path) -> Dict[str, Any]:
     if not PREPROCESS_INDEXES_DIR.exists():
-        return None
+        raise FileNotFoundError(
+            f"Required preprocess index directory not found: {PREPROCESS_INDEXES_DIR}. "
+            "Run systems/Unify/scripts/preprocess_unify_data.py first."
+        )
     merged_cache = run_dir / "cache" / "player_preprocessed_merged.pkl"
     if merged_cache.exists():
-        try:
-            with merged_cache.open("rb") as f:
-                return pickle.load(f)
-        except Exception as exc:
-            logger.warning("Could not load merged preprocess cache: %s", exc)
+        with merged_cache.open("rb") as f:
+            return pickle.load(f)
 
     all_chunks: List[Any] = []
     all_ids: List[Any] = []
@@ -266,21 +265,18 @@ def _try_load_preprocessed_index(run_dir: Path) -> Optional[Dict[str, Any]]:
     for table in PLAYER_TABLES:
         pkl = PREPROCESS_INDEXES_DIR / table / "preprocessed_data.pkl"
         if not pkl.exists():
-            continue
-        try:
-            with pkl.open("rb") as f:
-                data = pickle.load(f)
-            found = True
-            all_file_data.update(data.get("all_file_data", {}))
-            all_chunks.extend(list(data.get("all_chunks", [])))
-            all_ids.extend(list(data.get("all_ids", [])))
-            all_embeds.extend(list(data.get("all_embeds", [])))
-            all_chunk_locs.extend(list(data.get("all_chunk_locs", [])))
-        except Exception as exc:
-            logger.warning("Could not load preprocess index for %s: %s", table, exc)
+            raise FileNotFoundError(f"Missing required preprocessed data file: {pkl}")
+        with pkl.open("rb") as f:
+            data = pickle.load(f)
+        found = True
+        all_file_data.update(data.get("all_file_data", {}))
+        all_chunks.extend(list(data.get("all_chunks", [])))
+        all_ids.extend(list(data.get("all_ids", [])))
+        all_embeds.extend(list(data.get("all_embeds", [])))
+        all_chunk_locs.extend(list(data.get("all_chunk_locs", [])))
 
     if not found or not all_chunks:
-        return None
+        raise RuntimeError("Preprocessed index data is empty or invalid for Player.")
 
     merged = {
         "all_file_data": all_file_data,
@@ -290,11 +286,8 @@ def _try_load_preprocessed_index(run_dir: Path) -> Optional[Dict[str, Any]]:
         "all_chunk_locs": all_chunk_locs,
     }
     merged_cache.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        with merged_cache.open("wb") as f:
-            pickle.dump(merged, f)
-    except Exception as exc:
-        logger.warning("Could not write merged preprocess cache: %s", exc)
+    with merged_cache.open("wb") as f:
+        pickle.dump(merged, f)
     return merged
 
 
@@ -302,23 +295,12 @@ def _build_unify_data_index(
     run_dir: Path,
     embed_model: "EmbedModel",
     doc_path: Path,
-    *,
-    prefer_preprocessed: bool,
 ) -> Tuple[Dict[str, str], Any]:
-    if prefer_preprocessed:
-        pre = _try_load_preprocessed_index(run_dir)
-        if pre is not None:
-            logger.info("Using merged preprocess_unify cache for Player.")
-            idx = indexHNSW(pre["all_chunks"], pre["all_embeds"], pre["all_ids"], pre["all_chunk_locs"])
-            return pre["all_file_data"], idx
-        logger.warning("Preprocessed cache unavailable/incomplete; falling back to on-the-fly chunk+embed.")
-
-    chunk_extractor = ChunkExtractor()
-    all_file_data, all_chunks, all_ids, all_embeds, all_chunk_locs = load_process_data_chunks(
-        embed_model, chunk_extractor, str(doc_path)
-    )
-    idx = indexHNSW(all_chunks, all_embeds, all_ids, all_chunk_locs)
-    return all_file_data, idx
+    del embed_model, doc_path
+    pre = _load_preprocessed_index_strict(run_dir)
+    logger.info("Using strict preprocess_unify cache for Player.")
+    idx = indexHNSW(pre["all_chunks"], pre["all_embeds"], pre["all_ids"], pre["all_chunk_locs"])
+    return pre["all_file_data"], idx
 
 
 def _extract_unify_final_result(pm: "planManager") -> Any:
@@ -337,11 +319,8 @@ def _to_rows(raw_result: Any, identity_col: str) -> List[Dict[str, Any]]:
         s = raw_result.strip()
         if not s:
             return []
-        try:
-            parsed = json.loads(s)
-            return _to_rows(parsed, identity_col)
-        except Exception:
-            return [{"value": s}]
+        parsed = json.loads(s)
+        return _to_rows(parsed, identity_col)
     if isinstance(raw_result, dict):
         if all(not isinstance(v, (dict, list, tuple, set)) for v in raw_result.values()):
             return [dict(raw_result)]
@@ -374,7 +353,7 @@ def _to_rows(raw_result: Any, identity_col: str) -> List[Dict[str, Any]]:
         return rows
     if isinstance(raw_result, (int, float, bool)):
         return [{"value": raw_result}]
-    return [{"value": str(raw_result)}]
+    raise TypeError(f"Unsupported Unify result type for strict evaluation: {type(raw_result)}")
 
 
 def _run_single_unify_query(
@@ -414,9 +393,11 @@ def _run_single_unify_query(
         embed_model,
         idx,
     )
+    if not final_flag:
+        raise RuntimeError("Unify plan generation failed (final_flag=False); strict mode forbids partial plans.")
     pm.execute_with_plan()
     result = _extract_unify_final_result(pm)
-    delta_type = "UNIFY_PLAN" if final_flag else "UNIFY_PARTIAL_PLAN"
+    delta_type = "UNIFY_PLAN"
     success = result is not None
     return result, success, delta_type
 
@@ -429,7 +410,6 @@ def run_trend_queries_unify(
     sentence_model_path: str,
     api_key: str,
     api_base: str,
-    prefer_preprocessed: bool,
 ) -> List[TrendQueryMetrics]:
     query_results_dir = run_dir / "query_results"
     query_tables_dir = run_dir / "query_tables"
@@ -445,14 +425,14 @@ def run_trend_queries_unify(
     client = OpenAI(api_key=api_key, base_url=api_base)
     chat_model = ModelConfig(llm_model_path)
     embed_model = EmbedModel(tokenizer_path=tokenizer_path, sentence_model_path=sentence_model_path)
-    all_file_data, idx = _build_unify_data_index(
-        run_dir, embed_model, doc_path, prefer_preprocessed=prefer_preprocessed
-    )
+    all_file_data, idx = _build_unify_data_index(run_dir, embed_model, doc_path)
 
     token_tracker = TokenTracker()
     patch_unify_for_token_tracking(token_tracker)
 
-    eval_attributes: Dict[str, Any] = _load_json(ATTRIBUTES_FILE) if ATTRIBUTES_FILE.exists() else {}
+    if not ATTRIBUTES_FILE.exists():
+        raise FileNotFoundError(f"Missing required attributes file: {ATTRIBUTES_FILE}")
+    eval_attributes: Dict[str, Any] = _load_json(ATTRIBUTES_FILE)
     eval_settings = _EvalSettings(llm_provider="none")
     eval_gt_runner = _GtRunner(gt_dir=GROUND_TRUTH_DIR, attributes=eval_attributes)
     eval_sql_parser = _SqlParser()
@@ -461,15 +441,19 @@ def run_trend_queries_unify(
     trend_queries = parse_trend_queries(TREND_SQL_FILE)
     if not trend_queries:
         raise RuntimeError(f"No trend queries found in {TREND_SQL_FILE}")
+    missing_specs = [qid for qid, _ in trend_queries if qid not in NL_QUERY_SPECS]
+    if missing_specs:
+        raise KeyError(f"Missing NL query mappings for: {missing_specs}")
+
+    phase2_db = WDIRS_DIR / ".databases" / "wdirs.db"
+    if not phase2_db.exists():
+        raise FileNotFoundError(f"Missing required evaluation DB for official evaluator: {phase2_db}")
 
     metrics: List[TrendQueryMetrics] = []
     for query_id, query_text in trend_queries:
         logger.info("=" * 70)
         logger.info("Executing %s with Unify", query_id)
-        nl_query = NL_QUERY_SPECS.get(
-            query_id,
-            f"Answer this query over the player dataset: {query_text}",
-        )
+        nl_query = NL_QUERY_SPECS[query_id]
         logger.info("[NL] %s", nl_query)
         before = token_tracker.snapshot()
         t0 = time.time()
@@ -483,7 +467,9 @@ def run_trend_queries_unify(
             d_total = d_prompt + d_completion
 
             identity_col = _infer_identity_col_for_query(query_text, IDENTITY_COLUMNS)
-            rows = _to_rows(raw_result, identity_col or "name")
+            if not identity_col:
+                raise RuntimeError(f"Could not infer identity column for {query_id}")
+            rows = _to_rows(raw_result, identity_col)
 
             out_csv = query_tables_dir / f"{query_id}.csv"
             out_json = query_tables_dir / f"{query_id}.json"
@@ -501,9 +487,7 @@ def run_trend_queries_unify(
                     settings=eval_settings,
                     attributes=eval_attributes,
                     identity_col=identity_col,
-                    # Aggregation/augmentation paths are sqlite-specific in some baselines.
-                    # For Unify output we provide existing project DB as fallback if needed.
-                    phase2_db=WDIRS_DIR / ".databases" / "wdirs.db",
+                    phase2_db=phase2_db,
                     output_dir=query_results_dir / query_id,
                 )
 
@@ -530,23 +514,20 @@ def run_trend_queries_unify(
 
             acc_path = query_results_dir / query_id / "acc.json"
             acc_path.parent.mkdir(parents=True, exist_ok=True)
-            try:
-                acc_data = {}
-                if acc_path.exists():
-                    acc_data = json.loads(acc_path.read_text())
-                acc_data["query_id"] = query_id
-                acc_data["latency_s"] = round(latency, 4)
-                acc_data["prompt_tokens"] = d_prompt
-                acc_data["completion_tokens"] = d_completion
-                acc_data["total_tokens"] = d_total
-                acc_data["result_rows"] = len(rows)
-                acc_data["success"] = bool(success)
-                acc_data.setdefault("macro_f1", eval_out.get("macro_f1", 0.0))
-                acc_data.setdefault("macro_precision", eval_out.get("macro_precision", 0.0))
-                acc_data.setdefault("macro_recall", eval_out.get("macro_recall", 0.0))
-                acc_path.write_text(json.dumps(acc_data, indent=2))
-            except Exception as acc_err:
-                logger.warning("Could not augment %s with token/latency: %s", acc_path, acc_err)
+            acc_data = {}
+            if acc_path.exists():
+                acc_data = json.loads(acc_path.read_text())
+            acc_data["query_id"] = query_id
+            acc_data["latency_s"] = round(latency, 4)
+            acc_data["prompt_tokens"] = d_prompt
+            acc_data["completion_tokens"] = d_completion
+            acc_data["total_tokens"] = d_total
+            acc_data["result_rows"] = len(rows)
+            acc_data["success"] = bool(success)
+            acc_data.setdefault("macro_f1", eval_out.get("macro_f1", 0.0))
+            acc_data.setdefault("macro_precision", eval_out.get("macro_precision", 0.0))
+            acc_data.setdefault("macro_recall", eval_out.get("macro_recall", 0.0))
+            acc_path.write_text(json.dumps(acc_data, indent=2))
 
             logger.info(
                 "%s: success=%s rows=%d latency=%.3fs tokens=%d F1=%.3f",
@@ -601,12 +582,8 @@ def save_metrics(metrics: List[TrendQueryMetrics], run_dir: Path) -> None:
 
 
 def plot_metrics(metrics: List[TrendQueryMetrics], plots_dir: Path) -> None:
-    if not MATPLOTLIB_AVAILABLE:
-        logger.warning("matplotlib not available - skipping plot generation")
-        return
     if not metrics:
-        logger.warning("No metrics to plot.")
-        return
+        raise RuntimeError("No metrics to plot.")
 
     ordered = sorted(metrics, key=lambda m: int(m.query_id[1:]))
     x_labels = [m.query_id for m in ordered]
@@ -688,18 +665,13 @@ def main() -> int:
     ap.add_argument("--sentence-model-path", type=str, default=str(UNIFY_MAIN_DIR / "models" / "embedding"))
     ap.add_argument("--api-key", type=str, default="EMPTY")
     ap.add_argument("--api-base", type=str, default="http://localhost:11434/v1")
-    ap.add_argument(
-        "--disable-preprocessed-index",
-        action="store_true",
-        help="Force on-the-fly chunk+embed instead of preprocess_unify cache.",
-    )
     args = ap.parse_args()
 
     logger.info("Starting Player query-awareness trend test (Unify)...")
     logger.info("Run directory: %s", run_dir)
     logger.info("Trend query source: %s", TREND_SQL_FILE)
     logger.info("Model: %s @ %s", args.llm_model_path, args.api_base)
-    logger.info("Use preprocess_unify cache: %s", not args.disable_preprocessed_index)
+    logger.info("Execution mode: strict (no fallback paths)")
     logger.info("Results dirs: %s | %s | %s", query_results_dir, query_tables_dir, plots_dir)
 
     try:
@@ -710,15 +682,14 @@ def main() -> int:
             sentence_model_path=args.sentence_model_path,
             api_key=args.api_key,
             api_base=args.api_base,
-            prefer_preprocessed=not args.disable_preprocessed_index,
         )
         save_metrics(metrics, run_dir)
         plot_metrics(metrics, plots_dir)
 
         success_count = sum(1 for m in metrics if m.success)
         avg_f1 = sum(m.macro_f1 for m in metrics) / len(metrics) if metrics else 0.0
-        if not math.isfinite(avg_f1):
-            avg_f1 = 0.0
+        if avg_f1 != avg_f1:
+            raise RuntimeError("Average F1 is NaN in strict mode.")
         logger.info("=" * 80)
         logger.info(
             "Completed: %d/%d queries succeeded, avg macro F1=%.3f",
