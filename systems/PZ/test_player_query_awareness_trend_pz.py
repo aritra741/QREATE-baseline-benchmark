@@ -136,6 +136,49 @@ def _to_builtin(v: Any) -> Any:
     return v
 
 
+def _short_col_name(col: Any) -> str:
+    s = str(col)
+    # Handle qualified names such as "table.column" or "dataset.table.column".
+    s = s.split(".")[-1]
+    # Handle pandas-style merge suffixes if they ever appear.
+    if s.endswith("_x") or s.endswith("_y"):
+        s = s[:-2]
+    return s
+
+
+def _resolve_project_columns(df: pd.DataFrame, selected_cols: List[str]) -> Tuple[pd.DataFrame, List[str]]:
+    if not selected_cols:
+        return df, selected_cols
+
+    resolved: List[str] = []
+    rename_map: Dict[str, str] = {}
+    all_cols = list(df.columns)
+    used_source_cols: set[str] = set()
+
+    for want in selected_cols:
+        # 1) exact match
+        if want in df.columns:
+            resolved.append(want)
+            used_source_cols.add(want)
+            continue
+
+        # 2) resolve by short name (e.g., "Q8_player.name" -> "name")
+        candidates = [c for c in all_cols if _short_col_name(c) == want and str(c) not in used_source_cols]
+        if not candidates:
+            continue
+
+        # Prefer a stable deterministic candidate.
+        chosen = str(sorted(candidates, key=lambda x: str(x))[0])
+        used_source_cols.add(chosen)
+        rename_map[chosen] = want
+        resolved.append(want)
+
+    out = df.copy()
+    if rename_map:
+        out = out.rename(columns=rename_map)
+    return out, resolved
+
+
 def _extract_token_usage(record_collection: Any) -> Tuple[int, int]:
     stats = getattr(record_collection, "execution_stats", None)
     if stats is None:
@@ -437,9 +480,14 @@ def execute_query_via_pz(
     out_df = joined_out.to_df()
 
     selected_cols: List[str] = list(spec["select"])
-    missing_cols = [c for c in selected_cols if c not in out_df.columns]
+    out_df, resolved_cols = _resolve_project_columns(out_df, selected_cols)
+    missing_cols = [c for c in selected_cols if c not in resolved_cols]
     if missing_cols:
-        raise ValueError(f"Projected columns missing after execution: {missing_cols}")
+        available = [str(c) for c in out_df.columns]
+        raise ValueError(
+            f"Projected columns missing after execution: {missing_cols}. "
+            f"Available columns: {available}"
+        )
 
     out_df = out_df[selected_cols].copy()
     rows = [{k: _to_builtin(v) for k, v in r.items()} for r in out_df.to_dict("records")]
