@@ -1,6 +1,8 @@
 # FULL Palimpzest system from PZ_original/palimpzest/
-# Install with: pip install -e ./PZ_original/palimpzest/
-# Or use pip dependencies below for core packages
+# Preferred install:
+#   pip install -e ./systems/PZ/PZ_original/palimpzest
+# This requirements file mirrors the package dependencies so users can
+# provision environments with a single -r install if needed.
 
 # Core ML and API
 openai>=1.0
@@ -8,14 +10,20 @@ anthropic>=0.55.0
 together>=1.5.5
 litellm>=1.76.1
 ollama>=0.1.0
+fastapi~=0.115.0
+gradio>=5.26.0
+smolagents[toolkit]
 
 # Data processing and computation
 pandas>=2.1.1
-numpy>=2.0.0
+numpy==2.0.2
 pyarrow>=20.0.0
+datasets>=4.0.0
+pillow>=11.3.0
+pypdf>=5.1.0
 
 # ML/Embeddings
-sentence-transformers>=5.0.0
+sentence-transformers==5.0.0
 chromadb>=1.0.15
 
 # Utilities
@@ -25,9 +33,18 @@ pydantic>=2.0.0
 pyyaml>=6.0.1
 requests>=2.25
 tqdm>=4.66.1
+beautifulsoup4>=4.13.4
+prettytable>=3.9.0
+psutil==5.9.5
+PyLD>=2.0.4
+setuptools>=70.1.1
+tabulate>=0.9.0
+rich[jupyter]>=13.9.2
+matplotlib>=3.5.3
 
 # Testing and development
 pytest>=8.2.2
 pytest-mock>=3.14.0
-black>=0.1.0
+ruff>=0.9.0
+black>=24.0.0
 
