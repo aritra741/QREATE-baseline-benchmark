@@ -447,13 +447,31 @@ def execute_query_via_pz(
 
 
 def _write_query_tables_sqlite(table_map: Dict[str, pd.DataFrame], db_path: Path) -> None:
+    def _sqlite_safe_scalar(v: Any) -> Any:
+        # Keep NULLs as NULL in SQLite.
+        if v is None or (isinstance(v, float) and pd.isna(v)):
+            return None
+        if isinstance(v, (str, int, float, bool, bytes)):
+            return v
+        if isinstance(v, (list, tuple, dict, set)):
+            return json.dumps(v, ensure_ascii=False, default=str)
+        if hasattr(v, "item"):
+            try:
+                return v.item()
+            except Exception:
+                pass
+        return str(v)
+
     db_path.parent.mkdir(parents=True, exist_ok=True)
     if db_path.exists():
         db_path.unlink()
     with pd.option_context("mode.copy_on_write", True):
         with __import__("sqlite3").connect(db_path) as conn:
             for table, df in table_map.items():
-                df.to_sql(table, conn, if_exists="replace", index=False)
+                safe_df = df.copy()
+                for col in safe_df.columns:
+                    safe_df[col] = safe_df[col].map(_sqlite_safe_scalar)
+                safe_df.to_sql(table, conn, if_exists="replace", index=False)
 
 
 def _save_rows_csv(rows: List[Dict[str, Any]], out_csv: Path) -> None:
