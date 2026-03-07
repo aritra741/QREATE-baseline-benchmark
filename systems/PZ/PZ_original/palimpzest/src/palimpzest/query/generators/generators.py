@@ -393,17 +393,20 @@ class Generator(Generic[ContextType, InputType]):
             print(f"[GENERATOR DEBUG] Full response:\n{response_text}\n", file=sys.stderr, flush=True)
             sys.stderr.flush()
             
-            # Convert streamed response back to completion-like object for compatibility
-            from litellm import Completion, CompletionChoice, Message
-            completion = Completion(
+            # Convert streamed response back to a completion-like object for compatibility.
+            # Newer litellm versions no longer expose Completion dataclasses at top-level.
+            from types import SimpleNamespace
+            completion = SimpleNamespace(
                 id="stream-completion",
-                choices=[CompletionChoice(
-                    message=Message(content=response_text, role="assistant"),
-                    finish_reason="stop",
-                    index=0
-                )],
+                choices=[
+                    SimpleNamespace(
+                        message=SimpleNamespace(content=response_text, role="assistant"),
+                        finish_reason="stop",
+                        index=0,
+                    )
+                ],
                 model=model_to_use,
-                usage=None
+                usage=None,
             )
         # if there's an error generating the completion, we have to return an empty answer
         # and can only account for the time spent performing the failed generation

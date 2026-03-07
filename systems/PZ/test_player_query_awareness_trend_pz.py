@@ -434,8 +434,8 @@ def execute_query_via_pz(
         output_tokens=c_tok,
         operation="pz",
     )
-
     out_df = joined_out.to_df()
+
     selected_cols: List[str] = list(spec["select"])
     missing_cols = [c for c in selected_cols if c not in out_df.columns]
     if missing_cols:
