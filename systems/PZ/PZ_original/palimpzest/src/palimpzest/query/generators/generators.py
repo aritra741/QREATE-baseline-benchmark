@@ -433,20 +433,21 @@ class Generator(Generic[ContextType, InputType]):
                 print(f"[GENERATOR DEBUG] Warning: No usage stats from streamed response", file=sys.stderr, flush=True)
                 output_tokens = len(response_text.split()) if 'response_text' in locals() else 0
                 input_text_tokens = sum(len(msg.get('content', '').split()) for msg in messages if isinstance(msg, dict))
-                input_tokens = input_text_tokens
-            else:
-            usage = completion.usage.model_dump()
-
-            # get output tokens (all text) and input tokens by modality
-            output_tokens = usage["completion_tokens"]
-            if is_audio_op:
-                input_audio_tokens = usage["prompt_tokens_details"].get("audio_tokens", 0)
-                input_text_tokens = usage["prompt_tokens_details"].get("text_tokens", 0)
-                input_image_tokens = 0
-            else:
                 input_audio_tokens = 0
-                input_text_tokens = usage["prompt_tokens"]
                 input_image_tokens = 0
+            else:
+                usage = completion.usage.model_dump()
+
+                # get output tokens (all text) and input tokens by modality
+                output_tokens = usage["completion_tokens"]
+                if is_audio_op:
+                    input_audio_tokens = usage["prompt_tokens_details"].get("audio_tokens", 0)
+                    input_text_tokens = usage["prompt_tokens_details"].get("text_tokens", 0)
+                    input_image_tokens = 0
+                else:
+                    input_audio_tokens = 0
+                    input_text_tokens = usage["prompt_tokens"]
+                    input_image_tokens = 0
             input_tokens = input_audio_tokens + input_text_tokens + input_image_tokens
 
             # get cost per input/output token for the model
