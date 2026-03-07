@@ -480,6 +480,11 @@ def execute_query_via_pz(
     out_df = joined_out.to_df()
 
     selected_cols: List[str] = list(spec["select"])
+    # Palimpzest may return an empty frame with no columns for empty results.
+    # Treat this as a valid 0-row result and preserve the expected projection schema.
+    if out_df.empty and len(out_df.columns) == 0:
+        out_df = pd.DataFrame(columns=selected_cols)
+
     out_df, resolved_cols = _resolve_project_columns(out_df, selected_cols)
     missing_cols = [c for c in selected_cols if c not in resolved_cols]
     if missing_cols:
