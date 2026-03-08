@@ -445,10 +445,6 @@ def run_trend_queries_unify(
     if missing_specs:
         raise KeyError(f"Missing NL query mappings for: {missing_specs}")
 
-    phase2_db = WDIRS_DIR / ".databases" / "wdirs.db"
-    if not phase2_db.exists():
-        raise FileNotFoundError(f"Missing required evaluation DB for official evaluator: {phase2_db}")
-
     metrics: List[TrendQueryMetrics] = []
     for query_id, query_text in trend_queries:
         logger.info("=" * 70)
@@ -478,6 +474,10 @@ def run_trend_queries_unify(
 
             eval_out: Dict[str, Any] = {}
             if success:
+                # Unify evaluation must not depend on WDIRS artifacts.
+                # Pass a non-existent phase2 DB path so the shared evaluator
+                # will skip any DB-based augmentation branch.
+                phase2_db = run_dir / "_no_phase2_db_for_unify.db"
                 eval_out = evaluate_with_official_framework(
                     query_text,
                     rows,
