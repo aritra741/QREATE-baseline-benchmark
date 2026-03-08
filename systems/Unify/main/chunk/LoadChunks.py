@@ -5,7 +5,6 @@ from typing import Any, Dict, List, Tuple
 import numpy as np
 import ray
 import torch
-import vllm
 from blingfire import text_to_sentences_and_offsets
 from bs4 import BeautifulSoup
 from sentence_transformers import SentenceTransformer

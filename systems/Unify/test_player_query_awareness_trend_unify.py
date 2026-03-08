@@ -77,8 +77,6 @@ from test_player_query_awareness_trend import (  # type: ignore
 
 
 # Unify imports need cwd safety because prompt modules read local files at import time.
-import vllm  # noqa: F401
-
 sys.path.insert(0, str(UNIFY_MAIN_DIR))
 _ORIG_CWD = os.getcwd()
 os.chdir(str(UNIFY_MAIN_DIR))

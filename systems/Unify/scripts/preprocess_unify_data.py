@@ -140,18 +140,7 @@ class UnifyPreprocessor:
             # Change to Unify main directory for imports
             original_cwd = os.getcwd()
             os.chdir(self.unify_main_dir)
-            
-            # vllm is imported but not used in chunking - make it optional
-            try:
-                import vllm
-            except ImportError:
-                # Create a dummy vllm module if not available (not needed for preprocessing)
-                import sys
-                from types import ModuleType
-                vllm = ModuleType('vllm')
-                sys.modules['vllm'] = vllm
-                logger.warning("vllm not available, using dummy module (not needed for preprocessing)")
-            
+
             from chunk import ChunkExtractor, load_process_data_chunks
             from embed import EmbedModel
             from index import indexHNSW
