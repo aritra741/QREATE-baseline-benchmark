@@ -16,9 +16,7 @@ import csv
 import json
 import logging
 import math
-import os
 import re
-import sqlite3
 import sys
 import time
 from dataclasses import asdict, dataclass
@@ -27,15 +25,9 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
 
-try:
-    import matplotlib
-
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-
-    MATPLOTLIB_AVAILABLE = True
-except Exception:
-    MATPLOTLIB_AVAILABLE = False
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 
 logger = logging.getLogger(__name__)
 
@@ -213,6 +205,12 @@ def parse_trend_queries(sql_file: Path) -> List[Tuple[str, str]]:
             queries.append((qid, sql))
 
     queries.sort(key=lambda x: int(x[0][1:]))
+    expected = [f"Q{i}" for i in range(1, 11)]
+    got = [qid for qid, _ in queries]
+    if got != expected:
+        raise RuntimeError(
+            f"Expected exactly Q1..Q10 in order. Got: {got}"
+        )
     return queries
 
 
@@ -229,11 +227,6 @@ def _strip_description_prefix(df: pd.DataFrame) -> pd.DataFrame:
     if rename_map:
         df = df.rename(columns=rename_map)
     return df
-
-
-def _is_aggregation_query(sql: str) -> bool:
-    sql_upper = sql.upper()
-    return bool(re.search(r'\b(COUNT|SUM|AVG|MIN|MAX)\s*\(', sql_upper))
 
 
 def _build_pred_df(
@@ -271,7 +264,13 @@ def _resolve_primary_keys(
         if chosen and chosen not in resolved:
             resolved.append(chosen)
 
-    return resolved or primary_keys
+    if not resolved:
+        raise RuntimeError(
+            f"Could not resolve primary keys {primary_keys} "
+            f"against gold columns={list(gold_df.columns)} "
+            f"and pred columns={list(pred_df.columns)}"
+        )
+    return resolved
 
 
 def evaluate_with_official_framework(
@@ -288,35 +287,36 @@ def evaluate_with_official_framework(
 ) -> Dict[str, Any]:
     parsed = sql_parser.parse(sql)
     is_agg = parsed.query_type == "aggregation"
-    entity = identity_col or "name"
+    if not identity_col:
+        raise RuntimeError("Strict mode requires explicit identity_col.")
+    entity = identity_col
 
     if is_agg:
         gt_sql = sql
         primary_keys = parsed.primary_keys
     else:
         primary_keys = [entity]
-        try:
-            import sqlglot
-            import sqlglot.expressions as _sqlglot_exp
+        import sqlglot
+        import sqlglot.expressions as _sqlglot_exp
 
-            parsed_ast = sqlglot.parse_one(sql, error_level="ignore")
-            if not parsed_ast.find(_sqlglot_exp.Star) and not parsed_ast.args.get("group"):
-                existing = {
-                    c.name.lower()
-                    for c in parsed_ast.find_all(_sqlglot_exp.Column)
-                    if isinstance(c.parent, _sqlglot_exp.Select)
-                }
-                if entity.lower() not in existing:
-                    parsed_ast = parsed_ast.select(_sqlglot_exp.column(entity))
-                gt_sql = parsed_ast.sql(dialect="duckdb")
-            else:
-                gt_sql = sql
-        except Exception:
+        parsed_ast = sqlglot.parse_one(sql)
+        if not parsed_ast.find(_sqlglot_exp.Star) and not parsed_ast.args.get("group"):
+            existing = {
+                c.name.lower()
+                for c in parsed_ast.find_all(_sqlglot_exp.Column)
+                if isinstance(c.parent, _sqlglot_exp.Select)
+            }
+            if entity.lower() not in existing:
+                parsed_ast = parsed_ast.select(_sqlglot_exp.column(entity))
+            gt_sql = parsed_ast.sql(dialect="duckdb")
+        else:
             gt_sql = sql
 
     gold_df = gt_runner.run(gt_sql)
     if not is_agg and entity not in gold_df.columns:
-        primary_keys = parsed.primary_keys
+        raise RuntimeError(
+            f"Identity column '{entity}' missing from GT result columns {list(gold_df.columns)}"
+        )
 
     manifest = _QueryManifest(gt_sql, sql_parser.parse(gt_sql), attributes)
     pred_df = _build_pred_df(
@@ -327,48 +327,28 @@ def evaluate_with_official_framework(
 
     primary_keys = _resolve_primary_keys(primary_keys, gold_df, pred_df)
 
-    try:
-        match_result = row_matcher.match(
-            gold_df=gold_df,
-            pred_df=pred_df,
-            primary_keys=primary_keys,
-            attr_descriptions=attributes,
-            query_type=parsed.query_type,
-        )
-    except KeyError as ke:
-        logger.warning(f"[Eval] RowMatcher key error ({ke}) — returning zero metrics")
-        return {
-            "macro_f1": 0.0,
-            "macro_precision": 0.0,
-            "macro_recall": 0.0,
-            "is_agg": is_agg,
-            "gt_result_count": len(gold_df),
-            "matched_rows": 0,
-        }
+    match_result = row_matcher.match(
+        gold_df=gold_df,
+        pred_df=pred_df,
+        primary_keys=primary_keys,
+        attr_descriptions=attributes,
+        query_type=parsed.query_type,
+    )
 
     calc = _MetricCalculator(manifest, settings)
     metrics = calc.compute(match_result)
     macro_f1 = metrics.get("macro_f1", 0.0)
     macro_precision = metrics.get("macro_precision", 0.0)
     macro_recall = metrics.get("macro_recall", 0.0)
-    for val_name in ("macro_f1", "macro_precision", "macro_recall"):
-        val = locals()[val_name]
-        if not math.isfinite(val):
-            locals()[val_name]  # already 0.0 from default
+    if not math.isfinite(macro_f1) or not math.isfinite(macro_precision) or not math.isfinite(macro_recall):
+        raise RuntimeError(
+            f"Non-finite metrics produced: "
+            f"F1={macro_f1}, P={macro_precision}, R={macro_recall}"
+        )
 
-    if not math.isfinite(macro_f1):
-        macro_f1 = 0.0
-    if not math.isfinite(macro_precision):
-        macro_precision = 0.0
-    if not math.isfinite(macro_recall):
-        macro_recall = 0.0
-
-    try:
-        from evaluation.result_writer import ResultWriter as _ResultWriter
-        writer = _ResultWriter(output_dir=output_dir)
-        writer.write(gold_df, match_result.gold_aligned, match_result.pred_aligned, metrics)
-    except Exception as we:
-        logger.warning(f"[Eval] Could not write per-query outputs: {we}")
+    from evaluation.result_writer import ResultWriter as _ResultWriter
+    writer = _ResultWriter(output_dir=output_dir)
+    writer.write(gold_df, match_result.gold_aligned, match_result.pred_aligned, metrics)
 
     return {
         "macro_f1": macro_f1,
@@ -442,6 +422,8 @@ def run_trend_queries_uqe(run_dir: Path) -> List[TrendQueryMetrics]:
     eval_attributes: Dict[str, Any] = (
         _load_json(ATTRIBUTES_FILE) if ATTRIBUTES_FILE.exists() else {}
     )
+    if not eval_attributes:
+        raise RuntimeError(f"Missing or empty attributes file: {ATTRIBUTES_FILE}")
     eval_settings = _EvalSettings(llm_provider="none")
     eval_gt_runner = _GtRunner(gt_dir=GROUND_TRUTH_DIR, attributes=eval_attributes)
     eval_sql_parser = _SqlParser()
@@ -450,6 +432,8 @@ def run_trend_queries_uqe(run_dir: Path) -> List[TrendQueryMetrics]:
     trend_queries = parse_trend_queries(TREND_SQL_FILE)
     if not trend_queries:
         raise RuntimeError(f"No trend queries found in {TREND_SQL_FILE}")
+    if len(trend_queries) != 10:
+        raise RuntimeError(f"Strict mode expects exactly 10 queries, got {len(trend_queries)}")
 
     logger.info(f"Loaded {len(trend_queries)} trend queries from {TREND_SQL_FILE}")
     for qid, qtxt in trend_queries:
@@ -463,119 +447,68 @@ def run_trend_queries_uqe(run_dir: Path) -> List[TrendQueryMetrics]:
         before = token_tracker.snapshot()
         t0 = time.time()
 
-        try:
-            result_df = _execute_uqe_query(query_text)
-            rows = result_df.to_dict("records")
-            latency = time.time() - t0
-            d_prompt, d_completion = token_tracker.delta(before)
-            d_total = d_prompt + d_completion
+        result_df = _execute_uqe_query(query_text)
+        rows = result_df.to_dict("records")
+        latency = time.time() - t0
+        d_prompt, d_completion = token_tracker.delta(before)
+        d_total = d_prompt + d_completion
 
-            out_csv = query_tables_dir / f"{query_id}.csv"
-            out_json = query_tables_dir / f"{query_id}.json"
-            _save_rows_csv(rows, out_csv)
-            out_json.write_text(json.dumps(rows, indent=2, default=str))
+        out_csv = query_tables_dir / f"{query_id}.csv"
+        out_json = query_tables_dir / f"{query_id}.json"
+        _save_rows_csv(rows, out_csv)
+        out_json.write_text(json.dumps(rows, indent=2, default=str))
 
-            is_agg = _is_aggregation_query(query_text)
+        eval_out = evaluate_with_official_framework(
+            query_text,
+            rows,
+            gt_runner=eval_gt_runner,
+            sql_parser=eval_sql_parser,
+            row_matcher=eval_row_matcher,
+            settings=eval_settings,
+            attributes=eval_attributes,
+            identity_col="name",
+            output_dir=query_results_dir / query_id,
+        )
 
-            eval_out = evaluate_with_official_framework(
-                query_text,
-                rows,
-                gt_runner=eval_gt_runner,
-                sql_parser=eval_sql_parser,
-                row_matcher=eval_row_matcher,
-                settings=eval_settings,
-                attributes=eval_attributes,
-                identity_col="name",
-                output_dir=query_results_dir / query_id,
-            )
+        item = TrendQueryMetrics(
+            query_id=query_id,
+            query_text=query_text,
+            success=True,
+            delta_type="UQE",
+            latency_s=latency,
+            result_rows=len(rows),
+            prompt_tokens=d_prompt,
+            completion_tokens=d_completion,
+            total_tokens=d_total,
+            macro_f1=eval_out["macro_f1"],
+            macro_precision=eval_out["macro_precision"],
+            macro_recall=eval_out["macro_recall"],
+            gt_result_count=eval_out["gt_result_count"],
+            matched_rows=eval_out["matched_rows"],
+            is_agg=eval_out["is_agg"],
+        )
+        metrics.append(item)
 
-            item = TrendQueryMetrics(
-                query_id=query_id,
-                query_text=query_text,
-                success=True,
-                delta_type="UQE",
-                latency_s=latency,
-                result_rows=len(rows),
-                prompt_tokens=d_prompt,
-                completion_tokens=d_completion,
-                total_tokens=d_total,
-                macro_f1=eval_out.get("macro_f1", 0.0),
-                macro_precision=eval_out.get("macro_precision", 0.0),
-                macro_recall=eval_out.get("macro_recall", 0.0),
-                gt_result_count=eval_out.get("gt_result_count", 0),
-                matched_rows=eval_out.get("matched_rows", 0),
-                is_agg=eval_out.get("is_agg", False),
-            )
-            metrics.append(item)
+        acc_path = query_results_dir / query_id / "acc.json"
+        acc_path.parent.mkdir(parents=True, exist_ok=True)
+        acc_data = {
+            "query_id": query_id,
+            "latency_s": round(latency, 4),
+            "prompt_tokens": d_prompt,
+            "completion_tokens": d_completion,
+            "total_tokens": d_total,
+            "result_rows": len(rows),
+            "success": True,
+            "macro_f1": eval_out["macro_f1"],
+            "macro_precision": eval_out["macro_precision"],
+            "macro_recall": eval_out["macro_recall"],
+        }
+        acc_path.write_text(json.dumps(acc_data, indent=2))
 
-            acc_path = query_results_dir / query_id / "acc.json"
-            acc_path.parent.mkdir(parents=True, exist_ok=True)
-            try:
-                acc_data = {}
-                if acc_path.exists():
-                    acc_data = json.loads(acc_path.read_text())
-                acc_data["query_id"] = query_id
-                acc_data["latency_s"] = round(latency, 4)
-                acc_data["prompt_tokens"] = d_prompt
-                acc_data["completion_tokens"] = d_completion
-                acc_data["total_tokens"] = d_total
-                acc_data["result_rows"] = len(rows)
-                acc_data["success"] = True
-                acc_data.setdefault("macro_f1", eval_out.get("macro_f1", 0.0))
-                acc_data.setdefault("macro_precision", eval_out.get("macro_precision", 0.0))
-                acc_data.setdefault("macro_recall", eval_out.get("macro_recall", 0.0))
-                acc_path.write_text(json.dumps(acc_data, indent=2))
-            except Exception as acc_err:
-                logger.warning(f"Could not write {acc_path}: {acc_err}")
-
-            logger.info(
-                f"{query_id}: rows={item.result_rows} latency={item.latency_s:.3f}s "
-                f"tokens={item.total_tokens} F1={item.macro_f1:.3f}"
-            )
-        except Exception as exc:
-            latency = time.time() - t0
-            d_prompt, d_completion = token_tracker.delta(before)
-            d_total = d_prompt + d_completion
-            metrics.append(
-                TrendQueryMetrics(
-                    query_id=query_id,
-                    query_text=query_text,
-                    success=False,
-                    delta_type="ERROR",
-                    latency_s=latency,
-                    result_rows=0,
-                    prompt_tokens=d_prompt,
-                    completion_tokens=d_completion,
-                    total_tokens=d_total,
-                    macro_f1=0.0,
-                    macro_precision=0.0,
-                    macro_recall=0.0,
-                    gt_result_count=0,
-                    matched_rows=0,
-                    is_agg=False,
-                    error=str(exc),
-                )
-            )
-            acc_path = query_results_dir / query_id / "acc.json"
-            acc_path.parent.mkdir(parents=True, exist_ok=True)
-            try:
-                acc_data = {
-                    "query_id": query_id,
-                    "latency_s": round(latency, 4),
-                    "prompt_tokens": d_prompt,
-                    "completion_tokens": d_completion,
-                    "total_tokens": d_total,
-                    "result_rows": 0,
-                    "success": False,
-                    "error": str(exc),
-                    "macro_f1": 0.0,
-                    "macro_precision": 0.0,
-                    "macro_recall": 0.0,
-                }
-                acc_path.write_text(json.dumps(acc_data, indent=2))
-            except Exception as acc_err:
-                logger.warning(f"Could not write {acc_path}: {acc_err}")
-            logger.exception(f"{query_id} failed: {exc}")
+        logger.info(
+            f"{query_id}: rows={item.result_rows} latency={item.latency_s:.3f}s "
+            f"tokens={item.total_tokens} F1={item.macro_f1:.3f}"
+        )
 
     return metrics
 
@@ -595,12 +528,8 @@ def save_metrics(metrics: List[TrendQueryMetrics], run_dir: Path) -> None:
 
 
 def plot_metrics(metrics: List[TrendQueryMetrics], run_dir: Path) -> None:
-    if not MATPLOTLIB_AVAILABLE:
-        logger.warning("matplotlib not available — skipping plot generation")
-        return
     if not metrics:
-        logger.warning("No metrics to plot.")
-        return
+        raise RuntimeError("No metrics to plot.")
 
     ordered = sorted(metrics, key=lambda m: int(m.query_id[1:]))
     x_labels = [m.query_id for m in ordered]
