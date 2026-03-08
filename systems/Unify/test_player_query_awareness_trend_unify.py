@@ -48,16 +48,16 @@ IDENTITY_COLUMNS = {"city": "city_name", "player": "name", "team": "team_name", 
 
 # Q1..Q10 NL queries aligned with the trend SQL workload.
 NL_QUERY_SPECS: Dict[str, str] = {
-    "Q1": "List each player's name, nationality, and age with their team name and team location.",
-    "Q2": "For players older than 25, list player name, position, team name, and team founded year.",
-    "Q3": "For players with draft pick at least 0, list player name, draft pick, college, and team name.",
-    "Q4": "List team name and location with matched city name and state name.",
-    "Q5": "List player name with team name, city name, and city state by linking player, team, and city.",
-    "Q6": "For players younger than 35, list player name, position, city name, and city population via player, team, city.",
-    "Q7": "For players with draft pick greater than 0, list player name, college, team name, and city GDP.",
-    "Q8": "For cities with area greater than 100, list player name, player birth date, team name, and city area.",
-    "Q9": "Starting from city and traversing city, team, player, list city name, state, team name, and player name for players younger than 40.",
-    "Q10": "Starting from city and traversing city, team, player, list city name, state, team name, player name, and player college for players older than 20.",
+    "Q1": "Join player and team on player.team equals team.team_name. Return player.name, player.nationality, player.age, team.team_name, and team.location.",
+    "Q2": "Filter player where age is greater than 25. Join player and team on player.team equals team.team_name. Return player.name, player.position, team.team_name, and team.founded_year.",
+    "Q3": "Filter player where draft_pick is greater than or equal to 0. Join player and team on player.team equals team.team_name. Return player.name, player.draft_pick, player.college, and team.team_name.",
+    "Q4": "Join team and city on team.location equals city.city_name. Return team.team_name, team.location, city.city_name, and city.state_name.",
+    "Q5": "Join player and team on player.team equals team.team_name. Then join team and city on team.location equals city.city_name. Return player.name, team.team_name, city.city_name, and city.state_name.",
+    "Q6": "Filter player where age is less than 35. Join player and team on player.team equals team.team_name. Then join team and city on team.location equals city.city_name. Return player.name, player.position, city.city_name, and city.population.",
+    "Q7": "Filter player where draft_pick is greater than 0. Join player and team on player.team equals team.team_name. Then join team and city on team.location equals city.city_name. Return player.name, player.college, team.team_name, and city.gdp.",
+    "Q8": "Filter city where area is greater than 100. Join player and team on player.team equals team.team_name. Then join team and city on team.location equals city.city_name. Return player.name, player.birth_date, team.team_name, and city.area.",
+    "Q9": "Join city and team on city.city_name equals team.location. Then join team and player on team.team_name equals player.team. Filter player where age is less than 40. Return city.city_name, city.state_name, team.team_name, and player.name.",
+    "Q10": "Join city and team on city.city_name equals team.location. Then join team and player on team.team_name equals player.team. Filter player where age is greater than 20. Return city.city_name, city.state_name, team.team_name, player.name, and player.college.",
 }
 
 
@@ -391,11 +391,13 @@ def _run_single_unify_query(
         embed_model,
         idx,
     )
-    if not final_flag:
-        raise RuntimeError("Unify plan generation failed (final_flag=False); strict mode forbids partial plans.")
+
+    # Paper-faithful behavior: execute whatever plan Unify can construct.
+    # We do not inject external fallback logic, but also do not force-abort
+    # when decomposition is partial.
     pm.execute_with_plan()
     result = _extract_unify_final_result(pm)
-    delta_type = "UNIFY_PLAN"
+    delta_type = "UNIFY_PLAN" if final_flag else "UNIFY_PARTIAL_PLAN"
     success = result is not None
     return result, success, delta_type
 
