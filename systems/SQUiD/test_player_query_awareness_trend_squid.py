@@ -340,7 +340,9 @@ IDENTITY_COLUMNS = {
 # ---------------------------------------------------------------------------
 # SQUiD Preprocessing
 # ---------------------------------------------------------------------------
-def _build_single_player_input_dataset(dataset_json_path: Path) -> None:
+def _build_single_player_input_dataset(
+    dataset_json_path: Path, repeat_entries: int = 1
+) -> None:
     """
     Build one combined input document so SQUiD generates ONE database.
 
@@ -428,15 +430,14 @@ def _build_single_player_input_dataset(dataset_json_path: Path) -> None:
             )
 
     combined_text = "\n".join(paragraphs)
-    combined_entry = [{
+    base_entry = {
         "text": combined_text,
-        "ground_truth_entities": [
-            "player", "team", "city", "owner"
-        ],
+        "ground_truth_entities": ["player", "team", "city", "owner"],
         "ground_truth_key_value": {},
         "domain": "Player",
         "difficulty": "hard",
-    }]
+    }
+    combined_entry = [dict(base_entry) for _ in range(max(1, repeat_entries))]
     dataset_json_path.parent.mkdir(parents=True, exist_ok=True)
     dataset_json_path.write_text(json.dumps(combined_entry, indent=2))
 
@@ -463,7 +464,7 @@ def run_squid_preprocessing(squid_root: Path, method: str = "TS") -> Path:
     logger.info("=" * 70)
     logger.info("Running SQUiD single-input preprocessing (one DB output)")
     logger.info("=" * 70)
-    _build_single_player_input_dataset(dataset_json)
+    _build_single_player_input_dataset(dataset_json, repeat_entries=1)
 
     def _run(cmd: List[str], desc: str) -> None:
         logger.info(f"[Preprocess] {desc}")

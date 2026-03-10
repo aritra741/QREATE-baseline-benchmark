@@ -77,8 +77,9 @@ def generate_schema(config):
             # if idx < processed_idx:
             #     continue
             
-            for j in range(5):
-                next_entry_same_domain = idx_for_domain[data["domain"][idx]][j]
+            same_domain_indices = idx_for_domain[data["domain"][idx]]
+            for j in range(min(5, len(same_domain_indices))):
+                next_entry_same_domain = same_domain_indices[j]
                 if next_entry_same_domain != idx:
                     text += data["texts"][next_entry_same_domain]
 
