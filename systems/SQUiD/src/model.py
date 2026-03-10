@@ -22,6 +22,7 @@ import json
 from transformers import LlamaTokenizer, LlamaForCausalLM, AutoConfig
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import gc
+from openai import APIConnectionError, APITimeoutError, RateLimitError
 
 # Make mysql optional - only needed if actually using MySQL backend
 try:
@@ -212,17 +213,33 @@ class Model:
             return str(response.choices[0].message.content)
         
         elif self.llm == "ollama" or self.llm == "ollama_qwen":
-            # Use Ollama via OpenAI-compatible API
-            response = self.client.chat.completions.create(
-                model=self.ollama_model,
-                messages=[
-                    {"role": "system", "content": prompt},
-                    {"role": "user", "content": user_prompt}
-                ],
-                temperature=0,
-                stream=False
-            )
-            return str(response.choices[0].message.content)
+            # Use Ollama via OpenAI-compatible API with retries for transient disconnects.
+            last_exc = None
+            for attempt in range(5):
+                try:
+                    response = self.client.chat.completions.create(
+                        model=self.ollama_model,
+                        messages=[
+                            {"role": "system", "content": prompt},
+                            {"role": "user", "content": user_prompt}
+                        ],
+                        temperature=0,
+                        stream=False,
+                        timeout=300.0,
+                    )
+                    return str(response.choices[0].message.content)
+                except (APIConnectionError, APITimeoutError, RateLimitError) as exc:
+                    last_exc = exc
+                    wait_s = min(30, 2 ** attempt)
+                    print(f"[Ollama retry {attempt + 1}/5] {type(exc).__name__}: {exc}; waiting {wait_s}s")
+                    time.sleep(wait_s)
+                except Exception as exc:
+                    # Some transient httpx/openai transport errors are raised as generic exceptions.
+                    last_exc = exc
+                    wait_s = min(30, 2 ** attempt)
+                    print(f"[Ollama retry {attempt + 1}/5] {type(exc).__name__}: {exc}; waiting {wait_s}s")
+                    time.sleep(wait_s)
+            raise RuntimeError(f"Ollama request failed after retries: {last_exc}")
         
         elif self.llm == "claude":
             response = self.client.messages.create(

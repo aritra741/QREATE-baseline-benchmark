@@ -476,8 +476,17 @@ def run_squid_preprocessing(squid_root: Path, method: str = "TS") -> Path:
             text=True,
         )
         if result.returncode != 0:
+            err_dir = run_root / "stderr_logs"
+            err_dir.mkdir(parents=True, exist_ok=True)
+            safe_name = re.sub(r"[^a-zA-Z0-9_-]+", "_", desc.strip().lower())
+            err_file = err_dir / f"{safe_name}.stderr.log"
+            out_file = err_dir / f"{safe_name}.stdout.log"
+            err_file.write_text(result.stderr or "")
+            out_file.write_text(result.stdout or "")
             raise RuntimeError(
-                f"{desc} failed with exit {result.returncode}: {result.stderr[:500]}"
+                f"{desc} failed with exit {result.returncode}. "
+                f"See {err_file} (stderr) and {out_file} (stdout). "
+                f"Stderr tail:\n{(result.stderr or '')[-1200:]}"
             )
         logger.info("  OK")
 
