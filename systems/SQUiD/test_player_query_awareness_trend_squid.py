@@ -44,6 +44,11 @@ except Exception:
 
 import pandas as pd
 import yaml
+from utils import extract_schema as _extract_schema, extract_from_output as _extract_from_output
+from database_generation import (
+    create_database as _create_database,
+    generate_mysql_from_schema_and_values_baseline as _gen_sql_from_schema_values,
+)
 
 # ---------------------------------------------------------------------------
 # Path setup
@@ -520,10 +525,69 @@ def run_squid_preprocessing(squid_root: Path, method: str = "TS") -> Path:
     cfg["database_generation"]["schema_path"] = str(schema_map)
 
     selected_methods = ["TS", "TST", "TST-L"] if method == "ensemble" else [method]
-    if method == "ensemble":
-        logger.warning(
-            "Single-input mode does not use helper ensemble merge. Running TS/TST/TST-L and using TS DB."
+
+    def _materialize_ensemble_single_input_db() -> Path:
+        """
+        Paper-faithful ensemble materialization:
+        - parse tuples from TS/TST/TST-L outputs
+        - union/deduplicate tuples
+        - materialize one SQLite database from combined tuples
+        """
+        schema_result_path = (
+            artifacts_base / "schema_generation" / dataset_rel / "text_direct_ollama.json"
         )
+        if not schema_result_path.exists():
+            raise FileNotFoundError(f"Schema result not found: {schema_result_path}")
+        schema_entries = json.loads(schema_result_path.read_text())
+        if not schema_entries:
+            raise RuntimeError("Schema result is empty.")
+        schema_raw = schema_entries[0].get("predicted_schema", "")
+        schema_text = _extract_schema(schema_raw)
+        if not schema_text:
+            raise RuntimeError("Could not extract schema from schema_generation output.")
+        schema = json.loads(schema_text)
+
+        combined_values: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+        for m in ["TS", "TST", "TST-L"]:
+            vp_path = artifacts_base / "value_population" / m / f"{vi_datapath}.json"
+            if not vp_path.exists():
+                logger.warning(f"Skipping missing value_population file: {vp_path}")
+                continue
+            entries = json.loads(vp_path.read_text())
+            if not entries:
+                continue
+            output = entries[0].get("output", "")
+            if isinstance(output, list):
+                output = "\n".join(str(x) for x in output)
+            parsed = _extract_from_output(str(output), schema)
+            for table_name, rows in parsed.items():
+                if isinstance(rows, list):
+                    combined_values[table_name].extend(rows)
+
+        deduped_values: Dict[str, List[Dict[str, Any]]] = {}
+        for table_name, rows in combined_values.items():
+            seen = set()
+            unique_rows: List[Dict[str, Any]] = []
+            for row in rows:
+                if not isinstance(row, dict):
+                    continue
+                key = json.dumps(row, sort_keys=True, default=str)
+                if key in seen:
+                    continue
+                seen.add(key)
+                unique_rows.append(row)
+            deduped_values[table_name] = unique_rows
+
+        sql_statements = _gen_sql_from_schema_values(schema, deduped_values)
+        db_base = squid_root / "databases" / vi_datapath / "ensemble" / "Player_0"
+        db_base.parent.mkdir(parents=True, exist_ok=True)
+        _create_database(str(db_base), sql_statements)
+        db_path = Path(f"{db_base}.db")
+        if not db_path.exists():
+            raise FileNotFoundError(
+                f"Failed to create ensemble DB at expected path: {db_path}"
+            )
+        return db_path
 
     try:
         with open(config_path, "w") as f:
@@ -551,23 +615,31 @@ def run_squid_preprocessing(squid_root: Path, method: str = "TS") -> Path:
                  "--model_name", "ollama", "--method", vp_method],
                 f"Value population ({vp_method})",
             )
-            _run(
-                [sys.executable, str(src_dir / "database_generation.py"),
-                 "--model_name", "ollama", "--method", vp_method],
-                f"Database generation ({vp_method})",
-            )
+            if method != "ensemble":
+                _run(
+                    [sys.executable, str(src_dir / "database_generation.py"),
+                     "--model_name", "ollama", "--method", vp_method],
+                    f"Database generation ({vp_method})",
+                )
+        generated_db_path = (
+            _materialize_ensemble_single_input_db()
+            if method == "ensemble"
+            else None
+        )
     finally:
         with open(config_path, "w") as f:
             f.write(original_cfg_text)
 
-    effective_method = "TS" if method == "ensemble" else method
-    db_path = (
-        squid_root
-        / "databases"
-        / vi_datapath
-        / effective_method
-        / "Player_0.db"
-    )
+    if method == "ensemble":
+        db_path = generated_db_path
+    else:
+        db_path = (
+            squid_root
+            / "databases"
+            / vi_datapath
+            / method
+            / "Player_0.db"
+        )
     if not db_path.exists():
         raise FileNotFoundError(
             f"SQUiD did not materialize expected DB: {db_path}"
@@ -1386,7 +1458,7 @@ def main() -> int:
         if args.run_preprocessing:
             consolidated_db = run_squid_preprocessing(SQUID_ROOT, method=args.method)
         else:
-            effective_method = "TS" if args.method == "ensemble" else args.method
+            effective_method = "ensemble" if args.method == "ensemble" else args.method
             consolidated_db = (
                 SQUID_ROOT
                 / "databases"
