@@ -44,11 +44,6 @@ except Exception:
 
 import pandas as pd
 import yaml
-from utils import extract_schema as _extract_schema, extract_from_output as _extract_from_output
-from database_generation import (
-    create_database as _create_database,
-    generate_mysql_from_schema_and_values_baseline as _gen_sql_from_schema_values,
-)
 
 # ---------------------------------------------------------------------------
 # Path setup
@@ -59,6 +54,12 @@ PROJECT_ROOT = SQUID_ROOT.parent.parent
 sys.path.insert(0, str(SQUID_ROOT / "src"))
 sys.path.insert(0, str(PROJECT_ROOT / "systems" / "WDIRS"))
 sys.path.insert(0, str(PROJECT_ROOT))
+
+from utils import extract_schema as _extract_schema, extract_from_output as _extract_from_output
+from database_generation import (
+    create_database as _create_database,
+    generate_mysql_from_schema_and_values_baseline as _gen_sql_from_schema_values,
+)
 
 from evaluation.config import EvalSettings as _EvalSettings, load_json as _load_json
 from evaluation.gt_runner import GtRunner as _GtRunner
