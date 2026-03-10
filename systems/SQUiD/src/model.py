@@ -53,6 +53,9 @@ class Model:
                 # Use Ollama with qwen2.5:7b-instruct via OpenAI-compatible API
                 self.client = OpenAI(api_key="ollama", base_url="http://localhost:11434/v1")
                 self.ollama_model = "qwen2.5:7b-instruct"
+                # Cluster runs can need very long completion windows for large prompts.
+                self.ollama_timeout_s = float(os.getenv("SQUID_OLLAMA_TIMEOUT_S", "1800"))
+                self.ollama_max_retries = int(os.getenv("SQUID_OLLAMA_MAX_RETRIES", "8"))
             elif "qwen" in llm.lower():
                 llm = "Qwen3-8B"
                 self.llm = llm
@@ -215,7 +218,9 @@ class Model:
         elif self.llm == "ollama" or self.llm == "ollama_qwen":
             # Use Ollama via OpenAI-compatible API with retries for transient disconnects.
             last_exc = None
-            for attempt in range(5):
+            max_retries = max(1, int(getattr(self, "ollama_max_retries", 8)))
+            timeout_s = float(getattr(self, "ollama_timeout_s", 1800.0))
+            for attempt in range(max_retries):
                 try:
                     response = self.client.chat.completions.create(
                         model=self.ollama_model,
@@ -225,19 +230,25 @@ class Model:
                         ],
                         temperature=0,
                         stream=False,
-                        timeout=300.0,
+                        timeout=timeout_s,
                     )
                     return str(response.choices[0].message.content)
                 except (APIConnectionError, APITimeoutError, RateLimitError) as exc:
                     last_exc = exc
                     wait_s = min(30, 2 ** attempt)
-                    print(f"[Ollama retry {attempt + 1}/5] {type(exc).__name__}: {exc}; waiting {wait_s}s")
+                    print(
+                        f"[Ollama retry {attempt + 1}/{max_retries}] "
+                        f"{type(exc).__name__}: {exc}; waiting {wait_s}s"
+                    )
                     time.sleep(wait_s)
                 except Exception as exc:
                     # Some transient httpx/openai transport errors are raised as generic exceptions.
                     last_exc = exc
                     wait_s = min(30, 2 ** attempt)
-                    print(f"[Ollama retry {attempt + 1}/5] {type(exc).__name__}: {exc}; waiting {wait_s}s")
+                    print(
+                        f"[Ollama retry {attempt + 1}/{max_retries}] "
+                        f"{type(exc).__name__}: {exc}; waiting {wait_s}s"
+                    )
                     time.sleep(wait_s)
             raise RuntimeError(f"Ollama request failed after retries: {last_exc}")
         
