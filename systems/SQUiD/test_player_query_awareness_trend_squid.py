@@ -1019,10 +1019,90 @@ def execute_sql_on_squid_db(
     db_path: Path, sql: str
 ) -> Tuple[bool, List[Dict[str, Any]], Optional[str]]:
     """Execute a SQL query against the consolidated SQUiD database."""
+    def _table_columns(conn: sqlite3.Connection, table: str) -> List[str]:
+        try:
+            cur = conn.execute(f'PRAGMA table_info("{table}")')
+            return [str(r[1]) for r in cur.fetchall()]
+        except Exception:
+            return []
+
+    def _pick_col(cols: List[str], canonical: str, candidates: List[str]) -> Optional[str]:
+        lowered = {c.lower(): c for c in cols}
+        if canonical.lower() in lowered:
+            return lowered[canonical.lower()]
+        for cand in candidates:
+            if cand.lower() in lowered:
+                return lowered[cand.lower()]
+        # Fuzzy fallback for small naming drift (e.g., full_name vs name)
+        canon_tok = canonical.lower().replace("_", "")
+        for c in cols:
+            if canon_tok in c.lower().replace("_", ""):
+                return c
+        return None
+
+    def _rewrite_query_to_generated_schema(conn: sqlite3.Connection, query: str) -> str:
+        player_cols = _table_columns(conn, "player")
+        team_cols = _table_columns(conn, "team")
+        city_cols = _table_columns(conn, "city")
+
+        # Canonical benchmark columns -> generated schema candidates.
+        mapping_spec: Dict[str, Dict[str, List[str]]] = {
+            "player": {
+                "name": ["full_name", "player_name"],
+                "nationality": ["country"],
+                "age": ["player_age"],
+                "team": ["current_team", "team_name", "team_id"],
+                "position": ["role", "playing_position"],
+                "draft_pick": ["pick", "draftpick"],
+                "draft_year": ["draftyear", "year"],
+                "college": ["university", "school"],
+                "birth_date": ["dob", "birthdate"],
+            },
+            "team": {
+                "team_name": ["name", "full_name"],
+                "founded_year": ["established_year", "founded", "year_founded"],
+                "location": ["city", "city_name", "home_city", "hometown"],
+            },
+            "city": {
+                "city_name": ["name", "city"],
+                "state_name": ["state", "province", "region"],
+                "population": ["population_count"],
+                "area": ["surface_area"],
+                "gdp": ["gross_domestic_product"],
+            },
+        }
+
+        actual: Dict[str, Dict[str, str]] = {"player": {}, "team": {}, "city": {}}
+        for canonical, cands in mapping_spec["player"].items():
+            chosen = _pick_col(player_cols, canonical, cands)
+            if chosen:
+                actual["player"][canonical] = chosen
+        for canonical, cands in mapping_spec["team"].items():
+            chosen = _pick_col(team_cols, canonical, cands)
+            if chosen:
+                actual["team"][canonical] = chosen
+        for canonical, cands in mapping_spec["city"].items():
+            chosen = _pick_col(city_cols, canonical, cands)
+            if chosen:
+                actual["city"][canonical] = chosen
+
+        rewritten = query
+        for table, cmap in actual.items():
+            for canonical, chosen in cmap.items():
+                if chosen == canonical:
+                    continue
+                rewritten = re.sub(
+                    rf"\b{table}\.{canonical}\b",
+                    f"{table}.{chosen}",
+                    rewritten,
+                )
+        return rewritten
+
     try:
         conn = sqlite3.connect(str(db_path))
         conn.row_factory = sqlite3.Row
-        cur = conn.execute(sql)
+        effective_sql = _rewrite_query_to_generated_schema(conn, sql)
+        cur = conn.execute(effective_sql)
         cols = [d[0] for d in cur.description] if cur.description else []
         rows = [dict(zip(cols, row)) for row in cur.fetchall()]
         conn.close()

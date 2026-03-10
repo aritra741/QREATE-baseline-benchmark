@@ -27,6 +27,10 @@ def create_database(db_name, sql_statements):
     sql = re.sub(r'\border\b', 'order1', sql)
     sql = re.sub(r"'#'", "NULL", sql)   # Replace quoted '#'
     sql = re.sub(r"\b#\b", "NULL", sql)  # Replace bare #
+    # Replace NaN-like values (quoted or bare) with SQL NULL.
+    sql = re.sub(r"'nan'", "NULL", sql, flags=re.IGNORECASE)
+    sql = re.sub(r'"nan"', "NULL", sql, flags=re.IGNORECASE)
+    sql = re.sub(r"\bnan\b", "NULL", sql, flags=re.IGNORECASE)
     sql = re.sub(r",\s*\)", ")", sql)   # Clean trailing commas
 
     # Split into individual statements (assuming they are separated by semicolons)
