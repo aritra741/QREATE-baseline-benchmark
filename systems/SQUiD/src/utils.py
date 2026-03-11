@@ -38,6 +38,52 @@ def extract_from_output(output: str, schema: dict):
             if table in table_names and payload:
                 normalized = f"extract {table}: {payload}"
                 extract(ret_dict, normalized, pyschema)
+
+    # Fallback 2:
+    # If nothing was parsed from line-based formats, try parsing JSON-like output
+    # (often returned by LLMs in markdown code blocks or repaired JSON text).
+    if len(ret_dict) == 0:
+        def _add_rows(table_key: str, value: any):
+            # Case-insensitive table name mapping
+            table_map = {t.lower(): t for t in table_names}
+            table_norm = table_map.get(str(table_key).lower())
+            if not table_norm:
+                return
+            if isinstance(value, dict):
+                ret_dict.setdefault(table_norm, []).append(value)
+            elif isinstance(value, list):
+                rows = [v for v in value if isinstance(v, dict)]
+                if rows:
+                    ret_dict.setdefault(table_norm, []).extend(rows)
+
+        def _walk(node):
+            if isinstance(node, dict):
+                for k, v in node.items():
+                    _add_rows(k, v)
+                    _walk(v)
+            elif isinstance(node, list):
+                for item in node:
+                    _walk(item)
+
+        candidates = []
+        text = output.strip()
+        if text:
+            candidates.append(text)
+        # Also inspect markdown code blocks.
+        for m in re.findall(r"```(?:json|python)?\s*([\s\S]*?)```", output, flags=re.IGNORECASE):
+            if m.strip():
+                candidates.append(m.strip())
+
+        for cand in candidates:
+            try:
+                repaired = json_repair.repair_json(cand)
+                if repaired:
+                    obj = json.loads(repaired)
+                    _walk(obj)
+                    if len(ret_dict) > 0:
+                        break
+            except Exception:
+                continue
     return ret_dict
 
 def sqlschema_to_pythonschema(schema):
