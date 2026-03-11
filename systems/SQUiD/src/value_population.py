@@ -6,6 +6,31 @@ import logging
 import argparse
 import json
 import os
+import re
+
+
+def _looks_like_extract_output(output_text):
+    if isinstance(output_text, list):
+        output_text = "\n".join(str(x) for x in output_text)
+    text = str(output_text or "")
+    return bool(re.search(r"^\s*extract\s+[A-Za-z_][A-Za-z0-9_]*\s*:", text, flags=re.IGNORECASE | re.MULTILINE))
+
+
+def _retry_with_strict_extract_format(model, system_prompt, user_prompt):
+    strict_system = (
+        system_prompt
+        + "\n\nCRITICAL FORMAT RULE:\n"
+        + "Output ONLY extraction lines. Each line MUST start with 'extract <table_name>:'.\n"
+        + "Do NOT output summaries, explanations, bullet points, markdown, or any other text."
+    )
+    strict_user = (
+        user_prompt
+        + "\n\nSTRICT OUTPUT REQUIREMENT:\n"
+        + "Return ONLY lines in this exact style:\n"
+        + "extract player: \"id\": 1; \"name\": \"John\"; ...\n"
+        + "extract team: \"id\": 1; \"team_name\": \"Chicago Bulls\"; ...\n"
+    )
+    return model.predict(strict_system, strict_user)
 
 def value_population_TS(params):
     model = params["model"]
@@ -42,6 +67,9 @@ def value_population_TS(params):
         system_prompt, user_prompt = get_value_population_prompt_TS(entry)
 
         output = model.predict(system_prompt, user_prompt)
+        if not _looks_like_extract_output(output):
+            logger.info("TS output was not in extract format; retrying with strict format prompt.")
+            output = _retry_with_strict_extract_format(model, system_prompt, user_prompt)
         entry['output'] = output
 
         
@@ -112,6 +140,9 @@ def value_population_TST(params):
         system_prompt, user_prompt = get_value_population_prompt_TST(entry)
 
         output = model.predict(system_prompt, user_prompt)
+        if not _looks_like_extract_output(output):
+            logger.info("TST output was not in extract format; retrying with strict format prompt.")
+            output = _retry_with_strict_extract_format(model, system_prompt, user_prompt)
         entry['output'] = output
 
         
@@ -186,6 +217,9 @@ def value_population_TST_L(params):
         system_prompt, user_prompt = get_value_population_prompt_TST_L(entry)
 
         output = model.predict(system_prompt, user_prompt)
+        if not _looks_like_extract_output(output):
+            logger.info("TST-L output was not in extract format; retrying with strict format prompt.")
+            output = _retry_with_strict_extract_format(model, system_prompt, user_prompt)
         entry['output'] = output
 
         
