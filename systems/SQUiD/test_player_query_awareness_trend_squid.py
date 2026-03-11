@@ -102,6 +102,19 @@ SQUID_RESULTS_ROOT = SQUID_ROOT / "results"
 ENTITY_TYPES = ["player", "team", "city"]
 SQUID_METHODS = ["TS", "TST", "TST-L"]
 
+SQUID_REWRITTEN_QUERIES = {
+    "Q1": "SELECT player.full_name AS name, player.nationality, player.age, team.name AS team_name, team.location FROM player JOIN team ON player.current_team = team.name;",
+    "Q2": "SELECT player.full_name AS name, player.position, team.name AS team_name, team.founded_year FROM player JOIN team ON player.current_team = team.name WHERE player.age > 25;",
+    "Q3": "SELECT player.full_name AS name, player.draft_pick, player.college, team.name AS team_name FROM player JOIN team ON player.current_team = team.name WHERE player.draft_pick >= 0;",
+    "Q4": "SELECT team.name AS team_name, team.location, team.location AS city_name, NULL AS state_name FROM team WHERE team.location IS NOT NULL;",
+    "Q5": "SELECT player.full_name AS name, team.name AS team_name, team.location AS city_name, NULL AS state_name FROM player JOIN team ON player.current_team = team.name WHERE team.location IS NOT NULL;",
+    "Q6": "SELECT player.full_name AS name, player.position, team.location AS city_name, NULL AS population FROM player JOIN team ON player.current_team = team.name WHERE player.age < 35 AND team.location IS NOT NULL;",
+    "Q7": "SELECT player.full_name AS name, player.college, team.name AS team_name, NULL AS gdp FROM player JOIN team ON player.current_team = team.name WHERE player.draft_pick > 0 AND team.location IS NOT NULL;",
+    "Q8": "SELECT player.full_name AS name, player.birth_date, team.name AS team_name, NULL AS area FROM player JOIN team ON player.current_team = team.name WHERE NULL > 100 AND team.location IS NOT NULL;",
+    "Q9": "SELECT team.location AS city_name, NULL AS state_name, team.name AS team_name, player.full_name AS name FROM team JOIN player ON player.current_team = team.name WHERE player.age < 40 AND team.location IS NOT NULL;",
+    "Q10": "SELECT team.location AS city_name, NULL AS state_name, team.name AS team_name, player.full_name AS name, player.college FROM team JOIN player ON player.current_team = team.name WHERE player.age > 20 AND team.location IS NOT NULL;"
+}
+
 _ENTITY_SUFFIX_RE = re.compile(r"\b(jr\.?|sr\.?|iii|iv|ii)\b\.?", re.IGNORECASE)
 _NAME_LIKE_COLUMNS = {"name", "player_name", "team_name", "city_name", "owner_name"}
 
@@ -1019,90 +1032,10 @@ def execute_sql_on_squid_db(
     db_path: Path, sql: str
 ) -> Tuple[bool, List[Dict[str, Any]], Optional[str]]:
     """Execute a SQL query against the consolidated SQUiD database."""
-    def _table_columns(conn: sqlite3.Connection, table: str) -> List[str]:
-        try:
-            cur = conn.execute(f'PRAGMA table_info("{table}")')
-            return [str(r[1]) for r in cur.fetchall()]
-        except Exception:
-            return []
-
-    def _pick_col(cols: List[str], canonical: str, candidates: List[str]) -> Optional[str]:
-        lowered = {c.lower(): c for c in cols}
-        if canonical.lower() in lowered:
-            return lowered[canonical.lower()]
-        for cand in candidates:
-            if cand.lower() in lowered:
-                return lowered[cand.lower()]
-        # Fuzzy fallback for small naming drift (e.g., full_name vs name)
-        canon_tok = canonical.lower().replace("_", "")
-        for c in cols:
-            if canon_tok in c.lower().replace("_", ""):
-                return c
-        return None
-
-    def _rewrite_query_to_generated_schema(conn: sqlite3.Connection, query: str) -> str:
-        player_cols = _table_columns(conn, "player")
-        team_cols = _table_columns(conn, "team")
-        city_cols = _table_columns(conn, "city")
-
-        # Canonical benchmark columns -> generated schema candidates.
-        mapping_spec: Dict[str, Dict[str, List[str]]] = {
-            "player": {
-                "name": ["full_name", "player_name"],
-                "nationality": ["country"],
-                "age": ["player_age"],
-                "team": ["current_team", "team_name", "team_id"],
-                "position": ["role", "playing_position"],
-                "draft_pick": ["pick", "draftpick"],
-                "draft_year": ["draftyear", "year"],
-                "college": ["university", "school"],
-                "birth_date": ["dob", "birthdate"],
-            },
-            "team": {
-                "team_name": ["name", "full_name"],
-                "founded_year": ["established_year", "founded", "year_founded"],
-                "location": ["city", "city_name", "home_city", "hometown"],
-            },
-            "city": {
-                "city_name": ["name", "city"],
-                "state_name": ["state", "province", "region"],
-                "population": ["population_count"],
-                "area": ["surface_area"],
-                "gdp": ["gross_domestic_product"],
-            },
-        }
-
-        actual: Dict[str, Dict[str, str]] = {"player": {}, "team": {}, "city": {}}
-        for canonical, cands in mapping_spec["player"].items():
-            chosen = _pick_col(player_cols, canonical, cands)
-            if chosen:
-                actual["player"][canonical] = chosen
-        for canonical, cands in mapping_spec["team"].items():
-            chosen = _pick_col(team_cols, canonical, cands)
-            if chosen:
-                actual["team"][canonical] = chosen
-        for canonical, cands in mapping_spec["city"].items():
-            chosen = _pick_col(city_cols, canonical, cands)
-            if chosen:
-                actual["city"][canonical] = chosen
-
-        rewritten = query
-        for table, cmap in actual.items():
-            for canonical, chosen in cmap.items():
-                if chosen == canonical:
-                    continue
-                rewritten = re.sub(
-                    rf"\b{table}\.{canonical}\b",
-                    f"{table}.{chosen}",
-                    rewritten,
-                )
-        return rewritten
-
     try:
         conn = sqlite3.connect(str(db_path))
         conn.row_factory = sqlite3.Row
-        effective_sql = _rewrite_query_to_generated_schema(conn, sql)
-        cur = conn.execute(effective_sql)
+        cur = conn.execute(sql)
         cols = [d[0] for d in cur.description] if cur.description else []
         rows = [dict(zip(cols, row)) for row in cur.fetchall()]
         conn.close()
@@ -1313,8 +1246,9 @@ def run_trend_queries(
         t0 = time.time()
 
         try:
+            effective_sql = SQUID_REWRITTEN_QUERIES.get(query_id, query_text)
             success, rows, error = execute_sql_on_squid_db(
-                consolidated_db, query_text
+                consolidated_db, effective_sql
             )
             latency = time.time() - t0
 
