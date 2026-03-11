@@ -141,11 +141,15 @@ def extract(data_value: dict, args_str: str, schema: dict):
             if col == "":
                 continue
             if ":" in col:
-                col_name, col_value = col.split(":")
+                col_name, col_value = col.split(":", 1)
                 columns_dict[col_name.replace("\"","").strip()] = col_value.strip()
             else:
+                # Some model outputs append trailing fragments like "..." or markdown bullets.
+                # Ignore those fragments instead of dropping the entire extracted row.
+                if col in {"...", "…"} or col.startswith("..."):
+                    continue
                 print(f"Error parsing the column '{col}'")
-                return data_value
+                continue
         
         # if all items in columns are empty except for the first one, return the data_value
     except:
