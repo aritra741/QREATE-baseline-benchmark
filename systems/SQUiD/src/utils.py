@@ -18,11 +18,26 @@ import json_repair
 def extract_from_output(output: str, schema: dict):
     pyschema = sqlschema_to_pythonschema(schema)
     ret_dict = {}
+    table_names = set(pyschema.keys())
     # read the output line by line
     for line in output.split("\n"):
-        if line.startswith("extract"):
-            # print(line)
-            extract(ret_dict, line, pyschema)
+        stripped = line.strip()
+        if stripped.lower().startswith("extract"):
+            # print(stripped)
+            extract(ret_dict, stripped, pyschema)
+            continue
+
+        # Fallback parser:
+        # Some model outputs omit the "extract" prefix and emit lines like:
+        #   player: "id": 1; "name": "John"; ...
+        # Handle that format by normalizing into the expected extract syntax.
+        m = re.match(r"^([A-Za-z_][A-Za-z0-9_]*)\s*:\s*(.+)$", stripped)
+        if m:
+            table = m.group(1)
+            payload = m.group(2).strip()
+            if table in table_names and payload:
+                normalized = f"extract {table}: {payload}"
+                extract(ret_dict, normalized, pyschema)
     return ret_dict
 
 def sqlschema_to_pythonschema(schema):
