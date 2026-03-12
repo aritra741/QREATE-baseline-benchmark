@@ -13,6 +13,7 @@ evaluated against the official UDA-Bench ground truth.
 """
 
 import csv
+import argparse
 import json
 import logging
 import math
@@ -106,6 +107,53 @@ class TokenTracker:
     def add(self, prompt_tokens: int, completion_tokens: int) -> None:
         self.prompt_tokens += max(0, int(prompt_tokens))
         self.completion_tokens += max(0, int(completion_tokens))
+
+
+class _PreflightPatcher:
+    """
+    Monkey-patches UQE hot paths so we can quickly execute all queries and catch
+    structural/operator errors without expensive LLM calls.
+    """
+
+    def __init__(self) -> None:
+        self._saved: Dict[str, Any] = {}
+
+    def __enter__(self):
+        import oper as uqe_oper
+        import expression as uqe_expr
+
+        self._saved["oper.llm_extractor"] = uqe_oper.llm_extractor
+        self._saved["oper.llm_filter"] = getattr(uqe_oper, "llm_filter", None)
+        self._saved["expr.sample_merged_rows"] = uqe_expr.sample_merged_rows
+
+        def _fake_llm_extractor(df, col, attrs, sys_prompt, data_schema, df_id=None, model=None, retries=1):
+            out = pd.DataFrame(index=range(len(df)))
+            for attr in attrs:
+                out[f"{col}.{attr}"] = pd.NA
+            return out
+
+        def _fake_llm_filter(*args, **kwargs):
+            return 0
+
+        def _fake_sample_merged_rows(df, col_to_add, data_schema):
+            # Keep all rows so predicate wiring is exercised.
+            return list(range(len(df)))
+
+        uqe_oper.llm_extractor = _fake_llm_extractor
+        if self._saved["oper.llm_filter"] is not None:
+            uqe_oper.llm_filter = _fake_llm_filter
+        uqe_expr.sample_merged_rows = _fake_sample_merged_rows
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        import oper as uqe_oper
+        import expression as uqe_expr
+
+        uqe_oper.llm_extractor = self._saved["oper.llm_extractor"]
+        if self._saved["oper.llm_filter"] is not None:
+            uqe_oper.llm_filter = self._saved["oper.llm_filter"]
+        uqe_expr.sample_merged_rows = self._saved["expr.sample_merged_rows"]
+        return False
 
 
 def _approx_tokens(text: Optional[str]) -> int:
@@ -546,6 +594,24 @@ def run_trend_queries_uqe(run_dir: Path) -> List[TrendQueryMetrics]:
     return metrics
 
 
+def run_preflight_checks() -> int:
+    """
+    Fast structural preflight:
+    - parses all Q1..Q10
+    - builds plans
+    - executes with monkey-patched LLM/sampling stubs
+    This catches operator wiring crashes quickly before long full runs.
+    """
+    trend_queries = parse_trend_queries(TREND_SQL_FILE)
+    logger.info(f"[Preflight] Checking {len(trend_queries)} queries")
+    with _PreflightPatcher():
+        for query_id, query_text in trend_queries:
+            logger.info(f"[Preflight] {query_id}: {query_text}")
+            _ = _execute_uqe_query(query_text)
+    logger.info("[Preflight] All queries passed structural execution checks.")
+    return 0
+
+
 def save_metrics(metrics: List[TrendQueryMetrics], run_dir: Path) -> None:
     rows = [asdict(m) for m in metrics]
     out_json = run_dir / "trend_metrics.json"
@@ -637,6 +703,14 @@ def plot_metrics(metrics: List[TrendQueryMetrics], run_dir: Path) -> None:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description="Run UQE Player trend benchmark")
+    parser.add_argument(
+        "--preflight",
+        action="store_true",
+        help="Run fast structural checks without full LLM execution.",
+    )
+    args = parser.parse_args()
+
     ensure_precise_tokenizer_ready()
 
     RESULTS_BASE_DIR.mkdir(parents=True, exist_ok=True)
@@ -656,6 +730,8 @@ def main() -> int:
     logger.info(f"UQE optimizations: {config_uqe.ENABLE_OPTIMIZATIONS}")
 
     try:
+        if args.preflight:
+            return run_preflight_checks()
         metrics = run_trend_queries_uqe(run_dir)
         save_metrics(metrics, run_dir)
         plot_metrics(metrics, run_dir)

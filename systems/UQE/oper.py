@@ -533,6 +533,28 @@ class GroupbyOperator(Operator):
             return result_df
 
         if self.groupby_columns:
+            def _resolve_col(df, wanted_col):
+                # Exact match first
+                if wanted_col in df.columns:
+                    return wanted_col
+                # Case-insensitive match
+                for c in df.columns:
+                    if str(c).lower() == str(wanted_col).lower():
+                        return c
+                # Virtual attr extracted from description -> description.<attr>
+                desc_pref = f"description.{wanted_col}"
+                if desc_pref in df.columns:
+                    return desc_pref
+                # If wanted already has table prefix, try last token
+                if "." in wanted_col:
+                    tail = wanted_col.split(".")[-1]
+                    if tail in df.columns:
+                        return tail
+                    desc_tail = f"description.{tail}"
+                    if desc_tail in df.columns:
+                        return desc_tail
+                return wanted_col
+
             is_all_normal = True
             is_all_llm = True
             for col in self.groupby_columns:
@@ -546,6 +568,7 @@ class GroupbyOperator(Operator):
                 columns_to_agg = set()
                 agg_dict = {}
                 count_star = False
+                resolved_groupby_cols = [_resolve_col(child_df, c) for c in self.groupby_columns]
                 for col_dict in self.aggregate_columns:
                     col = list(col_dict.keys())[0]
                     func = list(col_dict.values())[0]
@@ -558,21 +581,31 @@ class GroupbyOperator(Operator):
                             continue
                     elif func == 'sum':
                         pd_func = 'sum'
-                    columns_to_agg.add(col)
-                    agg_dict[func+'('+col+')'] = (col, pd_func)
+                    resolved_col = _resolve_col(child_df, col)
+                    columns_to_agg.add(resolved_col)
+                    agg_dict[func+'('+col+')'] = (resolved_col, pd_func)
 
                 columns_to_agg = list(columns_to_agg)
 
-                child_df = child_df[columns_to_agg + self.groupby_columns].reset_index(drop=True)
+                child_df = child_df[columns_to_agg + resolved_groupby_cols].reset_index(drop=True)
                 
                 # Handle COUNT(*) case - if agg_dict is empty and we have count_star, use size()
                 if count_star and not agg_dict:
-                    result_df = child_df.groupby(self.groupby_columns).size().reset_index(name='count(*)')
+                    result_df = child_df.groupby(resolved_groupby_cols).size().reset_index(name='count(*)')
                 else:
-                    result_df = child_df.groupby(self.groupby_columns).agg(**agg_dict)
+                    result_df = child_df.groupby(resolved_groupby_cols).agg(**agg_dict)
                     if count_star:
-                        result_df['count(*)'] = child_df.groupby(self.groupby_columns).size()
+                        result_df['count(*)'] = child_df.groupby(resolved_groupby_cols).size()
                     result_df = result_df.reset_index()
+
+                # Normalize grouped output columns back to requested names.
+                rename_back = {
+                    resolved_groupby_cols[i]: self.groupby_columns[i]
+                    for i in range(len(self.groupby_columns))
+                    if resolved_groupby_cols[i] in result_df.columns
+                }
+                if rename_back:
+                    result_df = result_df.rename(columns=rename_back)
 
             elif is_all_llm:
                 labels_dict = {}
