@@ -746,23 +746,42 @@ class GroupbyOperator(Operator):
             # 没有groupby_columns
             # 选出发生聚合的列
             if is_all_normal:
-                agg_dict = {}
-                count_star = False
+                agg_result = {}
                 for col_dict in self.aggregate_columns:
                     col = list(col_dict.keys())[0]
                     func = list(col_dict.values())[0]
-                    if func == 'avg':
-                        pd_func = 'mean'
-                    elif func == 'count':
-                        pd_func = 'count'
-                        if col == '*':
-                            count_star = True
-                            continue
+                    out_col = f"{func}({col})"
+
+                    # COUNT(*) counts rows after filtering.
+                    if func == 'count' and col == '*':
+                        agg_result[out_col] = int(len(child_df))
+                        continue
+
+                    # If the column is not materialized in the current frame,
+                    # keep execution alive with a neutral aggregate value.
+                    if col not in child_df.columns:
+                        if func in ['count', 'sum', 'avg']:
+                            agg_result[out_col] = 0
+                        else:
+                            agg_result[out_col] = pd.NA
+                        continue
+
+                    if func == 'count':
+                        agg_result[out_col] = int(child_df[col].count())
                     elif func == 'sum':
-                        pd_func = 'sum'
-                    agg_dict[func+'('+col+')'] = (col, pd_func)
-                child_df = child_df[columns_to_agg].reset_index(drop=True)
-                result_df = child_df.agg(**agg_dict).reset_index()
+                        numeric = pd.to_numeric(child_df[col], errors='coerce')
+                        agg_result[out_col] = float(numeric.sum(skipna=True))
+                    elif func == 'avg':
+                        numeric = pd.to_numeric(child_df[col], errors='coerce')
+                        valid = numeric.dropna()
+                        if len(valid) == 0:
+                            agg_result[out_col] = 0
+                        else:
+                            agg_result[out_col] = float(valid.mean())
+                    else:
+                        raise ValueError(f"Unsupported aggregate function: {func}")
+
+                result_df = pd.DataFrame([agg_result])
             
             else: 
                 n = child_df.shape[0]
