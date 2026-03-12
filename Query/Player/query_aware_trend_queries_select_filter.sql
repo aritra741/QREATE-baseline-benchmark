@@ -23,9 +23,9 @@ SELECT team.team_name, team.location, team.founded_year
 FROM team;
 
 -- Q5: Team projection with filter
-SELECT team.team_name, team.ownership, team.championships
+SELECT team.team_name, team.ownership, team.championship
 FROM team
-WHERE team.championships > 0;
+WHERE team.championship > 0;
 
 -- Q6: Simple projection over city
 SELECT city.city_name, city.state_name, city.population

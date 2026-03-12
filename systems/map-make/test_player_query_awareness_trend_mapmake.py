@@ -20,6 +20,7 @@ import sqlite3
 import sys
 import time
 from dataclasses import asdict, dataclass
+from difflib import get_close_matches
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
@@ -335,6 +336,49 @@ def _query_single_table_requirements(sql: str) -> Tuple[str, Set[str]]:
     return table, needed_cols
 
 
+def _load_gt_table_columns() -> Dict[str, Set[str]]:
+    out: Dict[str, Set[str]] = {}
+    for csv_path in sorted(GROUND_TRUTH_DIR.glob("*.csv")):
+        try:
+            cols = pd.read_csv(csv_path, nrows=0).columns
+            out[csv_path.stem.lower()] = {str(c).strip().lower() for c in cols}
+        except Exception:
+            out[csv_path.stem.lower()] = set()
+    return out
+
+
+def _validate_trend_queries_against_gt(trend_queries: List[Tuple[str, str]]) -> None:
+    gt_cols = _load_gt_table_columns()
+    errors: List[str] = []
+    for qid, sql in trend_queries:
+        try:
+            table, needed_cols = _query_single_table_requirements(sql)
+        except Exception as exc:
+            errors.append(f"{qid}: {exc}")
+            continue
+        available = gt_cols.get(table, set())
+        if not available:
+            errors.append(f"{qid}: table '{table}' not found in GT CSVs under {GROUND_TRUTH_DIR}")
+            continue
+        missing = sorted(c for c in needed_cols if c not in available)
+        if missing:
+            hints: List[str] = []
+            for m in missing:
+                sugg = get_close_matches(m, sorted(available), n=1)
+                if sugg:
+                    hints.append(f"{m}->{sugg[0]}")
+            hint_txt = f" (closest: {', '.join(hints)})" if hints else ""
+            errors.append(
+                f"{qid}: missing column(s) in GT table '{table}': {missing}{hint_txt}"
+            )
+    if errors:
+        joined = "\n- " + "\n- ".join(errors)
+        raise ValueError(
+            "Trend SQL validation failed against ground-truth schema before execution:"
+            f"{joined}"
+        )
+
+
 def _coerce_types(table: str, df: pd.DataFrame, attrs: Dict[str, Any]) -> pd.DataFrame:
     out = df.copy()
     table_meta = {k.lower(): v for k, v in attrs.get(table, {}).items()}
@@ -533,6 +577,7 @@ def run_trend_queries_mapmake(
     trend_queries = parse_trend_queries(trend_sql_file)
     if not trend_queries:
         raise RuntimeError(f"No trend queries found in {trend_sql_file}")
+    _validate_trend_queries_against_gt(trend_queries)
 
     # Build each referenced table once using union-of-columns across all queries.
     table_to_required_cols: Dict[str, Set[str]] = {}
