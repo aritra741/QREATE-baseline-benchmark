@@ -352,6 +352,33 @@ def _coerce_types(table: str, df: pd.DataFrame, attrs: Dict[str, Any]) -> pd.Dat
     return out
 
 
+def _to_sql_scalar(value: Any) -> Any:
+    """
+    Convert arbitrary LLM output to SQLite-safe scalar.
+    """
+    if value is None:
+        return None
+    if isinstance(value, (int, float, str)):
+        return value
+    if isinstance(value, bool):
+        return int(value)
+    if isinstance(value, list):
+        if not value:
+            return None
+        # Keep deterministic, human-readable value for downstream inspection.
+        return "||".join(str(v) for v in value)
+    if isinstance(value, dict):
+        return json.dumps(value, ensure_ascii=True, sort_keys=True)
+    return str(value)
+
+
+def _sanitize_df_for_sqlite(df: pd.DataFrame) -> pd.DataFrame:
+    out = df.copy()
+    for col in out.columns:
+        out[col] = out[col].apply(_to_sql_scalar)
+    return out
+
+
 def _write_sqlite(table_name: str, df: pd.DataFrame, db_path: Path) -> None:
     db_path.parent.mkdir(parents=True, exist_ok=True)
     if db_path.exists():
@@ -430,7 +457,51 @@ def _build_table_once_with_mapmake(
     df = pd.DataFrame(records)
     if df.empty:
         df = pd.DataFrame(columns=sorted(cols))
-    return _coerce_types(table, df, attrs)
+    df = _coerce_types(table, df, attrs)
+    return _sanitize_df_for_sqlite(df)
+
+
+def _prebuilt_table_cache_dir() -> Path:
+    p = CACHE_DIR / "prebuilt_tables"
+    p.mkdir(parents=True, exist_ok=True)
+    return p
+
+
+def _prebuilt_cache_paths(table: str) -> Tuple[Path, Path]:
+    base = _prebuilt_table_cache_dir()
+    return base / f"{table}.csv", base / f"{table}.meta.json"
+
+
+def _load_prebuilt_table_if_compatible(
+    table: str,
+    required_cols: Set[str],
+) -> Optional[pd.DataFrame]:
+    csv_path, meta_path = _prebuilt_cache_paths(table)
+    if not (csv_path.exists() and meta_path.exists()):
+        return None
+    try:
+        meta = json.loads(meta_path.read_text())
+        cached_cols = set(meta.get("columns", []))
+        needed = set(required_cols)
+        identity = {"player": "name", "team": "team_name", "city": "city_name", "owner": "name"}.get(
+            table, "name"
+        )
+        needed.add(identity)
+        if not needed.issubset(cached_cols):
+            return None
+        df = pd.read_csv(csv_path)
+        return _sanitize_df_for_sqlite(df)
+    except Exception:
+        return None
+
+
+def _save_prebuilt_table_cache(table: str, df: pd.DataFrame) -> None:
+    csv_path, meta_path = _prebuilt_cache_paths(table)
+    csv_path.parent.mkdir(parents=True, exist_ok=True)
+    clean = _sanitize_df_for_sqlite(df)
+    clean.to_csv(csv_path, index=False)
+    meta = {"table": table, "columns": list(clean.columns), "rows": int(len(clean))}
+    meta_path.write_text(json.dumps(meta, indent=2))
 
 
 def run_trend_queries_mapmake(
@@ -438,6 +509,7 @@ def run_trend_queries_mapmake(
     trend_sql_file: Path,
     model: str,
     ollama_base_url: str,
+    reuse_prebuilt_tables: bool = True,
 ) -> List[TrendQueryMetrics]:
     query_results_dir = run_dir / "query_results"
     query_tables_dir = run_dir / "query_tables"
@@ -472,14 +544,21 @@ def run_trend_queries_mapmake(
     build_t0 = time.time()
     built_tables: Dict[str, pd.DataFrame] = {}
     for table, cols in sorted(table_to_required_cols.items()):
-        logger.info("Prebuilding table '%s' once for run (columns=%s)", table, sorted(cols))
-        built_tables[table] = _build_table_once_with_mapmake(
-            table=table,
-            required_cols=cols,
-            pipeline=pipeline,
-            attrs=attrs,
-            identity_columns=identity_columns,
-        )
+        reused = _load_prebuilt_table_if_compatible(table, cols) if reuse_prebuilt_tables else None
+        if reused is not None:
+            logger.info("Reusing cached prebuilt table '%s' (%d rows)", table, len(reused))
+            built_tables[table] = reused
+        else:
+            logger.info("Prebuilding table '%s' once for run (columns=%s)", table, sorted(cols))
+            built = _build_table_once_with_mapmake(
+                table=table,
+                required_cols=cols,
+                pipeline=pipeline,
+                attrs=attrs,
+                identity_columns=identity_columns,
+            )
+            built_tables[table] = built
+            _save_prebuilt_table_cache(table, built)
     build_prompt_toks, build_completion_toks = token_tracker.delta(build_before)
     logger.info(
         "One-time Map&Make build complete in %.2fs (prompt=%d completion=%d total=%d)",
@@ -495,7 +574,7 @@ def run_trend_queries_mapmake(
         fixed_db.unlink()
     with sqlite3.connect(fixed_db) as conn:
         for table, df in built_tables.items():
-            df.to_sql(table, conn, if_exists="replace", index=False)
+            _sanitize_df_for_sqlite(df).to_sql(table, conn, if_exists="replace", index=False)
 
     metrics: List[TrendQueryMetrics] = []
     for query_id, query_text in trend_queries:
@@ -647,6 +726,11 @@ def main() -> int:
         default="http://localhost:11434/v1",
         help="OpenAI-compatible Ollama endpoint.",
     )
+    ap.add_argument(
+        "--no-reuse-prebuilt-tables",
+        action="store_true",
+        help="Disable reuse of cached prebuilt tables and force fresh Map&Make build.",
+    )
     args = ap.parse_args()
 
     run_tag = time.strftime("%Y%m%d_%H%M%S")
@@ -667,6 +751,7 @@ def main() -> int:
             trend_sql_file=trend_sql_file,
             model=args.model,
             ollama_base_url=args.ollama_base_url,
+            reuse_prebuilt_tables=not args.no_reuse_prebuilt_tables,
         )
         save_metrics(metrics, run_dir)
         logger.info("Outputs under: %s", run_dir)
