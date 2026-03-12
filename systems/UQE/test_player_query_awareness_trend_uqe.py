@@ -244,6 +244,20 @@ def _build_pred_df(
     return df
 
 
+def _looks_like_aggregate_column(col_name: str) -> bool:
+    c = str(col_name).strip().lower()
+    # Covers names like: count(*), count_star(), sum(age), avg(age), ...
+    return (
+        c.startswith("count(")
+        or c.startswith("sum(")
+        or c.startswith("avg(")
+        or c.startswith("min(")
+        or c.startswith("max(")
+        or c.startswith("count_")
+        or c.endswith("_star()")
+    )
+
+
 def _resolve_primary_keys(
     primary_keys: List[str],
     gold_df: pd.DataFrame,
@@ -325,7 +339,26 @@ def evaluate_with_official_framework(
         attributes=attributes,
     )
 
-    primary_keys = _resolve_primary_keys(primary_keys, gold_df, pred_df)
+    if is_agg:
+        # For aggregation queries, SQL parser may provide synthetic keys (e.g., id)
+        # that do not exist in aggregate outputs. Use non-aggregate shared columns
+        # (typically GROUP BY dimensions) as row keys. If this is a global
+        # aggregation (e.g., COUNT(*)), align the single-row outputs with a
+        # constant synthetic key.
+        shared_non_agg_keys = [
+            c for c in gold_df.columns
+            if c in pred_df.columns and not _looks_like_aggregate_column(c)
+        ]
+        if shared_non_agg_keys:
+            primary_keys = shared_non_agg_keys
+        else:
+            gold_df = gold_df.copy()
+            pred_df = pred_df.copy()
+            gold_df["__agg_key"] = "__all__"
+            pred_df["__agg_key"] = "__all__"
+            primary_keys = ["__agg_key"]
+    else:
+        primary_keys = _resolve_primary_keys(primary_keys, gold_df, pred_df)
 
     match_result = row_matcher.match(
         gold_df=gold_df,
