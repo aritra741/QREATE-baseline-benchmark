@@ -216,15 +216,25 @@ class ConjunctionAndExpr(Expression):
             else:
                 # For structured predicates with column.attribute notation
                 left_type = dataset_schema.get_col_type(left)
-                if not self.check_col_ok_without_llm(left_type):
+                is_structured = self.check_col_ok_without_llm(left_type)
+
+                # Even "structured" attributes may be virtual when the current
+                # frame only has raw unstructured columns (e.g., description).
+                # In that case, route through merged LLM filtering.
+                base_col = expr.left.split('.')[0] if '.' in expr.left else expr.left
+                column_exists = any(str(c).lower() == str(base_col).lower() for c in df.columns)
+
+                if (not is_structured) or (not column_exists):
                     op = expr.op
                     # Split on '.' to get column and attribute
                     if '.' in expr.left:
                         left_col = expr.left.split('.')[0]
                         left_attr = expr.left.split('.')[1]
                     else:
-                        left_col = expr.left
-                        left_attr = None
+                        # For virtual attrs like "age" over raw text rows,
+                        # extract/filter from the description column.
+                        left_col = 'description'
+                        left_attr = expr.left
                     right = expr.right
                     if left_col not in cols_to_add:
                         cols_to_add[left_col] = []

@@ -328,6 +328,15 @@ class FilterOperator(Operator):
             return child_df
 
         logger.debug(f"Filter expression: {self.expression}")
+
+        def _column_exists_for_expr(frame, expr_left: str) -> bool:
+            # Direct match (e.g., age)
+            if any(str(c).lower() == expr_left.lower() for c in frame.columns):
+                return True
+            # Base column match when expr is "col.attr"
+            base_col = expr_left.split('.')[0] if '.' in expr_left else expr_left
+            return any(str(c).lower() == base_col.lower() for c in frame.columns)
+
         if isinstance(self.expression, ConjunctionAndExpr):
             logger.debug("Processing AND expression")
             and_expr = self.expression
@@ -368,13 +377,21 @@ class FilterOperator(Operator):
                     row_indices_list.append(matched_indices)
                     continue
                 
-                logger.debug(f"    Is structured (ok without LLM): {self.check_col_ok_without_llm(left_type)}")
-                if self.check_col_ok_without_llm(left_type):
+                is_structured = self.check_col_ok_without_llm(left_type)
+                has_column = _column_exists_for_expr(child_df, expr.left)
+                logger.debug(f"    Is structured (ok without LLM): {is_structured}")
+                logger.debug(f"    Column present in current frame: {has_column}")
+                if is_structured and has_column:
                     row_indices = expr.get_row_indices_structured(left_type, child_df)
                     logger.debug(f"    Structured filter matched {len(row_indices)} rows")
                     if len(row_indices) <= 20:
                         logger.debug(f"    Matched indices: {row_indices}")
                     row_indices_list.append(row_indices)
+                elif is_structured and not has_column:
+                    logger.debug(
+                        "    Structured attribute missing in current frame; "
+                        "deferring to unstructured filter path"
+                    )
             
             # Only call get_row_indices_unstructured if there are non-semantic predicates needing it
             if not has_semantic or len(row_indices_list) == 0:
@@ -411,7 +428,9 @@ class FilterOperator(Operator):
                     assert isinstance(expr, ComparisonExpr)
                     left = expr.left
                     left_type = self.data_schema.get_col_type(left)
-                    if self.check_col_ok_without_llm(left_type):
+                    is_structured = self.check_col_ok_without_llm(left_type)
+                    has_column = _column_exists_for_expr(remain_df, expr.left)
+                    if is_structured and has_column:
                         row_indices = expr.get_row_indices_structured(left_type, remain_df)
                         row_indices_list.append(row_indices)
                 row_indices = and_expr.get_row_indices_unstructured(remain_df, self.data_schema)
