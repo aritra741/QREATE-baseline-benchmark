@@ -23,11 +23,11 @@ SELECT name, college, draft_pick, team FROM player WHERE draft_pick > 0
 
 -- ── TIER 3: SELECT with semantic WHERE filter ───────────────────────────────
 
--- Q5: Players from the USA (semantic filter on description)
-SELECT name, nationality, team FROM player WHERE "player is from USA or United States"
+-- Q5: Players from USA (structured categorical filter)
+SELECT name, nationality, team FROM player WHERE nationality = 'American'
 
--- Q6: Players who play guard position (semantic filter)
-SELECT name, position, team FROM player WHERE "player plays guard position"
+-- Q6: Players in backcourt role (structured categorical filter)
+SELECT name, position, team FROM player WHERE position = 'Backcourt'
 
 -- ── TIER 4: COUNT aggregation with structured filter ────────────────────────
 
