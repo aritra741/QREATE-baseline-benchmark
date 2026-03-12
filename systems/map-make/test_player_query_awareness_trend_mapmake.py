@@ -386,6 +386,53 @@ def _save_rows_csv(rows: List[Dict[str, Any]], out_csv: Path) -> None:
         writer.writerows(rows)
 
 
+def _build_table_once_with_mapmake(
+    *,
+    table: str,
+    required_cols: Set[str],
+    pipeline: MapMakePipeline,
+    attrs: Dict[str, Any],
+    identity_columns: Dict[str, str],
+) -> pd.DataFrame:
+    """
+    Build one table once for the full run (Map&Make baseline behavior).
+    """
+    identity_col = identity_columns.get(table, "name")
+    cols = set(required_cols)
+    cols.add(identity_col)
+
+    docs = _load_docs(table)
+    atomized_docs: List[Tuple[str, List[str]]] = []
+    for doc_id, txt in docs:
+        atomized_docs.append((doc_id, pipeline.atomize(table=table, doc_id=doc_id, text=txt)))
+
+    sample_statements: List[str] = []
+    for _, statements in atomized_docs[:30]:
+        sample_statements.extend(statements[:8])
+
+    schema_obj = pipeline.schema_extract(
+        table=table,
+        sample_statements=sample_statements,
+        required_columns=sorted(cols),
+    )
+
+    records: List[Dict[str, Any]] = []
+    for _, statements in atomized_docs:
+        records.append(
+            pipeline.table_generate_row(
+                table=table,
+                statements=statements,
+                schema_obj=schema_obj,
+                required_columns=sorted(cols),
+            )
+        )
+
+    df = pd.DataFrame(records)
+    if df.empty:
+        df = pd.DataFrame(columns=sorted(cols))
+    return _coerce_types(table, df, attrs)
+
+
 def run_trend_queries_mapmake(
     run_dir: Path,
     trend_sql_file: Path,
@@ -415,6 +462,41 @@ def run_trend_queries_mapmake(
     if not trend_queries:
         raise RuntimeError(f"No trend queries found in {trend_sql_file}")
 
+    # Build each referenced table once using union-of-columns across all queries.
+    table_to_required_cols: Dict[str, Set[str]] = {}
+    for _, query_text in trend_queries:
+        table, needed_cols = _query_single_table_requirements(query_text)
+        table_to_required_cols.setdefault(table, set()).update(needed_cols)
+
+    build_before = token_tracker.snapshot()
+    build_t0 = time.time()
+    built_tables: Dict[str, pd.DataFrame] = {}
+    for table, cols in sorted(table_to_required_cols.items()):
+        logger.info("Prebuilding table '%s' once for run (columns=%s)", table, sorted(cols))
+        built_tables[table] = _build_table_once_with_mapmake(
+            table=table,
+            required_cols=cols,
+            pipeline=pipeline,
+            attrs=attrs,
+            identity_columns=identity_columns,
+        )
+    build_prompt_toks, build_completion_toks = token_tracker.delta(build_before)
+    logger.info(
+        "One-time Map&Make build complete in %.2fs (prompt=%d completion=%d total=%d)",
+        time.time() - build_t0,
+        build_prompt_toks,
+        build_completion_toks,
+        build_prompt_toks + build_completion_toks,
+    )
+
+    # Reuse one fixed extracted DB for all queries.
+    fixed_db = query_eval_db_dir / "mapmake_fixed.db"
+    if fixed_db.exists():
+        fixed_db.unlink()
+    with sqlite3.connect(fixed_db) as conn:
+        for table, df in built_tables.items():
+            df.to_sql(table, conn, if_exists="replace", index=False)
+
     metrics: List[TrendQueryMetrics] = []
     for query_id, query_text in trend_queries:
         logger.info("=" * 70)
@@ -422,43 +504,7 @@ def run_trend_queries_mapmake(
         before = token_tracker.snapshot()
         t0 = time.time()
         try:
-            table, needed_cols = _query_single_table_requirements(query_text)
-            identity_col = identity_columns.get(table, "name")
-            needed_cols.add(identity_col)
-            docs = _load_docs(table)
-
-            atomized_docs: List[Tuple[str, List[str]]] = []
-            for doc_id, txt in docs:
-                atomized_docs.append((doc_id, pipeline.atomize(table=table, doc_id=doc_id, text=txt)))
-
-            sample_statements: List[str] = []
-            for _, statements in atomized_docs[:30]:
-                sample_statements.extend(statements[:8])
-            schema_obj = pipeline.schema_extract(
-                table=table,
-                sample_statements=sample_statements,
-                required_columns=sorted(needed_cols),
-            )
-
-            records: List[Dict[str, Any]] = []
-            for _, statements in atomized_docs:
-                records.append(
-                    pipeline.table_generate_row(
-                        table=table,
-                        statements=statements,
-                        schema_obj=schema_obj,
-                        required_columns=sorted(needed_cols),
-                    )
-                )
-
-            table_df = pd.DataFrame(records)
-            if table_df.empty:
-                table_df = pd.DataFrame(columns=sorted(needed_cols))
-            table_df = _coerce_types(table, table_df, attrs)
-
-            query_eval_db = query_eval_db_dir / f"{query_id}.db"
-            _write_sqlite(table, table_df, query_eval_db)
-            rows = _run_sql(query_eval_db, query_text)
+            rows = _run_sql(fixed_db, query_text)
 
             out_csv = query_tables_dir / f"{query_id}.csv"
             out_json = query_tables_dir / f"{query_id}.json"
@@ -474,7 +520,7 @@ def run_trend_queries_mapmake(
                 settings=eval_settings,
                 attributes=eval_attributes,
                 identity_col=_infer_identity_col_for_query(query_text, identity_columns),
-                phase2_db=query_eval_db,
+                phase2_db=fixed_db,
                 output_dir=query_results_dir / query_id,
             )
 
