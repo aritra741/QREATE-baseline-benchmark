@@ -205,13 +205,24 @@ def _install_token_tracking_hook(datapop: DataPopLocal, tracker: TokenTracker) -
     """Monkey-patch DataPopLocal.llm_generate to capture token counts."""
     _original_generate = datapop.llm_generate
 
-    def _tracked_generate(prompt: str, msg: str):
-        input_tensor = datapop.tokenizer.apply_chat_template(
+    def _count_prompt_tokens(prompt: str, msg: str) -> int:
+        chat = datapop.tokenizer.apply_chat_template(
             [{"role": "user", "content": prompt + "\n\n" + msg}],
             add_generation_prompt=True,
             return_tensors="pt",
         )
-        prompt_tok_count = int(input_tensor.shape[1])
+        # HF tokenizers may return either a Tensor or BatchEncoding-like object.
+        if hasattr(chat, "shape"):
+            return int(chat.shape[1])
+        if hasattr(chat, "get"):
+            ids = chat.get("input_ids")
+            if ids is not None and hasattr(ids, "shape"):
+                return int(ids.shape[1])
+        # Conservative fallback
+        return 0
+
+    def _tracked_generate(prompt: str, msg: str):
+        prompt_tok_count = _count_prompt_tokens(prompt, msg)
         gen_text, token_info = _original_generate(prompt, msg)
         completion_tok_count = len(token_info)
         tracker.add(prompt_tok_count, completion_tok_count)
