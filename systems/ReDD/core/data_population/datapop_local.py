@@ -236,17 +236,30 @@ class DataPopLocal(DataPopDeepSeek):
     def llm_generate(self, prompt: str, msg: str):
         """ Generate text using the LLM model. """
         messages = [{"role": "user", "content": prompt + "\n\n" + msg}]
-        input_tensor = self.tokenizer.apply_chat_template(
+        chat_inputs = self.tokenizer.apply_chat_template(
             messages, add_generation_prompt=True, return_tensors="pt"
-        ).to(self.model.device)
+        )
+        # HF versions may return either a Tensor or a BatchEncoding-like object.
+        if hasattr(chat_inputs, "get"):
+            input_tensor = chat_inputs["input_ids"]
+            attention_mask = chat_inputs.get("attention_mask")
+        else:
+            input_tensor = chat_inputs
+            attention_mask = None
+        input_tensor = input_tensor.to(self.model.device)
+        if attention_mask is not None:
+            attention_mask = attention_mask.to(self.model.device)
         with torch.no_grad():
-            outputs = self.model.generate(
-                input_ids=input_tensor,
-                max_new_tokens=1000,
-                return_dict_in_generate=True,
-                output_hidden_states=True,
-                output_scores=True,
-            )
+            gen_kwargs = {
+                "input_ids": input_tensor,
+                "max_new_tokens": 1000,
+                "return_dict_in_generate": True,
+                "output_hidden_states": True,
+                "output_scores": True,
+            }
+            if attention_mask is not None:
+                gen_kwargs["attention_mask"] = attention_mask
+            outputs = self.model.generate(**gen_kwargs)
         gen_tokens = outputs.sequences[0][input_tensor.shape[1]:]
         gen_text = self.tokenizer.decode(gen_tokens, skip_special_tokens=True)
 
