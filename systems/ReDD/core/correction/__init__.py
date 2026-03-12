@@ -12,7 +12,7 @@ from .ensemble_analyses import EnsembleAnalyses
 from .hidden_states_loader import LazyHiddenStatesDataset
 from .test_classifier import ClassifierVal
 from .train_classifier import ClassifierTrainer
-from .voting_error_estimation import VotingErrorEstimation
+from .voting_error_estimation import estimate_mv_error, estimate_mv_error_fn, chernoff_bound
 
 __all__ = [
     "BinaryClassifier0",
@@ -23,5 +23,7 @@ __all__ = [
     "LazyHiddenStatesDataset",
     "ClassifierVal",
     "ClassifierTrainer",
-    "VotingErrorEstimation"
+    "estimate_mv_error",
+    "estimate_mv_error_fn",
+    "chernoff_bound",
 ]
