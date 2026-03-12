@@ -84,13 +84,10 @@ TREND_SQL_FILE = QUERY_DIR / DATASET_QUERY / "query_aware_trend_queries.sql"
 GROUND_TRUTH_DIR = PROJECT_ROOT / "Data" / "Player"
 ATTRIBUTES_FILE = PROJECT_ROOT / "Query" / DATASET_QUERY / "Player_attributes.json"
 SOURCE_DATA_PLAYER_DIR = PROJECT_ROOT / "source_data" / "Player"
-SCRATCH_BASE = os.getenv("SCRATCH") or os.getenv("CHPC_SCRATCH")
-if SCRATCH_BASE:
-    DEFAULT_REDD_MODEL_DIR = Path(SCRATCH_BASE) / "uda_bench_cache" / "redd_models" / "qwen2_5_7b_instruct"
-    DEFAULT_REDD_RESULTS_DIR = Path(SCRATCH_BASE) / "uda_bench_results" / "player_query_awareness_trend_redd"
-else:
-    DEFAULT_REDD_MODEL_DIR = REDD_DIR / ".models" / "qwen2_5_7b_instruct"
-    DEFAULT_REDD_RESULTS_DIR = RESULTS_DIR / "player_query_awareness_trend_redd"
+# Scratch path for model cache and results (avoids home quota on HPC)
+SCRATCH_BASE = Path("/scratch/general/vast/u1592362")
+DEFAULT_REDD_MODEL_DIR = SCRATCH_BASE / "uda_bench_cache" / "redd_models" / "qwen2_5_7b_instruct"
+DEFAULT_REDD_RESULTS_DIR = SCRATCH_BASE / "uda_bench_results" / "player_query_awareness_trend_redd"
 
 RESULTS_BASE_DIR = Path(
     os.getenv("REDD_RESULTS_BASE_DIR", str(DEFAULT_REDD_RESULTS_DIR))
