@@ -22,6 +22,11 @@ logger.info(f"Initializing OpenAI client with model: {MODEL}, base_url: {BASE_UR
 client = OpenAI(api_key=OPENAI_KEY, base_url=BASE_URL)
 
 
+def _is_missing_value(value: str) -> bool:
+    v = (value or "").strip().lower()
+    return v in {"", "none", "null", "n/a", "na", "unknown"}
+
+
 def chat_stream(messages, model=MODEL, temperature=0.1, max_tokens=100, attempts=5):
     """Streaming chat helper that strips reasoning when content is empty."""
     logger.debug(f"LLM call: model={model}, temperature={temperature}, max_tokens={max_tokens}, attempts={attempts}")
@@ -260,14 +265,16 @@ def llm_extractor(df, col, attrs, sys_prompt, data_schema, df_id=None,
     for attr in attrs:
         attr_type = data_schema.get_attr_type(col, attr)
         if attr_type == "varchar":
-            attr_type = "str"
+            attr_type = "string"
         elif attr_type == "int":
-            attr_type = "int"
+            # Nullable integer dtype avoids upcast/type errors on missing values.
+            attr_type = "Int64"
         elif attr_type == "float":
-            attr_type = "float"
+            # Nullable float dtype for consistent NA handling.
+            attr_type = "Float64"
         else:
             # date
-            attr_type = "str"
+            attr_type = "string"
         new_df[f"{col}.{attr}"] = new_df[f"{col}.{attr}"].astype(attr_type)
 
     logger.debug(f"Starting extraction loop for {len(df)} rows...")
@@ -332,7 +339,7 @@ def llm_extractor(df, col, attrs, sys_prompt, data_schema, df_id=None,
                 result_val = result.split(":")[1].strip()
                 if result_attr == attr or result_attr == col + '.' + attr:
                     found = True
-                    if result_val == "None":
+                    if _is_missing_value(result_val):
                         new_df.loc[i, f"{col}.{attr}"] = pd.NA
                     else:
                         attr_type = data_schema.get_attr_type(col, attr)
@@ -340,19 +347,26 @@ def llm_extractor(df, col, attrs, sys_prompt, data_schema, df_id=None,
                             new_df.loc[i, f"{col}.{attr}"] = str(result_val)
                         elif attr_type == "int":
                             try:
+                                # Strict cast only; no heuristic extraction from text.
                                 new_df.loc[i, f"{col}.{attr}"] = int(result_val)
-                            except:
-                                new_df.loc[i, f"{col}.{attr}"] = result_val
+                            except (TypeError, ValueError):
+                                logger.warning(
+                                    f"Row {i}: Invalid int for {col}.{attr} from "
+                                    f"'{result_val}', storing NA"
+                                )
+                                new_df.loc[i, f"{col}.{attr}"] = pd.NA
                         elif attr_type == "float":
                             try:
+                                # Strict cast only; no heuristic extraction from text.
                                 new_df.loc[i, f"{col}.{attr}"] = float(result_val)
-                            except:
-                                new_df.loc[i, f"{col}.{attr}"] = result_val
+                            except (TypeError, ValueError):
+                                logger.warning(
+                                    f"Row {i}: Invalid float for {col}.{attr} from "
+                                    f"'{result_val}', storing NA"
+                                )
+                                new_df.loc[i, f"{col}.{attr}"] = pd.NA
                         elif attr_type == "date":
-                            try:
-                                new_df.loc[i, f"{col}.{attr}"] = str(result_val)
-                            except:
-                                new_df.loc[i, f"{col}.{attr}"] = result_val
+                            new_df.loc[i, f"{col}.{attr}"] = str(result_val)
             if not found:
                 logger.debug(f"Row {i}: Attribute '{attr}' not found in LLM response")
                 new_df.loc[i, f"{col}.{attr}"] = pd.NA
