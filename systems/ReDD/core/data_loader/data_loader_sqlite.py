@@ -56,7 +56,8 @@ class DataLoaderSQLite(DataLoaderBase):
         self, 
         data_root: str | Path, 
         *, 
-        filemap: Dict[str, str] | None = None
+        filemap: Dict[str, str] | None = None,
+        encoding: str = "utf-8",
     ):
         """
         Initialize the SQLite dataset loader.
@@ -67,6 +68,7 @@ class DataLoaderSQLite(DataLoaderBase):
         """
         super().__init__(data_root)
         self._filemap = {**self.DEFAULT_FILEMAP, **(filemap or {})}
+        self._encoding = encoding
 
         # Initialize SQLite mode
         self._init_sqlite_mode()
