@@ -285,28 +285,50 @@ def _extract_tables_from_sql(sql: str) -> List[str]:
 
 def _extract_table_columns_from_sql(sql: str, tables: List[str]) -> Dict[str, Set[str]]:
     sql_clean = _strip_sql_comments(sql)
-    pairs = re.findall(r"\b([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)\b", sql_clean)
     out: Dict[str, Set[str]] = {t: set() for t in tables}
+
+    # 1) Qualified refs anywhere in SQL: table.column
+    pairs = re.findall(r"\b([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)\b", sql_clean)
     for table, col in pairs:
         t = table.lower()
         c = col.lower()
-        if t in out:
+        if t in out and c in KNOWN_TABLE_COLUMNS.get(t, set()):
             out[t].add(c)
 
+    # 2) Also include unqualified columns that appear in WHERE
+    #    (only when they map uniquely to one table among the query tables).
+    where_match = re.search(
+        r"\bWHERE\b(.*?)(?:\bGROUP\s+BY\b|\bORDER\s+BY\b|\bLIMIT\b|;|$)",
+        sql_clean,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    if where_match:
+        where_expr = where_match.group(1)
+        tokens = re.findall(r"\b([A-Za-z_][A-Za-z0-9_]*)\b", where_expr)
+        stopwords = {
+            "and", "or", "not", "in", "is", "null", "like", "between",
+            "exists", "true", "false", "as", "on", "case", "when", "then", "else", "end",
+        }
+        for tok in tokens:
+            c = tok.lower()
+            if c in stopwords:
+                continue
+            owners = [t for t in tables if c in KNOWN_TABLE_COLUMNS.get(t, set())]
+            if len(owners) == 1:
+                out[owners[0]].add(c)
+
+    # 3) Ensure minimum identity column for each table
     for t in tables:
         if not out[t]:
             if t == "player":
-                out[t].update({"name"})
+                out[t].add("name")
             elif t == "team":
-                out[t].update({"team_name"})
+                out[t].add("team_name")
             elif t == "city":
-                out[t].update({"city_name"})
+                out[t].add("city_name")
+            elif t == "owner":
+                out[t].add("name")
 
-    for t in tables:
-        known = KNOWN_TABLE_COLUMNS.get(t, set())
-        out[t] = {c for c in out[t] if c in known}
-        if not out[t]:
-            out[t] = set(known)
     return out
 
 
@@ -803,9 +825,31 @@ def execute_query_via_redd(
     return return_rows, table_map, nl_query
 
 
+def _parse_query_range(range_str: Optional[str]) -> Optional[Set[str]]:
+    """Parse --query-range into a set of query IDs, e.g. 'Q6-Q8' -> {'Q6','Q7','Q8'}. None = all."""
+    if not range_str or not range_str.strip():
+        return None
+    s = range_str.strip()
+    # Single query: Q6
+    m = re.match(r"^Q(\d+)$", s, re.IGNORECASE)
+    if m:
+        return {f"Q{m.group(1)}"}
+    # Range: Q6-Q8
+    m = re.match(r"^Q(\d+)\s*-\s*Q(\d+)$", s, re.IGNORECASE)
+    if m:
+        lo, hi = int(m.group(1)), int(m.group(2))
+        if lo > hi:
+            raise ValueError(f"Invalid query range: start Q{lo} > end Q{hi}")
+        return {f"Q{i}" for i in range(lo, hi + 1)}
+    raise ValueError(
+        f"Invalid --query-range '{range_str}'. Use e.g. Q6-Q8 or Q3."
+    )
+
+
 def run_trend_queries_redd(
     run_dir: Path,
     variant: str,
+    query_range: Optional[str] = None,
 ) -> List[TrendQueryMetrics]:
     query_results_dir = run_dir / "query_results"
     query_tables_dir = run_dir / "query_tables"
@@ -830,6 +874,15 @@ def run_trend_queries_redd(
     trend_queries = parse_trend_queries(TREND_SQL_FILE)
     if not trend_queries:
         raise RuntimeError(f"No trend queries found in {TREND_SQL_FILE}")
+
+    allowed_ids = _parse_query_range(query_range)
+    if allowed_ids is not None:
+        trend_queries = [(qid, sql) for qid, sql in trend_queries if qid in allowed_ids]
+        if not trend_queries:
+            raise RuntimeError(
+                f"No queries in range {query_range!r}. Allowed IDs: {sorted(allowed_ids)}"
+            )
+        logger.info(f"Query range filter: running only {sorted(qid for qid, _ in trend_queries)}")
 
     token_tracker = TokenTracker()
     metrics: List[TrendQueryMetrics] = []
@@ -1020,6 +1073,13 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Run ReDD Player trend benchmark")
     parser.add_argument("--model", type=str, default=DEFAULT_MODEL)
     parser.add_argument("--variant", type=str, default=DEFAULT_VARIANT, choices=sorted(SUPPORTED_VARIANTS))
+    parser.add_argument(
+        "--query-range",
+        type=str,
+        default=None,
+        metavar="RANGE",
+        help="Run only queries in range, e.g. Q6-Q8 or Q3. Default: all queries.",
+    )
     args = parser.parse_args()
 
     if args.model not in ALLOWED_MODEL_IDS:
@@ -1071,7 +1131,11 @@ def main() -> int:
     (run_dir / "method_metadata.json").write_text(json.dumps(metadata, indent=2))
 
     try:
-        metrics = run_trend_queries_redd(run_dir=run_dir, variant=args.variant)
+        metrics = run_trend_queries_redd(
+            run_dir=run_dir,
+            variant=args.variant,
+            query_range=args.query_range,
+        )
         save_metrics(metrics, run_dir)
         plot_metrics(metrics, run_dir)
 
