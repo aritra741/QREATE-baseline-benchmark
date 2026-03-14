@@ -279,6 +279,31 @@ def _coerce_numerics(df: pd.DataFrame, table: str) -> pd.DataFrame:
     return out
 
 
+def _to_sql_scalar(value: Any) -> Any:
+    """
+    Convert model outputs into SQLite-compatible scalar values.
+    - list/tuple/set: join recursively into a single string
+    - dict: JSON string
+    - None: empty string
+    """
+    if value is None:
+        return ""
+    if isinstance(value, (list, tuple, set)):
+        parts: List[str] = []
+        for item in value:
+            normalized = _to_sql_scalar(item)
+            if normalized is None:
+                continue
+            parts.append(str(normalized))
+        return " | ".join(parts)
+    if isinstance(value, dict):
+        try:
+            return json.dumps(value, ensure_ascii=False)
+        except Exception:
+            return str(value)
+    return value
+
+
 def extract_table(table: str) -> pd.DataFrame:
     """
     Run Doctopus-style extraction over all .txt files for *table*.
@@ -300,7 +325,7 @@ def extract_table(table: str) -> pd.DataFrame:
         doc_text = txt_path.read_text(errors="ignore")
         extracted = _ollama_extract(doc_text, columns)
         # Keep only expected keys, fill missing with ""
-        row: Dict[str, Any] = {c: extracted.get(c, "") for c in columns}
+        row: Dict[str, Any] = {c: _to_sql_scalar(extracted.get(c, "")) for c in columns}
         rows.append(row)
 
     df = pd.DataFrame(rows, columns=columns)
