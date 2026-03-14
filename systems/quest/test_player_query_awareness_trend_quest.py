@@ -157,6 +157,20 @@ def _extract_tables_from_sql(sql: str) -> List[str]:
     return tables
 
 
+def _sanitize_sql_for_quest(sql: str) -> str:
+    """
+    QUEST's custom SQL parser rejects standard statement terminators like `;`.
+    The shared benchmark query file keeps trailing semicolons for other systems,
+    so strip them only at the handoff boundary to QUEST.
+    """
+    cleaned = sql.strip()
+    while cleaned.endswith(";"):
+        cleaned = cleaned[:-1].rstrip()
+    if not cleaned:
+        raise ValueError("Empty SQL after QUEST sanitization.")
+    return cleaned
+
+
 def _build_prompt_schema(attributes: Dict[str, Any], tables: List[str]) -> str:
     lines: List[str] = []
     for table in tables:
@@ -240,7 +254,8 @@ def execute_query_via_quest(
     attr_sampler_cls = quest_mod["AttrSampler"]
     text_querier_cls = quest_mod["TextLLMQuerier"]
 
-    ast = sqlparser.parse_sql(sql)
+    quest_sql = _sanitize_sql_for_quest(sql)
+    ast = sqlparser.parse_sql(quest_sql)
     logical_planner = join_logical_planner_cls() if use_join_planner else logical_planner_cls()
     logical_plan = logical_planner.build_logical_plan(ast)
 
@@ -248,7 +263,7 @@ def execute_query_via_quest(
     querier = text_querier_cls(prompt=prompt_schema, llm=QUEST_MODEL, api_base=QUEST_API_BASE)
 
     # Initialize evidence sampling for all indexed tables participating in this query.
-    for table in _extract_tables_from_sql(sql):
+    for table in _extract_tables_from_sql(quest_sql):
         idx_obj, _ = indexer.get_indexer(table)
         sampler.try_sample(idx_obj, prompt_schema)
 
