@@ -2,7 +2,6 @@ from .join import Join
 from quest.utils import *
 from quest.core.datapack import *
 import pandas as pd
-from quest.core.nlp.match.fuse_join import pd_fuse_join
 from quest.utils.log import print_log
 import copy
 
@@ -87,7 +86,39 @@ class JoinText(Join):
 
             #print_log("mergeR : \n",self.tableDict[rtable_name])
 
-            now_table = pd_fuse_join(self.tableDict[ltable_name], self.tableDict[rtable_name], ltable_column, rtable_column)
+            left_table = self.tableDict[ltable_name]
+            right_table = self.tableDict[rtable_name]
+
+            left_key = ltable_column if ltable_column in left_table.columns else None
+            right_key = rtable_column if rtable_column in right_table.columns else None
+
+            if left_key is None:
+                left_base = ltable_column.split(".")[-1]
+                for col in left_table.columns:
+                    if col.endswith(left_base):
+                        left_key = col
+                        break
+            if right_key is None:
+                right_base = rtable_column.split(".")[-1]
+                for col in right_table.columns:
+                    if col.endswith(right_base):
+                        right_key = col
+                        break
+
+            if left_key is None or right_key is None:
+                raise KeyError(
+                    f"Exact join keys not found: left='{ltable_column}' right='{rtable_column}' "
+                    f"(resolved left='{left_key}' right='{right_key}')"
+                )
+
+            now_table = pd.merge(
+                left_table,
+                right_table,
+                left_on=left_key,
+                right_on=right_key,
+                how="inner",
+                suffixes=("_left", "_right"),
+            )
 
             self.fa[ltable_name] = rtable_name
             self.tableDict[rtable_name] = now_table

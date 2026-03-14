@@ -271,15 +271,6 @@ class AttrSampler:
         avg_chunk_size = total_chars / len(chunks) if chunks else 0
         print(f"[DEBUG response_single_doc] Processing {len(chunks)} chunks, total {total_chars} chars, avg {avg_chunk_size:.0f} chars/chunk")
         
-        # CRITICAL: Limit chunks to prevent overwhelming the LLM
-        # According to QUEST paper, we sample a small subset for evidence collection
-        # Sending 300+ chunks causes model failure - limit to first 5-10 chunks
-        MAX_CHUNKS_FOR_SAMPLING = 5
-        if len(chunks) > MAX_CHUNKS_FOR_SAMPLING:
-            print(f"[DEBUG response_single_doc] Limiting from {len(chunks)} to {MAX_CHUNKS_FOR_SAMPLING} chunks to prevent LLM overload")
-            chunks = chunks[:MAX_CHUNKS_FOR_SAMPLING]
-            chunks_id = chunks_id[:MAX_CHUNKS_FOR_SAMPLING]
-        
         chunks_to_extract = ""
         for i, text in enumerate(chunks):
             chunks_to_extract += f'''
@@ -337,19 +328,6 @@ Extract the attributes from the chunks above."""
         print(f"[DEBUG sampler] Raw response length: {len(result)} chars")
         print(f"[DEBUG sampler] Raw response first 200 chars: {result[:200]}")
         print(f"[DEBUG sampler] Raw response last 200 chars: {result[-200:]}")
-        
-        # If output is JSON (possibly in markdown code blocks), convert it to tuples
-        # Remove markdown code blocks first
-        if '```json' in result or '```' in result:
-            print(f"[DEBUG sampler] Detected JSON in markdown code blocks, removing...")
-            result = result.replace('```json', '').replace('```', '')
-            result = result.strip()
-        
-        if result.strip().startswith('{') or result.strip().startswith('['):
-            print(f"[DEBUG sampler] Detected JSON output, converting to tuples...")
-            converted = self._convert_json_to_tuples(result)
-            print(f"[DEBUG sampler] Converted result:\n{converted[:500]}")
-            result = converted
         
         # Validate that output is tuples-only
         lines = result.split('\n')

@@ -48,6 +48,12 @@ class JoinTransformText(JoinText):
         Per QUEST paper: "transforms a join operation into a filter operation"
         """
         print("[DEBUG JoinTransformText] Starting join transformation execution")
+
+        def _as_series(col_data):
+            """Normalize duplicate-column selections to a single Series for debug logic."""
+            if isinstance(col_data, pd.DataFrame):
+                return col_data.iloc[:, 0]
+            return col_data
         
         # CRITICAL: Clear output from previous query execution
         self.output = []
@@ -69,10 +75,10 @@ class JoinTransformText(JoinText):
                 
                 # Show what data we have
                 if 'player.team' in now_table.columns:
-                    team_col = now_table['player.team']
+                    team_col = _as_series(now_table['player.team'])
                     print(f"[DEBUG JoinTransformText] player.team column - non-null count: {team_col.count()}, non-null values: {team_col.dropna().unique().tolist()}")
                 if 'team.team_name' in now_table.columns:
-                    team_name_col = now_table['team.team_name']
+                    team_name_col = _as_series(now_table['team.team_name'])
                     print(f"[DEBUG JoinTransformText] team.team_name column - non-null count: {team_name_col.count()}, sample values: {team_name_col.dropna().unique().tolist()[:5]}")
                 
                 print(f"[DEBUG JoinTransformText] First row of {data.tablename}:\n{now_table.head(1)}")
@@ -126,10 +132,7 @@ class JoinTransformText(JoinText):
                 
                 if join_col:
                     # Extract join values from first table
-                    col_series = first_table[join_col]
-                    if isinstance(col_series, pd.DataFrame):
-                        # If still a DataFrame, take the first column
-                        col_series = col_series.iloc[:, 0]
+                    col_series = _as_series(first_table[join_col])
                     
                     # Debug: show first few values
                     print(f"[DEBUG JoinTransformText] Column '{join_col}' first 5 values: {col_series.head().tolist()}")
@@ -161,42 +164,18 @@ class JoinTransformText(JoinText):
                                     break
                         
                         if second_join_col_found:
-                            # Apply IN filter: keep only rows where join column value matches join_values
-                            # CRITICAL: Use fuzzy matching instead of exact matching for better join results
-                            join_values_list = [str(v).strip() for v in join_values if v]
-                            
-                            # Handle duplicate columns - get the first occurrence
-                            col_data = second_table[second_join_col_found]
-                            if isinstance(col_data, pd.DataFrame):
-                                # Multiple columns with same name - take first
-                                col_data = col_data.iloc[:, 0]
-                            
-                            # Use fuzzy matching: keep rows where similarity >= threshold
-                            from fuzzywuzzy import fuzz
-                            threshold = 70  # 70% similarity threshold (lowered for better matches)
-                            
-                            print(f"[DEBUG FUZZY] Join values to match: {join_values_list}")
-                            print(f"[DEBUG FUZZY] Team column values (first 10): {col_data.head(10).tolist()}")
-                            
-                            def matches_any_fuzzy(val, target_list, thresh=80):
-                                """Check if val fuzzy-matches any item in target_list"""
-                                if not val or not target_list:
-                                    return False
-                                val_str = str(val).strip().lower()
-                                for target in target_list:
-                                    target_str = str(target).lower()
-                                    # Use token_set_ratio for better matching (handles reordering)
-                                    similarity = fuzz.token_set_ratio(val_str, target_str)
-                                    if similarity >= thresh:
-                                        return True
-                                return False
-                            
-                            # Filter using fuzzy matching
-                            mask = col_data.apply(lambda x: matches_any_fuzzy(x, join_values_list, threshold))
+                            # Paper-faithful behavior: exact IN filter.
+                            col_data = _as_series(second_table[second_join_col_found])
+                            join_values_set = set(join_values)
+                            mask = col_data.isin(join_values_set)
                             second_table_filtered = second_table[mask]
                             
-                            print(f"[DEBUG JoinTransformText] Applied FUZZY IN filter to '{second_table_name}': {len(second_table)} -> {len(second_table_filtered)} rows (threshold={threshold}%)")
-                            print(f"[DEBUG JoinTransformText] Filtered values that matched: {second_table_filtered[second_join_col_found].unique().tolist()[:5] if len(second_table_filtered) > 0 else 'NONE'}")
+                            print(f"[DEBUG JoinTransformText] Applied exact IN filter to '{second_table_name}': {len(second_table)} -> {len(second_table_filtered)} rows")
+                            matched_values = "NONE"
+                            if len(second_table_filtered) > 0:
+                                matched_col = _as_series(second_table_filtered[second_join_col_found])
+                                matched_values = matched_col.dropna().unique().tolist()[:5]
+                            print(f"[DEBUG JoinTransformText] Filtered values that matched: {matched_values}")
                             
                             # Update the tableDict with filtered table
                             self.tableDict[second_table_name] = second_table_filtered
@@ -231,12 +210,39 @@ class JoinTransformText(JoinText):
             print(f"[DEBUG JoinTransformText] Joining {ltable_name}.{ltable_column} = {rtable_name}.{rtable_column}")
             
             if ltable_name in self.tableDict and rtable_name in self.tableDict:
-                from quest.core.nlp.match.fuse_join import pd_fuse_join
-                now_table = pd_fuse_join(
-                    self.tableDict[ltable_name], 
-                    self.tableDict[rtable_name], 
-                    ltable_column, 
-                    rtable_column
+                left_table = self.tableDict[ltable_name]
+                right_table = self.tableDict[rtable_name]
+                
+                # Resolve key columns with exact-name first, then suffix fallback.
+                left_key = ltable_column if ltable_column in left_table.columns else None
+                right_key = rtable_column if rtable_column in right_table.columns else None
+                
+                if left_key is None:
+                    left_base = ltable_column.split(".")[-1]
+                    for col in left_table.columns:
+                        if col.endswith(left_base):
+                            left_key = col
+                            break
+                if right_key is None:
+                    right_base = rtable_column.split(".")[-1]
+                    for col in right_table.columns:
+                        if col.endswith(right_base):
+                            right_key = col
+                            break
+                
+                if left_key is None or right_key is None:
+                    raise KeyError(
+                        f"Exact join keys not found: left='{ltable_column}' right='{rtable_column}' "
+                        f"(resolved left='{left_key}' right='{right_key}')"
+                    )
+                
+                now_table = pd.merge(
+                    left_table,
+                    right_table,
+                    left_on=left_key,
+                    right_on=right_key,
+                    how="inner",
+                    suffixes=("_left", "_right"),
                 )
                 
                 print(f"[DEBUG JoinTransformText] Join result shape: {now_table.shape}")
