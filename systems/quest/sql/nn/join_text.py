@@ -31,6 +31,18 @@ class JoinText(Join):
         """
         merge the tables from output
         """
+        def _as_series(col_data):
+            if isinstance(col_data, pd.DataFrame):
+                return col_data.iloc[:, 0]
+            return col_data
+
+        def _prepare_merge_key(table: pd.DataFrame, key_name: str, side: str):
+            key_series = _as_series(table[key_name])
+            work = table.copy()
+            merge_key = f"__quest_merge_key_{side}"
+            work[merge_key] = key_series.values
+            return work, merge_key
+
         # CRITICAL: Clear output from previous query execution
         # This prevents state leakage between multiple query runs
         self.output = []
@@ -111,14 +123,18 @@ class JoinText(Join):
                     f"(resolved left='{left_key}' right='{right_key}')"
                 )
 
+            left_work, left_merge_key = _prepare_merge_key(left_table, left_key, "left")
+            right_work, right_merge_key = _prepare_merge_key(right_table, right_key, "right")
+
             now_table = pd.merge(
-                left_table,
-                right_table,
-                left_on=left_key,
-                right_on=right_key,
+                left_work,
+                right_work,
+                left_on=left_merge_key,
+                right_on=right_merge_key,
                 how="inner",
                 suffixes=("_left", "_right"),
             )
+            now_table = now_table.drop(columns=[left_merge_key, right_merge_key], errors="ignore")
 
             self.fa[ltable_name] = rtable_name
             self.tableDict[rtable_name] = now_table

@@ -54,6 +54,18 @@ class JoinTransformText(JoinText):
             if isinstance(col_data, pd.DataFrame):
                 return col_data.iloc[:, 0]
             return col_data
+
+        def _prepare_merge_key(table: pd.DataFrame, key_name: str, side: str):
+            """
+            Build a temporary unique merge key column from the first matching key series.
+            This preserves exact-equality semantics even when column labels are duplicated.
+            """
+            key_series = _as_series(table[key_name])
+            work = table.copy()
+            merge_key = f"__quest_merge_key_{side}"
+            # Overwrite if already present from previous operations in the same plan.
+            work[merge_key] = key_series.values
+            return work, merge_key
         
         # CRITICAL: Clear output from previous query execution
         self.output = []
@@ -236,14 +248,18 @@ class JoinTransformText(JoinText):
                         f"(resolved left='{left_key}' right='{right_key}')"
                     )
                 
+                left_work, left_merge_key = _prepare_merge_key(left_table, left_key, "left")
+                right_work, right_merge_key = _prepare_merge_key(right_table, right_key, "right")
+
                 now_table = pd.merge(
-                    left_table,
-                    right_table,
-                    left_on=left_key,
-                    right_on=right_key,
+                    left_work,
+                    right_work,
+                    left_on=left_merge_key,
+                    right_on=right_merge_key,
                     how="inner",
                     suffixes=("_left", "_right"),
                 )
+                now_table = now_table.drop(columns=[left_merge_key, right_merge_key], errors="ignore")
                 
                 print(f"[DEBUG JoinTransformText] Join result shape: {now_table.shape}")
                 
