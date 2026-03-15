@@ -23,6 +23,11 @@ class ExtractText(Extract):
         """
         Extract need to get: docList (from Retrieve or Filter), table (from Filter)
         """
+        def _as_series(col_data):
+            if isinstance(col_data, pd.DataFrame):
+                return col_data.iloc[:, 0]
+            return col_data
+
         # CRITICAL: Clear output from previous query execution
         # This prevents state leakage between multiple query runs
         self.output = []
@@ -147,7 +152,7 @@ class ExtractText(Extract):
                 columns_to_extract.append(col)
             else:
                 # Column exists - check if it has values or is empty
-                col_values = now_table[col].dropna()
+                col_values = _as_series(now_table[col]).dropna()
                 non_empty = len(col_values) > 0 and not all(str(v).strip() == '' for v in col_values)
                 if not non_empty:
                     # Column is empty - needs extraction
