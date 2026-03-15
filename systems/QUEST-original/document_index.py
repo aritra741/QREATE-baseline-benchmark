@@ -24,6 +24,8 @@ def init_chatgpt(api_key):
         openai.api_key = api_key
     base_url = os.getenv("QUEST_OPENAI_BASE_URL", "").strip()
     if base_url:
+        if not base_url.endswith("/"):
+            base_url = base_url + "/"
         if hasattr(openai, "base_url"):
             openai.base_url = base_url
         elif hasattr(openai, "api_base"):
