@@ -1,0 +1,33 @@
+C1
+SELECT university_name,rank FROM University WHERE rank <= 3
+SELECT university_name,rank FROM University WHERE year_founded < 1850
+SELECT university_name,total_undergraduate_enrollment FROM University WHERE total_undergraduate_enrollment < 1890
+SELECT university_name,rank FROM University WHERE rank >= 13
+SELECT university_name, academic_calendar, setting FROM University WHERE academic_calendar = semester
+SELECT university_name, college_category FROM University WHERE college_category = Private Institution
+SELECT university_name, in_state_tuition_fees FROM University WHERE in_state_tuition_fees > $5,876
+SELECT university_name, out_of_state_tuition_fees FROM University WHERE out_of_state_tuition_fees < $16,445
+SELECT university_name, institutional_control FROM University WHERE institutional_control = public
+SELECT university_name, setting FROM University WHERE setting = urban
+...
+C2
+SELECT university_name, year_founded, rank FROM University WHERE year_founded < 1900 AND rank < 20 AND rank > 10
+SELECT university_name, setting, total_undergraduate_enrollment FROM University WHERE setting = urban AND total_undergraduate_enrollment < 2000
+SELECT university_name, year_founded, setting FROM University WHERE year_founded >= 1900 AND setting = suburban
+SELECT university_name, rank FROM University WHERE rank <= 10 AND rank >= 5
+SELECT university_name, academic_calendar, setting FROM University WHERE academic_calendar = quarter-based AND setting = urban AND year_founded >= 1900
+SELECT university_name, academic_calendar, total_undergraduate_enrollment FROM University WHERE academic_calendar = semester AND total_undergraduate_enrollment < 2000
+SELECT university_name, rank, year_founded FROM University WHERE rank < 5 AND year_founded >= 1800
+SELECT university_name, setting, rank FROM University WHERE setting = rural AND rank <= 10
+SELECT university_name, setting, year_founded FROM University WHERE setting = rural AND year_founded >= 1950
+SELECT university_name, setting FROM University WHERE setting = urban OR institutional_control = public
+...
+C3
+SELECT university_name, academic_calendar, campus_size FROM University WHERE academic_calendar = 4-1-4-based AND (year_founded < 1900 OR total_undergraduate_enrollment < 2000)
+SELECT university_name, academic_calendar, rank FROM University WHERE academic_calendar = semester AND (year_founded < 1900 OR total_undergraduate_enrollment < 2000) AND rank < 100
+SELECT university_name, academic_calendar, rank FROM University WHERE academic_calendar = 4-1-4-based AND (year_founded < 1900 OR total_undergraduate_enrollment < 1500) AND rank < 20
+SELECT university_name, year_founded, rank FROM University WHERE year_founded > 1900 AND year_founded < 2000 AND rank < 100 AND rank > 10
+SELECT university_name, year_founded, rank FROM University WHERE setting = urban AND year_founded < 2000 AND rank < 100 AND rtotal_undergraduate_enrollment < 2000
+SELECT university_name, year_founded, rank FROM University WHERE setting = urban OR year_founded < 1820 OR year_founded > 2000 OR  rank <= 3 OR ran > 100 OR total_undergraduate_enrollment < 1800 OR total_undergraduate_enrollment > 6000 OR academic_calendar = 4-1-4-based academic_calendar = quarter-based OR academic_calendar = semester
+SELECT university_name, setting FROM University WHERE setting = urban OR institutional_control = public AND setting = rural AND year_founded >= 1950
+...

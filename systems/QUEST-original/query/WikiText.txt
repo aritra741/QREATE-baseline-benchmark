@@ -1,0 +1,37 @@
+sql1
+SELECT name, age, team FROM WikiText WHERE age < 25
+SELECT name, age, team FROM WikiText WHERE nationality = USA
+SELECT name, age, team FROM WikiText WHERE team = Los Angeles Lakers
+SELECT name, age, team FROM WikiText WHERE NBA_championships > 2
+SELECT name, position FROM WikiText WHERE position = forward
+SELECT name, draft_pick FROM WikiText WHERE draft_pick > 10
+SELECT name, draft_year FROM WikiText WHERE draft_year > 2010
+SELECT name, college FROM WikiText WHERE college = University of Notre Dame
+SELECT name, mvp_awards FROM WikiText WHERE mvp_awards > 0
+SELECT name, olympic_gold_medals FROM WikiText WHERE olympic_gold_medals > 0
+...
+sql2
+SELECT name, age, team FROM WikiText WHERE nationality = USA AND age < 40
+SELECT name, age, mvp_awards FROM WikiText WHERE mvp_awards >= 1 AND (age > 30 OR team = New York Knicks)
+SELECT name, draft_pick, draft_year FROM WikiText WHERE draft_year >= 2000 AND (draft_pick <= 15 OR team = Philadelphia 76ers)
+SELECT name, team, NBA_championships FROM WikiText WHERE NBA_championships >= 3 OR team = Los Angeles Lakers OR team = Houston Rockets
+SELECT name, draft_pick, draft_year,NBA_championships FROM WikiText WHERE  (draft_year >= 2010 OR draft_pick <= 15) AND NBA_championships > 0
+SELECT name FROM WikiText WHERE NBA_championships > 0 AND mvp_awards > 0 AND olympic_gold_medals > 0 AND age < 40
+SELECT name, age, team FROM WikiText WHERE NBA_championships > 2 OR college = University of Notre Dame
+SELECT name, college FROM WikiText WHERE career_highest_score > 40 AND career_highest_assists > 10
+SELECT name, career_highest_score, career_highest_assists FROM WikiText WHERE olympic_gold_medals > 0 AND  mvp_awards > 0
+SELECT name, age, team FROM WikiText WHERE NBA_championships > 2 OR career_average_score > 10
+...
+sql3
+SELECT name, position, draft_year FROM WikiText WHERE draft_pick <= 10 AND draft_year > 2000 AND nationality = USA AND age > 20
+SELECT name, age, college FROM WikiText WHERE age > 20 AND age < 40 AND (team = Los Angeles Lakers OR college = University of Nebraska)
+SELECT name, team, position FROM WikiText WHERE (team = Los Angeles Lakers AND position = forward) OR (position = guard AND age < 50)
+SELECT name, draft_pick, draft_year FROM WikiText WHERE draft_year >= 2000 AND draft_year <= 2010 AND draft_pick <= 15 AND draft_pick >= 5
+SELECT name, age, draft_pick,NBA_championships FROM WikiText WHERE age < 40 AND draft_pick <= 15 AND NBA_championships > 2 AND age > 20
+SELECT name FROM WikiText WHERE NBA_championships > 0 AND mvp_awards > 0 AND olympic_gold_medals > 0 AND age < 40
+SELECT name, college, NBA_championships, mvp_awards, olympic_gold_medals FROM WikiText WHERE age < 30 AND NBA_championships >= 1 AND mvp_awards > 0 AND olympic_gold_medals > 0 AND nationality = American
+SELECT name, draft_year, draft_pick, age, team FROM WikiText WHERE draft_year >= 2000 AND draft_pick <= 15 AND age > 25 AND nationality = American AND NBA_championships > 0
+SELECT name, age, NBA_championships, mvp_awards, olympic_gold_medals FROM WikiText WHERE age < 40 AND NBA_championships > 2 AND mvp_awards > 1 AND olympic_gold_medals > 0 AND nationality = Serbian
+SELECT name, team, draft_year, draft_pick, college FROM WikiText WHERE draft_year >= 2005 AND draft_pick <= 10 AND team = Los Angeles Lakers AND college = Michigan State Spartans AND age > 30
+...
+

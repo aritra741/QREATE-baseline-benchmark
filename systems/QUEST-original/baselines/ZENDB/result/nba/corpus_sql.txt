@@ -1,0 +1,120 @@
+1 SELECT court_name,judge_name,judgment_year FROM cases WHERE judgment_year >= 2009 AND court_name = 'Federal Court'
+2 SELECT court_name,judge_name,judgment_year,verdict FROM cases WHERE judgment_year = 2009 AND verdict = 'dismissed'
+3 SELECT court_name,hearing_year,judgment_year FROM cases WHERE hearing_year = 2006 AND judgment_year > 2006
+4 SELECT court_name,hearing_year,verdict FROM cases WHERE hearing_year = 2006 AND verdict = 'dismissed'
+5 SELECT court_name,judge_name FROM cases WHERE judge_name = 'Honourable Justice Jacobson' AND hearing_year >= 2006
+6 SELECT court_name,judge_name FROM cases WHERE judgment_year = 2009 AND hearing_year = 2009
+7 SELECT court_name,hearing_year,legal_basis FROM hearing_year = 2006 AND legal_basis = 'Trade Practices Act 1974 (Cth)'
+8 SELECT court_name,hearing_year,charges FROM hearing_year >= 2006 AND hearing_year <= 2009 AND charges = 'Contravention of s 52 of the Trade Practices Act 1974 (Cth)'
+9 SELECT court_name,judge_name,hearing_year,judgment_year FROM cases WHERE hearing_year = 2009 OR hearing_year = 2008
+10 SELECT court_name,judge_name,hearing_year,judgment_year FROM cases WHERE hearing_year >= 2008 AND judgment_year >= 2009
+
+
+
+SELECT * FROM cases WHERE file = '2011/5678' OR (court_name = 'District Court' AND judgment_date >= '2020-07-01');
+
+SELECT * FROM cases WHERE (court_name = 'Magistrates Court' OR case_type = 'Family') AND judgment_date = '2021-06-15';
+
+SELECT * FROM cases WHERE court_name = 'High Court' AND (file = '2013/3456' OR judgment_date < '2017-05-01');
+
+SELECT * FROM cases WHERE (case_type = 'Civil' AND file = '2014/1234') OR court_name = 'Local Court';
+
+SELECT * FROM cases WHERE judgment_date >= '2019-08-10' AND (court_name = 'Family Court of Australia' OR case_type = 'Criminal');
+
+SELECT * FROM cases WHERE (court_name = 'Supreme Court' AND judgment_date < '2020-12-31') OR file = '2015/9988';
+
+SELECT * FROM cases WHERE (file = '2018/5647' AND court_name = 'District Court') OR judgment_date = '2019-02-28';
+
+SELECT * FROM cases WHERE case_type = 'Criminal' AND (court_name = 'High Court' OR file = '2016/8472');
+
+SELECT * FROM cases WHERE (court_name = 'Magistrates Court' AND judgment_date BETWEEN '2017-01-01' AND '2020-01-01') OR file = '2017/3459';
+
+SELECT * FROM cases WHERE (judgment_date > '2016-06-15' AND court_name = 'Local Court') OR case_type = 'Family';
+
+SELECT * FROM cases WHERE (file = '2019/4789' OR judgment_date < '2018-09-01') AND court_name = 'Supreme Court';
+
+SELECT * FROM cases WHERE court_name = 'District Court' AND (case_type = 'Civil' OR judgment_date = '2017-08-12');
+
+SELECT * FROM cases WHERE (file = '2020/4321' AND court_name = 'High Court') OR judgment_date > '2020-01-01';
+
+SELECT * FROM cases WHERE (court_name = 'Family Court of Australia' AND judgment_date <= '2019-05-05') OR file = '2014/5632';
+
+SELECT * FROM cases WHERE file = '2012/7821' AND (court_name = 'Magistrates Court' OR case_type = 'Criminal');
+
+SELECT * FROM cases WHERE (court_name = 'Supreme Court' OR judgment_date = '2016-03-03') AND file = '2015/4322';
+
+SELECT * FROM cases WHERE (case_type = 'Civil' AND judgment_date > '2017-04-04') OR file = '2013/8821';
+
+SELECT * FROM cases WHERE court_name = 'District Court' AND (file = '2018/9901' OR judgment_date < '2015-12-12');
+
+SELECT * FROM cases WHERE (judgment_date BETWEEN '2016-01-01' AND '2018-01-01') AND (court_name = 'High Court' OR file = '2014/4567');
+
+SELECT * FROM cases WHERE case_type = 'Family' AND (court_name = 'Local Court' OR file = '2019/3345');
+
+SELECT * FROM cases WHERE (file = '2011/8932' OR judgment_date = '2020-08-08') AND court_name = 'Family Court of Australia';
+
+SELECT * FROM cases WHERE (court_name = 'Supreme Court' AND judgment_date > '2018-07-07') OR case_type = 'Criminal';
+
+SELECT * FROM cases WHERE (judgment_date < '2017-05-15' AND case_type = 'Civil') OR court_name = 'Magistrates Court';
+
+SELECT * FROM cases WHERE (court_name = 'District Court' AND file = '2013/1234') OR judgment_date = '2015-01-01';
+
+SELECT * FROM cases WHERE file = '2015/5678' AND (court_name = 'High Court' OR judgment_date > '2019-09-09');
+
+SELECT * FROM cases WHERE (court_name = 'Family Court of Australia' OR judgment_date BETWEEN '2016-10-10' AND '2020-10-10') AND file = '2018/9901';
+
+SELECT * FROM cases WHERE (judgment_date = '2019-11-11' AND case_type = 'Family') OR court_name = 'Supreme Court';
+
+SELECT * FROM cases WHERE court_name = 'Magistrates Court' AND (file = '2016/1234' OR judgment_date > '2021-01-01');
+
+SELECT * FROM cases WHERE (court_name = 'District Court' OR file = '2017/4789') AND judgment_date <= '2020-02-02';
+
+SELECT * FROM cases WHERE (case_type = 'Criminal' AND court_name = 'High Court') OR file = '2020/5678';
+
+SELECT * FROM cases WHERE (judgment_date >= '2017-03-03' OR court_name = 'Local Court') AND file = '2019/7890';
+
+SELECT * FROM cases WHERE (file = '2015/3456' AND judgment_date = '2018-08-08') OR court_name = 'Supreme Court';
+
+SELECT * FROM cases WHERE (court_name = 'Family Court of Australia' OR case_type = 'Civil') AND judgment_date BETWEEN '2014-04-04' AND '2019-04-04';
+
+SELECT * FROM cases WHERE (file = '2013/4567' AND judgment_date < '2017-07-07') OR court_name = 'Magistrates Court';
+
+SELECT * FROM cases WHERE (court_name = 'District Court' AND judgment_date > '2016-02-02') OR file = '2018/5678';
+
+SELECT * FROM cases WHERE (case_type = 'Family' OR judgment_date <= '2019-06-06') AND court_name = 'High Court';
+
+SELECT * FROM cases WHERE (file = '2012/7890' AND court_name = 'Supreme Court') OR judgment_date = '2021-09-09';
+
+SELECT * FROM cases WHERE (court_name = 'Local Court' OR case_type = 'Criminal') AND judgment_date > '2017-12-12';
+
+SELECT * FROM cases WHERE file = '2014/1234' AND (court_name = 'Family Court of Australia' OR judgment_date = '2015-05-05');
+
+SELECT * FROM cases WHERE (judgment_date BETWEEN '2015-11-11' AND '2020-11-11') AND (court_name = 'Magistrates Court' OR file = '2013/4321');
+
+SELECT * FROM cases WHERE (case_type = 'Civil' OR court_name = 'District Court') AND file = '2017/3456';
+
+SELECT * FROM cases WHERE (file = '2011/5678' OR judgment_date < '2018-03-03') AND court_name = 'High Court';
+
+SELECT * FROM cases WHERE (court_name = 'Supreme Court' AND file = '2019/7890') OR judgment_date >= '2016-04-04';
+
+SELECT * FROM cases WHERE case_type = 'Family' AND (file = '2020/2345' OR judgment_date > '2020-06-06');
+
+SELECT * FROM cases WHERE (court_name = 'Local Court' OR judgment_date = '2017-07-07') AND file = '2018/6789';
+
+SELECT * FROM cases WHERE (file = '2016/1234' AND court_name = 'Family Court of Australia') OR judgment_date = '2021-10-10';
+
+SELECT * FROM cases WHERE (case_type = 'Criminal' AND judgment_date > '2015-08-08') OR court_name = 'Magistrates Court';
+
+SELECT * FROM cases WHERE (court_name = 'District Court' OR file = '2015/2345') AND judgment_date <= '2019-09-09';
+
+SELECT * FROM cases WHERE (file = '2017/4567' OR judgment_date BETWEEN '2018-11-11' AND '2020-12-12') AND court_name = 'High Court';
+
+SELECT * FROM cases WHERE (court_name = 'Supreme Court' AND judgment_date = '2018-01-01') OR file = '2019/5678';
+
+SELECT * FROM cases WHERE (case_type = 'Civil' OR court_name = 'Local Court') AND file = '2013/6789';
+
+SELECT * FROM cases WHERE (file = '2012/8901' AND judgment_date < '2017-05-05') OR court_name = 'Family Court of Australia';
+
+SELECT * FROM cases WHERE (court_name = 'Magistrates Court' AND judgment_date > '2019-02-02') OR case_type = 'Family';
+
+SELECT * FROM cases WHERE (file = '2014/2345' OR court_name =

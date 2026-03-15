@@ -1,0 +1,33 @@
+C1
+SELECT court_name,hearing_year,legal_basis FROM LCR WHERE hearing_year = 2006
+SELECT court_name,hearing_year,legal_basis FROM LCR WHERE hearing_year = 2008
+SELECT court_name,judge_name,hearing_year,judgment_year FROM LCR WHERE judgment_year >= 2009
+SELECT court_name,judge_name,hearing_year,judgment_year FROM LCR WHERE judgment_year <= 2007
+SELECT court_name,judge_name,judgment_year FROM LCR WHERE court_name = Federal Court
+SELECT court_name,judge_name FROM LCR WHERE judge_name = Jacobson
+SELECT court_name,hearing_year,legal_basis FROM LCR WHERE legal_basis = Trade Practices Act 1974 (Cth)
+SELECT court_name,judge_name,hearing_year,judgment_year FROM LCR WHERE verdict = dismissed
+SELECT court_name,judge_name FROM LCR WHERE hearing_year >= 2006
+SELECT court_name,judge_name,hearing_year,judgment_year FROM LCR WHERE charges = Breaches of ss 52 and 53 of the Trade Practices Act 1974 (Cth)
+SELECT court_name,judge_name,hearing_year,judgment_year FROM LCR WHERE charges = infringement of Australian Patent No 713628
+SELECT court_name,judge_name,hearing_year,judgment_year FROM LCR WHERE charges = unlawful industrial action in contravention of s 38 of the BCII Act
+...
+C2
+SELECT court_name,judge_name,judgment_year FROM LCR WHERE judgment_year >= 2009 AND court_name = Federal Court
+SELECT court_name,judge_name,judgment_year,verdict FROM LCR WHERE judgment_year = 2009 AND verdict = dismissed
+SELECT court_name,hearing_year,judgment_year FROM LCR WHERE hearing_year = 2006 OR court_name = Federal Court
+SELECT court_name,hearing_year,verdict FROM LCR WHERE hearing_year = 2006 AND verdict = dismissed
+SELECT court_name,judge_name FROM LCR WHERE judge_name = Jacobson AND hearing_year >= 2006
+SELECT court_name,judge_name FROM LCR WHERE judgment_year = 2009 AND hearing_year = 2009
+SELECT court_name,hearing_year,legal_basis FROM LCR WHERE hearing_year = 2006 AND legal_basis = Trade Practices Act 1974 (Cth)
+SELECT court_name,hearing_year,charges FROM LCR WHERE hearing_year >= 2006 AND hearing_year <= 2009 AND legal_basis = Trade Practices Act 1974 (Cth)
+SELECT court_name,judge_name,hearing_year,judgment_year FROM LCR WHERE hearing_year = 2009 OR hearing_year = 2008
+SELECT court_name,judge_name,hearing_year,judgment_year FROM LCR WHERE hearing_year >= 2008 AND judgment_year >= 2009
+...
+C3
+SELECT court_name,judge_name,hearing_year,judgment_year FROM LCR WHERE hearing_year = 2006 OR hearing_year = 2007 OR hearing_year = 2008 OR hearing_year = 2009
+SELECT court_name,judge_name,hearing_year,judgment_year FROM LCR WHERE hearing_year >= 2009 OR verdict = dismissed OR judgment_year >= 2009 OR judge_name = Jacobson
+SELECT court_name,hearing_year,legal_basis FROM hearing_year >= 2006  AND judgment_year >= 2006 AND legal_basis = Trade Practices Act 1974 AND court_name = Federal Court
+SELECT court_name,judge_name,hearing_year,judgment_year FROM LCR WHERE hearing_year = 2009 OR hearing_year = 2008 OR court_name = Federal Court OR verdict = dismissed
+SELECT court_name,judge_name,hearing_year,judgment_year FROM LCR WHERE hearing_year >= 2006 OR judge_name = Jacobson OR legal_basis = Trade Practices Act 1974 (Cth) OR 
+...

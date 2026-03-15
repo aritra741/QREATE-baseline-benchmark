@@ -1,0 +1,25 @@
+sql1
+SELECT university_name,rank FROM SWDE WHERE rank <= 3
+SELECT university_name,rank FROM SWDE WHERE year_founded < 1850
+SELECT university_name,rank FROM SWDE WHERE total_undergraduate_enrollment < 1890
+SELECT university_name, setting, rank FROM SWDE WHERE setting = 'rural'
+SELECT university_name, academic_calendar, rank FROM SWDE WHERE academic_calendar = semester
+...
+sql2
+SELECT university_name, year_founded, rank FROM SWDE WHERE year_founded < 1900 AND rank < 20 AND rank > 10
+SELECT university_name, setting, total_undergraduate_enrollment FROM SWDE WHERE setting = urban AND total_undergraduate_enrollment < 2000
+SELECT university_name, year_founded, setting FROM SWDE WHERE year_founded >= 1900 AND setting = suburban
+SELECT university_name, rank FROM SWDE WHERE rank <= 10 AND rank >= 5
+SELECT university_name, academic_calendar, setting FROM SWDE WHERE academic_calendar = 'quarter-based' AND setting = 'urban' AND year_founded >= 1900
+SELECT university_name, academic_calendar, total_undergraduate_enrollment FROM SWDE WHERE academic_calendar = 'semester' AND total_undergraduate_enrollment < 2000
+SELECT university_name, rank, year_founded FROM SWDE WHERE rank < 5 AND year_founded >= 1800
+SELECT university_name, setting, rank FROM SWDE WHERE setting = 'rural' AND rank <= 10
+SELECT university_name, setting, year_founded FROM SWDE WHERE setting = 'rural' AND year_founded >= 1950
+...
+sql3
+SELECT university_name, academic_calendar, campus_size FROM SWDE WHERE academic_calendar = '4-1-4-based' AND (year_founded < 1900 OR total_undergraduate_enrollment < 2000)
+SELECT university_name, academic_calendar, rank FROM SWDE WHERE academic_calendar = semester AND (year_founded < 1900 OR total_undergraduate_enrollment < 2000) AND rank < 100
+SELECT university_name, academic_calendar, rank FROM SWDE WHERE academic_calendar = 4-1-4-based AND year_founded < 1900 OR total_undergraduate_enrollment < 1500 AND rank < 20
+SELECT university_name, year_founded, rank FROM SWDE WHERE year_founded > 1900 AND year_founded < 2000 AND rank < 100 AND rank > 10
+SELECT university_name, year_founded, rank FROM SWDE WHERE setting = urban AND year_founded < 2000 AND rank < 100 AND rank > 10
+...
