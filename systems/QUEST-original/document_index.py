@@ -8,6 +8,7 @@ from collections import defaultdict
 import string
 import numpy as np
 import openai
+import os
 import random
 from tqdm import tqdm
 import pickle
@@ -19,7 +20,42 @@ nltk.download('stopwords')
 
 # initialize the OpenAI API
 def init_chatgpt(api_key):
-    openai.api_key = api_key
+    if hasattr(openai, "api_key"):
+        openai.api_key = api_key
+    base_url = os.getenv("QUEST_OPENAI_BASE_URL", "").strip()
+    if base_url:
+        if hasattr(openai, "base_url"):
+            openai.base_url = base_url
+        elif hasattr(openai, "api_base"):
+            openai.api_base = base_url
+
+
+def _chat_completion_create(messages, max_tokens=512, n=1, stop=None, temperature=0):
+    model_name = os.getenv("QUEST_LLM_MODEL", "gpt-4o")
+    if hasattr(openai, "ChatCompletion"):
+        return openai.ChatCompletion.create(
+            model=model_name,
+            messages=messages,
+            max_tokens=max_tokens,
+            n=n,
+            stop=stop,
+            temperature=temperature,
+        )
+    return openai.chat.completions.create(
+        model=model_name,
+        messages=messages,
+        max_tokens=max_tokens,
+        n=n,
+        stop=stop,
+        temperature=temperature,
+    )
+
+
+def _response_text(response):
+    message = response.choices[0].message
+    if isinstance(message, dict):
+        return str(message.get("content", "")).strip()
+    return str(getattr(message, "content", "")).strip()
 
 
 
@@ -37,17 +73,16 @@ def ask_sample_file(sql_query, sql_query_description, text):
         }
     ]
     
-    response = openai.ChatCompletion.create(
-        model="gpt-4o",
+    response = _chat_completion_create(
         messages=messages,
         max_tokens=512,
         n=1,
         stop=None,
-        temperature=0
+        temperature=0,
     )
     
    # Extract the response text
-    answer = response.choices[0].message['content'].strip()
+    answer = _response_text(response)
     return answer
 
 # get text summarize

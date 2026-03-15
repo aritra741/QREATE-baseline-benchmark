@@ -6,7 +6,14 @@ import time
 
 # Function to initialize the OpenAI API
 def init_chatgpt(api_key):
-    openai.api_key = api_key
+    if hasattr(openai, "api_key"):
+        openai.api_key = api_key
+    base_url = os.getenv("QUEST_OPENAI_BASE_URL", "").strip()
+    if base_url:
+        if hasattr(openai, "base_url"):
+            openai.base_url = base_url
+        elif hasattr(openai, "api_base"):
+            openai.api_base = base_url
     
 # Function to split text into smaller chunks
 def split_text(text, max_chunk_size=15900):
@@ -20,23 +27,46 @@ def split_text(text, max_chunk_size=15900):
     chunks.append(text)
     return chunks
 
-from openai.error import APIError, RateLimitError, ServiceUnavailableError, Timeout
+def _chat_completion_create(messages, model, max_tokens=1000, n=1, stop=None, temperature=0):
+    if hasattr(openai, "ChatCompletion"):
+        return openai.ChatCompletion.create(
+            model=model,
+            messages=messages,
+            max_tokens=max_tokens,
+            n=n,
+            stop=stop,
+            temperature=temperature,
+        )
+    return openai.chat.completions.create(
+        model=model,
+        messages=messages,
+        max_tokens=max_tokens,
+        n=n,
+        stop=stop,
+        temperature=temperature,
+    )
+
+
+def _response_text(response):
+    message = response.choices[0].message
+    if isinstance(message, dict):
+        return str(message.get("content", "")).strip()
+    return str(getattr(message, "content", "")).strip()
 
 def ask_completion_with_retry(messages, model, max_tokens=1000, n=1, stop=None, temperature=0, retries=3, delay=5):
     attempt = 0
     while attempt < retries:
         try:
-            response = openai.ChatCompletion.create(
-                model=model,
+            response = _chat_completion_create(
                 messages=messages,
+                model=model,
                 max_tokens=max_tokens,
                 n=n,
                 stop=stop,
-                temperature=temperature
+                temperature=temperature,
             )
-            # 返回响应结果
-            return response.choices[0].message['content'].strip()
-        except (APIError, RateLimitError, ServiceUnavailableError, Timeout) as e:
+            return _response_text(response)
+        except Exception as e:
             print(f"Request failed: {e}. Retrying in {delay} seconds...")
             attempt += 1
             time.sleep(delay)
@@ -60,7 +90,9 @@ def ask_completion4filtercond(attribute, filter_cond, text):
         """}
     ]
     
-    return ask_completion_with_retry(messages, model="gpt-4o", max_tokens=1000)
+    return ask_completion_with_retry(
+        messages, model=os.getenv("QUEST_LLM_MODEL", "gpt-4o"), max_tokens=1000
+    )
 def ask_completion4filtercondANDattr(attributes, filter_conds, text):
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
@@ -86,7 +118,9 @@ def ask_completion4filtercondANDattr(attributes, filter_conds, text):
         """}
     ]
     
-    return ask_completion_with_retry(messages, model="gpt-4o", max_tokens=1000)
+    return ask_completion_with_retry(
+        messages, model=os.getenv("QUEST_LLM_MODEL", "gpt-4o"), max_tokens=1000
+    )
 
 def ask_completion4attribute(attribute, text):
     messages = [
@@ -105,7 +139,9 @@ def ask_completion4attribute(attribute, text):
         """}
     ]
     
-    return ask_completion_with_retry(messages, model="gpt-4o", max_tokens=1000)
+    return ask_completion_with_retry(
+        messages, model=os.getenv("QUEST_LLM_MODEL", "gpt-4o"), max_tokens=1000
+    )
 
 def ask_completion4Multattribute(attributes, text):
     messages = [
@@ -125,7 +161,9 @@ def ask_completion4Multattribute(attributes, text):
         """}
     ]
     
-    return ask_completion_with_retry(messages, model="gpt-4o", max_tokens=1000)
+    return ask_completion_with_retry(
+        messages, model=os.getenv("QUEST_LLM_MODEL", "gpt-4o"), max_tokens=1000
+    )
 
 
 def ask_completion4tabledata(data1, data2):
@@ -144,4 +182,6 @@ def ask_completion4tabledata(data1, data2):
         """}
     ]
     
-    return ask_completion_with_retry(messages, model="gpt-4o", max_tokens=1000)
+    return ask_completion_with_retry(
+        messages, model=os.getenv("QUEST_LLM_MODEL", "gpt-4o"), max_tokens=1000
+    )

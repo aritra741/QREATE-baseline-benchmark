@@ -1025,7 +1025,11 @@ def main() -> int:
     args = parser.parse_args()
 
     if not args.openai_key:
-        raise RuntimeError("Missing API key. Pass --openai-key or set OPENAI_API_KEY.")
+        # Ollama/OpenAI-compatible local endpoints often do not require a real key.
+        if os.getenv("QUEST_OPENAI_BASE_URL", "").strip():
+            args.openai_key = os.getenv("QUEST_OPENAI_DUMMY_KEY", "ollama")
+        else:
+            raise RuntimeError("Missing API key. Pass --openai-key or set OPENAI_API_KEY.")
 
     ensure_precise_tokenizer_ready()
     _patch_pandas_append()
@@ -1064,6 +1068,11 @@ def main() -> int:
     logger.info("Results base dir: %s", RESULTS_BASE_DIR)
     logger.info("Doc sample size: %s", args.doc_sample_size)
     logger.info("Segment sample size: %s", args.segment_sample_size)
+    logger.info("LLM model: %s", os.getenv("QUEST_LLM_MODEL", "gpt-4o"))
+    logger.info(
+        "OpenAI-compatible base URL: %s",
+        os.getenv("QUEST_OPENAI_BASE_URL", "<default OpenAI endpoint>"),
+    )
     logger.info("Identity columns (for eval): %s", IDENTITY_COLUMNS)
 
     try:
