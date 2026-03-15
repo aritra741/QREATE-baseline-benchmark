@@ -27,8 +27,9 @@ def init_chatgpt(api_key):
 
 def _chat_completion_create(messages, max_tokens=500, n=1, stop=None, temperature=0):
     model_name = os.getenv("QUEST_LLM_MODEL", "gpt-4o")
-    if hasattr(openai, "ChatCompletion"):
-        return openai.ChatCompletion.create(
+    # Prefer OpenAI SDK v1 interface; fall back to legacy v0.
+    if hasattr(openai, "chat") and hasattr(openai.chat, "completions"):
+        return openai.chat.completions.create(
             model=model_name,
             messages=messages,
             max_tokens=max_tokens,
@@ -36,7 +37,7 @@ def _chat_completion_create(messages, max_tokens=500, n=1, stop=None, temperatur
             stop=stop,
             temperature=temperature,
         )
-    return openai.chat.completions.create(
+    return openai.ChatCompletion.create(
         model=model_name,
         messages=messages,
         max_tokens=max_tokens,

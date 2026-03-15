@@ -28,8 +28,9 @@ def split_text(text, max_chunk_size=15900):
     return chunks
 
 def _chat_completion_create(messages, model, max_tokens=1000, n=1, stop=None, temperature=0):
-    if hasattr(openai, "ChatCompletion"):
-        return openai.ChatCompletion.create(
+    # Prefer OpenAI SDK v1 interface; fall back to legacy v0.
+    if hasattr(openai, "chat") and hasattr(openai.chat, "completions"):
+        return openai.chat.completions.create(
             model=model,
             messages=messages,
             max_tokens=max_tokens,
@@ -37,7 +38,7 @@ def _chat_completion_create(messages, model, max_tokens=1000, n=1, stop=None, te
             stop=stop,
             temperature=temperature,
         )
-    return openai.chat.completions.create(
+    return openai.ChatCompletion.create(
         model=model,
         messages=messages,
         max_tokens=max_tokens,
