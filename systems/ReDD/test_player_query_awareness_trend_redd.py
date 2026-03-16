@@ -68,7 +68,6 @@ from evaluation.gt_runner import GtRunner as _GtRunner
 from evaluation.row_matcher import RowMatcher as _RowMatcher
 from evaluation.sql_parser import SqlParser as _SqlParser
 from test_player_query_awareness_trend import (  # type: ignore
-    parse_trend_queries,
     evaluate_with_official_framework,
     _infer_identity_col_for_query,
 )
@@ -80,7 +79,16 @@ from core.utils.constants import PATH_TEMPLATES as REDD_PATHS
 
 DATASET = "Player"
 DATASET_QUERY = "Player"
-TREND_SQL_FILE = QUERY_DIR / DATASET_QUERY / "query_aware_trend_queries.sql"
+
+# Query folders from different categories (load all *.sql in each)
+QUERY_CATEGORY_DIRS: Dict[str, Path] = {
+    "S": QUERY_DIR / DATASET_QUERY / "Select",
+    "F": QUERY_DIR / DATASET_QUERY / "Filter",
+    "A": QUERY_DIR / DATASET_QUERY / "Agg",
+    "J": QUERY_DIR / DATASET_QUERY / "Join",
+    "M": QUERY_DIR / DATASET_QUERY / "Mixed",
+}
+
 GROUND_TRUTH_DIR = PROJECT_ROOT / "Data" / "Player"
 ATTRIBUTES_FILE = PROJECT_ROOT / "Query" / DATASET_QUERY / "Player_attributes.json"
 SOURCE_DATA_PLAYER_DIR = PROJECT_ROOT / "source_data" / "Player"
@@ -156,17 +164,183 @@ IDENTITY_COLUMNS: Dict[str, str] = {
 }
 
 NL_QUERY_SPECS: Dict[str, str] = {
-    "Q1": "List each player's name, nationality, and age with their team name and team location.",
-    "Q2": "For players older than 25, list player name, position, team name, and team founded year.",
-    "Q3": "For players with draft pick at least 0, list player name, draft pick, college, and team name.",
-    "Q4": "List team name and location with the matched city name and state name.",
-    "Q5": "List player name with team name, city name, and city state by linking player to team to city.",
-    "Q6": "For players younger than 35, list player name, position, city name, and city population via player to team to city.",
-    "Q7": "For players with draft pick greater than 0, list player name, college, team name, and city GDP via player to team to city.",
-    "Q8": "For cities with area greater than 100, list player name, player birth date, team name, and city area via player to team to city.",
-    "Q9": "Starting from city and traversing city to team to player, list city name, state, team name, and player name for players younger than 40.",
-    "Q10": "Starting from city and traversing city to team to player, list city name, state, team name, player name, and player college for players older than 20.",
+    # Select queries
+    "S1": "Select draft pick from all players.",
+    "S2": "Select team, name, mvp awards, and birth date from all players.",
+    "S3": "Select olympic gold medals from all players.",
+    "S4": "Select NBA championships, name, and FIBA world cup from all players.",
+    "S5": "Select olympic gold medals and birth date from all players.",
+    "S6": "Select FIBA world cup, draft pick, mvp awards, and name from all players.",
+
+    # Filter queries (grouped by condition count)
+    "F1": "Select MVP awards, draft pick, and FIBA world cup for players with FIBA world cup <= 0.",
+    "F2": "Select position, nationality, and age for players with age < 91.",
+    "F3": "Select MVP awards, draft pick, and name for players with at least 1 MVP award.",
+    "F4": "Select age, birth date, and team for players on the Phoenix Suns.",
+    "F5": "Select FIBA world cup, NBA championships, and birth date for players with 0 NBA championships.",
+    "F6": "Select college, birth date, and draft year for players born on 1973/11/25.",
+    "F7": "Select FIBA world cup, draft year, and name for players with draft year <= 2017 and FIBA world cup > 0.",
+    "F8": "Select position, NBA championships, and FIBA world cup for players with FIBA world cup > 0 and non-French nationality.",
+    "F9": "Select draft pick, NBA championships, and team for players with draft pick between 5 and 17.",
+    "F10": "Select age, birth date, and college for players older than 91 with MVP awards > 0.",
+    "F11": "Select FIBA world cup, birth date, and NBA championships for players not born on 1959/6/10 or 1964/2/15.",
+    "F12": "Select olympic gold medals, position, and birth date for players with olympic gold medals < 1 and draft pick = 17.",
+    "F13": "Select team, nationality, and MVP awards for players with MVP awards < 1 or born on 1995/10/2.",
+    "F14": "Select draft year, age, and FIBA world cup for players with draft year <= 2017 or olympic gold medals >= 0.",
+    "F15": "Select FIBA world cup, nationality, and college for players from UCLA or not born on 1971/12/3.",
+    "F16": "Select olympic gold medals, FIBA world cup, and birth date for players born on 1994/4/25 or not in Frontcourt position.",
+    "F17": "Select college, draft pick, and FIBA world cup for players with draft pick <= 5 or from Wake Forest University.",
+    "F18": "Select olympic gold medals, NBA championships, and age for players with olympic gold medals > 1 or not in Frontcourt position.",
+    "F19": "Select FIBA world cup, draft pick, and draft year for players with draft pick >= 17, age >= 47, and MVP awards <= 0.",
+    "F20": "Select name, NBA championships, and college for players with NBA championships > 2, olympic gold medals >= 0 and != 1, and name != 'Toby Kimball'.",
+    "F21": "Select age, olympic gold medals, and MVP awards for players with olympic gold medals >= 1, college = 'UCLA', draft year > 2012, and FIBA world cup >= 0.",
+    "F22": "Select draft pick, olympic gold medals, and position for players with olympic gold medals > 0, birth date != '1943/12/23', NBA championships < 2, and born on 1992/12/17.",
+    "F23": "Select FIBA world cup, birth date, and draft pick for players with birth date != '1950/1/29', college = 'University of Florida', age != 47, and named Walter Berry.",
+    "F24": "Select nationality, draft pick, and team for non-Croatian players with olympic gold medals < 0 and != 0 and MVP awards = 0.",
+    "F25": "Select draft pick, age, and position for players with age <= 66 or born on 1997/8/7 or college != 'Duke University' or NBA championships = 2.",
+    "F26": "Select olympic gold medals, college, and age for players with age > 47 or name != 'Fran Curran' or name = 'Dewayne White Jr.' or FIBA world cup = 1.",
+    "F27": "Select NBA championships, name, and olympic gold medals for players with NBA championships = 0 or team != 'Miami Heat' or nationality = ' ' or team != 'Philadelphia 76ers'.",
+    "F28": "Select draft year, age, and nationality for players with age <= 91 or team = 'Guaros de Lara' or MVP awards = 0 or olympic gold medals > 1.",
+    "F29": "Select olympic gold medals, age, and team for players with age >= 47 or team != 'San Antonio Spurs' or NBA championships <= 0.",
+    "F30": "Select position, nationality, and olympic gold medals for players not in Frontcourt position or draft pick > 5 or olympic gold medals < 0 or MVP awards = 0.",
+    "F31": "Select team, nationality, and FIBA world cup for American-Venezuelan Frontcourt players or players with draft pick >= 17.",
+    "F32": "Select nationality, olympic gold medals, and FIBA world cup for players with FIBA world cup != 0 and named Erick Strickland or not born on 1973/11/25 with NBA championships >= 0.",
+    "F33": "Select college, age, and position for players with age < 47 and olympic gold medals <= 1 or on Milwaukee Hawks from University of Florida.",
+    "F34": "Select nationality, name, and draft year for players with draft year != 2017 and non-Croatian nationality or named Donta Hall with NBA championships != 0.",
+    "F35": "Select birth date, olympic gold medals, and MVP awards for players born on 1973/11/25 with olympic gold medals != 0 or on Miami Heat with Canadian nationality.",
+    "F36": "Select nationality, birth date, and age for Dutch players not born on 1994/6/6 or players with NBA championships <= 2 and age > 91.",
+
+    # Aggregation queries
+    "A1": "Find minimum olympic gold medals by position for all players.",
+    "A2": "Count all players grouped by nationality.",
+    "A3": "Calculate average age by position for all players.",
+    "A4": "Find maximum age by nationality for all players.",
+    "A5": "Count all players grouped by nationality.",
+    "A6": "Find minimum age by nationality for all players.",
+    "A7": "Calculate average age by nationality for all players.",
+    "A8": "Find minimum age by nationality for all owners.",
+    "A9": "Count all owners grouped by nationality.",
+    "A10": "Calculate average age by nationality for all owners.",
+
+    # Join queries
+    "J1": "List team championship, location, player age, and olympic gold medals by joining player and team.",
+    "J2": "List team founded year, team name, player name, and player team by joining player and team.",
+    "J3": "List team ownership, player name, MVP awards, and team championship by joining player and team.",
+    "J4": "List player nationality, age, team location, and team name by joining player and team.",
+    "J5": "List city name, population, team founded year, and location by joining team and city.",
+    "J6": "List city state, area, team founded year, and championship by joining team and city.",
+    "J7": "List owner NBA team, team location, founded year, and owner name by joining team and owner.",
+    "J8": "List owner name, own year, team name, and founded year by joining team and owner.",
+    "J9": "List owner NBA team, team name, founded year, and owner nationality by joining team and owner.",
+    "J10": "List owner NBA team, team location, owner name, and team name by joining team and owner.",
+    "J11": "List player FIBA world cup, name, team name, ownership, and city state by joining player, team, and city.",
+    "J12": "List city state, player name, college, team founded year, and team name by joining player, team, and city.",
+    "J13": "List city population, player position, city name, team founded year, and player name by joining player, team, and city.",
+    "J14": "List team championship, city GDP, player team, team name, and city name by joining player, team, and city.",
+    "J15": "List owner name, team founded year, location, owner age, and player nationality by joining player, team, and owner.",
+    "J16": "List player college, owner name, position, team championship, and FIBA world cup by joining player, team, and owner.",
+    "J17": "List team championship, owner age, player team, draft year, and player age by joining player, team, and owner.",
+    "J18": "List player nationality, olympic gold medals, team location, owner NBA team, and draft pick by joining player, team, and owner.",
+    "J19": "List city state, player olympic gold medals, team name, player college, and owner own year by joining all four tables.",
+    "J20": "List team championship, owner nationality, city population, player nationality, and player college by joining all four tables.",
+
+    # Mixed queries (filter + join)
+    "M1": "Select player draft pick, team name, FIBA world cup, and location for players with FIBA world cup > 0.",
+    "M2": "Select owner age, team founded year, player name, and city name for players born after 1994/2/2 in cities with population > 715522.",
+    "M3": "Select player team, location, college, and team name for players with NBA championships > 0 or non-American-Venezuelan nationality.",
+    "M4": "Select owner age, city area, team location, and player team for players from University of Kentucky in cities with population != 383997 and teams founded >= 1949.",
+    "M5": "Select player MVP awards, team championship, draft year, and team name for teams not in Los Angeles, founded before 1967, or players born on 1971/10/2.",
+    "M6": "Select owner NBA team, ownership, player FIBA world cup, and city name for non-American owners with olympic gold medals <= 1 or Backcourt players with draft year != 1990.",
+    "M7": "Select team location, player NBA championships, team name, and player team for players with NBA championships < 0.",
+    "M8": "Select player nationality, owner nationality, city population, and team championship for non-Backcourt players with draft year >= 1990.",
+    "M9": "Select player name, position, team championship, and founded year for players named Kobe Bean Bryant or with FIBA world cup >= 0.",
+    "M10": "Select player position, owner age, team championship, and city name for players with olympic gold medals = 0, not in Backcourt, and owner Clay Bennett.",
+    "M11": "Select team location, player draft year, ownership, and name for teams founded <= 1989, UCLA players, or players with FIBA world cup >= 1.",
+    "M12": "Select team name, city area, player position, and owner own year for players with MVP awards <= 1 in Miami or draft year < 2017 on Detroit Pistons.",
+
+    # Mixed queries (filter + agg)
+    "MA1": "Find minimum owner age by nationality for owners not on Cleveland Cavaliers.",
+    "MA2": "Calculate sum of owner age by nationality for owners age != 76 and not on Houston Rockets.",
+    "MA3": "Count players by nationality for players named Antonius Cleveland or with NBA championships >= 0.",
+    "MA4": "Find maximum MVP awards by nationality for players with draft year > 2012 or NBA championships > 0.",
+    "MA5": "Calculate average FIBA world cup by nationality for New York Knicks players or players with NBA championships <= 0 or FIBA world cup < 0.",
+    "MA6": "Find minimum FIBA world cup by position for players with FIBA world cup < 0 and MVP awards <= 0, or age < 91 and FIBA world cup >= 0.",
+
+    # Mixed queries (agg + join)
+    "MJ1": "Find minimum player olympic gold medals by position when joining player and team.",
+    "MJ2": "Find minimum player olympic gold medals by position when joining all four tables.",
 }
+
+
+def parse_category_queries(sql_file: Path, prefix: str, start_idx: int) -> List[Tuple[str, str]]:
+    """Parse queries from one SQL file and assign sequential IDs for a category."""
+    lines = sql_file.read_text().splitlines()
+    queries: List[Tuple[str, str]] = []
+    next_idx = start_idx
+
+    i = 0
+    while i < len(lines):
+        m = re.match(r"\s*--\s*Query\s+\d+\s*:?.*", lines[i], flags=re.IGNORECASE)
+        if not m:
+            i += 1
+            continue
+
+        query_id = f"{prefix}{next_idx}"
+        next_idx += 1
+        i += 1
+
+        sql_lines: List[str] = []
+        while i < len(lines):
+            raw = lines[i]
+            s = raw.strip()
+            if re.match(r"\s*--\s*Query\s+\d+", raw, flags=re.IGNORECASE):
+                break
+            if s.startswith("--") or s == "":
+                i += 1
+                continue
+            sql_lines.append(raw)
+            if ";" in raw:
+                i += 1
+                break
+            i += 1
+
+        sql = "\n".join(sql_lines).strip().rstrip(";").strip()
+        if sql:
+            queries.append((query_id, sql))
+
+    return queries
+
+
+def parse_all_category_queries() -> List[Tuple[str, str]]:
+    """Parse all queries from Agg/Filter/Join/Mixed/Select folders."""
+    all_queries: List[Tuple[str, str]] = []
+    for prefix in ["S", "F", "A", "J", "M"]:
+        category_dir = QUERY_CATEGORY_DIRS[prefix]
+        if not category_dir.exists():
+            logger.warning(f"Missing query category directory: {category_dir}")
+            continue
+
+        sql_files = sorted(category_dir.glob("*.sql"))
+        if not sql_files:
+            logger.warning(f"No SQL files found in category directory: {category_dir}")
+            continue
+
+        next_idx = 1
+        for sql_file in sql_files:
+            parsed = parse_category_queries(sql_file, prefix, next_idx)
+            if parsed:
+                all_queries.extend(parsed)
+                next_idx += len(parsed)
+
+    logger.info(f"Loaded {len(all_queries)} queries from category files:")
+    prefix_counts: Dict[str, int] = {}
+    for qid, _ in all_queries:
+        prefix = ''.join(c for c in qid if c.isalpha())
+        prefix_counts[prefix] = prefix_counts.get(prefix, 0) + 1
+    for prefix, count in sorted(prefix_counts.items()):
+        logger.info(f"  {prefix}*: {count} queries")
+
+    return all_queries
 
 
 @dataclass
@@ -186,6 +360,7 @@ class TrendQueryMetrics:
     gt_result_count: int
     matched_rows: int
     is_agg: bool
+    relative_error: Optional[float] = None
     error: Optional[str] = None
 
 
@@ -379,6 +554,89 @@ def _execute_sql_on_query_db(db_path: Path, sql: str) -> List[Dict[str, Any]]:
         cols = [d[0] for d in cur.description]
         rows = [dict(zip(cols, row)) for row in cur.fetchall()]
     return rows
+
+
+def _safe_float(v: Any) -> Optional[float]:
+    if v is None:
+        return None
+    s = str(v).strip().replace(",", "")
+    if not s:
+        return None
+    try:
+        out = float(s)
+    except Exception:
+        return None
+    if not math.isfinite(out):
+        return None
+    return out
+
+
+def _cell_relative_error(pred: Any, gold: Any) -> float:
+    p = _safe_float(pred)
+    g = _safe_float(gold)
+    if p is None and g is None:
+        return 0.0
+    if p is None or g is None:
+        return 1.0
+    if abs(g) < 1e-12:
+        return 0.0 if abs(p) < 1e-12 else abs(p - g)
+    return abs(p - g) / abs(g)
+
+
+def _row_key(row: Dict[str, Any], key_cols: List[str]) -> Tuple[str, ...]:
+    out: List[str] = []
+    for c in key_cols:
+        out.append("" if c not in row or row[c] is None else str(row[c]).strip().lower())
+    return tuple(out)
+
+
+def _compute_aggregation_relative_error(
+    sql: str,
+    pred_rows: List[Dict[str, Any]],
+    *,
+    gt_runner: _GtRunner,
+    sql_parser: _SqlParser,
+) -> Optional[float]:
+    parsed = sql_parser.parse(sql)
+    if parsed.query_type != "aggregation":
+        return None
+
+    agg_cols = [item.output_name for item in parsed.select_items if item.is_agg]
+    if not agg_cols:
+        return None
+
+    gold_df = gt_runner.run(sql)
+    gold_rows = gold_df.to_dict(orient="records")
+    if not gold_rows and not pred_rows:
+        return 0.0
+
+    group_cols = [item.output_name for item in parsed.select_items if not item.is_agg]
+    errors: List[float] = []
+
+    if not group_cols:
+        gold_row = gold_rows[0] if gold_rows else {}
+        pred_row = pred_rows[0] if pred_rows else {}
+        for c in agg_cols:
+            errors.append(_cell_relative_error(pred_row.get(c), gold_row.get(c)))
+        # Penalize unexpected/missing extra aggregate rows.
+        extra_rows = abs(len(pred_rows) - len(gold_rows))
+        if extra_rows > 0:
+            errors.extend([1.0] * (extra_rows * max(1, len(agg_cols))))
+        return float(sum(errors) / len(errors)) if errors else None
+
+    pred_map = {_row_key(r, group_cols): r for r in pred_rows}
+    gold_map = {_row_key(r, group_cols): r for r in gold_rows}
+    all_keys = set(pred_map.keys()) | set(gold_map.keys())
+    for key in all_keys:
+        prow = pred_map.get(key)
+        grow = gold_map.get(key)
+        for c in agg_cols:
+            if prow is None or grow is None:
+                errors.append(1.0)
+            else:
+                errors.append(_cell_relative_error(prow.get(c), grow.get(c)))
+
+    return float(sum(errors) / len(errors)) if errors else None
 
 
 def _save_rows_csv(rows: List[Dict[str, Any]], out_csv: Path) -> None:
@@ -826,23 +1084,40 @@ def execute_query_via_redd(
 
 
 def _parse_query_range(range_str: Optional[str]) -> Optional[Set[str]]:
-    """Parse --query-range into a set of query IDs, e.g. 'Q6-Q8' -> {'Q6','Q7','Q8'}. None = all."""
+    """Parse --query-range into a set of query IDs.
+
+    Supports formats:
+    - 'S1' -> single select query
+    - 'F1-F5' -> filter queries 1 through 5
+    - 'A1-A3' -> aggregation queries 1 through 3
+    - 'J1-J10' -> join queries 1 through 10
+    - 'M1-M6' -> mixed queries 1 through 6
+
+    None = all queries.
+    """
     if not range_str or not range_str.strip():
         return None
     s = range_str.strip()
-    # Single query: Q6
-    m = re.match(r"^Q(\d+)$", s, re.IGNORECASE)
+
+    # Single query: e.g., S1, F5, A3, J10, MA2
+    m = re.match(r"^([A-Z]+)(\d+)$", s, re.IGNORECASE)
     if m:
-        return {f"Q{m.group(1)}"}
-    # Range: Q6-Q8
-    m = re.match(r"^Q(\d+)\s*-\s*Q(\d+)$", s, re.IGNORECASE)
+        prefix = m.group(1).upper()
+        num = int(m.group(2))
+        return {f"{prefix}{num}"}
+
+    # Range: e.g., F1-F5, A1-A3, J5-J10, MA1-MA3
+    m = re.match(r"^([A-Z]+)(\d+)\s*-\s*\1(\d+)$", s, re.IGNORECASE)
     if m:
-        lo, hi = int(m.group(1)), int(m.group(2))
+        prefix = m.group(1).upper()
+        lo, hi = int(m.group(2)), int(m.group(3))
         if lo > hi:
-            raise ValueError(f"Invalid query range: start Q{lo} > end Q{hi}")
-        return {f"Q{i}" for i in range(lo, hi + 1)}
+            raise ValueError(f"Invalid query range: start {prefix}{lo} > end {prefix}{hi}")
+        return {f"{prefix}{i}" for i in range(lo, hi + 1)}
+
     raise ValueError(
-        f"Invalid --query-range '{range_str}'. Use e.g. Q6-Q8 or Q3."
+        f"Invalid --query-range '{range_str}'. "
+        f"Use e.g. F1-F5, A1-A3, J1-J10, M1-M12, or S1."
     )
 
 
@@ -871,9 +1146,9 @@ def run_trend_queries_redd(
     eval_sql_parser = _SqlParser()
     eval_row_matcher = _RowMatcher(settings=eval_settings)
 
-    trend_queries = parse_trend_queries(TREND_SQL_FILE)
+    trend_queries = parse_all_category_queries()
     if not trend_queries:
-        raise RuntimeError(f"No trend queries found in {TREND_SQL_FILE}")
+        raise RuntimeError(f"No queries found in category directories: {list(QUERY_CATEGORY_DIRS.values())}")
 
     allowed_ids = _parse_query_range(query_range)
     if allowed_ids is not None:
@@ -921,6 +1196,7 @@ def run_trend_queries_redd(
                 gt_result_count=0,
                 matched_rows=0,
                 is_agg=False,
+                relative_error=None,
                 error=str(exc),
             ))
             continue
@@ -949,6 +1225,15 @@ def run_trend_queries_redd(
             phase2_db=query_eval_db,
             output_dir=query_results_dir / query_id,
         )
+        if eval_out.get("is_agg", False):
+            eval_out["relative_error"] = _compute_aggregation_relative_error(
+                query_text,
+                rows,
+                gt_runner=eval_gt_runner,
+                sql_parser=eval_sql_parser,
+            )
+        else:
+            eval_out["relative_error"] = None
 
         item = TrendQueryMetrics(
             query_id=query_id,
@@ -966,6 +1251,7 @@ def run_trend_queries_redd(
             gt_result_count=eval_out.get("gt_result_count", 0),
             matched_rows=eval_out.get("matched_rows", 0),
             is_agg=eval_out.get("is_agg", False),
+            relative_error=eval_out.get("relative_error"),
         )
         metrics.append(item)
 
@@ -984,12 +1270,21 @@ def run_trend_queries_redd(
         acc_data["macro_f1"] = eval_out.get("macro_f1", 0.0)
         acc_data["macro_precision"] = eval_out.get("macro_precision", 0.0)
         acc_data["macro_recall"] = eval_out.get("macro_recall", 0.0)
+        acc_data["is_agg"] = eval_out.get("is_agg", False)
+        acc_data["relative_error"] = eval_out.get("relative_error")
         acc_path.write_text(json.dumps(acc_data, indent=2))
 
-        logger.info(
-            f"{query_id}: rows={item.result_rows} latency={item.latency_s:.3f}s "
-            f"tokens={item.total_tokens} F1={item.macro_f1:.3f}"
-        )
+        if item.is_agg:
+            rel_err_str = "n/a" if item.relative_error is None else f"{item.relative_error:.4f}"
+            logger.info(
+                f"{query_id}: rows={item.result_rows} latency={item.latency_s:.3f}s "
+                f"tokens={item.total_tokens} RelErr={rel_err_str}"
+            )
+        else:
+            logger.info(
+                f"{query_id}: rows={item.result_rows} latency={item.latency_s:.3f}s "
+                f"tokens={item.total_tokens} F1={item.macro_f1:.3f}"
+            )
 
     return metrics
 
@@ -1008,6 +1303,19 @@ def save_metrics(metrics: List[TrendQueryMetrics], run_dir: Path) -> None:
     logger.info(f"Saved metrics CSV:  {out_csv}")
 
 
+def _query_sort_key(query_id: str) -> Tuple[str, int]:
+    """Sort key for query IDs like S1, F10, A2, MA3, MJ1."""
+    # Extract prefix (letters) and number
+    m = re.match(r"^([A-Z]+)(\d+)$", query_id, re.IGNORECASE)
+    if m:
+        prefix = m.group(1).upper()
+        num = int(m.group(2))
+        # Define category order: S, F, A, J, M, MA, MJ
+        order = {"S": 0, "F": 1, "A": 2, "J": 3, "M": 4, "MA": 5, "MJ": 6}
+        return (order.get(prefix, 99), num)
+    return (99, 0)
+
+
 def plot_metrics(metrics: List[TrendQueryMetrics], run_dir: Path) -> None:
     if not MATPLOTLIB_AVAILABLE:
         logger.warning("matplotlib not available - skipping plot generation")
@@ -1016,18 +1324,21 @@ def plot_metrics(metrics: List[TrendQueryMetrics], run_dir: Path) -> None:
         logger.warning("No metrics to plot.")
         return
 
-    ordered = sorted(metrics, key=lambda m: int(m.query_id[1:]))
+    ordered = sorted(metrics, key=lambda m: _query_sort_key(m.query_id))
     x_labels = [m.query_id for m in ordered]
     x = list(range(len(x_labels)))
 
     result_rows = [m.result_rows for m in ordered]
     token_cost = [m.total_tokens for m in ordered]
     latency = [m.latency_s for m in ordered]
-    f1 = [m.macro_f1 for m in ordered]
+    score = [
+        (m.relative_error if (m.is_agg and m.relative_error is not None) else m.macro_f1)
+        for m in ordered
+    ]
 
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
     fig.suptitle(
-        "Player Query-Awareness Trend with ReDD (Q1..Q10)",
+        "Player Query-Awareness Trend with ReDD (Category Queries)",
         fontsize=16,
         fontweight="bold",
     )
@@ -1053,12 +1364,11 @@ def plot_metrics(metrics: List[TrendQueryMetrics], run_dir: Path) -> None:
     axes[1, 0].set_ylabel("seconds")
     axes[1, 0].grid(alpha=0.3)
 
-    axes[1, 1].plot(x, f1, marker="o", color="#27ae60")
-    axes[1, 1].set_title("Macro F1 (official evaluator)")
+    axes[1, 1].plot(x, score, marker="o", color="#27ae60")
+    axes[1, 1].set_title("Macro F1 (non-agg) / Relative Error (agg)")
     axes[1, 1].set_xticks(x)
     axes[1, 1].set_xticklabels(x_labels)
-    axes[1, 1].set_ylim(0.0, 1.0)
-    axes[1, 1].set_ylabel("F1")
+    axes[1, 1].set_ylabel("F1 or RelErr")
     axes[1, 1].grid(alpha=0.3)
 
     plt.tight_layout()
@@ -1070,7 +1380,9 @@ def plot_metrics(metrics: List[TrendQueryMetrics], run_dir: Path) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Run ReDD Player trend benchmark")
+    parser = argparse.ArgumentParser(
+        description="Run ReDD Player benchmark with queries from Select, Filter, Agg, Join, and Mixed categories"
+    )
     parser.add_argument("--model", type=str, default=DEFAULT_MODEL)
     parser.add_argument("--variant", type=str, default=DEFAULT_VARIANT, choices=sorted(SUPPORTED_VARIANTS))
     parser.add_argument(
@@ -1078,7 +1390,11 @@ def main() -> int:
         type=str,
         default=None,
         metavar="RANGE",
-        help="Run only queries in range, e.g. Q6-Q8 or Q3. Default: all queries.",
+        help=(
+            "Run only queries in range. Format: PREFIXstart-PREFIXend or PREFIXnum. "
+            "Prefixes: S=Select, F=Filter, A=Agg, J=Join, M=Mixed. "
+            "Examples: F1-F10, A1-A5, J1-J20, M1-M12, S1. Default: all queries."
+        ),
     )
     args = parser.parse_args()
 
@@ -1098,9 +1414,15 @@ def main() -> int:
     run_dir.mkdir(parents=True, exist_ok=True)
     setup_logging(run_dir / "query_awareness_trend_redd.log")
 
-    logger.info("Starting Player query-awareness trend test (ReDD)...")
+    logger.info("Starting Player category queries test (ReDD)...")
     logger.info(f"Run directory: {run_dir}")
-    logger.info(f"Trend query source: {TREND_SQL_FILE}")
+    logger.info("Query categories loaded:")
+    for prefix, path in QUERY_CATEGORY_DIRS.items():
+        if not path.exists():
+            logger.info(f"  ✗ {prefix}: {path} (missing)")
+            continue
+        files = sorted(path.glob("*.sql"))
+        logger.info(f"  ✓ {prefix}: {path} ({len(files)} sql files)")
     logger.info(f"Source data dir: {SOURCE_DATA_PLAYER_DIR}")
     logger.info(f"Model: {args.model} (canonical={REQUIRED_MODEL_ID})")
     logger.info(f"Variant: {args.variant}")
@@ -1115,7 +1437,11 @@ def main() -> int:
         "model_canonical": REQUIRED_MODEL_ID,
         "backend": "huggingface_local",
         "tdp_path": "official_redd_datapop_local",
-        "query_file": str(TREND_SQL_FILE),
+        "query_category_dirs": {k: str(v) for k, v in QUERY_CATEGORY_DIRS.items()},
+        "query_files_by_category": {
+            k: [str(p) for p in sorted(v.glob("*.sql"))] if v.exists() else []
+            for k, v in QUERY_CATEGORY_DIRS.items()
+        },
         "ground_truth_dir": str(GROUND_TRUTH_DIR),
         "gt_isolation": True,
         "scape_alpha": SCAPE_ALPHA,
@@ -1126,6 +1452,7 @@ def main() -> int:
             "SCAPE/SCAPE-Hyb correction uses systems/ReDD/core/correction modules.",
             "Ground truth is NEVER provided to the extraction model.",
             "GT is used ONLY for (a) SCAPE classifier labels and (b) evaluation metrics.",
+            "Queries loaded from Select, Filter, Agg, Join, and Mixed categories.",
         ],
     }
     (run_dir / "method_metadata.json").write_text(json.dumps(metadata, indent=2))
@@ -1140,13 +1467,18 @@ def main() -> int:
         plot_metrics(metrics, run_dir)
 
         success_count = sum(1 for m in metrics if m.success)
-        avg_f1 = sum(m.macro_f1 for m in metrics) / len(metrics) if metrics else 0.0
+        non_agg = [m for m in metrics if not m.is_agg]
+        agg = [m for m in metrics if m.is_agg and m.relative_error is not None]
+        avg_f1 = sum(m.macro_f1 for m in non_agg) / len(non_agg) if non_agg else 0.0
+        avg_rel_err = sum(m.relative_error for m in agg if m.relative_error is not None) / len(agg) if agg else 0.0
         if not math.isfinite(avg_f1):
             avg_f1 = 0.0
+        if not math.isfinite(avg_rel_err):
+            avg_rel_err = 0.0
         logger.info("=" * 80)
         logger.info(
             f"Completed: {success_count}/{len(metrics)} queries succeeded, "
-            f"avg macro F1={avg_f1:.3f}"
+            f"avg macro F1 (non-agg)={avg_f1:.3f}, avg rel err (agg)={avg_rel_err:.4f}"
         )
         token_summary = GLOBAL_COUNTER.summary_str()
         logger.info(token_summary)
