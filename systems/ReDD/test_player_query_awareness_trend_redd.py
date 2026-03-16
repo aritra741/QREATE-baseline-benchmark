@@ -470,7 +470,40 @@ def _extract_table_columns_from_sql(sql: str, tables: List[str]) -> Dict[str, Se
         if t in out and c in KNOWN_TABLE_COLUMNS.get(t, set()):
             out[t].add(c)
 
-    # 2) Also include unqualified columns that appear in WHERE
+    # 2) Include unqualified columns in SELECT list (e.g., SELECT area FROM city).
+    select_match = re.search(
+        r"\bSELECT\b(.*?)\bFROM\b",
+        sql_clean,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    if select_match:
+        select_expr = select_match.group(1)
+        # Remove simple SQL function calls while preserving identifiers inside
+        # args via token matching below; wildcard contributes no explicit column.
+        tokens = re.findall(r"\b([A-Za-z_][A-Za-z0-9_]*)\b", select_expr)
+        stopwords = {
+            "distinct",
+            "as",
+            "count",
+            "sum",
+            "avg",
+            "min",
+            "max",
+            "case",
+            "when",
+            "then",
+            "else",
+            "end",
+        }
+        for tok in tokens:
+            c = tok.lower()
+            if c in stopwords:
+                continue
+            owners = [t for t in tables if c in KNOWN_TABLE_COLUMNS.get(t, set())]
+            if len(owners) == 1:
+                out[owners[0]].add(c)
+
+    # 3) Also include unqualified columns that appear in WHERE
     #    (only when they map uniquely to one table among the query tables).
     where_match = re.search(
         r"\bWHERE\b(.*?)(?:\bGROUP\s+BY\b|\bORDER\s+BY\b|\bLIMIT\b|;|$)",
@@ -492,7 +525,7 @@ def _extract_table_columns_from_sql(sql: str, tables: List[str]) -> Dict[str, Se
             if len(owners) == 1:
                 out[owners[0]].add(c)
 
-    # 3) Ensure minimum identity column for each table
+    # 4) Ensure minimum identity column for each table
     for t in tables:
         if not out[t]:
             if t == "player":
