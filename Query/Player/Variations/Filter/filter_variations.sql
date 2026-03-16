@@ -36,7 +36,7 @@ SELECT city_name, area, gdp, state_name FROM city WHERE area > 500;
 
 -- Inspiration: Query 2 (filter_queries_city.sql)
 -- Variation: Filter by population range and area.
-SELECT city_name, population, area FROM city WHERE population > '500000' AND area != 1314.80;
+SELECT city_name, population, area FROM city WHERE population > 500000 AND area != 1314.80;
 
 -- Inspiration: Query 13 (filter_queries_player.sql)
 -- Variation: OR condition for MVP winners or specific birth year.

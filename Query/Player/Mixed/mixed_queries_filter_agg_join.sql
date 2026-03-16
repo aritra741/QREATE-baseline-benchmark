@@ -2,13 +2,13 @@
 SELECT player.nationality, MIN(player.olympic_gold_medals) AS min_player_olympic_gold_medals FROM player JOIN team ON player.team = team.team_name WHERE player.fiba_world_cup > 0 GROUP BY player.nationality;
 
 -- Query 2: filter2_agg1_join2 (player, team, city, owner)
-SELECT owner.nationality, MAX(player.mvp_awards) AS max_player_mvp_awards FROM player JOIN team ON player.team = team.team_name JOIN owner ON team.ownership = owner.name JOIN city ON team.location = city.city_name WHERE city.population < '1603797' OR team.location != 'Minneapolis' GROUP BY owner.nationality;
+SELECT owner.nationality, MAX(player.mvp_awards) AS max_player_mvp_awards FROM player JOIN team ON player.team = team.team_name JOIN owner ON team.ownership = owner.name JOIN city ON team.location = city.city_name WHERE city.population < 1603797 OR team.location != 'Minneapolis' GROUP BY owner.nationality;
 
 -- Query 3: filter3_agg1_join1 (player, team)
 SELECT player.nationality, AVG(player.mvp_awards) AS avg_player_mvp_awards FROM player JOIN team ON player.team = team.team_name WHERE player.age <= 66 GROUP BY player.nationality;
 
 -- Query 4: filter4_agg1_join2 (player, team, city, owner)
-SELECT owner.nationality, MAX(player.nba_championships) AS max_player_nba_championships FROM player JOIN team ON player.team = team.team_name JOIN owner ON team.ownership = owner.name JOIN city ON team.location = city.city_name WHERE city.population = '1603797' AND city.gdp != '518.5' AND player.birth_date = '1990/8/17' GROUP BY owner.nationality;
+SELECT owner.nationality, MAX(player.nba_championships) AS max_player_nba_championships FROM player JOIN team ON player.team = team.team_name JOIN owner ON team.ownership = owner.name JOIN city ON team.location = city.city_name WHERE city.population = 1603797 AND city.gdp != 518.5 AND player.birth_date = '1990/8/17' GROUP BY owner.nationality;
 
 -- Query 5: filter5_agg1_join1 (player, team)
 SELECT player.position, AVG(player.fiba_world_cup) AS avg_player_fiba_world_cup FROM player JOIN team ON player.team = team.team_name WHERE player.nba_championships < 0 OR player.age >= 47 OR player.nationality = 'Greek-American  ' GROUP BY player.position;

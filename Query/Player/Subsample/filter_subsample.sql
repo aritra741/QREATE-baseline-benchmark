@@ -29,7 +29,7 @@ SELECT founded_year, ownership, team_name FROM team WHERE ownership != 'Harris B
 SELECT age, nba_team, name FROM owner WHERE nba_team != 'Golden State Warriors' AND age >= 66;
 
 -- Query 11: 2 (city)
-SELECT state_name, area, city_name FROM city WHERE area != 1314.80 AND population = '887642';
+SELECT state_name, area, city_name FROM city WHERE area != 1314.80 AND population = 887642;
 
 -- Query 12: 3 (player)
 SELECT team, nationality, mvp_awards FROM player WHERE mvp_awards < 1 OR birth_date = '1995/10/2';
@@ -41,7 +41,7 @@ SELECT founded_year, team_name, location FROM team WHERE founded_year < 1949 OR 
 SELECT age, name, nationality FROM owner WHERE age < 63 OR nationality != 'Israeli-American';
 
 -- Query 15: 3 (city)
-SELECT state_name, city_name, population FROM city WHERE state_name != 'Indiana' OR population != '372,624';
+SELECT state_name, city_name, population FROM city WHERE state_name != 'Indiana' OR population != 372624;
 
 -- Query 16: 6 (player)
 SELECT nationality, birth_date, age FROM player WHERE (birth_date != '1994/6/6' AND nationality = 'Dutch  ') OR (nba_championships <= 2 AND age > 91);

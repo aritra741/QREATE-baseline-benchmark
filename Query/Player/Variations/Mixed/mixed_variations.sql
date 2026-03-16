@@ -20,7 +20,7 @@ SELECT player.name, team.team_name, player.nba_championships, team.championship 
 
 -- Inspiration: Query 2 (mixed_queries_filter_join.sql)
 -- Variation: Filter by player position and city population threshold.
-SELECT player.name, player.position, city.city_name, city.population FROM player JOIN team ON player.team = team.team_name JOIN owner ON team.ownership = owner.name JOIN city ON team.location = city.city_name WHERE player.position = 'Backcourt' AND city.population > '1000000';
+SELECT player.name, player.position, city.city_name, city.population FROM player JOIN team ON player.team = team.team_name JOIN owner ON team.ownership = owner.name JOIN city ON team.location = city.city_name WHERE player.position = 'Backcourt' AND city.population > 1000000;
 
 -- Inspiration: Query 6 (mixed_queries_filter_agg.sql)
 -- Variation: MIN mvp_awards by position with different composite filter.
