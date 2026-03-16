@@ -128,31 +128,39 @@ NUMERIC_FIELDS = {
 KNOWN_TABLE_COLUMNS: Dict[str, Set[str]] = {
     "player": {
         "name",
+        "birth_date",
         "nationality",
         "age",
+        "team",
         "position",
         "draft_pick",
+        "draft_year",
         "college",
-        "birth_date",
-        "team",
+        "nba_championships",
+        "mvp_awards",
+        "olympic_gold_medals",
+        "fiba_world_cup",
     },
     "team": {
         "team_name",
-        "location",
         "founded_year",
+        "location",
+        "ownership",
+        "championship",
     },
     "city": {
         "city_name",
         "state_name",
         "population",
-        "gdp",
         "area",
+        "gdp",
     },
     "owner": {
         "name",
-        "team",
-        "ownership_percentage",
-        "asset_net_worth",
+        "age",
+        "nationality",
+        "nba_team",
+        "own_year",
     },
 }
 
@@ -1246,25 +1254,45 @@ def run_trend_queries_redd(
         query_eval_db = query_eval_db_dir / f"{query_id}.db"
         _write_query_tables_sqlite(query_table_map, query_eval_db)
 
-        eval_out = evaluate_with_official_framework(
-            query_text,
-            rows,
-            gt_runner=eval_gt_runner,
-            sql_parser=eval_sql_parser,
-            row_matcher=eval_row_matcher,
-            settings=eval_settings,
-            attributes=eval_attributes,
-            identity_col=_infer_identity_col_for_query(query_text, identity_columns),
-            phase2_db=query_eval_db,
-            output_dir=query_results_dir / query_id,
-        )
-        if eval_out.get("is_agg", False):
-            eval_out["relative_error"] = _compute_aggregation_relative_error(
+        try:
+            eval_out = evaluate_with_official_framework(
                 query_text,
                 rows,
                 gt_runner=eval_gt_runner,
                 sql_parser=eval_sql_parser,
+                row_matcher=eval_row_matcher,
+                settings=eval_settings,
+                attributes=eval_attributes,
+                identity_col=_infer_identity_col_for_query(query_text, identity_columns),
+                phase2_db=query_eval_db,
+                output_dir=query_results_dir / query_id,
             )
+        except Exception as eval_exc:
+            logger.warning(
+                f"{query_id}: evaluate_with_official_framework failed ({eval_exc}); "
+                f"recording zero metrics for this query."
+            )
+            eval_out = {
+                "macro_f1": 0.0,
+                "macro_precision": 0.0,
+                "macro_recall": 0.0,
+                "is_agg": False,
+                "gt_result_count": 0,
+                "matched_rows": 0,
+                "relative_error": None,
+            }
+
+        if eval_out.get("is_agg", False):
+            try:
+                eval_out["relative_error"] = _compute_aggregation_relative_error(
+                    query_text,
+                    rows,
+                    gt_runner=eval_gt_runner,
+                    sql_parser=eval_sql_parser,
+                )
+            except Exception as re_exc:
+                logger.warning(f"{query_id}: relative error computation failed ({re_exc}); skipping.")
+                eval_out["relative_error"] = None
         else:
             eval_out["relative_error"] = None
 
