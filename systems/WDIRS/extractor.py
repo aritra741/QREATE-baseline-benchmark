@@ -279,7 +279,10 @@ class ConstrainedExtractor:
     # ========================================================================
 
     # Semantic types that map to numeric SQL columns.
-    _NUMERIC_SEM_TYPES: Set[str] = {"MONEY", "QUANTITY"}
+    _NUMERIC_SEM_TYPES: Set[str] = {"MONEY", "QUANTITY", "QUANTITY_COUNT"}
+    # Subset of numeric types that represent discrete cumulative counts
+    # (e.g., tallies of events, items, or achievements) rather than continuous measures.
+    _COUNT_SEM_TYPES: Set[str] = {"QUANTITY_COUNT"}
 
     def _build_schema_desc(
         self,
@@ -307,8 +310,9 @@ class ConstrainedExtractor:
         lines = []
         for col_name in keys_to_use:
             sem_type = schema.get(col_name, "OTHER")
+            is_count = sem_type in self._COUNT_SEM_TYPES
             is_numeric = sem_type in self._NUMERIC_SEM_TYPES
-            type_tag = "numeric" if is_numeric else "text"
+            type_tag = "numeric, count" if is_count else ("numeric" if is_numeric else "text")
 
             hints = (normalization_hints or {}).get(col_name, [])
             if hints:
@@ -318,7 +322,12 @@ class ConstrainedExtractor:
                 # Framing: examples for output format, not an exhaustive list.
                 # "United States" → "USA", "one thousand" → 1000.
                 # Still extract every value found, even those not in the examples.
-                if is_numeric:
+                if is_count:
+                    hint_note = (
+                        f" — total count examples: [{quoted}]. "
+                        f"Extract the TOTAL cumulative count of discrete items/events."
+                    )
+                elif is_numeric:
                     hint_note = (
                         f" — output/unit examples: [{quoted}]. "
                         f"If the source presents the same quantity in multiple units "
@@ -335,7 +344,13 @@ class ConstrainedExtractor:
                         f"Extract ALL values you find, not only the ones in this list."
                     )
             else:
-                hint_note = ""
+                if is_count:
+                    hint_note = (
+                        " — extract the TOTAL cumulative count of discrete items/events "
+                        "as a number."
+                    )
+                else:
+                    hint_note = ""
 
             lines.append(f"  - {col_name} ({type_tag}){hint_note}")
         return "\n".join(lines)
@@ -414,19 +429,31 @@ class ConstrainedExtractor:
         has_numeric = any(
             schema.get(c, "OTHER") in self._NUMERIC_SEM_TYPES for c in keys_to_use
         )
+        has_count = any(
+            schema.get(c, "OTHER") in self._COUNT_SEM_TYPES for c in keys_to_use
+        )
         numeric_rule = (
             "- Numeric columns: always return a JSON number (e.g. 1000000), "
             "NEVER a text string (e.g. NOT \"one million\", NOT \"£1.2m\").\n"
             if has_numeric else ""
         )
+        count_rule = (
+            "- Count columns (marked 'numeric, count'): extract the TOTAL cumulative "
+            "count of discrete items or events. If the text lists individual items "
+            "(e.g., 'products A, B, and C'), count them and return the total (3). "
+            "Return the count, not individual identifiers or timestamps.\n"
+            if has_count else ""
+        )
         scalar_rule = (
             "- Every field must be a single scalar value (string/number/null), "
             "never a list/array and never a nested object. "
-            "If multiple candidates are mentioned for a field, pick ONE value using "
-            "temporal/salience cues: prefer explicitly current or present-tense facts "
-            "(e.g. 'currently', 'is with', 'as of now'). If no current cue "
+            "For text and regular numeric fields: if multiple candidates are mentioned, "
+            "prefer explicitly current or present-tense facts "
+            "(e.g. 'currently', 'is with', 'as of now'); if no current cue "
             "exists, choose the most recent value mentioned; if still ambiguous, choose "
-            "the first clear canonical value.\n"
+            "the first clear canonical value. "
+            "For 'numeric, count' fields: see the count rule above — return "
+            "the total count, not individual identifiers.\n"
         )
 
         return (
@@ -442,6 +469,7 @@ class ConstrainedExtractor:
             f"- Use null (never empty string) for any absent value.\n"
             f"- For any value that requires time-relative calculation, use reference year 2025.\n"
             f"{numeric_rule}"
+            f"{count_rule}"
             f"{scalar_rule}"
             f"- If a passage discusses multiple entities, return one record per entity.\n\n"
             f"Format example: {example_keys}\n\n"
@@ -1060,10 +1088,19 @@ class ConstrainedExtractor:
         has_numeric = any(
             schema.get(c, "OTHER") in self._NUMERIC_SEM_TYPES for c in keys_to_use
         )
+        has_count = any(
+            schema.get(c, "OTHER") in self._COUNT_SEM_TYPES for c in keys_to_use
+        )
         numeric_rule = (
             "- Numeric columns: return a JSON number (e.g. 1000000), "
             "NEVER a text string.\n"
             if has_numeric else ""
+        )
+        count_rule = (
+            "- Count columns (marked 'numeric, count'): extract the TOTAL cumulative "
+            "count of discrete items/events. If the text lists individual items, "
+            "count them and return the total. Return the count, not identifiers.\n"
+            if has_count else ""
         )
         entity_section = self._build_entity_section(entity_col)
 
@@ -1084,6 +1121,7 @@ class ConstrainedExtractor:
             f"- If no matching data is found, return [].\n"
             f"- For any value that requires time-relative calculation, use reference year 2025.\n"
             f"{numeric_rule}"
+            f"{count_rule}"
             f"\nText:\n{chunk}\n\n"
             f"{format_contract}\n"
             f"Output (JSON only):"
@@ -1496,19 +1534,30 @@ class ConstrainedExtractor:
         has_numeric = any(
             schema.get(c, "OTHER") in self._NUMERIC_SEM_TYPES for c in keys_to_use
         )
+        has_count = any(
+            schema.get(c, "OTHER") in self._COUNT_SEM_TYPES for c in keys_to_use
+        )
         numeric_rule = (
             "- Numeric columns: return a JSON number (e.g. 1000000), "
             "NEVER a text string (e.g. NOT \"one million\").\n"
             if has_numeric else ""
         )
+        count_rule = (
+            "- Count columns (marked 'numeric, count'): extract the TOTAL cumulative "
+            "count of discrete items/events. If the text lists individual items, "
+            "count them and return the total. Return the count, not identifiers.\n"
+            if has_count else ""
+        )
         scalar_rule = (
             "- Every field must be a single scalar value (string/number/null), "
             "never a list/array and never a nested object. "
-            "If multiple candidates are mentioned for a field, pick ONE value using "
-            "temporal/salience cues: prefer explicitly current or present-tense facts "
-            "(e.g. 'currently', 'is with', 'plays for', 'as of now'). If no current cue "
+            "For text and regular numeric fields: if multiple candidates are mentioned, "
+            "prefer explicitly current or present-tense facts "
+            "(e.g. 'currently', 'is with', 'plays for', 'as of now'); if no current cue "
             "exists, choose the most recent value mentioned; if still ambiguous, choose "
-            "the first clear canonical value.\n"
+            "the first clear canonical value. "
+            "For 'numeric, count' fields: see the count rule above — return "
+            "the total count, not individual identifiers.\n"
         )
         entity_section = self._build_entity_section(entity_col)
 
@@ -1528,6 +1577,7 @@ class ConstrainedExtractor:
             f"- If no matching data is found, return an empty array [].\n"
             f"- For any value that requires time-relative calculation, use reference year 2025.\n"
             f"{numeric_rule}"
+            f"{count_rule}"
             f"{scalar_rule}"
             f"\nText:\n{chunk}\n\n"
             f"{format_contract}\n"

@@ -87,6 +87,7 @@ def semantic_to_sql_type(semantic_type: str) -> str:
         "CODE": "TEXT",
         "MONEY": "REAL",
         "QUANTITY": "REAL",
+        "QUANTITY_COUNT": "REAL",
         "PRODUCT": "TEXT",
         "EVENT": "TEXT",
         "OTHER": "TEXT"
@@ -706,8 +707,9 @@ class WDIRSRunner:
             "GPE":      "GPE",
             "PRODUCT":  "PRODUCT",
             "EVENT":    "EVENT",
-            "MONEY":    "MONEY",
-            "QUANTITY": "QUANTITY",
+            "MONEY":          "MONEY",
+            "QUANTITY":       "QUANTITY",
+            "QUANTITY_COUNT": "QUANTITY",  # treat like QUANTITY for NER grouping
             # DATE, CODE, OTHER have no reliable spaCy analogue; use all types.
         }
         return _MAP.get(semantic_type) if semantic_type else None

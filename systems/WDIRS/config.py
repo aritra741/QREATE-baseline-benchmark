@@ -105,10 +105,11 @@ SEMANTIC_TYPES = [
     "PERSON",
     "ORG",
     "DATE",
-    "GPE",  # Geo-Political Entity
+    "GPE",           # Geo-Political Entity
     "CODE",
     "MONEY",
     "QUANTITY",
+    "QUANTITY_COUNT", # Cumulative count of discrete events (e.g. number of awards won)
     "PRODUCT",
     "EVENT",
     "OTHER"
