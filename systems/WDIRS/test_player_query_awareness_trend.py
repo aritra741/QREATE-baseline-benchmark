@@ -21,7 +21,7 @@ import math
 import unicodedata
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 try:
     import matplotlib
@@ -74,6 +74,16 @@ DATASET_QUERY = "Player"
 TREND_SQL_FILE = QUERY_DIR / DATASET_QUERY / "query_aware_trend_queries.sql"
 GROUND_TRUTH_DIR = PROJECT_ROOT / "Data" / "Player"
 ATTRIBUTES_FILE = PROJECT_ROOT / "Query" / DATASET_QUERY / "Player_attributes.json"
+REDD_TREND_FILE = PROJECT_ROOT / "systems" / "ReDD" / "test_player_query_awareness_trend_redd.py"
+
+# ReDD category query folders (used to mirror ReDD's uncommented query set)
+QUERY_CATEGORY_DIRS: Dict[str, Path] = {
+    "S": QUERY_DIR / DATASET_QUERY / "Select",
+    "F": QUERY_DIR / DATASET_QUERY / "Filter",
+    "A": QUERY_DIR / DATASET_QUERY / "Agg",
+    "J": QUERY_DIR / DATASET_QUERY / "Join",
+    "M": QUERY_DIR / DATASET_QUERY / "Mixed",
+}
 
 RESULTS_BASE_DIR = RESULTS_DIR / "player_query_awareness_trend"
 SNAPSHOT_DIR = RESULTS_BASE_DIR / "snapshot"
@@ -545,6 +555,93 @@ def parse_trend_queries(sql_file: Path) -> List[Tuple[str, str]]:
     return queries
 
 
+def parse_category_queries(sql_file: Path, prefix: str, start_idx: int) -> List[Tuple[str, str]]:
+    """
+    Parse SQL statements from a category SQL file and assign IDs like S1, F7, etc.
+    """
+    if not sql_file.exists():
+        return []
+    text = sql_file.read_text()
+    lines = text.splitlines()
+    i = 0
+    idx = start_idx
+    queries: List[Tuple[str, str]] = []
+
+    while i < len(lines):
+        raw = lines[i]
+        s = raw.strip()
+        if s.startswith("--") or s == "":
+            i += 1
+            continue
+
+        query_id = f"{prefix}{idx}"
+        idx += 1
+        sql_lines: List[str] = []
+        while i < len(lines):
+            raw = lines[i]
+            s = raw.strip()
+            if not sql_lines and (s.startswith("--") or s == ""):
+                i += 1
+                continue
+            sql_lines.append(raw)
+            if ";" in raw:
+                i += 1
+                break
+            i += 1
+
+        sql = "\n".join(sql_lines).strip().rstrip(";").strip()
+        if sql:
+            queries.append((query_id, sql))
+
+    return queries
+
+
+def parse_all_category_queries() -> List[Tuple[str, str]]:
+    """Parse all SQL queries from Select/Filter/Agg/Join/Mixed folders."""
+    all_queries: List[Tuple[str, str]] = []
+    for prefix in ["S", "F", "A", "J", "M"]:
+        category_dir = QUERY_CATEGORY_DIRS[prefix]
+        if not category_dir.exists():
+            logger.warning(f"Missing query category directory: {category_dir}")
+            continue
+        sql_files = sorted(category_dir.glob("*.sql"))
+        if not sql_files:
+            logger.warning(f"No SQL files found in category directory: {category_dir}")
+            continue
+
+        next_idx = 1
+        for sql_file in sql_files:
+            parsed = parse_category_queries(sql_file, prefix, next_idx)
+            if parsed:
+                all_queries.extend(parsed)
+                next_idx += len(parsed)
+
+    logger.info(f"Loaded {len(all_queries)} category queries from query folders")
+    return all_queries
+
+
+def load_redd_enabled_query_ids() -> Set[str]:
+    """
+    Load active (uncommented) query IDs from ReDD trend script NL_QUERY_SPECS.
+    """
+    if not REDD_TREND_FILE.exists():
+        raise FileNotFoundError(f"ReDD trend file not found: {REDD_TREND_FILE}")
+
+    # Import directly from file path to avoid package/module name conflicts.
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("redd_trend_module", REDD_TREND_FILE)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"Could not load module spec from: {REDD_TREND_FILE}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    nl_specs = getattr(module, "NL_QUERY_SPECS", None)
+    if not isinstance(nl_specs, dict) or not nl_specs:
+        raise RuntimeError("NL_QUERY_SPECS missing or empty in ReDD trend file")
+    return set(str(k) for k in nl_specs.keys())
+
+
 def _save_rows_csv(rows: List[Dict[str, Any]], out_csv: Path) -> None:
     out_csv.parent.mkdir(parents=True, exist_ok=True)
     if not rows:
@@ -753,9 +850,22 @@ def run_trend_queries(
         eval_sql_parser = _SqlParser()
         eval_row_matcher = _RowMatcher(settings=eval_settings)
 
-        trend_queries = parse_trend_queries(TREND_SQL_FILE)
+        # Keep WDIRS query set aligned with ReDD by running only IDs that are
+        # currently uncommented/active in ReDD's NL_QUERY_SPECS.
+        redd_enabled_ids = load_redd_enabled_query_ids()
+        trend_queries = [
+            (qid, sql) for qid, sql in parse_all_category_queries()
+            if qid in redd_enabled_ids
+        ]
         if not trend_queries:
-            raise RuntimeError(f"No trend queries found in {TREND_SQL_FILE}")
+            raise RuntimeError(
+                "No runnable queries after applying ReDD uncommented filter. "
+                f"ReDD file: {REDD_TREND_FILE}"
+            )
+        logger.info(
+            "Running %d WDIRS queries aligned to uncommented ReDD IDs",
+            len(trend_queries),
+        )
 
         metrics: List[TrendQueryMetrics] = []
         for query_id, query_text in trend_queries:
