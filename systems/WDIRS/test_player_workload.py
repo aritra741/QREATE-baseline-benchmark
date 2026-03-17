@@ -58,31 +58,61 @@ def setup_logging(log_file: Path) -> None:
 
 
 def load_sql_queries(sql_file: Path) -> List[Tuple[str, str]]:
-    """Parse SQL file and return list of (query_id, query_text) tuples."""
-    queries = []
+    """Parse SQL file and return list of (query_id, query_text) tuples.
+
+    Supports both:
+      1) Annotated format with '-- Query N:' headers.
+      2) Plain SQL format with semicolon-terminated statements.
+    """
+    queries: List[Tuple[str, str]] = []
     try:
-        with open(sql_file, "r") as f:
-            content = f.read()
+        content = sql_file.read_text()
     except Exception as e:
         logger.warning(f"Could not read {sql_file}: {e}")
         return queries
+
+    # Format 1: '-- Query N:' style.
     parts = re.split(r"-- (?:Inspiration: )?Query ", content)
-    for part in parts[1:]:
-        lines = part.strip().split("\n")
-        if not lines:
+    if len(parts) > 1:
+        for part in parts[1:]:
+            lines = part.strip().split("\n")
+            if not lines:
+                continue
+            query_id_line = lines[0]
+            try:
+                query_id = query_id_line.split(":")[0].split("(")[0].strip()
+            except Exception:
+                continue
+            if not query_id or not query_id[0].isdigit():
+                continue
+            sql_text = "\n".join(lines[1:]).strip()
+            while sql_text and sql_text.split("\n")[0].strip().startswith("--"):
+                sql_text = "\n".join(sql_text.split("\n")[1:]).strip()
+            if sql_text:
+                queries.append((f"Query_{query_id}", sql_text.rstrip(";").strip()))
+        return queries
+
+    # Format 2: plain SQL statements separated by ';'
+    statement_lines: List[str] = []
+    q_idx = 1
+    for raw in content.splitlines():
+        s = raw.strip()
+        if not s or s.startswith("--"):
             continue
-        query_id_line = lines[0]
-        try:
-            query_id = query_id_line.split(":")[0].split("(")[0].strip()
-        except Exception:
-            continue
-        if not query_id or not query_id[0].isdigit():
-            continue
-        sql_text = "\n".join(lines[1:]).strip()
-        while sql_text and sql_text.split("\n")[0].strip().startswith("--"):
-            sql_text = "\n".join(sql_text.split("\n")[1:]).strip()
+        statement_lines.append(raw)
+        if ";" in raw:
+            sql_text = "\n".join(statement_lines).strip().rstrip(";").strip()
+            if sql_text:
+                queries.append((f"Query_{q_idx}", sql_text))
+                q_idx += 1
+            statement_lines = []
+
+    # Trailing statement without semicolon.
+    if statement_lines:
+        sql_text = "\n".join(statement_lines).strip()
         if sql_text:
-            queries.append((f"Query_{query_id}", sql_text))
+            queries.append((f"Query_{q_idx}", sql_text))
+
     return queries
 
 
