@@ -206,6 +206,7 @@ def run_preprocessing_phase(
                 postgres_uri=postgres_uri,
                 use_projection_fastpath=projection_fastpath,
                 projection_fastpath_col_batch_size=projection_fastpath_col_batch_size,
+                cache_dir=cache_dir,  # keep attribute index co-located with extractions
             )
 
             logger.info("\nRunning unified preprocessing pipeline...")
