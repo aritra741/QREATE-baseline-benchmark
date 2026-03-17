@@ -31,7 +31,7 @@ from token_counter import GLOBAL_COUNTER, ensure_precise_tokenizer_ready
 sys.path.insert(0, str(Path(__file__).parent))
 
 from wdirs_runner import WDIRSRunner
-from config import QUERY_DIR, SOURCE_DATA_DIR, RESULTS_DIR
+from config import QUERY_DIR, SOURCE_DATA_DIR, RESULTS_DIR, PROJECT_ROOT
 
 logger = logging.getLogger(__name__)
 
@@ -87,27 +87,18 @@ def load_sql_queries(sql_file: Path) -> List[Tuple[str, str]]:
 
 
 def collect_training_workload(dataset_query: str) -> List[str]:
-    """Collect all training queries from Agg, Filter, Select, Mixed, Join."""
+    """Collect training queries from Data/Player/player_queries.sql."""
     all_queries = []
-    base = QUERY_DIR / dataset_query
-    agg_file = base / "Agg" / "agg_queries.sql"
-    if agg_file.exists():
-        logger.info(f"Loading training queries from {agg_file}")
-        for _qid, qtext in load_sql_queries(agg_file):
+    base = PROJECT_ROOT / "Data" / dataset_query
+    queries_file = base / f"{dataset_query.lower()}_queries.sql"
+    
+    if queries_file.exists():
+        logger.info(f"Loading training queries from {queries_file}")
+        for _qid, qtext in load_sql_queries(queries_file):
             all_queries.append(qtext)
-    for query_type in ["Filter", "Select", "Mixed"]:
-        type_dir = base / query_type
-        if not type_dir.exists():
-            continue
-        for sql_file in sorted(type_dir.glob("*.sql")):
-            logger.info(f"Loading training queries from {sql_file}")
-            for _qid, qtext in load_sql_queries(sql_file):
-                all_queries.append(qtext)
-    join_file = base / "Join" / "join_queries.sql"
-    if join_file.exists():
-        logger.info(f"Loading training queries from {join_file}")
-        for _qid, qtext in load_sql_queries(join_file):
-            all_queries.append(qtext)
+    else:
+        logger.error(f"Training queries file not found: {queries_file}")
+        
     logger.info(f"Total training queries collected: {len(all_queries)}")
     return all_queries
 
