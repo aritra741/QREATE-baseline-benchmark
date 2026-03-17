@@ -719,7 +719,9 @@ class DeltaEngine:
 
                 chunk_ids_for_row = []
                 for prov in provenance_list:
-                    chunk_ids_for_row.extend(_json.loads(prov.chunk_ids))
+                    raw = prov.chunk_ids
+                    ids = raw if isinstance(raw, list) else _json.loads(raw)
+                    chunk_ids_for_row.extend(ids)
                 
                 # Get document ID(s) for this row from Cell_Provenance
                 # Each entity belongs to exactly one document, so we should only extract from that document's chunks
@@ -950,28 +952,47 @@ class DeltaEngine:
         chunks: List[TextChunk],
         predicates: List[str]
     ) -> List[TextChunk]:
-        """Filter chunks that might contain data for missing predicates."""
+        """
+        Filter chunks that are likely to contain data satisfying the given predicates.
+
+        For equality predicates (col = 'value') we search for the *value* literal in
+        the chunk text.  Searching for the column name is useless because column names
+        are schema artefacts that almost never appear verbatim in the source documents,
+        and including them makes the filter a no-op (everything passes).
+
+        For range predicates (col > X) there is no specific value to search for, so we
+        skip keyword filtering for those.  The attribute-index narrowing performed
+        before this call already targets chunks that mention the relevant column.
+
+        If no equality predicates exist the whole chunk list is returned unchanged and
+        the upstream attribute-index result determines scope.
+        """
         if not predicates:
             return chunks
-        
-        # Extract keywords from predicates
-        keywords = set()
+
+        equality_values: set[str] = set()
+        equality_operators = {"="}
+        range_operators = {">", "<", ">=", "<=", "!="}
+
         for predicate in predicates:
-            # Simple keyword extraction
             parts = predicate.split()
-            for part in parts:
-                if part not in ['=', '>', '<', '>=', '<=', '!=', 'AND', 'OR']:
-                    keywords.add(part.lower().strip("'\""))
-        
-        # Filter chunks
+            if len(parts) >= 3:
+                operator = parts[1]
+                value = " ".join(parts[2:]).strip("'\"").lower()
+                if operator in equality_operators and value:
+                    equality_values.add(value)
+                # Range predicates: no useful value keyword — skip.
+
+        # If there are no equality values to search for, do not filter.
+        if not equality_values:
+            return chunks
+
         filtered = []
         for chunk in chunks:
             content_lower = chunk.content.lower()
-            
-            # Check if any keyword is in chunk
-            if any(keyword in content_lower for keyword in keywords):
+            if any(val in content_lower for val in equality_values):
                 filtered.append(chunk)
-        
+
         return filtered
     
     # ========================================================================

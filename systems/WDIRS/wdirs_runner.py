@@ -2215,7 +2215,9 @@ class WDIRSRunner:
                             row_ids=[row["row_id"]]
                         )
                         for p in provenance_list:
-                            all_chunk_ids.extend(json.loads(p.chunk_ids))
+                            raw = p.chunk_ids
+                            ids = raw if isinstance(raw, list) else json.loads(raw)
+                            all_chunk_ids.extend(ids)
                     except Exception as e:
                         logger.warning(f"[Consolidation] Could not read provenance for {row['row_id']}: {e}")
 
