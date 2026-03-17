@@ -1123,7 +1123,7 @@ def execute_query_via_redd(
 ) -> Tuple[List[Dict[str, Any]], Dict[str, pd.DataFrame], str]:
     tables = _extract_tables_from_sql(query_sql)
     table_cols = _extract_table_columns_from_sql(query_sql, tables)
-    nl_query = NL_QUERY_SPECS.get(query_id, f"Answer query {query_id} over Player dataset.")
+    nl_query = NL_QUERY_SPECS[query_id]  # Caller guarantees this exists
 
     # --- Prepare dataset (NO ground truth) ---
     query_data_root, dataset_name, did_meta = _prepare_redd_query_dataset(
@@ -1279,6 +1279,11 @@ def run_trend_queries_redd(
     metrics: List[TrendQueryMetrics] = []
 
     for query_id, query_text in trend_queries:
+        # Skip queries without a defined NL_QUERY_SPEC (commented out in dict)
+        if query_id not in NL_QUERY_SPECS:
+            logger.info(f"Skipping {query_id}: no NL_QUERY_SPECS entry defined (commented out)")
+            continue
+
         logger.info("=" * 70)
         logger.info(f"Executing {query_id} with ReDD trend harness")
         t0 = time.time()
