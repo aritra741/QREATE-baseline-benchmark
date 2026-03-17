@@ -629,12 +629,21 @@ def load_redd_enabled_query_ids() -> Set[str]:
 
     # Import directly from file path to avoid package/module name conflicts.
     import importlib.util
+    import sys
 
-    spec = importlib.util.spec_from_file_location("redd_trend_module", REDD_TREND_FILE)
-    if spec is None or spec.loader is None:
-        raise RuntimeError(f"Could not load module spec from: {REDD_TREND_FILE}")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    module_name = "_wdirs_redd_trend_module"
+    # If already loaded, reuse to avoid re-executing dataclass decorators
+    if module_name in sys.modules:
+        module = sys.modules[module_name]
+    else:
+        spec = importlib.util.spec_from_file_location(module_name, REDD_TREND_FILE)
+        if spec is None or spec.loader is None:
+            raise RuntimeError(f"Could not load module spec from: {REDD_TREND_FILE}")
+        module = importlib.util.module_from_spec(spec)
+        # CRITICAL: Register in sys.modules BEFORE exec_module so that
+        # @dataclass decorators can resolve ForwardRef/Optional types correctly.
+        sys.modules[module_name] = module
+        spec.loader.exec_module(module)
 
     nl_specs = getattr(module, "NL_QUERY_SPECS", None)
     if not isinstance(nl_specs, dict) or not nl_specs:
