@@ -2376,14 +2376,19 @@ class WDIRSRunner:
             f"Lattice restored: {len(self.lattice_planner.lattice.tables)} tables"
         )
         
-        # Load attribute index for smart column delta
+        # Load attribute index for smart column delta.
+        # The index is a required output of preprocessing — if it is missing the
+        # run directory is incomplete and continuing would silently fall back to
+        # exhaustive extraction (potentially 9 000+ chunks per query).
         from attribute_index import AttributeIndex
         attr_index_file = self.cache_dir / "attribute_index.json"
-        if attr_index_file.exists():
-            self.extractor.attribute_index = AttributeIndex.load(attr_index_file)
-            logger.info(f"Loaded attribute index from {attr_index_file}")
-        else:
-            logger.warning("Attribute index not found - column delta will be slower")
+        if not attr_index_file.exists():
+            raise RuntimeError(
+                f"Attribute index not found at {attr_index_file}. "
+                f"Re-run preprocessing to rebuild it before executing queries."
+            )
+        self.extractor.attribute_index = AttributeIndex.load(attr_index_file)
+        logger.info(f"Loaded attribute index from {attr_index_file}")
 
     # ========================================================================
 

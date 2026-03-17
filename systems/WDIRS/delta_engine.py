@@ -485,20 +485,25 @@ class DeltaEngine:
                 logger.warning(f"No candidate chunks for {table_name}")
                 continue
 
-            chunks = self.data_layer.get_chunks_by_ids(candidate_chunk_ids)
+            # Only load chunks after the attribute index narrows the candidate set,
+            # to avoid materialising the full 9000+ candidate list in memory when
+            # the index or keyword filter can safely reduce scope first.
             schema = self.lattice_planner.get_table_schema(table_name)
-            
-            # SMART ROW DELTA: Use attribute index to target chunks mentioning predicate columns
-            # Extract column names from this table's predicates only
+
+            # SMART ROW DELTA: Use attribute index to target chunks mentioning predicate columns.
+            # Extract ONLY the column name (first token before the operator) from each predicate.
+            # The old approach used re.findall on the whole predicate string, which also captured
+            # value tokens like "New" and "York" from "city = New York" and fed them as column
+            # lookups into the attribute index — producing false hits and an inflated union.
             import re
-            sql_keywords = {'and', 'or', 'not', 'in', 'like', 'between', 'is', 'null', 'true', 'false'}
             predicate_columns = set()
             for pred in table_preds:
-                tokens = re.findall(r'[a-zA-Z_][a-zA-Z0-9_]*', pred)
-                predicate_columns.update(
-                    t for t in tokens if t.lower() not in sql_keywords
-                )
-            
+                # Predicate format: "<column> <operator> <value>" (from _extract_predicates).
+                # Only the first whitespace-delimited token is the column name.
+                col = pred.split()[0].strip() if pred.split() else ""
+                if col and re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', col):
+                    predicate_columns.add(col)
+
             if predicate_columns:
                 # Query attribute index for chunks that mention these columns
                 targeted_chunk_ids = set()
@@ -507,28 +512,51 @@ class DeltaEngine:
                         table_name, col, top_k=500
                     )
                     targeted_chunk_ids.update(col_chunks)
-                
+
                 if targeted_chunk_ids:
-                    candidate_set = set(c.chunk_id for c in chunks)
-                    filtered_chunk_ids = targeted_chunk_ids & candidate_set
+                    candidate_set = set(candidate_chunk_ids)
+                    filtered_chunk_ids = list(targeted_chunk_ids & candidate_set)
                     if filtered_chunk_ids:
-                        chunks = [c for c in chunks if c.chunk_id in filtered_chunk_ids]
+                        chunks = self.data_layer.get_chunks_by_ids(filtered_chunk_ids)
                         logger.info(
                             f"[Smart Row Delta] {table_name}: narrowed from "
                             f"{len(candidate_chunk_ids)} to {len(chunks)} chunks "
                             f"using attribute index for {predicate_columns}"
                         )
                     else:
-                        logger.info(
-                            f"[Smart Row Delta] {table_name}: attribute index had no "
-                            f"overlap with candidate chunks for {predicate_columns}, "
-                            f"using keyword filter fallback"
+                        # The index returned chunk IDs, but none of them exist in the
+                        # current candidate set.  This means the index was built from a
+                        # different preprocessing run than the working DB — a stale index
+                        # cannot be trusted.  Failing loudly is better than silently
+                        # extracting thousands of unrelated chunks.
+                        raise RuntimeError(
+                            f"[Smart Row Delta] Attribute index for '{table_name}' is stale: "
+                            f"it returned {len(targeted_chunk_ids)} chunk ID(s) for columns "
+                            f"{predicate_columns} but none exist in the current candidate set "
+                            f"({len(candidate_chunk_ids)} candidates). "
+                            f"Re-run preprocessing to rebuild the index against the current DB."
                         )
                 else:
-                    logger.info(
-                        f"[Smart Row Delta] {table_name}: no attribute index entries "
-                        f"for {predicate_columns}, using keyword filter fallback"
+                    # The index is loaded but has no entry for these predicate columns —
+                    # the column was not seen during preprocessing (novel predicate) or
+                    # every matched attribute was over-broad.  We cannot narrow the
+                    # candidate set, so fall back to all candidates.  The keyword filter
+                    # below will still limit extraction to chunks that actually contain
+                    # the predicate value (for equality predicates).
+                    chunks = self.data_layer.get_chunks_by_ids(candidate_chunk_ids)
+                    logger.warning(
+                        f"[Smart Row Delta] {table_name}: attribute index has no usable "
+                        f"entries for {predicate_columns} — scanning all "
+                        f"{len(chunks)} candidates (column not seen during preprocessing)."
                     )
+            else:
+                # No column name could be parsed from any predicate (e.g. purely numeric
+                # or malformed predicates).  Scan all candidates.
+                chunks = self.data_layer.get_chunks_by_ids(candidate_chunk_ids)
+                logger.warning(
+                    f"[Smart Row Delta] {table_name}: could not extract column names from "
+                    f"predicates {table_preds} — scanning all {len(chunks)} candidates."
+                )
 
             # Keyword-filter chunks to those likely relevant to missing predicates
             filtered_chunks = self._filter_chunks_by_predicates(chunks, table_preds)

@@ -70,55 +70,78 @@ class AttributeIndex:
             entry.variants.add(raw_attr)
             entry.chunk_ids.add(chunk_id)
     
+    # If an attribute appears in more than this fraction of all indexed chunks for a
+    # table, it is too common ("player_name" appears in every player bio) to be useful
+    # as a discriminator.  Returning an arbitrary hash-order subset of 9 000 IDs would
+    # give the caller a random sample rather than the most relevant chunks; it is better
+    # to return [] so the caller falls back to the relevance-ordered candidate list.
+    OVERBROAD_THRESHOLD = 0.30
+
     def find_chunks_for_column(self, table: str, column: str, top_k: int = 100) -> List[str]:
         """
         Find chunks most likely to contain data for a missing column.
-        
+
+        Returns an empty list when the attribute is over-broad (appears in more than
+        OVERBROAD_THRESHOLD of all indexed chunks), allowing the caller to fall back
+        to the relevance-sorted candidate list instead of receiving an arbitrary subset.
+
         Args:
             table: Table name
             column: Missing column name (e.g., "state_name")
             top_k: Maximum chunks to return
-            
+
         Returns:
-            List of chunk_ids, ordered by relevance
+            List of chunk_ids, ordered by chunk_id (stable/deterministic), or [] when
+            the attribute is over-broad or not found.
         """
         if table not in self.attr_to_chunks:
             logger.warning(f"No attribute index for table '{table}'")
             return []
-        
+
+        total_indexed = len(self.chunk_to_attrs.get(table, {}))
+
+        def _check_and_return(entry: "AttributeIndexEntry", label: str) -> List[str]:
+            """Return sorted chunk IDs unless the attribute is over-broad."""
+            n = len(entry.chunk_ids)
+            if total_indexed > 0 and n / total_indexed > self.OVERBROAD_THRESHOLD:
+                logger.info(
+                    f"[AttributeIndex] Skipping over-broad attribute '{label}' "
+                    f"for table '{table}': {n}/{total_indexed} chunks "
+                    f"({n/total_indexed:.0%} > {self.OVERBROAD_THRESHOLD:.0%} threshold)"
+                )
+                return []
+            # Return a stable, deterministic ordering so results are reproducible.
+            chunks = sorted(entry.chunk_ids)[:top_k]
+            logger.info(
+                f"[AttributeIndex] '{column}' → '{label}' "
+                f"({n} chunks, returning top {len(chunks)})"
+            )
+            return chunks
+
         # Find best matching attribute
         canonical_query = self._canonicalize_attribute(column)
-        
+
         # Try exact match first
         if canonical_query in self.attr_to_chunks[table]:
             entry = self.attr_to_chunks[table][canonical_query]
-            chunks = list(entry.chunk_ids)[:top_k]
-            logger.info(
-                f"[AttributeIndex] Exact match: '{column}' → '{canonical_query}' "
-                f"({len(entry.chunk_ids)} chunks, returning top {len(chunks)})"
-            )
-            return chunks
-        
+            return _check_and_return(entry, canonical_query)
+
         # Fuzzy match on canonical names
         candidates = list(self.attr_to_chunks[table].keys())
         matches = difflib.get_close_matches(canonical_query, candidates, n=3, cutoff=0.6)
-        
+
         if not matches:
             logger.warning(f"[AttributeIndex] No match for column '{column}' in table '{table}'")
             return []
-        
-        # Use best match
+
         best_match = matches[0]
         entry = self.attr_to_chunks[table][best_match]
-        chunks = list(entry.chunk_ids)[:top_k]
-        
+        sim = difflib.SequenceMatcher(None, canonical_query, best_match).ratio()
         logger.info(
             f"[AttributeIndex] Fuzzy match: '{column}' → '{best_match}' "
-            f"(similarity={difflib.SequenceMatcher(None, canonical_query, best_match).ratio():.2f}, "
-            f"{len(entry.chunk_ids)} chunks, returning top {len(chunks)})"
+            f"(similarity={sim:.2f})"
         )
-        
-        return chunks
+        return _check_and_return(entry, best_match)
     
     def get_coverage_stats(self, table: str) -> Dict[str, int]:
         """Get statistics about attribute coverage for a table."""

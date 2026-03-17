@@ -676,6 +676,140 @@ def _first_existing(paths: List[Path]) -> Optional[Path]:
     return None
 
 
+def verify_snapshot_integrity(snapshot_db: Path, snapshot_cache: Path) -> None:
+    """
+    Hard pre-flight checks run before any query execution.
+
+    Raises RuntimeError immediately if any condition is violated.  The goal is
+    to surface setup problems (missing files, stale index, incomplete extraction)
+    before the first LLM call so the user gets a clear error message rather than
+    thousands of spurious chunk extractions or silent wrong results.
+
+    Checks performed:
+      1. Snapshot DB is a readable SQLite file.
+      2. Attribute index file exists at the expected path inside snapshot_cache.
+      3. Attribute index is not stale — at least some of its chunk IDs exist in
+         the DB's candidate_index table (a fully empty intersection means the
+         index was built from a different preprocessing run than the DB).
+      4. Metadata registry is complete — every table has STATUS_FULL for all its
+         columns (incomplete extraction means test queries will trigger row delta
+         unnecessarily, or return wrong results).
+      5. Every table referenced in the training workload has at least one
+         candidate chunk in the DB.
+    """
+    errors: List[str] = []
+
+    # ── 1. Snapshot DB is a valid SQLite file ────────────────────────────────
+    if not snapshot_db.exists():
+        raise RuntimeError(
+            f"Snapshot DB not found: {snapshot_db}\n"
+            f"Run preprocessing first (test_player_workload.py)."
+        )
+    try:
+        con = sqlite3.connect(str(snapshot_db))
+        con.execute("SELECT 1")
+        con.close()
+    except Exception as exc:
+        raise RuntimeError(
+            f"Snapshot DB is not a valid SQLite file ({snapshot_db}): {exc}"
+        ) from exc
+
+    # ── 2. Attribute index file exists ───────────────────────────────────────
+    attr_index_path = snapshot_cache / DATASET / "attribute_index.json"
+    if not attr_index_path.exists():
+        raise RuntimeError(
+            f"Attribute index not found: {attr_index_path}\n"
+            f"Re-run preprocessing to rebuild it (test_player_workload.py)."
+        )
+
+    # Open DB once for the remaining checks.
+    con = sqlite3.connect(str(snapshot_db))
+    con.row_factory = sqlite3.Row
+
+    try:
+        # ── 3. Attribute index is not stale ──────────────────────────────────
+        try:
+            attr_data = json.loads(attr_index_path.read_text())
+            # Collect all chunk IDs the index knows about.
+            index_chunk_ids: Set[str] = set()
+            for _table, entries in attr_data.get("attr_to_chunks", {}).items():
+                for _attr, entry in entries.items():
+                    index_chunk_ids.update(entry.get("chunk_ids", []))
+
+            if index_chunk_ids:
+                placeholders = ",".join("?" * min(len(index_chunk_ids), 500))
+                sample = list(index_chunk_ids)[:500]
+                rows = con.execute(
+                    f"SELECT COUNT(*) FROM candidate_index WHERE chunk_id IN ({placeholders})",
+                    sample,
+                ).fetchone()
+                overlap = rows[0] if rows else 0
+                if overlap == 0:
+                    errors.append(
+                        f"Attribute index is STALE: none of its {len(index_chunk_ids)} "
+                        f"chunk ID(s) exist in candidate_index. The index was built from "
+                        f"a different preprocessing run than the snapshot DB. "
+                        f"Re-run preprocessing and refresh the snapshot "
+                        f"(--refresh-snapshot)."
+                    )
+        except Exception as exc:
+            errors.append(f"Could not validate attribute index freshness: {exc}")
+
+        # ── 4. Metadata registry is complete (all columns STATUS_FULL) ───────
+        try:
+            incomplete = con.execute(
+                "SELECT table_name, column_name, status "
+                "FROM metadata_registry "
+                "WHERE status != 'FULL' "
+                "ORDER BY table_name, column_name"
+            ).fetchall()
+            if incomplete:
+                detail = ", ".join(
+                    f"{r['table_name']}.{r['column_name']}={r['status']}"
+                    for r in incomplete[:10]
+                )
+                if len(incomplete) > 10:
+                    detail += f" … (+{len(incomplete) - 10} more)"
+                errors.append(
+                    f"Metadata registry has {len(incomplete)} column(s) that are not "
+                    f"STATUS_FULL — preprocessing may not have completed successfully: "
+                    f"{detail}. Re-run preprocessing."
+                )
+        except Exception as exc:
+            errors.append(f"Could not query metadata_registry: {exc}")
+
+        # ── 5. Every table has at least one candidate chunk ──────────────────
+        try:
+            counts = {
+                r["table_name"]: r["cnt"]
+                for r in con.execute(
+                    "SELECT table_name, COUNT(*) AS cnt FROM candidate_index GROUP BY table_name"
+                ).fetchall()
+            }
+            for table in ["player", "team", "city", "owner"]:
+                if counts.get(table, 0) == 0:
+                    errors.append(
+                        f"Table '{table}' has 0 candidate chunks in candidate_index — "
+                        f"the sieve/ingestion step may have failed for this table."
+                    )
+        except Exception as exc:
+            errors.append(f"Could not query candidate_index: {exc}")
+
+    finally:
+        con.close()
+
+    if errors:
+        bullet_list = "\n".join(f"  • {e}" for e in errors)
+        raise RuntimeError(
+            f"Snapshot integrity check failed ({len(errors)} issue(s)):\n{bullet_list}"
+        )
+
+    logger.info(
+        "[PreFlight] Snapshot integrity OK — DB, attribute index, metadata registry, "
+        "and candidate chunks all verified."
+    )
+
+
 def ensure_snapshot_artifacts(refresh_snapshot: bool = False) -> Tuple[Path, Optional[Path]]:
     """
     Ensure snapshot copies exist for:
@@ -806,15 +940,20 @@ def run_trend_queries(
     query_tables_dir.mkdir(parents=True, exist_ok=True)
     plots_dir.mkdir(parents=True, exist_ok=True)
 
+    # ── Pre-flight: fail fast before touching any LLM or copying the DB ──────
+    snapshot_cache = SNAPSHOT_DIR / "cache_snapshot"
+    if not snapshot_cache.exists():
+        raise RuntimeError(
+            f"Snapshot cache not found: {snapshot_cache}\n"
+            f"Re-run preprocessing (test_player_workload.py) and ensure the "
+            f"snapshot was created (or use --refresh-snapshot)."
+        )
+    verify_snapshot_integrity(snapshot_db, snapshot_cache)
+    # ─────────────────────────────────────────────────────────────────────────
+
     working_db = run_dir / "player_trend_working.db"
     shutil.copy2(snapshot_db, working_db)
     logger.info(f"Working DB copied from snapshot: {working_db}")
-    
-    # Point to snapshot cache for attribute index and other cached data
-    snapshot_cache = SNAPSHOT_DIR / "cache_snapshot"
-    if not snapshot_cache.exists():
-        logger.warning(f"Snapshot cache not found: {snapshot_cache}")
-        snapshot_cache = None
 
     identity_columns: Dict[str, str] = {}
     if identity_file and identity_file.exists():
