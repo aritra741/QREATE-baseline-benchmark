@@ -43,9 +43,7 @@ def _find_latest_our_db() -> Optional[Path]:
 QUERY = """
 SELECT T.team_name, T.location, T.founded_year,
        COUNT(P.name) as player_count,
-       AVG(P.age) as avg_age,
-       SUM(P.mvp_awards) as total_mvp_awards,
-       SUM(P.nba_championships) as total_championships
+       AVG(P.age) as avg_age
 FROM player P
 JOIN team T ON P.team = T.team_name
 WHERE P.draft_year > 2000
@@ -100,7 +98,7 @@ def main() -> int:
     conn_our.close()
 
     print("\n" + "=" * 70)
-    print("Query: player_count, avg_age, mvp/championships by team (draft_year>2000 OR position=Frontcourt OR founded_year<1980)")
+    print("Query: player count and avg age by team (draft_year>2000 OR position=Frontcourt OR founded<1980)")
     print("=" * 70)
 
     gold_map = {_row_key(r, KEY_COLS): r for r in gold_rows}
