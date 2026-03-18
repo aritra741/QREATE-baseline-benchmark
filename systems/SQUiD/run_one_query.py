@@ -184,9 +184,36 @@ def main() -> int:
         print("  ".join(f"{str(r.get(c, '')):>18}" for c in squid_cols))
     print("-" * 70)
 
-    print("\n--- Row counts ---")
-    print(f"  Gold:  {len(gold_rows)} rows")
-    print(f"  SQUiD: {len(squid_rows)} rows")
+    # Align on player name for row-level comparison (same logic as the test script).
+    # Use full_name from SQUiD if name is not directly present.
+    def _get_name(row: dict) -> str:
+        v = row.get("name") or row.get("full_name") or ""
+        return str(v).strip().lower()
+
+    gold_by_name: Dict[str, list] = {}
+    for r in gold_rows:
+        gold_by_name.setdefault(_get_name(r), []).append(r)
+
+    squid_by_name: Dict[str, list] = {}
+    for r in squid_rows:
+        squid_by_name.setdefault(_get_name(r), []).append(r)
+
+    gold_names = set(gold_by_name)
+    squid_names = set(squid_by_name)
+    matched_names = gold_names & squid_names
+    extra_names = squid_names - gold_names
+    missed_names = gold_names - squid_names
+
+    matched_rows = sum(len(gold_by_name[n]) for n in matched_names)
+    extra_rows   = sum(len(squid_by_name[n]) for n in extra_names)
+    missed_rows  = sum(len(gold_by_name[n]) for n in missed_names)
+
+    print("\n--- Row counts (by player name alignment) ---")
+    print(f"  Gold:    {len(gold_rows)} rows  ({len(gold_names)} unique names)")
+    print(f"  SQUiD:   {len(squid_rows)} rows  ({len(squid_names)} unique names)")
+    print(f"  Matched: {matched_rows} rows  ({len(matched_names)} unique names in both)")
+    print(f"  Extra:   {extra_rows} rows  ({len(extra_names)} names in SQUiD not in gold)")
+    print(f"  Missed:  {missed_rows} rows  ({len(missed_names)} names in gold not in SQUiD)")
     print("\n--- Time ---")
     print(f"  Gold:  {gold_time:.4f}s")
     print(f"  SQUiD: {squid_time:.4f}s")
