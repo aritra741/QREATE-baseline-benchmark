@@ -47,7 +47,12 @@ REDD_PROMPT_ATTR = str(REDD_ROOT / "prompts" / "datapop_attr_json.txt")
 REDD_PARAM_STR = "redd_run_one"
 
 REQUIRED_MODEL_ID = "Qwen/Qwen2.5-7B-Instruct"
-DEFAULT_MODEL_PATH = str(Path(os.getenv("REDD_MODEL_LOCAL_PATH", REDD_ROOT / ".models" / "qwen2_5_7b_instruct")))
+
+# Scratch space avoids home-directory quota on HPC.
+# Override with REDD_MODEL_LOCAL_PATH env var if needed.
+_SCRATCH_BASE = Path("/scratch/general/vast/u1592362")
+_DEFAULT_MODEL_DIR = _SCRATCH_BASE / "uda_bench_cache" / "redd_models" / "qwen2_5_7b_instruct"
+DEFAULT_MODEL_PATH = str(Path(os.getenv("REDD_MODEL_LOCAL_PATH", str(_DEFAULT_MODEL_DIR))))
 
 # Same query as WDIRS/SQUiD run_one_query.py
 DEFAULT_QUERY = """
@@ -412,7 +417,7 @@ def main() -> int:
     if args.work_dir:
         work_dir = Path(args.work_dir)
     else:
-        work_dir = Path(os.getenv("REDD_RESULTS_BASE_DIR", PROJECT_ROOT / "results" / "redd_run_one"))
+        work_dir = Path(os.getenv("REDD_RESULTS_BASE_DIR", str(_SCRATCH_BASE / "uda_bench_results" / "redd_run_one")))
     work_dir = work_dir / f"run_{int(time.time())}"
     work_dir.mkdir(parents=True, exist_ok=True)
 
