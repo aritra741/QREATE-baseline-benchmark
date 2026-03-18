@@ -41,15 +41,15 @@ def _find_latest_our_db() -> Optional[Path]:
     return None
 
 QUERY = """
-SELECT t.team_name, c.city_name, COUNT(p.name) as veteran_count, SUM(t.championship) as championships
+SELECT t.team_name, t.championship, COUNT(p.name) as veteran_count
 FROM player p
 JOIN team t ON p.team = t.team_name
-JOIN city c ON t.location = c.city_name
 WHERE p.age > 30
-GROUP BY t.team_name, c.city_name;
+GROUP BY t.team_name, t.championship
+HAVING COUNT(p.name) >= 2;
 """
 
-KEY_COLS = ["team_name", "city_name"]
+KEY_COLS = ["team_name", "championship"]
 
 
 def _row_key(row: dict, key_cols: list) -> tuple:
@@ -95,7 +95,7 @@ def main() -> int:
     conn_our.close()
 
     print("\n" + "=" * 70)
-    print("Query: veteran count and championships by team and city (age > 30)")
+    print("Query: veteran count by team (age > 30, HAVING count >= 2)")
     print("=" * 70)
 
     gold_map = {_row_key(r, KEY_COLS): r for r in gold_rows}
@@ -123,9 +123,9 @@ def main() -> int:
     print(f"  Our DB:   {our_time:.4f}s")
 
     if extra:
-        print(f"\n  Extra rows (team_name, city_name): {[(k[0], k[1]) for k in sorted(extra)]}")
+        print(f"\n  Extra rows (team_name, championship): {[(k[0], k[1]) for k in sorted(extra)]}")
     if missed:
-        print(f"  Missed rows (team_name, city_name): {[(k[0], k[1]) for k in sorted(missed)]}")
+        print(f"  Missed rows (team_name, championship): {[(k[0], k[1]) for k in sorted(missed)]}")
 
     return 0
 
