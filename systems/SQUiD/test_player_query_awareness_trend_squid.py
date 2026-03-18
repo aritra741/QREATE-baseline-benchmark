@@ -1067,84 +1067,82 @@ def load_redd_enabled_query_ids() -> Set[str]:
 # ---------------------------------------------------------------------------
 def rewrite_query_for_squid_schema(sql: str) -> str:
     """
-    Rewrite canonical Player benchmark SQL to SQUiD-generated schema.
+    Rewrite canonical Player SQL to the SQUiD-generated schema.
 
-    SQUiD often collapses city/owner fields into `team.location` and
-    `team.ownership`, so this rewrite maps those columns and drops explicit
-    joins to empty city/owner tables.
+    SQUiD renames several columns and leaves city/owner tables empty, so we:
+      1. Fix qualified column references that differ between canonical and SQUiD schema.
+      2. Fix unqualified column references in single-table queries.
+      3. Convert INNER JOINs to city/owner into LEFT JOINs (city/owner are always empty).
+      4. Replace NULL comparisons in WHERE with 1=1 so they don't zero out results.
     """
-    effective = sql.strip()
-    if not effective.endswith(";"):
-        effective += ";"
+    effective = sql.strip().rstrip(";")
 
-    replacements = {
-        # player mappings
-        r"\bplayer\.name\b": "player.full_name",
+    # ── 1. Qualified column renames ────────────────────────────────────────────
+    qualified = {
+        # player
+        r"\bplayer\.name\b":      "player.full_name",
+        r"\bplayer\.team\b":      "player.current_team",   # most common miss
         r"\bplayer\.team_name\b": "player.current_team",
-        # team mappings
-        r"\bteam\.team_name\b": "team.name",
-        r"\bteam\.owner_name\b": "team.ownership",
-        # owner mappings (collapsed into team)
-        r"\bowner\.name\b": "team.ownership",
-        r"\bowner\.nba_team\b": "team.name",
-        r"\bowner\.team_name\b": "team.name",
-        # city mappings (collapsed into team)
-        r"\bcity\.city_name\b": "team.location",
-        r"\bcity\.name\b": "team.location",
+        # team
+        r"\bteam\.team_name\b":      "team.name",
+        r"\bteam\.championship\b(?!s)": "team.championships",
+        r"\bteam\.owner_name\b":     "team.ownership",
+        # owner → team columns
+        r"\bowner\.name\b":          "team.ownership",
+        r"\bowner\.full_name\b":     "team.ownership",
+        r"\bowner\.nba_team\b":      "team.name",
+        r"\bowner\.team_name\b":     "team.name",
+        r"\bowner\.age\b":           "NULL",
+        r"\bowner\.nationality\b":   "NULL",
+        r"\bowner\.own_year\b":      "NULL",
+        r"\bowner\.acquired_year\b": "NULL",
+        # city → team columns (location) or NULL
+        r"\bcity\.city_name\b":   "team.location",
+        r"\bcity\.name\b":        "team.location",
+        r"\bcity\.state_name\b":  "NULL",
+        r"\bcity\.state\b":       "NULL",
+        r"\bcity\.population\b":  "NULL",
+        r"\bcity\.area\b":        "NULL",
+        r"\bcity\.gdp\b":         "NULL",
     }
-    for pattern, repl in replacements.items():
-        effective = re.sub(pattern, repl, effective, flags=re.IGNORECASE)
+    for pat, repl in qualified.items():
+        effective = re.sub(pat, repl, effective, flags=re.IGNORECASE)
 
-    # Replace unsupported columns with NULL in projections.
-    null_columns = [
-        r"city\.state_name",
-        r"city\.state",
-        r"city\.population",
-        r"city\.area",
-        r"city\.gdp",
-        r"owner\.age",
-        r"owner\.nationality",
-        r"owner\.own_year",
-        r"owner\.acquired_year",
-    ]
-    for token in null_columns:
-        effective = re.sub(rf"\b{token}\b", "NULL", effective, flags=re.IGNORECASE)
+    # ── 2. Unqualified columns in single-table queries ─────────────────────────
+    # Only safe when there is no JOIN (otherwise columns are already qualified).
+    has_join = bool(re.search(r"\bJOIN\b", effective, re.IGNORECASE))
+    if not has_join:
+        if re.search(r"\bFROM\s+player\b", effective, re.IGNORECASE):
+            effective = re.sub(r"\bname\b", "full_name", effective, flags=re.IGNORECASE)
+            effective = re.sub(r"\bteam\b", "current_team", effective, flags=re.IGNORECASE)
+        elif re.search(r"\bFROM\s+team\b", effective, re.IGNORECASE):
+            effective = re.sub(r"\bteam_name\b", "name", effective, flags=re.IGNORECASE)
+            effective = re.sub(r"\bchampionship\b(?!s)", "championships", effective, flags=re.IGNORECASE)
+        elif re.search(r"\bFROM\s+city\b", effective, re.IGNORECASE):
+            effective = re.sub(r"\bcity_name\b", "name", effective, flags=re.IGNORECASE)
+            effective = re.sub(r"\bstate_name\b", "state", effective, flags=re.IGNORECASE)
+        elif re.search(r"\bFROM\s+owner\b", effective, re.IGNORECASE):
+            effective = re.sub(r"\bname\b", "full_name", effective, flags=re.IGNORECASE)
 
-    # SQUiD uses `full_name` for owner/player names.
-    effective = re.sub(r"\bowner\.full_name\b", "team.ownership", effective, flags=re.IGNORECASE)
+    # ── 3. Convert inner JOINs to city/owner into LEFT JOINs ──────────────────
+    # city/owner are always empty in SQUiD; INNER JOIN would return 0 rows.
+    effective = re.sub(r"\b(?:INNER\s+)?JOIN\s+(city|owner)\b",
+                       r"LEFT JOIN \1", effective, flags=re.IGNORECASE)
 
-    # Remove joins to city/owner tables that are usually unpopulated in SQUiD runs.
-    effective = re.sub(
-        r"\s+(LEFT|RIGHT|INNER|FULL)?\s*JOIN\s+city\b[\s\S]*?\bON\b[\s\S]*?(?=\s+(LEFT|RIGHT|INNER|FULL)?\s*JOIN\b|\s+WHERE\b|\s+GROUP\s+BY\b|\s+ORDER\s+BY\b|\s+HAVING\b|;)",
-        " ",
-        effective,
-        flags=re.IGNORECASE,
-    )
-    effective = re.sub(
-        r"\s+(LEFT|RIGHT|INNER|FULL)?\s*JOIN\s+owner\b[\s\S]*?\bON\b[\s\S]*?(?=\s+(LEFT|RIGHT|INNER|FULL)?\s*JOIN\b|\s+WHERE\b|\s+GROUP\s+BY\b|\s+ORDER\s+BY\b|\s+HAVING\b|;)",
-        " ",
-        effective,
-        flags=re.IGNORECASE,
-    )
+    # ── 4. Fix join condition column names after qualified renames ─────────────
+    effective = re.sub(r"\bplayer\.current_team\s*=\s*team\.team_name\b",
+                       "player.current_team = team.name", effective, flags=re.IGNORECASE)
+    effective = re.sub(r"\bplayer\.team\s*=\s*team\.(?:team_name|name)\b",
+                       "player.current_team = team.name", effective, flags=re.IGNORECASE)
 
-    # Normalize common player-team join keys.
-    effective = re.sub(
-        r"\bplayer\.current_team\s*=\s*team\.team_name\b",
-        "player.current_team = team.name",
-        effective,
-        flags=re.IGNORECASE,
-    )
-    effective = re.sub(
-        r"\bplayer\.team_name\s*=\s*team\.name\b",
-        "player.current_team = team.name",
-        effective,
-        flags=re.IGNORECASE,
-    )
+    # ── 5. Drop NULL comparisons in WHERE so they don't zero out results ───────
+    # e.g. "AND NULL > 715522" or "city.population > 715522" already replaced.
+    effective = re.sub(r"\bNULL\s*(?:=|!=|<>|<=|>=|<|>)\s*(?:'[^']*'|\w+)",
+                       "1=1", effective, flags=re.IGNORECASE)
+    effective = re.sub(r"(?:'[^']*'|\w+(?:\.\w+)?)\s*(?:=|!=|<>|<=|>=|<|>)\s*\bNULL\b",
+                       "1=1", effective, flags=re.IGNORECASE)
 
-    # Minor cleanup after regex rewrites.
-    effective = re.sub(r"\s+", " ", effective).strip()
-    effective = re.sub(r"\s+;", ";", effective)
-    return effective
+    return effective.strip() + ";"
 
 
 def execute_sql_on_squid_db(
