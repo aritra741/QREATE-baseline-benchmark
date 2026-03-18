@@ -229,6 +229,7 @@ class TrendQueryMetrics:
     gt_result_count: int
     matched_rows: int
     is_agg: bool
+    relative_error: Optional[float] = None
     error: Optional[str] = None
 
 
@@ -387,6 +388,81 @@ def _build_pred_df(
     return df
 
 
+def _safe_float(v: Any) -> Optional[float]:
+    if v is None:
+        return None
+    s = str(v).strip().replace(",", "")
+    if not s:
+        return None
+    try:
+        out = float(s)
+    except Exception:
+        return None
+    if not math.isfinite(out):
+        return None
+    return out
+
+
+def _cell_relative_error(pred: Any, gold: Any) -> float:
+    p = _safe_float(pred)
+    g = _safe_float(gold)
+    if p is None and g is None:
+        return 0.0
+    if p is None or g is None:
+        return 1.0
+    if abs(g) < 1e-12:
+        return 0.0 if abs(p) < 1e-12 else abs(p - g)
+    return abs(p - g) / abs(g)
+
+
+def _agg_row_key(row: Dict[str, Any], key_cols: List[str]) -> Tuple[str, ...]:
+    return tuple(
+        "" if c not in row or row[c] is None else str(row[c]).strip().lower()
+        for c in key_cols
+    )
+
+
+def _compute_aggregation_relative_error(
+    parsed_sql: Any,
+    pred_rows: List[Dict[str, Any]],
+    gold_rows: List[Dict[str, Any]],
+) -> Optional[float]:
+    """Mean relative error across all aggregate cells; None when not applicable."""
+    if parsed_sql.query_type != "aggregation":
+        return None
+    agg_cols = [item.output_name for item in parsed_sql.select_items if item.is_agg]
+    if not agg_cols:
+        return None
+    if not gold_rows and not pred_rows:
+        return 0.0
+
+    group_cols = [item.output_name for item in parsed_sql.select_items if not item.is_agg]
+    errors: List[float] = []
+
+    if not group_cols:
+        gold_row = gold_rows[0] if gold_rows else {}
+        pred_row = pred_rows[0] if pred_rows else {}
+        for c in agg_cols:
+            errors.append(_cell_relative_error(pred_row.get(c), gold_row.get(c)))
+        extra_rows = abs(len(pred_rows) - len(gold_rows))
+        if extra_rows > 0:
+            errors.extend([1.0] * (extra_rows * max(1, len(agg_cols))))
+        return float(sum(errors) / len(errors)) if errors else None
+
+    pred_map = {_agg_row_key(r, group_cols): r for r in pred_rows}
+    gold_map = {_agg_row_key(r, group_cols): r for r in gold_rows}
+    for key in set(pred_map.keys()) | set(gold_map.keys()):
+        prow = pred_map.get(key)
+        grow = gold_map.get(key)
+        for c in agg_cols:
+            if prow is None or grow is None:
+                errors.append(1.0)
+            else:
+                errors.append(_cell_relative_error(prow.get(c), grow.get(c)))
+
+    return float(sum(errors) / len(errors)) if errors else None
+
+
 def evaluate_with_official_framework(
     sql: str,
     wdirs_rows: List[Dict[str, Any]],
@@ -455,6 +531,7 @@ def evaluate_with_official_framework(
             "is_agg": is_agg,
             "gt_result_count": len(gold_df),
             "matched_rows": 0,
+            "relative_error": None,
         }
 
     calc = _MetricCalculator(manifest_for_pred, settings)
@@ -475,6 +552,17 @@ def evaluate_with_official_framework(
     except Exception as we:
         logger.warning(f"[Eval] Could not write per-query outputs: {we}")
 
+    relative_error: Optional[float] = None
+    if is_agg:
+        try:
+            relative_error = _compute_aggregation_relative_error(
+                parsed,
+                effective_wdirs,
+                gold_df.to_dict(orient="records"),
+            )
+        except Exception as re_exc:
+            logger.warning(f"[Eval] Relative error computation failed ({re_exc}); skipping.")
+
     return {
         "macro_f1": macro_f1,
         "macro_precision": macro_precision,
@@ -482,6 +570,7 @@ def evaluate_with_official_framework(
         "is_agg": is_agg,
         "gt_result_count": len(gold_df),
         "matched_rows": match_result.matched_rows,
+        "relative_error": relative_error,
     }
 
 
@@ -1076,6 +1165,7 @@ def run_trend_queries(
                     gt_result_count=eval_out.get("gt_result_count", 0),
                     matched_rows=eval_out.get("matched_rows", 0),
                     is_agg=eval_out.get("is_agg", False),
+                    relative_error=eval_out.get("relative_error"),
                     error=result.error if not result.success else None,
                 )
                 metrics.append(item)
@@ -1091,15 +1181,24 @@ def run_trend_queries(
                         acc_data["completion_tokens"] = d_completion
                         acc_data["total_tokens"] = d_total
                         acc_data["result_rows"] = len(result.results)
+                        acc_data["relative_error"] = eval_out.get("relative_error")
                         acc_path.write_text(json.dumps(acc_data, indent=2))
                     except Exception as acc_err:
                         logger.warning(f"Could not augment {acc_path} with time/cost: {acc_err}")
 
-                logger.info(
-                    f"{query_id}: success={item.success} rows={item.result_rows} "
-                    f"latency={item.latency_s:.3f}s tokens={item.total_tokens} "
-                    f"F1={item.macro_f1:.3f}"
-                )
+                if item.is_agg:
+                    rel_err_str = "n/a" if item.relative_error is None else f"{item.relative_error:.4f}"
+                    logger.info(
+                        f"{query_id}: success={item.success} rows={item.result_rows} "
+                        f"latency={item.latency_s:.3f}s tokens={item.total_tokens} "
+                        f"F1={item.macro_f1:.3f} RelErr={rel_err_str}"
+                    )
+                else:
+                    logger.info(
+                        f"{query_id}: success={item.success} rows={item.result_rows} "
+                        f"latency={item.latency_s:.3f}s tokens={item.total_tokens} "
+                        f"F1={item.macro_f1:.3f}"
+                    )
             except Exception as exc:
                 latency = time.time() - t0
                 d_prompt, d_completion = token_tracker.delta(before)
@@ -1271,11 +1370,21 @@ def main() -> int:
 
         success_count = sum(1 for m in metrics if m.success)
         avg_f1 = sum(m.macro_f1 for m in metrics) / len(metrics) if metrics else 0.0
+        agg_metrics = [m for m in metrics if m.is_agg and m.relative_error is not None]
+        avg_rel_err = (
+            sum(m.relative_error for m in agg_metrics) / len(agg_metrics)
+            if agg_metrics else None
+        )
         logger.info("=" * 80)
         logger.info(
             f"Completed: {success_count}/{len(metrics)} queries succeeded, "
             f"avg macro F1={avg_f1:.3f}"
         )
+        if avg_rel_err is not None:
+            logger.info(
+                f"Aggregation queries ({len(agg_metrics)}): "
+                f"avg relative error={avg_rel_err:.4f}"
+            )
         logger.info(f"Outputs under: {run_dir}")
         logger.info("=" * 80)
 
