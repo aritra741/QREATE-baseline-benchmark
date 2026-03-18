@@ -66,22 +66,23 @@ def _find_latest_squid_db() -> Optional[Path]:
 
 
 def _rewrite_query_for_squid(sql: str) -> str:
-    """Rewrite canonical Player SQL to SQUiD schema. Minimal inline version."""
+    """Rewrite canonical Player SQL to SQUiD schema. Handles table aliases (P, T, etc.)."""
     import re
     effective = sql.strip().rstrip(";")
-    qualified = {
-        r"\bplayer\.name\b": "player.full_name",
-        r"\bplayer\.team\b": "player.current_team",
-        r"\bplayer\.team_name\b": "player.current_team",
-        r"\bteam\.team_name\b": "team.name",
-        r"\bteam\.championship\b(?!s)": "team.championships",
-        r"\bteam\.owner_name\b": "team.ownership",
-        r"\bowner\.name\b": "team.ownership",
-        r"\bowner\.nba_team\b": "team.name",
-        r"\bcity\.city_name\b": "team.location",
-        r"\bcity\.name\b": "team.location",
-    }
-    for pat, repl in qualified.items():
+    # Use capture groups so T.team_name -> T.name, P.team -> P.current_team, etc.
+    qualified = [
+        (r"\b(player|P)\.name\b", r"\1.full_name"),
+        (r"\b(player|P)\.team\b", r"\1.current_team"),
+        (r"\b(player|P)\.team_name\b", r"\1.current_team"),
+        (r"\b(team|T)\.team_name\b", r"\1.name"),
+        (r"\b(team|T)\.championship\b(?!s)", r"\1.championships"),
+        (r"\b(team|T)\.owner_name\b", r"\1.ownership"),
+        (r"\bowner\.name\b", "team.ownership"),
+        (r"\bowner\.nba_team\b", "team.name"),
+        (r"\bcity\.city_name\b", "team.location"),
+        (r"\bcity\.name\b", "team.location"),
+    ]
+    for pat, repl in qualified:
         effective = re.sub(pat, repl, effective, flags=re.IGNORECASE)
     has_join = bool(re.search(r"\bJOIN\b", effective, re.IGNORECASE))
     if not has_join:
@@ -91,8 +92,8 @@ def _rewrite_query_for_squid(sql: str) -> str:
         elif re.search(r"\bFROM\s+team\b", effective, re.IGNORECASE):
             effective = re.sub(r"\bteam_name\b", "name", effective, flags=re.IGNORECASE)
             effective = re.sub(r"\bchampionship\b(?!s)", "championships", effective, flags=re.IGNORECASE)
-    effective = re.sub(r"\bplayer\.(?:current_)?team\s*=\s*team\.(?:team_name|name)\b",
-                       "player.current_team = team.name", effective, flags=re.IGNORECASE)
+    effective = re.sub(r"\b(player|P)\.(?:current_)?team\s*=\s*(team|T)\.(?:team_name|name)\b",
+                       r"\1.current_team = \2.name", effective, flags=re.IGNORECASE)
     return effective.strip() + ";"
 
 
