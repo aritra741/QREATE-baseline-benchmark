@@ -1228,13 +1228,33 @@ def evaluate_with_official_framework(
             return [{renames.get(k, k): v for k, v in r.items()} for r in rows]
 
         result_rows = _normalize_squid_rows(result_rows)
+        # Map from canonical entity column name → qualified SQUiD column expression.
+        # Used to replace the bare unqualified column that _augment_sql_with_entity
+        # appends (e.g. bare `name`) with the SQUiD-schema equivalent before
+        # executing on phase2_db, so the result is unambiguous.
+        _ENTITY_TO_SQUID_EXPR: Dict[str, str] = {
+            "name": "player.full_name",
+            "team_name": "team.name",
+            "city_name": "team.location",
+        }
+
         row_cols = {k.lower() for k in (result_rows[0].keys() if result_rows else {})}
         if entity.lower() not in row_cols and phase2_db.exists():
             aug_sql = _augment_sql_with_entity(sql, entity, dialect="sqlite")
             if aug_sql:
-                # Rewrite the augmented SQL for SQUiD schema, then rename the
-                # augmented column back to the canonical entity name.
-                squid_aug_sql = rewrite_query_for_squid_schema(aug_sql)
+                # Replace the bare entity column (e.g. `name`) added by
+                # _augment_sql_with_entity with its fully-qualified SQUiD
+                # equivalent + an alias back to the canonical name.
+                # This prevents the bare column from resolving to the wrong
+                # table (e.g. team.name instead of player.full_name).
+                squid_expr = _ENTITY_TO_SQUID_EXPR.get(entity.lower(), entity)
+                aug_sql_qualified = re.sub(
+                    r"(?<![.\w])" + re.escape(entity) + r"\b(?![\w.])",
+                    f"{squid_expr} AS {entity}",
+                    aug_sql,
+                    flags=re.IGNORECASE,
+                )
+                squid_aug_sql = rewrite_query_for_squid_schema(aug_sql_qualified)
                 try:
                     con = sqlite3.connect(str(phase2_db))
                     con.row_factory = sqlite3.Row
@@ -1245,7 +1265,11 @@ def evaluate_with_official_framework(
                         dict(zip(cols, r)) for r in cur_aug.fetchall()
                     ]
                     con.close()
-                except Exception:
+                except Exception as _aug_exc:
+                    logger.debug(
+                        f"[Eval] SQUiD augmented SQL failed ({_aug_exc}); "
+                        f"falling back to original rows. SQL: {squid_aug_sql}"
+                    )
                     effective_rows = result_rows
             else:
                 effective_rows = result_rows
