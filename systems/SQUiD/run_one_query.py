@@ -32,20 +32,13 @@ DB_FALLBACK = (
 )
 
 DEFAULT_QUERY = """
-SELECT T.team_name, T.location, T.founded_year,
-       COUNT(P.name) AS player_count,
-       AVG(P.age) AS avg_age
-FROM player P
-JOIN team T ON P.team = T.team_name
-WHERE P.draft_year > 2000
-   OR P.position = 'Frontcourt'
-   OR T.founded_year < 1980
-GROUP BY T.team_name, T.location, T.founded_year;
+SELECT team.championship, team.location, player.age, player.olympic_gold_medals
+FROM player JOIN team ON player.team = team.team_name;
 """
 
-KEY_COLS = ["team_name", "location", "founded_year"]
-# SQUiD emits "name" for team.name; map for comparison
-SQUID_COL_ALIAS = {"team_name": "name"}
+KEY_COLS = ["championship", "location", "age", "olympic_gold_medals"]
+# SQUiD emits different column names; map for comparison
+SQUID_COL_ALIAS = {"team_name": "name", "championship": "championships"}
 
 
 def _find_latest_squid_db() -> Optional[Path]:
