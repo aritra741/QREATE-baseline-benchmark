@@ -1,5 +1,5 @@
 """
-Run Q1..Q10 query-awareness trend evaluation on Player using SQUiD.
+Run Player query-awareness evaluation using SQUiD.
 
 SQUiD is an offline system that synthesizes relational databases from
 unstructured text via a four-stage pipeline:
@@ -11,7 +11,7 @@ unstructured text via a four-stage pipeline:
 This script:
   - Optionally runs the SQUiD preprocessing pipeline (--run-preprocessing)
   - Consolidates per-document SQUiD databases into a single unified DB
-  - Runs Q1..Q10 trend queries against the consolidated DB
+  - Runs Select/Filter/Agg/Join/Mixed query workload against the generated DB
   - Evaluates using the standard evaluation framework
   - Saves per-query metrics and generates summary plots
 """
@@ -32,7 +32,7 @@ import unicodedata
 from collections import defaultdict
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 try:
     import matplotlib
@@ -95,24 +95,19 @@ TREND_SQL_FILE = QUERY_DIR / DATASET / "query_aware_trend_queries.sql"
 GROUND_TRUTH_DIR = PROJECT_ROOT / "Data" / "Player"
 ATTRIBUTES_FILE = QUERY_DIR / DATASET / "Player_attributes.json"
 RESULTS_BASE_DIR = SQUID_ROOT / "results" / "player_query_awareness_trend_squid"
+REDD_TREND_FILE = PROJECT_ROOT / "systems" / "ReDD" / "test_player_query_awareness_trend_redd.py"
 
 SQUID_DB_ROOT = SQUID_ROOT / "databases" / "Player"
 SQUID_RESULTS_ROOT = SQUID_ROOT / "results"
 
 ENTITY_TYPES = ["player", "team", "city"]
 SQUID_METHODS = ["TS", "TST", "TST-L"]
-
-SQUID_REWRITTEN_QUERIES = {
-    "Q1": "SELECT player.full_name AS name, player.nationality, player.age, team.name AS team_name, team.location FROM player JOIN team ON player.current_team = team.name;",
-    "Q2": "SELECT player.full_name AS name, player.position, team.name AS team_name, team.founded_year FROM player JOIN team ON player.current_team = team.name WHERE player.age > 25;",
-    "Q3": "SELECT player.full_name AS name, player.draft_pick, player.college, team.name AS team_name FROM player JOIN team ON player.current_team = team.name WHERE player.draft_pick >= 0;",
-    "Q4": "SELECT team.name AS team_name, team.location, team.location AS city_name, NULL AS state_name FROM team WHERE team.location IS NOT NULL;",
-    "Q5": "SELECT player.full_name AS name, team.name AS team_name, team.location AS city_name, NULL AS state_name FROM player JOIN team ON player.current_team = team.name WHERE team.location IS NOT NULL;",
-    "Q6": "SELECT player.full_name AS name, player.position, team.location AS city_name, NULL AS population FROM player JOIN team ON player.current_team = team.name WHERE player.age < 35 AND team.location IS NOT NULL;",
-    "Q7": "SELECT player.full_name AS name, player.college, team.name AS team_name, NULL AS gdp FROM player JOIN team ON player.current_team = team.name WHERE player.draft_pick > 0 AND team.location IS NOT NULL;",
-    "Q8": "SELECT player.full_name AS name, player.birth_date, team.name AS team_name, NULL AS area FROM player JOIN team ON player.current_team = team.name WHERE NULL > 100 AND team.location IS NOT NULL;",
-    "Q9": "SELECT team.location AS city_name, NULL AS state_name, team.name AS team_name, player.full_name AS name FROM team JOIN player ON player.current_team = team.name WHERE player.age < 40 AND team.location IS NOT NULL;",
-    "Q10": "SELECT team.location AS city_name, NULL AS state_name, team.name AS team_name, player.full_name AS name, player.college FROM team JOIN player ON player.current_team = team.name WHERE player.age > 20 AND team.location IS NOT NULL;"
+QUERY_CATEGORY_DIRS: Dict[str, Path] = {
+    "S": QUERY_DIR / DATASET / "Select",
+    "F": QUERY_DIR / DATASET / "Filter",
+    "A": QUERY_DIR / DATASET / "Agg",
+    "J": QUERY_DIR / DATASET / "Join",
+    "M": QUERY_DIR / DATASET / "Mixed",
 }
 
 _ENTITY_SUFFIX_RE = re.compile(r"\b(jr\.?|sr\.?|iii|iv|ii)\b\.?", re.IGNORECASE)
@@ -226,13 +221,12 @@ class TrendQueryMetrics:
     prompt_tokens: int
     completion_tokens: int
     total_tokens: int
-    macro_f1: Optional[float]        # None for aggregation queries
-    macro_precision: Optional[float]  # None for aggregation queries
-    macro_recall: Optional[float]     # None for aggregation queries
+    macro_f1: float
+    macro_precision: float
+    macro_recall: float
     gt_result_count: int
-    matched_rows: Optional[int]       # None for aggregation queries
+    matched_rows: int
     is_agg: bool
-    relative_error: Optional[float] = None
     error: Optional[str] = None
 
 
@@ -987,28 +981,27 @@ def consolidate_squid_databases(
 # ---------------------------------------------------------------------------
 # Query parsing (same as WDIRS)
 # ---------------------------------------------------------------------------
-def parse_trend_queries(sql_file: Path) -> List[Tuple[str, str]]:
-    """Parse Q1..Q10 from query_aware_trend_queries.sql."""
-    if not sql_file.exists():
-        raise FileNotFoundError(f"Trend SQL file not found: {sql_file}")
+def parse_category_queries(sql_file: Path, prefix: str, start_idx: int) -> List[Tuple[str, str]]:
+    """Parse queries from one category SQL file and assign IDs like S1, F7, ..."""
     lines = sql_file.read_text().splitlines()
     queries: List[Tuple[str, str]] = []
+    next_idx = start_idx
 
     i = 0
     while i < len(lines):
-        m = re.match(r"\s*--\s*Q(\d+)\s*:", lines[i], flags=re.IGNORECASE)
+        m = re.match(r"\s*--\s*Query\s+\d+\s*:?.*", lines[i], flags=re.IGNORECASE)
         if not m:
             i += 1
             continue
-        qid = f"Q{int(m.group(1))}"
+
         i += 1
         sql_lines: List[str] = []
         while i < len(lines):
             raw = lines[i]
             s = raw.strip()
-            if re.match(r"\s*--\s*Q\d+\s*:", raw, flags=re.IGNORECASE):
+            if re.match(r"\s*--\s*Query\s+\d+\s*:?.*", raw, flags=re.IGNORECASE):
                 break
-            if s.startswith("--") or s == "":
+            if s.startswith("--"):
                 i += 1
                 continue
             sql_lines.append(raw)
@@ -1016,19 +1009,144 @@ def parse_trend_queries(sql_file: Path) -> List[Tuple[str, str]]:
                 i += 1
                 break
             i += 1
-        sql = "\n".join(sql_lines).strip()
-        if sql and not sql.endswith(";"):
-            sql += ";"
+        sql = "\n".join(sql_lines).strip().rstrip(";").strip()
         if sql:
-            queries.append((qid, sql))
+            queries.append((f"{prefix}{next_idx}", sql))
+            next_idx += 1
 
-    queries.sort(key=lambda x: int(x[0][1:]))
     return queries
+
+
+def parse_all_category_queries() -> List[Tuple[str, str]]:
+    """Parse all SQL queries from Select/Filter/Agg/Join/Mixed folders."""
+    all_queries: List[Tuple[str, str]] = []
+    for prefix in ["S", "F", "A", "J", "M"]:
+        category_dir = QUERY_CATEGORY_DIRS[prefix]
+        if not category_dir.exists():
+            logger.warning(f"Missing query category directory: {category_dir}")
+            continue
+        sql_files = sorted(category_dir.glob("*.sql"))
+        if not sql_files:
+            logger.warning(f"No SQL files found in category directory: {category_dir}")
+            continue
+        next_idx = 1
+        for sql_file in sql_files:
+            parsed = parse_category_queries(sql_file, prefix, next_idx)
+            if parsed:
+                all_queries.extend(parsed)
+                next_idx += len(parsed)
+    logger.info(f"Loaded {len(all_queries)} category queries from query folders")
+    return all_queries
+
+
+def load_redd_enabled_query_ids() -> Set[str]:
+    """Load active (uncommented) query IDs from ReDD NL_QUERY_SPECS."""
+    if not REDD_TREND_FILE.exists():
+        raise FileNotFoundError(f"ReDD trend file not found: {REDD_TREND_FILE}")
+    import importlib.util
+
+    module_name = "_squid_redd_trend_module"
+    if module_name in sys.modules:
+        module = sys.modules[module_name]
+    else:
+        spec = importlib.util.spec_from_file_location(module_name, REDD_TREND_FILE)
+        if spec is None or spec.loader is None:
+            raise RuntimeError(f"Could not load module spec from: {REDD_TREND_FILE}")
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[module_name] = module
+        spec.loader.exec_module(module)
+
+    nl_specs = getattr(module, "NL_QUERY_SPECS", None)
+    if not isinstance(nl_specs, dict) or not nl_specs:
+        raise RuntimeError("NL_QUERY_SPECS missing or empty in ReDD trend file")
+    return set(str(k) for k in nl_specs.keys())
 
 
 # ---------------------------------------------------------------------------
 # Query execution on consolidated SQUiD DB
 # ---------------------------------------------------------------------------
+def rewrite_query_for_squid_schema(sql: str) -> str:
+    """
+    Rewrite canonical Player benchmark SQL to SQUiD-generated schema.
+
+    SQUiD often collapses city/owner fields into `team.location` and
+    `team.ownership`, so this rewrite maps those columns and drops explicit
+    joins to empty city/owner tables.
+    """
+    effective = sql.strip()
+    if not effective.endswith(";"):
+        effective += ";"
+
+    replacements = {
+        # player mappings
+        r"\bplayer\.name\b": "player.full_name",
+        r"\bplayer\.team_name\b": "player.current_team",
+        # team mappings
+        r"\bteam\.team_name\b": "team.name",
+        r"\bteam\.owner_name\b": "team.ownership",
+        # owner mappings (collapsed into team)
+        r"\bowner\.name\b": "team.ownership",
+        r"\bowner\.nba_team\b": "team.name",
+        r"\bowner\.team_name\b": "team.name",
+        # city mappings (collapsed into team)
+        r"\bcity\.city_name\b": "team.location",
+        r"\bcity\.name\b": "team.location",
+    }
+    for pattern, repl in replacements.items():
+        effective = re.sub(pattern, repl, effective, flags=re.IGNORECASE)
+
+    # Replace unsupported columns with NULL in projections.
+    null_columns = [
+        r"city\.state_name",
+        r"city\.state",
+        r"city\.population",
+        r"city\.area",
+        r"city\.gdp",
+        r"owner\.age",
+        r"owner\.nationality",
+        r"owner\.own_year",
+        r"owner\.acquired_year",
+    ]
+    for token in null_columns:
+        effective = re.sub(rf"\b{token}\b", "NULL", effective, flags=re.IGNORECASE)
+
+    # SQUiD uses `full_name` for owner/player names.
+    effective = re.sub(r"\bowner\.full_name\b", "team.ownership", effective, flags=re.IGNORECASE)
+
+    # Remove joins to city/owner tables that are usually unpopulated in SQUiD runs.
+    effective = re.sub(
+        r"\s+(LEFT|RIGHT|INNER|FULL)?\s*JOIN\s+city\b[\s\S]*?\bON\b[\s\S]*?(?=\s+(LEFT|RIGHT|INNER|FULL)?\s*JOIN\b|\s+WHERE\b|\s+GROUP\s+BY\b|\s+ORDER\s+BY\b|\s+HAVING\b|;)",
+        " ",
+        effective,
+        flags=re.IGNORECASE,
+    )
+    effective = re.sub(
+        r"\s+(LEFT|RIGHT|INNER|FULL)?\s*JOIN\s+owner\b[\s\S]*?\bON\b[\s\S]*?(?=\s+(LEFT|RIGHT|INNER|FULL)?\s*JOIN\b|\s+WHERE\b|\s+GROUP\s+BY\b|\s+ORDER\s+BY\b|\s+HAVING\b|;)",
+        " ",
+        effective,
+        flags=re.IGNORECASE,
+    )
+
+    # Normalize common player-team join keys.
+    effective = re.sub(
+        r"\bplayer\.current_team\s*=\s*team\.team_name\b",
+        "player.current_team = team.name",
+        effective,
+        flags=re.IGNORECASE,
+    )
+    effective = re.sub(
+        r"\bplayer\.team_name\s*=\s*team\.name\b",
+        "player.current_team = team.name",
+        effective,
+        flags=re.IGNORECASE,
+    )
+
+    # Minor cleanup after regex rewrites.
+    effective = re.sub(r"\s+", " ", effective).strip()
+    effective = re.sub(r"\s+;", ";", effective)
+    return effective
+
+
 def execute_sql_on_squid_db(
     db_path: Path, sql: str
 ) -> Tuple[bool, List[Dict[str, Any]], Optional[str]]:
@@ -1069,81 +1187,6 @@ def _build_pred_df(
     return df
 
 
-def _safe_float(v: Any) -> Optional[float]:
-    if v is None:
-        return None
-    s = str(v).strip().replace(",", "")
-    if not s:
-        return None
-    try:
-        out = float(s)
-    except Exception:
-        return None
-    if not math.isfinite(out):
-        return None
-    return out
-
-
-def _cell_relative_error(pred: Any, gold: Any) -> float:
-    p = _safe_float(pred)
-    g = _safe_float(gold)
-    if p is None and g is None:
-        return 0.0
-    if p is None or g is None:
-        return 1.0
-    if abs(g) < 1e-12:
-        return 0.0 if abs(p) < 1e-12 else abs(p - g)
-    return abs(p - g) / abs(g)
-
-
-def _agg_row_key(row: Dict[str, Any], key_cols: List[str]) -> Tuple[str, ...]:
-    return tuple(
-        "" if c not in row or row[c] is None else str(row[c]).strip().lower()
-        for c in key_cols
-    )
-
-
-def _compute_aggregation_relative_error(
-    parsed_sql: Any,
-    pred_rows: List[Dict[str, Any]],
-    gold_rows: List[Dict[str, Any]],
-) -> Optional[float]:
-    """Mean relative error across all aggregate cells; None when not applicable."""
-    if parsed_sql.query_type != "aggregation":
-        return None
-    agg_cols = [item.output_name for item in parsed_sql.select_items if item.is_agg]
-    if not agg_cols:
-        return None
-    if not gold_rows and not pred_rows:
-        return 0.0
-
-    group_cols = [item.output_name for item in parsed_sql.select_items if not item.is_agg]
-    errors: List[float] = []
-
-    if not group_cols:
-        gold_row = gold_rows[0] if gold_rows else {}
-        pred_row = pred_rows[0] if pred_rows else {}
-        for c in agg_cols:
-            errors.append(_cell_relative_error(pred_row.get(c), gold_row.get(c)))
-        extra_rows = abs(len(pred_rows) - len(gold_rows))
-        if extra_rows > 0:
-            errors.extend([1.0] * (extra_rows * max(1, len(agg_cols))))
-        return float(sum(errors) / len(errors)) if errors else None
-
-    pred_map = {_agg_row_key(r, group_cols): r for r in pred_rows}
-    gold_map = {_agg_row_key(r, group_cols): r for r in gold_rows}
-    for key in set(pred_map.keys()) | set(gold_map.keys()):
-        prow = pred_map.get(key)
-        grow = gold_map.get(key)
-        for c in agg_cols:
-            if prow is None or grow is None:
-                errors.append(1.0)
-            else:
-                errors.append(_cell_relative_error(prow.get(c), grow.get(c)))
-
-    return float(sum(errors) / len(errors)) if errors else None
-
-
 def evaluate_with_official_framework(
     sql: str,
     result_rows: List[Dict[str, Any]],
@@ -1159,58 +1202,40 @@ def evaluate_with_official_framework(
 ) -> Dict[str, Any]:
     parsed = sql_parser.parse(sql)
     is_agg = parsed.query_type == "aggregation"
-
-    # ── Aggregation queries: relative error is the correct metric; F1 is not ──
-    # F1/precision/recall is a set-membership metric for checking whether the
-    # right *entities* are returned.  For aggregations (COUNT, SUM, AVG …) what
-    # matters is how close the numeric answers are, which relative error captures.
-    # We skip the row-matcher entirely for agg queries and return macro_f1=None.
-    if is_agg:
-        gold_df = gt_runner.run(sql)
-        relative_error: Optional[float] = None
-        try:
-            relative_error = _compute_aggregation_relative_error(
-                parsed,
-                result_rows,
-                gold_df.to_dict(orient="records"),
-            )
-        except Exception as re_exc:
-            logger.warning(f"[Eval] Relative error computation failed ({re_exc}); skipping.")
-        return {
-            "macro_f1": None,
-            "macro_precision": None,
-            "macro_recall": None,
-            "is_agg": True,
-            "gt_result_count": len(gold_df),
-            "matched_rows": None,
-            "relative_error": relative_error,
-        }
-
-    # ── Non-aggregation queries: row-matcher + F1 ────────────────────────────
     entity = identity_col or "name"
-    aug_gt = _augment_sql_with_entity(sql, entity, dialect="duckdb")
-    gt_sql = aug_gt if aug_gt else sql
 
-    row_cols = {k.lower() for k in (result_rows[0].keys() if result_rows else {})}
-    if entity.lower() not in row_cols and phase2_db.exists():
-        aug_sql = _augment_sql_with_entity(sql, entity, dialect="sqlite")
-        if aug_sql:
-            try:
-                con = sqlite3.connect(str(phase2_db))
-                con.row_factory = sqlite3.Row
-                cur_aug = con.execute(aug_sql)
-                cols = [d[0] for d in cur_aug.description]
-                effective_rows = [dict(zip(cols, r)) for r in cur_aug.fetchall()]
-                con.close()
-            except Exception:
+    if is_agg:
+        gt_sql = sql
+        effective_rows = result_rows
+        primary_keys = parsed.primary_keys
+    else:
+        aug_gt = _augment_sql_with_entity(sql, entity, dialect="duckdb")
+        gt_sql = aug_gt if aug_gt else sql
+
+        row_cols = {k.lower() for k in (result_rows[0].keys() if result_rows else {})}
+        if entity.lower() not in row_cols and phase2_db.exists():
+            aug_sql = _augment_sql_with_entity(sql, entity, dialect="sqlite")
+            if aug_sql:
+                try:
+                    con = sqlite3.connect(str(phase2_db))
+                    con.row_factory = sqlite3.Row
+                    cur_aug = con.execute(aug_sql)
+                    cols = [d[0] for d in cur_aug.description]
+                    effective_rows = [
+                        dict(zip(cols, r)) for r in cur_aug.fetchall()
+                    ]
+                    con.close()
+                except Exception:
+                    effective_rows = result_rows
+            else:
                 effective_rows = result_rows
         else:
             effective_rows = result_rows
-    else:
-        effective_rows = result_rows
+        primary_keys = [entity]
 
     gold_df = gt_runner.run(gt_sql)
-    primary_keys: List[str] = [entity] if entity in gold_df.columns else parsed.primary_keys
+    if not is_agg and entity not in gold_df.columns:
+        primary_keys = parsed.primary_keys
 
     manifest = _QueryManifest(gt_sql, sql_parser.parse(gt_sql), attributes)
     pred_df = _build_pred_df(
@@ -1220,7 +1245,9 @@ def evaluate_with_official_framework(
         attributes=attributes,
     )
 
-    primary_keys = _resolve_primary_keys_for_alignment(primary_keys, gold_df, pred_df)
+    primary_keys = _resolve_primary_keys_for_alignment(
+        primary_keys, gold_df, pred_df
+    )
 
     gold_norm = _normalize_key_cols(gold_df, primary_keys)
     pred_norm = _normalize_key_cols(pred_df, primary_keys)
@@ -1235,22 +1262,23 @@ def evaluate_with_official_framework(
             query_type=parsed.query_type,
         )
     except KeyError as ke:
-        logger.warning(f"[Eval] RowMatcher key error ({ke}) — returning zero metrics")
+        logger.warning(
+            f"[Eval] RowMatcher key error ({ke}) — returning zero metrics"
+        )
         return {
             "macro_f1": 0.0,
             "macro_precision": 0.0,
             "macro_recall": 0.0,
-            "is_agg": False,
+            "is_agg": is_agg,
             "gt_result_count": len(gold_df),
             "matched_rows": 0,
-            "relative_error": None,
         }
 
     calc = _MetricCalculator(manifest, settings)
-    row_metrics = calc.compute(match_result)
-    macro_f1 = row_metrics.get("macro_f1", 0.0)
-    macro_precision = row_metrics.get("macro_precision", 0.0)
-    macro_recall = row_metrics.get("macro_recall", 0.0)
+    metrics = calc.compute(match_result)
+    macro_f1 = metrics.get("macro_f1", 0.0)
+    macro_precision = metrics.get("macro_precision", 0.0)
+    macro_recall = metrics.get("macro_recall", 0.0)
     if not math.isfinite(macro_f1):
         macro_f1 = 0.0
     if not math.isfinite(macro_precision):
@@ -1260,7 +1288,12 @@ def evaluate_with_official_framework(
 
     try:
         writer = _ResultWriter(output_dir=output_dir)
-        writer.write(gold_df, match_result.gold_aligned, match_result.pred_aligned, row_metrics)
+        writer.write(
+            gold_df,
+            match_result.gold_aligned,
+            match_result.pred_aligned,
+            metrics,
+        )
     except Exception as we:
         logger.warning(f"[Eval] Could not write per-query outputs: {we}")
 
@@ -1268,10 +1301,9 @@ def evaluate_with_official_framework(
         "macro_f1": macro_f1,
         "macro_precision": macro_precision,
         "macro_recall": macro_recall,
-        "is_agg": False,
+        "is_agg": is_agg,
         "gt_result_count": len(gold_df),
         "matched_rows": match_result.matched_rows,
-        "relative_error": None,
     }
 
 
@@ -1321,9 +1353,20 @@ def run_trend_queries(
     eval_sql_parser = _SqlParser()
     eval_row_matcher = _RowMatcher(settings=eval_settings)
 
-    trend_queries = parse_trend_queries(TREND_SQL_FILE)
+    redd_enabled_ids = load_redd_enabled_query_ids()
+    trend_queries = [
+        (qid, sql) for qid, sql in parse_all_category_queries()
+        if qid in redd_enabled_ids
+    ]
     if not trend_queries:
-        raise RuntimeError(f"No trend queries found in {TREND_SQL_FILE}")
+        raise RuntimeError(
+            "No runnable queries after applying ReDD uncommented filter. "
+            f"ReDD file: {REDD_TREND_FILE}"
+        )
+    logger.info(
+        "Running %d SQUiD queries aligned to uncommented ReDD IDs",
+        len(trend_queries),
+    )
 
     metrics: List[TrendQueryMetrics] = []
 
@@ -1333,7 +1376,7 @@ def run_trend_queries(
         t0 = time.time()
 
         try:
-            effective_sql = SQUID_REWRITTEN_QUERIES.get(query_id, query_text)
+            effective_sql = rewrite_query_for_squid_schema(query_text)
             success, rows, error = execute_sql_on_squid_db(
                 consolidated_db, effective_sql
             )
@@ -1371,13 +1414,12 @@ def run_trend_queries(
                 prompt_tokens=0,
                 completion_tokens=0,
                 total_tokens=0,
-                macro_f1=eval_out.get("macro_f1"),
-                macro_precision=eval_out.get("macro_precision"),
-                macro_recall=eval_out.get("macro_recall"),
+                macro_f1=eval_out.get("macro_f1", 0.0),
+                macro_precision=eval_out.get("macro_precision", 0.0),
+                macro_recall=eval_out.get("macro_recall", 0.0),
                 gt_result_count=eval_out.get("gt_result_count", 0),
-                matched_rows=eval_out.get("matched_rows"),
+                matched_rows=eval_out.get("matched_rows", 0),
                 is_agg=eval_out.get("is_agg", False),
-                relative_error=eval_out.get("relative_error"),
                 error=error if not success else None,
             )
             metrics.append(item)
@@ -1392,28 +1434,16 @@ def run_trend_queries(
                     acc_data["completion_tokens"] = 0
                     acc_data["total_tokens"] = 0
                     acc_data["result_rows"] = len(rows)
-                    acc_data["macro_f1"] = eval_out.get("macro_f1")
-                    acc_data["macro_precision"] = eval_out.get("macro_precision")
-                    acc_data["macro_recall"] = eval_out.get("macro_recall")
-                    acc_data["is_agg"] = eval_out.get("is_agg", False)
-                    acc_data["relative_error"] = eval_out.get("relative_error")
                     acc_path.write_text(json.dumps(acc_data, indent=2))
                 except Exception:
                     pass
 
-            if item.is_agg:
-                rel_err_str = "n/a" if item.relative_error is None else f"{item.relative_error:.4f}"
-                logger.info(
-                    f"{query_id}: success={item.success} rows={item.result_rows} "
-                    f"latency={item.latency_s:.4f}s RelErr={rel_err_str}"
-                )
-            else:
-                logger.info(
-                    f"{query_id}: success={item.success} rows={item.result_rows} "
-                    f"latency={item.latency_s:.4f}s "
-                    f"F1={item.macro_f1:.3f} P={item.macro_precision:.3f} "
-                    f"R={item.macro_recall:.3f}"
-                )
+            logger.info(
+                f"{query_id}: success={item.success} rows={item.result_rows} "
+                f"latency={item.latency_s:.4f}s "
+                f"F1={item.macro_f1:.3f} P={item.macro_precision:.3f} "
+                f"R={item.macro_recall:.3f}"
+            )
 
         except Exception as exc:
             latency = time.time() - t0
@@ -1476,12 +1506,11 @@ def plot_metrics(metrics: List[TrendQueryMetrics], plots_dir: Path) -> None:
     result_rows = [m.result_rows for m in ordered]
     token_cost = [m.total_tokens for m in ordered]
     latency = [m.latency_s for m in ordered]
-    f1 = [m.macro_f1 if m.macro_f1 is not None else float("nan") for m in ordered]
-    rel_err = [m.relative_error if m.relative_error is not None else float("nan") for m in ordered]
+    f1 = [m.macro_f1 for m in ordered]
 
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
     fig.suptitle(
-        "SQUiD — Player Query-Awareness Trend (Q1..Q10)",
+        "SQUiD — Player Query-Awareness (S/F/A/J/M workload)",
         fontsize=16,
         fontweight="bold",
     )
@@ -1507,20 +1536,13 @@ def plot_metrics(metrics: List[TrendQueryMetrics], plots_dir: Path) -> None:
     axes[1, 0].set_ylabel("seconds")
     axes[1, 0].grid(alpha=0.3)
 
-    non_agg_x = [i for i, m in enumerate(ordered) if not m.is_agg]
-    non_agg_f1 = [f1[i] for i in non_agg_x]
-    agg_x = [i for i, m in enumerate(ordered) if m.is_agg]
-    agg_re = [rel_err[i] for i in agg_x]
-    if non_agg_x:
-        axes[1, 1].plot(non_agg_x, non_agg_f1, marker="o", color="#27ae60", label="Macro F1 (non-agg)")
-    if agg_x:
-        axes[1, 1].plot(agg_x, agg_re, marker="s", color="#e67e22", label="Rel. Error (agg, lower=better)")
-    axes[1, 1].set_title("Accuracy by Query Type")
+    axes[1, 1].plot(x, f1, marker="o", color="#27ae60")
+    axes[1, 1].set_title("Macro F1 (official evaluator)")
     axes[1, 1].set_xticks(x)
     axes[1, 1].set_xticklabels(x_labels)
-    axes[1, 1].set_ylabel("score")
+    axes[1, 1].set_ylim(0.0, 1.0)
+    axes[1, 1].set_ylabel("F1")
     axes[1, 1].grid(alpha=0.3)
-    axes[1, 1].legend(fontsize=8)
 
     plt.tight_layout()
     summary_plot = plots_dir / "query_awareness_trend_summary.png"
@@ -1528,9 +1550,9 @@ def plot_metrics(metrics: List[TrendQueryMetrics], plots_dir: Path) -> None:
     plt.close(fig)
     logger.info(f"Saved trend summary plot: {summary_plot}")
 
-    # Separate P/R/F1 plot (non-aggregation queries only; agg queries shown as gaps)
-    p = [m.macro_precision if m.macro_precision is not None else float("nan") for m in ordered]
-    r = [m.macro_recall if m.macro_recall is not None else float("nan") for m in ordered]
+    # Separate P/R/F1 plot
+    p = [m.macro_precision for m in ordered]
+    r = [m.macro_recall for m in ordered]
     fig2, ax2 = plt.subplots(figsize=(12, 5))
     ax2.plot(x, p, marker="o", label="Precision")
     ax2.plot(x, r, marker="o", label="Recall")
@@ -1538,7 +1560,7 @@ def plot_metrics(metrics: List[TrendQueryMetrics], plots_dir: Path) -> None:
     ax2.set_xticks(x)
     ax2.set_xticklabels(x_labels)
     ax2.set_ylim(0.0, 1.0)
-    ax2.set_title("SQUiD — Macro Precision/Recall/F1 by Query (non-aggregation queries only)")
+    ax2.set_title("SQUiD — Macro Precision/Recall/F1 by Query")
     ax2.set_ylabel("score")
     ax2.grid(alpha=0.3)
     ax2.legend()
@@ -1628,24 +1650,14 @@ def main() -> int:
         plot_metrics(metrics, plots_dir)
 
         success_count = sum(1 for m in metrics if m.success)
-        non_agg = [m for m in metrics if not m.is_agg]
-        agg_metrics = [m for m in metrics if m.is_agg and m.relative_error is not None]
         avg_f1 = (
-            sum(m.macro_f1 for m in non_agg if m.macro_f1 is not None) / len(non_agg)
-            if non_agg else 0.0
-        )
-        avg_rel_err = (
-            sum(m.relative_error for m in agg_metrics) / len(agg_metrics)
-            if agg_metrics else None
+            sum(m.macro_f1 for m in metrics) / len(metrics) if metrics else 0.0
         )
         logger.info("=" * 80)
-        logger.info(f"Completed: {success_count}/{len(metrics)} queries succeeded")
-        if non_agg:
-            logger.info(f"Non-aggregation queries ({len(non_agg)}): avg macro F1={avg_f1:.3f}")
-        if avg_rel_err is not None:
-            logger.info(
-                f"Aggregation queries ({len(agg_metrics)}): avg relative error={avg_rel_err:.4f}"
-            )
+        logger.info(
+            f"Completed: {success_count}/{len(metrics)} queries succeeded, "
+            f"avg macro F1={avg_f1:.3f}"
+        )
         logger.info(f"Generated DB: {run_db}")
         logger.info(f"Outputs under: {run_dir}")
         logger.info("=" * 80)
