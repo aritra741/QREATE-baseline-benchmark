@@ -1210,15 +1210,37 @@ def evaluate_with_official_framework(
         aug_gt = _augment_sql_with_entity(sql, entity, dialect="duckdb")
         gt_sql = aug_gt if aug_gt else sql
 
+        # SQUiD renames several columns vs. the canonical schema. Normalize
+        # them before alignment so the evaluator can match on "name", "team", etc.
+        _SQUID_TO_CANONICAL = {
+            "full_name": "name",
+            "current_team": "team",
+            "championships": "championship",
+        }
+
+        def _normalize_squid_rows(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+            if not rows:
+                return rows
+            present_keys = set(rows[0].keys())
+            renames = {k: v for k, v in _SQUID_TO_CANONICAL.items() if k in present_keys and v not in present_keys}
+            if not renames:
+                return rows
+            return [{renames.get(k, k): v for k, v in r.items()} for r in rows]
+
+        result_rows = _normalize_squid_rows(result_rows)
         row_cols = {k.lower() for k in (result_rows[0].keys() if result_rows else {})}
         if entity.lower() not in row_cols and phase2_db.exists():
             aug_sql = _augment_sql_with_entity(sql, entity, dialect="sqlite")
             if aug_sql:
+                # Rewrite the augmented SQL for SQUiD schema, then rename the
+                # augmented column back to the canonical entity name.
+                squid_aug_sql = rewrite_query_for_squid_schema(aug_sql)
                 try:
                     con = sqlite3.connect(str(phase2_db))
                     con.row_factory = sqlite3.Row
-                    cur_aug = con.execute(aug_sql)
-                    cols = [d[0] for d in cur_aug.description]
+                    cur_aug = con.execute(squid_aug_sql)
+                    raw_cols = [d[0] for d in cur_aug.description]
+                    cols = [_SQUID_TO_CANONICAL.get(c, c) for c in raw_cols]
                     effective_rows = [
                         dict(zip(cols, r)) for r in cur_aug.fetchall()
                     ]
