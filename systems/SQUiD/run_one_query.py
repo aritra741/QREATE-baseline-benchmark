@@ -184,36 +184,44 @@ def main() -> int:
         print("  ".join(f"{str(r.get(c, '')):>18}" for c in squid_cols))
     print("-" * 70)
 
-    # Align on player name for row-level comparison (same logic as the test script).
-    # Use full_name from SQUiD if name is not directly present.
-    def _get_name(row: dict) -> str:
-        v = row.get("name") or row.get("full_name") or ""
-        return str(v).strip().lower()
+    # Multiset row comparison: normalize each row to a comparable tuple,
+    # then count matched/extra/missed rows.
+    # Column name normalization maps SQUiD names back to canonical gold names.
+    COL_NORM = {
+        "full_name": "name",
+        "current_team": "team",
+        "championships": "championship",
+    }
 
-    gold_by_name: Dict[str, list] = {}
-    for r in gold_rows:
-        gold_by_name.setdefault(_get_name(r), []).append(r)
+    def _norm_val(v) -> str:
+        if v is None:
+            return ""
+        s = str(v).strip().lower()
+        try:
+            f = float(s)
+            return str(int(f)) if f == int(f) else s
+        except (ValueError, TypeError):
+            return s
 
-    squid_by_name: Dict[str, list] = {}
-    for r in squid_rows:
-        squid_by_name.setdefault(_get_name(r), []).append(r)
+    def _row_tuple(row: dict) -> tuple:
+        # Normalize column names, sort for stable ordering, build value tuple.
+        normalized = {COL_NORM.get(k, k): _norm_val(v) for k, v in row.items()}
+        return tuple(normalized[k] for k in sorted(normalized))
 
-    gold_names = set(gold_by_name)
-    squid_names = set(squid_by_name)
-    matched_names = gold_names & squid_names
-    extra_names = squid_names - gold_names
-    missed_names = gold_names - squid_names
+    from collections import Counter
+    gold_counts = Counter(_row_tuple(r) for r in gold_rows)
+    squid_counts = Counter(_row_tuple(r) for r in squid_rows)
 
-    matched_rows = sum(len(gold_by_name[n]) for n in matched_names)
-    extra_rows   = sum(len(squid_by_name[n]) for n in extra_names)
-    missed_rows  = sum(len(gold_by_name[n]) for n in missed_names)
+    matched = sum((gold_counts & squid_counts).values())
+    extra   = sum((squid_counts - gold_counts).values())
+    missed  = sum((gold_counts - squid_counts).values())
 
-    print("\n--- Row counts (by player name alignment) ---")
-    print(f"  Gold:    {len(gold_rows)} rows  ({len(gold_names)} unique names)")
-    print(f"  SQUiD:   {len(squid_rows)} rows  ({len(squid_names)} unique names)")
-    print(f"  Matched: {matched_rows} rows  ({len(matched_names)} unique names in both)")
-    print(f"  Extra:   {extra_rows} rows  ({len(extra_names)} names in SQUiD not in gold)")
-    print(f"  Missed:  {missed_rows} rows  ({len(missed_names)} names in gold not in SQUiD)")
+    print("\n--- Row counts (value-level multiset comparison) ---")
+    print(f"  Gold:    {len(gold_rows)}")
+    print(f"  SQUiD:   {len(squid_rows)}")
+    print(f"  Matched: {matched}  (rows in SQUiD that match a gold row)")
+    print(f"  Extra:   {extra}  (rows in SQUiD with no match in gold)")
+    print(f"  Missed:  {missed}  (rows in gold with no match in SQUiD)")
     print("\n--- Time ---")
     print(f"  Gold:  {gold_time:.4f}s")
     print(f"  SQUiD: {squid_time:.4f}s")
