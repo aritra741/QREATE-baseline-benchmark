@@ -55,11 +55,26 @@ GROUP BY T.team_name, T.location, T.founded_year;
 KEY_COLS = ["team_name", "location", "founded_year"]
 
 
+def _normalize_key_val(val) -> str:
+    """Canonical form for key comparison: 1946.0, 1946, '1946', '1946.0' -> '1946'; text -> lowercase."""
+    if val is None:
+        return ""
+    if isinstance(val, (int, float)):
+        if isinstance(val, float) and val == int(val):
+            return str(int(val))
+        return str(val)
+    s = str(val).strip().lower()
+    try:
+        f = float(s)
+        if f == int(f):
+            return str(int(f))
+    except (ValueError, TypeError):
+        pass
+    return s
+
+
 def _row_key(row: dict, key_cols: list) -> tuple:
-    return tuple(
-        "" if c not in row or row[c] is None else str(row[c]).strip().lower()
-        for c in key_cols
-    )
+    return tuple(_normalize_key_val(row.get(c)) for c in key_cols)
 
 
 def run_query(conn: sqlite3.Connection, query: str) -> tuple[list[dict], list[str], float]:
