@@ -32,11 +32,20 @@ DB_FALLBACK = (
 )
 
 DEFAULT_QUERY = """
-SELECT team.championship, team.location, player.age, player.olympic_gold_medals
-FROM player JOIN team ON player.team = team.team_name;
+SELECT T.team_name, T.location, T.founded_year,
+       COUNT(P.name) as player_count,
+       AVG(P.age) as avg_age,
+       SUM(P.mvp_awards) as total_mvp_awards,
+       SUM(P.nba_championships) as total_championships
+FROM player P
+JOIN team T ON P.team = T.team_name
+WHERE P.draft_year > 2000
+   OR P.position = 'Frontcourt'
+   OR T.founded_year < 1980
+GROUP BY T.team_name, T.location, T.founded_year;
 """
 
-KEY_COLS = ["championship", "location", "age", "olympic_gold_medals"]
+KEY_COLS = ["team_name", "location", "founded_year"]
 
 
 def _find_latest_squid_db() -> Optional[Path]:
@@ -187,11 +196,15 @@ def main() -> int:
     # Multiset row comparison: normalize each row to a comparable tuple,
     # then count matched/extra/missed rows.
     # Column name normalization maps SQUiD names back to canonical gold names.
+    gold_cols = set(gold_rows[0].keys()) if gold_rows else set()
+    squid_cols = set(squid_rows[0].keys()) if squid_rows else set()
     COL_NORM = {
         "full_name": "name",
         "current_team": "team",
         "championships": "championship",
     }
+    if "team_name" in gold_cols and "name" in squid_cols and "team_name" not in squid_cols:
+        COL_NORM["name"] = "team_name"
 
     def _norm_val(v) -> str:
         if v is None:
