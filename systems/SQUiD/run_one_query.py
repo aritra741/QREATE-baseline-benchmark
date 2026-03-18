@@ -37,8 +37,6 @@ FROM player JOIN team ON player.team = team.team_name;
 """
 
 KEY_COLS = ["championship", "location", "age", "olympic_gold_medals"]
-# SQUiD emits different column names; map for comparison
-SQUID_COL_ALIAS = {"team_name": "name", "championship": "championships"}
 
 
 def _find_latest_squid_db() -> Optional[Path]:
@@ -111,33 +109,6 @@ def _run_query_or_error(conn: sqlite3.Connection, query: str) -> Tuple[bool, Lis
         return False, [], [], 0.0, str(e)
 
 
-def _normalize_key_val(val) -> str:
-    if val is None:
-        return ""
-    if isinstance(val, (int, float)):
-        if isinstance(val, float) and val == int(val):
-            return str(int(val))
-        return str(val)
-    s = str(val).strip().lower()
-    try:
-        f = float(s)
-        if f == int(f):
-            return str(int(f))
-    except (ValueError, TypeError):
-        pass
-    return s
-
-
-def _row_key(row: dict, key_cols: List[str], col_alias: Optional[dict] = None) -> tuple:
-    col_alias = col_alias or {}
-    vals = []
-    for c in key_cols:
-        v = row.get(c)
-        if v is None and c in col_alias:
-            v = row.get(col_alias[c])
-        vals.append(_normalize_key_val(v))
-    return tuple(vals)
-
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="Run one query on SQUiD DB and compare to ground truth")
@@ -199,14 +170,6 @@ def main() -> int:
         common = col_names
     key_cols = [c for c in KEY_COLS if c in common] or (common[:3] if common else [])
 
-    gold_map = {_row_key(r, key_cols): r for r in gold_rows}
-    squid_map = {_row_key(r, key_cols, SQUID_COL_ALIAS): r for r in squid_rows}
-    gold_keys = set(gold_map)
-    squid_keys = set(squid_map)
-    matched = gold_keys & squid_keys
-    extra = squid_keys - gold_keys
-    missed = gold_keys - squid_keys
-
     print("\n--- Gold (player.db) ---")
     print("  ".join(f"{c:>18}" for c in col_names))
     print("-" * 70)
@@ -221,10 +184,9 @@ def main() -> int:
         print("  ".join(f"{str(r.get(c, '')):>18}" for c in squid_cols))
     print("-" * 70)
 
-    print("\n--- Comparison ---")
-    print(f"  Matched: {len(matched)}")
-    print(f"  Extra:   {len(extra)}  (in SQUiD, not in gold)")
-    print(f"  Missed:  {len(missed)}  (in gold, not in SQUiD)")
+    print("\n--- Row counts ---")
+    print(f"  Gold:  {len(gold_rows)} rows")
+    print(f"  SQUiD: {len(squid_rows)} rows")
     print("\n--- Time ---")
     print(f"  Gold:  {gold_time:.4f}s")
     print(f"  SQUiD: {squid_time:.4f}s")
