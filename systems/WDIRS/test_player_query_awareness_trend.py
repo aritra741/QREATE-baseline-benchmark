@@ -849,17 +849,30 @@ def ensure_snapshot_artifacts(refresh_snapshot: bool = False) -> Tuple[Path, Opt
     source_cache = source_run_dir / ".cache" if source_run_dir else CACHE_DIR
     source_extractions = source_cache / "extractions"
 
+    # The DB, cache, and extractions snapshot must all come from the SAME
+    # preprocessing run.  --refresh-snapshot therefore refreshes all three
+    # atomically, not just the DB.  A stale cache paired with a fresh DB
+    # causes the attribute index chunk IDs to diverge from the candidate_index
+    # in the DB, which triggers the pre-flight integrity check failure.
     snapshot_db = SNAPSHOT_DIR / "player_snapshot.db"
-    if refresh_snapshot and snapshot_db.exists():
-        snapshot_db.unlink()
-        logger.info(f"Removed existing snapshot DB (refresh): {snapshot_db}")
+    snapshot_cache = SNAPSHOT_DIR / "cache_snapshot"
+    snapshot_extractions = SNAPSHOT_DIR / "extractions_snapshot"
+
+    if refresh_snapshot:
+        for artifact in (snapshot_db, snapshot_cache, snapshot_extractions):
+            if artifact.exists():
+                if artifact.is_dir():
+                    shutil.rmtree(artifact)
+                else:
+                    artifact.unlink()
+                logger.info(f"Removed existing snapshot artifact (refresh): {artifact}")
+
     if snapshot_db.exists():
         logger.info(f"Snapshot DB already exists: {snapshot_db}")
     else:
         shutil.copy2(source_db, snapshot_db)
         logger.info(f"Created snapshot DB: {snapshot_db} (from {source_db})")
 
-    snapshot_cache = SNAPSHOT_DIR / "cache_snapshot"
     if snapshot_cache.exists():
         logger.info(f"Snapshot cache already exists: {snapshot_cache}")
     elif source_cache.exists():
@@ -868,7 +881,6 @@ def ensure_snapshot_artifacts(refresh_snapshot: bool = False) -> Tuple[Path, Opt
     else:
         logger.warning(f"Cache dir not found, skipping copy: {source_cache}")
 
-    snapshot_extractions = SNAPSHOT_DIR / "extractions_snapshot"
     if snapshot_extractions.exists():
         logger.info(f"Snapshot extraction cache already exists: {snapshot_extractions}")
     elif source_extractions.exists():
