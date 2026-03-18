@@ -41,11 +41,20 @@ def _find_latest_our_db() -> Optional[Path]:
     return None
 
 QUERY = """
-SELECT team.championship, team.location, player.age, player.olympic_gold_medals
-FROM player JOIN team ON player.team = team.team_name;
+SELECT T.team_name, T.location, T.founded_year,
+       COUNT(P.name) as player_count,
+       AVG(P.age) as avg_age,
+       SUM(P.mvp_awards) as total_mvp_awards,
+       SUM(P.nba_championships) as total_championships
+FROM player P
+JOIN team T ON P.team = T.team_name
+WHERE P.draft_year > 2000
+   OR P.position = 'Frontcourt'
+   OR T.founded_year < 1980
+GROUP BY T.team_name, T.location, T.founded_year;
 """
 
-KEY_COLS = ["championship", "location", "age", "olympic_gold_medals"]
+KEY_COLS = ["team_name", "location", "founded_year"]
 
 
 def _row_key(row: dict, key_cols: list) -> tuple:
@@ -91,7 +100,7 @@ def main() -> int:
     conn_our.close()
 
     print("\n" + "=" * 70)
-    print("Query: team.championship, team.location, player.age, player.olympic_gold_medals")
+    print("Query: player_count, avg_age, mvp/championships by team (draft_year>2000 | Frontcourt | founded<1980)")
     print("=" * 70)
 
     gold_map = {_row_key(r, KEY_COLS): r for r in gold_rows}
@@ -119,9 +128,9 @@ def main() -> int:
     print(f"  Our DB:   {our_time:.4f}s")
 
     if extra:
-        print(f"\n  Extra rows: {list(sorted(extra))}")
+        print(f"\n  Extra rows (team_name, location, founded_year): {[k for k in sorted(extra)]}")
     if missed:
-        print(f"  Missed rows: {list(sorted(missed))}")
+        print(f"  Missed rows (team_name, location, founded_year): {[k for k in sorted(missed)]}")
 
     return 0
 
