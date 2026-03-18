@@ -41,40 +41,18 @@ def _find_latest_our_db() -> Optional[Path]:
     return None
 
 QUERY = """
-SELECT T.team_name, T.location, T.founded_year,
-       COUNT(P.name) as player_count,
-       AVG(P.age) as avg_age
-FROM player P
-JOIN team T ON P.team = T.team_name
-WHERE P.draft_year > 2000
-   OR P.position = 'Frontcourt'
-   OR T.founded_year < 1980
-GROUP BY T.team_name, T.location, T.founded_year;
+SELECT team.championship, team.location, player.age, player.olympic_gold_medals
+FROM player JOIN team ON player.team = team.team_name;
 """
 
-KEY_COLS = ["team_name", "location", "founded_year"]
-
-
-def _normalize_key_val(val) -> str:
-    """Canonical form for key comparison: 1946.0, 1946, '1946', '1946.0' -> '1946'; text -> lowercase."""
-    if val is None:
-        return ""
-    if isinstance(val, (int, float)):
-        if isinstance(val, float) and val == int(val):
-            return str(int(val))
-        return str(val)
-    s = str(val).strip().lower()
-    try:
-        f = float(s)
-        if f == int(f):
-            return str(int(f))
-    except (ValueError, TypeError):
-        pass
-    return s
+KEY_COLS = ["championship", "location", "age", "olympic_gold_medals"]
 
 
 def _row_key(row: dict, key_cols: list) -> tuple:
-    return tuple(_normalize_key_val(row.get(c)) for c in key_cols)
+    return tuple(
+        "" if c not in row or row[c] is None else str(row[c]).strip().lower()
+        for c in key_cols
+    )
 
 
 def run_query(conn: sqlite3.Connection, query: str) -> tuple[list[dict], list[str], float]:
@@ -113,7 +91,7 @@ def main() -> int:
     conn_our.close()
 
     print("\n" + "=" * 70)
-    print("Query: player count and avg age by team (draft_year>2000 OR position=Frontcourt OR founded<1980)")
+    print("Query: team.championship, team.location, player.age, player.olympic_gold_medals")
     print("=" * 70)
 
     gold_map = {_row_key(r, KEY_COLS): r for r in gold_rows}
@@ -141,9 +119,9 @@ def main() -> int:
     print(f"  Our DB:   {our_time:.4f}s")
 
     if extra:
-        print(f"\n  Extra rows (team_name, location, founded_year): {list(sorted(extra))}")
+        print(f"\n  Extra rows: {list(sorted(extra))}")
     if missed:
-        print(f"  Missed rows (team_name, location, founded_year): {list(sorted(missed))}")
+        print(f"  Missed rows: {list(sorted(missed))}")
 
     return 0
 
