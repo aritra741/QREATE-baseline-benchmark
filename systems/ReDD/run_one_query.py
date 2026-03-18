@@ -212,6 +212,114 @@ def _prepare_dataset(
     return data_root, dataset_name, did_meta
 
 
+def _committee_label_documents(
+    datapop: "DataPopLocal",
+    res_data: Dict[str, Any],
+    did_meta: Dict[str, Dict[str, Any]],
+    table_cols: Dict[str, Set[str]],
+    query_data_root: Path,
+) -> Dict[str, Any]:
+    """Generate Dcls labels via self-consistency committee, per ReDD §3.1.
+
+    The committee is M_TDP (Qwen2.5-7B-Instruct) re-run at temperature=1.0.
+    No external API and no ground truth are used — same model throughout for
+    a fair, reproducible benchmark.  Labels are recomputed fresh every run so
+    they always reflect the current M_TDP extraction output.
+    """
+    doc_info: Dict[str, Any] = json.loads((query_data_root / "doc_info.json").read_text())
+    schema_general: List[Dict[str, Any]] = json.loads(
+        (query_data_root / "schema_general.json").read_text()
+    )
+    table2schema: Dict[str, Any] = {s["Schema Name"]: s for s in schema_general}
+    attr_general = [
+        {"Schema Name": s["Schema Name"], "Attributes": [a["Attribute Name"] for a in s["Attributes"]]}
+        for s in schema_general
+    ]
+    prompt_table = Path(REDD_PROMPT_TABLE).read_text()
+    prompt_attr = Path(REDD_PROMPT_ATTR).read_text()
+
+    def _committee_generate(prompt: str, payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        msg = prompt + "\n\n" + json.dumps(payload, ensure_ascii=False)
+        messages = [{"role": "user", "content": msg}]
+        chat_inputs = datapop.tokenizer.apply_chat_template(
+            messages, add_generation_prompt=True, return_tensors="pt"
+        )
+        if hasattr(chat_inputs, "get"):
+            input_tensor = chat_inputs["input_ids"]
+            attention_mask = chat_inputs.get("attention_mask")
+        else:
+            input_tensor = chat_inputs
+            attention_mask = None
+        input_tensor = input_tensor.to(datapop.model.device)
+        if attention_mask is not None:
+            attention_mask = attention_mask.to(datapop.model.device)
+        with torch.no_grad():
+            gen_kwargs: Dict[str, Any] = dict(
+                input_ids=input_tensor,
+                max_new_tokens=256,
+                do_sample=True,
+                temperature=1.0,
+            )
+            if attention_mask is not None:
+                gen_kwargs["attention_mask"] = attention_mask
+            outputs = datapop.model.generate(**gen_kwargs)
+        gen_tokens = outputs[0][input_tensor.shape[1]:]
+        raw = datapop.tokenizer.decode(gen_tokens, skip_special_tokens=True)
+        result, _, _ = DataPopLocal._extract_json_block(raw, [])
+        return result
+
+    eval_out: Dict[str, Any] = {}
+    total = len(did_meta)
+    print(f"  [committee] Labeling {total} docs with Qwen2.5-7B at temperature=1.0 …")
+
+    for i, (did, meta) in enumerate(did_meta.items(), 1):
+        doc_text: str = doc_info.get(did, {}).get("doc", "")
+        m_tdp_result = res_data.get(did, {})
+        m_tdp_table: str = str(m_tdp_result.get("res", "")).strip().lower()
+        m_tdp_data: Dict[str, Any] = m_tdp_result.get("data", {})
+        expected_table: str = str(meta.get("table", "")).strip().lower()
+        attrs = sorted(table_cols.get(expected_table, set()))
+
+        comm_tbl_resp = _committee_generate(
+            prompt_table, {"Document": doc_text, "Schema": attr_general}
+        )
+        if comm_tbl_resp is not None and "Table Assignment" in comm_tbl_resp:
+            comm_table: str = str(comm_tbl_resp["Table Assignment"]).strip().lower()
+        else:
+            comm_table = m_tdp_table
+        table_ok: bool = comm_table == m_tdp_table
+
+        attr_ok: Dict[str, bool] = {}
+        if table_ok:
+            tbl_key = comm_table if comm_table in table2schema else expected_table
+            for c in attrs:
+                comm_attr_resp = _committee_generate(
+                    prompt_attr,
+                    {
+                        "Document": doc_text,
+                        "Schema": table2schema.get(tbl_key, table2schema.get(expected_table, {})),
+                        "Target Attribute": c,
+                    },
+                )
+                if comm_attr_resp is not None and c in comm_attr_resp:
+                    comm_val = str(comm_attr_resp[c]).strip().lower()
+                else:
+                    comm_val = str(m_tdp_data.get(c, "")).strip().lower()
+                attr_ok[c] = comm_val == str(m_tdp_data.get(c, "")).strip().lower()
+        else:
+            attr_ok = {c: False for c in attrs}
+
+        eval_out[did] = {
+            "table": table_ok,
+            "attr": attr_ok,
+            "final": table_ok and all(attr_ok.values()),
+        }
+        if i % 20 == 0 or i == total:
+            print(f"  [committee] {i}/{total} labeled")
+
+    return eval_out
+
+
 def _run_redd_pipeline(
     data_root: Path,
     out_main: Path,
@@ -244,26 +352,29 @@ def _run_redd_pipeline(
         raise RuntimeError(f"Data population failed: {res_path}")
     res_data = json.loads(res_path.read_text())
 
-    # Build eval labels from GT
-    did_meta_path = data_root / "doc_info.json"
-    did_meta = {k: {"table": v["fn"], "gt_data": v.get("data", {})} for k, v in json.loads(did_meta_path.read_text()).items()}
-
-    eval_output = {}
-    for did, meta in did_meta.items():
-        pred = res_data.get(did, {})
-        table_ok = str(pred.get("res", "")).strip().lower() == meta["table"]
-        attr_ok = {}
-        for c, gt_v in meta.get("gt_data", {}).items():
-            pred_v = pred.get("data", {}).get(c, "")
-            attr_ok[c] = str(pred_v).strip().lower() == str(gt_v).strip().lower()
-        final_ok = table_ok and all(attr_ok.values())
-        eval_output[did] = {"table": table_ok, "attr": attr_ok, "final": final_ok}
-
-    eval_path = out_root / REDD_PATHS.eval_result("run", REDD_PARAM_STR)
-    eval_path.write_text(json.dumps(eval_output, indent=2))
     (out_root / "queries.json").write_text((data_root / "queries.json").read_text())
 
-    # Correction if requested
+    # Build SCAPE classifier labels via self-consistency committee (paper §3.1).
+    # Only needed for SCAPE/SCAPE-Hyb — same Qwen2.5-7B re-run at temperature=1.0,
+    # no external API, no ground truth.
+    if variant in {"ReDD_SCAPE", "ReDD_SCAPE_Hyb"}:
+        did_meta = {k: {"table": v["fn"]} for k, v in json.loads((data_root / "doc_info.json").read_text()).items()}
+        table_cols_local: Dict[str, Set[str]] = {}
+        schema_general_local = json.loads((data_root / "schema_general.json").read_text())
+        for s in schema_general_local:
+            table_cols_local[s["Schema Name"]] = {a["Attribute Name"] for a in s["Attributes"]}
+        eval_output = _committee_label_documents(
+            datapop=datapop,
+            res_data=res_data,
+            did_meta=did_meta,
+            table_cols=table_cols_local,
+            query_data_root=data_root,
+        )
+        eval_path = out_root / REDD_PATHS.eval_result("run", REDD_PARAM_STR)
+        eval_path.write_text(json.dumps(eval_output, indent=2))
+
+    # Correction if requested — mirrors _run_redd_correction in the trend script
+    # exactly: SCAPE conformal prediction with train|cells|recal|test partitions.
     if variant in {"ReDD_SCAPE", "ReDD_SCAPE_Hyb"}:
         hs_dir = out_root / REDD_PATHS.hidden_states_dir("run", REDD_PARAM_STR)
         if not hs_dir.exists():
@@ -271,34 +382,48 @@ def _run_redd_pipeline(
 
         table_files = list(hs_dir.glob("doc-*-table.pt"))
         if not table_files:
-            raise RuntimeError("No hidden state files")
+            raise RuntimeError("No hidden state files found in hidden-states dir")
 
-        # Only correct documents that have a table hidden-state file.
-        # Documents without .pt files (e.g. those that hit the context-length
-        # limit during generation) had no hidden-state signal — classifying
-        # them on zero-filled vectors would wrongly abstain every row.
-        dids_with_hs = set()
+        # Require both a table.pt AND at least one attr.pt — docs that hit the
+        # 32K context limit mid-generation have table.pt but no attr files;
+        # LazyHiddenStatesDataset fills those with zeros which corrupts the classifier.
+        dids_with_table_hs: set = set()
         for f in table_files:
             try:
-                did_part = f.stem.split("-")[1]
-                dids_with_hs.add(int(did_part))
+                dids_with_table_hs.add(int(f.stem.split("-")[1]))
             except (IndexError, ValueError):
                 pass
-        print(f"  Hidden-state coverage: {len(dids_with_hs)}/{len(eval_output)} docs")
 
-        sample = torch.load(table_files[0], weights_only=False)
-        first_hs = sample[0]["hidden_states"]
-        num_layers = int(first_hs.shape[0]) if hasattr(first_hs, "shape") else len(first_hs)
-        hidden_dim = int(first_hs.shape[-1]) if hasattr(first_hs, "shape") else len(first_hs[0])
-        pooled_dim = hidden_dim * 2
-        exp_layers = list(range(max(0, num_layers - 7), num_layers))
+        dids_with_any_attr_hs: set = set()
+        for f in hs_dir.glob("doc-*-attr-*.pt"):
+            try:
+                dids_with_any_attr_hs.add(int(f.stem.split("-")[1]))
+            except (IndexError, ValueError):
+                pass
 
-        # Restrict correction to only docs with actual hidden states.
+        dids_with_hs = dids_with_table_hs & dids_with_any_attr_hs
         all_dids = sorted(int(d) for d in eval_output.keys() if int(d) in dids_with_hs)
+        print(f"  Hidden-state coverage: {len(all_dids)}/{len(eval_output)} docs "
+              f"(table={len(dids_with_table_hs)}, attr≥1={len(dids_with_any_attr_hs)})")
+
         if not all_dids:
-            print("  WARNING: no documents with hidden states — skipping correction")
+            print("  WARNING: no documents with complete hidden states — skipping correction")
         else:
-            train_size = min(32, max(1, len(all_dids) - 1))
+            sample = torch.load(table_files[0], weights_only=False)
+            first_hs = sample[0]["hidden_states"]
+            num_layers = int(first_hs.shape[0]) if hasattr(first_hs, "shape") else len(first_hs)
+            hidden_dim = int(first_hs.shape[-1]) if hasattr(first_hs, "shape") else len(first_hs[0])
+            pooled_dim = hidden_dim * 2
+            exp_layers = list(range(max(0, num_layers - 7), num_layers))
+
+            train_size = min(50, max(1, len(all_dids) - 1))  # paper default: 50 entries for Dcls §6.1.3
+            remaining = len(all_dids) - train_size
+            num_cells = min(20, max(5, remaining // 4))
+            num_recal = min(40, max(10, remaining // 3))
+            if remaining - num_cells - num_recal < 5:
+                num_cells = max(3, remaining // 5)
+                num_recal = max(5, remaining // 4)
+            use_conformal = remaining >= (num_cells + num_recal + 5)
 
             corr_config = {
                 "mode": "local",
@@ -314,8 +439,8 @@ def _run_redd_pipeline(
                 "exp_train_sizes": [train_size],
                 "train_size": train_size,
                 "classifier_threshold": 0.5,
-                "num_cells": 0,
-                "num_recal": 0,
+                "num_cells": num_cells,
+                "num_recal": num_recal,
                 "num_layers": num_layers,
                 "hidden_size": pooled_dim,
                 "trainer": {
@@ -332,26 +457,61 @@ def _run_redd_pipeline(
 
             val = ClassifierVal(corr_config)
             val.cls_train_trial = 0
-            val.test_dids = all_dids
+            val.all_dids = all_dids
+            val.exp_layers = exp_layers
+            val.max_train_did = train_size
+            val.max_cells_did = train_size + num_cells
+            val.max_recal_did = train_size + num_cells + num_recal
+            val.min_test_did = val.max_recal_did
+            val.max_test_did = 99999
+            val.cell_dids = all_dids[val.max_train_did:val.max_cells_did]
+            val.recal_dids = all_dids[val.max_cells_did:val.max_recal_did]
+            val.test_dids = all_dids[val.max_recal_did:]
+            if not val.test_dids:
+                val.test_dids = all_dids[max(0, len(all_dids) * 3 // 4):]
+
             loader = create_data_loader(data_root=data_root, loader_type="sqlite", loader_config={})
             model_dict = val._get_model_dict([dataset_name])
-            classifier_outputs = val._get_classifier_outputs(loader, model_dict, str(out_root), "run", all_dids, eval_output)
+            classifier_outputs = val._get_classifier_outputs(
+                loader, model_dict, str(out_root), "run", all_dids, eval_output
+            )
 
             size_key = f"s{train_size}"
-            cls_outputs_list = [classifier_outputs[dataset_name]["run"][str(layer)][size_key] for layer in exp_layers]
-            voting_mode = "soft" if variant == "ReDD_SCAPE_Hyb" else "half"
             gt_all = {did: (0 if eval_output[str(did)]["final"] else 1) for did in all_dids}
-            row_preds, _, _ = val._apply_voting(gt_all, [cls_outputs_list], voting_mode=voting_mode)
-            did2error = {str(did): int(pred) for did, pred in zip(all_dids, row_preds)}
+            layer_outputs = [
+                classifier_outputs[dataset_name]["run"][str(layer)][size_key]
+                for layer in exp_layers
+            ]
 
-            # Apply abstention only to docs the classifier had evidence for.
+            did2error: Dict[str, int] = {}
+            if use_conformal:
+                did2prediction_sets = val._multi_conformal_prediction(layer_outputs, gt_all, 0.15)  # paper default §6.1.3
+                mode = "scape_hyb" if variant == "ReDD_SCAPE_Hyb" else "scape"
+                for did in all_dids:
+                    if did in did2prediction_sets:
+                        pred_set = did2prediction_sets[did]
+                        if 1 in pred_set and 0 not in pred_set:
+                            did2error[str(did)] = 1
+                        elif mode == "scape_hyb" and len(pred_set) > 1:
+                            probs = [max(layer_outputs[i].get(str(did), [0.5])) for i in range(len(layer_outputs))]
+                            did2error[str(did)] = 1 if sum(probs) / len(probs) >= 0.5 else 0
+                        else:
+                            did2error[str(did)] = 0
+                    else:
+                        did2error[str(did)] = 0
+            else:
+                print("  WARNING: dataset too small for conformal prediction, using soft voting")
+                voting_mode = "soft" if variant == "ReDD_SCAPE_Hyb" else "half"
+                row_preds, _, _ = val._apply_voting(gt_all, [layer_outputs], voting_mode=voting_mode)
+                did2error = {str(did): int(pred) for did, pred in zip(val.test_dids, row_preds)}
+
             abstained = 0
             for did, is_error in did2error.items():
                 if is_error == 1 and did in res_data:
                     res_data[did]["res"] = "None"
                     res_data[did]["data"] = {}
                     abstained += 1
-            print(f"  Correction: abstained {abstained}/{len(all_dids)} corrected docs")
+            print(f"  Correction: abstained {abstained}/{len(did2error)} test docs")
 
     # Materialize to SQLite
     db_path = out_main / "result.db"

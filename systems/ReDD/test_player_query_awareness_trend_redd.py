@@ -15,9 +15,12 @@ Strictness policy:
 Ground-truth isolation:
 - GT data (Data/Player/*.csv) is NEVER provided to the model or the
   ReDD extraction pipeline.  It is loaded ONLY after extraction to
-  (a) build correctness labels for the SCAPE error-detection classifier
-      (Section 3.1 of the paper) and
-  (b) run the official evaluator for benchmark metrics.
+  run the official evaluator for benchmark metrics (macro P/R/F1).
+- SCAPE classifier labels (Dcls, Dcal-base) are produced exclusively
+  via a self-consistency committee: M_TDP (Qwen2.5-7B-Instruct) is
+  re-run at temperature=1.0 on each document and compared against the
+  original greedy extraction.  Disagreement → error label.  No GT, no
+  external API, no privileged oracle — per ReDD Section 3.1.
 """
 
 from __future__ import annotations
@@ -114,7 +117,7 @@ REDD_PROMPT_ATTR = str(REDD_DIR / "prompts" / "datapop_attr_json.txt")
 REDD_PARAM_STR = "redd_qwen25_7b_local"
 DEFAULT_VARIANT = os.getenv("REDD_VARIANT", "ReDD_SCAPE")
 SUPPORTED_VARIANTS = {"ReDD_NoCorrection", "ReDD_SCAPE", "ReDD_SCAPE_Hyb"}
-SCAPE_ALPHA = float(os.getenv("REDD_SCAPE_ALPHA", "0.05"))
+SCAPE_ALPHA = float(os.getenv("REDD_SCAPE_ALPHA", "0.15"))  # paper default §6.1.3
 
 NUMERIC_FIELDS = {
     "age",
@@ -909,6 +912,135 @@ def _build_eval_output_from_gt(
     return eval_out
 
 
+def _committee_label_documents(
+    datapop: "DataPopLocal",
+    res_data: Dict[str, Any],
+    did_meta: Dict[str, Dict[str, Any]],
+    table_cols: Dict[str, Set[str]],
+    query_data_root: Path,
+) -> Dict[str, Any]:
+    """Generate Dcls labels via self-consistency committee, per ReDD §3.1.
+
+    The committee is the same Qwen2.5-7B-Instruct model (M_TDP) re-run with
+    temperature=1.0 (stochastic sampling).  For each document the committee
+    independently re-extracts table assignment and attribute values using the
+    same TDP prompts.  A document is labeled correct (y=0) when the committee
+    agrees with M_TDP's original output; it is labeled an error (y=1) when
+    they disagree.
+
+    Using the same model for the committee (rather than an external API) is the
+    fair choice for a controlled benchmark: no privileged model or external
+    oracle is introduced.  The stochastic temperature produces genuine variance
+    that correlates with extraction uncertainty — the signal the SCAPE
+    classifier is trained to detect.
+
+    Ground truth is NEVER used here.  Labels are recomputed on every run so
+    they always reflect the current M_TDP extraction — caching would couple
+    labels to a previous extraction and violate ReDD's independence principle.
+    """
+    doc_info: Dict[str, Any] = json.loads((query_data_root / "doc_info.json").read_text())
+    schema_general: List[Dict[str, Any]] = json.loads(
+        (query_data_root / "schema_general.json").read_text()
+    )
+    table2schema: Dict[str, Any] = {s["Schema Name"]: s for s in schema_general}
+    # Simplified schema (attribute names only) — same format DataPopLocal uses
+    # for table-assignment prompts.
+    attr_general = [
+        {"Schema Name": s["Schema Name"], "Attributes": [a["Attribute Name"] for a in s["Attributes"]]}
+        for s in schema_general
+    ]
+
+    prompt_table = Path(REDD_PROMPT_TABLE).read_text()
+    prompt_attr = Path(REDD_PROMPT_ATTR).read_text()
+
+    def _committee_generate(prompt: str, payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Re-run M_TDP with temperature=1.0 (no hidden-state capture needed)."""
+        msg = prompt + "\n\n" + json.dumps(payload, ensure_ascii=False)
+        messages = [{"role": "user", "content": msg}]
+        chat_inputs = datapop.tokenizer.apply_chat_template(
+            messages, add_generation_prompt=True, return_tensors="pt"
+        )
+        if hasattr(chat_inputs, "get"):
+            input_tensor = chat_inputs["input_ids"]
+            attention_mask = chat_inputs.get("attention_mask")
+        else:
+            input_tensor = chat_inputs
+            attention_mask = None
+        input_tensor = input_tensor.to(datapop.model.device)
+        if attention_mask is not None:
+            attention_mask = attention_mask.to(datapop.model.device)
+        with torch.no_grad():
+            gen_kwargs: Dict[str, Any] = dict(
+                input_ids=input_tensor,
+                max_new_tokens=256,
+                do_sample=True,
+                temperature=1.0,
+            )
+            if attention_mask is not None:
+                gen_kwargs["attention_mask"] = attention_mask
+            outputs = datapop.model.generate(**gen_kwargs)
+        gen_tokens = outputs[0][input_tensor.shape[1]:]
+        raw = datapop.tokenizer.decode(gen_tokens, skip_special_tokens=True)
+        # Reuse DataPopLocal's static JSON extractor (same parser as production run)
+        result, _, _ = DataPopLocal._extract_json_block(raw, [])
+        return result
+
+    eval_out: Dict[str, Any] = {}
+    total = len(did_meta)
+    logger.info(
+        "[committee] Labeling %d documents with Qwen2.5-7B at temperature=1.0 …", total
+    )
+
+    for i, (did, meta) in enumerate(did_meta.items(), 1):
+        doc_text: str = doc_info.get(did, {}).get("doc", "")
+        m_tdp_result = res_data.get(did, {})
+        m_tdp_table: str = str(m_tdp_result.get("res", "")).strip().lower()
+        m_tdp_data: Dict[str, Any] = m_tdp_result.get("data", {})
+        expected_table: str = str(meta.get("table", "")).strip().lower()
+        attrs = sorted(table_cols.get(expected_table, set()))
+
+        # ── Committee: table assignment ──────────────────────────────────────
+        comm_tbl_resp = _committee_generate(
+            prompt_table,
+            {"Document": doc_text, "Schema": attr_general},
+        )
+        if comm_tbl_resp is not None and "Table Assignment" in comm_tbl_resp:
+            comm_table: str = str(comm_tbl_resp["Table Assignment"]).strip().lower()
+        else:
+            comm_table = m_tdp_table  # parse failure → conservative: assume agreement
+
+        table_ok: bool = comm_table == m_tdp_table
+
+        # ── Committee: attribute extraction ─────────────────────────────────
+        attr_ok: Dict[str, bool] = {}
+        if table_ok:
+            tbl_key = comm_table if comm_table in table2schema else expected_table
+            for c in attrs:
+                comm_attr_resp = _committee_generate(
+                    prompt_attr,
+                    {
+                        "Document": doc_text,
+                        "Schema": table2schema.get(tbl_key, table2schema.get(expected_table, {})),
+                        "Target Attribute": c,
+                    },
+                )
+                if comm_attr_resp is not None and c in comm_attr_resp:
+                    comm_val = _canonicalize_value(comm_attr_resp[c])
+                else:
+                    comm_val = _canonicalize_value(m_tdp_data.get(c, ""))
+                attr_ok[c] = comm_val == _canonicalize_value(m_tdp_data.get(c, ""))
+        else:
+            attr_ok = {c: False for c in attrs}
+
+        final_ok = table_ok and all(attr_ok.values())
+        eval_out[did] = {"table": table_ok, "attr": attr_ok, "final": final_ok}
+
+        if i % 10 == 0 or i == total:
+            logger.info("[committee] Labeled %d/%d documents", i, total)
+
+    return eval_out
+
+
 def _infer_classifier_shape(hidden_states_dir: Path) -> Tuple[int, int]:
     table_files = sorted(hidden_states_dir.glob("doc-*-table.pt"))
     if not table_files:
@@ -946,23 +1078,9 @@ def _run_redd_correction(
     if not hs_dir.exists():
         raise RuntimeError(f"Missing hidden-state directory required for correction: {hs_dir}")
     eval_output = json.loads(eval_path.read_text())
-
-    # Only correct documents that have a table hidden-state file.
-    # Documents without .pt files (e.g. those that exceeded the context-length
-    # limit) have no hidden-state signal; passing zero vectors to the
-    # classifier would wrongly mark them all as errors and over-abstain.
-    table_hs_files = list(hs_dir.glob("doc-*-table.pt"))
-    dids_with_hs: set = set()
-    for f in table_hs_files:
-        try:
-            dids_with_hs.add(int(f.stem.split("-")[1]))
-        except (IndexError, ValueError):
-            pass
-    all_dids = sorted(int(d) for d in eval_output.keys() if int(d) in dids_with_hs)
-    logger.info(f"[{query_id}] hidden-state coverage: {len(all_dids)}/{len(eval_output)} docs")
-
+    all_dids = sorted(int(d) for d in eval_output.keys())
     if len(all_dids) < 10:
-        raise RuntimeError(f"Insufficient docs with hidden states for correction in {query_id}: {len(all_dids)}")
+        raise RuntimeError(f"Insufficient docs for correction training in {query_id}: {len(all_dids)}")
 
     num_layers, pooled_dim = _infer_classifier_shape(hs_dir)
     exp_layers = list(range(max(0, num_layers - 7), num_layers))
@@ -1180,16 +1298,20 @@ def execute_query_via_redd(
         raise RuntimeError(f"ReDD datapop did not produce output: {res_path}")
     res_data = json.loads(res_path.read_text())
 
-    # --- Load GT ONLY NOW (post-extraction) for correction labels / eval ---
-    gt_rows_by_table = _load_gt_rows_by_table(tables)
-    eval_output = _build_eval_output_from_gt(
-        res_data=res_data,
-        did_meta=did_meta,
-        table_cols=table_cols,
-        gt_rows_by_table=gt_rows_by_table,
-    )
-    eval_path = out_root / REDD_PATHS.eval_result(query_id, REDD_PARAM_STR)
-    eval_path.write_text(json.dumps(eval_output, indent=2))
+    # --- Build SCAPE classifier labels via self-consistency committee (paper §3.1) ---
+    # Only needed for SCAPE/SCAPE-Hyb variants; NoCorrection never reads eval_path.
+    # The committee is M_TDP (Qwen2.5-7B) re-run at temperature=1.0 — no external
+    # API, no ground truth, same model throughout for a fair benchmark.
+    if variant in {"ReDD_SCAPE", "ReDD_SCAPE_Hyb"}:
+        eval_output = _committee_label_documents(
+            datapop=datapop,
+            res_data=res_data,
+            did_meta=did_meta,
+            table_cols=table_cols,
+            query_data_root=query_data_root,
+        )
+        eval_path = out_root / REDD_PATHS.eval_result(query_id, REDD_PARAM_STR)
+        eval_path.write_text(json.dumps(eval_output, indent=2))
 
     final_res_data = res_data
     if variant in {"ReDD_SCAPE", "ReDD_SCAPE_Hyb"}:
@@ -1198,7 +1320,7 @@ def execute_query_via_redd(
             dataset_name=dataset_name,
             query_data_root=query_data_root,
             out_main=out_main,
-            train_size=32,
+            train_size=50,  # paper default: 50 entries for Dcls §6.1.3
             mode="scape_hyb" if variant == "ReDD_SCAPE_Hyb" else "scape",
         )
         final_res_data = _apply_error_correction_to_res_data(res_data, did2error)
