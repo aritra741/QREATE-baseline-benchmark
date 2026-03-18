@@ -946,9 +946,23 @@ def _run_redd_correction(
     if not hs_dir.exists():
         raise RuntimeError(f"Missing hidden-state directory required for correction: {hs_dir}")
     eval_output = json.loads(eval_path.read_text())
-    all_dids = sorted(int(d) for d in eval_output.keys())
+
+    # Only correct documents that have a table hidden-state file.
+    # Documents without .pt files (e.g. those that exceeded the context-length
+    # limit) have no hidden-state signal; passing zero vectors to the
+    # classifier would wrongly mark them all as errors and over-abstain.
+    table_hs_files = list(hs_dir.glob("doc-*-table.pt"))
+    dids_with_hs: set = set()
+    for f in table_hs_files:
+        try:
+            dids_with_hs.add(int(f.stem.split("-")[1]))
+        except (IndexError, ValueError):
+            pass
+    all_dids = sorted(int(d) for d in eval_output.keys() if int(d) in dids_with_hs)
+    logger.info(f"[{query_id}] hidden-state coverage: {len(all_dids)}/{len(eval_output)} docs")
+
     if len(all_dids) < 10:
-        raise RuntimeError(f"Insufficient docs for correction training in {query_id}: {len(all_dids)}")
+        raise RuntimeError(f"Insufficient docs with hidden states for correction in {query_id}: {len(all_dids)}")
 
     num_layers, pooled_dim = _infer_classifier_shape(hs_dir)
     exp_layers = list(range(max(0, num_layers - 7), num_layers))

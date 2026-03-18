@@ -267,6 +267,20 @@ def _run_redd_pipeline(
         table_files = list(hs_dir.glob("doc-*-table.pt"))
         if not table_files:
             raise RuntimeError("No hidden state files")
+
+        # Only correct documents that have a table hidden-state file.
+        # Documents without .pt files (e.g. those that hit the context-length
+        # limit during generation) had no hidden-state signal — classifying
+        # them on zero-filled vectors would wrongly abstain every row.
+        dids_with_hs = set()
+        for f in table_files:
+            try:
+                did_part = f.stem.split("-")[1]
+                dids_with_hs.add(int(did_part))
+            except (IndexError, ValueError):
+                pass
+        print(f"  Hidden-state coverage: {len(dids_with_hs)}/{len(eval_output)} docs")
+
         sample = torch.load(table_files[0], weights_only=False)
         first_hs = sample[0]["hidden_states"]
         num_layers = int(first_hs.shape[0]) if hasattr(first_hs, "shape") else len(first_hs)
@@ -274,58 +288,65 @@ def _run_redd_pipeline(
         pooled_dim = hidden_dim * 2
         exp_layers = list(range(max(0, num_layers - 7), num_layers))
 
-        all_dids = sorted(int(d) for d in eval_output.keys())
-        train_size = min(32, max(1, len(all_dids) - 1))
+        # Restrict correction to only docs with actual hidden states.
+        all_dids = sorted(int(d) for d in eval_output.keys() if int(d) in dids_with_hs)
+        if not all_dids:
+            print("  WARNING: no documents with hidden states — skipping correction")
+        else:
+            train_size = min(32, max(1, len(all_dids) - 1))
 
-        corr_config = {
-            "mode": "local",
-            "llm_model": REQUIRED_MODEL_ID,
-            "llm_model_path": DEFAULT_MODEL_PATH,
-            "res_param_str": REDD_PARAM_STR,
-            "data_loader_type": "sqlite",
-            "data_main": str(data_root.parent),
-            "out_main": str(out_main),
-            "exp_dn_fn_list": [dataset_name],
-            "cls_train_trials": [0],
-            "exp_layers": exp_layers,
-            "exp_train_sizes": [train_size],
-            "train_size": train_size,
-            "classifier_threshold": 0.5,
-            "num_cells": 0,
-            "num_recal": 0,
-            "num_layers": num_layers,
-            "hidden_size": pooled_dim,
-            "trainer": {
-                "train_percentage": 0.8,
-                "batch_size": 64,
-                "epochs": 8,
-                "early_stop_patience": 2,
-                "learning_rate": 1e-4,
-            },
-        }
+            corr_config = {
+                "mode": "local",
+                "llm_model": REQUIRED_MODEL_ID,
+                "llm_model_path": DEFAULT_MODEL_PATH,
+                "res_param_str": REDD_PARAM_STR,
+                "data_loader_type": "sqlite",
+                "data_main": str(data_root.parent),
+                "out_main": str(out_main),
+                "exp_dn_fn_list": [dataset_name],
+                "cls_train_trials": [0],
+                "exp_layers": exp_layers,
+                "exp_train_sizes": [train_size],
+                "train_size": train_size,
+                "classifier_threshold": 0.5,
+                "num_cells": 0,
+                "num_recal": 0,
+                "num_layers": num_layers,
+                "hidden_size": pooled_dim,
+                "trainer": {
+                    "train_percentage": 0.8,
+                    "batch_size": 64,
+                    "epochs": 8,
+                    "early_stop_patience": 2,
+                    "learning_rate": 1e-4,
+                },
+            }
 
-        trainer = ClassifierTrainer(corr_config)
-        trainer([dataset_name])
+            trainer = ClassifierTrainer(corr_config)
+            trainer([dataset_name])
 
-        val = ClassifierVal(corr_config)
-        val.cls_train_trial = 0
-        val.test_dids = all_dids
-        loader = create_data_loader(data_root=data_root, loader_type="sqlite", loader_config={})
-        model_dict = val._get_model_dict([dataset_name])
-        classifier_outputs = val._get_classifier_outputs(loader, model_dict, str(out_root), "run", all_dids, eval_output)
+            val = ClassifierVal(corr_config)
+            val.cls_train_trial = 0
+            val.test_dids = all_dids
+            loader = create_data_loader(data_root=data_root, loader_type="sqlite", loader_config={})
+            model_dict = val._get_model_dict([dataset_name])
+            classifier_outputs = val._get_classifier_outputs(loader, model_dict, str(out_root), "run", all_dids, eval_output)
 
-        size_key = f"s{train_size}"
-        cls_outputs_list = [classifier_outputs[dataset_name]["run"][str(layer)][size_key] for layer in exp_layers]
-        voting_mode = "soft" if variant == "ReDD_SCAPE_Hyb" else "half"
-        gt_all = {did: (0 if eval_output[str(did)]["final"] else 1) for did in all_dids}
-        row_preds, _, _ = val._apply_voting(gt_all, [cls_outputs_list], voting_mode=voting_mode)
-        did2error = {str(did): int(pred) for did, pred in zip(all_dids, row_preds)}
+            size_key = f"s{train_size}"
+            cls_outputs_list = [classifier_outputs[dataset_name]["run"][str(layer)][size_key] for layer in exp_layers]
+            voting_mode = "soft" if variant == "ReDD_SCAPE_Hyb" else "half"
+            gt_all = {did: (0 if eval_output[str(did)]["final"] else 1) for did in all_dids}
+            row_preds, _, _ = val._apply_voting(gt_all, [cls_outputs_list], voting_mode=voting_mode)
+            did2error = {str(did): int(pred) for did, pred in zip(all_dids, row_preds)}
 
-        # Apply abstention
-        for did, is_error in did2error.items():
-            if is_error == 1 and did in res_data:
-                res_data[did]["res"] = "None"
-                res_data[did]["data"] = {}
+            # Apply abstention only to docs the classifier had evidence for.
+            abstained = 0
+            for did, is_error in did2error.items():
+                if is_error == 1 and did in res_data:
+                    res_data[did]["res"] = "None"
+                    res_data[did]["data"] = {}
+                    abstained += 1
+            print(f"  Correction: abstained {abstained}/{len(all_dids)} corrected docs")
 
     # Materialize to SQLite
     db_path = out_main / "result.db"
