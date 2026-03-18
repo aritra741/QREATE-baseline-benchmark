@@ -226,12 +226,13 @@ class TrendQueryMetrics:
     prompt_tokens: int
     completion_tokens: int
     total_tokens: int
-    macro_f1: float
-    macro_precision: float
-    macro_recall: float
+    macro_f1: Optional[float]        # None for aggregation queries
+    macro_precision: Optional[float]  # None for aggregation queries
+    macro_recall: Optional[float]     # None for aggregation queries
     gt_result_count: int
-    matched_rows: int
+    matched_rows: Optional[int]       # None for aggregation queries
     is_agg: bool
+    relative_error: Optional[float] = None
     error: Optional[str] = None
 
 
@@ -1068,6 +1069,81 @@ def _build_pred_df(
     return df
 
 
+def _safe_float(v: Any) -> Optional[float]:
+    if v is None:
+        return None
+    s = str(v).strip().replace(",", "")
+    if not s:
+        return None
+    try:
+        out = float(s)
+    except Exception:
+        return None
+    if not math.isfinite(out):
+        return None
+    return out
+
+
+def _cell_relative_error(pred: Any, gold: Any) -> float:
+    p = _safe_float(pred)
+    g = _safe_float(gold)
+    if p is None and g is None:
+        return 0.0
+    if p is None or g is None:
+        return 1.0
+    if abs(g) < 1e-12:
+        return 0.0 if abs(p) < 1e-12 else abs(p - g)
+    return abs(p - g) / abs(g)
+
+
+def _agg_row_key(row: Dict[str, Any], key_cols: List[str]) -> Tuple[str, ...]:
+    return tuple(
+        "" if c not in row or row[c] is None else str(row[c]).strip().lower()
+        for c in key_cols
+    )
+
+
+def _compute_aggregation_relative_error(
+    parsed_sql: Any,
+    pred_rows: List[Dict[str, Any]],
+    gold_rows: List[Dict[str, Any]],
+) -> Optional[float]:
+    """Mean relative error across all aggregate cells; None when not applicable."""
+    if parsed_sql.query_type != "aggregation":
+        return None
+    agg_cols = [item.output_name for item in parsed_sql.select_items if item.is_agg]
+    if not agg_cols:
+        return None
+    if not gold_rows and not pred_rows:
+        return 0.0
+
+    group_cols = [item.output_name for item in parsed_sql.select_items if not item.is_agg]
+    errors: List[float] = []
+
+    if not group_cols:
+        gold_row = gold_rows[0] if gold_rows else {}
+        pred_row = pred_rows[0] if pred_rows else {}
+        for c in agg_cols:
+            errors.append(_cell_relative_error(pred_row.get(c), gold_row.get(c)))
+        extra_rows = abs(len(pred_rows) - len(gold_rows))
+        if extra_rows > 0:
+            errors.extend([1.0] * (extra_rows * max(1, len(agg_cols))))
+        return float(sum(errors) / len(errors)) if errors else None
+
+    pred_map = {_agg_row_key(r, group_cols): r for r in pred_rows}
+    gold_map = {_agg_row_key(r, group_cols): r for r in gold_rows}
+    for key in set(pred_map.keys()) | set(gold_map.keys()):
+        prow = pred_map.get(key)
+        grow = gold_map.get(key)
+        for c in agg_cols:
+            if prow is None or grow is None:
+                errors.append(1.0)
+            else:
+                errors.append(_cell_relative_error(prow.get(c), grow.get(c)))
+
+    return float(sum(errors) / len(errors)) if errors else None
+
+
 def evaluate_with_official_framework(
     sql: str,
     result_rows: List[Dict[str, Any]],
@@ -1083,40 +1159,58 @@ def evaluate_with_official_framework(
 ) -> Dict[str, Any]:
     parsed = sql_parser.parse(sql)
     is_agg = parsed.query_type == "aggregation"
-    entity = identity_col or "name"
 
+    # ── Aggregation queries: relative error is the correct metric; F1 is not ──
+    # F1/precision/recall is a set-membership metric for checking whether the
+    # right *entities* are returned.  For aggregations (COUNT, SUM, AVG …) what
+    # matters is how close the numeric answers are, which relative error captures.
+    # We skip the row-matcher entirely for agg queries and return macro_f1=None.
     if is_agg:
-        gt_sql = sql
-        effective_rows = result_rows
-        primary_keys = parsed.primary_keys
-    else:
-        aug_gt = _augment_sql_with_entity(sql, entity, dialect="duckdb")
-        gt_sql = aug_gt if aug_gt else sql
+        gold_df = gt_runner.run(sql)
+        relative_error: Optional[float] = None
+        try:
+            relative_error = _compute_aggregation_relative_error(
+                parsed,
+                result_rows,
+                gold_df.to_dict(orient="records"),
+            )
+        except Exception as re_exc:
+            logger.warning(f"[Eval] Relative error computation failed ({re_exc}); skipping.")
+        return {
+            "macro_f1": None,
+            "macro_precision": None,
+            "macro_recall": None,
+            "is_agg": True,
+            "gt_result_count": len(gold_df),
+            "matched_rows": None,
+            "relative_error": relative_error,
+        }
 
-        row_cols = {k.lower() for k in (result_rows[0].keys() if result_rows else {})}
-        if entity.lower() not in row_cols and phase2_db.exists():
-            aug_sql = _augment_sql_with_entity(sql, entity, dialect="sqlite")
-            if aug_sql:
-                try:
-                    con = sqlite3.connect(str(phase2_db))
-                    con.row_factory = sqlite3.Row
-                    cur_aug = con.execute(aug_sql)
-                    cols = [d[0] for d in cur_aug.description]
-                    effective_rows = [
-                        dict(zip(cols, r)) for r in cur_aug.fetchall()
-                    ]
-                    con.close()
-                except Exception:
-                    effective_rows = result_rows
-            else:
+    # ── Non-aggregation queries: row-matcher + F1 ────────────────────────────
+    entity = identity_col or "name"
+    aug_gt = _augment_sql_with_entity(sql, entity, dialect="duckdb")
+    gt_sql = aug_gt if aug_gt else sql
+
+    row_cols = {k.lower() for k in (result_rows[0].keys() if result_rows else {})}
+    if entity.lower() not in row_cols and phase2_db.exists():
+        aug_sql = _augment_sql_with_entity(sql, entity, dialect="sqlite")
+        if aug_sql:
+            try:
+                con = sqlite3.connect(str(phase2_db))
+                con.row_factory = sqlite3.Row
+                cur_aug = con.execute(aug_sql)
+                cols = [d[0] for d in cur_aug.description]
+                effective_rows = [dict(zip(cols, r)) for r in cur_aug.fetchall()]
+                con.close()
+            except Exception:
                 effective_rows = result_rows
         else:
             effective_rows = result_rows
-        primary_keys = [entity]
+    else:
+        effective_rows = result_rows
 
     gold_df = gt_runner.run(gt_sql)
-    if not is_agg and entity not in gold_df.columns:
-        primary_keys = parsed.primary_keys
+    primary_keys: List[str] = [entity] if entity in gold_df.columns else parsed.primary_keys
 
     manifest = _QueryManifest(gt_sql, sql_parser.parse(gt_sql), attributes)
     pred_df = _build_pred_df(
@@ -1126,9 +1220,7 @@ def evaluate_with_official_framework(
         attributes=attributes,
     )
 
-    primary_keys = _resolve_primary_keys_for_alignment(
-        primary_keys, gold_df, pred_df
-    )
+    primary_keys = _resolve_primary_keys_for_alignment(primary_keys, gold_df, pred_df)
 
     gold_norm = _normalize_key_cols(gold_df, primary_keys)
     pred_norm = _normalize_key_cols(pred_df, primary_keys)
@@ -1143,23 +1235,22 @@ def evaluate_with_official_framework(
             query_type=parsed.query_type,
         )
     except KeyError as ke:
-        logger.warning(
-            f"[Eval] RowMatcher key error ({ke}) — returning zero metrics"
-        )
+        logger.warning(f"[Eval] RowMatcher key error ({ke}) — returning zero metrics")
         return {
             "macro_f1": 0.0,
             "macro_precision": 0.0,
             "macro_recall": 0.0,
-            "is_agg": is_agg,
+            "is_agg": False,
             "gt_result_count": len(gold_df),
             "matched_rows": 0,
+            "relative_error": None,
         }
 
     calc = _MetricCalculator(manifest, settings)
-    metrics = calc.compute(match_result)
-    macro_f1 = metrics.get("macro_f1", 0.0)
-    macro_precision = metrics.get("macro_precision", 0.0)
-    macro_recall = metrics.get("macro_recall", 0.0)
+    row_metrics = calc.compute(match_result)
+    macro_f1 = row_metrics.get("macro_f1", 0.0)
+    macro_precision = row_metrics.get("macro_precision", 0.0)
+    macro_recall = row_metrics.get("macro_recall", 0.0)
     if not math.isfinite(macro_f1):
         macro_f1 = 0.0
     if not math.isfinite(macro_precision):
@@ -1169,12 +1260,7 @@ def evaluate_with_official_framework(
 
     try:
         writer = _ResultWriter(output_dir=output_dir)
-        writer.write(
-            gold_df,
-            match_result.gold_aligned,
-            match_result.pred_aligned,
-            metrics,
-        )
+        writer.write(gold_df, match_result.gold_aligned, match_result.pred_aligned, row_metrics)
     except Exception as we:
         logger.warning(f"[Eval] Could not write per-query outputs: {we}")
 
@@ -1182,9 +1268,10 @@ def evaluate_with_official_framework(
         "macro_f1": macro_f1,
         "macro_precision": macro_precision,
         "macro_recall": macro_recall,
-        "is_agg": is_agg,
+        "is_agg": False,
         "gt_result_count": len(gold_df),
         "matched_rows": match_result.matched_rows,
+        "relative_error": None,
     }
 
 
@@ -1284,12 +1371,13 @@ def run_trend_queries(
                 prompt_tokens=0,
                 completion_tokens=0,
                 total_tokens=0,
-                macro_f1=eval_out.get("macro_f1", 0.0),
-                macro_precision=eval_out.get("macro_precision", 0.0),
-                macro_recall=eval_out.get("macro_recall", 0.0),
+                macro_f1=eval_out.get("macro_f1"),
+                macro_precision=eval_out.get("macro_precision"),
+                macro_recall=eval_out.get("macro_recall"),
                 gt_result_count=eval_out.get("gt_result_count", 0),
-                matched_rows=eval_out.get("matched_rows", 0),
+                matched_rows=eval_out.get("matched_rows"),
                 is_agg=eval_out.get("is_agg", False),
+                relative_error=eval_out.get("relative_error"),
                 error=error if not success else None,
             )
             metrics.append(item)
@@ -1304,16 +1392,28 @@ def run_trend_queries(
                     acc_data["completion_tokens"] = 0
                     acc_data["total_tokens"] = 0
                     acc_data["result_rows"] = len(rows)
+                    acc_data["macro_f1"] = eval_out.get("macro_f1")
+                    acc_data["macro_precision"] = eval_out.get("macro_precision")
+                    acc_data["macro_recall"] = eval_out.get("macro_recall")
+                    acc_data["is_agg"] = eval_out.get("is_agg", False)
+                    acc_data["relative_error"] = eval_out.get("relative_error")
                     acc_path.write_text(json.dumps(acc_data, indent=2))
                 except Exception:
                     pass
 
-            logger.info(
-                f"{query_id}: success={item.success} rows={item.result_rows} "
-                f"latency={item.latency_s:.4f}s "
-                f"F1={item.macro_f1:.3f} P={item.macro_precision:.3f} "
-                f"R={item.macro_recall:.3f}"
-            )
+            if item.is_agg:
+                rel_err_str = "n/a" if item.relative_error is None else f"{item.relative_error:.4f}"
+                logger.info(
+                    f"{query_id}: success={item.success} rows={item.result_rows} "
+                    f"latency={item.latency_s:.4f}s RelErr={rel_err_str}"
+                )
+            else:
+                logger.info(
+                    f"{query_id}: success={item.success} rows={item.result_rows} "
+                    f"latency={item.latency_s:.4f}s "
+                    f"F1={item.macro_f1:.3f} P={item.macro_precision:.3f} "
+                    f"R={item.macro_recall:.3f}"
+                )
 
         except Exception as exc:
             latency = time.time() - t0
@@ -1376,7 +1476,8 @@ def plot_metrics(metrics: List[TrendQueryMetrics], plots_dir: Path) -> None:
     result_rows = [m.result_rows for m in ordered]
     token_cost = [m.total_tokens for m in ordered]
     latency = [m.latency_s for m in ordered]
-    f1 = [m.macro_f1 for m in ordered]
+    f1 = [m.macro_f1 if m.macro_f1 is not None else float("nan") for m in ordered]
+    rel_err = [m.relative_error if m.relative_error is not None else float("nan") for m in ordered]
 
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
     fig.suptitle(
@@ -1406,13 +1507,20 @@ def plot_metrics(metrics: List[TrendQueryMetrics], plots_dir: Path) -> None:
     axes[1, 0].set_ylabel("seconds")
     axes[1, 0].grid(alpha=0.3)
 
-    axes[1, 1].plot(x, f1, marker="o", color="#27ae60")
-    axes[1, 1].set_title("Macro F1 (official evaluator)")
+    non_agg_x = [i for i, m in enumerate(ordered) if not m.is_agg]
+    non_agg_f1 = [f1[i] for i in non_agg_x]
+    agg_x = [i for i, m in enumerate(ordered) if m.is_agg]
+    agg_re = [rel_err[i] for i in agg_x]
+    if non_agg_x:
+        axes[1, 1].plot(non_agg_x, non_agg_f1, marker="o", color="#27ae60", label="Macro F1 (non-agg)")
+    if agg_x:
+        axes[1, 1].plot(agg_x, agg_re, marker="s", color="#e67e22", label="Rel. Error (agg, lower=better)")
+    axes[1, 1].set_title("Accuracy by Query Type")
     axes[1, 1].set_xticks(x)
     axes[1, 1].set_xticklabels(x_labels)
-    axes[1, 1].set_ylim(0.0, 1.0)
-    axes[1, 1].set_ylabel("F1")
+    axes[1, 1].set_ylabel("score")
     axes[1, 1].grid(alpha=0.3)
+    axes[1, 1].legend(fontsize=8)
 
     plt.tight_layout()
     summary_plot = plots_dir / "query_awareness_trend_summary.png"
@@ -1420,9 +1528,9 @@ def plot_metrics(metrics: List[TrendQueryMetrics], plots_dir: Path) -> None:
     plt.close(fig)
     logger.info(f"Saved trend summary plot: {summary_plot}")
 
-    # Separate P/R/F1 plot
-    p = [m.macro_precision for m in ordered]
-    r = [m.macro_recall for m in ordered]
+    # Separate P/R/F1 plot (non-aggregation queries only; agg queries shown as gaps)
+    p = [m.macro_precision if m.macro_precision is not None else float("nan") for m in ordered]
+    r = [m.macro_recall if m.macro_recall is not None else float("nan") for m in ordered]
     fig2, ax2 = plt.subplots(figsize=(12, 5))
     ax2.plot(x, p, marker="o", label="Precision")
     ax2.plot(x, r, marker="o", label="Recall")
@@ -1430,7 +1538,7 @@ def plot_metrics(metrics: List[TrendQueryMetrics], plots_dir: Path) -> None:
     ax2.set_xticks(x)
     ax2.set_xticklabels(x_labels)
     ax2.set_ylim(0.0, 1.0)
-    ax2.set_title("SQUiD — Macro Precision/Recall/F1 by Query")
+    ax2.set_title("SQUiD — Macro Precision/Recall/F1 by Query (non-aggregation queries only)")
     ax2.set_ylabel("score")
     ax2.grid(alpha=0.3)
     ax2.legend()
@@ -1520,14 +1628,24 @@ def main() -> int:
         plot_metrics(metrics, plots_dir)
 
         success_count = sum(1 for m in metrics if m.success)
+        non_agg = [m for m in metrics if not m.is_agg]
+        agg_metrics = [m for m in metrics if m.is_agg and m.relative_error is not None]
         avg_f1 = (
-            sum(m.macro_f1 for m in metrics) / len(metrics) if metrics else 0.0
+            sum(m.macro_f1 for m in non_agg if m.macro_f1 is not None) / len(non_agg)
+            if non_agg else 0.0
+        )
+        avg_rel_err = (
+            sum(m.relative_error for m in agg_metrics) / len(agg_metrics)
+            if agg_metrics else None
         )
         logger.info("=" * 80)
-        logger.info(
-            f"Completed: {success_count}/{len(metrics)} queries succeeded, "
-            f"avg macro F1={avg_f1:.3f}"
-        )
+        logger.info(f"Completed: {success_count}/{len(metrics)} queries succeeded")
+        if non_agg:
+            logger.info(f"Non-aggregation queries ({len(non_agg)}): avg macro F1={avg_f1:.3f}")
+        if avg_rel_err is not None:
+            logger.info(
+                f"Aggregation queries ({len(agg_metrics)}): avg relative error={avg_rel_err:.4f}"
+            )
         logger.info(f"Generated DB: {run_db}")
         logger.info(f"Outputs under: {run_dir}")
         logger.info("=" * 80)

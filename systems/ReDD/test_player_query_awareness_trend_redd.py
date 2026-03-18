@@ -437,11 +437,11 @@ class TrendQueryMetrics:
     prompt_tokens: int
     completion_tokens: int
     total_tokens: int
-    macro_f1: float
-    macro_precision: float
-    macro_recall: float
+    macro_f1: Optional[float]        # None for aggregation queries
+    macro_precision: Optional[float]  # None for aggregation queries
+    macro_recall: Optional[float]     # None for aggregation queries
     gt_result_count: int
-    matched_rows: int
+    matched_rows: Optional[int]       # None for aggregation queries
     is_agg: bool
     relative_error: Optional[float] = None
     error: Optional[str] = None
@@ -1362,19 +1362,8 @@ def run_trend_queries_redd(
                 "relative_error": None,
             }
 
-        if eval_out.get("is_agg", False):
-            try:
-                eval_out["relative_error"] = _compute_aggregation_relative_error(
-                    query_text,
-                    rows,
-                    gt_runner=eval_gt_runner,
-                    sql_parser=eval_sql_parser,
-                )
-            except Exception as re_exc:
-                logger.warning(f"{query_id}: relative error computation failed ({re_exc}); skipping.")
-                eval_out["relative_error"] = None
-        else:
-            eval_out["relative_error"] = None
+        # relative_error is already computed and returned inside evaluate_with_official_framework
+        # for aggregation queries (None for non-agg).
 
         item = TrendQueryMetrics(
             query_id=query_id,
@@ -1386,11 +1375,11 @@ def run_trend_queries_redd(
             prompt_tokens=d_prompt,
             completion_tokens=d_completion,
             total_tokens=d_total,
-            macro_f1=eval_out.get("macro_f1", 0.0),
-            macro_precision=eval_out.get("macro_precision", 0.0),
-            macro_recall=eval_out.get("macro_recall", 0.0),
+            macro_f1=eval_out.get("macro_f1"),
+            macro_precision=eval_out.get("macro_precision"),
+            macro_recall=eval_out.get("macro_recall"),
             gt_result_count=eval_out.get("gt_result_count", 0),
-            matched_rows=eval_out.get("matched_rows", 0),
+            matched_rows=eval_out.get("matched_rows"),
             is_agg=eval_out.get("is_agg", False),
             relative_error=eval_out.get("relative_error"),
         )
@@ -1408,9 +1397,9 @@ def run_trend_queries_redd(
         acc_data["total_tokens"] = d_total
         acc_data["result_rows"] = len(rows)
         acc_data["success"] = True
-        acc_data["macro_f1"] = eval_out.get("macro_f1", 0.0)
-        acc_data["macro_precision"] = eval_out.get("macro_precision", 0.0)
-        acc_data["macro_recall"] = eval_out.get("macro_recall", 0.0)
+        acc_data["macro_f1"] = eval_out.get("macro_f1")
+        acc_data["macro_precision"] = eval_out.get("macro_precision")
+        acc_data["macro_recall"] = eval_out.get("macro_recall")
         acc_data["is_agg"] = eval_out.get("is_agg", False)
         acc_data["relative_error"] = eval_out.get("relative_error")
         acc_path.write_text(json.dumps(acc_data, indent=2))
@@ -1472,10 +1461,8 @@ def plot_metrics(metrics: List[TrendQueryMetrics], run_dir: Path) -> None:
     result_rows = [m.result_rows for m in ordered]
     token_cost = [m.total_tokens for m in ordered]
     latency = [m.latency_s for m in ordered]
-    score = [
-        (m.relative_error if (m.is_agg and m.relative_error is not None) else m.macro_f1)
-        for m in ordered
-    ]
+    f1 = [m.macro_f1 if m.macro_f1 is not None else float("nan") for m in ordered]
+    rel_err = [m.relative_error if m.relative_error is not None else float("nan") for m in ordered]
 
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
     fig.suptitle(
@@ -1505,12 +1492,20 @@ def plot_metrics(metrics: List[TrendQueryMetrics], run_dir: Path) -> None:
     axes[1, 0].set_ylabel("seconds")
     axes[1, 0].grid(alpha=0.3)
 
-    axes[1, 1].plot(x, score, marker="o", color="#27ae60")
-    axes[1, 1].set_title("Macro F1 (non-agg) / Relative Error (agg)")
+    non_agg_x = [i for i, m in enumerate(ordered) if not m.is_agg]
+    non_agg_f1 = [f1[i] for i in non_agg_x]
+    agg_x = [i for i, m in enumerate(ordered) if m.is_agg]
+    agg_re = [rel_err[i] for i in agg_x]
+    if non_agg_x:
+        axes[1, 1].plot(non_agg_x, non_agg_f1, marker="o", color="#27ae60", label="Macro F1 (non-agg)")
+    if agg_x:
+        axes[1, 1].plot(agg_x, agg_re, marker="s", color="#e67e22", label="Rel. Error (agg, lower=better)")
+    axes[1, 1].set_title("Accuracy by Query Type")
     axes[1, 1].set_xticks(x)
     axes[1, 1].set_xticklabels(x_labels)
-    axes[1, 1].set_ylabel("F1 or RelErr")
+    axes[1, 1].set_ylabel("score")
     axes[1, 1].grid(alpha=0.3)
+    axes[1, 1].legend(fontsize=8)
 
     plt.tight_layout()
     plots_dir = run_dir / "plots"
@@ -1610,17 +1605,24 @@ def main() -> int:
         success_count = sum(1 for m in metrics if m.success)
         non_agg = [m for m in metrics if not m.is_agg]
         agg = [m for m in metrics if m.is_agg and m.relative_error is not None]
-        avg_f1 = sum(m.macro_f1 for m in non_agg) / len(non_agg) if non_agg else 0.0
-        avg_rel_err = sum(m.relative_error for m in agg if m.relative_error is not None) / len(agg) if agg else 0.0
+        avg_f1 = (
+            sum(m.macro_f1 for m in non_agg if m.macro_f1 is not None) / len(non_agg)
+            if non_agg else 0.0
+        )
+        avg_rel_err = (
+            sum(m.relative_error for m in agg) / len(agg)
+            if agg else 0.0
+        )
         if not math.isfinite(avg_f1):
             avg_f1 = 0.0
         if not math.isfinite(avg_rel_err):
             avg_rel_err = 0.0
         logger.info("=" * 80)
-        logger.info(
-            f"Completed: {success_count}/{len(metrics)} queries succeeded, "
-            f"avg macro F1 (non-agg)={avg_f1:.3f}, avg rel err (agg)={avg_rel_err:.4f}"
-        )
+        logger.info(f"Completed: {success_count}/{len(metrics)} queries succeeded")
+        if non_agg:
+            logger.info(f"Non-aggregation queries ({len(non_agg)}): avg macro F1={avg_f1:.3f}")
+        if agg:
+            logger.info(f"Aggregation queries ({len(agg)}): avg relative error={avg_rel_err:.4f}")
         token_summary = GLOBAL_COUNTER.summary_str()
         logger.info(token_summary)
         token_json_path = run_dir / "token_cost.json"
