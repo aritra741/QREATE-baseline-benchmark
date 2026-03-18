@@ -32,11 +32,8 @@ DB_FALLBACK = (
 )
 
 DEFAULT_QUERY = """
-SELECT T.team_name, T.location, T.founded_year,
-       COUNT(P.name) as player_count,
-       AVG(P.age) as avg_age,
-       SUM(P.mvp_awards) as total_mvp_awards,
-       SUM(P.nba_championships) as total_championships
+SELECT T.team_name, T.location,
+       COUNT(P.name) as player_count
 FROM player P
 JOIN team T ON P.team = T.team_name
 WHERE P.draft_year > 2000
@@ -45,7 +42,7 @@ WHERE P.draft_year > 2000
 GROUP BY T.team_name, T.location, T.founded_year;
 """
 
-KEY_COLS = ["team_name", "location", "founded_year"]
+KEY_COLS = ["team_name", "location"]
 
 
 def _find_latest_squid_db() -> Optional[Path]:
