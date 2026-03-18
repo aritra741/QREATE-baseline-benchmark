@@ -1,22 +1,24 @@
 #!/usr/bin/env python3
 """
-Run a single SQL query with ReDD extraction and compare against ground truth.
+Run a single query with ReDD extraction and compare against ground truth.
+
+ReDD takes a NATURAL LANGUAGE query description which drives table resolution
+and attribute extraction. The SQL is only used for final execution and evaluation.
+
+Matches WDIRS/SQUiD run_one_query.py behavior:
+  - Same default SQL (team player_count with OR conditions)
+  - Uses NL description to guide extraction (as per ReDD paper)
+  - Creates SQLite DB, runs SQL, compares against gold player.db
 
 Usage:
-  python run_one_query.py --query-id Q1
-  python run_one_query.py --query "SELECT ..." [--tables player,team]
-
-This script runs the full ReDD pipeline for ONE query:
-  1. Creates query-specific dataset from source documents
-  2. Runs DataPopLocal to extract tables with hidden states
-  3. Optionally runs SCAPE/SCAPE-Hyb correction
-  4. Materializes extracted tables to SQLite
-  5. Runs query and compares to gold
+  python run_one_query.py                              # default NL + SQL
+  python run_one_query.py --nl "..." --query "SELECT ..." # custom NL + SQL
 """
 
 import argparse
 import json
 import os
+import re
 import sqlite3
 import sys
 import time
@@ -39,21 +41,43 @@ from core.utils.constants import PATH_TEMPLATES as REDD_PATHS
 GROUND_TRUTH_DB = PROJECT_ROOT / "Data" / "Player" / "player.db"
 GROUND_TRUTH_DIR = PROJECT_ROOT / "Data" / "Player"
 SOURCE_DATA_DIR = PROJECT_ROOT / "source_data" / "Player"
-QUERY_FILE = PROJECT_ROOT / "Query" / "Player" / "query_aware_trend_queries.sql"
 
 REDD_PROMPT_TABLE = str(REDD_ROOT / "prompts" / "datapop_table_json.txt")
 REDD_PROMPT_ATTR = str(REDD_ROOT / "prompts" / "datapop_attr_json.txt")
-REDD_PARAM_STR = "redd_run_one_query"
+REDD_PARAM_STR = "redd_run_one"
 
 REQUIRED_MODEL_ID = "Qwen/Qwen2.5-7B-Instruct"
 DEFAULT_MODEL_PATH = str(Path(os.getenv("REDD_MODEL_LOCAL_PATH", REDD_ROOT / ".models" / "qwen2_5_7b_instruct")))
 
+# Same query as WDIRS/SQUiD run_one_query.py
+DEFAULT_QUERY = """
+SELECT t.team_name, t.location,
+       COUNT(p.name) as player_count
+FROM player p
+JOIN team t ON p.team = t.team_name
+WHERE p.draft_year > 2000
+   OR p.position = 'Frontcourt'
+   OR t.founded_year < 1980
+GROUP BY t.team_name, t.location, t.founded_year;
+""".strip()
+
+# NL description that drives ReDD's table resolver and attribute extractor.
+# This is what the paper takes as input — not the SQL.
+DEFAULT_NL_QUERY = (
+    "For each NBA team, find the team name and city location along with the count of players "
+    "who were either drafted after the year 2000, play a Frontcourt position, "
+    "or whose team was founded before 1980."
+)
+
 
 def _extract_tables_from_sql(sql: str) -> List[str]:
     """Parse SQL to extract table names from FROM and JOIN clauses."""
-    import re
     tables = set()
-    pattern = re.compile(r"\bFROM\s+([A-Za-z_][A-Za-z0-9_]*)|\bJOIN\s+([A-Za-z_][A-Za-z0-9_]*)", re.IGNORECASE)
+    # Match FROM table or JOIN table (with optional alias)
+    pattern = re.compile(
+        r"\bFROM\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s+(?:AS\s+)?[A-Za-z_][A-Za-z0-9_]*)?|\bJOIN\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s+(?:AS\s+)?[A-Za-z_][A-Za-z0-9_]*)?",
+        re.IGNORECASE
+    )
     for m in pattern.finditer(sql):
         t = m.group(1) or m.group(2)
         if t:
@@ -94,18 +118,21 @@ def _load_gt_rows_by_table(tables: List[str]) -> Dict[str, Dict[str, Dict[str, A
     return out
 
 
-def _prepare_query_dataset(
+def _prepare_dataset(
     work_dir: Path,
-    query_id: str,
+    nl_query: str,
     query_sql: str,
     tables: List[str],
 ) -> Tuple[Path, str, Dict[str, Dict[str, Any]]]:
-    """Create ReDD-format dataset for single query. Returns (data_root, dataset_name, did_meta)."""
-    dataset_name = f"player_{query_id.lower()}"
+    """Create ReDD-format dataset. Returns (data_root, dataset_name, did_meta).
+
+    nl_query drives ReDD's table resolver and attribute extractor prompts.
+    query_sql is only used for final execution.
+    """
+    dataset_name = "player_run_one"
     data_root = work_dir / "data" / dataset_name
     data_root.mkdir(parents=True, exist_ok=True)
 
-    # Build SQLite corpus
     db_path = data_root / "documents.db"
     if db_path.exists():
         db_path.unlink()
@@ -141,21 +168,25 @@ def _prepare_query_dataset(
                 did_meta[did] = {"table": table, "source_doc_id": str(source_doc_id), "gt_data": gt_data}
         conn.commit()
 
-    # Write metadata files
     (data_root / "doc_info.json").write_text(json.dumps(doc_info, indent=2))
 
-    # Build schemas from query
+    # Build schemas
     schema_general = []
     for table in tables:
-        attrs = [{"Attribute Name": c, "Description": f"{c} in {table}"} for c in gt_by_table.get(table, {}).get(list(gt_by_table.get(table, {}).keys())[0] if gt_by_table.get(table) else "", {}).keys()]
-        schema_general.append({"Schema Name": table, "Attributes": attrs})
+        if gt_by_table.get(table):
+            first_id = list(gt_by_table[table].keys())[0]
+            cols = list(gt_by_table[table][first_id].keys())
+            attrs = [{"Attribute Name": c, "Description": f"{c} in {table}"} for c in cols]
+            schema_general.append({"Schema Name": table, "Attributes": attrs})
 
     (data_root / "schema_general.json").write_text(json.dumps(schema_general, indent=2))
-    (data_root / f"schema_query_{query_id}.json").write_text(json.dumps(schema_general, indent=2))
+    (data_root / "schema_query_run.json").write_text(json.dumps(schema_general, indent=2))
 
+    # "query" here is the NATURAL LANGUAGE description — this is what ReDD's
+    # table resolver and attribute extractor receive as their task description.
     queries = {
-        query_id: {
-            "query": f"Query {query_id}",
+        "run": {
+            "query": nl_query,
             "attributes": [],
             "sql": query_sql,
         }
@@ -164,21 +195,25 @@ def _prepare_query_dataset(
 
     # Identity name mapping
     table_map = {t: t for t in tables}
-    attr_map = {t: {c: c for c in gt_by_table.get(t, {}).get(list(gt_by_table.get(t, {}).keys())[0] if gt_by_table.get(t) else "", {}).keys()} for t in tables}
+    attr_map = {}
+    for t in tables:
+        if gt_by_table.get(t):
+            first_id = list(gt_by_table[t].keys())[0]
+            cols = list(gt_by_table[t][first_id].keys())
+            attr_map[t] = {c: c for c in cols}
     name_map = {"table": table_map, "attribute": attr_map}
-    (data_root / REDD_PATHS.eval_name_mapping(query_id)).write_text(json.dumps(name_map, indent=2))
+    (data_root / REDD_PATHS.eval_name_mapping("run")).write_text(json.dumps(name_map, indent=2))
 
     return data_root, dataset_name, did_meta
 
 
-def _run_redd_extraction(
+def _run_redd_pipeline(
     data_root: Path,
     out_main: Path,
     dataset_name: str,
-    query_id: str,
     variant: str,
 ) -> Tuple[Dict[str, Any], Path]:
-    """Run DataPopLocal + optional correction. Returns (res_data, db_path)."""
+    """Run DataPopLocal + optional correction + materialize DB."""
     config = {
         "mode": "local",
         "llm_model": REQUIRED_MODEL_ID,
@@ -199,7 +234,7 @@ def _run_redd_extraction(
     datapop([dataset_name])
 
     out_root = out_main / dataset_name
-    res_path = out_root / REDD_PATHS.data_population_result(query_id, REDD_PARAM_STR)
+    res_path = out_root / REDD_PATHS.data_population_result("run", REDD_PARAM_STR)
     if not res_path.exists():
         raise RuntimeError(f"Data population failed: {res_path}")
     res_data = json.loads(res_path.read_text())
@@ -219,20 +254,19 @@ def _run_redd_extraction(
         final_ok = table_ok and all(attr_ok.values())
         eval_output[did] = {"table": table_ok, "attr": attr_ok, "final": final_ok}
 
-    eval_path = out_root / REDD_PATHS.eval_result(query_id, REDD_PARAM_STR)
+    eval_path = out_root / REDD_PATHS.eval_result("run", REDD_PARAM_STR)
     eval_path.write_text(json.dumps(eval_output, indent=2))
     (out_root / "queries.json").write_text((data_root / "queries.json").read_text())
 
     # Correction if requested
     if variant in {"ReDD_SCAPE", "ReDD_SCAPE_Hyb"}:
-        hs_dir = out_root / REDD_PATHS.hidden_states_dir(query_id, REDD_PARAM_STR)
+        hs_dir = out_root / REDD_PATHS.hidden_states_dir("run", REDD_PARAM_STR)
         if not hs_dir.exists():
-            raise RuntimeError(f"Hidden states required for correction: {hs_dir}")
+            raise RuntimeError(f"Hidden states required: {hs_dir}")
 
-        # Infer shape from first file
         table_files = list(hs_dir.glob("doc-*-table.pt"))
         if not table_files:
-            raise RuntimeError("No hidden state files found")
+            raise RuntimeError("No hidden state files")
         sample = torch.load(table_files[0], weights_only=False)
         first_hs = sample[0]["hidden_states"]
         num_layers = int(first_hs.shape[0]) if hasattr(first_hs, "shape") else len(first_hs)
@@ -278,10 +312,10 @@ def _run_redd_extraction(
         val.test_dids = all_dids
         loader = create_data_loader(data_root=data_root, loader_type="sqlite", loader_config={})
         model_dict = val._get_model_dict([dataset_name])
-        classifier_outputs = val._get_classifier_outputs(loader, model_dict, str(out_root), query_id, all_dids, eval_output)
+        classifier_outputs = val._get_classifier_outputs(loader, model_dict, str(out_root), "run", all_dids, eval_output)
 
         size_key = f"s{train_size}"
-        cls_outputs_list = [classifier_outputs[dataset_name][query_id][str(layer)][size_key] for layer in exp_layers]
+        cls_outputs_list = [classifier_outputs[dataset_name]["run"][str(layer)][size_key] for layer in exp_layers]
         voting_mode = "soft" if variant == "ReDD_SCAPE_Hyb" else "half"
         gt_all = {did: (0 if eval_output[str(did)]["final"] else 1) for did in all_dids}
         row_preds, _, _ = val._apply_voting(gt_all, [cls_outputs_list], voting_mode=voting_mode)
@@ -293,8 +327,8 @@ def _run_redd_extraction(
                 res_data[did]["res"] = "None"
                 res_data[did]["data"] = {}
 
-    # Build result DB
-    db_path = out_main / f"{query_id}_result.db"
+    # Materialize to SQLite
+    db_path = out_main / "result.db"
     table_cols: Dict[str, Set[str]] = {}
     for did, item in res_data.items():
         table = str(item.get("res", "")).strip().lower()
@@ -329,94 +363,65 @@ def _run_query(conn: sqlite3.Connection, query: str) -> Tuple[List[dict], List[s
     return [dict(zip(cols, r)) for r in rows], cols, elapsed
 
 
-def _compare_rows(gold_rows: List[dict], redd_rows: List[dict], key_cols: List[str]) -> Tuple[int, int, int]:
-    """Compare row sets, return (matched, extra, missed)."""
-    def _row_key(row):
+def _compare(gold_rows: List[dict], redd_rows: List[dict], key_cols: List[str]) -> Tuple[int, int, int]:
+    """Compare rows, return (matched, extra, missed)."""
+    def _key(row):
         return tuple(str(row.get(c, "")).strip().lower() for c in key_cols)
-
-    gold_keys = {_row_key(r) for r in gold_rows}
-    redd_keys = {_row_key(r) for r in redd_rows}
-
-    matched = len(gold_keys & redd_keys)
-    extra = len(redd_keys - gold_keys)
-    missed = len(gold_keys - redd_keys)
-    return matched, extra, missed
-
-
-def _get_query_from_trend(query_id: str) -> Optional[str]:
-    """Extract SQL for query_id from trend queries file."""
-    if not QUERY_FILE.exists():
-        return None
-    content = QUERY_FILE.read_text()
-    import re
-    pattern = rf"--\s*{re.escape(query_id)}[\s\S]*?;"
-    m = re.search(pattern, content, re.IGNORECASE)
-    if m:
-        sql = m.group(0)
-        # Remove comments
-        lines = [l for l in sql.split("\n") if not l.strip().startswith("--")]
-        return "\n".join(lines).strip()
-    return None
+    gold_keys = {_key(r) for r in gold_rows}
+    redd_keys = {_key(r) for r in redd_rows}
+    return len(gold_keys & redd_keys), len(redd_keys - gold_keys), len(gold_keys - redd_keys)
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="Run single query with ReDD extraction")
-    ap.add_argument("--query-id", type=str, default="Q1", help="Trend query ID (Q1..Q10)")
-    ap.add_argument("--query", "-q", type=str, default="", help="Custom SQL (overrides --query-id)")
+    ap.add_argument("--nl", type=str, default=DEFAULT_NL_QUERY, help="Natural language query description (drives ReDD extraction)")
+    ap.add_argument("--query", "-q", type=str, default=DEFAULT_QUERY, help="SQL query (for final execution and evaluation only)")
     ap.add_argument("--variant", type=str, default="ReDD_SCAPE", choices=["ReDD_NoCorrection", "ReDD_SCAPE", "ReDD_SCAPE_Hyb"])
     ap.add_argument("--work-dir", type=str, default="", help="Working directory for outputs")
     ap.add_argument("--model-path", type=str, default=DEFAULT_MODEL_PATH, help="Path to local model")
     args = ap.parse_args()
 
-    # Get SQL
-    if args.query:
-        query_sql = args.query.strip()
-    else:
-        query_sql = _get_query_from_trend(args.query_id)
-        if not query_sql:
-            print(f"Could not find query {args.query_id} in {QUERY_FILE}")
-            return 1
-
+    nl_query = args.nl.strip()
+    query_sql = args.query.strip()
     if not query_sql.endswith(";"):
         query_sql += ";"
 
-    # Setup directories
+    tables = _extract_tables_from_sql(query_sql)
+
     if args.work_dir:
         work_dir = Path(args.work_dir)
     else:
-        work_dir = Path(os.getenv("REDD_RESULTS_BASE_DIR", PROJECT_ROOT / "results" / "redd_run_one_query"))
-    work_dir = work_dir / f"run_{args.query_id.lower()}_{int(time.time())}"
+        work_dir = Path(os.getenv("REDD_RESULTS_BASE_DIR", PROJECT_ROOT / "results" / "redd_run_one"))
+    work_dir = work_dir / f"run_{int(time.time())}"
     work_dir.mkdir(parents=True, exist_ok=True)
 
     out_main = work_dir / "output"
     out_main.mkdir(parents=True, exist_ok=True)
 
-    # Check gold DB
     if not GROUND_TRUTH_DB.exists():
         print(f"Gold database not found: {GROUND_TRUTH_DB}")
         return 1
 
     print("=" * 70)
-    print(f"ReDD Run One Query: {args.query_id}")
-    print(f"Variant: {args.variant}")
+    print(f"ReDD Run One Query  [{args.variant}]")
+    print(f"NL query: {nl_query}")
+    print(f"SQL:      {query_sql[:80]}{'...' if len(query_sql) > 80 else ''}")
+    print(f"Tables:   {tables}")
     print(f"Work dir: {work_dir}")
-    print("=" * 70)
-    print(f"Query:\n{query_sql}")
     print("=" * 70)
 
     # Step 1: Prepare dataset
     print("\n[1/4] Preparing dataset...")
-    tables = _extract_tables_from_sql(query_sql)
-    print(f"  Tables: {tables}")
-    data_root, dataset_name, did_meta = _prepare_query_dataset(work_dir, args.query_id, query_sql, tables)
+    data_root, dataset_name, did_meta = _prepare_dataset(work_dir, nl_query, query_sql, tables)
     print(f"  Dataset: {dataset_name}")
-    print(f"  Docs: {len(did_meta)}")
+    print(f"  Documents: {len(did_meta)}")
 
     # Step 2: Run ReDD extraction
     print(f"\n[2/4] Running ReDD extraction ({args.variant})...")
     try:
-        res_data, db_path = _run_redd_extraction(data_root, out_main, dataset_name, args.query_id, args.variant)
-        print(f"  Extracted tables: {list(set(str(item.get('res', 'none')).lower() for item in res_data.values()) - {'none'})}")
+        res_data, db_path = _run_redd_pipeline(data_root, out_main, dataset_name, args.variant)
+        extracted_tables = list(set(str(item.get("res", "none")).lower() for item in res_data.values()) - {"none"})
+        print(f"  Extracted tables: {extracted_tables}")
         print(f"  Result DB: {db_path}")
     except Exception as e:
         print(f"  Error: {e}")
@@ -448,20 +453,23 @@ def main() -> int:
 
     # Step 4: Compare
     print("\n[4/4] Comparison:")
-    key_cols = [c for c in ["team_name", "location", "name"] if c in gold_cols] or gold_cols[:2]
-    matched, extra, missed = _compare_rows(gold_rows, redd_rows, key_cols)
+    key_cols = [c for c in ["team_name", "location"] if c in gold_cols] or gold_cols[:2]
+    matched, extra, missed = _compare(gold_rows, redd_rows, key_cols)
     print(f"  Matched: {matched}")
     print(f"  Extra:   {extra} (in ReDD, not in gold)")
     print(f"  Missed:  {missed} (in gold, not in ReDD)")
 
-    # Show sample rows
-    print("\n--- Gold sample (first 5) ---")
-    for r in gold_rows[:5]:
-        print(f"  {r}")
+    print("\n--- Gold output (first 10) ---")
+    print("  ".join(f"{c:>18}" for c in gold_cols))
+    print("-" * 70)
+    for r in gold_rows[:10]:
+        print("  ".join(f"{str(r.get(c, '')):>18}" for c in gold_cols))
 
-    print("\n--- ReDD sample (first 5) ---")
-    for r in redd_rows[:5]:
-        print(f"  {r}")
+    print("\n--- ReDD output (first 10) ---")
+    print("  ".join(f"{c:>18}" for c in redd_cols))
+    print("-" * 70)
+    for r in redd_rows[:10]:
+        print("  ".join(f"{str(r.get(c, '')):>18}" for c in redd_cols))
 
     print(f"\nDone. Results in: {work_dir}")
     return 0
