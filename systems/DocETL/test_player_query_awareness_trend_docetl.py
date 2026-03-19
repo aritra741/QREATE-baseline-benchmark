@@ -1,23 +1,34 @@
 """
-Run Q1..Q10 query-awareness trend benchmarking with DocETL on Player.
+Run query-awareness trend benchmarking with DocETL on Player.
 
-This mirrors systems/WDIRS/test_player_query_awareness_trend.py, but executes
-queries through DocETL operators (equijoin/filter) driven by natural-language
-instructions derived from SQL.
+Query set matches WDIRS/ReDD (category SQL folders, filtered by ReDD
+NL_QUERY_SPECS).
+
+DocETL's role follows the paper (Shankar et al.): declarative **pipelines** whose
+operators include **map** for semantic projection (§2.2). For each base table
+referenced by the benchmark SQL we run a dedicated `docetl.api.Pipeline` with a
+memory `Dataset` and one `MapOp`. Joins, filters, and aggregations in the SQL are
+relational closure: executed with SQLite on the extracted tables (deterministic),
+matching the paper's split between LLM operators and auxiliary processing.
 """
 
 import csv
+import importlib.util
 import json
 import logging
+import os
 import math
 import sqlite3
 import sys
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from collections import defaultdict
 from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
+import sqlglot
+from sqlglot import exp
 
 try:
     import matplotlib
@@ -40,9 +51,10 @@ DOCETL_MAIN_DIR = PROJECT_ROOT / "systems" / "docetl-main"
 sys.path.insert(0, str(WDIRS_DIR))
 sys.path.insert(0, str(DOCETL_MAIN_DIR))
 sys.path.insert(0, str(PROJECT_ROOT))
+sys.path.insert(0, str(SCRIPT_DIR))
 
-from config import QUERY_DIR, RESULTS_DIR  # type: ignore
-import docetl  # noqa: F401  # Registers pandas semantic accessor.
+from config import RESULTS_DIR  # type: ignore
+from docetl.api import Dataset, MapOp, Pipeline, PipelineOutput, PipelineStep
 from docetl.operations.utils.api import APIWrapper
 from token_counter import GLOBAL_COUNTER, ensure_precise_tokenizer_ready
 
@@ -53,15 +65,15 @@ from evaluation.sql_parser import SqlParser as _SqlParser
 
 # Import only utility functions from WDIRS trend script (no system-level dependencies)
 from test_player_query_awareness_trend import (  # type: ignore
-    parse_trend_queries,
     evaluate_with_official_framework,
+    load_redd_enabled_query_ids,
+    parse_all_category_queries,
     _infer_identity_col_for_query,
 )
 
 
-DATASET = "Player"
 DATASET_QUERY = "Player"
-TREND_SQL_FILE = QUERY_DIR / DATASET_QUERY / "query_aware_trend_queries.sql"
+REDD_TREND_FILE = PROJECT_ROOT / "systems" / "ReDD" / "test_player_query_awareness_trend_redd.py"
 GROUND_TRUTH_DIR = PROJECT_ROOT / "Data" / "Player"
 ATTRIBUTES_FILE = PROJECT_ROOT / "Query" / DATASET_QUERY / "Player_attributes.json"
 SOURCE_DATA_PLAYER_DIR = PROJECT_ROOT / "source_data" / "Player"
@@ -72,42 +84,62 @@ OLLAMA_BASE_URL = "http://localhost:11434"
 DOCETL_MODEL = "ollama/qwen2.5:7b-instruct"
 DOCETL_THREADS = 4
 DOCETL_MAP_TIMEOUT = 420
-DOCETL_JOIN_TIMEOUT = 300
-DOCETL_FILTER_TIMEOUT = 300
 DOCETL_MAX_RETRIES_PER_TIMEOUT = 2
 
-KNOWN_TABLE_COLUMNS: Dict[str, List[str]] = {
+NUMERIC_FIELDS = {
+    "age",
+    "draft_pick",
+    "draft_year",
+    "founded_year",
+    "population",
+    "gdp",
+    "area",
+    "mvp_awards",
+    "olympic_gold_medals",
+    "fiba_world_cup",
+    "nba_championships",
+    "championship",
+    "own_year",
+}
+
+# Column dictionary for resolving unqualified SQL columns (e.g., SELECT position FROM player).
+TABLE_COLUMNS: Dict[str, set[str]] = {
     "player": {
         "name",
+        "birth_date",
         "nationality",
         "age",
+        "team",
         "position",
         "draft_pick",
+        "draft_year",
         "college",
-        "birth_date",
-        "team",
+        "nba_championships",
+        "mvp_awards",
+        "olympic_gold_medals",
+        "fiba_world_cup",
     },
     "team": {
         "team_name",
-        "location",
         "founded_year",
+        "location",
+        "ownership",
+        "championship",
     },
     "city": {
         "city_name",
         "state_name",
         "population",
-        "gdp",
         "area",
+        "gdp",
     },
-}
-
-NUMERIC_FIELDS = {
-    "age",
-    "draft_pick",
-    "founded_year",
-    "population",
-    "gdp",
-    "area",
+    "owner": {
+        "name",
+        "age",
+        "nationality",
+        "nba_team",
+        "own_year",
+    },
 }
 
 # Identity columns for evaluation (table -> identity_column_name)
@@ -220,7 +252,8 @@ def patch_docetl_for_token_tracking(token_tracker: TokenTracker) -> None:
     APIWrapper._call_llm_with_cache = wrapped_low_level
 
 
-def _load_source_docs(table: str) -> pd.DataFrame:
+def _raw_doc_records_for_table(table: str) -> List[Dict[str, Any]]:
+    """One JSON object per source document (for DocETL memory datasets)."""
     table_dir = SOURCE_DATA_PLAYER_DIR / table
     if not table_dir.exists():
         raise FileNotFoundError(f"Missing source table directory: {table_dir}")
@@ -230,15 +263,24 @@ def _load_source_docs(table: str) -> pd.DataFrame:
         rows.append({"doc_id": p.stem, "text": txt})
     if not rows:
         raise RuntimeError(f"No source files found for table: {table}")
-    return pd.DataFrame(rows)
+    return rows
 
 
 def _coerce_numeric_columns(table: str, df: pd.DataFrame) -> pd.DataFrame:
     out = df.copy()
     numeric_cols = {
-        "player": ["age", "draft_pick"],
-        "team": ["founded_year"],
+        "player": [
+            "age",
+            "draft_pick",
+            "draft_year",
+            "mvp_awards",
+            "olympic_gold_medals",
+            "fiba_world_cup",
+            "nba_championships",
+        ],
+        "team": ["founded_year", "championship"],
         "city": ["population", "gdp", "area"],
+        "owner": ["age", "own_year"],
     }.get(table, [])
     for col in numeric_cols:
         if col in out.columns:
@@ -252,20 +294,28 @@ def _coerce_numeric_columns(table: str, df: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
-def _extract_table_for_query(table: str, needed_cols: List[str], nl_query: str) -> pd.DataFrame:
-    docs_df = _load_source_docs(table)
-    docs_df.semantic.set_config(
-        default_model=DOCETL_MODEL,
-        default_lm_api_base=OLLAMA_BASE_URL,
-        default_embedding_api_base=OLLAMA_BASE_URL,
-        max_threads=DOCETL_THREADS,
-    )
+def _run_docetl_map_pipeline_for_table(
+    query_id: str,
+    table: str,
+    needed_cols: List[str],
+    nl_query: str,
+    work_dir: Path,
+) -> pd.DataFrame:
+    """
+    One DocETL Pipeline per (query, table): memory Dataset + MapOp (paper §2.2.1).
+    DSLRunner writes JSON output; we load it back into a DataFrame.
+    """
+    work_dir = work_dir.resolve()
+    work_dir.mkdir(parents=True, exist_ok=True)
+    out_path = work_dir / "pipeline_output.json"
+    intermediate_dir = work_dir / "docetl_intermediate"
 
     output_schema = {
         c: ("number" if c in NUMERIC_FIELDS else "str") for c in needed_cols
     }
     field_list = "\n".join(f"- {c}" for c in needed_cols)
     numeric_guidance = ", ".join([c for c in needed_cols if c in NUMERIC_FIELDS])
+    # Jinja: use {{ input.text }} — literal braces via f-string doubling.
     prompt = (
         f"You are building a structured {table} table for this natural-language query:\n"
         f"{nl_query}\n\n"
@@ -275,26 +325,69 @@ def _extract_table_for_query(table: str, needed_cols: List[str], nl_query: str) 
         f"Numeric fields in this extraction: {numeric_guidance if numeric_guidance else 'none'}.\n"
         "If a numeric field is unknown, return -1. "
         "If a text field is unknown, return empty string. "
-        "Keep names concise and normalized."
+        "Keep names concise and normalized.\n\n"
+        "Document:\n{{{{ input.text }}}}"
     )
 
-    mapped = docs_df.semantic.map(
-        prompt=f"{prompt}\n\nDocument:\n{{{{input.text}}}}",
+    map_op = MapOp(
+        name="extract_fields",
+        type="map",
+        prompt=prompt,
         output={"schema": output_schema},
         model=DOCETL_MODEL,
+        skip_on_error=True,
         timeout=DOCETL_MAP_TIMEOUT,
         max_retries_per_timeout=DOCETL_MAX_RETRIES_PER_TIMEOUT,
-        skip_on_error=True,
     )
 
+    pipeline = Pipeline(
+        name="extract",
+        datasets={
+            "raw": Dataset(
+                type="memory",
+                path=_raw_doc_records_for_table(table),
+                source="local",
+            )
+        },
+        operations=[map_op],
+        steps=[
+            PipelineStep(
+                name="extract_step",
+                input="raw",
+                operations=["extract_fields"],
+            )
+        ],
+        output=PipelineOutput(
+            type="file",
+            path=str(out_path),
+            intermediate_dir=str(intermediate_dir),
+        ),
+        default_model=DOCETL_MODEL,
+        default_lm_api_base=OLLAMA_BASE_URL,
+        default_embedding_api_base=OLLAMA_BASE_URL,
+        bypass_cache=True,
+    )
+
+    old_cwd = os.getcwd()
+    try:
+        os.chdir(work_dir)
+        pipeline.run(max_threads=DOCETL_THREADS)
+    finally:
+        os.chdir(old_cwd)
+
+    if not out_path.exists():
+        raise RuntimeError(f"DocETL pipeline did not write output: {out_path}")
+    records = json.loads(out_path.read_text())
+    if not records:
+        raise RuntimeError(f"DocETL map produced no rows for table '{table}'")
+    mapped = pd.DataFrame(records)
     keep_cols = [c for c in needed_cols if c in mapped.columns]
     if not keep_cols:
         raise RuntimeError(
             f"Extraction produced no expected columns for table '{table}' in query ETL"
         )
     out = mapped[keep_cols].copy()
-    out = _coerce_numeric_columns(table, out)
-    return out
+    return _coerce_numeric_columns(table, out)
 
 
 def _write_query_tables_sqlite(table_map: Dict[str, pd.DataFrame], db_path: Path) -> None:
@@ -306,219 +399,128 @@ def _write_query_tables_sqlite(table_map: Dict[str, pd.DataFrame], db_path: Path
             df.to_sql(table, conn, if_exists="replace", index=False)
 
 
-NL_QUERY_SPECS: Dict[str, Dict[str, Any]] = {
-    "Q1": {
-        "nl_query": "List each player's name, nationality, and age with their team name and team location.",
-        "base_table": "player",
-        "tables": {"player": ["name", "nationality", "age", "team"], "team": ["team_name", "location"]},
-        "joins": [{"right_table": "team", "left_key": "team", "right_key": "team_name"}],
-        "filters": [],
-        "select": ["name", "nationality", "age", "team_name", "location"],
-    },
-    "Q2": {
-        "nl_query": "For players older than 25, list player name, position, team name, and team founded year.",
-        "base_table": "player",
-        "tables": {"player": ["name", "position", "age", "team"], "team": ["team_name", "founded_year"]},
-        "joins": [{"right_table": "team", "left_key": "team", "right_key": "team_name"}],
-        "filters": [{"column": "age", "operator": "greater than", "value": "25"}],
-        "select": ["name", "position", "team_name", "founded_year"],
-    },
-    "Q3": {
-        "nl_query": "For players with draft pick at least 0, list player name, draft pick, college, and team name.",
-        "base_table": "player",
-        "tables": {"player": ["name", "draft_pick", "college", "team"], "team": ["team_name"]},
-        "joins": [{"right_table": "team", "left_key": "team", "right_key": "team_name"}],
-        "filters": [{"column": "draft_pick", "operator": "greater than or equal to", "value": "0"}],
-        "select": ["name", "draft_pick", "college", "team_name"],
-    },
-    "Q4": {
-        "nl_query": "List team name and location with the matched city name and state name.",
-        "base_table": "team",
-        "tables": {"team": ["team_name", "location"], "city": ["city_name", "state_name"]},
-        "joins": [{"right_table": "city", "left_key": "location", "right_key": "city_name"}],
-        "filters": [],
-        "select": ["team_name", "location", "city_name", "state_name"],
-    },
-    "Q5": {
-        "nl_query": "List player name with team name, city name, and city state by linking player -> team -> city.",
-        "base_table": "player",
-        "tables": {
-            "player": ["name", "team"],
-            "team": ["team_name", "location"],
-            "city": ["city_name", "state_name"],
-        },
-        "joins": [
-            {"right_table": "team", "left_key": "team", "right_key": "team_name"},
-            {"right_table": "city", "left_key": "location", "right_key": "city_name"},
-        ],
-        "filters": [],
-        "select": ["name", "team_name", "city_name", "state_name"],
-    },
-    "Q6": {
-        "nl_query": "For players younger than 35, list player name, position, city name, and city population via player -> team -> city.",
-        "base_table": "player",
-        "tables": {
-            "player": ["name", "position", "age", "team"],
-            "team": ["team_name", "location"],
-            "city": ["city_name", "population"],
-        },
-        "joins": [
-            {"right_table": "team", "left_key": "team", "right_key": "team_name"},
-            {"right_table": "city", "left_key": "location", "right_key": "city_name"},
-        ],
-        "filters": [{"column": "age", "operator": "less than", "value": "35"}],
-        "select": ["name", "position", "city_name", "population"],
-    },
-    "Q7": {
-        "nl_query": "For players with draft pick greater than 0, list player name, college, team name, and city GDP via player -> team -> city.",
-        "base_table": "player",
-        "tables": {
-            "player": ["name", "college", "draft_pick", "team"],
-            "team": ["team_name", "location"],
-            "city": ["city_name", "gdp"],
-        },
-        "joins": [
-            {"right_table": "team", "left_key": "team", "right_key": "team_name"},
-            {"right_table": "city", "left_key": "location", "right_key": "city_name"},
-        ],
-        "filters": [{"column": "draft_pick", "operator": "greater than", "value": "0"}],
-        "select": ["name", "college", "team_name", "gdp"],
-    },
-    "Q8": {
-        "nl_query": "For cities with area greater than 100, list player name, player birth date, team name, and city area via player -> team -> city.",
-        "base_table": "player",
-        "tables": {
-            "player": ["name", "birth_date", "team"],
-            "team": ["team_name", "location"],
-            "city": ["city_name", "area"],
-        },
-        "joins": [
-            {"right_table": "team", "left_key": "team", "right_key": "team_name"},
-            {"right_table": "city", "left_key": "location", "right_key": "city_name"},
-        ],
-        "filters": [{"column": "area", "operator": "greater than", "value": "100"}],
-        "select": ["name", "birth_date", "team_name", "area"],
-    },
-    "Q9": {
-        "nl_query": "Starting from city and traversing city -> team -> player, list city name, state, team name, and player name for players younger than 40.",
-        "base_table": "city",
-        "tables": {
-            "city": ["city_name", "state_name"],
-            "team": ["team_name", "location"],
-            "player": ["name", "age", "team"],
-        },
-        "joins": [
-            {"right_table": "team", "left_key": "city_name", "right_key": "location"},
-            {"right_table": "player", "left_key": "team_name", "right_key": "team"},
-        ],
-        "filters": [{"column": "age", "operator": "less than", "value": "40"}],
-        "select": ["city_name", "state_name", "team_name", "name"],
-    },
-    "Q10": {
-        "nl_query": "Starting from city and traversing city -> team -> player, list city name, state, team name, player name, and player college for players older than 20.",
-        "base_table": "city",
-        "tables": {
-            "city": ["city_name", "state_name"],
-            "team": ["team_name", "location"],
-            "player": ["name", "college", "age", "team"],
-        },
-        "joins": [
-            {"right_table": "team", "left_key": "city_name", "right_key": "location"},
-            {"right_table": "player", "left_key": "team_name", "right_key": "team"},
-        ],
-        "filters": [{"column": "age", "operator": "greater than", "value": "20"}],
-        "select": ["city_name", "state_name", "team_name", "name", "college"],
-    },
-}
+def load_redd_nl_query_specs(redd_path: Path) -> Dict[str, str]:
+    """NL strings from ReDD's NL_QUERY_SPECS (same source WDIRS uses for filtering)."""
+    module_name = "_docetl_redd_nl_specs"
+    if module_name in sys.modules:
+        mod = sys.modules[module_name]
+    else:
+        spec = importlib.util.spec_from_file_location(module_name, redd_path)
+        if spec is None or spec.loader is None:
+            raise RuntimeError(f"Cannot load ReDD module from {redd_path}")
+        mod = importlib.util.module_from_spec(spec)
+        sys.modules[module_name] = mod
+        spec.loader.exec_module(mod)
+    raw = getattr(mod, "NL_QUERY_SPECS", None)
+    if not isinstance(raw, dict):
+        raise RuntimeError("NL_QUERY_SPECS missing or invalid in ReDD trend module")
+    return {str(k): str(v) for k, v in raw.items()}
 
 
-def _apply_nl_filters(
-    df: pd.DataFrame, filters: List[Dict[str, str]], nl_query: str
-) -> pd.DataFrame:
-    out = df
-    for f in filters:
-        col = f["column"]
-        op = f["operator"]
-        value = f["value"]
-        prompt = (
-            f"Natural-language query: {nl_query}\n"
-            f"Keep this row iff {col} is {op} {value}. "
-            f"Current row value: {{{{input.{col}}}}}."
+def columns_per_table_from_sql(sql_text: str) -> Dict[str, List[str]]:
+    """
+    Collect table -> column names referenced as table.col in the benchmark SQL.
+    Drives one DocETL map extraction per (table, column set).
+    """
+    tree = sqlglot.parse_one(sql_text)
+
+    # Map aliases to base table names; also include identity mapping table->table.
+    alias_to_table: Dict[str, str] = {}
+    tables_in_query: List[str] = []
+    for t in tree.find_all(exp.Table):
+        base = (t.name or "").strip().lower()
+        if not base:
+            continue
+        alias_to_table[base] = base
+        alias_or_name = (t.alias_or_name or "").strip().lower()
+        if alias_or_name:
+            alias_to_table[alias_or_name] = base
+        if base not in tables_in_query:
+            tables_in_query.append(base)
+
+    if not tables_in_query:
+        raise ValueError("No base tables found in SQL query")
+
+    by_table: Dict[str, set[str]] = defaultdict(set)
+    unqualified_cols: List[str] = []
+
+    for col in tree.find_all(exp.Column):
+        cname = (col.name or "").strip().lower()
+        if not cname:
+            continue
+        tname = (col.table or "").strip().lower()
+        if tname:
+            resolved = alias_to_table.get(tname, tname)
+            by_table[resolved].add(cname)
+        else:
+            unqualified_cols.append(cname)
+
+    # Resolve unqualified columns:
+    # - single-table query: assign to that table
+    # - multi-table query: assign when exactly one table schema contains it
+    for cname in unqualified_cols:
+        if len(tables_in_query) == 1:
+            by_table[tables_in_query[0]].add(cname)
+            continue
+
+        matches = [t for t in tables_in_query if cname in TABLE_COLUMNS.get(t, set())]
+        if len(matches) == 1:
+            by_table[matches[0]].add(cname)
+            continue
+        if len(matches) == 0:
+            raise ValueError(
+                f"Cannot resolve unqualified column '{cname}' in multi-table query "
+                f"with tables {tables_in_query}"
+            )
+        raise ValueError(
+            f"Ambiguous unqualified column '{cname}' (matches tables {matches})"
         )
-        out = out.semantic.filter(
-            prompt=prompt,
-            output={"schema": {"keep": "bool"}},
-            model=DOCETL_MODEL,
-            timeout=DOCETL_FILTER_TIMEOUT,
-            max_retries_per_timeout=DOCETL_MAX_RETRIES_PER_TIMEOUT,
-        )
-    return out
+
+    if not by_table:
+        raise ValueError("Could not infer any table columns from SQL query")
+    return {t: sorted(cols) for t, cols in by_table.items()}
+
+
+def _execute_benchmark_sql(
+    sql_text: str, table_map: Dict[str, pd.DataFrame]
+) -> List[Dict[str, Any]]:
+    """Run the benchmark query on extracted relations (deterministic SQLite)."""
+    sql = sql_text.strip().rstrip(";").strip()
+    parsed = _SqlParser().parse(sql_text)
+    out_names = list(parsed.output_columns)
+    with sqlite3.connect(":memory:") as conn:
+        for table in sorted(table_map.keys()):
+            table_map[table].to_sql(table, conn, if_exists="replace", index=False)
+        cur = conn.execute(sql)
+        tuples = cur.fetchall()
+    if not out_names:
+        return []
+    rows: List[Dict[str, Any]] = []
+    for tup in tuples:
+        if len(tup) != len(out_names):
+            raise ValueError(
+                f"SQL result has {len(tup)} columns but parser expects {len(out_names)}"
+            )
+        rows.append({out_names[i]: tup[i] for i in range(len(out_names))})
+    return rows
 
 
 def execute_query_via_docetl_nl(
     query_id: str,
+    sql_text: str,
+    nl_query: str,
+    pipeline_parent_dir: Path,
 ) -> Tuple[List[Dict[str, Any]], Dict[str, pd.DataFrame], str]:
-    if query_id not in NL_QUERY_SPECS:
-        raise ValueError(f"No NL query specification found for {query_id}")
-    spec = NL_QUERY_SPECS[query_id]
-    nl_query = spec["nl_query"]
-
+    need = columns_per_table_from_sql(sql_text)
     table_map: Dict[str, pd.DataFrame] = {}
-    for table, cols in spec["tables"].items():
-        logger.info(f"[{query_id}] Query-local ETL for '{table}' with columns: {cols}")
-        table_map[table] = _extract_table_for_query(table, cols, nl_query)
-
-    base_table = spec["base_table"]
-    if base_table not in table_map:
-        raise ValueError(f"Unknown base table in spec: {base_table}")
-
-    current = table_map[base_table].copy()
-    current.semantic.set_config(
-        default_model=DOCETL_MODEL,
-        default_lm_api_base=OLLAMA_BASE_URL,
-        default_embedding_api_base=OLLAMA_BASE_URL,
-        max_threads=DOCETL_THREADS,
-    )
-
-    for join_spec in spec["joins"]:
-        right_table = join_spec["right_table"]
-        if right_table not in table_map:
-            raise ValueError(f"Unknown join table: {right_table}")
-        right_df = table_map[right_table].copy()
-        left_key = join_spec["left_key"]
-        right_key = join_spec["right_key"]
-        join_prompt = (
-            f"Natural-language query: {nl_query}\n"
-            "Return true iff these records should be joined for this query using the relation below.\n"
-            f"Left key ({left_key}): {{{{ left.{left_key} }}}}\n"
-            f"Right key ({right_key}): {{{{ right.{right_key} }}}}\n"
-            "Match rule: exact equality after trimming whitespace and lowercasing."
+    qdir = pipeline_parent_dir / query_id
+    for table, cols in need.items():
+        logger.info(f"[{query_id}] DocETL Pipeline (map) for '{table}': {cols}")
+        table_map[table] = _run_docetl_map_pipeline_for_table(
+            query_id, table, cols, nl_query, qdir / f"table_{table}"
         )
-        blocking_rule = (
-            f"str(left.get('{left_key}', '')).strip().lower() == "
-            f"str(right.get('{right_key}', '')).strip().lower()"
-        )
-
-        current = current.semantic.merge(
-            right_df,
-            comparison_prompt=join_prompt,
-            fuzzy=False,
-            model=DOCETL_MODEL,
-            comparison_model=DOCETL_MODEL,
-            blocking_conditions=[blocking_rule],
-            timeout=DOCETL_JOIN_TIMEOUT,
-            max_retries_per_timeout=DOCETL_MAX_RETRIES_PER_TIMEOUT,
-        )
-
-    current = _apply_nl_filters(current, spec["filters"], nl_query)
-    selected_cols: List[str] = list(spec["select"])
-
-    missing_cols = [c for c in selected_cols if c not in current.columns]
-    if missing_cols:
-        raise ValueError(f"Projected columns missing after execution: {missing_cols}")
-
-    out_df = current[selected_cols].copy()
-    return out_df.to_dict("records"), table_map, nl_query
+    rows = _execute_benchmark_sql(sql_text, table_map)
+    return rows, table_map, nl_query
 
 
 def _save_rows_csv(rows: List[Dict[str, Any]], out_csv: Path) -> None:
@@ -546,12 +548,14 @@ def run_trend_queries_docetl(
     query_tables_dir = run_dir / "query_tables"
     plots_dir = run_dir / "plots"
     query_eval_db_dir = run_dir / "query_eval_dbs"
+    pipeline_runs_dir = run_dir / "docetl_pipelines"
 
     run_dir.mkdir(parents=True, exist_ok=True)
     query_results_dir.mkdir(parents=True, exist_ok=True)
     query_tables_dir.mkdir(parents=True, exist_ok=True)
     plots_dir.mkdir(parents=True, exist_ok=True)
     query_eval_db_dir.mkdir(parents=True, exist_ok=True)
+    pipeline_runs_dir.mkdir(parents=True, exist_ok=True)
 
     identity_columns = IDENTITY_COLUMNS.copy()
     logger.info(f"Using hardcoded identity columns: {identity_columns}")
@@ -567,9 +571,22 @@ def run_trend_queries_docetl(
     eval_sql_parser = _SqlParser()
     eval_row_matcher = _RowMatcher(settings=eval_settings)
 
-    trend_queries = parse_trend_queries(TREND_SQL_FILE)
+    redd_nl_specs = load_redd_nl_query_specs(REDD_TREND_FILE)
+    redd_enabled_ids = load_redd_enabled_query_ids()
+    trend_queries = [
+        (qid, sql)
+        for qid, sql in parse_all_category_queries()
+        if qid in redd_enabled_ids
+    ]
     if not trend_queries:
-        raise RuntimeError(f"No trend queries found in {TREND_SQL_FILE}")
+        raise RuntimeError(
+            "No runnable queries after applying ReDD NL_QUERY_SPECS filter. "
+            f"ReDD file: {REDD_TREND_FILE}"
+        )
+    logger.info(
+        "Running %d DocETL queries aligned with WDIRS/ReDD (uncommented ReDD IDs)",
+        len(trend_queries),
+    )
 
     metrics: List[TrendQueryMetrics] = []
     for query_id, query_text in trend_queries:
@@ -579,7 +596,14 @@ def run_trend_queries_docetl(
         t0 = time.time()
 
         try:
-            rows, query_table_map, nl_query = execute_query_via_docetl_nl(query_id)
+            nl_query = redd_nl_specs.get(query_id)
+            if not nl_query:
+                raise ValueError(
+                    f"No NL_QUERY_SPECS entry for {query_id} in {REDD_TREND_FILE}"
+                )
+            rows, query_table_map, nl_query = execute_query_via_docetl_nl(
+                query_id, query_text, nl_query, pipeline_runs_dir
+            )
             logger.info(f"[NL] {nl_query}")
             latency = time.time() - t0
             d_prompt, d_completion = token_tracker.delta(before)
@@ -613,7 +637,7 @@ def run_trend_queries_docetl(
                 query_text=query_text,
                 nl_query=nl_query,
                 success=True,
-                delta_type="DOCETL_NL",
+                delta_type="DOCETL_MAP_SQLITE",
                 latency_s=latency,
                 result_rows=len(rows),
                 prompt_tokens=d_prompt,
@@ -657,7 +681,7 @@ def run_trend_queries_docetl(
             latency = time.time() - t0
             d_prompt, d_completion = token_tracker.delta(before)
             d_total = d_prompt + d_completion
-            nl_query = NL_QUERY_SPECS.get(query_id, {}).get("nl_query", "")
+            nl_query = redd_nl_specs.get(query_id, "")
             metrics.append(
                 TrendQueryMetrics(
                     query_id=query_id,
@@ -718,6 +742,15 @@ def save_metrics(metrics: List[TrendQueryMetrics], run_dir: Path) -> None:
     logger.info(f"Saved metrics CSV:  {out_csv}")
 
 
+def _trend_query_sort_key(query_id: str) -> Tuple[int, int]:
+    if len(query_id) < 2 or not query_id[1:].isdigit():
+        return (99, 0)
+    prefix = query_id[0]
+    n = int(query_id[1:])
+    order = {"S": 0, "F": 1, "A": 2, "J": 3, "M": 4}
+    return (order.get(prefix, 99), n)
+
+
 def plot_metrics(metrics: List[TrendQueryMetrics], run_dir: Path) -> None:
     if not MATPLOTLIB_AVAILABLE:
         logger.warning("matplotlib not available - skipping plot generation")
@@ -726,7 +759,7 @@ def plot_metrics(metrics: List[TrendQueryMetrics], run_dir: Path) -> None:
         logger.warning("No metrics to plot.")
         return
 
-    ordered = sorted(metrics, key=lambda m: int(m.query_id[1:]))
+    ordered = sorted(metrics, key=lambda m: _trend_query_sort_key(m.query_id))
     x_labels = [m.query_id for m in ordered]
     x = list(range(len(x_labels)))
 
@@ -737,7 +770,7 @@ def plot_metrics(metrics: List[TrendQueryMetrics], run_dir: Path) -> None:
 
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
     fig.suptitle(
-        "Player Query-Awareness Trend with DocETL (Q1..Q10)",
+        "Player Query-Awareness Trend with DocETL (ReDD-aligned IDs)",
         fontsize=16,
         fontweight="bold",
     )
@@ -790,7 +823,15 @@ def main() -> int:
 
     logger.info("Starting Player query-awareness trend test (DocETL)...")
     logger.info(f"Run directory: {run_dir}")
-    logger.info(f"Trend query source: {TREND_SQL_FILE}")
+    logger.info(
+        "Query set: Query/Player/{S,F,A,J,M}/*.sql filtered by ReDD NL_QUERY_SPECS"
+    )
+    logger.info(f"ReDD spec file: {REDD_TREND_FILE}")
+    logger.info(
+        "Execution: one docetl.api.Pipeline (Dataset + MapOp) per table, "
+        "then benchmark SQL on SQLite."
+    )
+    logger.info(f"Per-query pipeline artifacts: {run_dir / 'docetl_pipelines'}/<query_id>/")
     logger.info(f"Source data dir: {SOURCE_DATA_PLAYER_DIR}")
     logger.info(f"Model: {DOCETL_MODEL} @ {OLLAMA_BASE_URL}")
     logger.info(f"Identity columns (for eval): {IDENTITY_COLUMNS}")
