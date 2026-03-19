@@ -549,13 +549,30 @@ def _run_query(conn: sqlite3.Connection, query: str) -> Tuple[List[dict], List[s
     return [dict(zip(cols, r)) for r in rows], cols, elapsed
 
 
-def _compare(gold_rows: List[dict], redd_rows: List[dict], key_cols: List[str]) -> Tuple[int, int, int]:
-    """Compare rows, return (matched, extra, missed)."""
-    def _key(row):
-        return tuple(str(row.get(c, "")).strip().lower() for c in key_cols)
-    gold_keys = {_key(r) for r in gold_rows}
-    redd_keys = {_key(r) for r in redd_rows}
-    return len(gold_keys & redd_keys), len(redd_keys - gold_keys), len(gold_keys - redd_keys)
+def _compare(gold_rows: List[dict], redd_rows: List[dict]) -> Tuple[int, int, int]:
+    """Compare rows on ALL columns, return (matched, extra, missed).
+
+    A row is 'matched' only when every column value agrees exactly.
+    Identity-only matching (ignoring aggregates like player_count) would
+    silently accept wrong answers.
+    """
+    def _row_key(row: dict) -> tuple:
+        return tuple(
+            (k, str(v).strip().lower())
+            for k, v in sorted(row.items())
+        )
+    gold_keys = [_row_key(r) for r in gold_rows]
+    redd_keys = [_row_key(r) for r in redd_rows]
+    gold_multiset = {}
+    for k in gold_keys:
+        gold_multiset[k] = gold_multiset.get(k, 0) + 1
+    redd_multiset = {}
+    for k in redd_keys:
+        redd_multiset[k] = redd_multiset.get(k, 0) + 1
+    matched = sum(min(gold_multiset.get(k, 0), cnt) for k, cnt in redd_multiset.items())
+    extra = sum(max(0, cnt - gold_multiset.get(k, 0)) for k, cnt in redd_multiset.items())
+    missed = sum(max(0, cnt - redd_multiset.get(k, 0)) for k, cnt in gold_multiset.items())
+    return matched, extra, missed
 
 
 def main() -> int:
@@ -639,8 +656,7 @@ def main() -> int:
 
     # Step 4: Compare
     print("\n[4/4] Comparison:")
-    key_cols = [c for c in ["team_name", "location"] if c in gold_cols] or gold_cols[:2]
-    matched, extra, missed = _compare(gold_rows, redd_rows, key_cols)
+    matched, extra, missed = _compare(gold_rows, redd_rows)
     print(f"  Matched: {matched}")
     print(f"  Extra:   {extra} (in ReDD, not in gold)")
     print(f"  Missed:  {missed} (in gold, not in ReDD)")
