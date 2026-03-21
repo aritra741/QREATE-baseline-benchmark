@@ -163,12 +163,13 @@ class TrendQueryMetrics:
     prompt_tokens: int
     completion_tokens: int
     total_tokens: int
-    macro_f1: float
-    macro_precision: float
-    macro_recall: float
+    macro_f1: Optional[float]  # None for aggregation queries (official evaluator)
+    macro_precision: Optional[float]
+    macro_recall: Optional[float]
     gt_result_count: int
-    matched_rows: int
+    matched_rows: Optional[int]  # None for aggregation queries
     is_agg: bool
+    relative_error: Optional[float] = None
     error: Optional[str] = None
 
 
@@ -644,12 +645,13 @@ def run_trend_queries_docetl(
                 prompt_tokens=d_prompt,
                 completion_tokens=d_completion,
                 total_tokens=d_total,
-                macro_f1=eval_out.get("macro_f1", 0.0),
-                macro_precision=eval_out.get("macro_precision", 0.0),
-                macro_recall=eval_out.get("macro_recall", 0.0),
+                macro_f1=eval_out.get("macro_f1"),
+                macro_precision=eval_out.get("macro_precision"),
+                macro_recall=eval_out.get("macro_recall"),
                 gt_result_count=eval_out.get("gt_result_count", 0),
-                matched_rows=eval_out.get("matched_rows", 0),
+                matched_rows=eval_out.get("matched_rows"),
                 is_agg=eval_out.get("is_agg", False),
+                relative_error=eval_out.get("relative_error"),
             )
             metrics.append(item)
 
@@ -667,17 +669,30 @@ def run_trend_queries_docetl(
                 acc_data["total_tokens"] = d_total
                 acc_data["result_rows"] = len(rows)
                 acc_data["success"] = True
-                acc_data.setdefault("macro_f1", eval_out.get("macro_f1", 0.0))
-                acc_data.setdefault("macro_precision", eval_out.get("macro_precision", 0.0))
-                acc_data.setdefault("macro_recall", eval_out.get("macro_recall", 0.0))
+                acc_data["relative_error"] = eval_out.get("relative_error")
+                acc_data.setdefault("macro_f1", eval_out.get("macro_f1"))
+                acc_data.setdefault("macro_precision", eval_out.get("macro_precision"))
+                acc_data.setdefault("macro_recall", eval_out.get("macro_recall"))
                 acc_path.write_text(json.dumps(acc_data, indent=2))
             except Exception as acc_err:
                 logger.warning(f"Could not write {acc_path} with token/latency: {acc_err}")
 
-            logger.info(
-                f"{query_id}: rows={item.result_rows} latency={item.latency_s:.3f}s "
-                f"tokens={item.total_tokens} F1={item.macro_f1:.3f}"
-            )
+            if item.is_agg:
+                rel_err_str = (
+                    "n/a"
+                    if item.relative_error is None
+                    else f"{item.relative_error:.4f}"
+                )
+                logger.info(
+                    f"{query_id}: rows={item.result_rows} latency={item.latency_s:.3f}s "
+                    f"tokens={item.total_tokens} RelErr={rel_err_str}"
+                )
+            else:
+                f1 = item.macro_f1 if item.macro_f1 is not None else 0.0
+                logger.info(
+                    f"{query_id}: rows={item.result_rows} latency={item.latency_s:.3f}s "
+                    f"tokens={item.total_tokens} F1={f1:.3f}"
+                )
         except Exception as exc:
             latency = time.time() - t0
             d_prompt, d_completion = token_tracker.delta(before)
@@ -701,6 +716,7 @@ def run_trend_queries_docetl(
                     gt_result_count=0,
                     matched_rows=0,
                     is_agg=False,
+                    relative_error=None,
                     error=str(exc),
                 )
             )
@@ -767,7 +783,14 @@ def plot_metrics(metrics: List[TrendQueryMetrics], run_dir: Path) -> None:
     result_rows = [m.result_rows for m in ordered]
     token_cost = [m.total_tokens for m in ordered]
     latency = [m.latency_s for m in ordered]
-    f1 = [m.macro_f1 for m in ordered]
+    # None for agg queries — plot as NaN; relative error for agg on bottom-right
+    f1 = [
+        m.macro_f1 if m.macro_f1 is not None else float("nan") for m in ordered
+    ]
+    rel_err = [
+        m.relative_error if m.relative_error is not None else float("nan")
+        for m in ordered
+    ]
 
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
     fig.suptitle(
@@ -797,13 +820,28 @@ def plot_metrics(metrics: List[TrendQueryMetrics], run_dir: Path) -> None:
     axes[1, 0].set_ylabel("seconds")
     axes[1, 0].grid(alpha=0.3)
 
-    axes[1, 1].plot(x, f1, marker="o", color="#27ae60")
-    axes[1, 1].set_title("Macro F1 (official evaluator)")
+    non_agg_x = [i for i, m in enumerate(ordered) if not m.is_agg]
+    non_agg_f1 = [f1[i] for i in non_agg_x]
+    agg_x = [i for i, m in enumerate(ordered) if m.is_agg]
+    agg_re = [rel_err[i] for i in agg_x]
+    if non_agg_x:
+        axes[1, 1].plot(
+            non_agg_x, non_agg_f1, marker="o", color="#27ae60", label="Macro F1 (non-agg)"
+        )
+    if agg_x:
+        axes[1, 1].plot(
+            agg_x,
+            agg_re,
+            marker="s",
+            color="#e67e22",
+            label="Rel. Error (agg, lower=better)",
+        )
+    axes[1, 1].set_title("Accuracy by query type")
     axes[1, 1].set_xticks(x)
     axes[1, 1].set_xticklabels(x_labels)
-    axes[1, 1].set_ylim(0.0, 1.0)
-    axes[1, 1].set_ylabel("F1")
+    axes[1, 1].set_ylabel("score")
     axes[1, 1].grid(alpha=0.3)
+    axes[1, 1].legend(fontsize=8)
 
     plt.tight_layout()
     plots_dir = run_dir / "plots"
@@ -811,6 +849,30 @@ def plot_metrics(metrics: List[TrendQueryMetrics], run_dir: Path) -> None:
     plt.savefig(summary_plot, dpi=300, bbox_inches="tight")
     plt.close(fig)
     logger.info(f"Saved trend summary plot: {summary_plot}")
+
+    p = [
+        m.macro_precision if m.macro_precision is not None else float("nan")
+        for m in ordered
+    ]
+    r = [
+        m.macro_recall if m.macro_recall is not None else float("nan") for m in ordered
+    ]
+    fig2, ax2 = plt.subplots(figsize=(12, 5))
+    ax2.plot(x, p, marker="o", label="Precision")
+    ax2.plot(x, r, marker="o", label="Recall")
+    ax2.plot(x, f1, marker="o", label="F1")
+    ax2.set_xticks(x)
+    ax2.set_xticklabels(x_labels)
+    ax2.set_ylim(0.0, 1.0)
+    ax2.set_title("Macro Precision/Recall/F1 by query (non-aggregation: NaN gaps)")
+    ax2.set_ylabel("score")
+    ax2.grid(alpha=0.3)
+    ax2.legend()
+    plt.tight_layout()
+    prf_plot = plots_dir / "query_awareness_trend_prf.png"
+    plt.savefig(prf_plot, dpi=300, bbox_inches="tight")
+    plt.close(fig2)
+    logger.info(f"Saved trend PRF plot: {prf_plot}")
 
 
 def main() -> int:
@@ -843,13 +905,20 @@ def main() -> int:
         plot_metrics(metrics, run_dir)
 
         success_count = sum(1 for m in metrics if m.success)
-        avg_f1 = sum(m.macro_f1 for m in metrics) / len(metrics) if metrics else 0.0
+        non_agg_f1 = [
+            m.macro_f1
+            for m in metrics
+            if m.success and not m.is_agg and m.macro_f1 is not None
+        ]
+        avg_f1 = (
+            sum(non_agg_f1) / len(non_agg_f1) if non_agg_f1 else 0.0
+        )
         if not math.isfinite(avg_f1):
             avg_f1 = 0.0
         logger.info("=" * 80)
         logger.info(
             f"Completed: {success_count}/{len(metrics)} queries succeeded, "
-            f"avg macro F1={avg_f1:.3f}"
+            f"avg macro F1 (non-agg only)={avg_f1:.3f}"
         )
         token_summary = GLOBAL_COUNTER.summary_str()
         logger.info(token_summary)
