@@ -10,6 +10,37 @@ benchmark SQL; joins/filters/aggregations run deterministically in SQLite on the
 extracted relations (DocETL-style closure).
 """
 
+import sys
+
+
+def _ensure_sqlite3_for_chromadb() -> None:
+    """
+    ChromaDB (pulled in by Palimpzest) requires SQLite >= 3.35.0. Cluster images often
+    ship older libsqlite3. If so, install a bundled build:
+
+        pip install pysqlite3-binary
+
+    then re-run. This replaces the stdlib ``sqlite3`` binding before Palimpzest loads.
+    """
+    import sqlite3 as _stdlib_sqlite3
+
+    if _stdlib_sqlite3.sqlite_version_info >= (3, 35, 0):
+        return
+    del sys.modules["sqlite3"]
+    try:
+        import pysqlite3 as _pysqlite3  # type: ignore[import-untyped]
+    except ImportError as exc:
+        ver = ".".join(str(x) for x in _stdlib_sqlite3.sqlite_version_info)
+        raise RuntimeError(
+            f"SQLite {ver} is too old for ChromaDB (needs >= 3.35.0). "
+            "Typical fix on HPC: pip install pysqlite3-binary\n"
+            "https://docs.trychroma.com/troubleshooting#sqlite"
+        ) from exc
+    sys.modules["sqlite3"] = _pysqlite3
+
+
+_ensure_sqlite3_for_chromadb()
+
 import csv
 import importlib.util
 import json
@@ -17,7 +48,6 @@ import logging
 import math
 import os
 import sqlite3
-import sys
 import time
 from collections import defaultdict
 from dataclasses import asdict, dataclass
