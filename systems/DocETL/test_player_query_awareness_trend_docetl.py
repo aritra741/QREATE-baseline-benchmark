@@ -315,7 +315,8 @@ def _run_docetl_map_pipeline_for_table(
     }
     field_list = "\n".join(f"- {c}" for c in needed_cols)
     numeric_guidance = ", ".join([c for c in needed_cols if c in NUMERIC_FIELDS])
-    # Jinja: use {{ input.text }} — literal braces via f-string doubling.
+    # Jinja: DocETL validates the prompt as Jinja2; row fields are {{ input.text }}.
+    # In an f-string, double each brace so the stored prompt is literally {{ input.text }}.
     prompt = (
         f"You are building a structured {table} table for this natural-language query:\n"
         f"{nl_query}\n\n"
@@ -326,7 +327,7 @@ def _run_docetl_map_pipeline_for_table(
         "If a numeric field is unknown, return -1. "
         "If a text field is unknown, return empty string. "
         "Keep names concise and normalized.\n\n"
-        "Document:\n{{{{ input.text }}}}"
+        f"Document:\n{{{{ input.text }}}}"
     )
 
     map_op = MapOp(
