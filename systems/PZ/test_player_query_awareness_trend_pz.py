@@ -1,24 +1,32 @@
 """
-Run Q1..Q10 query-awareness trend benchmarking with Palimpzest on Player.
+Run query-awareness trend benchmarking with Palimpzest on Player.
 
-This mirrors systems/DocETL/test_player_query_awareness_trend_docetl.py, but:
-- uses Palimpzest extraction (`sem_map`) over source text documents
-- uses Palimpzest relational join operator (`join`) for equijoins
-- uses deterministic row filters for SQL-like predicates
+Query set matches WDIRS/ReDD (Query/Player/{Select,Filter,Agg,Join,Mixed}/*.sql,
+filtered by uncommented IDs in ReDD's NL_QUERY_SPECS), same as
+systems/DocETL/test_player_query_awareness_trend_docetl.py.
+
+For each query: Palimpzest `sem_map` extracts per-table columns inferred from the
+benchmark SQL; joins/filters/aggregations run deterministically in SQLite on the
+extracted relations (DocETL-style closure).
 """
 
 import csv
+import importlib.util
 import json
 import logging
 import math
 import os
+import sqlite3
 import sys
 import time
+from collections import defaultdict
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
+import sqlglot
+from sqlglot import exp
 
 import matplotlib
 
@@ -45,7 +53,7 @@ sys.path.insert(0, str(WDIRS_DIR))
 sys.path.insert(0, str(PZ_SRC_DIR))
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from config import QUERY_DIR, RESULTS_DIR  # type: ignore
+from config import RESULTS_DIR  # type: ignore
 from token_counter import GLOBAL_COUNTER, ensure_precise_tokenizer_ready
 
 import palimpzest as pz  # type: ignore
@@ -57,13 +65,13 @@ from evaluation.sql_parser import SqlParser as _SqlParser
 from test_player_query_awareness_trend import (  # type: ignore
     _infer_identity_col_for_query,
     evaluate_with_official_framework,
-    parse_trend_queries,
+    load_redd_enabled_query_ids,
+    parse_all_category_queries,
 )
 
 
-DATASET = "Player"
 DATASET_QUERY = "Player"
-TREND_SQL_FILE = QUERY_DIR / DATASET_QUERY / "query_aware_trend_queries.sql"
+REDD_TREND_FILE = PROJECT_ROOT / "systems" / "ReDD" / "test_player_query_awareness_trend_redd.py"
 GROUND_TRUTH_DIR = PROJECT_ROOT / "Data" / "Player"
 ATTRIBUTES_FILE = PROJECT_ROOT / "Query" / DATASET_QUERY / "Player_attributes.json"
 SOURCE_DATA_PLAYER_DIR = PROJECT_ROOT / "source_data" / "Player"
@@ -76,10 +84,57 @@ PZ_MAX_WORKERS = 4
 NUMERIC_FIELDS = {
     "age",
     "draft_pick",
+    "draft_year",
     "founded_year",
     "population",
     "gdp",
     "area",
+    "mvp_awards",
+    "olympic_gold_medals",
+    "fiba_world_cup",
+    "nba_championships",
+    "championship",
+    "own_year",
+}
+
+# Column dictionary for resolving unqualified SQL columns (mirrors DocETL trend harness).
+TABLE_COLUMNS: Dict[str, set[str]] = {
+    "player": {
+        "name",
+        "birth_date",
+        "nationality",
+        "age",
+        "team",
+        "position",
+        "draft_pick",
+        "draft_year",
+        "college",
+        "nba_championships",
+        "mvp_awards",
+        "olympic_gold_medals",
+        "fiba_world_cup",
+    },
+    "team": {
+        "team_name",
+        "founded_year",
+        "location",
+        "ownership",
+        "championship",
+    },
+    "city": {
+        "city_name",
+        "state_name",
+        "population",
+        "area",
+        "gdp",
+    },
+    "owner": {
+        "name",
+        "age",
+        "nationality",
+        "nba_team",
+        "own_year",
+    },
 }
 
 # Identity columns for evaluation (table -> identity_column_name)
@@ -103,12 +158,13 @@ class TrendQueryMetrics:
     prompt_tokens: int
     completion_tokens: int
     total_tokens: int
-    macro_f1: float
-    macro_precision: float
-    macro_recall: float
+    macro_f1: Optional[float]
+    macro_precision: Optional[float]
+    macro_recall: Optional[float]
     gt_result_count: int
-    matched_rows: int
+    matched_rows: Optional[int]
     is_agg: bool
+    relative_error: Optional[float] = None
     error: Optional[str] = None
 
 
@@ -134,49 +190,6 @@ def _to_builtin(v: Any) -> Any:
     if hasattr(v, "item"):
         return v.item()
     return v
-
-
-def _short_col_name(col: Any) -> str:
-    s = str(col)
-    # Handle qualified names such as "table.column" or "dataset.table.column".
-    s = s.split(".")[-1]
-    # Handle pandas-style merge suffixes if they ever appear.
-    if s.endswith("_x") or s.endswith("_y"):
-        s = s[:-2]
-    return s
-
-
-def _resolve_project_columns(df: pd.DataFrame, selected_cols: List[str]) -> Tuple[pd.DataFrame, List[str]]:
-    if not selected_cols:
-        return df, selected_cols
-
-    resolved: List[str] = []
-    rename_map: Dict[str, str] = {}
-    all_cols = list(df.columns)
-    used_source_cols: set[str] = set()
-
-    for want in selected_cols:
-        # 1) exact match
-        if want in df.columns:
-            resolved.append(want)
-            used_source_cols.add(want)
-            continue
-
-        # 2) resolve by short name (e.g., "Q8_player.name" -> "name")
-        candidates = [c for c in all_cols if _short_col_name(c) == want and str(c) not in used_source_cols]
-        if not candidates:
-            continue
-
-        # Prefer a stable deterministic candidate.
-        chosen = str(sorted(candidates, key=lambda x: str(x))[0])
-        used_source_cols.add(chosen)
-        rename_map[chosen] = want
-        resolved.append(want)
-
-    out = df.copy()
-    if rename_map:
-        out = out.rename(columns=rename_map)
-    return out, resolved
 
 
 def _extract_token_usage(record_collection: Any) -> Tuple[int, int]:
@@ -261,241 +274,124 @@ def _extract_table_for_query(
     return out, prompt_toks, completion_toks
 
 
-NL_QUERY_SPECS: Dict[str, Dict[str, Any]] = {
-    "Q1": {
-        "nl_query": "List each player's name, nationality, and age with their team name and team location.",
-        "base_table": "player",
-        "tables": {"player": ["name", "nationality", "age", "team"], "team": ["team_name", "location"]},
-        "joins": [{"right_table": "team", "left_key": "team", "right_key": "team_name"}],
-        "filters": [],
-        "select": ["name", "nationality", "age", "team_name", "location"],
-    },
-    "Q2": {
-        "nl_query": "For players older than 25, list player name, position, team name, and team founded year.",
-        "base_table": "player",
-        "tables": {"player": ["name", "position", "age", "team"], "team": ["team_name", "founded_year"]},
-        "joins": [{"right_table": "team", "left_key": "team", "right_key": "team_name"}],
-        "filters": [{"column": "age", "operator": "greater than", "value": "25"}],
-        "select": ["name", "position", "team_name", "founded_year"],
-    },
-    "Q3": {
-        "nl_query": "For players with draft pick at least 0, list player name, draft pick, college, and team name.",
-        "base_table": "player",
-        "tables": {"player": ["name", "draft_pick", "college", "team"], "team": ["team_name"]},
-        "joins": [{"right_table": "team", "left_key": "team", "right_key": "team_name"}],
-        "filters": [{"column": "draft_pick", "operator": "greater than or equal to", "value": "0"}],
-        "select": ["name", "draft_pick", "college", "team_name"],
-    },
-    "Q4": {
-        "nl_query": "List team name and location with the matched city name and state name.",
-        "base_table": "team",
-        "tables": {"team": ["team_name", "location"], "city": ["city_name", "state_name"]},
-        "joins": [{"right_table": "city", "left_key": "location", "right_key": "city_name"}],
-        "filters": [],
-        "select": ["team_name", "location", "city_name", "state_name"],
-    },
-    "Q5": {
-        "nl_query": "List player name with team name, city name, and city state by linking player -> team -> city.",
-        "base_table": "player",
-        "tables": {
-            "player": ["name", "team"],
-            "team": ["team_name", "location"],
-            "city": ["city_name", "state_name"],
-        },
-        "joins": [
-            {"right_table": "team", "left_key": "team", "right_key": "team_name"},
-            {"right_table": "city", "left_key": "location", "right_key": "city_name"},
-        ],
-        "filters": [],
-        "select": ["name", "team_name", "city_name", "state_name"],
-    },
-    "Q6": {
-        "nl_query": "For players younger than 35, list player name, position, city name, and city population via player -> team -> city.",
-        "base_table": "player",
-        "tables": {
-            "player": ["name", "position", "age", "team"],
-            "team": ["team_name", "location"],
-            "city": ["city_name", "population"],
-        },
-        "joins": [
-            {"right_table": "team", "left_key": "team", "right_key": "team_name"},
-            {"right_table": "city", "left_key": "location", "right_key": "city_name"},
-        ],
-        "filters": [{"column": "age", "operator": "less than", "value": "35"}],
-        "select": ["name", "position", "city_name", "population"],
-    },
-    "Q7": {
-        "nl_query": "For players with draft pick greater than 0, list player name, college, team name, and city GDP via player -> team -> city.",
-        "base_table": "player",
-        "tables": {
-            "player": ["name", "college", "draft_pick", "team"],
-            "team": ["team_name", "location"],
-            "city": ["city_name", "gdp"],
-        },
-        "joins": [
-            {"right_table": "team", "left_key": "team", "right_key": "team_name"},
-            {"right_table": "city", "left_key": "location", "right_key": "city_name"},
-        ],
-        "filters": [{"column": "draft_pick", "operator": "greater than", "value": "0"}],
-        "select": ["name", "college", "team_name", "gdp"],
-    },
-    "Q8": {
-        "nl_query": "For cities with area greater than 100, list player name, player birth date, team name, and city area via player -> team -> city.",
-        "base_table": "player",
-        "tables": {
-            "player": ["name", "birth_date", "team"],
-            "team": ["team_name", "location"],
-            "city": ["city_name", "area"],
-        },
-        "joins": [
-            {"right_table": "team", "left_key": "team", "right_key": "team_name"},
-            {"right_table": "city", "left_key": "location", "right_key": "city_name"},
-        ],
-        "filters": [{"column": "area", "operator": "greater than", "value": "100"}],
-        "select": ["name", "birth_date", "team_name", "area"],
-    },
-    "Q9": {
-        "nl_query": "Starting from city and traversing city -> team -> player, list city name, state, team name, and player name for players younger than 40.",
-        "base_table": "city",
-        "tables": {
-            "city": ["city_name", "state_name"],
-            "team": ["team_name", "location"],
-            "player": ["name", "age", "team"],
-        },
-        "joins": [
-            {"right_table": "team", "left_key": "city_name", "right_key": "location"},
-            {"right_table": "player", "left_key": "team_name", "right_key": "team"},
-        ],
-        "filters": [{"column": "age", "operator": "less than", "value": "40"}],
-        "select": ["city_name", "state_name", "team_name", "name"],
-    },
-    "Q10": {
-        "nl_query": "Starting from city and traversing city -> team -> player, list city name, state, team name, player name, and player college for players older than 20.",
-        "base_table": "city",
-        "tables": {
-            "city": ["city_name", "state_name"],
-            "team": ["team_name", "location"],
-            "player": ["name", "college", "age", "team"],
-        },
-        "joins": [
-            {"right_table": "team", "left_key": "city_name", "right_key": "location"},
-            {"right_table": "player", "left_key": "team_name", "right_key": "team"},
-        ],
-        "filters": [{"column": "age", "operator": "greater than", "value": "20"}],
-        "select": ["city_name", "state_name", "team_name", "name", "college"],
-    },
-}
+def load_redd_nl_query_specs(redd_path: Path) -> Dict[str, str]:
+    """NL strings from ReDD's NL_QUERY_SPECS (same source WDIRS uses for filtering)."""
+    module_name = "_pz_redd_nl_specs"
+    if module_name in sys.modules:
+        mod = sys.modules[module_name]
+    else:
+        spec = importlib.util.spec_from_file_location(module_name, redd_path)
+        if spec is None or spec.loader is None:
+            raise RuntimeError(f"Cannot load ReDD module from {redd_path}")
+        mod = importlib.util.module_from_spec(spec)
+        sys.modules[module_name] = mod
+        spec.loader.exec_module(mod)
+    raw = getattr(mod, "NL_QUERY_SPECS", None)
+    if not isinstance(raw, dict):
+        raise RuntimeError("NL_QUERY_SPECS missing or invalid in ReDD trend module")
+    return {str(k): str(v) for k, v in raw.items()}
 
 
-def _make_numeric_filter_fn(column: str, operator: str, value: str) -> Callable[[Dict[str, Any]], bool]:
-    val = float(value)
-    op = operator.strip().lower()
+def columns_per_table_from_sql(sql_text: str) -> Dict[str, List[str]]:
+    """Collect table -> column names from benchmark SQL (DocETL trend harness logic)."""
+    tree = sqlglot.parse_one(sql_text)
 
-    def _strict_float(v: Any) -> float:
-        if v is None:
-            raise ValueError(f"Numeric filter column '{column}' has null value.")
-        try:
-            return float(v)
-        except Exception as exc:
+    alias_to_table: Dict[str, str] = {}
+    tables_in_query: List[str] = []
+    for t in tree.find_all(exp.Table):
+        base = (t.name or "").strip().lower()
+        if not base:
+            continue
+        alias_to_table[base] = base
+        alias_or_name = (t.alias_or_name or "").strip().lower()
+        if alias_or_name:
+            alias_to_table[alias_or_name] = base
+        if base not in tables_in_query:
+            tables_in_query.append(base)
+
+    if not tables_in_query:
+        raise ValueError("No base tables found in SQL query")
+
+    by_table: Dict[str, set[str]] = defaultdict(set)
+    unqualified_cols: List[str] = []
+
+    for col in tree.find_all(exp.Column):
+        cname = (col.name or "").strip().lower()
+        if not cname:
+            continue
+        tname = (col.table or "").strip().lower()
+        if tname:
+            resolved = alias_to_table.get(tname, tname)
+            by_table[resolved].add(cname)
+        else:
+            unqualified_cols.append(cname)
+
+    for cname in unqualified_cols:
+        if len(tables_in_query) == 1:
+            by_table[tables_in_query[0]].add(cname)
+            continue
+
+        matches = [t for t in tables_in_query if cname in TABLE_COLUMNS.get(t, set())]
+        if len(matches) == 1:
+            by_table[matches[0]].add(cname)
+            continue
+        if len(matches) == 0:
             raise ValueError(
-                f"Numeric filter column '{column}' has non-numeric value: {v!r}"
-            ) from exc
+                f"Cannot resolve unqualified column '{cname}' in multi-table query "
+                f"with tables {tables_in_query}"
+            )
+        raise ValueError(
+            f"Ambiguous unqualified column '{cname}' (matches tables {matches})"
+        )
 
-    if op == "greater than":
-        return lambda row: _strict_float(row.get(column)) > val
-    if op == "greater than or equal to":
-        return lambda row: _strict_float(row.get(column)) >= val
-    if op == "less than":
-        return lambda row: _strict_float(row.get(column)) < val
-    if op == "less than or equal to":
-        return lambda row: _strict_float(row.get(column)) <= val
-    raise ValueError(f"Unsupported numeric filter operator: {operator}")
+    if not by_table:
+        raise ValueError("Could not infer any table columns from SQL query")
+    return {t: sorted(cols) for t, cols in by_table.items()}
 
 
-def _apply_filters(current_ds: "pz.Dataset", filters: List[Dict[str, str]]) -> "pz.Dataset":
-    out = current_ds
-    for f in filters:
-        col = f["column"]
-        op = f["operator"]
-        value = f["value"]
-        fn = _make_numeric_filter_fn(col, op, value)
-        out = out.filter(fn, depends_on=[col])
-    return out
+def _execute_benchmark_sql(
+    sql_text: str, table_map: Dict[str, pd.DataFrame]
+) -> List[Dict[str, Any]]:
+    """Run the benchmark query on extracted relations (deterministic SQLite)."""
+    sql = sql_text.strip().rstrip(";").strip()
+    parsed = _SqlParser().parse(sql_text)
+    out_names = list(parsed.output_columns)
+    with sqlite3.connect(":memory:") as conn:
+        for table in sorted(table_map.keys()):
+            table_map[table].to_sql(table, conn, if_exists="replace", index=False)
+        cur = conn.execute(sql)
+        tuples = cur.fetchall()
+    if not out_names:
+        return []
+    rows: List[Dict[str, Any]] = []
+    for tup in tuples:
+        if len(tup) != len(out_names):
+            raise ValueError(
+                f"SQL result has {len(tup)} columns but parser expects {len(out_names)}"
+            )
+        rows.append(
+            {out_names[i]: _to_builtin(tup[i]) for i in range(len(out_names))}
+        )
+    return rows
 
 
 def execute_query_via_pz(
     query_id: str,
+    sql_text: str,
+    nl_query: str,
 ) -> Tuple[List[Dict[str, Any]], Dict[str, pd.DataFrame], str, int, int]:
-    if query_id not in NL_QUERY_SPECS:
-        raise ValueError(f"No NL query specification found for {query_id}")
-    spec = NL_QUERY_SPECS[query_id]
-    nl_query = spec["nl_query"]
-
+    need = columns_per_table_from_sql(sql_text)
     table_map: Dict[str, pd.DataFrame] = {}
     prompt_tokens = 0
     completion_tokens = 0
-    for table, cols in spec["tables"].items():
-        logger.info(f"[{query_id}] PZ query-local ETL for '{table}' with columns: {cols}")
+    for table, cols in need.items():
+        logger.info(f"[{query_id}] PZ sem_map for '{table}': {cols}")
         table_df, p_tok, c_tok = _extract_table_for_query(table, cols, nl_query)
         table_map[table] = table_df
         prompt_tokens += p_tok
         completion_tokens += c_tok
 
-    base_table = spec["base_table"]
-    if base_table not in table_map:
-        raise ValueError(f"Unknown base table in spec: {base_table}")
-
-    current_ds = pz.MemoryDataset(id=f"{query_id}_{base_table}", vals=table_map[base_table].copy())
-    for join_idx, join_spec in enumerate(spec["joins"]):
-        right_table = join_spec["right_table"]
-        if right_table not in table_map:
-            raise ValueError(f"Unknown join table: {right_table}")
-        left_key = join_spec["left_key"]
-        right_key = join_spec["right_key"]
-
-        right_df = table_map[right_table].copy()
-        if left_key not in right_df.columns and right_key in right_df.columns:
-            # Align key names so we can use deterministic equijoin via `join(on=...)`.
-            right_df[left_key] = right_df[right_key]
-        if left_key not in right_df.columns:
-            raise ValueError(
-                f"Right table '{right_table}' lacks joinable key '{left_key}' "
-                f"(right_key={right_key})."
-            )
-
-        right_ds = pz.MemoryDataset(id=f"{query_id}_{right_table}_{join_idx}", vals=right_df)
-        current_ds = current_ds.join(right_ds, on=left_key, how="inner")
-
-    current_ds = _apply_filters(current_ds, spec["filters"])
-
-    joined_out = current_ds.run(_pz_run_config())
-    p_tok, c_tok = _extract_token_usage(joined_out)
-    prompt_tokens += p_tok
-    completion_tokens += c_tok
-    GLOBAL_COUNTER.record(
-        input_tokens=p_tok,
-        output_tokens=c_tok,
-        operation="pz",
-    )
-    out_df = joined_out.to_df()
-
-    selected_cols: List[str] = list(spec["select"])
-    # Palimpzest may return an empty frame with no columns for empty results.
-    # Treat this as a valid 0-row result and preserve the expected projection schema.
-    if out_df.empty and len(out_df.columns) == 0:
-        out_df = pd.DataFrame(columns=selected_cols)
-
-    out_df, resolved_cols = _resolve_project_columns(out_df, selected_cols)
-    missing_cols = [c for c in selected_cols if c not in resolved_cols]
-    if missing_cols:
-        available = [str(c) for c in out_df.columns]
-        raise ValueError(
-            f"Projected columns missing after execution: {missing_cols}. "
-            f"Available columns: {available}"
-        )
-
-    out_df = out_df[selected_cols].copy()
-    rows = [{k: _to_builtin(v) for k, v in r.items()} for r in out_df.to_dict("records")]
+    rows = _execute_benchmark_sql(sql_text, table_map)
     return rows, table_map, nl_query, prompt_tokens, completion_tokens
 
 
@@ -519,7 +415,7 @@ def _write_query_tables_sqlite(table_map: Dict[str, pd.DataFrame], db_path: Path
     if db_path.exists():
         db_path.unlink()
     with pd.option_context("mode.copy_on_write", True):
-        with __import__("sqlite3").connect(db_path) as conn:
+        with sqlite3.connect(db_path) as conn:
             for table, df in table_map.items():
                 safe_df = df.copy()
                 for col in safe_df.columns:
@@ -570,84 +466,162 @@ def run_trend_queries_pz(
     eval_sql_parser = _SqlParser()
     eval_row_matcher = _RowMatcher(settings=eval_settings)
 
-    trend_queries = parse_trend_queries(TREND_SQL_FILE)
+    redd_nl_specs = load_redd_nl_query_specs(REDD_TREND_FILE)
+    redd_enabled_ids = load_redd_enabled_query_ids()
+    trend_queries = [
+        (qid, sql)
+        for qid, sql in parse_all_category_queries()
+        if qid in redd_enabled_ids
+    ]
     if not trend_queries:
-        raise RuntimeError(f"No trend queries found in {TREND_SQL_FILE}")
+        raise RuntimeError(
+            "No runnable queries after applying ReDD NL_QUERY_SPECS filter. "
+            f"ReDD file: {REDD_TREND_FILE}"
+        )
+    logger.info(
+        "Running %d Palimpzest queries aligned with WDIRS/ReDD (uncommented ReDD IDs)",
+        len(trend_queries),
+    )
 
     metrics: List[TrendQueryMetrics] = []
     for query_id, query_text in trend_queries:
         logger.info("=" * 70)
         logger.info(f"Executing {query_id} with PZ")
         t0 = time.time()
-        rows, query_table_map, nl_query, d_prompt, d_completion = execute_query_via_pz(query_id)
-        logger.info(f"[NL] {nl_query}")
-        latency = time.time() - t0
-        d_total = d_prompt + d_completion
 
-        out_csv = query_tables_dir / f"{query_id}.csv"
-        out_json = query_tables_dir / f"{query_id}.json"
-        _save_rows_csv(rows, out_csv)
-        out_json.write_text(json.dumps(rows, indent=2, default=str))
+        try:
+            nl_query = redd_nl_specs.get(query_id)
+            if not nl_query:
+                raise ValueError(
+                    f"No NL_QUERY_SPECS entry for {query_id} in {REDD_TREND_FILE}"
+                )
+            rows, query_table_map, nl_query, d_prompt, d_completion = execute_query_via_pz(
+                query_id, query_text, nl_query
+            )
+            logger.info(f"[NL] {nl_query}")
+            latency = time.time() - t0
+            d_total = d_prompt + d_completion
 
-        query_eval_db = query_eval_db_dir / f"{query_id}.db"
-        _write_query_tables_sqlite(query_table_map, query_eval_db)
+            out_csv = query_tables_dir / f"{query_id}.csv"
+            out_json = query_tables_dir / f"{query_id}.json"
+            _save_rows_csv(rows, out_csv)
+            out_json.write_text(json.dumps(rows, indent=2, default=str))
 
-        eval_out = evaluate_with_official_framework(
-            query_text,
-            rows,
-            gt_runner=eval_gt_runner,
-            sql_parser=eval_sql_parser,
-            row_matcher=eval_row_matcher,
-            settings=eval_settings,
-            attributes=eval_attributes,
-            identity_col=_infer_identity_col_for_query(
-                query_text, identity_columns
-            ),
-            phase2_db=query_eval_db,
-            output_dir=query_results_dir / query_id,
-        )
+            query_eval_db = query_eval_db_dir / f"{query_id}.db"
+            _write_query_tables_sqlite(query_table_map, query_eval_db)
 
-        item = TrendQueryMetrics(
-            query_id=query_id,
-            query_text=query_text,
-            nl_query=nl_query,
-            success=True,
-            delta_type="PZ",
-            latency_s=latency,
-            result_rows=len(rows),
-            prompt_tokens=d_prompt,
-            completion_tokens=d_completion,
-            total_tokens=d_total,
-            macro_f1=eval_out.get("macro_f1", 0.0),
-            macro_precision=eval_out.get("macro_precision", 0.0),
-            macro_recall=eval_out.get("macro_recall", 0.0),
-            gt_result_count=eval_out.get("gt_result_count", 0),
-            matched_rows=eval_out.get("matched_rows", 0),
-            is_agg=eval_out.get("is_agg", False),
-        )
-        metrics.append(item)
+            eval_out = evaluate_with_official_framework(
+                query_text,
+                rows,
+                gt_runner=eval_gt_runner,
+                sql_parser=eval_sql_parser,
+                row_matcher=eval_row_matcher,
+                settings=eval_settings,
+                attributes=eval_attributes,
+                identity_col=_infer_identity_col_for_query(
+                    query_text, identity_columns
+                ),
+                phase2_db=query_eval_db,
+                output_dir=query_results_dir / query_id,
+            )
 
-        acc_path = query_results_dir / query_id / "acc.json"
-        acc_path.parent.mkdir(parents=True, exist_ok=True)
-        acc_data = {}
-        if acc_path.exists():
-            acc_data = json.loads(acc_path.read_text())
-        acc_data["query_id"] = query_id
-        acc_data["latency_s"] = round(latency, 4)
-        acc_data["prompt_tokens"] = d_prompt
-        acc_data["completion_tokens"] = d_completion
-        acc_data["total_tokens"] = d_total
-        acc_data["result_rows"] = len(rows)
-        acc_data["success"] = True
-        acc_data["macro_f1"] = eval_out.get("macro_f1", 0.0)
-        acc_data["macro_precision"] = eval_out.get("macro_precision", 0.0)
-        acc_data["macro_recall"] = eval_out.get("macro_recall", 0.0)
-        acc_path.write_text(json.dumps(acc_data, indent=2))
+            item = TrendQueryMetrics(
+                query_id=query_id,
+                query_text=query_text,
+                nl_query=nl_query,
+                success=True,
+                delta_type="PZ",
+                latency_s=latency,
+                result_rows=len(rows),
+                prompt_tokens=d_prompt,
+                completion_tokens=d_completion,
+                total_tokens=d_total,
+                macro_f1=eval_out.get("macro_f1"),
+                macro_precision=eval_out.get("macro_precision"),
+                macro_recall=eval_out.get("macro_recall"),
+                gt_result_count=eval_out.get("gt_result_count", 0),
+                matched_rows=eval_out.get("matched_rows"),
+                is_agg=eval_out.get("is_agg", False),
+                relative_error=eval_out.get("relative_error"),
+            )
+            metrics.append(item)
 
-        logger.info(
-            f"{query_id}: rows={item.result_rows} latency={item.latency_s:.3f}s "
-            f"tokens={item.total_tokens} F1={item.macro_f1:.3f}"
-        )
+            acc_path = query_results_dir / query_id / "acc.json"
+            acc_path.parent.mkdir(parents=True, exist_ok=True)
+            acc_data = {}
+            if acc_path.exists():
+                acc_data = json.loads(acc_path.read_text())
+            acc_data["query_id"] = query_id
+            acc_data["latency_s"] = round(latency, 4)
+            acc_data["prompt_tokens"] = d_prompt
+            acc_data["completion_tokens"] = d_completion
+            acc_data["total_tokens"] = d_total
+            acc_data["result_rows"] = len(rows)
+            acc_data["success"] = True
+            acc_data["relative_error"] = eval_out.get("relative_error")
+            acc_data.setdefault("macro_f1", eval_out.get("macro_f1"))
+            acc_data.setdefault("macro_precision", eval_out.get("macro_precision"))
+            acc_data.setdefault("macro_recall", eval_out.get("macro_recall"))
+            acc_path.write_text(json.dumps(acc_data, indent=2))
+
+            if item.is_agg:
+                rel_err_str = (
+                    "n/a"
+                    if item.relative_error is None
+                    else f"{item.relative_error:.4f}"
+                )
+                logger.info(
+                    f"{query_id}: rows={item.result_rows} latency={item.latency_s:.3f}s "
+                    f"tokens={item.total_tokens} RelErr={rel_err_str}"
+                )
+            else:
+                f1 = item.macro_f1 if item.macro_f1 is not None else 0.0
+                logger.info(
+                    f"{query_id}: rows={item.result_rows} latency={item.latency_s:.3f}s "
+                    f"tokens={item.total_tokens} F1={f1:.3f}"
+                )
+        except Exception as exc:
+            latency = time.time() - t0
+            nl_fallback = redd_nl_specs.get(query_id, "")
+            metrics.append(
+                TrendQueryMetrics(
+                    query_id=query_id,
+                    query_text=query_text,
+                    nl_query=nl_fallback,
+                    success=False,
+                    delta_type="ERROR",
+                    latency_s=latency,
+                    result_rows=0,
+                    prompt_tokens=0,
+                    completion_tokens=0,
+                    total_tokens=0,
+                    macro_f1=0.0,
+                    macro_precision=0.0,
+                    macro_recall=0.0,
+                    gt_result_count=0,
+                    matched_rows=0,
+                    is_agg=False,
+                    relative_error=None,
+                    error=str(exc),
+                )
+            )
+            acc_path = query_results_dir / query_id / "acc.json"
+            acc_path.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                acc_path.write_text(
+                    json.dumps(
+                        {
+                            "query_id": query_id,
+                            "latency_s": round(latency, 4),
+                            "success": False,
+                            "error": str(exc),
+                        },
+                        indent=2,
+                    )
+                )
+            except Exception as acc_err:
+                logger.warning(f"Could not write {acc_path}: {acc_err}")
+            logger.exception(f"{query_id} failed: {exc}")
 
     return metrics
 
@@ -666,22 +640,37 @@ def save_metrics(metrics: List[TrendQueryMetrics], run_dir: Path) -> None:
     logger.info(f"Saved metrics CSV:  {out_csv}")
 
 
+def _trend_query_sort_key(query_id: str) -> Tuple[int, int]:
+    if len(query_id) < 2 or not query_id[1:].isdigit():
+        return (99, 0)
+    prefix = query_id[0]
+    n = int(query_id[1:])
+    order = {"S": 0, "F": 1, "A": 2, "J": 3, "M": 4}
+    return (order.get(prefix, 99), n)
+
+
 def plot_metrics(metrics: List[TrendQueryMetrics], run_dir: Path) -> None:
     if not metrics:
         raise RuntimeError("No metrics to plot.")
 
-    ordered = sorted(metrics, key=lambda m: int(m.query_id[1:]))
+    ordered = sorted(metrics, key=lambda m: _trend_query_sort_key(m.query_id))
     x_labels = [m.query_id for m in ordered]
     x = list(range(len(x_labels)))
 
     result_rows = [m.result_rows for m in ordered]
     token_cost = [m.total_tokens for m in ordered]
     latency = [m.latency_s for m in ordered]
-    f1 = [m.macro_f1 for m in ordered]
+    f1 = [
+        m.macro_f1 if m.macro_f1 is not None else float("nan") for m in ordered
+    ]
+    rel_err = [
+        m.relative_error if m.relative_error is not None else float("nan")
+        for m in ordered
+    ]
 
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
     fig.suptitle(
-        "Player Query-Awareness Trend with Palimpzest (Q1..Q10)",
+        "Player Query-Awareness Trend with Palimpzest (ReDD-aligned IDs)",
         fontsize=16,
         fontweight="bold",
     )
@@ -707,13 +696,28 @@ def plot_metrics(metrics: List[TrendQueryMetrics], run_dir: Path) -> None:
     axes[1, 0].set_ylabel("seconds")
     axes[1, 0].grid(alpha=0.3)
 
-    axes[1, 1].plot(x, f1, marker="o", color="#27ae60")
-    axes[1, 1].set_title("Macro F1 (official evaluator)")
+    non_agg_x = [i for i, m in enumerate(ordered) if not m.is_agg]
+    non_agg_f1 = [f1[i] for i in non_agg_x]
+    agg_x = [i for i, m in enumerate(ordered) if m.is_agg]
+    agg_re = [rel_err[i] for i in agg_x]
+    if non_agg_x:
+        axes[1, 1].plot(
+            non_agg_x, non_agg_f1, marker="o", color="#27ae60", label="Macro F1 (non-agg)"
+        )
+    if agg_x:
+        axes[1, 1].plot(
+            agg_x,
+            agg_re,
+            marker="s",
+            color="#e67e22",
+            label="Rel. Error (agg, lower=better)",
+        )
+    axes[1, 1].set_title("Accuracy by query type")
     axes[1, 1].set_xticks(x)
     axes[1, 1].set_xticklabels(x_labels)
-    axes[1, 1].set_ylim(0.0, 1.0)
-    axes[1, 1].set_ylabel("F1")
+    axes[1, 1].set_ylabel("score")
     axes[1, 1].grid(alpha=0.3)
+    axes[1, 1].legend(fontsize=8)
 
     plt.tight_layout()
     plots_dir = run_dir / "plots"
@@ -734,7 +738,10 @@ def main() -> int:
 
     logger.info("Starting Player query-awareness trend test (Palimpzest)...")
     logger.info(f"Run directory: {run_dir}")
-    logger.info(f"Trend query source: {TREND_SQL_FILE}")
+    logger.info(
+        "Query set: Query/Player/{{S,F,A,J,M}}/*.sql filtered by ReDD NL_QUERY_SPECS "
+        f"({REDD_TREND_FILE})"
+    )
     logger.info(f"Source data dir: {SOURCE_DATA_PLAYER_DIR}")
     logger.info(f"Model: {PZ_MODEL.value} @ {os.getenv('OLLAMA_API_BASE')}")
     logger.info(f"Identity columns (for eval): {IDENTITY_COLUMNS}")
@@ -745,14 +752,30 @@ def main() -> int:
         plot_metrics(metrics, run_dir)
 
         success_count = sum(1 for m in metrics if m.success)
-        avg_f1 = sum(m.macro_f1 for m in metrics) / len(metrics) if metrics else 0.0
+        non_agg = [m for m in metrics if m.success and not m.is_agg]
+        agg_ok = [
+            m for m in metrics if m.success and m.is_agg and m.relative_error is not None
+        ]
+        avg_f1 = (
+            sum(m.macro_f1 for m in non_agg if m.macro_f1 is not None) / len(non_agg)
+            if non_agg
+            else 0.0
+        )
+        avg_rel_err = (
+            sum(m.relative_error for m in agg_ok) / len(agg_ok) if agg_ok else None
+        )
         if not math.isfinite(avg_f1):
             avg_f1 = 0.0
         logger.info("=" * 80)
-        logger.info(
-            f"Completed: {success_count}/{len(metrics)} queries succeeded, "
-            f"avg macro F1={avg_f1:.3f}"
-        )
+        logger.info(f"Completed: {success_count}/{len(metrics)} queries succeeded")
+        if non_agg:
+            logger.info(
+                f"Non-aggregation queries ({len(non_agg)}): avg macro F1={avg_f1:.3f}"
+            )
+        if avg_rel_err is not None and math.isfinite(avg_rel_err):
+            logger.info(
+                f"Aggregation queries ({len(agg_ok)}): avg relative error={avg_rel_err:.4f}"
+            )
         token_summary = GLOBAL_COUNTER.summary_str()
         logger.info(token_summary)
         token_json_path = run_dir / "token_cost.json"
