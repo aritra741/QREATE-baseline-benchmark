@@ -51,6 +51,7 @@ import sqlite3
 import time
 from collections import defaultdict
 from dataclasses import asdict, dataclass
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -222,6 +223,46 @@ def _to_builtin(v: Any) -> Any:
     return v
 
 
+def _sqlite_safe_scalar(v: Any) -> Any:
+    """
+    Coerce a single cell to a type SQLite can bind (pysqlite3 is stricter than stdlib).
+    Palimpzest/pandas often yield numpy scalars, pd.NA, or nested structures.
+    """
+    if v is None:
+        return None
+    try:
+        if v is pd.NA:  # type: ignore[comparison-overlap]
+            return None
+    except (TypeError, ValueError):
+        pass
+    try:
+        if bool(pd.isna(v)):
+            return None
+    except (TypeError, ValueError, NotImplementedError):
+        pass
+    if isinstance(v, float) and not math.isfinite(v):
+        return None
+    if isinstance(v, (bytes, str, int, float, bool)):
+        return v
+    if isinstance(v, (list, tuple, dict, set)):
+        return json.dumps(v, ensure_ascii=False, default=str)
+    if isinstance(v, (datetime, date)):
+        return v.isoformat()
+    if hasattr(v, "item"):
+        try:
+            return _sqlite_safe_scalar(v.item())
+        except Exception:
+            pass
+    return str(v)
+
+
+def _coerce_dataframe_for_sqlite(df: pd.DataFrame) -> pd.DataFrame:
+    out = df.copy()
+    for col in out.columns:
+        out[col] = out[col].map(_sqlite_safe_scalar)
+    return out
+
+
 def _extract_token_usage(record_collection: Any) -> Tuple[int, int]:
     stats = getattr(record_collection, "execution_stats", None)
     if stats is None:
@@ -388,7 +429,8 @@ def _execute_benchmark_sql(
     out_names = list(parsed.output_columns)
     with sqlite3.connect(":memory:") as conn:
         for table in sorted(table_map.keys()):
-            table_map[table].to_sql(table, conn, if_exists="replace", index=False)
+            safe_df = _coerce_dataframe_for_sqlite(table_map[table])
+            safe_df.to_sql(table, conn, if_exists="replace", index=False)
         cur = conn.execute(sql)
         tuples = cur.fetchall()
     if not out_names:
@@ -426,31 +468,15 @@ def execute_query_via_pz(
 
 
 def _write_query_tables_sqlite(table_map: Dict[str, pd.DataFrame], db_path: Path) -> None:
-    def _sqlite_safe_scalar(v: Any) -> Any:
-        # Keep NULLs as NULL in SQLite.
-        if v is None or (isinstance(v, float) and pd.isna(v)):
-            return None
-        if isinstance(v, (str, int, float, bool, bytes)):
-            return v
-        if isinstance(v, (list, tuple, dict, set)):
-            return json.dumps(v, ensure_ascii=False, default=str)
-        if hasattr(v, "item"):
-            try:
-                return v.item()
-            except Exception:
-                pass
-        return str(v)
-
     db_path.parent.mkdir(parents=True, exist_ok=True)
     if db_path.exists():
         db_path.unlink()
     with pd.option_context("mode.copy_on_write", True):
         with sqlite3.connect(db_path) as conn:
             for table, df in table_map.items():
-                safe_df = df.copy()
-                for col in safe_df.columns:
-                    safe_df[col] = safe_df[col].map(_sqlite_safe_scalar)
-                safe_df.to_sql(table, conn, if_exists="replace", index=False)
+                _coerce_dataframe_for_sqlite(df).to_sql(
+                    table, conn, if_exists="replace", index=False
+                )
 
 
 def _save_rows_csv(rows: List[Dict[str, Any]], out_csv: Path) -> None:
