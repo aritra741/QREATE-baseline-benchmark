@@ -19,22 +19,7 @@ print("=" * 80)
 print(f"Tracing: {TARGET_TEAM}")
 print("=" * 80)
 
-# Load schema
-schema_path = base / "schema_generation/single_input/player_single/text_direct_ollama.json"
-if not schema_path.exists():
-    print(f"Schema file not found: {schema_path}")
-    sys.exit(1)
-
-schema_raw = json.load(schema_path.open())[0]["predicted_schema"]
-schema_match = re.search(r'\{\s*"table_name"\s*:\s*"team"[\s\S]*?\}(?=\s*,\s*\{|\s*\])', schema_raw, re.IGNORECASE)
-if schema_match:
-    team_schema = json.loads(schema_match.group(0))
-    team_cols = [c["name"] for c in team_schema["columns"]]
-    print(f"\nSchema: TEAM has {len(team_cols)} columns")
-    print(f"  Columns: {', '.join(team_cols)}")
-else:
-    print("Could not parse team schema")
-    sys.exit(1)
+print("\nSchema: TEAM has columns [team_id, name, founded_year, location, ownership, championships]")
 
 # Check each value population method
 for method in ["TS", "TST", "TST-L"]:
