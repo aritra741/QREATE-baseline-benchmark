@@ -1,0 +1,28 @@
+{
+  "tables": [
+    {
+      "name": "Claims",
+      "columns": [
+        { "name": "id", "type": "CODE", "semantic": "Primary Identifier" },
+        { "name": "cost", "type": "NUMERIC", "semantic": "Financial Value" },
+        { "name": "status", "type": "CATEGORY", "semantic": "Claim State (Denied, Approved)" },
+        { "name": "region", "type": "GPE", "semantic": "Geographic Location" },
+        { "name": "provider_id", "type": "CODE", "semantic": "Provider Link", "references": "Providers.id" },
+        { "name": "submissiondate", "type": "DATE", "semantic": "Temporal Anchor" }
+      ]
+    },
+    {
+      "name": "Providers",
+      "columns": [
+        { "name": "id", "type": "CODE", "semantic": "Provider ID" },
+        { "name": "name", "type": "PERSON/ORG", "semantic": "Entity Name" },
+        { "name": "specialty", "type": "CATEGORY", "semantic": "Medical Domain" }
+      ]
+    }
+  ],
+  "lattice": {
+    "nodes": 24,
+    "edges": 12,
+    "shared_predicates": ["Status", "Region"]
+  }
+}
