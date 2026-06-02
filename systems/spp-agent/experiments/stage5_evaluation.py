@@ -79,11 +79,24 @@ def _determine_best_algorithm(results_dir: Path, logger) -> str:
 
 
 def _build_stub_stage1_report() -> Stage1Report:
+    _empty: dict = {"recommendation": "insufficient_data"}
     return Stage1Report(
-        dataset="Player",
-        slice_name="agg_only",
-        analyses={},
-        recommendations=[],
+        diminishing_returns=_empty,
+        error_surface=_empty,
+        module_ordering=_empty,
+        interactions=_empty,
+        probe_fidelity=_empty,
+        clustering=_empty,
+        routing_gap=_empty,
+        schema_ranking=_empty,
+        recommendations={
+            "probe_viable": True,
+            "use_nonlinear": False,
+            "use_routing": False,
+            "use_clustering": False,
+            "schema_first": False,
+            "density_greedy_viable": True,
+        },
     )
 
 
