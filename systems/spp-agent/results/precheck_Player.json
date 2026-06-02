@@ -1,0 +1,403 @@
+{
+  "dataset": "Player",
+  "required_tables": [
+    "player"
+  ],
+  "num_docs": 20,
+  "num_configs": 8,
+  "num_pairs": 11,
+  "num_eval_queries": 3,
+  "glass_box_vs_true": {
+    "spearman": 0.8765230646861665,
+    "kendall": 0.80860754006264,
+    "top3_overlap": 1.0,
+    "proxy_top3": [
+      "er=embedding_0.9|norm=dictionary|unit=none|miss=mean",
+      "er=embedding_0.7|norm=llm|unit=none|miss=mean",
+      "er=embedding_0.7|norm=llm|unit=unit|miss=mean"
+    ],
+    "true_top3": [
+      "er=embedding_0.9|norm=dictionary|unit=none|miss=mean",
+      "er=embedding_0.7|norm=llm|unit=none|miss=mean",
+      "er=embedding_0.7|norm=llm|unit=unit|miss=mean"
+    ]
+  },
+  "btl_vs_true": {
+    "spearman": 0.9921567416492215,
+    "kendall": 0.9718253158075503,
+    "top3_overlap": 1.0,
+    "proxy_top3": [
+      "er=embedding_0.9|norm=dictionary|unit=none|miss=mean",
+      "er=embedding_0.7|norm=llm|unit=none|miss=mean",
+      "er=embedding_0.7|norm=llm|unit=unit|miss=mean"
+    ],
+    "true_top3": [
+      "er=embedding_0.9|norm=dictionary|unit=none|miss=mean",
+      "er=embedding_0.7|norm=llm|unit=none|miss=mean",
+      "er=embedding_0.7|norm=llm|unit=unit|miss=mean"
+    ]
+  },
+  "btl_report": {
+    "win_counts": {
+      "er=embedding_0.7|norm=llm|unit=unit|miss=mean": 3,
+      "er=embedding_0.9|norm=dictionary|unit=none|miss=mean": 5,
+      "er=embedding_0.7|norm=llm|unit=none|miss=mean": 3,
+      "er=embedding_0.7|norm=llm|unit=unit|miss=drop": 0,
+      "er=embedding_0.9|norm=llm|unit=unit|miss=drop": 0,
+      "er=embedding_0.9|norm=dictionary|unit=unit|miss=drop": 0,
+      "er=embedding_0.9|norm=llm|unit=none|miss=drop": 0,
+      "er=embedding_0.9|norm=dictionary|unit=none|miss=drop": 0
+    },
+    "loss_counts": {
+      "er=embedding_0.7|norm=llm|unit=unit|miss=mean": 1,
+      "er=embedding_0.9|norm=dictionary|unit=none|miss=mean": 0,
+      "er=embedding_0.7|norm=llm|unit=none|miss=mean": 0,
+      "er=embedding_0.7|norm=llm|unit=unit|miss=drop": 1,
+      "er=embedding_0.9|norm=llm|unit=unit|miss=drop": 2,
+      "er=embedding_0.9|norm=dictionary|unit=unit|miss=drop": 3,
+      "er=embedding_0.9|norm=llm|unit=none|miss=drop": 2,
+      "er=embedding_0.9|norm=dictionary|unit=none|miss=drop": 2
+    },
+    "tie_counts": {
+      "er=embedding_0.7|norm=llm|unit=unit|miss=mean": 0,
+      "er=embedding_0.9|norm=dictionary|unit=none|miss=mean": 0,
+      "er=embedding_0.7|norm=llm|unit=none|miss=mean": 0,
+      "er=embedding_0.7|norm=llm|unit=unit|miss=drop": 0,
+      "er=embedding_0.9|norm=llm|unit=unit|miss=drop": 0,
+      "er=embedding_0.9|norm=dictionary|unit=unit|miss=drop": 0,
+      "er=embedding_0.9|norm=llm|unit=none|miss=drop": 0,
+      "er=embedding_0.9|norm=dictionary|unit=none|miss=drop": 0
+    },
+    "win_matrix": {
+      "er=embedding_0.7|norm=llm|unit=unit|miss=mean": {
+        "er=embedding_0.7|norm=llm|unit=unit|miss=mean": 0,
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=mean": 0,
+        "er=embedding_0.7|norm=llm|unit=none|miss=mean": 0,
+        "er=embedding_0.7|norm=llm|unit=unit|miss=drop": 0,
+        "er=embedding_0.9|norm=llm|unit=unit|miss=drop": 0,
+        "er=embedding_0.9|norm=dictionary|unit=unit|miss=drop": 1,
+        "er=embedding_0.9|norm=llm|unit=none|miss=drop": 1,
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=drop": 1
+      },
+      "er=embedding_0.9|norm=dictionary|unit=none|miss=mean": {
+        "er=embedding_0.7|norm=llm|unit=unit|miss=mean": 1,
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=mean": 0,
+        "er=embedding_0.7|norm=llm|unit=none|miss=mean": 0,
+        "er=embedding_0.7|norm=llm|unit=unit|miss=drop": 1,
+        "er=embedding_0.9|norm=llm|unit=unit|miss=drop": 1,
+        "er=embedding_0.9|norm=dictionary|unit=unit|miss=drop": 1,
+        "er=embedding_0.9|norm=llm|unit=none|miss=drop": 1,
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=drop": 0
+      },
+      "er=embedding_0.7|norm=llm|unit=none|miss=mean": {
+        "er=embedding_0.7|norm=llm|unit=unit|miss=mean": 0,
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=mean": 0,
+        "er=embedding_0.7|norm=llm|unit=none|miss=mean": 0,
+        "er=embedding_0.7|norm=llm|unit=unit|miss=drop": 0,
+        "er=embedding_0.9|norm=llm|unit=unit|miss=drop": 1,
+        "er=embedding_0.9|norm=dictionary|unit=unit|miss=drop": 1,
+        "er=embedding_0.9|norm=llm|unit=none|miss=drop": 0,
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=drop": 1
+      },
+      "er=embedding_0.7|norm=llm|unit=unit|miss=drop": {
+        "er=embedding_0.7|norm=llm|unit=unit|miss=mean": 0,
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=mean": 0,
+        "er=embedding_0.7|norm=llm|unit=none|miss=mean": 0,
+        "er=embedding_0.7|norm=llm|unit=unit|miss=drop": 0,
+        "er=embedding_0.9|norm=llm|unit=unit|miss=drop": 0,
+        "er=embedding_0.9|norm=dictionary|unit=unit|miss=drop": 0,
+        "er=embedding_0.9|norm=llm|unit=none|miss=drop": 0,
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=drop": 0
+      },
+      "er=embedding_0.9|norm=llm|unit=unit|miss=drop": {
+        "er=embedding_0.7|norm=llm|unit=unit|miss=mean": 0,
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=mean": 0,
+        "er=embedding_0.7|norm=llm|unit=none|miss=mean": 0,
+        "er=embedding_0.7|norm=llm|unit=unit|miss=drop": 0,
+        "er=embedding_0.9|norm=llm|unit=unit|miss=drop": 0,
+        "er=embedding_0.9|norm=dictionary|unit=unit|miss=drop": 0,
+        "er=embedding_0.9|norm=llm|unit=none|miss=drop": 0,
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=drop": 0
+      },
+      "er=embedding_0.9|norm=dictionary|unit=unit|miss=drop": {
+        "er=embedding_0.7|norm=llm|unit=unit|miss=mean": 0,
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=mean": 0,
+        "er=embedding_0.7|norm=llm|unit=none|miss=mean": 0,
+        "er=embedding_0.7|norm=llm|unit=unit|miss=drop": 0,
+        "er=embedding_0.9|norm=llm|unit=unit|miss=drop": 0,
+        "er=embedding_0.9|norm=dictionary|unit=unit|miss=drop": 0,
+        "er=embedding_0.9|norm=llm|unit=none|miss=drop": 0,
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=drop": 0
+      },
+      "er=embedding_0.9|norm=llm|unit=none|miss=drop": {
+        "er=embedding_0.7|norm=llm|unit=unit|miss=mean": 0,
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=mean": 0,
+        "er=embedding_0.7|norm=llm|unit=none|miss=mean": 0,
+        "er=embedding_0.7|norm=llm|unit=unit|miss=drop": 0,
+        "er=embedding_0.9|norm=llm|unit=unit|miss=drop": 0,
+        "er=embedding_0.9|norm=dictionary|unit=unit|miss=drop": 0,
+        "er=embedding_0.9|norm=llm|unit=none|miss=drop": 0,
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=drop": 0
+      },
+      "er=embedding_0.9|norm=dictionary|unit=none|miss=drop": {
+        "er=embedding_0.7|norm=llm|unit=unit|miss=mean": 0,
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=mean": 0,
+        "er=embedding_0.7|norm=llm|unit=none|miss=mean": 0,
+        "er=embedding_0.7|norm=llm|unit=unit|miss=drop": 0,
+        "er=embedding_0.9|norm=llm|unit=unit|miss=drop": 0,
+        "er=embedding_0.9|norm=dictionary|unit=unit|miss=drop": 0,
+        "er=embedding_0.9|norm=llm|unit=none|miss=drop": 0,
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=drop": 0
+      }
+    },
+    "comparison_edges": [
+      {
+        "winner": "er=embedding_0.9|norm=dictionary|unit=none|miss=mean",
+        "loser": "er=embedding_0.9|norm=llm|unit=none|miss=drop"
+      },
+      {
+        "winner": "er=embedding_0.9|norm=dictionary|unit=none|miss=mean",
+        "loser": "er=embedding_0.9|norm=dictionary|unit=unit|miss=drop"
+      },
+      {
+        "winner": "er=embedding_0.9|norm=dictionary|unit=none|miss=mean",
+        "loser": "er=embedding_0.9|norm=llm|unit=unit|miss=drop"
+      },
+      {
+        "winner": "er=embedding_0.9|norm=dictionary|unit=none|miss=mean",
+        "loser": "er=embedding_0.7|norm=llm|unit=unit|miss=mean"
+      },
+      {
+        "winner": "er=embedding_0.7|norm=llm|unit=none|miss=mean",
+        "loser": "er=embedding_0.9|norm=dictionary|unit=none|miss=drop"
+      },
+      {
+        "winner": "er=embedding_0.7|norm=llm|unit=unit|miss=mean",
+        "loser": "er=embedding_0.9|norm=llm|unit=none|miss=drop"
+      },
+      {
+        "winner": "er=embedding_0.7|norm=llm|unit=unit|miss=mean",
+        "loser": "er=embedding_0.9|norm=dictionary|unit=unit|miss=drop"
+      },
+      {
+        "winner": "er=embedding_0.7|norm=llm|unit=unit|miss=mean",
+        "loser": "er=embedding_0.9|norm=dictionary|unit=none|miss=drop"
+      },
+      {
+        "winner": "er=embedding_0.9|norm=dictionary|unit=none|miss=mean",
+        "loser": "er=embedding_0.7|norm=llm|unit=unit|miss=drop"
+      },
+      {
+        "winner": "er=embedding_0.7|norm=llm|unit=none|miss=mean",
+        "loser": "er=embedding_0.9|norm=dictionary|unit=unit|miss=drop"
+      },
+      {
+        "winner": "er=embedding_0.7|norm=llm|unit=none|miss=mean",
+        "loser": "er=embedding_0.9|norm=llm|unit=unit|miss=drop"
+      }
+    ],
+    "comparison_graph_connected": true,
+    "num_components": 1,
+    "components": [
+      [
+        "er=embedding_0.7|norm=llm|unit=none|miss=mean",
+        "er=embedding_0.7|norm=llm|unit=unit|miss=drop",
+        "er=embedding_0.7|norm=llm|unit=unit|miss=mean",
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=drop",
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=mean",
+        "er=embedding_0.9|norm=dictionary|unit=unit|miss=drop",
+        "er=embedding_0.9|norm=llm|unit=none|miss=drop",
+        "er=embedding_0.9|norm=llm|unit=unit|miss=drop"
+      ]
+    ],
+    "isolated_configs": [],
+    "btl_scores": {
+      "er=embedding_0.7|norm=llm|unit=none|miss=mean": 1.2610578096967542,
+      "er=embedding_0.7|norm=llm|unit=unit|miss=drop": 9.98422194079534e-07,
+      "er=embedding_0.7|norm=llm|unit=unit|miss=mean": 0.06442226137028788,
+      "er=embedding_0.9|norm=dictionary|unit=none|miss=drop": 9.98422194079534e-07,
+      "er=embedding_0.9|norm=dictionary|unit=none|miss=mean": 6.674514936821987,
+      "er=embedding_0.9|norm=dictionary|unit=unit|miss=drop": 9.98422194079534e-07,
+      "er=embedding_0.9|norm=llm|unit=none|miss=drop": 9.98422194079534e-07,
+      "er=embedding_0.9|norm=llm|unit=unit|miss=drop": 9.98422194079534e-07
+    }
+  },
+  "config_table": [
+    {
+      "config_id": "er=embedding_0.7|norm=llm|unit=unit|miss=mean",
+      "glass_box_score": 0.714556112078978,
+      "btl_score": 0.06442226137028788,
+      "true_error": 0.9786324786324787,
+      "numeric_type_success_rate": 1.0,
+      "required_table_row_count": {
+        "player": 20
+      },
+      "numeric_column_checks": [
+        {
+          "table": "player",
+          "column": "age",
+          "castable_rate": 1.0
+        },
+        {
+          "table": "player",
+          "column": "olympic_gold_medals",
+          "castable_rate": 1.0
+        }
+      ]
+    },
+    {
+      "config_id": "er=embedding_0.9|norm=dictionary|unit=none|miss=mean",
+      "glass_box_score": 0.7818488675958188,
+      "btl_score": 6.674514936821987,
+      "true_error": 0.7649277121648955,
+      "numeric_type_success_rate": 1.0,
+      "required_table_row_count": {
+        "player": 20
+      },
+      "numeric_column_checks": [
+        {
+          "table": "player",
+          "column": "age",
+          "castable_rate": 1.0
+        },
+        {
+          "table": "player",
+          "column": "olympic_gold_medals",
+          "castable_rate": 1.0
+        }
+      ]
+    },
+    {
+      "config_id": "er=embedding_0.7|norm=llm|unit=none|miss=mean",
+      "glass_box_score": 0.7812227787456446,
+      "btl_score": 1.2610578096967542,
+      "true_error": 0.9786324786324787,
+      "numeric_type_success_rate": 1.0,
+      "required_table_row_count": {
+        "player": 20
+      },
+      "numeric_column_checks": [
+        {
+          "table": "player",
+          "column": "age",
+          "castable_rate": 1.0
+        },
+        {
+          "table": "player",
+          "column": "olympic_gold_medals",
+          "castable_rate": 1.0
+        }
+      ]
+    },
+    {
+      "config_id": "er=embedding_0.7|norm=llm|unit=unit|miss=drop",
+      "glass_box_score": 0.43333333333333335,
+      "btl_score": 9.98422194079534e-07,
+      "true_error": 1.0,
+      "numeric_type_success_rate": 0.0,
+      "required_table_row_count": {
+        "player": 0
+      },
+      "numeric_column_checks": [
+        {
+          "table": "player",
+          "column": "age",
+          "castable_rate": 0.0
+        },
+        {
+          "table": "player",
+          "column": "olympic_gold_medals",
+          "castable_rate": 0.0
+        }
+      ]
+    },
+    {
+      "config_id": "er=embedding_0.9|norm=llm|unit=unit|miss=drop",
+      "glass_box_score": 0.43333333333333335,
+      "btl_score": 9.98422194079534e-07,
+      "true_error": 1.0,
+      "numeric_type_success_rate": 0.0,
+      "required_table_row_count": {
+        "player": 0
+      },
+      "numeric_column_checks": [
+        {
+          "table": "player",
+          "column": "age",
+          "castable_rate": 0.0
+        },
+        {
+          "table": "player",
+          "column": "olympic_gold_medals",
+          "castable_rate": 0.0
+        }
+      ]
+    },
+    {
+      "config_id": "er=embedding_0.9|norm=dictionary|unit=unit|miss=drop",
+      "glass_box_score": 0.43291666666666667,
+      "btl_score": 9.98422194079534e-07,
+      "true_error": 1.0,
+      "numeric_type_success_rate": 0.0,
+      "required_table_row_count": {
+        "player": 0
+      },
+      "numeric_column_checks": [
+        {
+          "table": "player",
+          "column": "age",
+          "castable_rate": 0.0
+        },
+        {
+          "table": "player",
+          "column": "olympic_gold_medals",
+          "castable_rate": 0.0
+        }
+      ]
+    },
+    {
+      "config_id": "er=embedding_0.9|norm=llm|unit=none|miss=drop",
+      "glass_box_score": 0.5,
+      "btl_score": 9.98422194079534e-07,
+      "true_error": 1.0,
+      "numeric_type_success_rate": 0.0,
+      "required_table_row_count": {
+        "player": 0
+      },
+      "numeric_column_checks": [
+        {
+          "table": "player",
+          "column": "age",
+          "castable_rate": 0.0
+        },
+        {
+          "table": "player",
+          "column": "olympic_gold_medals",
+          "castable_rate": 0.0
+        }
+      ]
+    },
+    {
+      "config_id": "er=embedding_0.9|norm=dictionary|unit=none|miss=drop",
+      "glass_box_score": 0.5,
+      "btl_score": 9.98422194079534e-07,
+      "true_error": 1.0,
+      "numeric_type_success_rate": 0.0,
+      "required_table_row_count": {
+        "player": 0
+      },
+      "numeric_column_checks": [
+        {
+          "table": "player",
+          "column": "age",
+          "castable_rate": 0.0
+        },
+        {
+          "table": "player",
+          "column": "olympic_gold_medals",
+          "castable_rate": 0.0
+        }
+      ]
+    }
+  ]
+}

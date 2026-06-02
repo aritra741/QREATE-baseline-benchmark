@@ -1,0 +1,168 @@
+paths:
+  benchu_root: "../.."
+  results_dir: "./results"
+
+llm:
+  # Active profile: qwen_local | deepseek_v4_flash
+  profile: "qwen_local"
+  provider: "local_vllm"
+  max_params: "32B"
+  preferred_family: "Qwen"
+  extraction_model: "Qwen2.5-14B-Instruct"
+  judge_model: "Qwen2.5-32B-Instruct"
+  agent_model: "Qwen2.5-32B-Instruct"
+  temperature: 0.0
+  base_url: "http://localhost:8000/v1"
+  # Set to true for cloud APIs that do not expose OpenAI-compatible /models
+  skip_model_check: false
+
+llm_profiles:
+  qwen_local:
+    provider: "local_vllm"
+    preferred_family: "Qwen"
+    extraction_model: "Qwen2.5-14B-Instruct"
+    judge_model: "Qwen2.5-32B-Instruct"
+    agent_model: "Qwen2.5-32B-Instruct"
+    base_url: "http://localhost:8000/v1"
+    skip_model_check: false
+  deepseek_v4_flash:
+    provider: "deepseek"
+    preferred_family: "DeepSeek"
+    extraction_model: "deepseek-v4-flash"
+    judge_model: "deepseek-v4-flash"
+    agent_model: "deepseek-v4-flash"
+    base_url: "https://api.deepseek.com/v1"
+    api_key_env: "DEEPSEEK_API_KEY"
+    skip_model_check: true
+    # Optional: enable thinking mode via extra_body.thinking.type = enabled
+    thinking: false
+
+inference:
+  max_input_tokens: 24000
+  force_chunking_above_tokens: 16000
+
+datasets:
+  pilot: ["Player"]
+
+preprocessing:
+  Player: "whole_doc"
+  Legal: "whole_doc"
+  Finan: "whole_doc"
+
+probing:
+  num_probe_configs: 12
+  corpus_sample_fraction: 0.20
+  min_probe_docs: 20
+  judge_pair_budget: 20
+
+precheck:
+  num_docs: 20
+  num_configs: 8
+  num_judge_pairs: 14
+  num_eval_queries: 3
+
+phase0:
+  num_docs: 20
+  num_probe_configs: 8
+  num_judge_pairs: 14
+  num_eval_queries: 3
+  min_queries_per_slice: 3
+  budget_levels: [1, 2]
+  table_filter: ["player"]
+  surrogates:
+    - random_ranking
+    - direct_probe_ranking
+    - glass_box_proxy
+    - llm_judge_btl
+    - linear_proxy_glass
+    - rf_proxy_glass
+  workload_slices:
+    - agg_only
+    - agg_filter
+    - agg_join
+    - agg_filter_join
+    - agg_temporal
+
+phase1:
+  slice: agg_only
+  source_phase0: phase0_reward_table_Player.json
+  output_file: phase1_comparison_Player_agg_only.json
+  probe_context_cache: phase1_agg_only_probe_context.json
+  glass_box_spread_threshold: 0.01
+
+legal:
+  corpus_path: source_data/Legal
+  num_docs: 20
+  num_probe_configs: 8
+  num_judge_pairs: 14
+  num_eval_queries: 3
+  min_queries_per_slice: 3
+  budget_levels: [1, 2]
+  preprocessing: whole_doc
+  schema_mode: denormalized_single_table
+  error_matrix_file: legal_error_matrix.csv
+  diagnostics_file: legal_diagnostics.json
+  surrogate_correlations_file: legal_surrogate_correlations.csv
+  phase0_json_file: legal_phase0_reward_table.json
+  phase0_csv_file: legal_phase0_reward_table.csv
+  phase1_json_file: legal_phase1_comparison_agg_only.json
+  phase1_csv_file: legal_phase1_agent_results.csv
+  btl_precheck_file: legal_btl_precheck.json
+  probe_context_cache: legal_phase1_probe_context.json
+
+finance:
+  corpus_path: source_data/Finance
+  num_docs: 20
+  num_probe_configs: 8
+  num_judge_pairs: 14
+  num_eval_queries: 3
+  min_queries_per_slice: 3
+  budget_levels: [1, 2]
+  preprocessing: whole_doc
+  schema_mode: denormalized_single_table
+  error_matrix_file: finance_error_matrix.csv
+  diagnostics_file: finance_diagnostics.json
+  surrogate_correlations_file: finance_surrogate_correlations.csv
+  phase0_json_file: finance_phase0_reward_table.json
+  phase0_csv_file: finance_phase0_reward_table.csv
+  phase1_json_file: finance_phase1_comparison_agg_only.json
+  phase1_csv_file: finance_phase1_agent_results.csv
+  btl_precheck_file: finance_btl_precheck.json
+  probe_context_cache: finance_phase1_probe_context.json
+
+population_config_space:
+  er_strategy: ["embedding_0.7", "embedding_0.9"]
+  norm_strategy: ["dictionary", "llm"]
+  unit_strategy: ["none", "unit"]
+  miss_strategy: ["drop", "mean"]
+
+surrogates:
+  main:
+    - "random_ranking"
+    - "direct_probe_ranking"
+    - "glass_box_proxy"
+    - "llm_judge_btl"
+    - "linear_proxy_glass"
+    - "rf_proxy_glass"
+  ablation:
+    - "linear_error"
+    - "rf_error"
+
+agent:
+  max_turns: 8
+
+experiment:
+  seed: 42
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+  datefmt: "%H:%M:%S"
+
+smoke_test:
+  num_docs: 10
+  num_configs: 4
+  num_judge_pairs: 5
+  num_eval_queries: 3
+  corpus_sample_fraction: 0.01
+  min_probe_docs: 2

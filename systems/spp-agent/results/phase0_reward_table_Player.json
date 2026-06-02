@@ -1,0 +1,1207 @@
+{
+  "dataset": "Player",
+  "phase": 0,
+  "workload_type": "aggregation_only",
+  "slice_query_counts": {
+    "agg_only": 10,
+    "agg_join": 1,
+    "agg_filter": 9,
+    "agg_temporal": 4,
+    "agg_filter_join": 4
+  },
+  "slice_query_counts_note": "Counts after excluding queries referencing tables without text corpus (e.g. owner).",
+  "corpus_entity_types": [
+    "city",
+    "manager",
+    "player",
+    "team"
+  ],
+  "slices_planned": [
+    "agg_only",
+    "agg_filter",
+    "agg_filter_join",
+    "agg_temporal"
+  ],
+  "budget_levels": [
+    1,
+    2
+  ],
+  "surrogates": [
+    "random_ranking",
+    "direct_probe_ranking",
+    "glass_box_proxy",
+    "llm_judge_btl",
+    "linear_proxy_glass",
+    "rf_proxy_glass"
+  ],
+  "num_probe_configs": 8,
+  "config_fingerprint": {
+    "seed": 42,
+    "num_docs": 20,
+    "num_probe_configs": 8,
+    "num_judge_pairs": 14,
+    "num_eval_queries": 3,
+    "budget_levels": [
+      1,
+      2
+    ],
+    "surrogates": [
+      "random_ranking",
+      "direct_probe_ranking",
+      "glass_box_proxy",
+      "llm_judge_btl",
+      "linear_proxy_glass",
+      "rf_proxy_glass"
+    ],
+    "slice_names": [
+      "agg_only",
+      "agg_filter",
+      "agg_filter_join",
+      "agg_temporal"
+    ],
+    "probe_config_ids": [
+      "er=embedding_0.7|norm=llm|unit=unit|miss=mean",
+      "er=embedding_0.9|norm=dictionary|unit=none|miss=mean",
+      "er=embedding_0.7|norm=llm|unit=none|miss=mean",
+      "er=embedding_0.7|norm=llm|unit=unit|miss=drop",
+      "er=embedding_0.9|norm=llm|unit=unit|miss=drop",
+      "er=embedding_0.9|norm=dictionary|unit=unit|miss=drop",
+      "er=embedding_0.9|norm=llm|unit=none|miss=drop",
+      "er=embedding_0.9|norm=dictionary|unit=none|miss=drop"
+    ],
+    "table_filter": [
+      "player"
+    ]
+  },
+  "status": "complete",
+  "slices_evaluated": [
+    "agg_only",
+    "agg_filter",
+    "agg_filter_join",
+    "agg_temporal"
+  ],
+  "completed_slices": [
+    "agg_only",
+    "agg_filter",
+    "agg_filter_join",
+    "agg_temporal"
+  ],
+  "rows": [
+    {
+      "dataset": "Player",
+      "slice": "agg_only",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 10,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player"
+      ],
+      "budget": 1,
+      "surrogate": "random_ranking",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=llm|unit=unit|miss=drop"
+      ],
+      "true_spp_error": 1.0
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_only",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 10,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player"
+      ],
+      "budget": 2,
+      "surrogate": "random_ranking",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=llm|unit=unit|miss=drop",
+        "er=embedding_0.9|norm=llm|unit=unit|miss=drop"
+      ],
+      "true_spp_error": 1.0
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_only",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 10,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player"
+      ],
+      "budget": 1,
+      "surrogate": "direct_probe_ranking",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=llm|unit=none|miss=mean"
+      ],
+      "true_spp_error": 0.9794238683127571
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_only",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 10,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player"
+      ],
+      "budget": 2,
+      "surrogate": "direct_probe_ranking",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=llm|unit=none|miss=mean",
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=mean"
+      ],
+      "true_spp_error": 0.7630874928238395
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_only",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 10,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player"
+      ],
+      "budget": 1,
+      "surrogate": "glass_box_proxy",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=llm|unit=none|miss=drop"
+      ],
+      "true_spp_error": 1.0
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_only",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 10,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player"
+      ],
+      "budget": 2,
+      "surrogate": "glass_box_proxy",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=llm|unit=none|miss=drop",
+        "er=embedding_0.7|norm=llm|unit=none|miss=mean"
+      ],
+      "true_spp_error": 0.9794238683127571
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_only",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 10,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player"
+      ],
+      "budget": 1,
+      "surrogate": "llm_judge_btl",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=dictionary|unit=none|miss=mean"
+      ],
+      "true_spp_error": 0.7630874928238395
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_only",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 10,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player"
+      ],
+      "budget": 2,
+      "surrogate": "llm_judge_btl",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=dictionary|unit=none|miss=mean",
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=mean"
+      ],
+      "true_spp_error": 0.7630874928238395
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_only",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 10,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player"
+      ],
+      "budget": 1,
+      "surrogate": "linear_proxy_glass",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=llm|unit=none|miss=mean"
+      ],
+      "true_spp_error": 0.9794238683127571
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_only",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 10,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player"
+      ],
+      "budget": 2,
+      "surrogate": "linear_proxy_glass",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=llm|unit=none|miss=mean",
+        "er=embedding_0.7|norm=dictionary|unit=none|miss=mean"
+      ],
+      "true_spp_error": 0.7630874928238395
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_only",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 10,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player"
+      ],
+      "budget": 1,
+      "surrogate": "rf_proxy_glass",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=dictionary|unit=none|miss=mean"
+      ],
+      "true_spp_error": 0.7630874928238395
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_only",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 10,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player"
+      ],
+      "budget": 2,
+      "surrogate": "rf_proxy_glass",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=dictionary|unit=none|miss=mean",
+        "er=embedding_0.7|norm=llm|unit=none|miss=mean"
+      ],
+      "true_spp_error": 0.7630874928238395
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_filter",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 9,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player",
+        "team"
+      ],
+      "budget": 1,
+      "surrogate": "random_ranking",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=llm|unit=unit|miss=drop"
+      ],
+      "true_spp_error": 1.0
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_filter",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 9,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player",
+        "team"
+      ],
+      "budget": 2,
+      "surrogate": "random_ranking",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=llm|unit=unit|miss=drop",
+        "er=embedding_0.9|norm=llm|unit=unit|miss=drop"
+      ],
+      "true_spp_error": 1.0
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_filter",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 9,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player",
+        "team"
+      ],
+      "budget": 1,
+      "surrogate": "direct_probe_ranking",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=llm|unit=none|miss=mean"
+      ],
+      "true_spp_error": 1.0
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_filter",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 9,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player",
+        "team"
+      ],
+      "budget": 2,
+      "surrogate": "direct_probe_ranking",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=llm|unit=none|miss=mean",
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=mean"
+      ],
+      "true_spp_error": 0.888888888888889
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_filter",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 9,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player",
+        "team"
+      ],
+      "budget": 1,
+      "surrogate": "glass_box_proxy",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=llm|unit=none|miss=drop"
+      ],
+      "true_spp_error": 1.0
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_filter",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 9,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player",
+        "team"
+      ],
+      "budget": 2,
+      "surrogate": "glass_box_proxy",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=llm|unit=none|miss=drop",
+        "er=embedding_0.7|norm=llm|unit=none|miss=mean"
+      ],
+      "true_spp_error": 1.0
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_filter",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 9,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player",
+        "team"
+      ],
+      "budget": 1,
+      "surrogate": "llm_judge_btl",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=dictionary|unit=none|miss=mean"
+      ],
+      "true_spp_error": 0.888888888888889
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_filter",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 9,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player",
+        "team"
+      ],
+      "budget": 2,
+      "surrogate": "llm_judge_btl",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=dictionary|unit=none|miss=mean",
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=mean"
+      ],
+      "true_spp_error": 0.888888888888889
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_filter",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 9,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player",
+        "team"
+      ],
+      "budget": 1,
+      "surrogate": "linear_proxy_glass",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=llm|unit=none|miss=mean"
+      ],
+      "true_spp_error": 1.0
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_filter",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 9,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player",
+        "team"
+      ],
+      "budget": 2,
+      "surrogate": "linear_proxy_glass",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=llm|unit=none|miss=mean",
+        "er=embedding_0.9|norm=llm|unit=none|miss=mean"
+      ],
+      "true_spp_error": 1.0
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_filter",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 9,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player",
+        "team"
+      ],
+      "budget": 1,
+      "surrogate": "rf_proxy_glass",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=dictionary|unit=none|miss=mean"
+      ],
+      "true_spp_error": 0.888888888888889
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_filter",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 9,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player",
+        "team"
+      ],
+      "budget": 2,
+      "surrogate": "rf_proxy_glass",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=dictionary|unit=none|miss=mean",
+        "er=embedding_0.7|norm=llm|unit=none|miss=mean"
+      ],
+      "true_spp_error": 0.888888888888889
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_filter_join",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 4,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player",
+        "team"
+      ],
+      "budget": 1,
+      "surrogate": "random_ranking",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=llm|unit=unit|miss=drop"
+      ],
+      "true_spp_error": 1.0
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_filter_join",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 4,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player",
+        "team"
+      ],
+      "budget": 2,
+      "surrogate": "random_ranking",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=llm|unit=unit|miss=drop",
+        "er=embedding_0.9|norm=llm|unit=unit|miss=drop"
+      ],
+      "true_spp_error": 1.0
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_filter_join",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 4,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player",
+        "team"
+      ],
+      "budget": 1,
+      "surrogate": "direct_probe_ranking",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=llm|unit=none|miss=mean"
+      ],
+      "true_spp_error": 1.0
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_filter_join",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 4,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player",
+        "team"
+      ],
+      "budget": 2,
+      "surrogate": "direct_probe_ranking",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=llm|unit=none|miss=mean",
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=mean"
+      ],
+      "true_spp_error": 1.0
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_filter_join",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 4,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player",
+        "team"
+      ],
+      "budget": 1,
+      "surrogate": "glass_box_proxy",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=llm|unit=none|miss=drop"
+      ],
+      "true_spp_error": 1.0
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_filter_join",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 4,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player",
+        "team"
+      ],
+      "budget": 2,
+      "surrogate": "glass_box_proxy",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=llm|unit=none|miss=drop",
+        "er=embedding_0.7|norm=llm|unit=none|miss=mean"
+      ],
+      "true_spp_error": 1.0
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_filter_join",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 4,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player",
+        "team"
+      ],
+      "budget": 1,
+      "surrogate": "llm_judge_btl",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=dictionary|unit=none|miss=mean"
+      ],
+      "true_spp_error": 1.0
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_filter_join",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 4,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player",
+        "team"
+      ],
+      "budget": 2,
+      "surrogate": "llm_judge_btl",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=dictionary|unit=none|miss=mean",
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=mean"
+      ],
+      "true_spp_error": 1.0
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_filter_join",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 4,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player",
+        "team"
+      ],
+      "budget": 1,
+      "surrogate": "linear_proxy_glass",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=llm|unit=none|miss=mean"
+      ],
+      "true_spp_error": 1.0
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_filter_join",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 4,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player",
+        "team"
+      ],
+      "budget": 2,
+      "surrogate": "linear_proxy_glass",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=llm|unit=none|miss=mean",
+        "er=embedding_0.9|norm=llm|unit=none|miss=mean"
+      ],
+      "true_spp_error": 1.0
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_filter_join",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 4,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player",
+        "team"
+      ],
+      "budget": 1,
+      "surrogate": "rf_proxy_glass",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=llm|unit=none|miss=mean"
+      ],
+      "true_spp_error": 1.0
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_filter_join",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 4,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player",
+        "team"
+      ],
+      "budget": 2,
+      "surrogate": "rf_proxy_glass",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=llm|unit=none|miss=mean",
+        "er=embedding_0.7|norm=dictionary|unit=none|miss=mean"
+      ],
+      "true_spp_error": 1.0
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_temporal",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 4,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player",
+        "team"
+      ],
+      "budget": 1,
+      "surrogate": "random_ranking",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=llm|unit=unit|miss=drop"
+      ],
+      "true_spp_error": 1.0
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_temporal",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 4,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player",
+        "team"
+      ],
+      "budget": 2,
+      "surrogate": "random_ranking",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=llm|unit=unit|miss=drop",
+        "er=embedding_0.9|norm=llm|unit=unit|miss=drop"
+      ],
+      "true_spp_error": 1.0
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_temporal",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 4,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player",
+        "team"
+      ],
+      "budget": 1,
+      "surrogate": "direct_probe_ranking",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=llm|unit=none|miss=mean"
+      ],
+      "true_spp_error": 1.0
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_temporal",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 4,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player",
+        "team"
+      ],
+      "budget": 2,
+      "surrogate": "direct_probe_ranking",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=llm|unit=none|miss=mean",
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=mean"
+      ],
+      "true_spp_error": 1.0
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_temporal",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 4,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player",
+        "team"
+      ],
+      "budget": 1,
+      "surrogate": "glass_box_proxy",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=llm|unit=none|miss=drop"
+      ],
+      "true_spp_error": 1.0
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_temporal",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 4,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player",
+        "team"
+      ],
+      "budget": 2,
+      "surrogate": "glass_box_proxy",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=llm|unit=none|miss=drop",
+        "er=embedding_0.7|norm=llm|unit=none|miss=mean"
+      ],
+      "true_spp_error": 1.0
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_temporal",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 4,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player",
+        "team"
+      ],
+      "budget": 1,
+      "surrogate": "llm_judge_btl",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=dictionary|unit=none|miss=mean"
+      ],
+      "true_spp_error": 1.0
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_temporal",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 4,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player",
+        "team"
+      ],
+      "budget": 2,
+      "surrogate": "llm_judge_btl",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=dictionary|unit=none|miss=mean",
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=mean"
+      ],
+      "true_spp_error": 1.0
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_temporal",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 4,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player",
+        "team"
+      ],
+      "budget": 1,
+      "surrogate": "linear_proxy_glass",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=llm|unit=none|miss=mean"
+      ],
+      "true_spp_error": 1.0
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_temporal",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 4,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player",
+        "team"
+      ],
+      "budget": 2,
+      "surrogate": "linear_proxy_glass",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=llm|unit=none|miss=mean",
+        "er=embedding_0.7|norm=dictionary|unit=none|miss=mean"
+      ],
+      "true_spp_error": 1.0
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_temporal",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 4,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player",
+        "team"
+      ],
+      "budget": 1,
+      "surrogate": "rf_proxy_glass",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=llm|unit=none|miss=mean"
+      ],
+      "true_spp_error": 1.0
+    },
+    {
+      "dataset": "Player",
+      "slice": "agg_temporal",
+      "num_queries": 3,
+      "num_queries_in_slice_pool": 4,
+      "corpus_entity_types": [
+        "city",
+        "manager",
+        "player",
+        "team"
+      ],
+      "required_tables": [
+        "player",
+        "team"
+      ],
+      "budget": 2,
+      "surrogate": "rf_proxy_glass",
+      "num_probe_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.7|norm=llm|unit=none|miss=mean",
+        "er=embedding_0.7|norm=dictionary|unit=none|miss=mean"
+      ],
+      "true_spp_error": 1.0
+    }
+  ]
+}

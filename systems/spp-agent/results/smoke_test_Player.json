@@ -1,0 +1,96 @@
+{
+  "mode": "smoke_test",
+  "dataset": "Player",
+  "required_tables": [
+    "player"
+  ],
+  "rows_by_table": {
+    "city": 0,
+    "owner": 0,
+    "player": 10,
+    "team": 2
+  },
+  "num_docs": 10,
+  "num_configs": 4,
+  "num_pairs": 5,
+  "num_eval_queries": 3,
+  "llm_profile": "deepseek_v4_flash",
+  "total_token_cost": 39989.0,
+  "config_table": [
+    {
+      "config_id": "er=embedding_0.7|norm=llm|unit=unit|miss=mean",
+      "glass_box_score": 0.7053571428571429,
+      "btl_score": 1.0526312527381794,
+      "true_error": 0.9777777777777779,
+      "tier1": {
+        "tuple_count": 12,
+        "json_parse_error_rate": 0.0,
+        "extraction_refusal_or_empty_rate": 0.0,
+        "schema_column_coverage": 0.5
+      }
+    },
+    {
+      "config_id": "er=embedding_0.9|norm=dictionary|unit=none|miss=mean",
+      "glass_box_score": 0.762687969924812,
+      "btl_score": 1.0526312527381796,
+      "true_error": 0.7658056190234408,
+      "tier1": {
+        "tuple_count": 12,
+        "json_parse_error_rate": 0.0,
+        "extraction_refusal_or_empty_rate": 0.0,
+        "schema_column_coverage": 0.4375
+      }
+    },
+    {
+      "config_id": "er=embedding_0.7|norm=llm|unit=none|miss=mean",
+      "glass_box_score": 0.7767857142857143,
+      "btl_score": 1.0526312527381794,
+      "true_error": 0.9777777777777779,
+      "tier1": {
+        "tuple_count": 12,
+        "json_parse_error_rate": 0.0,
+        "extraction_refusal_or_empty_rate": 0.0,
+        "schema_column_coverage": 0.5
+      }
+    },
+    {
+      "config_id": "er=embedding_0.7|norm=llm|unit=unit|miss=drop",
+      "glass_box_score": 0.5,
+      "btl_score": 0.8421062417854617,
+      "true_error": 1.0,
+      "tier1": {
+        "tuple_count": 12,
+        "json_parse_error_rate": 0.0,
+        "extraction_refusal_or_empty_rate": 0.0,
+        "schema_column_coverage": 0.0
+      }
+    }
+  ],
+  "judge_comparisons": [
+    {
+      "winner": "er=embedding_0.9|norm=dictionary|unit=none|miss=mean",
+      "loser": "er=embedding_0.7|norm=llm|unit=unit|miss=drop",
+      "reasoning": "Database B contains zero rows in the player table, so it cannot answer any of the aggregate queries. Database A has player data, allowing it to produce results for the queries, despite some missing values."
+    },
+    {
+      "winner": "er=embedding_0.9|norm=dictionary|unit=none|miss=mean",
+      "loser": "er=embedding_0.7|norm=llm|unit=unit|miss=mean",
+      "reasoning": "Database A uses SQL NULL for missing position values, which is the standard representation for missing data and avoids creating a misleading separate group. Database B uses the string 'none', which is not a valid position and would introduce an erroneous group in the GROUP BY queries. For the given aggregate queries, proper handling of missing values is crucial. Although both databases have missing and invalid data, Database A's approach is more accurate for SQL aggregation."
+    },
+    {
+      "winner": "er=embedding_0.9|norm=dictionary|unit=none|miss=mean",
+      "loser": "er=embedding_0.7|norm=llm|unit=none|miss=mean",
+      "reasoning": "Database A correctly preserves Andrew Wiggins' nationality as 'canadian', while B incorrectly changes it to 'american', which would affect the COUNT aggregation in query 2. Additionally, Database A stores ages as numeric values suitable for AVG calculations, whereas B stores them as strings requiring conversion. Although both have missing positions, A uses NULL (which is standard for missing data) while B uses the string 'none', which could alter grouping results."
+    },
+    {
+      "winner": "er=embedding_0.7|norm=llm|unit=none|miss=mean",
+      "loser": "er=embedding_0.7|norm=llm|unit=unit|miss=drop",
+      "reasoning": "Database A has zero rows in the 'player' table, so it cannot return any rows for the aggregate queries. Database B has 10 rows in the 'player' table, enabling it to produce meaningful query results. Therefore, Database B is likely to answer the workload more accurately."
+    },
+    {
+      "winner": "er=embedding_0.7|norm=llm|unit=unit|miss=mean",
+      "loser": "er=embedding_0.7|norm=llm|unit=unit|miss=drop",
+      "reasoning": "Database A contains player rows, while Database B's player table is empty. The workload queries require non-empty player data to produce meaningful aggregates. Therefore Database A is more likely to answer the workload accurately."
+    }
+  ]
+}

@@ -1,0 +1,420 @@
+{
+  "dataset": "Player",
+  "benchu_root": "/Users/aritramazumder/Documents/UDA-Bench-main",
+  "data_player": {
+    "exists": true,
+    "path": "/Users/aritramazumder/Documents/UDA-Bench-main/Data/Player",
+    "file_count": 12,
+    "files": [
+      {
+        "relative_path": "Untitled",
+        "extension": "",
+        "size_bytes": 23
+      },
+      {
+        "relative_path": "city.csv",
+        "extension": ".csv",
+        "size_bytes": 1149
+      },
+      {
+        "relative_path": "csv_to_db_and_er.py",
+        "extension": ".py",
+        "size_bytes": 5969
+      },
+      {
+        "relative_path": "er_diagram.html",
+        "extension": ".html",
+        "size_bytes": 1633
+      },
+      {
+        "relative_path": "er_diagram.mmd",
+        "extension": ".mmd",
+        "size_bytes": 930
+      },
+      {
+        "relative_path": "owner.csv",
+        "extension": ".csv",
+        "size_bytes": 963
+      },
+      {
+        "relative_path": "paper.pdf",
+        "extension": ".pdf",
+        "size_bytes": 476930
+      },
+      {
+        "relative_path": "player.csv",
+        "extension": ".csv",
+        "size_bytes": 15261
+      },
+      {
+        "relative_path": "player.db",
+        "extension": ".db",
+        "size_bytes": 36864
+      },
+      {
+        "relative_path": "player_queries.sql",
+        "extension": ".sql",
+        "size_bytes": 22180
+      },
+      {
+        "relative_path": "run_queries.py",
+        "extension": ".py",
+        "size_bytes": 1936
+      },
+      {
+        "relative_path": "team.csv",
+        "extension": ".csv",
+        "size_bytes": 1595
+      }
+    ]
+  },
+  "corpus": {
+    "sources": [
+      {
+        "label": "Data",
+        "path": "/Users/aritramazumder/Documents/UDA-Bench-main/Data/Player",
+        "txt_count": 0,
+        "csv_count": 4,
+        "first_two_records": [
+          {
+            "file": "Data/Player/city.csv",
+            "records": [
+              {
+                "city_name": "Denver",
+                "state_name": "Colorado",
+                "population": 715522,
+                "area": 400.739,
+                "gdp": NaN,
+                "ID": 1
+              },
+              {
+                "city_name": "Boston",
+                "state_name": "Massachusetts",
+                "population": 675647,
+                "area": 125.0,
+                "gdp": NaN,
+                "ID": 2
+              }
+            ]
+          },
+          {
+            "file": "Data/Player/owner.csv",
+            "records": [
+              {
+                "name": "Tom Gores  ",
+                "age": 60,
+                "nationality": "American  ",
+                "nba_team": "Detroit Pistons  ",
+                "own_year": 2011.0,
+                "ID": 1
+              },
+              {
+                "name": "Daniel Gilbert",
+                "age": 62,
+                "nationality": "American",
+                "nba_team": "Cleveland Cavaliers",
+                "own_year": NaN,
+                "ID": 2
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "SyntheticText",
+        "path": "/Users/aritramazumder/Documents/UDA-Bench-main/source_data/SyntheticPlayer",
+        "txt_count": 216,
+        "csv_count": 0,
+        "first_two_records": [
+          {
+            "file": "source_data/SyntheticPlayer/city/city_1.txt",
+            "records": [
+              {
+                "doc_id": "city_1",
+                "text_preview": "The city of Denver is located in the state of Colorado. It has a population of 715522 and covers an area of 400.739 square miles. Its GDP is estimated at ."
+              }
+            ]
+          },
+          {
+            "file": "source_data/SyntheticPlayer/city/city_10.txt",
+            "records": [
+              {
+                "doc_id": "city_10",
+                "text_preview": "The city of Portland is located in the state of Oregon. It has a population of 652,503 and covers an area of 375.78 square miles. Its GDP is estimated at ."
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "query_player": {
+    "exists": true,
+    "path": "/Users/aritramazumder/Documents/UDA-Bench-main/Query/Player",
+    "sql_file_count": 28,
+    "sample_files": [
+      {
+        "file": "Query/Player/Agg/agg_queries.sql",
+        "first_lines": [
+          "-- Query 1: aggregation (player)",
+          "SELECT position, MIN(olympic_gold_medals) AS min_olympic_gold_medals FROM player GROUP BY position;",
+          "",
+          "-- Query 2: aggregation (player)",
+          "SELECT nationality, COUNT(*) AS count_all FROM player GROUP BY nationality;"
+        ],
+        "query_count_estimate": 10
+      },
+      {
+        "file": "Query/Player/Filter/filter_queries_city.sql",
+        "first_lines": [
+          "-- Query 1: 1 (city)",
+          "SELECT state_name, area, city_name FROM city WHERE area = 375.78;",
+          "",
+          "-- Query 2: 2 (city)",
+          "SELECT state_name, area, city_name FROM city WHERE area != 1314.80 AND population = 887642;"
+        ],
+        "query_count_estimate": 6
+      },
+      {
+        "file": "Query/Player/Filter/filter_queries_owner.sql",
+        "first_lines": [
+          "-- Query 1: 1 (owner)",
+          "SELECT age, nba_team, name FROM owner WHERE nba_team != 'Cleveland Cavaliers';",
+          "",
+          "-- Query 2: 2 (owner)",
+          "SELECT age, nba_team, name FROM owner WHERE nba_team != 'Golden State Warriors' AND age >= 66;"
+        ],
+        "query_count_estimate": 6
+      },
+      {
+        "file": "Query/Player/Filter/filter_queries_player.sql",
+        "first_lines": [
+          "-- Query 1: 1 (player)",
+          "SELECT mvp_awards, draft_pick, fiba_world_cup FROM player WHERE fiba_world_cup <= 0;",
+          "",
+          "-- Query 2: 1 (player)",
+          "SELECT position, nationality, age FROM player WHERE age < 91;"
+        ],
+        "query_count_estimate": 36
+      },
+      {
+        "file": "Query/Player/Filter/filter_queries_team.sql",
+        "first_lines": [
+          "-- Query 1: 1 (team)",
+          "SELECT founded_year, ownership, team_name FROM team WHERE ownership != '  ';",
+          "",
+          "-- Query 2: 1 (team)",
+          "SELECT ownership, championship, founded_year FROM team WHERE founded_year < 1989;"
+        ],
+        "query_count_estimate": 12
+      }
+    ],
+    "attribute_json_files": [
+      "Query/Player/Player_attributes.json",
+      "Query/Player/Team_attributes.json"
+    ]
+  },
+  "ground_truth_player": {
+    "exists": true,
+    "resolved_path": "/Users/aritramazumder/Documents/UDA-Bench-main/Query/Player",
+    "used_fallback": true,
+    "note": "GroundTruth/Player/ not found; using Query/Player/*.csv as ground-truth tables.",
+    "tables": {
+      "city": {
+        "path": "Query/Player/city.csv",
+        "columns": [
+          "city_name",
+          "state_name",
+          "population",
+          "area",
+          "gdp",
+          "id"
+        ],
+        "dtypes": {
+          "city_name": "str",
+          "state_name": "str",
+          "population": "str",
+          "area": "float64",
+          "gdp": "str",
+          "id": "int64"
+        },
+        "row_count": 29
+      },
+      "owner": {
+        "path": "Query/Player/owner.csv",
+        "columns": [
+          "name",
+          "age",
+          "nationality",
+          "nba_team",
+          "own_year",
+          "id"
+        ],
+        "dtypes": {
+          "name": "str",
+          "age": "int64",
+          "nationality": "str",
+          "nba_team": "str",
+          "own_year": "float64",
+          "id": "int64"
+        },
+        "row_count": 16
+      },
+      "player": {
+        "path": "Query/Player/player.csv",
+        "columns": [
+          "name",
+          "birth_date",
+          "nationality",
+          "age",
+          "team",
+          "position",
+          "draft_pick",
+          "draft_year",
+          "college",
+          "nba_championships",
+          "mvp_awards",
+          "olympic_gold_medals",
+          "fiba_world_cup",
+          "id"
+        ],
+        "dtypes": {
+          "name": "str",
+          "birth_date": "str",
+          "nationality": "str",
+          "age": "int64",
+          "team": "str",
+          "position": "str",
+          "draft_pick": "float64",
+          "draft_year": "float64",
+          "college": "str",
+          "nba_championships": "float64",
+          "mvp_awards": "int64",
+          "olympic_gold_medals": "float64",
+          "fiba_world_cup": "float64",
+          "id": "int64"
+        },
+        "row_count": 141
+      },
+      "team": {
+        "path": "Query/Player/team.csv",
+        "columns": [
+          "team_name",
+          "founded_year",
+          "location",
+          "ownership",
+          "championship",
+          "id"
+        ],
+        "dtypes": {
+          "team_name": "str",
+          "founded_year": "int64",
+          "location": "str",
+          "ownership": "str",
+          "championship": "int64",
+          "id": "int64"
+        },
+        "row_count": 30
+      }
+    }
+  },
+  "evaluation": {
+    "exists": true,
+    "path": "/Users/aritramazumder/Documents/UDA-Bench-main/evaluation",
+    "python_modules": [
+      "__init__.py",
+      "comparators.py",
+      "config.py",
+      "gt_runner.py",
+      "logging_utils.py",
+      "metrics.py",
+      "normalize_result.py",
+      "query_manifest.py",
+      "result_loader.py",
+      "result_writer.py",
+      "row_matcher.py",
+      "run_eval.py",
+      "sql_parser.py",
+      "sql_preprocessor.py",
+      "utils.py"
+    ],
+    "public_functions_sample": {
+      "__init__.py": [],
+      "comparators.py": [
+        "<import error: attempted relative import with no known parent package>"
+      ],
+      "config.py": [
+        "Dict",
+        "EvalSettings",
+        "Optional",
+        "Path",
+        "Paths",
+        "dataclass",
+        "dump_json",
+        "field",
+        "load_json"
+      ],
+      "gt_runner.py": [
+        "<import error: No module named 'duckdb'>"
+      ],
+      "logging_utils.py": [
+        "Optional",
+        "Path",
+        "setup_logger"
+      ],
+      "metrics.py": [
+        "<import error: attempted relative import with no known parent package>"
+      ],
+      "normalize_result.py": [
+        "<import error: attempted relative import with no known parent package>"
+      ],
+      "query_manifest.py": [
+        "<import error: attempted relative import with no known parent package>"
+      ],
+      "result_loader.py": [
+        "<import error: attempted relative import with no known parent package>"
+      ],
+      "result_writer.py": [
+        "<import error: attempted relative import with no known parent package>"
+      ],
+      "row_matcher.py": [
+        "<import error: attempted relative import with no known parent package>"
+      ],
+      "run_eval.py": [
+        "<import error: No module named 'sqlglot'>"
+      ],
+      "sql_parser.py": [
+        "<import error: No module named 'sqlglot'>"
+      ],
+      "sql_preprocessor.py": [
+        "<import error: No module named 'sqlglot'>"
+      ],
+      "utils.py": [
+        "Any",
+        "Iterable",
+        "List",
+        "Mapping",
+        "MutableMapping",
+        "Path",
+        "Sequence",
+        "add_missing_columns",
+        "clean_string_columns",
+        "coerce_numeric",
+        "drop_unnamed_columns",
+        "ensure_dir",
+        "format_primary_key",
+        "normalize_file_id",
+        "normalize_file_name_columns",
+        "normalize_types",
+        "normalize_whitespace",
+        "split_multi_value",
+        "standardize_column_name"
+      ]
+    },
+    "entry_points": [
+      "evaluation.run_eval",
+      "evaluation.gt_runner.GtRunner",
+      "evaluation.metrics.MetricCalculator"
+    ]
+  }
+}
