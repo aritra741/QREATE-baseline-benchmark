@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
-"""Optimize ThresholdConfig using Phase 0 reward table."""
+"""Optimize ThresholdConfig from probe data (no ground-truth access).
+
+The optimizer uses LOO Spearman rho computed from deployment-visible probe
+signals (glass-box composites and BTL scores from the LLM judge).  It does
+not read true_spp_error or any ground-truth query evaluation results.
+"""
 
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import json
 import os
-import random
 import sys
 from pathlib import Path
 
@@ -21,55 +26,67 @@ from utils.logging import setup_logger
 
 
 def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Optimize thresholds from Phase 0 reward table.")
+    parser = argparse.ArgumentParser(
+        description="Optimize ThresholdConfig from probe data (no ground-truth access)."
+    )
     parser.add_argument("--log-level", default=None)
     parser.add_argument("--n-trials", type=int, default=100)
     parser.add_argument(
-        "--phase0",
+        "--cache",
         type=Path,
         default=None,
-        help="Path to Phase 0 reward table JSON.",
+        help="Path to agent probe cache JSON (phase1_agg_only_probe_context.json).",
     )
     parser.add_argument(
         "--offline",
         action="store_true",
-        help="If no reward table found, generate synthetic rows for smoke-test mode.",
+        help="If no probe cache found, build a synthetic ProbeData stub for smoke-test.",
     )
     parser.add_argument(
         "--results-dir",
         type=Path,
         default=None,
-        help="Override results output directory.",
     )
     return parser.parse_args()
 
 
-def _generate_synthetic_rows(seed: int) -> list[dict]:
-    """Build synthetic reward rows for offline smoke-test."""
+def _synthetic_probe_data(seed: int):
+    """Build a minimal synthetic ProbeData for offline smoke-testing.
+
+    Contains realistic config IDs, glass-box scores, and BTL scores but no
+    ground-truth error.  Used only when no real probe cache is available.
+    """
+    import random
+    from optimizer.config_space import generate_config_space
+    from optimizer.probing import ProbeData
+
     rng = random.Random(seed)
-    surrogates = [
-        "random_ranking",
-        "direct_probe_ranking",
-        "glass_box_proxy",
-        "llm_judge_btl",
-        "linear_proxy_glass",
-        "rf_proxy_glass",
-    ]
-    rows: list[dict] = []
-    for budget in (1, 2):
-        for surrogate in surrogates:
-            rows.append(
-                {
-                    "dataset": "Player",
-                    "slice": "agg_only",
-                    "budget": budget,
-                    "surrogate": surrogate,
-                    "true_spp_error": round(rng.uniform(0.05, 0.60), 4),
-                    "num_probe_configs": 8,
-                    "selected_configs": [f"synthetic_config_{i}" for i in range(budget)],
-                }
-            )
-    return rows
+    all_configs = generate_config_space()
+    rng.shuffle(all_configs)
+    probe_configs = all_configs[:8]
+
+    config_ids = [c.config_id for c in probe_configs]
+    glass_box = {cid: round(rng.uniform(0.4, 0.95), 4) for cid in config_ids}
+    btl_scores = {cid: round(rng.uniform(0.5, 2.0), 4) for cid in config_ids}
+
+    # Minimal pairwise comparisons (spanning tree)
+    comparisons = []
+    for i in range(1, len(config_ids)):
+        winner, loser = (config_ids[i - 1], config_ids[i]) if rng.random() < 0.5 else (config_ids[i], config_ids[i - 1])
+        comparisons.append({"winner": winner, "loser": loser, "reasoning": "synthetic"})
+
+    return ProbeData(
+        config_ids=config_ids,
+        configs={c.config_id: c for c in probe_configs},
+        tier1_signals={cid: {"glass_box_composite": glass_box[cid]} for cid in config_ids},
+        glass_box_composites=glass_box,
+        pairwise_comparisons=comparisons,
+        btl_scores=btl_scores,
+        databases={},
+        total_cost=0.0,
+        true_errors={},   # deliberately empty — no ground truth
+        btl_report={},
+    )
 
 
 def main() -> None:
@@ -85,36 +102,52 @@ def main() -> None:
     results_dir = Path(args.results_dir) if args.results_dir else Path(cfg["paths"]["results_dir"])
     results_dir.mkdir(parents=True, exist_ok=True)
 
-    phase0_path = args.phase0 or results_dir / "phase0_reward_table_Player.json"
+    # Resolve probe cache path
+    cache_name = cfg.get("phase1", {}).get(
+        "probe_context_cache", "phase1_agg_only_probe_context.json"
+    )
+    cache_path = args.cache or results_dir / cache_name
 
-    if phase0_path.exists():
-        report = json.loads(phase0_path.read_text(encoding="utf-8"))
-        reward_rows = report.get("rows", [])
-        logger.info("Loaded %d reward rows from %s", len(reward_rows), phase0_path)
+    if cache_path.exists():
+        from agent.tools import load_agent_cache
+        logger.info("Loading probe data from cache: %s", cache_path)
+        toolkit = load_agent_cache(cache_path)
+        probe_data = toolkit.probe_data
+        logger.info(
+            "Probe data: %d configs, %d pairwise comparisons",
+            len(probe_data.config_ids),
+            len(probe_data.pairwise_comparisons),
+        )
     elif args.offline:
-        logger.warning("Phase 0 reward table not found; generating synthetic rows for smoke-test")
-        reward_rows = _generate_synthetic_rows(seed)
+        logger.warning(
+            "Probe cache not found at %s; using synthetic probe data for smoke-test", cache_path
+        )
+        probe_data = _synthetic_probe_data(seed)
+        logger.info("Synthetic probe data: %d configs", len(probe_data.config_ids))
     else:
         raise FileNotFoundError(
-            f"Phase 0 reward table not found at {phase0_path}. "
-            "Run phase0_reward_table.py first, or use --offline for synthetic rows."
+            f"Probe cache not found at {cache_path}. "
+            "Run phase1_comparison.py --force-probe first, or use --offline."
         )
 
     n_trials = args.n_trials or int(threshold_cfg.get("n_trials", 100))
     save_path = results_dir / threshold_cfg.get("optimal_thresholds_file", "optimal_thresholds.json")
 
-    logger.info("Optimizing thresholds: n_trials=%d save_path=%s", n_trials, save_path)
+    logger.info(
+        "Optimizing thresholds from probe signals only (no ground truth): "
+        "n_trials=%d save_path=%s",
+        n_trials,
+        save_path,
+    )
     optimized = optimize_thresholds(
-        reward_rows,
+        probe_data,
         n_trials=n_trials,
         seed=seed,
         save_path=save_path,
     )
 
-    import dataclasses
-
     print()
-    print("Optimized ThresholdConfig:")
+    print("Optimized ThresholdConfig (learned from probe signals, no ground truth):")
     print(json.dumps(dataclasses.asdict(optimized), indent=2))
     logger.info("Saved optimized thresholds to %s", save_path)
 

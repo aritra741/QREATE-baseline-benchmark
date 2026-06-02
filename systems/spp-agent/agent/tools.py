@@ -16,14 +16,24 @@ AGENT_SURROGATE_CHOICES = [
     "llm_judge_btl",
     "linear_proxy_glass",
     "rf_proxy_glass",
+    "gbdt_proxy_glass",
+    "gp_proxy_glass",
+    "tpe_proxy",
 ]
 
 TOOL_NAMES = [
+    # Inspection tools (cheap, no ground truth)
     "get_dataset_summary",
     "get_probe_diagnostics",
     "get_btl_rankings",
     "get_surrogate_ranking",
     "compare_surrogates",
+    # Pipeline orchestration tools
+    "run_stage1_characterization",
+    "run_surrogate_bakeoff",
+    "probe_additional_configs",
+    "run_pipeline_and_select",
+    # Terminal action
     "commit",
 ]
 
@@ -127,8 +137,13 @@ class AgentToolkit:
     schema: Any
     slice_name: str
     committed_surrogate: str | None = field(default=None, init=False)
+    committed_configs: list[str] = field(default_factory=list, init=False)
     _surrogate_cache: dict[str, list[tuple[str, float]]] = field(default_factory=dict, init=False)
     _cached_tier0: dict[str, Any] = field(default_factory=dict, init=False)
+    _stage1_report: Any = field(default=None, init=False)
+    _loo_rhos: dict[str, float] = field(default_factory=dict, init=False)
+    # Optional reference to Instance for adaptive probing
+    instance: Any = field(default=None, init=False)
 
     @classmethod
     def from_probe_run(
@@ -322,6 +337,128 @@ class AgentToolkit:
             "largest_disagreements": disagreements[:5],
         }
 
+    # ------------------------------------------------------------------
+    # Pipeline orchestration tools
+    # ------------------------------------------------------------------
+
+    def run_stage1_characterization(self) -> dict[str, Any]:
+        """Run Stage 1 search-space characterization on current probe data.
+        Returns recommendations that gate Stage 2 and Stage 3.
+        No ground-truth access.
+        """
+        from stage1.characterizer import characterize
+        from thresholds.schema import load_thresholds
+        tc = load_thresholds()
+        report = characterize(
+            self.probe_data,
+            queries=self.queries,
+            schema=self.schema,
+            thresholds=tc,
+            true_errors=None,
+            reward_rows=None,
+        )
+        self._stage1_report = report
+        return {
+            "recommendations": report.recommendations,
+            "probe_fidelity": report.probe_fidelity,
+            "error_surface": report.error_surface,
+            "interactions": report.interactions,
+            "clustering": report.clustering,
+            "note": "Use these recommendations to guide Stage 2 surrogate selection.",
+        }
+
+    def run_surrogate_bakeoff(self) -> dict[str, Any]:
+        """Compute LOO Spearman ρ for all surrogates using probe signals only.
+        Returns surrogate ranking and which thresholds they cross.
+        No ground-truth access.
+        """
+        from thresholds.optimizer import _compute_loo_rhos
+        from thresholds.schema import load_thresholds
+        tc = load_thresholds()
+        rhos = _compute_loo_rhos(self.probe_data)
+        self._loo_rhos = rhos
+        sorted_surrogates = sorted(rhos.items(), key=lambda x: -x[1])
+        return {
+            "surrogate_loo_rhos": dict(sorted_surrogates),
+            "viable": [k for k, v in sorted_surrogates if v >= tc.rho_viable],
+            "bakeoff_only": [k for k, v in sorted_surrogates
+                             if tc.rho_bakeoff <= v < tc.rho_viable],
+            "below_bakeoff": [k for k, v in sorted_surrogates if v < tc.rho_bakeoff],
+            "thresholds": {"rho_viable": tc.rho_viable, "rho_bakeoff": tc.rho_bakeoff},
+            "note": "Pick a surrogate from 'viable' if possible. Use run_pipeline_and_select to apply.",
+        }
+
+    def probe_additional_configs(self, n_additional: int = 4) -> dict[str, Any]:
+        """Probe n_additional more configs from the config space.
+        Call this when Stage 1 probe fidelity is too low (rho < rho_bakeoff).
+        Uses cheap LLM extraction + BTL judge — no query evaluation.
+        """
+        if self.instance is None:
+            return {
+                "error": "No instance available for adaptive probing. "
+                         "Run from an experiment that provides the corpus and schema.",
+                "probed": 0,
+            }
+        from pipeline.full_pipeline import _expand_probes
+        from utils.config import load_config
+        cfg = load_config()
+        seed = int(cfg["experiment"]["seed"])
+        n = max(1, min(int(n_additional), 8))
+        old_n = len(self.probe_data.config_ids)
+        self.probe_data = _expand_probes(
+            self.probe_data, self.instance, self.schema,
+            self.queries, n_additional=n, seed=seed,
+        )
+        new_n = len(self.probe_data.config_ids)
+        # Invalidate caches
+        self._surrogate_cache.clear()
+        self._stage1_report = None
+        self._loo_rhos = {}
+        return {
+            "probed_before": old_n,
+            "probed_after": new_n,
+            "added": new_n - old_n,
+            "config_ids": list(self.probe_data.config_ids),
+            "note": "Re-run run_stage1_characterization and run_surrogate_bakeoff with expanded probe data.",
+        }
+
+    def run_pipeline_and_select(
+        self,
+        budget: int = 1,
+        allow_adaptive_probing: bool = False,
+    ) -> dict[str, Any]:
+        """Run the full connected Stage 1→2→3→4 pipeline and return selected configs.
+        This is the primary action when you have gathered enough evidence.
+        No ground-truth access — all decisions from probe signals.
+        """
+        from pipeline.full_pipeline import run_spp_pipeline
+        from thresholds.schema import load_thresholds
+        tc = load_thresholds()
+        result = run_spp_pipeline(
+            self.probe_data,
+            queries=self.queries,
+            schema=self.schema,
+            thresholds=tc,
+            budget=int(budget),
+            allow_adaptive_probing=allow_adaptive_probing,
+            instance=self.instance,
+        )
+        self.committed_configs = result.selected_configs
+        self.committed_surrogate = result.best_surrogate
+        return {
+            "selected_configs": result.selected_configs,
+            "best_surrogate": result.best_surrogate,
+            "best_algorithm": result.best_algorithm,
+            "stage1_recommendations": result.stage1_recommendations,
+            "stage1_probe_fidelity_rho": result.stage1_probe_fidelity_rho,
+            "stage4_active_components": result.stage4_retained_components,
+            "n_probe_configs_used": result.n_probe_configs_used,
+            "probing_expanded": result.probing_expanded,
+            "committed": True,
+            "message": f"Pipeline complete. Selected {result.selected_configs} via "
+                       f"{result.best_surrogate} + {result.best_algorithm}.",
+        }
+
     def commit(self, surrogate_name: str) -> dict[str, Any]:
         if surrogate_name not in AGENT_SURROGATE_CHOICES:
             return {
@@ -359,6 +496,17 @@ class AgentToolkit:
             if not a or not b:
                 return {"error": "action_input.surrogate_a and surrogate_b are required"}
             return self.compare_surrogates(str(a), str(b))
+        if action == "run_stage1_characterization":
+            return self.run_stage1_characterization()
+        if action == "run_surrogate_bakeoff":
+            return self.run_surrogate_bakeoff()
+        if action == "probe_additional_configs":
+            n = int(action_input.get("n_additional", 4))
+            return self.probe_additional_configs(n)
+        if action == "run_pipeline_and_select":
+            budget = int(action_input.get("budget", 1))
+            adaptive = bool(action_input.get("allow_adaptive_probing", False))
+            return self.run_pipeline_and_select(budget, adaptive)
         if action == "commit":
             name = action_input.get("surrogate_name")
             if not name:
