@@ -221,3 +221,9 @@ threshold_optimization:
   n_trials: 100
   timeout_seconds: 600
   optimal_thresholds_file: optimal_thresholds.json
+
+# Token budget for config selection (int: number of tokens).
+# The pipeline deducts probe run cost first; whatever integer tokens
+# remain determine how many configs can be selected.
+# Rule of thumb: extraction ≈ N_docs × avg_doc_tokens, judge ≈ 2000 × N_pairs.
+token_budget: 500000

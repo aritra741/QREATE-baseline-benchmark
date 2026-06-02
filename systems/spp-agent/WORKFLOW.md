@@ -35,7 +35,7 @@ The catch: there is no single "correct" way to do step 2. There are choices to m
 
 There are **16 possible population configurations** (the Cartesian product of 4 binary/categorical choices). Evaluating all 16 requires running the SQL queries against each populated database and comparing results to ground truth — that is expensive.
 
-**The SPP agent's job:** Given a new corpus and query workload, select the best 1–2 configurations *without* evaluating all 16 against ground truth. It does this using only cheap, deployment-visible proxy signals collected during a brief probe run.
+**The SPP agent's job:** Given a new corpus, query workload, and an integer **token budget**, select as many high-quality configurations as the budget allows — without evaluating any of them against ground truth. The number of configs selected is *derived* from the remaining budget after the probe run, not specified upfront. Because `SPP_error = min over selected configs`, selecting more configs can only lower error.
 
 ---
 
@@ -69,6 +69,17 @@ Where `Err(q, c)` = 1 − macro_F1 of query `q` executed on the database produce
 
 Lower is better. This requires ground truth and is only computed during **offline evaluation** (Stage 5). The agent never sees it.
 
+**Key implication:** Adding more configs to the selected set can only *decrease or maintain* SPP error. The correct strategy is always to select as many configs as the integer token budget allows, ordered by surrogate-predicted quality.
+
+### Token Budget
+
+An `int` representing the total number of LLM tokens available to the pipeline. It is consumed in order:
+1. **Probe run** (extraction + judge): `N_docs × avg_tokens + N_pairs × 2000` tokens
+2. **LLM normalization** per `norm_strategy=llm` config selected: `N_docs × avg_tokens × 0.15` tokens
+3. **Dictionary-norm configs** cost 0 additional tokens — always selectable after extraction.
+
+After the probe run, the remaining integer tokens determine how many configs can be selected. `TokenBudget` and `CostModel` in `utils/token_budget.py` track this.
+
 ### Surrogate
 
 A cheap proxy function that scores configs without running query evaluation. A surrogate takes probe-visible signals (extraction quality, BTL rankings) as input and outputs a predicted ranking of configs. The best surrogate for a given workload is the one whose ranking best correlates with the true SPP error ranking.
@@ -98,7 +109,7 @@ New corpus + SQL queries
  │     ↓ selected config IDs                 │
  │  Stage 4: Architecture decisions          │
  └───────────────┬───────────────────────────┘
-                 │  selected_configs (1–2 config IDs)
+                 │  selected_configs (as many as token budget allows, ordered by surrogate score)
                  ▼
  ┌───────────────────────┐
  │  Execute SQL queries  │  ← ground truth first used here
@@ -470,9 +481,9 @@ Turn N:  run_surrogate_bakeoff()
          → see LOO ρ for all surrogates
          → see which are viable/bakeoff/below threshold
 
-Turn N+1: run_pipeline_and_select({"budget": 1})
-         → this single tool call runs the connected Stage 1→2→3→4 pipeline
-         → returns selected config IDs, best surrogate, algorithm, components
+Turn N+1: run_pipeline_and_select({"token_budget": 500000})
+         → probe cost deducted first; remaining tokens determine n_configs
+         → returns selected config IDs, token accounting, best surrogate/algorithm
 
 (Optional) commit({"surrogate_name": "..."})
          → locks in surrogate selection if agent wants to override pipeline
@@ -669,14 +680,16 @@ New corpus + New SQL queries
     Step 3: run_surrogate_bakeoff()
         → LOO ρ for each surrogate vs BTL
         → viable/bakeoff/below lists
-    Step 4: run_pipeline_and_select(budget=1)
+    Step 4: run_pipeline_and_select(token_budget=500000)
+        probe_cost deducted first; remaining tokens determine n_configs
         Stage 1 recs → narrow Stage 2 surrogate list
         LOO ρ + thresholds → pick best surrogate
         Stage 1 surface shape → pick algorithm (greedy/BO/coord_descent)
         Stage 1 flags → determine Stage 4 active components
-        → returns: selected_configs, best_surrogate, best_algorithm
+        → returns: selected_configs (count derived from budget), token accounting
     ↓
-Selected config IDs (e.g., ["er=embedding_0.9|norm=llm|unit=unit|miss=drop"])
+Selected config IDs — as many as the token budget allows, best-first
+(e.g., all 8 dictionary-norm configs + 2 llm-norm configs if budget permits)
     ↓
 [Materialize database: extract full corpus, apply selected config]
     ↓

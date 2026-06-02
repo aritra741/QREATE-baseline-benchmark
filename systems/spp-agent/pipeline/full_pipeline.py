@@ -37,6 +37,12 @@ class PipelineResult:
     n_probe_configs_used: int
     probing_expanded: bool              # True if the pipeline triggered extra probes
 
+    # Token budget accounting
+    token_budget_total: float
+    token_budget_spent: float
+    token_budget_remaining: float
+    n_configs_selected: int             # derived from budget, not specified upfront
+
     # Thresholds that drove decisions (learned offline, applied here)
     thresholds_used: dict[str, Any] = field(default_factory=dict)
 
@@ -194,7 +200,7 @@ def run_spp_pipeline(
     queries: list[dict],
     schema,
     thresholds,
-    budget: int = 1,
+    token_budget: int = 50_000,
     candidate_ids: list[str] | None = None,
     seed: int = 42,
     allow_adaptive_probing: bool = False,
@@ -204,6 +210,11 @@ def run_spp_pipeline(
 
     All decisions are made from deployment-visible signals only.
     Ground-truth query error is NEVER accessed here.
+
+    The number of configs selected is DERIVED from the token budget — it is
+    not a parameter.  More configs always lowers SPP error (the formula takes
+    the minimum over all selected configs), so we select as many as the
+    remaining budget allows after paying for the probe run.
 
     Parameters
     ----------
@@ -215,8 +226,9 @@ def run_spp_pipeline(
         Schema object (column names and types).
     thresholds:
         ThresholdConfig (learned offline from deployment-visible signals).
-    budget:
-        Number of configs to select.
+    token_budget:
+        Total token allowance for the pipeline.  Probe cost is deducted first;
+        whatever remains determines how many configs can be selected.
     candidate_ids:
         All config IDs to rank. Defaults to generate_config_space() ids.
     allow_adaptive_probing:
@@ -231,11 +243,29 @@ def run_spp_pipeline(
     from stage2.surrogate_comparison import compare_surrogates
     from stage3.comparison import compare_algorithms
     from surrogates.registry import ALL_SURROGATES, build_surrogate
+    from utils.token_budget import CostModel, TokenBudget, budget_aware_select
 
     if candidate_ids is None:
         candidate_ids = all_config_ids()
 
     probing_expanded = False
+
+    # -----------------------------------------------------------------------
+    # Budget accounting: deduct probe cost, leaving remainder for selection
+    # -----------------------------------------------------------------------
+    tb = TokenBudget(total=int(token_budget))
+    n_docs = len(getattr(instance, "corpus", [])) or 20  # fallback estimate
+    n_probe_pairs = len(probe_data.pairwise_comparisons)
+    cost_model = CostModel.from_tier0(
+        {"avg_doc_tokens": probe_data.total_cost / max(1, len(probe_data.config_ids) * n_docs)}
+        if probe_data.total_cost > 0 else {}
+    )
+    # Deduct what the probe run already spent (recorded in probe_data.total_cost)
+    tb.spend(probe_data.total_cost, label="probe_run")
+    logger.info(
+        "Token budget: total=%.0f probe_spent=%.0f remaining=%.0f",
+        tb.total, probe_data.total_cost, tb.remaining,
+    )
 
     # -----------------------------------------------------------------------
     # Stage 1: Characterize the search space from probe signals
@@ -327,23 +357,35 @@ def run_spp_pipeline(
     surrogate = build_surrogate(best_surrogate, seed=seed)
     surrogate.fit(probe_data)
 
-    # Run algorithm comparison (all deployment-visible; surrogate scores are proxy)
-    algo_results = compare_algorithms(
+    # -----------------------------------------------------------------------
+    # Budget-aware selection: select as many configs as the budget allows.
+    # The count is derived, not specified.  All dictionary-norm configs are
+    # free; llm-norm configs deduct from remaining budget.
+    # -----------------------------------------------------------------------
+    selected_configs = budget_aware_select(
         surrogate,
         candidate_ids,
+        tb,
+        cost_model,
+        n_docs,
+    )
+    logger.info(
+        "Budget-aware selection: n_selected=%d from %d candidates "
+        "(token_remaining=%.0f)",
+        len(selected_configs), len(candidate_ids), tb.remaining,
+    )
+
+    # Run algorithm comparison on the budget-selected subset for reporting
+    # (greedy is used as reference; the selection above already used the surrogate)
+    algo_results = compare_algorithms(
+        surrogate,
+        selected_configs,  # only score the actually-selected configs
         probe_data,
-        budget=budget,
-        algorithms=[best_algorithm, "greedy"],  # always include greedy as reference
+        budget=len(selected_configs),
+        algorithms=[best_algorithm, "greedy"],
         seed=seed,
     )
     algo_scores = {r.algorithm: r.total_predicted_score for r in algo_results}
-
-    # Use the selected algorithm's output
-    best_algo_result = next(
-        (r for r in algo_results if r.algorithm == best_algorithm),
-        algo_results[0] if algo_results else None,
-    )
-    selected_configs = best_algo_result.selected_configs if best_algo_result else []
 
     # -----------------------------------------------------------------------
     # Stage 3 → Stage 4 handoff: determine active components
@@ -368,6 +410,10 @@ def run_spp_pipeline(
         stage4_retained_components=active_components,
         n_probe_configs_used=len(probe_data.config_ids),
         probing_expanded=probing_expanded,
+        token_budget_total=tb.total,
+        token_budget_spent=tb.spent,
+        token_budget_remaining=tb.remaining,
+        n_configs_selected=len(selected_configs),
         thresholds_used={
             "rho_viable": thresholds.rho_viable,
             "rho_bakeoff": thresholds.rho_bakeoff,

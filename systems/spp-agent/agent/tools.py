@@ -424,11 +424,12 @@ class AgentToolkit:
 
     def run_pipeline_and_select(
         self,
-        budget: int = 1,
+        token_budget: int = 50_000,
         allow_adaptive_probing: bool = False,
     ) -> dict[str, Any]:
         """Run the full connected Stage 1→2→3→4 pipeline and return selected configs.
-        This is the primary action when you have gathered enough evidence.
+        token_budget is the number of tokens available; the pipeline selects as
+        many configs as the remaining budget (after probing) allows.
         No ground-truth access — all decisions from probe signals.
         """
         from pipeline.full_pipeline import run_spp_pipeline
@@ -439,7 +440,7 @@ class AgentToolkit:
             queries=self.queries,
             schema=self.schema,
             thresholds=tc,
-            budget=int(budget),
+            token_budget=int(token_budget),
             allow_adaptive_probing=allow_adaptive_probing,
             instance=self.instance,
         )
@@ -447,6 +448,7 @@ class AgentToolkit:
         self.committed_surrogate = result.best_surrogate
         return {
             "selected_configs": result.selected_configs,
+            "n_configs_selected": result.n_configs_selected,
             "best_surrogate": result.best_surrogate,
             "best_algorithm": result.best_algorithm,
             "stage1_recommendations": result.stage1_recommendations,
@@ -454,9 +456,17 @@ class AgentToolkit:
             "stage4_active_components": result.stage4_retained_components,
             "n_probe_configs_used": result.n_probe_configs_used,
             "probing_expanded": result.probing_expanded,
+            "token_budget_total": result.token_budget_total,
+            "token_budget_spent": result.token_budget_spent,
+            "token_budget_remaining": result.token_budget_remaining,
             "committed": True,
-            "message": f"Pipeline complete. Selected {result.selected_configs} via "
-                       f"{result.best_surrogate} + {result.best_algorithm}.",
+            "message": (
+                f"Pipeline complete. Selected {result.n_configs_selected} configs "
+                f"(token_budget={result.token_budget_total}, "
+                f"spent={result.token_budget_spent}, "
+                f"remaining={result.token_budget_remaining}) "
+                f"via {result.best_surrogate} + {result.best_algorithm}."
+            ),
         }
 
     def commit(self, surrogate_name: str) -> dict[str, Any]:
@@ -504,9 +514,9 @@ class AgentToolkit:
             n = int(action_input.get("n_additional", 4))
             return self.probe_additional_configs(n)
         if action == "run_pipeline_and_select":
-            budget = int(action_input.get("budget", 1))
+            token_budget = int(action_input.get("token_budget", 50_000))
             adaptive = bool(action_input.get("allow_adaptive_probing", False))
-            return self.run_pipeline_and_select(budget, adaptive)
+            return self.run_pipeline_and_select(token_budget, adaptive)
         if action == "commit":
             name = action_input.get("surrogate_name")
             if not name:
