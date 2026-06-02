@@ -166,3 +166,58 @@ smoke_test:
   num_eval_queries: 3
   corpus_sample_fraction: 0.01
   min_probe_docs: 2
+
+stage1:
+  n_cluster_queries: 3
+  schema_variants: ["full", "numeric_only", "entity_only"]
+
+stage2:
+  all_surrogates:
+    - random_ranking
+    - direct_probe_ranking
+    - glass_box_proxy
+    - llm_judge_btl
+    - linear_proxy_glass
+    - rf_proxy_glass
+    - gbdt_proxy_glass
+    - gp_proxy_glass
+    - tpe_proxy
+
+stage3:
+  algorithms:
+    - greedy
+    - bayesian_opt
+    - hyperband
+    - coord_descent
+    - ilp
+  bo_n_trials: 20
+  hyperband_eta: 3
+
+stage4:
+  components:
+    - surrogate
+    - extraction_reuse
+    - recalibration
+    - routing
+    - flat_vs_hier
+    - query_clustering
+    - schema_pruning
+    - cluster_refinement
+
+stage5:
+  baselines:
+    - default
+    - single_best
+    - squid
+    - random
+    - ilp
+  sensitivity_params:
+    - num_probe_configs
+    - corpus_sample_fraction
+    - budget
+    - config_space_size
+
+threshold_optimization:
+  n_trials: 100
+  timeout_seconds: 600
+  optimal_thresholds_file: optimal_thresholds.json
