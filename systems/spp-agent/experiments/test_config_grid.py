@@ -12,6 +12,7 @@ Use only the test split — never train or dev.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 import time
@@ -65,6 +66,36 @@ def _results_path(output_dir: Path) -> Path:
 
 def _manifest_path(output_dir: Path) -> Path:
     return output_dir / "manifest.json"
+
+
+def _extraction_fingerprint(extraction: ExtractionResult) -> str:
+    payload = json.dumps(extraction.tuples_by_table, sort_keys=True, default=str)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
+
+
+def _run_fingerprint(
+    *,
+    extraction_model: str,
+    llm_profile: str | None,
+    seed: int,
+    num_docs: int,
+    n_test_queries: int,
+) -> dict[str, Any]:
+    """Fields that must match for checkpoint / extraction cache reuse."""
+    return {
+        "extraction_model": extraction_model,
+        "llm_profile": llm_profile,
+        "seed": seed,
+        "num_docs": num_docs,
+        "n_test_queries": n_test_queries,
+        "split": "test",
+    }
+
+
+def _fingerprint_matches(cached: dict[str, Any] | None, expected: dict[str, Any]) -> bool:
+    if not cached:
+        return False
+    return all(cached.get(key) == expected.get(key) for key in expected)
 
 
 def _extraction_to_payload(extraction: ExtractionResult) -> dict[str, Any]:
@@ -154,20 +185,35 @@ def resolve_extraction(
     *,
     output_dir: Path,
     extraction_model: str,
+    llm_profile: str | None,
+    seed: int,
+    n_test_queries: int,
     fresh: bool,
 ) -> tuple[ExtractionResult, str]:
     cache_path = _extraction_cache_path(output_dir)
-    meta = {
-        "split": "test",
-        "n_docs": len(instance.corpus),
-        "extraction_model": extraction_model,
-    }
+    expected_meta = _run_fingerprint(
+        extraction_model=extraction_model,
+        llm_profile=llm_profile,
+        seed=seed,
+        num_docs=len(instance.corpus),
+        n_test_queries=n_test_queries,
+    )
     if cache_path.is_file() and not fresh:
         extraction, cached_meta = _load_extraction_cache(cache_path)
-        return extraction, f"cache ({cached_meta.get('extraction_model', '?')})"
+        if _fingerprint_matches(cached_meta, expected_meta):
+            return extraction, f"cache ({cached_meta.get('extraction_model', '?')})"
+        logger.warning(
+            "Extraction cache stale (cached profile=%s model=%s; "
+            "current profile=%s model=%s); rerunning extraction",
+            cached_meta.get("llm_profile"),
+            cached_meta.get("extraction_model"),
+            expected_meta.get("llm_profile"),
+            expected_meta.get("extraction_model"),
+        )
 
     logger.info("Running LLM extraction on %d docs", len(instance.corpus))
     extraction = extract_documents(instance.corpus, instance.schema, extraction_model)
+    meta = {**expected_meta, "extraction_fingerprint": _extraction_fingerprint(extraction)}
     _save_extraction_cache(cache_path, extraction, meta=meta)
     return extraction, "fresh_extraction"
 
@@ -175,7 +221,57 @@ def resolve_extraction(
 def _load_checkpoint(path: Path) -> dict[str, Any]:
     if not path.is_file():
         return {"completed_configs": [], "per_config": {}}
-    return json.loads(path.read_text(encoding="utf-8"))
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload.setdefault("completed_configs", [])
+    payload.setdefault("per_config", {})
+    return payload
+
+
+def _reset_checkpoint(
+    *,
+    run_fingerprint: dict[str, Any],
+    extraction_fingerprint: str,
+) -> dict[str, Any]:
+    return {
+        "completed_configs": [],
+        "per_config": {},
+        "run_fingerprint": run_fingerprint,
+        "extraction_fingerprint": extraction_fingerprint,
+    }
+
+
+def _validate_checkpoint(
+    checkpoint: dict[str, Any],
+    *,
+    run_fingerprint: dict[str, Any],
+    extraction_fingerprint: str,
+) -> dict[str, Any]:
+    if not checkpoint.get("completed_configs") and not checkpoint.get("per_config"):
+        return _reset_checkpoint(
+            run_fingerprint=run_fingerprint,
+            extraction_fingerprint=extraction_fingerprint,
+        )
+    if not _fingerprint_matches(checkpoint.get("run_fingerprint"), run_fingerprint):
+        logger.warning(
+            "Checkpoint stale (profile/model/seed/docs changed); discarding %d cached configs",
+            len(checkpoint.get("completed_configs", [])),
+        )
+        return _reset_checkpoint(
+            run_fingerprint=run_fingerprint,
+            extraction_fingerprint=extraction_fingerprint,
+        )
+    if checkpoint.get("extraction_fingerprint") != extraction_fingerprint:
+        logger.warning(
+            "Checkpoint extraction mismatch; discarding %d cached configs",
+            len(checkpoint.get("completed_configs", [])),
+        )
+        return _reset_checkpoint(
+            run_fingerprint=run_fingerprint,
+            extraction_fingerprint=extraction_fingerprint,
+        )
+    checkpoint["run_fingerprint"] = run_fingerprint
+    checkpoint["extraction_fingerprint"] = extraction_fingerprint
+    return checkpoint
 
 
 def _save_checkpoint(path: Path, payload: dict[str, Any]) -> None:
@@ -282,22 +378,44 @@ def run_config_grid(
     num_docs = int(phase0.get("num_docs", 20))
     llm_cfg = cfg["llm"]
     extraction_model = llm_cfg["extraction_model"]
+    llm_profile = llm_cfg.get("profile")
 
     test_queries, slice_counts = load_and_validate_test_queries()
     instance = build_test_instance(test_queries, num_docs=num_docs, seed=seed)
+    run_fingerprint = _run_fingerprint(
+        extraction_model=extraction_model,
+        llm_profile=llm_profile,
+        seed=seed,
+        num_docs=num_docs,
+        n_test_queries=len(test_queries),
+    )
     extraction, extraction_source = resolve_extraction(
         instance,
         output_dir=output_dir,
         extraction_model=extraction_model,
+        llm_profile=llm_profile,
+        seed=seed,
+        n_test_queries=len(test_queries),
         fresh=fresh_extraction,
     )
+    extraction_fp = _extraction_fingerprint(extraction)
 
     all_configs = generate_config_space()
     if max_configs is not None:
         all_configs = all_configs[:max_configs]
 
     checkpoint_path = _checkpoint_path(output_dir)
-    checkpoint = _load_checkpoint(checkpoint_path) if resume else {"completed_configs": [], "per_config": {}}
+    if resume:
+        checkpoint = _validate_checkpoint(
+            _load_checkpoint(checkpoint_path),
+            run_fingerprint=run_fingerprint,
+            extraction_fingerprint=extraction_fp,
+        )
+    else:
+        checkpoint = _reset_checkpoint(
+            run_fingerprint=run_fingerprint,
+            extraction_fingerprint=extraction_fp,
+        )
     completed = set(checkpoint.get("completed_configs", []))
     per_config: dict[str, Any] = dict(checkpoint.get("per_config", {}))
 
@@ -414,7 +532,9 @@ def run_config_grid(
         "slices_present": list(AGGREGATION_SLICE_ORDER),
         "extraction_source": extraction_source,
         "extraction_model": extraction_model,
-        "llm_profile": llm_cfg.get("profile"),
+        "extraction_fingerprint": extraction_fp,
+        "run_fingerprint": run_fingerprint,
+        "llm_profile": llm_profile,
         "num_docs": num_docs,
         "seed": seed,
         "materialize_only": materialize_only,
@@ -480,6 +600,11 @@ def _parse_args() -> argparse.Namespace:
         default=None,
         help=f"Results directory (default: results/{DEFAULT_OUTPUT_DIR})",
     )
+    parser.add_argument(
+        "--fresh",
+        action="store_true",
+        help="Ignore all caches: rerun extraction and rematerialize every config",
+    )
     parser.add_argument("--fresh-extraction", action="store_true")
     parser.add_argument("--max-configs", type=int, default=None, help="Limit configs (smoke test)")
     parser.add_argument(
@@ -506,12 +631,15 @@ def main() -> None:
     print(f"LLM profile: {cfg['llm'].get('profile')} model={cfg['llm']['extraction_model']}")
     print()
 
+    fresh = args.fresh or args.fresh_extraction
+    resume = not args.no_resume and not args.fresh
+
     results = run_config_grid(
         output_dir=output_dir,
-        fresh_extraction=args.fresh_extraction,
+        fresh_extraction=fresh,
         max_configs=args.max_configs,
         materialize_only=args.materialize_only,
-        resume=not args.no_resume,
+        resume=resume,
         save_databases=not args.no_save_databases,
     )
     summary = results.get("summary", {})
