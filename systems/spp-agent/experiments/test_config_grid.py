@@ -29,6 +29,7 @@ from data.aggregation_slices import AGGREGATION_SLICE_ORDER, classify_aggregatio
 from data.instance_builder import build_instance
 from data.query_alignment import (
     corpus_alignment_metadata,
+    filter_docs_for_tables,
     sample_corpus_stratified,
     tables_referenced_by_queries,
 )
@@ -73,6 +74,11 @@ def _extraction_fingerprint(extraction: ExtractionResult) -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
 
 
+def _corpus_fingerprint(corpus: list[dict]) -> str:
+    doc_ids = sorted(str(doc.get("doc_id", "")) for doc in corpus)
+    return hashlib.sha256("|".join(doc_ids).encode("utf-8")).hexdigest()[:16]
+
+
 def _run_fingerprint(
     *,
     extraction_model: str,
@@ -80,6 +86,7 @@ def _run_fingerprint(
     seed: int,
     num_docs: int,
     n_test_queries: int,
+    corpus_fingerprint: str,
 ) -> dict[str, Any]:
     """Fields that must match for checkpoint / extraction cache reuse."""
     return {
@@ -88,6 +95,7 @@ def _run_fingerprint(
         "seed": seed,
         "num_docs": num_docs,
         "n_test_queries": n_test_queries,
+        "corpus_fingerprint": corpus_fingerprint,
         "split": "test",
     }
 
@@ -155,14 +163,20 @@ def load_and_validate_test_queries() -> tuple[list[dict], dict[str, int]]:
 def build_test_instance(
     test_queries: list[dict],
     *,
-    num_docs: int,
+    num_docs: int | None,
     seed: int,
 ):
-    """Single corpus aligned to the full test workload (all slices)."""
+    """Corpus aligned to all test queries (full aligned set by default)."""
     base = build_instance("Player", include_ground_truth=False)
     schema = base.schema
     required_tables = tables_referenced_by_queries(test_queries, schema)
-    corpus = sample_corpus_stratified(base.corpus, required_tables, num_docs, seed)
+    aligned_corpus = filter_docs_for_tables(base.corpus, required_tables)
+    if num_docs is None or num_docs <= 0 or num_docs >= len(aligned_corpus):
+        corpus = aligned_corpus
+        corpus_mode = "full_aligned"
+    else:
+        corpus = sample_corpus_stratified(base.corpus, required_tables, num_docs, seed)
+        corpus_mode = f"sampled_{num_docs}"
     return replace(
         base,
         corpus=corpus,
@@ -172,11 +186,32 @@ def build_test_instance(
             **corpus_alignment_metadata(corpus),
             "workload_split": "test",
             "experiment": EXPERIMENT_NAME,
+            "corpus_mode": corpus_mode,
             "num_docs": len(corpus),
+            "aligned_corpus_size": len(aligned_corpus),
             "num_eval_queries": len(test_queries),
             "required_tables": sorted(required_tables),
             "held_out": True,
         },
+    )
+
+
+def _warn_infeasible_test_queries(test_queries: list[dict], corpus: list[dict]) -> None:
+    from data.corpus_feasibility import missing_corpus_literals
+
+    infeasible: list[tuple[str, list[str]]] = []
+    for query in test_queries:
+        missing = missing_corpus_literals(query.get("sql_query", ""), corpus)
+        if missing:
+            infeasible.append((str(query.get("query_id", "")), missing))
+    if not infeasible:
+        return
+    logger.warning(
+        "%d/%d test queries have WHERE literals missing from corpus; "
+        "use full aligned corpus or increase --num-docs. Examples: %s",
+        len(infeasible),
+        len(test_queries),
+        infeasible[:3],
     )
 
 
@@ -197,6 +232,7 @@ def resolve_extraction(
         seed=seed,
         num_docs=len(instance.corpus),
         n_test_queries=n_test_queries,
+        corpus_fingerprint=_corpus_fingerprint(instance.corpus),
     )
     if cache_path.is_file() and not fresh:
         extraction, cached_meta = _load_extraction_cache(cache_path)
@@ -371,23 +407,28 @@ def run_config_grid(
     materialize_only: bool = False,
     resume: bool = True,
     save_databases: bool = True,
+    num_docs: int | None = None,
 ) -> dict[str, Any]:
     cfg = load_config()
-    phase0 = cfg.get("phase0", {})
+    grid_cfg = cfg.get("config_grid", {})
     seed = int(cfg["experiment"]["seed"])
-    num_docs = int(phase0.get("num_docs", 20))
+    if num_docs is None:
+        num_docs = grid_cfg.get("num_docs")
     llm_cfg = cfg["llm"]
     extraction_model = llm_cfg["extraction_model"]
     llm_profile = llm_cfg.get("profile")
 
     test_queries, slice_counts = load_and_validate_test_queries()
     instance = build_test_instance(test_queries, num_docs=num_docs, seed=seed)
+    corpus_fp = _corpus_fingerprint(instance.corpus)
+    _warn_infeasible_test_queries(test_queries, instance.corpus)
     run_fingerprint = _run_fingerprint(
         extraction_model=extraction_model,
         llm_profile=llm_profile,
         seed=seed,
-        num_docs=num_docs,
+        num_docs=len(instance.corpus),
         n_test_queries=len(test_queries),
+        corpus_fingerprint=corpus_fp,
     )
     extraction, extraction_source = resolve_extraction(
         instance,
@@ -423,9 +464,11 @@ def run_config_grid(
     databases_dir = _databases_dir(output_dir)
 
     logger.info(
-        "Config grid: %d configs, %d test queries, slices=%s, save_databases=%s",
+        "Config grid: %d configs, %d test queries, corpus=%d docs (%s), slices=%s, save_databases=%s",
         len(all_configs),
         len(test_queries),
+        len(instance.corpus),
+        instance.metadata.get("corpus_mode", "?"),
         slice_counts,
         save_databases,
     )
@@ -534,8 +577,11 @@ def run_config_grid(
         "extraction_model": extraction_model,
         "extraction_fingerprint": extraction_fp,
         "run_fingerprint": run_fingerprint,
+        "corpus_fingerprint": corpus_fp,
+        "corpus_mode": instance.metadata.get("corpus_mode"),
+        "aligned_corpus_size": instance.metadata.get("aligned_corpus_size"),
         "llm_profile": llm_profile,
-        "num_docs": num_docs,
+        "num_docs": len(instance.corpus),
         "seed": seed,
         "materialize_only": materialize_only,
         "save_databases": save_databases,
@@ -608,6 +654,12 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--fresh-extraction", action="store_true")
     parser.add_argument("--max-configs", type=int, default=None, help="Limit configs (smoke test)")
     parser.add_argument(
+        "--num-docs",
+        type=int,
+        default=None,
+        help="Cap extraction corpus size (default: all docs aligned to test queries)",
+    )
+    parser.add_argument(
         "--materialize-only",
         action="store_true",
         help="Only build databases; skip per-query evaluation",
@@ -641,6 +693,7 @@ def main() -> None:
         materialize_only=args.materialize_only,
         resume=resume,
         save_databases=not args.no_save_databases,
+        num_docs=args.num_docs,
     )
     summary = results.get("summary", {})
     manifest = results.get("manifest", {})
