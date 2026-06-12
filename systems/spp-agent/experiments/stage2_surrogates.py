@@ -14,7 +14,11 @@ SPP_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(SPP_ROOT))
 sys.path.insert(0, str(SPP_ROOT.parent.parent))
 
-from agent.tools import load_agent_cache
+from agent.tools import load_agent_cache, lock_toolkit_corpus_to_probe
+from data.instance_builder import Instance
+from data.query_alignment import corpus_alignment_metadata
+from optimizer.materialize import materialize_database
+from pipeline.evaluation import evaluate_config
 from stage2.surrogate_comparison import SurrogateComparisonResult, compare_surrogates, select_best_surrogate
 from surrogates.registry import ALL_SURROGATES
 from thresholds.schema import default_thresholds, load_thresholds
@@ -54,19 +58,11 @@ def main() -> None:
         tc = default_thresholds()
         logger.info("Using default thresholds")
 
-    # Load true errors from Phase 0
-    phase0_path = results_dir / "phase0_reward_table_Player.json"
-    true_errors: dict[str, float] = {}
-    if phase0_path.exists():
-        report = json.loads(phase0_path.read_text(encoding="utf-8"))
-        for row in report.get("rows", []):
-            key = str(row.get("surrogate", ""))
-            true_errors[key] = float(row.get("true_spp_error", float("nan")))
-
     # Load probe data
     cache_name = cfg.get("phase1", {}).get("probe_context_cache", "phase1_agg_only_probe_context.json")
     cache_path = results_dir / cache_name
     probe_data = None
+    toolkit = None
     if cache_path.exists():
         try:
             toolkit = load_agent_cache(cache_path)
@@ -79,6 +75,45 @@ def main() -> None:
         raise RuntimeError(
             f"No probe data at {cache_path}. Run phase1_comparison.py first, or use --offline."
         )
+
+    true_errors: dict[str, float] | None = None
+    if probe_data is not None and toolkit is not None and not args.offline:
+        has_dbs = any(
+            cid in probe_data.databases
+            and sum(len(df) for df in probe_data.databases[cid].values()) > 0
+            for cid in probe_data.config_ids
+        )
+        if probe_data.extraction is not None or has_dbs:
+            phase0_cfg = cfg.get("phase0", {})
+            seed = int(cfg["experiment"]["seed"])
+            lock_toolkit_corpus_to_probe(toolkit)
+            if not toolkit.corpus or not toolkit.queries:
+                raise RuntimeError(
+                    "Probe cache missing corpus/queries after corpus lock; "
+                    "re-run phase1_comparison.py --force-probe"
+                )
+            eval_instance = Instance(
+                dataset_name="Player",
+                corpus=toolkit.corpus,
+                queries=toolkit.queries,
+                schema=toolkit.schema,
+                metadata=corpus_alignment_metadata(toolkit.corpus),
+            )
+            logger.info(
+                "Computing per-config true errors for %d probed configs (corpus-restricted GT)",
+                len(probe_data.config_ids),
+            )
+            true_errors = {}
+            for cid in probe_data.config_ids:
+                db = probe_data.databases.get(cid)
+                if not db:
+                    db = materialize_database(probe_data, cid, toolkit.schema)
+                true_errors[cid] = evaluate_config(eval_instance, cid, db)
+        else:
+            logger.warning(
+                "Probe cache has no extraction/databases; Stage 2 LOO will use glass-box proxy. "
+                "Re-run: python experiments/phase1_comparison.py --force-probe"
+            )
 
     surrogate_names = list(ALL_SURROGATES.keys())
     logger.info("Comparing %d surrogates: %s", len(surrogate_names), surrogate_names)
@@ -102,17 +137,16 @@ def main() -> None:
     print("Stage 2 Surrogate Comparison:")
     print(f"  Best surrogate: {best}")
     print()
-    print("Ranking:")
-    result_dict = dataclasses.asdict(result)
-    rankings = result_dict.get("rankings", result_dict.get("surrogate_rankings", []))
-    if isinstance(rankings, list):
-        for i, entry in enumerate(rankings, 1):
-            name = entry.get("surrogate", entry.get("name", "?"))
-            score = entry.get("score", entry.get("correlation", "?"))
-            print(f"  {i}. {name}: {score}")
-    elif isinstance(rankings, dict):
-        for name, score in sorted(rankings.items(), key=lambda x: x[1], reverse=True):
-            print(f"  {name}: {score}")
+    print("Ranking (Spearman ρ, top-3 recall, mean regret):")
+    rho_by_name = {m.name: m.spearman_rho for m in result.metrics}
+    recall_by_name = {m.name: m.top_k_recall for m in result.metrics}
+    regret_by_name = {m.name: m.mean_regret for m in result.metrics}
+    for i, name in enumerate(result.ranking, 1):
+        print(
+            f"  {i}. {name}: ρ={rho_by_name.get(name, 0):.3f}, "
+            f"top3={recall_by_name.get(name, 0):.2f}, "
+            f"regret={regret_by_name.get(name, 0):.4f}"
+        )
 
 
 if __name__ == "__main__":

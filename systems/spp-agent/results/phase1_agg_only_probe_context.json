@@ -1,66 +1,1376 @@
 {
+  "version": 2,
   "slice": "agg_only",
+  "config_ids": [
+    "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm",
+    "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict",
+    "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm",
+    "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict",
+    "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+    "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive",
+    "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict",
+    "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive"
+  ],
+  "glass_box_scores": {
+    "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm": 0.7893507661038149,
+    "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": 0.7923018292682926,
+    "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm": 0.8031631097560976,
+    "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict": 0.8031631097560976,
+    "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 0.7923018292682926,
+    "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive": 0.8031631097560976,
+    "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": 0.7909679878048781,
+    "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 0.7909679878048781
+  },
+  "btl_scores": {
+    "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 1.8559016819560574,
+    "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive": 9.979228231953263e-07,
+    "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict": 9.979228231953263e-07,
+    "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm": 0.0009206284022273719,
+    "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 0.07742830758525754,
+    "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm": 9.979228231953263e-07,
+    "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": 0.952460092465,
+    "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": 5.113286295822989
+  },
+  "tier1_by_config": {
+    "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm": {
+      "tuple_count": 28,
+      "tuple_count_variance_by_doc": 0.24000000000000005,
+      "schema_column_coverage": 0.5,
+      "missing_value_rate": 0.07621951219512191,
+      "duplicate_candidate_rate": 0.0,
+      "entity_ambiguity_score": 3.973684210526316,
+      "normalization_entropy": 3.848730005961862,
+      "unit_parse_success_rate": 0.8910256410256411,
+      "json_parse_error_rate": 0.0,
+      "extraction_refusal_or_empty_rate": 0.0,
+      "required_table_row_count": {
+        "player": 20
+      },
+      "numeric_type_success_rate": 1.0,
+      "query_column_type_validity": 1.0,
+      "numeric_column_checks": [
+        {
+          "table": "player",
+          "column": "age",
+          "castable_rate": 1.0
+        },
+        {
+          "table": "player",
+          "column": "olympic_gold_medals",
+          "castable_rate": 1.0
+        }
+      ],
+      "glass_box_composite": 0.7893507661038149
+    },
+    "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": {
+      "tuple_count": 28,
+      "tuple_count_variance_by_doc": 0.24000000000000005,
+      "schema_column_coverage": 0.4375,
+      "missing_value_rate": 0.09908536585365857,
+      "duplicate_candidate_rate": 0.0,
+      "entity_ambiguity_score": 3.973684210526316,
+      "normalization_entropy": 3.811185463698865,
+      "unit_parse_success_rate": 1.0,
+      "json_parse_error_rate": 0.0,
+      "extraction_refusal_or_empty_rate": 0.0,
+      "required_table_row_count": {
+        "player": 20
+      },
+      "numeric_type_success_rate": 1.0,
+      "query_column_type_validity": 1.0,
+      "numeric_column_checks": [
+        {
+          "table": "player",
+          "column": "age",
+          "castable_rate": 1.0
+        },
+        {
+          "table": "player",
+          "column": "olympic_gold_medals",
+          "castable_rate": 1.0
+        }
+      ],
+      "glass_box_composite": 0.7923018292682926
+    },
+    "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm": {
+      "tuple_count": 28,
+      "tuple_count_variance_by_doc": 0.24000000000000005,
+      "schema_column_coverage": 0.5,
+      "missing_value_rate": 0.07469512195121952,
+      "duplicate_candidate_rate": 0.0,
+      "entity_ambiguity_score": 3.973684210526316,
+      "normalization_entropy": 3.848730005961862,
+      "unit_parse_success_rate": 1.0,
+      "json_parse_error_rate": 0.0,
+      "extraction_refusal_or_empty_rate": 0.0,
+      "required_table_row_count": {
+        "player": 20
+      },
+      "numeric_type_success_rate": 1.0,
+      "query_column_type_validity": 1.0,
+      "numeric_column_checks": [
+        {
+          "table": "player",
+          "column": "age",
+          "castable_rate": 1.0
+        },
+        {
+          "table": "player",
+          "column": "olympic_gold_medals",
+          "castable_rate": 1.0
+        }
+      ],
+      "glass_box_composite": 0.8031631097560976
+    },
+    "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict": {
+      "tuple_count": 28,
+      "tuple_count_variance_by_doc": 0.24000000000000005,
+      "schema_column_coverage": 0.5,
+      "missing_value_rate": 0.07469512195121952,
+      "duplicate_candidate_rate": 0.0,
+      "entity_ambiguity_score": 3.973684210526316,
+      "normalization_entropy": 3.848730005961862,
+      "unit_parse_success_rate": 1.0,
+      "json_parse_error_rate": 0.0,
+      "extraction_refusal_or_empty_rate": 0.0,
+      "required_table_row_count": {
+        "player": 20
+      },
+      "numeric_type_success_rate": 1.0,
+      "query_column_type_validity": 1.0,
+      "numeric_column_checks": [
+        {
+          "table": "player",
+          "column": "age",
+          "castable_rate": 1.0
+        },
+        {
+          "table": "player",
+          "column": "olympic_gold_medals",
+          "castable_rate": 1.0
+        }
+      ],
+      "glass_box_composite": 0.8031631097560976
+    },
+    "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": {
+      "tuple_count": 28,
+      "tuple_count_variance_by_doc": 0.24000000000000005,
+      "schema_column_coverage": 0.4375,
+      "missing_value_rate": 0.09908536585365857,
+      "duplicate_candidate_rate": 0.0,
+      "entity_ambiguity_score": 3.973684210526316,
+      "normalization_entropy": 3.811185463698865,
+      "unit_parse_success_rate": 1.0,
+      "json_parse_error_rate": 0.0,
+      "extraction_refusal_or_empty_rate": 0.0,
+      "required_table_row_count": {
+        "player": 20
+      },
+      "numeric_type_success_rate": 1.0,
+      "query_column_type_validity": 1.0,
+      "numeric_column_checks": [
+        {
+          "table": "player",
+          "column": "age",
+          "castable_rate": 1.0
+        },
+        {
+          "table": "player",
+          "column": "olympic_gold_medals",
+          "castable_rate": 1.0
+        }
+      ],
+      "glass_box_composite": 0.7923018292682926
+    },
+    "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive": {
+      "tuple_count": 28,
+      "tuple_count_variance_by_doc": 0.24000000000000005,
+      "schema_column_coverage": 0.5,
+      "missing_value_rate": 0.07469512195121952,
+      "duplicate_candidate_rate": 0.0,
+      "entity_ambiguity_score": 3.973684210526316,
+      "normalization_entropy": 3.848730005961862,
+      "unit_parse_success_rate": 1.0,
+      "json_parse_error_rate": 0.0,
+      "extraction_refusal_or_empty_rate": 0.0,
+      "required_table_row_count": {
+        "player": 20
+      },
+      "numeric_type_success_rate": 1.0,
+      "query_column_type_validity": 1.0,
+      "numeric_column_checks": [
+        {
+          "table": "player",
+          "column": "age",
+          "castable_rate": 1.0
+        },
+        {
+          "table": "player",
+          "column": "olympic_gold_medals",
+          "castable_rate": 1.0
+        }
+      ],
+      "glass_box_composite": 0.8031631097560976
+    },
+    "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": {
+      "tuple_count": 28,
+      "tuple_count_variance_by_doc": 0.24000000000000005,
+      "schema_column_coverage": 0.4375,
+      "missing_value_rate": 0.1097560975609756,
+      "duplicate_candidate_rate": 0.0,
+      "entity_ambiguity_score": 3.973684210526316,
+      "normalization_entropy": 3.811185463698865,
+      "unit_parse_success_rate": 1.0,
+      "json_parse_error_rate": 0.0,
+      "extraction_refusal_or_empty_rate": 0.0,
+      "required_table_row_count": {
+        "player": 20
+      },
+      "numeric_type_success_rate": 1.0,
+      "query_column_type_validity": 1.0,
+      "numeric_column_checks": [
+        {
+          "table": "player",
+          "column": "age",
+          "castable_rate": 1.0
+        },
+        {
+          "table": "player",
+          "column": "olympic_gold_medals",
+          "castable_rate": 1.0
+        }
+      ],
+      "glass_box_composite": 0.7909679878048781
+    },
+    "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": {
+      "tuple_count": 28,
+      "tuple_count_variance_by_doc": 0.24000000000000005,
+      "schema_column_coverage": 0.4375,
+      "missing_value_rate": 0.1097560975609756,
+      "duplicate_candidate_rate": 0.0,
+      "entity_ambiguity_score": 3.973684210526316,
+      "normalization_entropy": 3.811185463698865,
+      "unit_parse_success_rate": 1.0,
+      "json_parse_error_rate": 0.0,
+      "extraction_refusal_or_empty_rate": 0.0,
+      "required_table_row_count": {
+        "player": 20
+      },
+      "numeric_type_success_rate": 1.0,
+      "query_column_type_validity": 1.0,
+      "numeric_column_checks": [
+        {
+          "table": "player",
+          "column": "age",
+          "castable_rate": 1.0
+        },
+        {
+          "table": "player",
+          "column": "olympic_gold_medals",
+          "castable_rate": 1.0
+        }
+      ],
+      "glass_box_composite": 0.7909679878048781
+    }
+  },
+  "btl_report": {
+    "win_counts": {
+      "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm": 2,
+      "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": 5,
+      "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm": 0,
+      "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict": 0,
+      "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 1,
+      "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive": 0,
+      "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": 3,
+      "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 2
+    },
+    "loss_counts": {
+      "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm": 4,
+      "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+      "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm": 4,
+      "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict": 2,
+      "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+      "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive": 2,
+      "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": 0,
+      "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 1
+    },
+    "tie_counts": {
+      "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm": 0,
+      "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+      "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm": 0,
+      "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict": 0,
+      "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+      "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive": 0,
+      "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": 0,
+      "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 0
+    },
+    "win_matrix": {
+      "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm": {
+        "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm": 0,
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm": 1,
+        "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict": 1,
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive": 0,
+        "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": 0,
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 0
+      },
+      "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": {
+        "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm": 1,
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm": 1,
+        "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict": 1,
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive": 1,
+        "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": 0,
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 1
+      },
+      "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm": {
+        "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm": 0,
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm": 0,
+        "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict": 0,
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive": 0,
+        "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": 0,
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 0
+      },
+      "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict": {
+        "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm": 0,
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm": 0,
+        "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict": 0,
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive": 0,
+        "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": 0,
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 0
+      },
+      "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": {
+        "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm": 1,
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm": 0,
+        "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict": 0,
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive": 0,
+        "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": 0,
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 0
+      },
+      "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive": {
+        "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm": 0,
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm": 0,
+        "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict": 0,
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive": 0,
+        "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": 0,
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 0
+      },
+      "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": {
+        "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm": 1,
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm": 1,
+        "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict": 0,
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive": 1,
+        "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": 0,
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 0
+      },
+      "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": {
+        "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm": 1,
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm": 1,
+        "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict": 0,
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive": 0,
+        "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": 0,
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 0
+      }
+    },
+    "comparison_edges": [
+      {
+        "winner": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict",
+        "loser": "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict"
+      },
+      {
+        "winner": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict",
+        "loser": "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm"
+      },
+      {
+        "winner": "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm",
+        "loser": "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm"
+      },
+      {
+        "winner": "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+        "loser": "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm"
+      },
+      {
+        "winner": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict",
+        "loser": "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive"
+      },
+      {
+        "winner": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict",
+        "loser": "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive"
+      },
+      {
+        "winner": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict",
+        "loser": "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive"
+      },
+      {
+        "winner": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict",
+        "loser": "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm"
+      },
+      {
+        "winner": "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive",
+        "loser": "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm"
+      },
+      {
+        "winner": "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm",
+        "loser": "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict"
+      },
+      {
+        "winner": "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive",
+        "loser": "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm"
+      },
+      {
+        "winner": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict",
+        "loser": "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm"
+      },
+      {
+        "winner": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict",
+        "loser": "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm"
+      }
+    ],
+    "comparison_graph_connected": true,
+    "num_components": 1,
+    "components": [
+      [
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+        "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive",
+        "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict",
+        "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm",
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive",
+        "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm",
+        "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict",
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict"
+      ]
+    ],
+    "isolated_configs": [],
+    "btl_scores": {
+      "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 1.8559016819560574,
+      "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive": 9.979228231953263e-07,
+      "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict": 9.979228231953263e-07,
+      "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm": 0.0009206284022273719,
+      "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 0.07742830758525754,
+      "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm": 9.979228231953263e-07,
+      "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": 0.952460092465,
+      "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": 5.113286295822989
+    }
+  },
+  "pairwise_comparisons": [
+    {
+      "winner": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict",
+      "loser": "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict",
+      "reasoning": "Database A has cleaner data: positions are correctly 'backcourt' or 'frontcourt', ages are numeric, and missing values are handled appropriately. Database B has string-typed numeric fields, invalid position values ('none'), and missing values represented as strings, which would likely lead to incorrect aggregation results for the workload queries (e.g., GROUP BY position would include invalid groups)."
+    },
+    {
+      "winner": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict",
+      "loser": "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm",
+      "reasoning": "Database A uses mean imputation for missing numeric values, retaining all rows (including Aaron Williams), which provides more complete data for the aggregation queries. Database B drops rows with missing numeric values (like Aaron Williams), reducing data and potentially skewing results. Additionally, B encodes missing positions as 'none', an invalid category, whereas A retains nulls which are less misleading."
+    },
+    {
+      "winner": "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm",
+      "loser": "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm",
+      "reasoning": "Database B has proper numeric types for 'age' and 'olympic_gold_medals', which are used in aggregation queries (AVG, MIN). Database A stores these as strings, which could lead to incorrect numeric aggregations. Additionally, Database B's missing=drop handling is more appropriate for accurate aggregations, while Database A's missing=mode may impute values that distort results. Therefore, Database B is likely to answer the workload queries more accurately."
+    },
+    {
+      "winner": "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+      "loser": "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm",
+      "reasoning": "Database B contains invalid position values ('none') that are not part of the defined domain ['Frontcourt', 'Backcourt']. This will introduce erroneous groups in the GROUP BY queries (agg_queries_1 and agg_queries_3), leading to inaccurate aggregation results. Database A uses only valid position values, ensuring correct grouping and aggregation. The other columns used in the workload (nationality, age) appear consistent between both databases, but the position issue alone makes Database A more reliable for the given workload."
+    },
+    {
+      "winner": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict",
+      "loser": "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive",
+      "reasoning": "Database B has no null values for player.position, which aligns with the schema's requirement (Frontcourt or Backcourt), leading to more accurate grouping and aggregate results for queries involving position (agg_queries_1 and agg_queries_3). In contrast, Database A has null positions for three players, causing an additional group with null that likely does not correspond to a valid position and misrepresenting the averages for backcourt. Both databases have identical data for nationality and olympic_gold_medals, so agg_queries_2 is unaffected."
+    },
+    {
+      "winner": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict",
+      "loser": "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive",
+      "reasoning": "Database B uses proper data types (numeric ages and Olympic gold medals, nulls for missing positions) that align with SQL aggregation expectations, while Database A uses string representations and invalid position values ('none') that could lead to incorrect grouping or computation errors."
+    },
+    {
+      "winner": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict",
+      "loser": "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive",
+      "reasoning": "Database B has better data quality for the workload queries: positions are cleaned (e.g., 'none' corrected to 'backcourt'), ages and numeric fields are stored as numerics instead of strings, and missing values are handled consistently (e.g., draft_pick 0.0 instead of 'nan'). These improvements ensure correct GROUP BY and aggregation operations (MIN, AVG, COUNT) without type conversion issues or invalid groupings."
+    },
+    {
+      "winner": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict",
+      "loser": "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm",
+      "reasoning": "Configuration A has valid position values ('backcourt' and 'frontcourt') consistent with the schema, while Configuration B includes invalid 'none' positions that would create spurious groups in the GROUP BY queries. The queries aggregate by position, nationality, and age; A's data is correctly typed and free of invalid entries, leading to more accurate results."
+    },
+    {
+      "winner": "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive",
+      "loser": "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm",
+      "reasoning": "Database A uses median imputation for missing values, ensuring all rows are retained with valid categorical values (positions imputed to the most frequent category, 'backcourt'). Database B replaces missing values with the string 'none', introducing an invalid category that does not match the schema (expected 'Frontcourt' or 'Backcourt'). This would produce an extra group 'none' in the aggregation queries, leading to less accurate results. Additionally, B has type inconsistencies (e.g., 'none' for numeric fields like draft_year), which could cause errors. Therefore, A is more reliable for the workload queries."
+    },
+    {
+      "winner": "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm",
+      "loser": "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict",
+      "reasoning": "Database B has consistent numeric data types (e.g., int, float) for numerical attributes like age, draft_pick, draft_year, nba_championships, etc., which are required for accurate aggregation operations (MIN, AVG). Database A stores these values as strings, which can cause incorrect results or type conversion issues in SQL queries. Both databases contain the same set of player rows, but B's data types are more appropriate for the workload queries, leading to higher accuracy."
+    },
+    {
+      "winner": "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive",
+      "loser": "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm",
+      "reasoning": "Database B has proper numeric types (age as integer, olympic_gold_medals as float) and uses null for missing values, ensuring accurate aggregations (MIN, COUNT, AVG). Database A stores many numeric values as strings (e.g., age as '37', olympic_gold_medals as '0.0') and uses placeholder strings like 'none' and 'nan' for missing data, which can cause parsing issues or incorrect groupings. For the workload queries on player table, B's data quality is superior."
+    },
+    {
+      "winner": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict",
+      "loser": "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm",
+      "reasoning": "Database B has better data types (numeric for age, draft_pick, etc.) which are essential for aggregate functions like AVG(age). In Database A, age is stored as a string, which could cause errors or incorrect results in AVG computation. Additionally, positions in Database B are null for missing values, while Database A uses the invalid string 'none' for missing positions, which creates an incorrect group for the GROUP BY queries. The sample rows show that both databases have the same players for the required 'player' table, but B's data is more consistent with expected types and missing value handling, leading to more accurate query answers."
+    },
+    {
+      "winner": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict",
+      "loser": "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm",
+      "reasoning": "Database A has proper numeric types for olympic_gold_medals, age, and draft_pick/draft_year, and all position values are valid ('frontcourt' or 'backcourt'). Database B stores most numeric values as strings, including 'none' for position in several rows, which would cause aggregation errors (MIN, AVG) and invalid grouping. Therefore, Database A is more likely to answer the workload queries accurately."
+    }
+  ],
+  "schema_tables": {
+    "city": [
+      "city_name",
+      "state_name",
+      "population",
+      "area",
+      "gdp",
+      "id"
+    ],
+    "owner": [
+      "name",
+      "age",
+      "nationality",
+      "nba_team",
+      "own_year",
+      "id"
+    ],
+    "player": [
+      "name",
+      "birth_date",
+      "nationality",
+      "age",
+      "team",
+      "position",
+      "draft_pick",
+      "draft_year",
+      "college",
+      "nba_championships",
+      "mvp_awards",
+      "olympic_gold_medals",
+      "fiba_world_cup",
+      "id"
+    ],
+    "team": [
+      "team_name",
+      "founded_year",
+      "location",
+      "ownership",
+      "championship",
+      "id"
+    ]
+  },
+  "probe_total_cost": 120104.0,
+  "corpus": [
+    {
+      "doc_id": "player/player_16",
+      "text": "Mychel Thompson   was born on 1988/6/1 and is 37 years old. A American   national, they play as a Backcourt for the  Santa Cruz Warriors. They attended Pepperdine University   and were drafted in 0 (pick 0). Their career achievements include 0 NBA championships, 0 MVP awards, 0 Olympic gold medals, and 0 FIBA World Cup wins.",
+      "metadata": {
+        "file_name": "player_16.txt",
+        "table_hint": "player",
+        "source_path": "/Users/aritramazumder/Documents/UDA-Bench-main/source_data/SyntheticPlayer/player/player_16.txt"
+      }
+    },
+    {
+      "doc_id": "player/player_45",
+      "text": "Rik Smits   was born on 1966/8/23 and is 59 years old. A Dutch   national, they play as a Frontcourt for the Indiana Pacers  . They attended Marist College   and were drafted in 1988 (pick 2). Their career achievements include 0 NBA championships, 0 MVP awards, 0 Olympic gold medals, and 1 FIBA World Cup wins.",
+      "metadata": {
+        "file_name": "player_45.txt",
+        "table_hint": "player",
+        "source_path": "/Users/aritramazumder/Documents/UDA-Bench-main/source_data/SyntheticPlayer/player/player_45.txt"
+      }
+    },
+    {
+      "doc_id": "player/player_71",
+      "text": "Bill Hewitt   was born on 1944/8/8 and is 81 years old. A American   national, they play as a Frontcourt for the Los Angeles Lakers. They attended University of Southern California   and were drafted in 0 (pick 0). Their career achievements include 0 NBA championships, 0 MVP awards, 0 Olympic gold medals, and 0 FIBA World Cup wins.",
+      "metadata": {
+        "file_name": "player_71.txt",
+        "table_hint": "player",
+        "source_path": "/Users/aritramazumder/Documents/UDA-Bench-main/source_data/SyntheticPlayer/player/player_71.txt"
+      }
+    },
+    {
+      "doc_id": "player/player_83",
+      "text": "Tom Copa   was born on 1964/10/30 and is 61 years old. A American   national, they play as a  for the  Libertas Livorno. They attended Marquette   and were drafted in 1987 (pick 44). Their career achievements include 0 NBA championships, 0 MVP awards, 0 Olympic gold medals, and 0 FIBA World Cup wins.",
+      "metadata": {
+        "file_name": "player_83.txt",
+        "table_hint": "player",
+        "source_path": "/Users/aritramazumder/Documents/UDA-Bench-main/source_data/SyntheticPlayer/player/player_83.txt"
+      }
+    },
+    {
+      "doc_id": "player/player_91",
+      "text": "Leroy Patrick Chollet   was born on 1925/3/5 and is 100 years old. A American   national, they play as a Backcourt for the Syracuse Nationals. They attended Loyola University New Orleans   and were drafted in 1949 (pick 1). Their career achievements include 0 NBA championships, 0 MVP awards, 0 Olympic gold medals, and 0 FIBA World Cup wins.",
+      "metadata": {
+        "file_name": "player_91.txt",
+        "table_hint": "player",
+        "source_path": "/Users/aritramazumder/Documents/UDA-Bench-main/source_data/SyntheticPlayer/player/player_91.txt"
+      }
+    },
+    {
+      "doc_id": "player/player_28",
+      "text": "Magic Johnson   was born on 1959/8/14 and is 66 years old. A American   national, they play as a Backcourt for the Los Angeles Lakers. They attended Michigan State   and were drafted in 1979 (pick 1). Their career achievements include 5 NBA championships, 3 MVP awards, 1 Olympic gold medals, and 0 FIBA World Cup wins.",
+      "metadata": {
+        "file_name": "player_28.txt",
+        "table_hint": "player",
+        "source_path": "/Users/aritramazumder/Documents/UDA-Bench-main/source_data/SyntheticPlayer/player/player_28.txt"
+      }
+    },
+    {
+      "doc_id": "player/player_133",
+      "text": "Lonzo Anderson Ball was born on 1997/10/27 and is 28 years old. A American national, they play as a Backcourt for the Chicago Bulls. They attended UCLA and were drafted in 2017 (pick 2). Their career achievements include 0 NBA championships, 0 MVP awards, 0 Olympic gold medals, and 0 FIBA World Cup wins.",
+      "metadata": {
+        "file_name": "player_133.txt",
+        "table_hint": "player",
+        "source_path": "/Users/aritramazumder/Documents/UDA-Bench-main/source_data/SyntheticPlayer/player/player_133.txt"
+      }
+    },
+    {
+      "doc_id": "player/player_55",
+      "text": "Aaron Williams   was born on 1971/10/2 and is 54 years old. A American   national, they play as a Frontcourt for the  Los Angeles Clippers. They attended Xavier University   and were drafted in 0 (pick 0). Their career achievements include  NBA championships, 0 MVP awards,  Olympic gold medals, and  FIBA World Cup wins.",
+      "metadata": {
+        "file_name": "player_55.txt",
+        "table_hint": "player",
+        "source_path": "/Users/aritramazumder/Documents/UDA-Bench-main/source_data/SyntheticPlayer/player/player_55.txt"
+      }
+    },
+    {
+      "doc_id": "player/player_100",
+      "text": "Chavano Rainer \"Buddy\" Hield was born on 1992/12/17 and is 33 years old. A Bahamian national, they play as a  for the Golden State Warriors. They attended Oklahoma Sooners and were drafted in 2016 (pick 6). Their career achievements include 0 NBA championships, 0 MVP awards, 0 Olympic gold medals, and 0 FIBA World Cup wins.",
+      "metadata": {
+        "file_name": "player_100.txt",
+        "table_hint": "player",
+        "source_path": "/Users/aritramazumder/Documents/UDA-Bench-main/source_data/SyntheticPlayer/player/player_100.txt"
+      }
+    },
+    {
+      "doc_id": "player/player_60",
+      "text": "Shawn Christopher Respert   was born on 1972/2/6 and is 53 years old. A American   national, they play as a  for the   . They attended Michigan State   and were drafted in 1995 (pick 8). Their career achievements include 0 NBA championships, 0 MVP awards, 0 Olympic gold medals, and 0 FIBA World Cup wins.",
+      "metadata": {
+        "file_name": "player_60.txt",
+        "table_hint": "player",
+        "source_path": "/Users/aritramazumder/Documents/UDA-Bench-main/source_data/SyntheticPlayer/player/player_60.txt"
+      }
+    },
+    {
+      "doc_id": "player/player_53",
+      "text": "Kurt Thomas   was born on 1972/10/4 and is 53 years old. A American   national, they play as a Frontcourt for the  New York Knicks. They attended Texas Christian University   and were drafted in 1995 (pick 0). Their career achievements include 0 NBA championships, 0 MVP awards, 0 Olympic gold medals, and 0 FIBA World Cup wins.",
+      "metadata": {
+        "file_name": "player_53.txt",
+        "table_hint": "player",
+        "source_path": "/Users/aritramazumder/Documents/UDA-Bench-main/source_data/SyntheticPlayer/player/player_53.txt"
+      }
+    },
+    {
+      "doc_id": "player/player_40",
+      "text": "James Patrick Walsh   was born on 1930/8/29 and is 95 years old. A American   national, they play as a Frontcourt for the Philadelphia Warriors  . They attended Stanford University   and were drafted in 0 (pick 0). Their career achievements include 0 NBA championships, 0 MVP awards, 1 Olympic gold medals, and 0 FIBA World Cup wins.",
+      "metadata": {
+        "file_name": "player_40.txt",
+        "table_hint": "player",
+        "source_path": "/Users/aritramazumder/Documents/UDA-Bench-main/source_data/SyntheticPlayer/player/player_40.txt"
+      }
+    },
+    {
+      "doc_id": "player/player_14",
+      "text": "Askia Rahman Jones   was born on 1971/12/3 and is 53 years old. A American-Venezuelan   national, they play as a Backcourt for the Guaros de Lara. They attended Kansas State University   and were drafted in 0 (pick 0). Their career achievements include 0 NBA championships, 0 MVP awards, 0 Olympic gold medals, and 0 FIBA World Cup wins.",
+      "metadata": {
+        "file_name": "player_14.txt",
+        "table_hint": "player",
+        "source_path": "/Users/aritramazumder/Documents/UDA-Bench-main/source_data/SyntheticPlayer/player/player_14.txt"
+      }
+    },
+    {
+      "doc_id": "player/player_126",
+      "text": "Jaden Edward Dhananjay Ivey was born on 2002/2/13 and is 23 years old. A American national, they play as a  for the Detroit Pistons. They attended Purdue and were drafted in 2022 (pick 5). Their career achievements include 0 NBA championships, 0 MVP awards, 0 Olympic gold medals, and 1 FIBA World Cup wins.",
+      "metadata": {
+        "file_name": "player_126.txt",
+        "table_hint": "player",
+        "source_path": "/Users/aritramazumder/Documents/UDA-Bench-main/source_data/SyntheticPlayer/player/player_126.txt"
+      }
+    },
+    {
+      "doc_id": "player/player_92",
+      "text": "Michael Carter-Williams   was born on 1991/10/10 and is 34 years old. A American   national, they play as a  for the Capitanes de Ciudad de M\ufffd\ufffdxico  . They attended Syracuse Orange   and were drafted in 2013 (pick 11). Their career achievements include 0 NBA championships, 0 MVP awards, 0 Olympic gold medals, and 0 FIBA World Cup wins.",
+      "metadata": {
+        "file_name": "player_92.txt",
+        "table_hint": "player",
+        "source_path": "/Users/aritramazumder/Documents/UDA-Bench-main/source_data/SyntheticPlayer/player/player_92.txt"
+      }
+    },
+    {
+      "doc_id": "player/player_116",
+      "text": "Wardell Stephen Curry II   was born on 1988/3/14 and is 37 years old. A American   national, they play as a Backcourt for the Golden State Warriors  . They attended Davidson   and were drafted in 2009 (pick 7). Their career achievements include 4 NBA championships, 2 MVP awards, 1 Olympic gold medals, and 2 FIBA World Cup wins.",
+      "metadata": {
+        "file_name": "player_116.txt",
+        "table_hint": "player",
+        "source_path": "/Users/aritramazumder/Documents/UDA-Bench-main/source_data/SyntheticPlayer/player/player_116.txt"
+      }
+    },
+    {
+      "doc_id": "player/player_101",
+      "text": "D'Angelo Russell was born on 1996/2/23 and is 29 years old. A American national, they play as a Backcourt for the Los Angeles Lakers. They attended Ohio State and were drafted in 2015 (pick 2). Their career achievements include 0 NBA championships, 0 MVP awards, 0 Olympic gold medals, and 0 FIBA World Cup wins.",
+      "metadata": {
+        "file_name": "player_101.txt",
+        "table_hint": "player",
+        "source_path": "/Users/aritramazumder/Documents/UDA-Bench-main/source_data/SyntheticPlayer/player/player_101.txt"
+      }
+    },
+    {
+      "doc_id": "player/player_6",
+      "text": "David Michineau   was born on 1994/6/6 and is 31 years old. A French   national, they play as a Backcourt for the Bursaspor Basketbol  . They attended   and were drafted in 2016 (pick 0). Their career achievements include 0 NBA championships, 0 MVP awards, 0 Olympic gold medals, and 0 FIBA World Cup wins.",
+      "metadata": {
+        "file_name": "player_6.txt",
+        "table_hint": "player",
+        "source_path": "/Users/aritramazumder/Documents/UDA-Bench-main/source_data/SyntheticPlayer/player/player_6.txt"
+      }
+    },
+    {
+      "doc_id": "player/player_54",
+      "text": "Kevin Wayne Durant was born on 1988/9/29 and is 37 years old. A American national, they play as a Frontcourt for the Phoenix Suns. They attended University of Texas at Austin and were drafted in 2007 (pick 2). Their career achievements include 2 NBA championships, 1 MVP awards, 4 Olympic gold medals, and 1 FIBA World Cup wins.",
+      "metadata": {
+        "file_name": "player_54.txt",
+        "table_hint": "player",
+        "source_path": "/Users/aritramazumder/Documents/UDA-Bench-main/source_data/SyntheticPlayer/player/player_54.txt"
+      }
+    },
+    {
+      "doc_id": "player/player_18",
+      "text": "Kenneth \"Apple\" Green   was born on 1959/9/19 and is 66 years old. A American   national, they play as a  for the New York Knicks  . They attended Pan American University   and were drafted in 1981 (pick 11). Their career achievements include 0 NBA championships, 0 MVP awards, 0 Olympic gold medals, and 0 FIBA World Cup wins.",
+      "metadata": {
+        "file_name": "player_18.txt",
+        "table_hint": "player",
+        "source_path": "/Users/aritramazumder/Documents/UDA-Bench-main/source_data/SyntheticPlayer/player/player_18.txt"
+      }
+    }
+  ],
+  "queries": [
+    {
+      "query_id": "agg_queries_1",
+      "sql_query": "SELECT position, MIN(olympic_gold_medals) AS min_olympic_gold_medals FROM player GROUP BY position;",
+      "nl_query": null,
+      "category": "Agg",
+      "metadata": {
+        "source_file": "/Users/aritramazumder/Documents/UDA-Bench-main/Query/Player/Agg/agg_queries.sql",
+        "query_index": 1,
+        "subcategory": "aggregation",
+        "tables": [
+          "player"
+        ]
+      }
+    },
+    {
+      "query_id": "agg_queries_2",
+      "sql_query": "SELECT nationality, COUNT(*) AS count_all FROM player GROUP BY nationality;",
+      "nl_query": null,
+      "category": "Agg",
+      "metadata": {
+        "source_file": "/Users/aritramazumder/Documents/UDA-Bench-main/Query/Player/Agg/agg_queries.sql",
+        "query_index": 2,
+        "subcategory": "aggregation",
+        "tables": [
+          "player"
+        ]
+      }
+    },
+    {
+      "query_id": "agg_queries_3",
+      "sql_query": "SELECT position, AVG(age) AS avg_age FROM player GROUP BY position;",
+      "nl_query": null,
+      "category": "Agg",
+      "metadata": {
+        "source_file": "/Users/aritramazumder/Documents/UDA-Bench-main/Query/Player/Agg/agg_queries.sql",
+        "query_index": 3,
+        "subcategory": "aggregation",
+        "tables": [
+          "player"
+        ]
+      }
+    }
+  ],
+  "extraction": {
+    "tuples_by_table": {
+      "city": [],
+      "owner": [],
+      "player": [
+        {
+          "name": "Mychel Thompson",
+          "birth_date": "1988/6/1",
+          "nationality": "American",
+          "age": 37,
+          "team": null,
+          "position": "Backcourt",
+          "draft_pick": 0.0,
+          "draft_year": 0.0,
+          "college": "Pepperdine University",
+          "nba_championships": 0.0,
+          "mvp_awards": 0,
+          "olympic_gold_medals": 0.0,
+          "fiba_world_cup": 0.0,
+          "_source_doc_id": "player/player_16"
+        },
+        {
+          "name": "Rik Smits",
+          "birth_date": "1966/8/23",
+          "nationality": "Dutch",
+          "age": 59,
+          "team": "Indiana Pacers",
+          "position": "Frontcourt",
+          "draft_pick": 2.0,
+          "draft_year": 1988.0,
+          "college": "Marist College",
+          "nba_championships": 0.0,
+          "mvp_awards": 0,
+          "olympic_gold_medals": 0.0,
+          "fiba_world_cup": 1.0,
+          "_source_doc_id": "player/player_45"
+        },
+        {
+          "name": "Bill Hewitt",
+          "birth_date": "1944/8/8",
+          "nationality": "American",
+          "age": 81,
+          "team": "Los Angeles Lakers",
+          "position": "Frontcourt",
+          "draft_pick": 0.0,
+          "draft_year": 0.0,
+          "college": "University of Southern California",
+          "nba_championships": 0.0,
+          "mvp_awards": 0,
+          "olympic_gold_medals": 0.0,
+          "fiba_world_cup": 0.0,
+          "_source_doc_id": "player/player_71"
+        },
+        {
+          "name": "Tom Copa",
+          "birth_date": "1964/10/30",
+          "nationality": "American",
+          "age": 61,
+          "team": null,
+          "position": null,
+          "draft_pick": 44.0,
+          "draft_year": 1987.0,
+          "college": "Marquette",
+          "nba_championships": 0.0,
+          "mvp_awards": 0,
+          "olympic_gold_medals": 0.0,
+          "fiba_world_cup": 0.0,
+          "_source_doc_id": "player/player_83"
+        },
+        {
+          "name": "Leroy Patrick Chollet",
+          "birth_date": "1925/3/5",
+          "nationality": "American",
+          "age": 100,
+          "team": "Syracuse Nationals",
+          "position": "Backcourt",
+          "draft_pick": 1.0,
+          "draft_year": 1949.0,
+          "college": "Loyola University New Orleans",
+          "nba_championships": 0.0,
+          "mvp_awards": 0,
+          "olympic_gold_medals": 0.0,
+          "fiba_world_cup": 0.0,
+          "_source_doc_id": "player/player_91"
+        },
+        {
+          "name": "Magic Johnson",
+          "birth_date": "1959/8/14",
+          "nationality": "American",
+          "age": 66,
+          "team": "Los Angeles Lakers",
+          "position": "Backcourt",
+          "draft_pick": 1,
+          "draft_year": 1979,
+          "college": "Michigan State",
+          "nba_championships": 5,
+          "mvp_awards": 3,
+          "olympic_gold_medals": 1,
+          "fiba_world_cup": 0,
+          "_source_doc_id": "player/player_28"
+        },
+        {
+          "name": "Lonzo Anderson Ball",
+          "birth_date": "1997/10/27",
+          "nationality": "American",
+          "age": 28,
+          "team": "Chicago Bulls",
+          "position": "Backcourt",
+          "draft_pick": 2,
+          "draft_year": 2017,
+          "college": "UCLA",
+          "nba_championships": 0,
+          "mvp_awards": 0,
+          "olympic_gold_medals": 0,
+          "fiba_world_cup": 0,
+          "_source_doc_id": "player/player_133"
+        },
+        {
+          "name": "Aaron Williams",
+          "birth_date": "1971/10/2",
+          "nationality": "American",
+          "age": 54,
+          "team": "Los Angeles Clippers",
+          "position": "Frontcourt",
+          "draft_pick": null,
+          "draft_year": null,
+          "college": "Xavier University",
+          "nba_championships": 0.0,
+          "mvp_awards": 0,
+          "olympic_gold_medals": 0.0,
+          "fiba_world_cup": 0.0,
+          "_source_doc_id": "player/player_55"
+        },
+        {
+          "name": "Chavano Rainer \"Buddy\" Hield",
+          "birth_date": "1992/12/17",
+          "nationality": "Bahamian",
+          "age": 33,
+          "team": "Golden State Warriors",
+          "position": null,
+          "draft_pick": 6.0,
+          "draft_year": 2016.0,
+          "college": "Oklahoma Sooners",
+          "nba_championships": 0.0,
+          "mvp_awards": 0,
+          "olympic_gold_medals": 0.0,
+          "fiba_world_cup": 0.0,
+          "_source_doc_id": "player/player_100"
+        },
+        {
+          "name": "Shawn Christopher Respert",
+          "birth_date": "1972/2/6",
+          "nationality": "American",
+          "age": 53,
+          "team": null,
+          "position": null,
+          "draft_pick": 8.0,
+          "draft_year": 1995.0,
+          "college": "Michigan State",
+          "nba_championships": 0.0,
+          "mvp_awards": 0,
+          "olympic_gold_medals": 0.0,
+          "fiba_world_cup": 0.0,
+          "_source_doc_id": "player/player_60"
+        },
+        {
+          "name": "Kurt Thomas",
+          "birth_date": "1972/10/4",
+          "nationality": "American",
+          "age": 53,
+          "team": "New York Knicks",
+          "position": "Frontcourt",
+          "draft_pick": 0,
+          "draft_year": 1995,
+          "college": "Texas Christian University",
+          "nba_championships": 0,
+          "mvp_awards": 0,
+          "olympic_gold_medals": 0,
+          "fiba_world_cup": 0,
+          "_source_doc_id": "player/player_53"
+        },
+        {
+          "name": "James Patrick Walsh",
+          "birth_date": "1930/8/29",
+          "nationality": "American",
+          "age": 95,
+          "team": "Philadelphia Warriors",
+          "position": "Frontcourt",
+          "draft_pick": 0.0,
+          "draft_year": 0.0,
+          "college": "Stanford University",
+          "nba_championships": 0.0,
+          "mvp_awards": 0,
+          "olympic_gold_medals": 1.0,
+          "fiba_world_cup": 0.0,
+          "_source_doc_id": "player/player_40"
+        },
+        {
+          "name": "Askia Rahman Jones",
+          "birth_date": "1971/12/3",
+          "nationality": "American-Venezuelan",
+          "age": 53,
+          "team": null,
+          "position": "Backcourt",
+          "draft_pick": 0.0,
+          "draft_year": 0.0,
+          "college": "Kansas State University",
+          "nba_championships": 0.0,
+          "mvp_awards": 0,
+          "olympic_gold_medals": 0.0,
+          "fiba_world_cup": 0.0,
+          "_source_doc_id": "player/player_14"
+        },
+        {
+          "name": "Jaden Edward Dhananjay Ivey",
+          "birth_date": "2002/2/13",
+          "nationality": "American",
+          "age": 23,
+          "team": "Detroit Pistons",
+          "position": null,
+          "draft_pick": 5,
+          "draft_year": 2022,
+          "college": "Purdue",
+          "nba_championships": 0,
+          "mvp_awards": 0,
+          "olympic_gold_medals": 0,
+          "fiba_world_cup": 1,
+          "_source_doc_id": "player/player_126"
+        },
+        {
+          "name": "Michael Carter-Williams",
+          "birth_date": "1991/10/10",
+          "nationality": "American",
+          "age": 34,
+          "team": "Capitanes de Ciudad de M\u00e9xico",
+          "position": null,
+          "draft_pick": 11.0,
+          "draft_year": 2013.0,
+          "college": "Syracuse Orange",
+          "nba_championships": 0.0,
+          "mvp_awards": 0,
+          "olympic_gold_medals": 0.0,
+          "fiba_world_cup": 0.0,
+          "_source_doc_id": "player/player_92"
+        },
+        {
+          "name": "Wardell Stephen Curry II",
+          "birth_date": "1988/3/14",
+          "nationality": "American",
+          "age": 37,
+          "team": "Golden State Warriors",
+          "position": "Backcourt",
+          "draft_pick": 7.0,
+          "draft_year": 2009,
+          "college": "Davidson",
+          "nba_championships": 4.0,
+          "mvp_awards": 2,
+          "olympic_gold_medals": 1.0,
+          "fiba_world_cup": 2.0,
+          "_source_doc_id": "player/player_116"
+        },
+        {
+          "name": "D'Angelo Russell",
+          "birth_date": "1996/2/23",
+          "nationality": "American",
+          "age": 29,
+          "team": "Los Angeles Lakers",
+          "position": "Backcourt",
+          "draft_pick": 2,
+          "draft_year": "2015",
+          "college": "Ohio State",
+          "nba_championships": 0,
+          "mvp_awards": 0,
+          "olympic_gold_medals": 0,
+          "fiba_world_cup": 0,
+          "_source_doc_id": "player/player_101"
+        },
+        {
+          "name": "David Michineau",
+          "birth_date": "1994/6/6",
+          "nationality": "French",
+          "age": 31,
+          "team": "Bursaspor Basketbol",
+          "position": "Backcourt",
+          "draft_pick": 0,
+          "draft_year": 2016,
+          "college": null,
+          "nba_championships": 0,
+          "mvp_awards": 0,
+          "olympic_gold_medals": 0,
+          "fiba_world_cup": 0,
+          "_source_doc_id": "player/player_6"
+        },
+        {
+          "name": "Kevin Wayne Durant",
+          "birth_date": "1988/9/29",
+          "nationality": "American",
+          "age": 37,
+          "team": "Phoenix Suns",
+          "position": "Frontcourt",
+          "draft_pick": 2.0,
+          "draft_year": 2007.0,
+          "college": "University of Texas at Austin",
+          "nba_championships": 2.0,
+          "mvp_awards": 1,
+          "olympic_gold_medals": 4.0,
+          "fiba_world_cup": 1.0,
+          "_source_doc_id": "player/player_54"
+        },
+        {
+          "name": "Kenneth \"Apple\" Green",
+          "birth_date": "1959/9/19",
+          "nationality": "American",
+          "age": 66,
+          "team": "New York Knicks",
+          "position": null,
+          "draft_pick": 11.0,
+          "draft_year": 1981.0,
+          "college": "Pan American University",
+          "nba_championships": 0.0,
+          "mvp_awards": 0,
+          "olympic_gold_medals": 0.0,
+          "fiba_world_cup": 0.0,
+          "_source_doc_id": "player/player_18"
+        }
+      ],
+      "team": [
+        {
+          "team_name": "Indiana Pacers",
+          "founded_year": null,
+          "location": null,
+          "ownership": null,
+          "championship": null,
+          "_source_doc_id": "player/player_45"
+        },
+        {
+          "team_name": "Syracuse Nationals",
+          "founded_year": null,
+          "location": null,
+          "ownership": null,
+          "championship": null,
+          "_source_doc_id": "player/player_91"
+        },
+        {
+          "team_name": "Los Angeles Lakers",
+          "founded_year": null,
+          "location": null,
+          "ownership": null,
+          "championship": null,
+          "_source_doc_id": "player/player_28"
+        },
+        {
+          "team_name": "Chicago Bulls",
+          "founded_year": null,
+          "location": null,
+          "ownership": null,
+          "championship": null,
+          "_source_doc_id": "player/player_133"
+        },
+        {
+          "team_name": "Philadelphia Warriors",
+          "founded_year": null,
+          "location": null,
+          "ownership": null,
+          "championship": null,
+          "_source_doc_id": "player/player_40"
+        },
+        {
+          "team_name": "Detroit Pistons",
+          "founded_year": null,
+          "location": null,
+          "ownership": null,
+          "championship": null,
+          "_source_doc_id": "player/player_126"
+        },
+        {
+          "team_name": "Golden State Warriors",
+          "founded_year": null,
+          "location": null,
+          "ownership": null,
+          "championship": null,
+          "_source_doc_id": "player/player_116"
+        },
+        {
+          "team_name": "New York Knicks",
+          "founded_year": null,
+          "location": null,
+          "ownership": null,
+          "championship": null,
+          "_source_doc_id": "player/player_18"
+        }
+      ]
+    },
+    "token_cost": 39082.0,
+    "per_doc_signals": [
+      {
+        "doc_id": "player/player_16",
+        "tuple_count": 1,
+        "json_parse_success": true,
+        "extraction_refusal": false,
+        "empty_output": false,
+        "raw_output": "{\n  \"tables\": {\n    \"city\": [],\n    \"owner\": [],\n    \"player\": [\n      {\n        \"name\": \"Mychel Thompson\",\n        \"birth_date\": \"1988/6/1\",\n        \"nationality\": \"American\",\n        \"age\": 37,\n        \"team\": null,\n        \"position\": \"Backcourt\",\n        \"draft_pick\": 0.0,\n        \"draft_year\": 0.0,\n        \"college\": \"Pepperdine University\",\n        \"nba_championships\": 0.0,\n        \"mvp_awards\": 0,\n        \"olympic_gold_medals\": 0.0,\n        \"fiba_world_cup\": 0.0\n      }\n    ],\n    \"team\": []\n  }\n}"
+      },
+      {
+        "doc_id": "player/player_45",
+        "tuple_count": 2,
+        "json_parse_success": true,
+        "extraction_refusal": false,
+        "empty_output": false,
+        "raw_output": "{\n  \"tables\": {\n    \"city\": [],\n    \"owner\": [],\n    \"player\": [\n      {\n        \"name\": \"Rik Smits\",\n        \"birth_date\": \"1966/8/23\",\n        \"nationality\": \"Dutch\",\n        \"age\": 59,\n        \"team\": \"Indiana Pacers\",\n        \"position\": \"Frontcourt\",\n        \"draft_pick\": 2.0,\n        \"draft_year\": 1988.0,\n        \"college\": \"Marist College\",\n        \"nba_championships\": 0.0,\n        \"mvp_awards\": 0,\n        \"olympic_gold_medals\": 0.0,\n        \"fiba_world_cup\": 1.0\n      }\n    ],\n    \"team\": [\n      {\n        \"team_name\": \"Indiana Pacers\",\n        \"founded_year\": null,\n        \"location\": null,\n        \"ownership\": null,\n        \"championship\": null\n      }\n    ]\n  }\n}"
+      },
+      {
+        "doc_id": "player/player_71",
+        "tuple_count": 1,
+        "json_parse_success": true,
+        "extraction_refusal": false,
+        "empty_output": false,
+        "raw_output": "{\n  \"tables\": {\n    \"city\": [],\n    \"owner\": [],\n    \"player\": [\n      {\n        \"name\": \"Bill Hewitt\",\n        \"birth_date\": \"1944/8/8\",\n        \"nationality\": \"American\",\n        \"age\": 81,\n        \"team\": \"Los Angeles Lakers\",\n        \"position\": \"Frontcourt\",\n        \"draft_pick\": 0.0,\n        \"draft_year\": 0.0,\n        \"college\": \"University of Southern California\",\n        \"nba_championships\": 0.0,\n        \"mvp_awards\": 0,\n        \"olympic_gold_medals\": 0.0,\n        \"fiba_world_cup\": 0.0\n      }\n    ],\n    \"team\": []\n  }\n}"
+      },
+      {
+        "doc_id": "player/player_83",
+        "tuple_count": 1,
+        "json_parse_success": true,
+        "extraction_refusal": false,
+        "empty_output": false,
+        "raw_output": "{\n  \"tables\": {\n    \"city\": [],\n    \"owner\": [],\n    \"player\": [\n      {\n        \"name\": \"Tom Copa\",\n        \"birth_date\": \"1964/10/30\",\n        \"nationality\": \"American\",\n        \"age\": 61,\n        \"team\": null,\n        \"position\": null,\n        \"draft_pick\": 44.0,\n        \"draft_year\": 1987.0,\n        \"college\": \"Marquette\",\n        \"nba_championships\": 0.0,\n        \"mvp_awards\": 0,\n        \"olympic_gold_medals\": 0.0,\n        \"fiba_world_cup\": 0.0\n      }\n    ],\n    \"team\": []\n  }\n}"
+      },
+      {
+        "doc_id": "player/player_91",
+        "tuple_count": 2,
+        "json_parse_success": true,
+        "extraction_refusal": false,
+        "empty_output": false,
+        "raw_output": "{\n  \"tables\": {\n    \"city\": [],\n    \"owner\": [],\n    \"player\": [\n      {\n        \"name\": \"Leroy Patrick Chollet\",\n        \"birth_date\": \"1925/3/5\",\n        \"nationality\": \"American\",\n        \"age\": 100,\n        \"team\": \"Syracuse Nationals\",\n        \"position\": \"Backcourt\",\n        \"draft_pick\": 1.0,\n        \"draft_year\": 1949.0,\n        \"college\": \"Loyola University New Orleans\",\n        \"nba_championships\": 0.0,\n        \"mvp_awards\": 0,\n        \"olympic_gold_medals\": 0.0,\n        \"fiba_world_cup\": 0.0\n      }\n    ],\n    \"team\": [\n      {\n        \"team_name\": \"Syracuse Nationals\",\n        \"founded_year\": null,\n        \"location\": null,\n        \"ownership\": null,\n        \"championship\": null\n      }\n    ]\n  }\n}"
+      },
+      {
+        "doc_id": "player/player_28",
+        "tuple_count": 2,
+        "json_parse_success": true,
+        "extraction_refusal": false,
+        "empty_output": false,
+        "raw_output": "{\n  \"tables\": {\n    \"city\": [],\n    \"owner\": [],\n    \"player\": [\n      {\n        \"name\": \"Magic Johnson\",\n        \"birth_date\": \"1959/8/14\",\n        \"nationality\": \"American\",\n        \"age\": 66,\n        \"team\": \"Los Angeles Lakers\",\n        \"position\": \"Backcourt\",\n        \"draft_pick\": 1,\n        \"draft_year\": 1979,\n        \"college\": \"Michigan State\",\n        \"nba_championships\": 5,\n        \"mvp_awards\": 3,\n        \"olympic_gold_medals\": 1,\n        \"fiba_world_cup\": 0\n      }\n    ],\n    \"team\": [\n      {\n        \"team_name\": \"Los Angeles Lakers\",\n        \"founded_year\": null,\n        \"location\": null,\n        \"ownership\": null,\n        \"championship\": null\n      }\n    ]\n  }\n}"
+      },
+      {
+        "doc_id": "player/player_133",
+        "tuple_count": 2,
+        "json_parse_success": true,
+        "extraction_refusal": false,
+        "empty_output": false,
+        "raw_output": "{\n  \"tables\": {\n    \"city\": [],\n    \"owner\": [],\n    \"player\": [\n      {\n        \"name\": \"Lonzo Anderson Ball\",\n        \"birth_date\": \"1997/10/27\",\n        \"nationality\": \"American\",\n        \"age\": 28,\n        \"team\": \"Chicago Bulls\",\n        \"position\": \"Backcourt\",\n        \"draft_pick\": 2,\n        \"draft_year\": 2017,\n        \"college\": \"UCLA\",\n        \"nba_championships\": 0,\n        \"mvp_awards\": 0,\n        \"olympic_gold_medals\": 0,\n        \"fiba_world_cup\": 0\n      }\n    ],\n    \"team\": [\n      {\n        \"team_name\": \"Chicago Bulls\",\n        \"founded_year\": null,\n        \"location\": null,\n        \"ownership\": null,\n        \"championship\": null\n      }\n    ]\n  }\n}"
+      },
+      {
+        "doc_id": "player/player_55",
+        "tuple_count": 1,
+        "json_parse_success": true,
+        "extraction_refusal": false,
+        "empty_output": false,
+        "raw_output": "{\n  \"tables\": {\n    \"city\": [],\n    \"owner\": [],\n    \"player\": [\n      {\n        \"name\": \"Aaron Williams\",\n        \"birth_date\": \"1971/10/2\",\n        \"nationality\": \"American\",\n        \"age\": 54,\n        \"team\": \"Los Angeles Clippers\",\n        \"position\": \"Frontcourt\",\n        \"draft_pick\": null,\n        \"draft_year\": null,\n        \"college\": \"Xavier University\",\n        \"nba_championships\": 0.0,\n        \"mvp_awards\": 0,\n        \"olympic_gold_medals\": 0.0,\n        \"fiba_world_cup\": 0.0\n      }\n    ],\n    \"team\": []\n  }\n}"
+      },
+      {
+        "doc_id": "player/player_100",
+        "tuple_count": 1,
+        "json_parse_success": true,
+        "extraction_refusal": false,
+        "empty_output": false,
+        "raw_output": "{\n  \"tables\": {\n    \"city\": [],\n    \"owner\": [],\n    \"player\": [\n      {\n        \"name\": \"Chavano Rainer \\\"Buddy\\\" Hield\",\n        \"birth_date\": \"1992/12/17\",\n        \"nationality\": \"Bahamian\",\n        \"age\": 33,\n        \"team\": \"Golden State Warriors\",\n        \"position\": null,\n        \"draft_pick\": 6.0,\n        \"draft_year\": 2016.0,\n        \"college\": \"Oklahoma Sooners\",\n        \"nba_championships\": 0.0,\n        \"mvp_awards\": 0,\n        \"olympic_gold_medals\": 0.0,\n        \"fiba_world_cup\": 0.0\n      }\n    ],\n    \"team\": []\n  }\n}"
+      },
+      {
+        "doc_id": "player/player_60",
+        "tuple_count": 1,
+        "json_parse_success": true,
+        "extraction_refusal": false,
+        "empty_output": false,
+        "raw_output": "{\n  \"tables\": {\n    \"city\": [],\n    \"owner\": [],\n    \"player\": [\n      {\n        \"name\": \"Shawn Christopher Respert\",\n        \"birth_date\": \"1972/2/6\",\n        \"nationality\": \"American\",\n        \"age\": 53,\n        \"team\": null,\n        \"position\": null,\n        \"draft_pick\": 8.0,\n        \"draft_year\": 1995.0,\n        \"college\": \"Michigan State\",\n        \"nba_championships\": 0.0,\n        \"mvp_awards\": 0,\n        \"olympic_gold_medals\": 0.0,\n        \"fiba_world_cup\": 0.0\n      }\n    ],\n    \"team\": []\n  }\n}"
+      },
+      {
+        "doc_id": "player/player_53",
+        "tuple_count": 1,
+        "json_parse_success": true,
+        "extraction_refusal": false,
+        "empty_output": false,
+        "raw_output": "{\n  \"tables\": {\n    \"city\": [],\n    \"owner\": [],\n    \"player\": [\n      {\n        \"name\": \"Kurt Thomas\",\n        \"birth_date\": \"1972/10/4\",\n        \"nationality\": \"American\",\n        \"age\": 53,\n        \"team\": \"New York Knicks\",\n        \"position\": \"Frontcourt\",\n        \"draft_pick\": 0,\n        \"draft_year\": 1995,\n        \"college\": \"Texas Christian University\",\n        \"nba_championships\": 0,\n        \"mvp_awards\": 0,\n        \"olympic_gold_medals\": 0,\n        \"fiba_world_cup\": 0\n      }\n    ],\n    \"team\": []\n  }\n}"
+      },
+      {
+        "doc_id": "player/player_40",
+        "tuple_count": 2,
+        "json_parse_success": true,
+        "extraction_refusal": false,
+        "empty_output": false,
+        "raw_output": "{\n  \"tables\": {\n    \"city\": [],\n    \"owner\": [],\n    \"player\": [\n      {\n        \"name\": \"James Patrick Walsh\",\n        \"birth_date\": \"1930/8/29\",\n        \"nationality\": \"American\",\n        \"age\": 95,\n        \"team\": \"Philadelphia Warriors\",\n        \"position\": \"Frontcourt\",\n        \"draft_pick\": 0.0,\n        \"draft_year\": 0.0,\n        \"college\": \"Stanford University\",\n        \"nba_championships\": 0.0,\n        \"mvp_awards\": 0,\n        \"olympic_gold_medals\": 1.0,\n        \"fiba_world_cup\": 0.0\n      }\n    ],\n    \"team\": [\n      {\n        \"team_name\": \"Philadelphia Warriors\",\n        \"founded_year\": null,\n        \"location\": null,\n        \"ownership\": null,\n        \"championship\": null\n      }\n    ]\n  }\n}"
+      },
+      {
+        "doc_id": "player/player_14",
+        "tuple_count": 1,
+        "json_parse_success": true,
+        "extraction_refusal": false,
+        "empty_output": false,
+        "raw_output": "{\n  \"tables\": {\n    \"city\": [],\n    \"owner\": [],\n    \"player\": [\n      {\n        \"name\": \"Askia Rahman Jones\",\n        \"birth_date\": \"1971/12/3\",\n        \"nationality\": \"American-Venezuelan\",\n        \"age\": 53,\n        \"team\": null,\n        \"position\": \"Backcourt\",\n        \"draft_pick\": 0.0,\n        \"draft_year\": 0.0,\n        \"college\": \"Kansas State University\",\n        \"nba_championships\": 0.0,\n        \"mvp_awards\": 0,\n        \"olympic_gold_medals\": 0.0,\n        \"fiba_world_cup\": 0.0\n      }\n    ],\n    \"team\": []\n  }\n}"
+      },
+      {
+        "doc_id": "player/player_126",
+        "tuple_count": 2,
+        "json_parse_success": true,
+        "extraction_refusal": false,
+        "empty_output": false,
+        "raw_output": "{\n  \"tables\": {\n    \"city\": [],\n    \"owner\": [],\n    \"player\": [\n      {\n        \"name\": \"Jaden Edward Dhananjay Ivey\",\n        \"birth_date\": \"2002/2/13\",\n        \"nationality\": \"American\",\n        \"age\": 23,\n        \"team\": \"Detroit Pistons\",\n        \"position\": null,\n        \"draft_pick\": 5,\n        \"draft_year\": 2022,\n        \"college\": \"Purdue\",\n        \"nba_championships\": 0,\n        \"mvp_awards\": 0,\n        \"olympic_gold_medals\": 0,\n        \"fiba_world_cup\": 1\n      }\n    ],\n    \"team\": [\n      {\n        \"team_name\": \"Detroit Pistons\",\n        \"founded_year\": null,\n        \"location\": null,\n        \"ownership\": null,\n        \"championship\": null\n      }\n    ]\n  }\n}"
+      },
+      {
+        "doc_id": "player/player_92",
+        "tuple_count": 1,
+        "json_parse_success": true,
+        "extraction_refusal": false,
+        "empty_output": false,
+        "raw_output": "{\n  \"tables\": {\n    \"city\": [],\n    \"owner\": [],\n    \"player\": [\n      {\n        \"name\": \"Michael Carter-Williams\",\n        \"birth_date\": \"1991/10/10\",\n        \"nationality\": \"American\",\n        \"age\": 34,\n        \"team\": \"Capitanes de Ciudad de M\\u00e9xico\",\n        \"position\": null,\n        \"draft_pick\": 11.0,\n        \"draft_year\": 2013.0,\n        \"college\": \"Syracuse Orange\",\n        \"nba_championships\": 0.0,\n        \"mvp_awards\": 0,\n        \"olympic_gold_medals\": 0.0,\n        \"fiba_world_cup\": 0.0\n      }\n    ],\n    \"team\": []\n  }\n}"
+      },
+      {
+        "doc_id": "player/player_116",
+        "tuple_count": 2,
+        "json_parse_success": true,
+        "extraction_refusal": false,
+        "empty_output": false,
+        "raw_output": "{\n  \"tables\": {\n    \"city\": [],\n    \"owner\": [],\n    \"player\": [\n      {\n        \"name\": \"Wardell Stephen Curry II\",\n        \"birth_date\": \"1988/3/14\",\n        \"nationality\": \"American\",\n        \"age\": 37,\n        \"team\": \"Golden State Warriors\",\n        \"position\": \"Backcourt\",\n        \"draft_pick\": 7.0,\n        \"draft_year\": 2009,\n        \"college\": \"Davidson\",\n        \"nba_championships\": 4.0,\n        \"mvp_awards\": 2,\n        \"olympic_gold_medals\": 1.0,\n        \"fiba_world_cup\": 2.0\n      }\n    ],\n    \"team\": [\n      {\n        \"team_name\": \"Golden State Warriors\",\n        \"founded_year\": null,\n        \"location\": null,\n        \"ownership\": null,\n        \"championship\": null\n      }\n    ]\n  }\n}"
+      },
+      {
+        "doc_id": "player/player_101",
+        "tuple_count": 1,
+        "json_parse_success": true,
+        "extraction_refusal": false,
+        "empty_output": false,
+        "raw_output": "{\n  \"tables\": {\n    \"city\": [],\n    \"owner\": [],\n    \"player\": [\n      {\n        \"name\": \"D'Angelo Russell\",\n        \"birth_date\": \"1996/2/23\",\n        \"nationality\": \"American\",\n        \"age\": 29,\n        \"team\": \"Los Angeles Lakers\",\n        \"position\": \"Backcourt\",\n        \"draft_pick\": 2,\n        \"draft_year\": \"2015\",\n        \"college\": \"Ohio State\",\n        \"nba_championships\": 0,\n        \"mvp_awards\": 0,\n        \"olympic_gold_medals\": 0,\n        \"fiba_world_cup\": 0\n      }\n    ],\n    \"team\": []\n  }\n}"
+      },
+      {
+        "doc_id": "player/player_6",
+        "tuple_count": 1,
+        "json_parse_success": true,
+        "extraction_refusal": false,
+        "empty_output": false,
+        "raw_output": "{\n  \"tables\": {\n    \"city\": [],\n    \"owner\": [],\n    \"player\": [\n      {\n        \"name\": \"David Michineau\",\n        \"birth_date\": \"1994/6/6\",\n        \"nationality\": \"French\",\n        \"age\": 31,\n        \"team\": \"Bursaspor Basketbol\",\n        \"position\": \"Backcourt\",\n        \"draft_pick\": 0,\n        \"draft_year\": 2016,\n        \"college\": null,\n        \"nba_championships\": 0,\n        \"mvp_awards\": 0,\n        \"olympic_gold_medals\": 0,\n        \"fiba_world_cup\": 0\n      }\n    ],\n    \"team\": []\n  }\n}"
+      },
+      {
+        "doc_id": "player/player_54",
+        "tuple_count": 1,
+        "json_parse_success": true,
+        "extraction_refusal": false,
+        "empty_output": false,
+        "raw_output": "{\n  \"tables\": {\n    \"city\": [],\n    \"owner\": [],\n    \"player\": [\n      {\n        \"name\": \"Kevin Wayne Durant\",\n        \"birth_date\": \"1988/9/29\",\n        \"nationality\": \"American\",\n        \"age\": 37,\n        \"team\": \"Phoenix Suns\",\n        \"position\": \"Frontcourt\",\n        \"draft_pick\": 2.0,\n        \"draft_year\": 2007.0,\n        \"college\": \"University of Texas at Austin\",\n        \"nba_championships\": 2.0,\n        \"mvp_awards\": 1,\n        \"olympic_gold_medals\": 4.0,\n        \"fiba_world_cup\": 1.0\n      }\n    ],\n    \"team\": []\n  }\n}"
+      },
+      {
+        "doc_id": "player/player_18",
+        "tuple_count": 2,
+        "json_parse_success": true,
+        "extraction_refusal": false,
+        "empty_output": false,
+        "raw_output": "{\n  \"tables\": {\n    \"city\": [],\n    \"owner\": [],\n    \"player\": [\n      {\n        \"name\": \"Kenneth \\\"Apple\\\" Green\",\n        \"birth_date\": \"1959/9/19\",\n        \"nationality\": \"American\",\n        \"age\": 66,\n        \"team\": \"New York Knicks\",\n        \"position\": null,\n        \"draft_pick\": 11.0,\n        \"draft_year\": 1981.0,\n        \"college\": \"Pan American University\",\n        \"nba_championships\": 0.0,\n        \"mvp_awards\": 0,\n        \"olympic_gold_medals\": 0.0,\n        \"fiba_world_cup\": 0.0\n      }\n    ],\n    \"team\": [\n      {\n        \"team_name\": \"New York Knicks\",\n        \"founded_year\": null,\n        \"location\": null,\n        \"ownership\": null,\n        \"championship\": null\n      }\n    ]\n  }\n}"
+      }
+    ]
+  },
   "tier0": {
     "num_docs": 20,
-    "avg_doc_tokens": 94.2,
-    "max_doc_tokens": 104,
-    "doc_token_std": 4.142463035441596,
+    "avg_doc_tokens": 92.2,
+    "max_doc_tokens": 100,
+    "doc_token_std": 3.7629775444453557,
     "num_queries": 3,
     "query_type_mix": {
       "Agg": 3
     },
     "referenced_attribute_coverage": 0.5,
-    "estimated_extraction_cost": 1884.0,
-    "config_space_size": 16,
+    "estimated_extraction_cost": 1844.0,
+    "config_space_size": 288,
     "budget": 0.0
-  },
-  "probe_summary": {
-    "num_probe_configs": 8,
-    "config_ids": [
-      "er=embedding_0.7|norm=llm|unit=unit|miss=mean",
-      "er=embedding_0.9|norm=dictionary|unit=none|miss=mean",
-      "er=embedding_0.7|norm=llm|unit=none|miss=mean",
-      "er=embedding_0.7|norm=llm|unit=unit|miss=drop",
-      "er=embedding_0.9|norm=llm|unit=unit|miss=drop",
-      "er=embedding_0.9|norm=dictionary|unit=unit|miss=drop",
-      "er=embedding_0.9|norm=llm|unit=none|miss=drop",
-      "er=embedding_0.9|norm=dictionary|unit=none|miss=drop"
-    ],
-    "glass_box_scores": {
-      "er=embedding_0.7|norm=llm|unit=unit|miss=mean": 0.735435766836446,
-      "er=embedding_0.9|norm=dictionary|unit=none|miss=mean": 0.7867842741935483,
-      "er=embedding_0.7|norm=llm|unit=none|miss=mean": 0.7990322580645162,
-      "er=embedding_0.7|norm=llm|unit=unit|miss=drop": 0.4364035087719298,
-      "er=embedding_0.9|norm=llm|unit=unit|miss=drop": 0.4364035087719298,
-      "er=embedding_0.9|norm=dictionary|unit=unit|miss=drop": 0.4364035087719298,
-      "er=embedding_0.9|norm=llm|unit=none|miss=drop": 0.5,
-      "er=embedding_0.9|norm=dictionary|unit=none|miss=drop": 0.5
-    },
-    "btl_scores": {
-      "er=embedding_0.7|norm=llm|unit=none|miss=mean": 1.2610578096967542,
-      "er=embedding_0.7|norm=llm|unit=unit|miss=drop": 9.98422194079534e-07,
-      "er=embedding_0.7|norm=llm|unit=unit|miss=mean": 0.06442226137028788,
-      "er=embedding_0.9|norm=dictionary|unit=none|miss=drop": 9.98422194079534e-07,
-      "er=embedding_0.9|norm=dictionary|unit=none|miss=mean": 6.674514936821987,
-      "er=embedding_0.9|norm=dictionary|unit=unit|miss=drop": 9.98422194079534e-07,
-      "er=embedding_0.9|norm=llm|unit=none|miss=drop": 9.98422194079534e-07,
-      "er=embedding_0.9|norm=llm|unit=unit|miss=drop": 9.98422194079534e-07
-    },
-    "glass_box_spread": 0.36262874929258637,
-    "btl_spread": 6.674513938399794,
-    "glass_box_top_config": "er=embedding_0.7|norm=llm|unit=none|miss=mean",
-    "btl_top_config": "er=embedding_0.9|norm=dictionary|unit=none|miss=mean",
-    "top1_agreement": false,
-    "num_judge_pairs": 11,
-    "btl_win_counts": {
-      "er=embedding_0.7|norm=llm|unit=unit|miss=mean": 3,
-      "er=embedding_0.9|norm=dictionary|unit=none|miss=mean": 5,
-      "er=embedding_0.7|norm=llm|unit=none|miss=mean": 3,
-      "er=embedding_0.7|norm=llm|unit=unit|miss=drop": 0,
-      "er=embedding_0.9|norm=llm|unit=unit|miss=drop": 0,
-      "er=embedding_0.9|norm=dictionary|unit=unit|miss=drop": 0,
-      "er=embedding_0.9|norm=llm|unit=none|miss=drop": 0,
-      "er=embedding_0.9|norm=dictionary|unit=none|miss=drop": 0
-    }
   }
 }

@@ -1,0 +1,356 @@
+[
+  {
+    "query_id": "agg_only_gen_125",
+    "sql_query": "SELECT position, college, SUM(nba_championships) AS sum_nba_championships FROM player GROUP BY position, college;",
+    "nl_query": null,
+    "category": "Expanded",
+    "metadata": {
+      "generated": true,
+      "template": "agg_only|position+college|SUM|nba_championships",
+      "split": "test",
+      "aggregation_slice": "agg_only",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_only_gen_104",
+    "sql_query": "SELECT nationality, team, SUM(mvp_awards) AS sum_mvp_awards FROM player GROUP BY nationality, team;",
+    "nl_query": null,
+    "category": "Expanded",
+    "metadata": {
+      "generated": true,
+      "template": "agg_only|nationality+team|SUM|mvp_awards",
+      "split": "test",
+      "aggregation_slice": "agg_only",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_only_gen_94",
+    "sql_query": "SELECT nationality, team, SUM(olympic_gold_medals) AS sum_olympic_gold_medals FROM player GROUP BY nationality, team;",
+    "nl_query": null,
+    "category": "Expanded",
+    "metadata": {
+      "generated": true,
+      "template": "agg_only|nationality+team|SUM|olympic_gold_medals",
+      "split": "test",
+      "aggregation_slice": "agg_only",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_only_expanded_15",
+    "sql_query": "SELECT team, MAX(nba_championships) AS max_nba_championships FROM player GROUP BY team;",
+    "nl_query": null,
+    "category": "Expanded",
+    "metadata": {
+      "source_file": "/Users/aritramazumder/Documents/UDA-Bench-main/Query/Player/Expanded/agg_only_expanded.sql",
+      "query_index": 15,
+      "subcategory": "agg_only",
+      "tables": [
+        "player",
+        "team"
+      ],
+      "split": "test",
+      "aggregation_slice": "agg_only",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_only_gen_57",
+    "sql_query": "SELECT college, AVG(fiba_world_cup) AS avg_fiba_world_cup FROM player GROUP BY college;",
+    "nl_query": null,
+    "category": "Expanded",
+    "metadata": {
+      "generated": true,
+      "template": "agg_only|college|AVG|fiba_world_cup",
+      "split": "test",
+      "aggregation_slice": "agg_only",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_filter_gen_186",
+    "sql_query": "SELECT team, AVG(age) AS avg_age FROM player WHERE (nationality != 'Nigerian-American') AND (team = 'Lokomotiv Kuban') GROUP BY team;",
+    "nl_query": null,
+    "category": "Expanded",
+    "metadata": {
+      "generated": true,
+      "template": "agg_filter|team|and_two|11",
+      "split": "test",
+      "aggregation_slice": "agg_filter",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "mixed_queries_filter_agg_player_1",
+    "sql_query": "SELECT team, MIN(olympic_gold_medals) AS min_olympic_gold_medals FROM player WHERE draft_pick < 1 GROUP BY team;",
+    "nl_query": null,
+    "category": "Mixed",
+    "metadata": {
+      "source_file": "/Users/aritramazumder/Documents/UDA-Bench-main/Query/Player/Mixed/mixed_queries_filter_agg_player.sql",
+      "query_index": 1,
+      "subcategory": "filter1_agg1",
+      "tables": [
+        "player"
+      ],
+      "split": "test",
+      "aggregation_slice": "agg_filter",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_filter_gen_85",
+    "sql_query": "SELECT position, COUNT(*) AS count_all FROM player WHERE nationality = 'French' GROUP BY position;",
+    "nl_query": null,
+    "category": "Expanded",
+    "metadata": {
+      "generated": true,
+      "template": "agg_filter|position|single|5",
+      "split": "test",
+      "aggregation_slice": "agg_filter",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_filter_gen_1",
+    "sql_query": "SELECT nationality, COUNT(*) AS count_all FROM player WHERE nationality = 'American' GROUP BY nationality;",
+    "nl_query": null,
+    "category": "Expanded",
+    "metadata": {
+      "generated": true,
+      "template": "agg_filter|nationality|single|0",
+      "split": "test",
+      "aggregation_slice": "agg_filter",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_filter_gen_196",
+    "sql_query": "SELECT team, SUM(olympic_gold_medals) AS sum_olympic_gold_medals FROM player WHERE (nationality = 'Nigerian-American' AND nationality != 'Croatian') OR (team != 'Bursaspor Basketbol') GROUP BY team;",
+    "nl_query": null,
+    "category": "Expanded",
+    "metadata": {
+      "generated": true,
+      "template": "agg_filter|team|mixed|12",
+      "split": "test",
+      "aggregation_slice": "agg_filter",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_join_gen_28",
+    "sql_query": "SELECT player.college, COUNT(player.age) AS count_player_age FROM player JOIN team ON player.team = team.team_name JOIN city ON team.location = city.city_name GROUP BY player.college;",
+    "nl_query": null,
+    "category": "Expanded",
+    "metadata": {
+      "generated": true,
+      "template": "agg_join|player_team_city|player.college|count_player_age",
+      "split": "test",
+      "aggregation_slice": "agg_join",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_join_expanded_3",
+    "sql_query": "SELECT player.position, AVG(team.championship) AS avg_team_championship FROM player JOIN team ON player.team = team.team_name JOIN city ON team.location = city.city_name GROUP BY player.position;",
+    "nl_query": null,
+    "category": "Expanded",
+    "metadata": {
+      "source_file": "/Users/aritramazumder/Documents/UDA-Bench-main/Query/Player/Expanded/agg_join_expanded.sql",
+      "query_index": 3,
+      "subcategory": "agg_join",
+      "tables": [
+        "city",
+        "player",
+        "team"
+      ],
+      "split": "test",
+      "aggregation_slice": "agg_join",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_join_gen_40",
+    "sql_query": "SELECT player.nationality, MIN(team.championship) AS min_team_championship FROM player JOIN team ON player.team = team.team_name JOIN city ON team.location = city.city_name GROUP BY player.nationality;",
+    "nl_query": null,
+    "category": "Expanded",
+    "metadata": {
+      "generated": true,
+      "template": "agg_join|player_team_city|player.nationality|min_team_championship",
+      "split": "test",
+      "aggregation_slice": "agg_join",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_join_gen_4",
+    "sql_query": "SELECT player.position, MAX(player.mvp_awards) AS max_player_mvp_awards FROM player JOIN team ON player.team = team.team_name GROUP BY player.position;",
+    "nl_query": null,
+    "category": "Expanded",
+    "metadata": {
+      "generated": true,
+      "template": "agg_join|player_team|player.position|max_player_mvp_awards",
+      "split": "test",
+      "aggregation_slice": "agg_join",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_join_gen_17",
+    "sql_query": "SELECT team.location, SUM(player.mvp_awards) AS sum_player_mvp_awards FROM player JOIN team ON player.team = team.team_name GROUP BY team.location;",
+    "nl_query": null,
+    "category": "Expanded",
+    "metadata": {
+      "generated": true,
+      "template": "agg_join|player_team|team.location|sum_player_mvp_awards",
+      "split": "test",
+      "aggregation_slice": "agg_join",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_filter_join_gen_318",
+    "sql_query": "SELECT team.location, MIN(player.olympic_gold_medals) AS min_player_olympic_gold_medals FROM player JOIN team ON player.team = team.team_name JOIN city ON team.location = city.city_name WHERE (city.gdp > 100) OR (player.nationality = 'American') GROUP BY team.location;",
+    "nl_query": null,
+    "category": "Expanded",
+    "metadata": {
+      "generated": true,
+      "template": "agg_filter_join|player_team_city|or|105",
+      "split": "test",
+      "aggregation_slice": "agg_filter_join",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_filter_join_gen_288",
+    "sql_query": "SELECT player.team, AVG(player.age) AS avg_player_age FROM player JOIN team ON player.team = team.team_name JOIN city ON team.location = city.city_name WHERE (city.city_name = 'Los Angeles') OR (player.mvp_awards >= 1) GROUP BY player.team;",
+    "nl_query": null,
+    "category": "Expanded",
+    "metadata": {
+      "generated": true,
+      "template": "agg_filter_join|player_team_city|or|95",
+      "split": "test",
+      "aggregation_slice": "agg_filter_join",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_filter_join_gen_291",
+    "sql_query": "SELECT player.team, COUNT(*) AS count_all FROM player JOIN team ON player.team = team.team_name JOIN city ON team.location = city.city_name WHERE (city.city_name = 'San Antonio') OR (player.olympic_gold_medals = 0) GROUP BY player.team;",
+    "nl_query": null,
+    "category": "Expanded",
+    "metadata": {
+      "generated": true,
+      "template": "agg_filter_join|player_team_city|or|96",
+      "split": "test",
+      "aggregation_slice": "agg_filter_join",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_filter_join_gen_202",
+    "sql_query": "SELECT player.nationality, COUNT(*) AS count_all FROM player JOIN team ON player.team = team.team_name JOIN city ON team.location = city.city_name WHERE city.population < 2000000 GROUP BY player.nationality;",
+    "nl_query": null,
+    "category": "Expanded",
+    "metadata": {
+      "generated": true,
+      "template": "agg_filter_join|player_team_city|single|67",
+      "split": "test",
+      "aggregation_slice": "agg_filter_join",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_filter_join_gen_172",
+    "sql_query": "SELECT team.location, MAX(team.championship) AS max_team_championship FROM player JOIN team ON player.team = team.team_name WHERE city.city_name = 'Boston' GROUP BY team.location;",
+    "nl_query": null,
+    "category": "Expanded",
+    "metadata": {
+      "generated": true,
+      "template": "agg_filter_join|player_team|single|57",
+      "split": "test",
+      "aggregation_slice": "agg_filter_join",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "mixed_queries_filter_agg_join_11",
+    "sql_query": "SELECT player.nationality, SUM(player.mvp_awards) AS sum_player_mvp_awards FROM player JOIN team ON player.team = team.team_name WHERE player.team != 'Milwaukee Bucks' OR player.nba_championships > 2 OR team.founded_year != 1949 GROUP BY player.nationality;",
+    "nl_query": null,
+    "category": "Mixed",
+    "metadata": {
+      "source_file": "/Users/aritramazumder/Documents/UDA-Bench-main/Query/Player/Mixed/mixed_queries_filter_agg_join.sql",
+      "query_index": 11,
+      "subcategory": "filter5_agg1_join1",
+      "tables": [
+        "player",
+        "team"
+      ],
+      "split": "test",
+      "aggregation_slice": "agg_temporal",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_temporal_expanded_10",
+    "sql_query": "SELECT player.position, MAX(player.draft_pick) AS max_player_draft_pick FROM player WHERE player.birth_date = '1919/3/23' GROUP BY player.position;",
+    "nl_query": null,
+    "category": "Expanded",
+    "metadata": {
+      "source_file": "/Users/aritramazumder/Documents/UDA-Bench-main/Query/Player/Expanded/agg_temporal_expanded.sql",
+      "query_index": 10,
+      "subcategory": "agg_temporal",
+      "tables": [
+        "player"
+      ],
+      "split": "test",
+      "aggregation_slice": "agg_temporal",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_temporal_expanded_4",
+    "sql_query": "SELECT player.position, COUNT(*) AS count_all FROM player JOIN team ON player.team = team.team_name WHERE team.founded_year > 1946 GROUP BY player.position;",
+    "nl_query": null,
+    "category": "Expanded",
+    "metadata": {
+      "source_file": "/Users/aritramazumder/Documents/UDA-Bench-main/Query/Player/Expanded/agg_temporal_expanded.sql",
+      "query_index": 4,
+      "subcategory": "agg_temporal",
+      "tables": [
+        "player",
+        "team"
+      ],
+      "split": "test",
+      "aggregation_slice": "agg_temporal",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_temporal_gen_514",
+    "sql_query": "SELECT player.team, COUNT(*) AS count_all FROM player JOIN team ON player.team = team.team_name WHERE team.founded_year <= 1946 GROUP BY player.team;",
+    "nl_query": null,
+    "category": "Expanded",
+    "metadata": {
+      "generated": true,
+      "template": "agg_temporal|founded_lte|1946",
+      "split": "test",
+      "aggregation_slice": "agg_temporal",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_temporal_gen_507",
+    "sql_query": "SELECT player.nationality, AVG(player.age) AS avg_player_age FROM player JOIN team ON player.team = team.team_name WHERE team.founded_year > 1946 GROUP BY player.nationality;",
+    "nl_query": null,
+    "category": "Expanded",
+    "metadata": {
+      "generated": true,
+      "template": "agg_temporal|founded_gt|1946",
+      "split": "test",
+      "aggregation_slice": "agg_temporal",
+      "held_out": true
+    }
+  }
+]

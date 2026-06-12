@@ -75,7 +75,7 @@ def _determine_best_algorithm(results_dir: Path, logger) -> str:
                     return str(alg)
         except Exception:
             logger.warning("Failed to read stage3 report")
-    return "greedy"
+    return "routing_assignment"
 
 
 def _build_stub_stage1_report() -> Stage1Report:
@@ -111,29 +111,40 @@ def _print_summary(report: dict) -> None:
     methods = report.get("methods", [])
     if methods:
         # Header
-        print(f"  {'Method':<16} {'Avg Error':>10} {'Avg Regret':>12} {'Oracle Match':>13} {'Worst Regret':>13}")
-        print(f"  {'-' * 16} {'-' * 10} {'-' * 12} {'-' * 13} {'-' * 13}")
+        print(
+            f"  {'Method':<16} {'Routed Err':>11} {'Oracle Min':>11} "
+            f"{'Regret':>10} {'Rout Regret':>12} {'Oracle Match':>13}"
+        )
+        print(f"  {'-' * 16} {'-' * 11} {'-' * 11} {'-' * 10} {'-' * 12} {'-' * 13}")
         for m in methods:
             name = m.get("method", "?")
-            avg_err = m.get("avg_error", float("nan"))
+            routed = m.get("avg_routed_error", m.get("avg_error", float("nan")))
+            oracle_min = m.get("avg_oracle_min_error", float("nan"))
             avg_reg = m.get("avg_regret", float("nan"))
+            rout_reg = m.get("avg_routing_regret", float("nan"))
             om_rate = m.get("oracle_match_rate", float("nan"))
-            worst = m.get("worst_regret", float("nan"))
-            print(f"  {name:<16} {avg_err:>10.4f} {avg_reg:>12.4f} {om_rate:>13.4f} {worst:>13.4f}")
+            print(
+                f"  {name:<16} {routed:>11.4f} {oracle_min:>11.4f} "
+                f"{avg_reg:>10.4f} {rout_reg:>12.4f} {om_rate:>13.4f}"
+            )
 
     print()
     # Conclusion
     method_map = {m["method"]: m for m in methods}
     full = method_map.get("full_system", {})
-    best_baseline_error = min(
-        (m.get("avg_error", float("inf")) for m in methods if m.get("method") != "full_system"),
+    best_baseline_routed = min(
+        (
+            m.get("avg_routed_error", m.get("avg_error", float("inf")))
+            for m in methods
+            if m.get("method") != "full_system"
+        ),
         default=float("inf"),
     )
-    full_error = full.get("avg_error", float("inf"))
-    if full_error <= best_baseline_error + 1e-9:
-        print("  Conclusion: full_system matches or beats all baselines.")
+    full_routed = full.get("avg_routed_error", full.get("avg_error", float("inf")))
+    if full_routed <= best_baseline_routed + 1e-9:
+        print("  Conclusion: full_system routed error matches or beats all baselines.")
     else:
-        print("  Conclusion: full_system does not beat the best baseline on this slice.")
+        print("  Conclusion: full_system routed error does not beat the best baseline on this slice.")
     print("  Scope: Player agg_only only; do not generalize beyond this pilot slice.")
 
 
@@ -178,10 +189,14 @@ def main() -> None:
     cache_name = cfg.get("phase1", {}).get("probe_context_cache", "phase1_agg_only_probe_context.json")
     cache_path = results_dir / cache_name
     probe_data = None
+    queries: list[dict] = []
+    schema = None
     if cache_path.exists():
         try:
             toolkit = load_agent_cache(cache_path)
             probe_data = toolkit.probe_data if toolkit else None
+            queries = list(toolkit.queries) if toolkit else []
+            schema = toolkit.schema if toolkit else None
         except Exception:
             logger.warning("Failed to load agent cache from %s", cache_path)
 
@@ -208,6 +223,8 @@ def main() -> None:
         len(candidate_ids),
     )
 
+    token_budget = int(cfg.get("token_budget", 500_000))
+
     report = run_stage5_evaluation(
         reward_rows=reward_rows,
         probe_data=probe_data,
@@ -217,6 +234,9 @@ def main() -> None:
         best_algorithm=best_algorithm,
         budget_levels=budget_levels,
         candidate_ids=candidate_ids,
+        queries=queries or None,
+        schema=schema,
+        token_budget=token_budget,
         seed=seed,
     )
 

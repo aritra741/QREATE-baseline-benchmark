@@ -1,0 +1,4407 @@
+{
+  "slice_name": "agg_filter_join",
+  "seed": 613,
+  "token_budget_total": 80000,
+  "extraction_fingerprint": "a17f313d7c5b03bc",
+  "agent_mode": "meta_controller",
+  "chosen_algorithm_family": "use_coordinate_descent",
+  "selection_rationale": "clear_solver_winner|use_coordinate_descent",
+  "solver_comparison": [
+    {
+      "algorithm_family": "use_coordinate_descent",
+      "predicted_score": 7.003382001063453,
+      "selected_configs": [
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=llm",
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=permissive",
+        "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=llm",
+        "er=embedding_0.9|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+        "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mean|coerce=llm",
+        "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=permissive"
+      ],
+      "wall_time_seconds": 2.3329921532422304e-06
+    },
+    {
+      "algorithm_family": "use_clustered_routing",
+      "predicted_score": 3.619700460829493,
+      "selected_configs": [
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive"
+      ],
+      "wall_time_seconds": 0.0
+    }
+  ],
+  "baseline_comparison": [
+    {
+      "algorithm_family": "use_greedy",
+      "label": "Greedy ranking under budget",
+      "predicted_score": 7.003382001063453,
+      "n_selected_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=llm",
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=permissive",
+        "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=llm",
+        "er=embedding_0.9|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+        "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mean|coerce=llm",
+        "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=permissive"
+      ],
+      "wall_time_seconds": 2.4170003598555923e-06
+    },
+    {
+      "algorithm_family": "use_bo_tpe",
+      "label": "Bayesian optimization / TPE search",
+      "predicted_score": 7.003382001063453,
+      "n_selected_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=llm",
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=permissive",
+        "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=llm",
+        "er=embedding_0.9|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+        "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mean|coerce=llm",
+        "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=permissive"
+      ],
+      "wall_time_seconds": 2.5420013116672635e-06
+    },
+    {
+      "algorithm_family": "use_hyperband",
+      "label": "Hyperband multi-fidelity search",
+      "predicted_score": 7.003382001063453,
+      "n_selected_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=llm",
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=permissive",
+        "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=llm",
+        "er=embedding_0.9|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+        "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mean|coerce=llm",
+        "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=permissive"
+      ],
+      "wall_time_seconds": 1.8749997252598405e-06
+    },
+    {
+      "algorithm_family": "use_coordinate_descent",
+      "label": "Coordinate descent on config axes",
+      "predicted_score": 7.003382001063453,
+      "n_selected_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=llm",
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=permissive",
+        "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=llm",
+        "er=embedding_0.9|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+        "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mean|coerce=llm",
+        "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=permissive"
+      ],
+      "wall_time_seconds": 1.291991793550551e-06
+    },
+    {
+      "algorithm_family": "use_ilp",
+      "label": "Integer linear programming assignment",
+      "predicted_score": 7.003382001063453,
+      "n_selected_configs": 8,
+      "selected_configs": [
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=llm",
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=permissive",
+        "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=llm",
+        "er=embedding_0.9|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+        "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mean|coerce=llm",
+        "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=permissive"
+      ],
+      "wall_time_seconds": 1.2499949662014842e-06
+    }
+  ],
+  "algorithm_stack": {
+    "summary": "Composite meta-policy: Stage 1 characterizes the workload, Stage 2 picks a surrogate per query cluster, Stage 3 compares selection algorithms (greedy, BO/TPE, hyperband, coordinate descent, ILP, clustered routing), Stage 4 gates architecture components, then the chosen selector deploys pipeline configs.",
+    "stage1_characterization": {
+      "analyses": {
+        "diminishing_returns": "treat_greedy_as_heuristic",
+        "error_surface": "local_coord_methods_viable",
+        "module_ordering": "use_dag_or_optimize_order",
+        "interactions": "linear_surrogate_sufficient",
+        "probe_fidelity": "improve_sampling_or_skip_probes",
+        "clustering": "insufficient_data",
+        "routing_gap": "co_optimize_routing",
+        "schema_ranking": "flat_or_weaker_hierarchy"
+      },
+      "recommendations": {
+        "probe_viable": false,
+        "use_nonlinear": false,
+        "use_routing": true,
+        "use_clustering": false,
+        "schema_first": false,
+        "density_greedy_viable": false
+      },
+      "probe_fidelity_rho": 0.2612637362637362
+    },
+    "stage2_surrogate_selection": {
+      "evidence": "structural_probe_scores",
+      "global_chosen_surrogate": "structural_probe_ranking",
+      "global_surrogate_ranking": [
+        {
+          "name": "structural_probe_ranking",
+          "spearman_rho": 0.0,
+          "top_k_recall": 0.3333,
+          "mean_regret": 0.000112
+        },
+        {
+          "name": "rf_proxy_glass",
+          "spearman_rho": -0.0482,
+          "top_k_recall": 0.6667,
+          "mean_regret": 0.000893
+        },
+        {
+          "name": "linear_proxy_glass",
+          "spearman_rho": -0.0602,
+          "top_k_recall": 0.6667,
+          "mean_regret": 0.000112
+        },
+        {
+          "name": "gbdt_proxy_glass",
+          "spearman_rho": -0.2048,
+          "top_k_recall": 0.6667,
+          "mean_regret": 0.000223
+        }
+      ],
+      "per_cluster": {
+        "0": {
+          "cluster_type": "join",
+          "n_queries": 3,
+          "chosen_surrogate": "structural_probe_ranking",
+          "surrogate_ranking": [
+            {
+              "name": "structural_probe_ranking",
+              "spearman_rho": 0.0,
+              "top_k_recall": 1.0,
+              "mean_regret": 0.0
+            },
+            {
+              "name": "linear_proxy_glass",
+              "spearman_rho": 0.0,
+              "top_k_recall": 0.0,
+              "mean_regret": 0.0
+            },
+            {
+              "name": "rf_proxy_glass",
+              "spearman_rho": 0.0,
+              "top_k_recall": 0.0,
+              "mean_regret": 0.0
+            },
+            {
+              "name": "gbdt_proxy_glass",
+              "spearman_rho": 0.0,
+              "top_k_recall": 0.0,
+              "mean_regret": 0.0
+            }
+          ]
+        },
+        "1": {
+          "cluster_type": "join",
+          "n_queries": 1,
+          "chosen_surrogate": "structural_probe_ranking",
+          "surrogate_ranking": [
+            {
+              "name": "structural_probe_ranking",
+              "spearman_rho": 0.0,
+              "top_k_recall": 1.0,
+              "mean_regret": 0.0
+            },
+            {
+              "name": "linear_proxy_glass",
+              "spearman_rho": 0.0,
+              "top_k_recall": 0.0,
+              "mean_regret": 0.0
+            },
+            {
+              "name": "rf_proxy_glass",
+              "spearman_rho": 0.0,
+              "top_k_recall": 0.0,
+              "mean_regret": 0.0
+            },
+            {
+              "name": "gbdt_proxy_glass",
+              "spearman_rho": 0.0,
+              "top_k_recall": 0.0,
+              "mean_regret": 0.0
+            }
+          ]
+        },
+        "2": {
+          "cluster_type": "join",
+          "n_queries": 0,
+          "chosen_surrogate": "structural_probe_ranking",
+          "surrogate_ranking": [
+            {
+              "name": "structural_probe_ranking",
+              "spearman_rho": 0.0,
+              "top_k_recall": 1.0,
+              "mean_regret": 0.0
+            },
+            {
+              "name": "linear_proxy_glass",
+              "spearman_rho": 0.0,
+              "top_k_recall": 0.0,
+              "mean_regret": 0.0
+            },
+            {
+              "name": "rf_proxy_glass",
+              "spearman_rho": 0.0,
+              "top_k_recall": 0.0,
+              "mean_regret": 0.0
+            },
+            {
+              "name": "gbdt_proxy_glass",
+              "spearman_rho": 0.0,
+              "top_k_recall": 0.0,
+              "mean_regret": 0.0
+            }
+          ]
+        },
+        "3": {
+          "cluster_type": "join",
+          "n_queries": 0,
+          "chosen_surrogate": "structural_probe_ranking",
+          "surrogate_ranking": [
+            {
+              "name": "structural_probe_ranking",
+              "spearman_rho": 0.0,
+              "top_k_recall": 1.0,
+              "mean_regret": 0.0
+            },
+            {
+              "name": "linear_proxy_glass",
+              "spearman_rho": 0.0,
+              "top_k_recall": 0.0,
+              "mean_regret": 0.0
+            },
+            {
+              "name": "rf_proxy_glass",
+              "spearman_rho": 0.0,
+              "top_k_recall": 0.0,
+              "mean_regret": 0.0
+            },
+            {
+              "name": "gbdt_proxy_glass",
+              "spearman_rho": 0.0,
+              "top_k_recall": 0.0,
+              "mean_regret": 0.0
+            }
+          ]
+        }
+      },
+      "cluster_surrogate_map": {
+        "0": "structural_probe_ranking",
+        "1": "structural_probe_ranking",
+        "2": "structural_probe_ranking",
+        "3": "structural_probe_ranking"
+      }
+    },
+    "stage3_config_selection": {
+      "agent_chosen_algorithm_id": "use_coordinate_descent",
+      "agent_chosen_algorithm_name": "Coordinate descent on config axes",
+      "stage3_engine": "coord_descent",
+      "selection_rationale": "clear_solver_winner|use_coordinate_descent",
+      "algorithms_tried_by_agent": [
+        {
+          "algorithm_id": "use_coordinate_descent",
+          "algorithm_name": "Coordinate descent on config axes",
+          "stage3_engine": "coord_descent",
+          "predicted_score": 7.0034,
+          "n_configs_selected": 8,
+          "selected_by_agent": true
+        },
+        {
+          "algorithm_id": "use_clustered_routing",
+          "algorithm_name": "Cluster-conditioned routing assignment",
+          "stage3_engine": null,
+          "predicted_score": 3.6197,
+          "n_configs_selected": 1,
+          "selected_by_agent": false
+        }
+      ],
+      "all_selection_algorithms_benchmarked": [
+        {
+          "algorithm_id": "use_greedy",
+          "algorithm_name": "Greedy ranking under budget",
+          "stage3_engine": "greedy",
+          "predicted_score": 7.0034,
+          "n_configs_selected": 8,
+          "selected_by_agent": false
+        },
+        {
+          "algorithm_id": "use_bo_tpe",
+          "algorithm_name": "Bayesian optimization / TPE search",
+          "stage3_engine": "bayesian_opt",
+          "predicted_score": 7.0034,
+          "n_configs_selected": 8,
+          "selected_by_agent": false
+        },
+        {
+          "algorithm_id": "use_hyperband",
+          "algorithm_name": "Hyperband multi-fidelity search",
+          "stage3_engine": "hyperband",
+          "predicted_score": 7.0034,
+          "n_configs_selected": 8,
+          "selected_by_agent": false
+        },
+        {
+          "algorithm_id": "use_coordinate_descent",
+          "algorithm_name": "Coordinate descent on config axes",
+          "stage3_engine": "coord_descent",
+          "predicted_score": 7.0034,
+          "n_configs_selected": 8,
+          "selected_by_agent": true
+        },
+        {
+          "algorithm_id": "use_ilp",
+          "algorithm_name": "Integer linear programming assignment",
+          "stage3_engine": "ilp",
+          "predicted_score": 7.0034,
+          "n_configs_selected": 8,
+          "selected_by_agent": false
+        }
+      ]
+    },
+    "stage4_architecture": {
+      "active_components": [
+        "surrogate",
+        "extraction_reuse",
+        "recalibration",
+        "routing",
+        "flat_vs_hier",
+        "cluster_refinement"
+      ],
+      "component_decisions": [
+        {
+          "component": "surrogate",
+          "retained": false,
+          "reason": "stage1_probe_not_viable"
+        },
+        {
+          "component": "extraction_reuse",
+          "retained": true,
+          "reason": "default_retained"
+        },
+        {
+          "component": "recalibration",
+          "retained": true,
+          "reason": "default_retained"
+        },
+        {
+          "component": "routing",
+          "retained": true,
+          "reason": "stage1_routing_gap"
+        },
+        {
+          "component": "flat_vs_hier",
+          "retained": true,
+          "reason": "default_retained"
+        },
+        {
+          "component": "query_clustering",
+          "retained": false,
+          "reason": "stage1_clustering_insufficient"
+        },
+        {
+          "component": "schema_pruning",
+          "retained": false,
+          "reason": "stage1_flat_hierarchy"
+        },
+        {
+          "component": "cluster_refinement",
+          "retained": true,
+          "reason": "default_retained"
+        }
+      ]
+    },
+    "deployment": {
+      "n_query_clusters": 4,
+      "cluster_types": {
+        "0": "join",
+        "1": "join",
+        "2": "join",
+        "3": "join"
+      },
+      "cluster_labels": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "selected_pipeline_configs": [
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=llm",
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=permissive",
+        "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=llm",
+        "er=embedding_0.9|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+        "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mean|coerce=llm",
+        "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=permissive"
+      ],
+      "cluster_to_pipeline_config": {
+        "1": "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+        "0": "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive"
+      },
+      "query_to_pipeline_config": {
+        "mixed_queries_filter_agg_join_1": "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+        "mixed_queries_filter_agg_join_3": "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+        "mixed_queries_filter_agg_join_5": "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+        "mixed_queries_filter_agg_join_7": "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive"
+      }
+    },
+    "decision_action_history": [
+      {
+        "round": 1,
+        "action": "use_clustered_routing",
+        "rationale_code": "stage1_routing_gap",
+        "confidence": 0.8,
+        "expected_gain": 0.09,
+        "budget_impact": 0
+      },
+      {
+        "round": 2,
+        "action": "use_coordinate_descent",
+        "rationale_code": "smooth_local_surface",
+        "confidence": 0.72,
+        "expected_gain": 0.07,
+        "budget_impact": 0
+      }
+    ]
+  },
+  "stage_summaries": {
+    "stage1": {
+      "diminishing_returns": {
+        "saturates_at_k": 8,
+        "total_configs": 8,
+        "saturated": true,
+        "marginal_gains": [
+          0.0,
+          0.013669821240799112,
+          0.0,
+          0.23934059224585438,
+          0.5123978155422133,
+          0.0,
+          0.036922085410941885,
+          0.19766968556019127
+        ],
+        "recommendation": "treat_greedy_as_heuristic"
+      },
+      "error_surface": {
+        "local_minima_count": 0,
+        "total_configs": 8,
+        "smooth": true,
+        "recommendation": "local_coord_methods_viable"
+      },
+      "module_ordering": {
+        "axis_effects": {
+          "er_strategy": {
+            "embedding_0.9": 0.8799284384969869,
+            "embedding_0.7": 0.8472704714640198,
+            "embedding_0.8": 0.8525201612903226,
+            "llm": 0.8988213399503723
+          },
+          "norm_strategy": {
+            "dictionary": 0.8754227501329316
+          },
+          "unit_strategy": {
+            "unit": 0.8594680521091811,
+            "none": 0.8913774481566821
+          },
+          "miss_strategy": {
+            "constant": 0.8549317617866005,
+            "llm": 0.9049251152073733,
+            "mode": 0.8825578990901572,
+            "mean": 0.8704598325062034
+          }
+        },
+        "variance_by_axis": {
+          "er_strategy": 0.00043772178911065537,
+          "norm_strategy": 0.0,
+          "unit_strategy": 0.0002545523890290678,
+          "miss_strategy": 0.00033363569452611564
+        },
+        "ordering_sensitive": true,
+        "recommendation": "use_dag_or_optimize_order"
+      },
+      "interactions": {
+        "main_effect_r2": 0.0,
+        "interaction_r2": 0.0,
+        "interaction_ratio": 0.0,
+        "sparse": true,
+        "recommendation": "linear_surrogate_sufficient"
+      },
+      "probe_fidelity": {
+        "spearman_rho": 0.2612637362637362,
+        "top_k_recall": 1.0,
+        "best_proxy_regret": 0.09507488479262671,
+        "recommendation": "improve_sampling_or_skip_probes",
+        "score_spread": 0.06531593406593406
+      },
+      "clustering": {
+        "n_clusters": 3,
+        "cluster_sizes": [
+          4
+        ],
+        "purity": null,
+        "recommendation": "insufficient_data"
+      },
+      "routing_gap": {
+        "structural_top_configs": [
+          "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+          "er=llm|norm=dictionary|unit=none|miss=mode|coerce=llm",
+          "er=llm|norm=dictionary|unit=none|miss=mode|coerce=permissive"
+        ],
+        "score_spread": 0.06531593406593406,
+        "mean_disagreement": 0.0,
+        "disagreement_above_threshold": false,
+        "recommendation": "co_optimize_routing"
+      },
+      "schema_ranking": {
+        "full_vs_numeric_rho": 1.0,
+        "full_vs_entity_rho": 1.0,
+        "min_rho": 1.0,
+        "schema_matters": false,
+        "recommendation": "flat_or_weaker_hierarchy"
+      },
+      "recommendations": {
+        "probe_viable": false,
+        "use_nonlinear": false,
+        "use_routing": true,
+        "use_clustering": false,
+        "schema_first": false,
+        "density_greedy_viable": false
+      }
+    },
+    "workload": {
+      "round": 2,
+      "workload_summary": {
+        "n_queries": 4,
+        "n_join_queries": 4,
+        "n_group_by_queries": 4,
+        "has_join": true,
+        "has_temporal": false,
+        "n_demand_columns": 11
+      },
+      "corpus_profile_summary": {
+        "n_profiled_columns": 11,
+        "mean_diversity_ratio": 0.253,
+        "max_diversity_ratio": 1.0,
+        "mean_ambiguous_rate": 0.1,
+        "feasibility_flags": 5
+      },
+      "probe_outcomes": {
+        "n_probed": 8,
+        "top_configs": [
+          {
+            "config_id": "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+            "structural_score": 0.9049
+          },
+          {
+            "config_id": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=llm",
+            "structural_score": 0.904
+          },
+          {
+            "config_id": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=permissive",
+            "structural_score": 0.904
+          },
+          {
+            "config_id": "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=llm",
+            "structural_score": 0.8884
+          },
+          {
+            "config_id": "er=embedding_0.9|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+            "structural_score": 0.8549
+          }
+        ],
+        "score_spread": 0.0653,
+        "probe_token_cost": 32658
+      },
+      "stage1_summary": {
+        "recommendations": {
+          "probe_viable": false,
+          "use_nonlinear": false,
+          "use_routing": true,
+          "use_clustering": false,
+          "schema_first": false,
+          "density_greedy_viable": false
+        },
+        "diminishing_returns": "treat_greedy_as_heuristic",
+        "error_surface": "local_coord_methods_viable",
+        "interactions": "linear_surrogate_sufficient",
+        "probe_fidelity_rho": 0.2612637362637362,
+        "clustering": "insufficient_data",
+        "routing": "co_optimize_routing"
+      },
+      "solver_comparison_summary": [
+        {
+          "algorithm_family": "use_coordinate_descent",
+          "label": "Coordinate descent on config axes",
+          "predicted_score": 7.0034,
+          "n_selected_configs": 8,
+          "wall_time_seconds": 0.0
+        },
+        {
+          "algorithm_family": "use_clustered_routing",
+          "label": "Cluster-conditioned routing assignment",
+          "predicted_score": 3.6197,
+          "n_selected_configs": 1,
+          "wall_time_seconds": 0.0
+        }
+      ],
+      "budget": {
+        "total": 80000,
+        "spent": 34194,
+        "remaining": 45806
+      },
+      "prior_chosen_algorithm_family": "use_coordinate_descent",
+      "available_actions": [
+        "finalize",
+        "probe_more",
+        "use_bo_tpe",
+        "use_clustered_routing",
+        "use_coordinate_descent",
+        "use_greedy",
+        "use_hyperband",
+        "use_ilp"
+      ]
+    }
+  },
+  "audit_log": [
+    {
+      "round": 1,
+      "state": {
+        "round": 1,
+        "workload_summary": {
+          "n_queries": 4,
+          "n_join_queries": 4,
+          "n_group_by_queries": 4,
+          "has_join": true,
+          "has_temporal": false,
+          "n_demand_columns": 11
+        },
+        "corpus_profile_summary": {
+          "n_profiled_columns": 11,
+          "mean_diversity_ratio": 0.253,
+          "max_diversity_ratio": 1.0,
+          "mean_ambiguous_rate": 0.1,
+          "feasibility_flags": 5
+        },
+        "probe_outcomes": {
+          "n_probed": 8,
+          "top_configs": [
+            {
+              "config_id": "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+              "structural_score": 0.9049
+            },
+            {
+              "config_id": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=llm",
+              "structural_score": 0.904
+            },
+            {
+              "config_id": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=permissive",
+              "structural_score": 0.904
+            },
+            {
+              "config_id": "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=llm",
+              "structural_score": 0.8884
+            },
+            {
+              "config_id": "er=embedding_0.9|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+              "structural_score": 0.8549
+            }
+          ],
+          "score_spread": 0.0653,
+          "probe_token_cost": 32658
+        },
+        "stage1_summary": {
+          "recommendations": {
+            "probe_viable": false,
+            "use_nonlinear": false,
+            "use_routing": true,
+            "use_clustering": false,
+            "schema_first": false,
+            "density_greedy_viable": false
+          },
+          "diminishing_returns": "treat_greedy_as_heuristic",
+          "error_surface": "local_coord_methods_viable",
+          "interactions": "linear_surrogate_sufficient",
+          "probe_fidelity_rho": 0.2612637362637362,
+          "clustering": "insufficient_data",
+          "routing": "co_optimize_routing"
+        },
+        "solver_comparison_summary": [],
+        "budget": {
+          "total": 80000,
+          "spent": 32658,
+          "remaining": 47342
+        },
+        "prior_chosen_algorithm_family": null,
+        "available_actions": [
+          "finalize",
+          "probe_more",
+          "use_bo_tpe",
+          "use_clustered_routing",
+          "use_coordinate_descent",
+          "use_greedy",
+          "use_hyperband",
+          "use_ilp"
+        ]
+      },
+      "decision": {
+        "action": "use_clustered_routing",
+        "rationale_code": "stage1_routing_gap",
+        "confidence": 0.8,
+        "expected_gain": 0.09,
+        "budget_impact": 0,
+        "observation": {}
+      },
+      "observation": {
+        "selected_configs": [
+          "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive"
+        ],
+        "predicted_score": 3.619700460829493
+      }
+    },
+    {
+      "round": 2,
+      "state": {
+        "round": 2,
+        "workload_summary": {
+          "n_queries": 4,
+          "n_join_queries": 4,
+          "n_group_by_queries": 4,
+          "has_join": true,
+          "has_temporal": false,
+          "n_demand_columns": 11
+        },
+        "corpus_profile_summary": {
+          "n_profiled_columns": 11,
+          "mean_diversity_ratio": 0.253,
+          "max_diversity_ratio": 1.0,
+          "mean_ambiguous_rate": 0.1,
+          "feasibility_flags": 5
+        },
+        "probe_outcomes": {
+          "n_probed": 8,
+          "top_configs": [
+            {
+              "config_id": "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+              "structural_score": 0.9049
+            },
+            {
+              "config_id": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=llm",
+              "structural_score": 0.904
+            },
+            {
+              "config_id": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=permissive",
+              "structural_score": 0.904
+            },
+            {
+              "config_id": "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=llm",
+              "structural_score": 0.8884
+            },
+            {
+              "config_id": "er=embedding_0.9|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+              "structural_score": 0.8549
+            }
+          ],
+          "score_spread": 0.0653,
+          "probe_token_cost": 32658
+        },
+        "stage1_summary": {
+          "recommendations": {
+            "probe_viable": false,
+            "use_nonlinear": false,
+            "use_routing": true,
+            "use_clustering": false,
+            "schema_first": false,
+            "density_greedy_viable": false
+          },
+          "diminishing_returns": "treat_greedy_as_heuristic",
+          "error_surface": "local_coord_methods_viable",
+          "interactions": "linear_surrogate_sufficient",
+          "probe_fidelity_rho": 0.2612637362637362,
+          "clustering": "insufficient_data",
+          "routing": "co_optimize_routing"
+        },
+        "solver_comparison_summary": [
+          {
+            "algorithm_family": "use_clustered_routing",
+            "label": "Cluster-conditioned routing assignment",
+            "predicted_score": 3.6197,
+            "n_selected_configs": 1,
+            "wall_time_seconds": 0.0
+          }
+        ],
+        "budget": {
+          "total": 80000,
+          "spent": 34194,
+          "remaining": 45806
+        },
+        "prior_chosen_algorithm_family": "use_clustered_routing",
+        "available_actions": [
+          "finalize",
+          "probe_more",
+          "use_bo_tpe",
+          "use_clustered_routing",
+          "use_coordinate_descent",
+          "use_greedy",
+          "use_hyperband",
+          "use_ilp"
+        ]
+      },
+      "decision": {
+        "action": "use_coordinate_descent",
+        "rationale_code": "smooth_local_surface",
+        "confidence": 0.72,
+        "expected_gain": 0.07,
+        "budget_impact": 0,
+        "observation": {}
+      },
+      "observation": {
+        "selected_configs": [
+          "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+          "er=llm|norm=dictionary|unit=none|miss=mode|coerce=llm",
+          "er=llm|norm=dictionary|unit=none|miss=mode|coerce=permissive",
+          "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=llm",
+          "er=embedding_0.9|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+          "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+          "er=embedding_0.8|norm=dictionary|unit=none|miss=mean|coerce=llm",
+          "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=permissive"
+        ],
+        "predicted_score": 7.003382001063453
+      }
+    }
+  ],
+  "rounds": 2,
+  "selected_configs": [
+    "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+    "er=llm|norm=dictionary|unit=none|miss=mode|coerce=llm",
+    "er=llm|norm=dictionary|unit=none|miss=mode|coerce=permissive",
+    "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=llm",
+    "er=embedding_0.9|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+    "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+    "er=embedding_0.8|norm=dictionary|unit=none|miss=mean|coerce=llm",
+    "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=permissive"
+  ],
+  "final_routing": {
+    "mixed_queries_filter_agg_join_1": "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+    "mixed_queries_filter_agg_join_3": "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+    "mixed_queries_filter_agg_join_5": "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+    "mixed_queries_filter_agg_join_7": "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive"
+  },
+  "databases": {
+    "er=llm|norm=dictionary|unit=none|miss=mode|coerce=llm": {
+      "city": {
+        "columns": [
+          "city_name",
+          "state_name",
+          "population",
+          "area",
+          "gdp",
+          "id"
+        ],
+        "rows": [
+          {
+            "city_name": "los angeles",
+            "state_name": "",
+            "population": null,
+            "area": null,
+            "gdp": null,
+            "id": null
+          },
+          {
+            "city_name": "toronto",
+            "state_name": "",
+            "population": null,
+            "area": null,
+            "gdp": null,
+            "id": null
+          }
+        ]
+      },
+      "owner": {
+        "columns": [
+          "name",
+          "age",
+          "nationality",
+          "nba_team",
+          "own_year",
+          "id"
+        ],
+        "rows": [
+          {
+            "name": "jerry buss",
+            "age": null,
+            "nationality": "",
+            "nba_team": "los angeles lakers",
+            "own_year": 1979.0,
+            "id": null
+          }
+        ]
+      },
+      "player": {
+        "columns": [
+          "name",
+          "birth_date",
+          "nationality",
+          "age",
+          "team",
+          "position",
+          "draft_pick",
+          "draft_year",
+          "college",
+          "nba_championships",
+          "mvp_awards",
+          "olympic_gold_medals",
+          "fiba_world_cup",
+          "id"
+        ],
+        "rows": [
+          {
+            "name": "andrew wiggins",
+            "birth_date": "1995/2/23",
+            "nationality": "canadian",
+            "age": 30,
+            "team": "golden state warriors",
+            "position": "frontcourt",
+            "draft_pick": 1.0,
+            "draft_year": 2014.0,
+            "college": "university of kansas",
+            "nba_championships": 1.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "kobe bryant",
+            "birth_date": "1978/8/23",
+            "nationality": "american",
+            "age": 47,
+            "team": "los angeles lakers",
+            "position": "backcourt",
+            "draft_pick": 13.0,
+            "draft_year": 1996.0,
+            "college": "",
+            "nba_championships": 5.0,
+            "mvp_awards": 1,
+            "olympic_gold_medals": 2.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "calvin ramsey",
+            "birth_date": "1937/7/13",
+            "nationality": "american",
+            "age": 88,
+            "team": "new york knicks",
+            "position": "frontcourt",
+            "draft_pick": 13.0,
+            "draft_year": 1959.0,
+            "college": "new york university",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "joseph forte",
+            "birth_date": "1981/3/23",
+            "nationality": "american",
+            "age": 44,
+            "team": "",
+            "position": "backcourt",
+            "draft_pick": 21.0,
+            "draft_year": 2001.0,
+            "college": "university of north carolina at chapel hill",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "kevin durant",
+            "birth_date": "1988/9/29",
+            "nationality": "american",
+            "age": 37,
+            "team": "phoenix suns",
+            "position": "frontcourt",
+            "draft_pick": 2.0,
+            "draft_year": 2007.0,
+            "college": "university of texas at austin",
+            "nba_championships": 2.0,
+            "mvp_awards": 1,
+            "olympic_gold_medals": 4.0,
+            "fiba_world_cup": 1.0,
+            "id": null
+          },
+          {
+            "name": "jamal crawford",
+            "birth_date": "1980/3/20",
+            "nationality": "american",
+            "age": 45,
+            "team": "brooklyn nets",
+            "position": "frontcourt",
+            "draft_pick": 8.0,
+            "draft_year": 2000.0,
+            "college": "university of michigan",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "kermit washington",
+            "birth_date": "1951/9/17",
+            "nationality": "american",
+            "age": 74,
+            "team": "golden state warriors",
+            "position": "frontcourt",
+            "draft_pick": 5.0,
+            "draft_year": 1973.0,
+            "college": "american university",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "kostas papanikolaou",
+            "birth_date": "1990/7/31",
+            "nationality": "greek",
+            "age": 35,
+            "team": "",
+            "position": "frontcourt",
+            "draft_pick": 48.0,
+            "draft_year": 2012.0,
+            "college": "",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "max fiedler",
+            "birth_date": "2001/2/26",
+            "nationality": "american",
+            "age": 23,
+            "team": "philadelphia 76ers",
+            "position": "frontcourt",
+            "draft_pick": 13.0,
+            "draft_year": 1959.0,
+            "college": "rice university",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "bam adebayo",
+            "birth_date": "1997/7/18",
+            "nationality": "american",
+            "age": 28,
+            "team": "miami heat",
+            "position": "frontcourt",
+            "draft_pick": 14.0,
+            "draft_year": 2017.0,
+            "college": "university of kentucky",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 2.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          }
+        ]
+      },
+      "team": {
+        "columns": [
+          "team_name",
+          "founded_year",
+          "location",
+          "ownership",
+          "championship",
+          "id"
+        ],
+        "rows": [
+          {
+            "team_name": "golden state warriors",
+            "founded_year": 1946,
+            "location": "",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "los angeles lakers",
+            "founded_year": 1946,
+            "location": "",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "new york knicks",
+            "founded_year": 1946,
+            "location": "",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "phoenix suns",
+            "founded_year": 1946,
+            "location": "",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "philadelphia 76ers",
+            "founded_year": 1946,
+            "location": "",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "brooklyn nets",
+            "founded_year": 1967,
+            "location": "brooklyn",
+            "ownership": "joseph tsai",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "los angeles lakers",
+            "founded_year": 1946,
+            "location": "los angeles",
+            "ownership": "jerry buss",
+            "championship": 17,
+            "id": null
+          },
+          {
+            "team_name": "chicago bulls",
+            "founded_year": 1966,
+            "location": "chicago",
+            "ownership": "",
+            "championship": 6,
+            "id": null
+          },
+          {
+            "team_name": "houston rockets",
+            "founded_year": 1967,
+            "location": "houston",
+            "ownership": "",
+            "championship": 2,
+            "id": null
+          },
+          {
+            "team_name": "detroit pistons",
+            "founded_year": 1937,
+            "location": "detroit",
+            "ownership": "",
+            "championship": 3,
+            "id": null
+          },
+          {
+            "team_name": "indiana pacers",
+            "founded_year": 1967,
+            "location": "indianapolis",
+            "ownership": "",
+            "championship": 3,
+            "id": null
+          },
+          {
+            "team_name": "phoenix suns",
+            "founded_year": 1968,
+            "location": "phoenix",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "golden state warriors",
+            "founded_year": 1946,
+            "location": "san francisco",
+            "ownership": "",
+            "championship": 7,
+            "id": null
+          },
+          {
+            "team_name": "atlanta hawks",
+            "founded_year": 1946,
+            "location": "atlanta",
+            "ownership": "atlanta spirit llc",
+            "championship": 1,
+            "id": null
+          },
+          {
+            "team_name": "toronto raptors",
+            "founded_year": 1995,
+            "location": "toronto",
+            "ownership": "",
+            "championship": 1,
+            "id": null
+          }
+        ]
+      }
+    },
+    "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm": {
+      "city": {
+        "columns": [
+          "city_name",
+          "state_name",
+          "population",
+          "area",
+          "gdp",
+          "id"
+        ],
+        "rows": [
+          {
+            "city_name": "los angeles",
+            "state_name": "",
+            "population": null,
+            "area": 0.0,
+            "gdp": null,
+            "id": null
+          },
+          {
+            "city_name": "toronto",
+            "state_name": "",
+            "population": null,
+            "area": 0.0,
+            "gdp": null,
+            "id": null
+          }
+        ]
+      },
+      "owner": {
+        "columns": [
+          "name",
+          "age",
+          "nationality",
+          "nba_team",
+          "own_year",
+          "id"
+        ],
+        "rows": [
+          {
+            "name": "jerry buss",
+            "age": 0,
+            "nationality": "",
+            "nba_team": "los angeles lakers",
+            "own_year": 1979.0,
+            "id": null
+          }
+        ]
+      },
+      "player": {
+        "columns": [
+          "name",
+          "birth_date",
+          "nationality",
+          "age",
+          "team",
+          "position",
+          "draft_pick",
+          "draft_year",
+          "college",
+          "nba_championships",
+          "mvp_awards",
+          "olympic_gold_medals",
+          "fiba_world_cup",
+          "id"
+        ],
+        "rows": [
+          {
+            "name": "andrew christian wiggins",
+            "birth_date": "1995/2/23",
+            "nationality": "canadian",
+            "age": 30,
+            "team": "golden state warriors",
+            "position": null,
+            "draft_pick": 1.0,
+            "draft_year": 2014.0,
+            "college": "kansas jayhawks",
+            "nba_championships": 1.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "kobe bean bryant",
+            "birth_date": "1978/8/23",
+            "nationality": "canadian",
+            "age": 47,
+            "team": "los angeles lakers",
+            "position": "backcourt",
+            "draft_pick": 13.0,
+            "draft_year": 1996.0,
+            "college": "",
+            "nba_championships": 5.0,
+            "mvp_awards": 1,
+            "olympic_gold_medals": 2.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "calvin ramsey",
+            "birth_date": "1937/7/13",
+            "nationality": "canadian",
+            "age": 88,
+            "team": "new york knicks",
+            "position": "frontcourt",
+            "draft_pick": 13.0,
+            "draft_year": 1959.0,
+            "college": "nyu",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "joseph xavier forte",
+            "birth_date": "1981/3/23",
+            "nationality": "canadian",
+            "age": 44,
+            "team": "",
+            "position": "backcourt",
+            "draft_pick": 21.0,
+            "draft_year": 2001.0,
+            "college": "university of north carolina at chapel hill",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "kevin wayne durant",
+            "birth_date": "1988/9/29",
+            "nationality": "canadian",
+            "age": 37,
+            "team": "phoenix suns",
+            "position": "frontcourt",
+            "draft_pick": 2.0,
+            "draft_year": 2007.0,
+            "college": "university of texas at austin",
+            "nba_championships": 2.0,
+            "mvp_awards": 1,
+            "olympic_gold_medals": 4.0,
+            "fiba_world_cup": 1.0,
+            "id": null
+          },
+          {
+            "name": "jamal crawford",
+            "birth_date": "1980/3/20",
+            "nationality": "canadian",
+            "age": 45,
+            "team": "brooklyn nets",
+            "position": null,
+            "draft_pick": 8.0,
+            "draft_year": 2000.0,
+            "college": "university of michigan",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "kermit washington",
+            "birth_date": "1951/9/17",
+            "nationality": "canadian",
+            "age": 74,
+            "team": "golden state warriors",
+            "position": "frontcourt",
+            "draft_pick": 5.0,
+            "draft_year": 1973.0,
+            "college": "american university",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "kostas papanikolaou",
+            "birth_date": "1990/7/31",
+            "nationality": "greek",
+            "age": 35,
+            "team": "",
+            "position": "frontcourt",
+            "draft_pick": 48.0,
+            "draft_year": 2012.0,
+            "college": "",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "max berning fiedler",
+            "birth_date": "2001/2/26",
+            "nationality": "canadian",
+            "age": 23,
+            "team": "philadelphia 76ers",
+            "position": null,
+            "draft_pick": 0.0,
+            "draft_year": 0.0,
+            "college": "rice owls",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "edrice femi 'bam' adebayo",
+            "birth_date": "1997/7/18",
+            "nationality": "canadian",
+            "age": 28,
+            "team": "miami heat",
+            "position": null,
+            "draft_pick": 14.0,
+            "draft_year": 2017.0,
+            "college": "university of michigan",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 2.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          }
+        ]
+      },
+      "team": {
+        "columns": [
+          "team_name",
+          "founded_year",
+          "location",
+          "ownership",
+          "championship",
+          "id"
+        ],
+        "rows": [
+          {
+            "team_name": "golden state warriors",
+            "founded_year": 0,
+            "location": "",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "los angeles lakers",
+            "founded_year": 0,
+            "location": "",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "new york knicks",
+            "founded_year": 0,
+            "location": "",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "phoenix suns",
+            "founded_year": 0,
+            "location": "",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "philadelphia 76ers",
+            "founded_year": 0,
+            "location": "",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "brooklyn nets",
+            "founded_year": 1967,
+            "location": "brooklyn",
+            "ownership": "joseph tsai",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "los angeles lakers",
+            "founded_year": 1946,
+            "location": "los angeles",
+            "ownership": "jerry buss",
+            "championship": 17,
+            "id": null
+          },
+          {
+            "team_name": "chicago bulls",
+            "founded_year": 1966,
+            "location": "chicago",
+            "ownership": "",
+            "championship": 6,
+            "id": null
+          },
+          {
+            "team_name": "houston rockets",
+            "founded_year": 1967,
+            "location": "houston",
+            "ownership": "",
+            "championship": 2,
+            "id": null
+          },
+          {
+            "team_name": "chicago bulls",
+            "founded_year": 1937,
+            "location": "detroit",
+            "ownership": "",
+            "championship": 3,
+            "id": null
+          },
+          {
+            "team_name": "indiana pacers",
+            "founded_year": 1967,
+            "location": "indianapolis",
+            "ownership": "",
+            "championship": 3,
+            "id": null
+          },
+          {
+            "team_name": "phoenix suns",
+            "founded_year": 1968,
+            "location": "phoenix",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "golden state warriors",
+            "founded_year": 1946,
+            "location": "san francisco",
+            "ownership": "",
+            "championship": 7,
+            "id": null
+          },
+          {
+            "team_name": "atlanta hawks",
+            "founded_year": 1946,
+            "location": "atlanta",
+            "ownership": "atlanta spirit llc",
+            "championship": 1,
+            "id": null
+          },
+          {
+            "team_name": "toronto raptors",
+            "founded_year": 1995,
+            "location": "toronto",
+            "ownership": "",
+            "championship": 1,
+            "id": null
+          }
+        ]
+      }
+    },
+    "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=permissive": {
+      "city": {
+        "columns": [
+          "city_name",
+          "state_name",
+          "population",
+          "area",
+          "gdp",
+          "id"
+        ],
+        "rows": [
+          {
+            "city_name": "los angeles",
+            "state_name": "",
+            "population": null,
+            "area": null,
+            "gdp": null,
+            "id": null
+          },
+          {
+            "city_name": "toronto",
+            "state_name": "",
+            "population": null,
+            "area": null,
+            "gdp": null,
+            "id": null
+          }
+        ]
+      },
+      "owner": {
+        "columns": [
+          "name",
+          "age",
+          "nationality",
+          "nba_team",
+          "own_year",
+          "id"
+        ],
+        "rows": [
+          {
+            "name": "jerry buss",
+            "age": null,
+            "nationality": "",
+            "nba_team": "los angeles lakers",
+            "own_year": 1979.0,
+            "id": null
+          }
+        ]
+      },
+      "player": {
+        "columns": [
+          "name",
+          "birth_date",
+          "nationality",
+          "age",
+          "team",
+          "position",
+          "draft_pick",
+          "draft_year",
+          "college",
+          "nba_championships",
+          "mvp_awards",
+          "olympic_gold_medals",
+          "fiba_world_cup",
+          "id"
+        ],
+        "rows": [
+          {
+            "name": "andrew christian wiggins",
+            "birth_date": "1995/2/23",
+            "nationality": "canadian",
+            "age": 30,
+            "team": "golden state warriors",
+            "position": "frontcourt",
+            "draft_pick": 1.0,
+            "draft_year": 2014.0,
+            "college": "kansas jayhawks",
+            "nba_championships": 1.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "kobe bean bryant",
+            "birth_date": "1978/8/23",
+            "nationality": "canadian",
+            "age": 47,
+            "team": "los angeles lakers",
+            "position": "backcourt",
+            "draft_pick": 13.0,
+            "draft_year": 1996.0,
+            "college": "",
+            "nba_championships": 5.0,
+            "mvp_awards": 1,
+            "olympic_gold_medals": 2.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "calvin ramsey",
+            "birth_date": "1937/7/13",
+            "nationality": "canadian",
+            "age": 88,
+            "team": "new york knicks",
+            "position": "frontcourt",
+            "draft_pick": 13.0,
+            "draft_year": 1959.0,
+            "college": "nyu",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "joseph xavier forte",
+            "birth_date": "1981/3/23",
+            "nationality": "canadian",
+            "age": 44,
+            "team": "",
+            "position": "backcourt",
+            "draft_pick": 21.0,
+            "draft_year": 2001.0,
+            "college": "university of north carolina at chapel hill",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "kevin wayne durant",
+            "birth_date": "1988/9/29",
+            "nationality": "canadian",
+            "age": 37,
+            "team": "phoenix suns",
+            "position": "frontcourt",
+            "draft_pick": 2.0,
+            "draft_year": 2007.0,
+            "college": "university of texas at austin",
+            "nba_championships": 2.0,
+            "mvp_awards": 1,
+            "olympic_gold_medals": 4.0,
+            "fiba_world_cup": 1.0,
+            "id": null
+          },
+          {
+            "name": "jamal crawford",
+            "birth_date": "1980/3/20",
+            "nationality": "canadian",
+            "age": 45,
+            "team": "brooklyn nets",
+            "position": "frontcourt",
+            "draft_pick": 8.0,
+            "draft_year": 2000.0,
+            "college": "university of michigan",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "kermit washington",
+            "birth_date": "1951/9/17",
+            "nationality": "canadian",
+            "age": 74,
+            "team": "golden state warriors",
+            "position": "frontcourt",
+            "draft_pick": 5.0,
+            "draft_year": 1973.0,
+            "college": "american university",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "kostas papanikolaou",
+            "birth_date": "1990/7/31",
+            "nationality": "greek",
+            "age": 35,
+            "team": "",
+            "position": "frontcourt",
+            "draft_pick": 48.0,
+            "draft_year": 2012.0,
+            "college": "",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "max berning fiedler",
+            "birth_date": "2001/2/26",
+            "nationality": "canadian",
+            "age": 23,
+            "team": "philadelphia 76ers",
+            "position": "frontcourt",
+            "draft_pick": 13.0,
+            "draft_year": 1959.0,
+            "college": "rice owls",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "edrice femi 'bam' adebayo",
+            "birth_date": "1997/7/18",
+            "nationality": "canadian",
+            "age": 28,
+            "team": "miami heat",
+            "position": "frontcourt",
+            "draft_pick": 14.0,
+            "draft_year": 2017.0,
+            "college": "university of michigan",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 2.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          }
+        ]
+      },
+      "team": {
+        "columns": [
+          "team_name",
+          "founded_year",
+          "location",
+          "ownership",
+          "championship",
+          "id"
+        ],
+        "rows": [
+          {
+            "team_name": "golden state warriors",
+            "founded_year": 1946,
+            "location": "",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "los angeles lakers",
+            "founded_year": 1946,
+            "location": "",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "new york knicks",
+            "founded_year": 1946,
+            "location": "",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "phoenix suns",
+            "founded_year": 1946,
+            "location": "",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "philadelphia 76ers",
+            "founded_year": 1946,
+            "location": "",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "brooklyn nets",
+            "founded_year": 1967,
+            "location": "brooklyn",
+            "ownership": "joseph tsai",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "los angeles lakers",
+            "founded_year": 1946,
+            "location": "los angeles",
+            "ownership": "jerry buss",
+            "championship": 17,
+            "id": null
+          },
+          {
+            "team_name": "chicago bulls",
+            "founded_year": 1966,
+            "location": "chicago",
+            "ownership": "",
+            "championship": 6,
+            "id": null
+          },
+          {
+            "team_name": "houston rockets",
+            "founded_year": 1967,
+            "location": "houston",
+            "ownership": "",
+            "championship": 2,
+            "id": null
+          },
+          {
+            "team_name": "chicago bulls",
+            "founded_year": 1937,
+            "location": "detroit",
+            "ownership": "",
+            "championship": 3,
+            "id": null
+          },
+          {
+            "team_name": "indiana pacers",
+            "founded_year": 1967,
+            "location": "indianapolis",
+            "ownership": "",
+            "championship": 3,
+            "id": null
+          },
+          {
+            "team_name": "phoenix suns",
+            "founded_year": 1968,
+            "location": "phoenix",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "golden state warriors",
+            "founded_year": 1946,
+            "location": "san francisco",
+            "ownership": "",
+            "championship": 7,
+            "id": null
+          },
+          {
+            "team_name": "atlanta hawks",
+            "founded_year": 1946,
+            "location": "atlanta",
+            "ownership": "atlanta spirit llc",
+            "championship": 1,
+            "id": null
+          },
+          {
+            "team_name": "toronto raptors",
+            "founded_year": 1995,
+            "location": "toronto",
+            "ownership": "",
+            "championship": 1,
+            "id": null
+          }
+        ]
+      }
+    },
+    "er=embedding_0.8|norm=dictionary|unit=none|miss=mean|coerce=llm": {
+      "city": {
+        "columns": [
+          "city_name",
+          "state_name",
+          "population",
+          "area",
+          "gdp",
+          "id"
+        ],
+        "rows": [
+          {
+            "city_name": "los angeles",
+            "state_name": "",
+            "population": null,
+            "area": null,
+            "gdp": null,
+            "id": null
+          },
+          {
+            "city_name": "toronto",
+            "state_name": "",
+            "population": null,
+            "area": null,
+            "gdp": null,
+            "id": null
+          }
+        ]
+      },
+      "owner": {
+        "columns": [
+          "name",
+          "age",
+          "nationality",
+          "nba_team",
+          "own_year",
+          "id"
+        ],
+        "rows": [
+          {
+            "name": "jerry buss",
+            "age": null,
+            "nationality": "",
+            "nba_team": "los angeles lakers",
+            "own_year": 1979.0,
+            "id": null
+          }
+        ]
+      },
+      "player": {
+        "columns": [
+          "name",
+          "birth_date",
+          "nationality",
+          "age",
+          "team",
+          "position",
+          "draft_pick",
+          "draft_year",
+          "college",
+          "nba_championships",
+          "mvp_awards",
+          "olympic_gold_medals",
+          "fiba_world_cup",
+          "id"
+        ],
+        "rows": [
+          {
+            "name": "andrew christian wiggins",
+            "birth_date": "1995/2/23",
+            "nationality": "canadian",
+            "age": 30,
+            "team": "golden state warriors",
+            "position": null,
+            "draft_pick": 1.0,
+            "draft_year": 2014.0,
+            "college": "kansas jayhawks",
+            "nba_championships": 1.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "kobe bean bryant",
+            "birth_date": "1978/8/23",
+            "nationality": "american",
+            "age": 47,
+            "team": "los angeles lakers",
+            "position": "backcourt",
+            "draft_pick": 13.0,
+            "draft_year": 1996.0,
+            "college": "",
+            "nba_championships": 5.0,
+            "mvp_awards": 1,
+            "olympic_gold_medals": 2.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "calvin ramsey",
+            "birth_date": "1937/7/13",
+            "nationality": "american",
+            "age": 88,
+            "team": "new york knicks",
+            "position": "frontcourt",
+            "draft_pick": 13.0,
+            "draft_year": 1959.0,
+            "college": "nyu",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "joseph xavier forte",
+            "birth_date": "1981/3/23",
+            "nationality": "american",
+            "age": 44,
+            "team": "",
+            "position": "backcourt",
+            "draft_pick": 21.0,
+            "draft_year": 2001.0,
+            "college": "university of north carolina at chapel hill",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "kevin wayne durant",
+            "birth_date": "1988/9/29",
+            "nationality": "american",
+            "age": 37,
+            "team": "phoenix suns",
+            "position": "frontcourt",
+            "draft_pick": 2.0,
+            "draft_year": 2007.0,
+            "college": "university of texas at austin",
+            "nba_championships": 2.0,
+            "mvp_awards": 1,
+            "olympic_gold_medals": 4.0,
+            "fiba_world_cup": 1.0,
+            "id": null
+          },
+          {
+            "name": "jamal crawford",
+            "birth_date": "1980/3/20",
+            "nationality": "american",
+            "age": 45,
+            "team": "brooklyn nets",
+            "position": null,
+            "draft_pick": 8.0,
+            "draft_year": 2000.0,
+            "college": "university of michigan",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "kermit washington",
+            "birth_date": "1951/9/17",
+            "nationality": "american",
+            "age": 74,
+            "team": "golden state warriors",
+            "position": "frontcourt",
+            "draft_pick": 5.0,
+            "draft_year": 1973.0,
+            "college": "american university",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "kostas papanikolaou",
+            "birth_date": "1990/7/31",
+            "nationality": "greek",
+            "age": 35,
+            "team": "",
+            "position": "frontcourt",
+            "draft_pick": 48.0,
+            "draft_year": 2012.0,
+            "college": "",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "max berning fiedler",
+            "birth_date": "2001/2/26",
+            "nationality": "american",
+            "age": 23,
+            "team": "philadelphia 76ers",
+            "position": null,
+            "draft_pick": 13.8888888889,
+            "draft_year": null,
+            "college": "rice owls",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "edrice femi 'bam' adebayo",
+            "birth_date": "1997/7/18",
+            "nationality": "american",
+            "age": 28,
+            "team": "miami heat",
+            "position": null,
+            "draft_pick": 14.0,
+            "draft_year": 2017.0,
+            "college": "university of kentucky",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 2.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          }
+        ]
+      },
+      "team": {
+        "columns": [
+          "team_name",
+          "founded_year",
+          "location",
+          "ownership",
+          "championship",
+          "id"
+        ],
+        "rows": [
+          {
+            "team_name": "golden state warriors",
+            "founded_year": 1960,
+            "location": "",
+            "ownership": "",
+            "championship": 4,
+            "id": null
+          },
+          {
+            "team_name": "los angeles lakers",
+            "founded_year": 1960,
+            "location": "",
+            "ownership": "",
+            "championship": 4,
+            "id": null
+          },
+          {
+            "team_name": "new york knicks",
+            "founded_year": 1960,
+            "location": "",
+            "ownership": "",
+            "championship": 4,
+            "id": null
+          },
+          {
+            "team_name": "phoenix suns",
+            "founded_year": 1960,
+            "location": "",
+            "ownership": "",
+            "championship": 4,
+            "id": null
+          },
+          {
+            "team_name": "philadelphia 76ers",
+            "founded_year": 1960,
+            "location": "",
+            "ownership": "",
+            "championship": 4,
+            "id": null
+          },
+          {
+            "team_name": "brooklyn nets",
+            "founded_year": 1967,
+            "location": "brooklyn",
+            "ownership": "joseph tsai",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "los angeles lakers",
+            "founded_year": 1946,
+            "location": "los angeles",
+            "ownership": "jerry buss",
+            "championship": 17,
+            "id": null
+          },
+          {
+            "team_name": "chicago bulls",
+            "founded_year": 1966,
+            "location": "chicago",
+            "ownership": "",
+            "championship": 6,
+            "id": null
+          },
+          {
+            "team_name": "houston rockets",
+            "founded_year": 1967,
+            "location": "houston",
+            "ownership": "",
+            "championship": 2,
+            "id": null
+          },
+          {
+            "team_name": "detroit pistons",
+            "founded_year": 1937,
+            "location": "detroit",
+            "ownership": "",
+            "championship": 3,
+            "id": null
+          },
+          {
+            "team_name": "indiana pacers",
+            "founded_year": 1967,
+            "location": "indianapolis",
+            "ownership": "",
+            "championship": 3,
+            "id": null
+          },
+          {
+            "team_name": "phoenix suns",
+            "founded_year": 1968,
+            "location": "phoenix",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "golden state warriors",
+            "founded_year": 1946,
+            "location": "san francisco",
+            "ownership": "",
+            "championship": 7,
+            "id": null
+          },
+          {
+            "team_name": "atlanta hawks",
+            "founded_year": 1946,
+            "location": "atlanta",
+            "ownership": "atlanta spirit llc",
+            "championship": 1,
+            "id": null
+          },
+          {
+            "team_name": "toronto raptors",
+            "founded_year": 1995,
+            "location": "toronto",
+            "ownership": "",
+            "championship": 1,
+            "id": null
+          }
+        ]
+      }
+    },
+    "er=embedding_0.9|norm=dictionary|unit=unit|miss=constant|coerce=llm": {
+      "city": {
+        "columns": [
+          "city_name",
+          "state_name",
+          "population",
+          "area",
+          "gdp",
+          "id"
+        ],
+        "rows": [
+          {
+            "city_name": "los angeles",
+            "state_name": "",
+            "population": null,
+            "area": 0.0,
+            "gdp": null,
+            "id": null
+          },
+          {
+            "city_name": "toronto",
+            "state_name": "",
+            "population": null,
+            "area": 0.0,
+            "gdp": null,
+            "id": null
+          }
+        ]
+      },
+      "owner": {
+        "columns": [
+          "name",
+          "age",
+          "nationality",
+          "nba_team",
+          "own_year",
+          "id"
+        ],
+        "rows": [
+          {
+            "name": "jerry buss",
+            "age": 0,
+            "nationality": "",
+            "nba_team": "los angeles lakers",
+            "own_year": 1979.0,
+            "id": null
+          }
+        ]
+      },
+      "player": {
+        "columns": [
+          "name",
+          "birth_date",
+          "nationality",
+          "age",
+          "team",
+          "position",
+          "draft_pick",
+          "draft_year",
+          "college",
+          "nba_championships",
+          "mvp_awards",
+          "olympic_gold_medals",
+          "fiba_world_cup",
+          "id"
+        ],
+        "rows": [
+          {
+            "name": "andrew christian wiggins",
+            "birth_date": "1995/2/23",
+            "nationality": "canadian",
+            "age": 30,
+            "team": "golden state warriors",
+            "position": null,
+            "draft_pick": 1.0,
+            "draft_year": 2014.0,
+            "college": "kansas jayhawks",
+            "nba_championships": 1.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "kobe bean bryant",
+            "birth_date": "1978/8/23",
+            "nationality": "american",
+            "age": 47,
+            "team": "los angeles lakers",
+            "position": "backcourt",
+            "draft_pick": 13.0,
+            "draft_year": 1996.0,
+            "college": "",
+            "nba_championships": 5.0,
+            "mvp_awards": 1,
+            "olympic_gold_medals": 2.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "calvin ramsey",
+            "birth_date": "1937/7/13",
+            "nationality": "american",
+            "age": 88,
+            "team": "new york knicks",
+            "position": "frontcourt",
+            "draft_pick": 13.0,
+            "draft_year": 1959.0,
+            "college": "nyu",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "joseph xavier forte",
+            "birth_date": "1981/3/23",
+            "nationality": "american",
+            "age": 44,
+            "team": "",
+            "position": "backcourt",
+            "draft_pick": 21.0,
+            "draft_year": 2001.0,
+            "college": "university of north carolina at chapel hill",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "kevin wayne durant",
+            "birth_date": "1988/9/29",
+            "nationality": "american",
+            "age": 37,
+            "team": "phoenix suns",
+            "position": "frontcourt",
+            "draft_pick": 2.0,
+            "draft_year": 2007.0,
+            "college": "university of texas at austin",
+            "nba_championships": 2.0,
+            "mvp_awards": 1,
+            "olympic_gold_medals": 4.0,
+            "fiba_world_cup": 1.0,
+            "id": null
+          },
+          {
+            "name": "jamal crawford",
+            "birth_date": "1980/3/20",
+            "nationality": "american",
+            "age": 45,
+            "team": "brooklyn nets",
+            "position": null,
+            "draft_pick": 8.0,
+            "draft_year": 2000.0,
+            "college": "university of michigan",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "kermit washington",
+            "birth_date": "1951/9/17",
+            "nationality": "american",
+            "age": 74,
+            "team": "golden state warriors",
+            "position": "frontcourt",
+            "draft_pick": 5.0,
+            "draft_year": 1973.0,
+            "college": "american university",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "kostas papanikolaou",
+            "birth_date": "1990/7/31",
+            "nationality": "greek",
+            "age": 35,
+            "team": "",
+            "position": "frontcourt",
+            "draft_pick": 48.0,
+            "draft_year": 2012.0,
+            "college": "",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "max berning fiedler",
+            "birth_date": "2001/2/26",
+            "nationality": "american",
+            "age": 23,
+            "team": "philadelphia 76ers",
+            "position": null,
+            "draft_pick": 0.0,
+            "draft_year": 0.0,
+            "college": "rice owls",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "edrice femi 'bam' adebayo",
+            "birth_date": "1997/7/18",
+            "nationality": "american",
+            "age": 28,
+            "team": "miami heat",
+            "position": null,
+            "draft_pick": 14.0,
+            "draft_year": 2017.0,
+            "college": "university of kentucky",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 2.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          }
+        ]
+      },
+      "team": {
+        "columns": [
+          "team_name",
+          "founded_year",
+          "location",
+          "ownership",
+          "championship",
+          "id"
+        ],
+        "rows": [
+          {
+            "team_name": "golden state warriors",
+            "founded_year": 0,
+            "location": "",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "los angeles lakers",
+            "founded_year": 0,
+            "location": "",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "new york knicks",
+            "founded_year": 0,
+            "location": "",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "phoenix suns",
+            "founded_year": 0,
+            "location": "",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "philadelphia 76ers",
+            "founded_year": 0,
+            "location": "",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "brooklyn nets",
+            "founded_year": 1967,
+            "location": "brooklyn",
+            "ownership": "joseph tsai",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "los angeles lakers",
+            "founded_year": 1946,
+            "location": "los angeles",
+            "ownership": "jerry buss",
+            "championship": 17,
+            "id": null
+          },
+          {
+            "team_name": "chicago bulls",
+            "founded_year": 1966,
+            "location": "chicago",
+            "ownership": "",
+            "championship": 6,
+            "id": null
+          },
+          {
+            "team_name": "houston rockets",
+            "founded_year": 1967,
+            "location": "houston",
+            "ownership": "",
+            "championship": 2,
+            "id": null
+          },
+          {
+            "team_name": "detroit pistons",
+            "founded_year": 1937,
+            "location": "detroit",
+            "ownership": "",
+            "championship": 3,
+            "id": null
+          },
+          {
+            "team_name": "indiana pacers",
+            "founded_year": 1967,
+            "location": "indianapolis",
+            "ownership": "",
+            "championship": 3,
+            "id": null
+          },
+          {
+            "team_name": "phoenix suns",
+            "founded_year": 1968,
+            "location": "phoenix",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "golden state warriors",
+            "founded_year": 1946,
+            "location": "san francisco",
+            "ownership": "",
+            "championship": 7,
+            "id": null
+          },
+          {
+            "team_name": "atlanta hawks",
+            "founded_year": 1946,
+            "location": "atlanta",
+            "ownership": "atlanta spirit llc",
+            "championship": 1,
+            "id": null
+          },
+          {
+            "team_name": "toronto raptors",
+            "founded_year": 1995,
+            "location": "toronto",
+            "ownership": "",
+            "championship": 1,
+            "id": null
+          }
+        ]
+      }
+    },
+    "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=llm": {
+      "city": {
+        "columns": [
+          "city_name",
+          "state_name",
+          "population",
+          "area",
+          "gdp",
+          "id"
+        ],
+        "rows": [
+          {
+            "city_name": "los angeles",
+            "state_name": "",
+            "population": null,
+            "area": null,
+            "gdp": null,
+            "id": null
+          },
+          {
+            "city_name": "toronto",
+            "state_name": "",
+            "population": null,
+            "area": null,
+            "gdp": null,
+            "id": null
+          }
+        ]
+      },
+      "owner": {
+        "columns": [
+          "name",
+          "age",
+          "nationality",
+          "nba_team",
+          "own_year",
+          "id"
+        ],
+        "rows": [
+          {
+            "name": "jerry buss",
+            "age": null,
+            "nationality": "",
+            "nba_team": "los angeles lakers",
+            "own_year": 1979.0,
+            "id": null
+          }
+        ]
+      },
+      "player": {
+        "columns": [
+          "name",
+          "birth_date",
+          "nationality",
+          "age",
+          "team",
+          "position",
+          "draft_pick",
+          "draft_year",
+          "college",
+          "nba_championships",
+          "mvp_awards",
+          "olympic_gold_medals",
+          "fiba_world_cup",
+          "id"
+        ],
+        "rows": [
+          {
+            "name": "andrew wiggins",
+            "birth_date": "1995/2/23",
+            "nationality": "canadian",
+            "age": 30,
+            "team": "golden state warriors",
+            "position": null,
+            "draft_pick": 1.0,
+            "draft_year": 2014.0,
+            "college": "university of kansas",
+            "nba_championships": 1.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "kobe bryant",
+            "birth_date": "1978/8/23",
+            "nationality": "american",
+            "age": 47,
+            "team": "los angeles lakers",
+            "position": "backcourt",
+            "draft_pick": 13.0,
+            "draft_year": 1996.0,
+            "college": "",
+            "nba_championships": 5.0,
+            "mvp_awards": 1,
+            "olympic_gold_medals": 2.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "calvin ramsey",
+            "birth_date": "1937/7/13",
+            "nationality": "american",
+            "age": 88,
+            "team": "new york knicks",
+            "position": "frontcourt",
+            "draft_pick": 13.0,
+            "draft_year": 1959.0,
+            "college": "new york university",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "joseph forte",
+            "birth_date": "1981/3/23",
+            "nationality": "american",
+            "age": 44,
+            "team": "",
+            "position": "backcourt",
+            "draft_pick": 21.0,
+            "draft_year": 2001.0,
+            "college": "university of north carolina at chapel hill",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "kevin durant",
+            "birth_date": "1988/9/29",
+            "nationality": "american",
+            "age": 37,
+            "team": "phoenix suns",
+            "position": "frontcourt",
+            "draft_pick": 2.0,
+            "draft_year": 2007.0,
+            "college": "university of texas at austin",
+            "nba_championships": 2.0,
+            "mvp_awards": 1,
+            "olympic_gold_medals": 4.0,
+            "fiba_world_cup": 1.0,
+            "id": null
+          },
+          {
+            "name": "jamal crawford",
+            "birth_date": "1980/3/20",
+            "nationality": "american",
+            "age": 45,
+            "team": "brooklyn nets",
+            "position": null,
+            "draft_pick": 8.0,
+            "draft_year": 2000.0,
+            "college": "university of michigan",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "kermit washington",
+            "birth_date": "1951/9/17",
+            "nationality": "american",
+            "age": 74,
+            "team": "golden state warriors",
+            "position": "frontcourt",
+            "draft_pick": 5.0,
+            "draft_year": 1973.0,
+            "college": "american university",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "kostas papanikolaou",
+            "birth_date": "1990/7/31",
+            "nationality": "greek",
+            "age": 35,
+            "team": "",
+            "position": "frontcourt",
+            "draft_pick": 48.0,
+            "draft_year": 2012.0,
+            "college": "",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "max fiedler",
+            "birth_date": "2001/2/26",
+            "nationality": "american",
+            "age": 23,
+            "team": "philadelphia 76ers",
+            "position": null,
+            "draft_pick": 13.8888888889,
+            "draft_year": 1997.6666666667,
+            "college": "rice university",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "bam adebayo",
+            "birth_date": "1997/7/18",
+            "nationality": "american",
+            "age": 28,
+            "team": "miami heat",
+            "position": null,
+            "draft_pick": 14.0,
+            "draft_year": 2017.0,
+            "college": "university of kentucky",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 2.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          }
+        ]
+      },
+      "team": {
+        "columns": [
+          "team_name",
+          "founded_year",
+          "location",
+          "ownership",
+          "championship",
+          "id"
+        ],
+        "rows": [
+          {
+            "team_name": "golden state warriors",
+            "founded_year": 1960,
+            "location": "",
+            "ownership": "",
+            "championship": 4,
+            "id": null
+          },
+          {
+            "team_name": "los angeles lakers",
+            "founded_year": 1960,
+            "location": "",
+            "ownership": "",
+            "championship": 4,
+            "id": null
+          },
+          {
+            "team_name": "new york knicks",
+            "founded_year": 1960,
+            "location": "",
+            "ownership": "",
+            "championship": 4,
+            "id": null
+          },
+          {
+            "team_name": "phoenix suns",
+            "founded_year": 1960,
+            "location": "",
+            "ownership": "",
+            "championship": 4,
+            "id": null
+          },
+          {
+            "team_name": "philadelphia 76ers",
+            "founded_year": 1960,
+            "location": "",
+            "ownership": "",
+            "championship": 4,
+            "id": null
+          },
+          {
+            "team_name": "brooklyn nets",
+            "founded_year": 1967,
+            "location": "brooklyn",
+            "ownership": "joseph tsai",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "los angeles lakers",
+            "founded_year": 1946,
+            "location": "los angeles",
+            "ownership": "jerry buss",
+            "championship": 17,
+            "id": null
+          },
+          {
+            "team_name": "chicago bulls",
+            "founded_year": 1966,
+            "location": "chicago",
+            "ownership": "",
+            "championship": 6,
+            "id": null
+          },
+          {
+            "team_name": "houston rockets",
+            "founded_year": 1967,
+            "location": "houston",
+            "ownership": "",
+            "championship": 2,
+            "id": null
+          },
+          {
+            "team_name": "detroit pistons",
+            "founded_year": 1937,
+            "location": "detroit",
+            "ownership": "",
+            "championship": 3,
+            "id": null
+          },
+          {
+            "team_name": "indiana pacers",
+            "founded_year": 1967,
+            "location": "indianapolis",
+            "ownership": "",
+            "championship": 3,
+            "id": null
+          },
+          {
+            "team_name": "phoenix suns",
+            "founded_year": 1968,
+            "location": "phoenix",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "golden state warriors",
+            "founded_year": 1946,
+            "location": "san francisco",
+            "ownership": "",
+            "championship": 7,
+            "id": null
+          },
+          {
+            "team_name": "atlanta hawks",
+            "founded_year": 1946,
+            "location": "atlanta",
+            "ownership": "atlanta spirit llc",
+            "championship": 1,
+            "id": null
+          },
+          {
+            "team_name": "toronto raptors",
+            "founded_year": 1995,
+            "location": "toronto",
+            "ownership": "",
+            "championship": 1,
+            "id": null
+          }
+        ]
+      }
+    },
+    "er=llm|norm=dictionary|unit=none|miss=mode|coerce=permissive": {
+      "city": {
+        "columns": [
+          "city_name",
+          "state_name",
+          "population",
+          "area",
+          "gdp",
+          "id"
+        ],
+        "rows": [
+          {
+            "city_name": "los angeles",
+            "state_name": "",
+            "population": null,
+            "area": null,
+            "gdp": null,
+            "id": null
+          },
+          {
+            "city_name": "toronto",
+            "state_name": "",
+            "population": null,
+            "area": null,
+            "gdp": null,
+            "id": null
+          }
+        ]
+      },
+      "owner": {
+        "columns": [
+          "name",
+          "age",
+          "nationality",
+          "nba_team",
+          "own_year",
+          "id"
+        ],
+        "rows": [
+          {
+            "name": "jerry buss",
+            "age": null,
+            "nationality": "",
+            "nba_team": "los angeles lakers",
+            "own_year": 1979.0,
+            "id": null
+          }
+        ]
+      },
+      "player": {
+        "columns": [
+          "name",
+          "birth_date",
+          "nationality",
+          "age",
+          "team",
+          "position",
+          "draft_pick",
+          "draft_year",
+          "college",
+          "nba_championships",
+          "mvp_awards",
+          "olympic_gold_medals",
+          "fiba_world_cup",
+          "id"
+        ],
+        "rows": [
+          {
+            "name": "andrew wiggins",
+            "birth_date": "1995/2/23",
+            "nationality": "canadian",
+            "age": 30,
+            "team": "golden state warriors",
+            "position": "frontcourt",
+            "draft_pick": 1.0,
+            "draft_year": 2014.0,
+            "college": "university of kansas",
+            "nba_championships": 1.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "kobe bryant",
+            "birth_date": "1978/8/23",
+            "nationality": "american",
+            "age": 47,
+            "team": "los angeles lakers",
+            "position": "backcourt",
+            "draft_pick": 13.0,
+            "draft_year": 1996.0,
+            "college": "",
+            "nba_championships": 5.0,
+            "mvp_awards": 1,
+            "olympic_gold_medals": 2.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "calvin ramsey",
+            "birth_date": "1937/7/13",
+            "nationality": "american",
+            "age": 88,
+            "team": "new york knicks",
+            "position": "frontcourt",
+            "draft_pick": 13.0,
+            "draft_year": 1959.0,
+            "college": "new york university",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "joseph forte",
+            "birth_date": "1981/3/23",
+            "nationality": "american",
+            "age": 44,
+            "team": "",
+            "position": "backcourt",
+            "draft_pick": 21.0,
+            "draft_year": 2001.0,
+            "college": "university of north carolina at chapel hill",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "kevin durant",
+            "birth_date": "1988/9/29",
+            "nationality": "american",
+            "age": 37,
+            "team": "phoenix suns",
+            "position": "frontcourt",
+            "draft_pick": 2.0,
+            "draft_year": 2007.0,
+            "college": "university of texas at austin",
+            "nba_championships": 2.0,
+            "mvp_awards": 1,
+            "olympic_gold_medals": 4.0,
+            "fiba_world_cup": 1.0,
+            "id": null
+          },
+          {
+            "name": "jamal crawford",
+            "birth_date": "1980/3/20",
+            "nationality": "american",
+            "age": 45,
+            "team": "brooklyn nets",
+            "position": "frontcourt",
+            "draft_pick": 8.0,
+            "draft_year": 2000.0,
+            "college": "university of michigan",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "kermit washington",
+            "birth_date": "1951/9/17",
+            "nationality": "american",
+            "age": 74,
+            "team": "golden state warriors",
+            "position": "frontcourt",
+            "draft_pick": 5.0,
+            "draft_year": 1973.0,
+            "college": "american university",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "kostas papanikolaou",
+            "birth_date": "1990/7/31",
+            "nationality": "greek",
+            "age": 35,
+            "team": "",
+            "position": "frontcourt",
+            "draft_pick": 48.0,
+            "draft_year": 2012.0,
+            "college": "",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "max fiedler",
+            "birth_date": "2001/2/26",
+            "nationality": "american",
+            "age": 23,
+            "team": "philadelphia 76ers",
+            "position": "frontcourt",
+            "draft_pick": 13.0,
+            "draft_year": 1959.0,
+            "college": "rice university",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "bam adebayo",
+            "birth_date": "1997/7/18",
+            "nationality": "american",
+            "age": 28,
+            "team": "miami heat",
+            "position": "frontcourt",
+            "draft_pick": 14.0,
+            "draft_year": 2017.0,
+            "college": "university of kentucky",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 2.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          }
+        ]
+      },
+      "team": {
+        "columns": [
+          "team_name",
+          "founded_year",
+          "location",
+          "ownership",
+          "championship",
+          "id"
+        ],
+        "rows": [
+          {
+            "team_name": "golden state warriors",
+            "founded_year": 1946,
+            "location": "",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "los angeles lakers",
+            "founded_year": 1946,
+            "location": "",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "new york knicks",
+            "founded_year": 1946,
+            "location": "",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "phoenix suns",
+            "founded_year": 1946,
+            "location": "",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "philadelphia 76ers",
+            "founded_year": 1946,
+            "location": "",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "brooklyn nets",
+            "founded_year": 1967,
+            "location": "brooklyn",
+            "ownership": "joseph tsai",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "los angeles lakers",
+            "founded_year": 1946,
+            "location": "los angeles",
+            "ownership": "jerry buss",
+            "championship": 17,
+            "id": null
+          },
+          {
+            "team_name": "chicago bulls",
+            "founded_year": 1966,
+            "location": "chicago",
+            "ownership": "",
+            "championship": 6,
+            "id": null
+          },
+          {
+            "team_name": "houston rockets",
+            "founded_year": 1967,
+            "location": "houston",
+            "ownership": "",
+            "championship": 2,
+            "id": null
+          },
+          {
+            "team_name": "detroit pistons",
+            "founded_year": 1937,
+            "location": "detroit",
+            "ownership": "",
+            "championship": 3,
+            "id": null
+          },
+          {
+            "team_name": "indiana pacers",
+            "founded_year": 1967,
+            "location": "indianapolis",
+            "ownership": "",
+            "championship": 3,
+            "id": null
+          },
+          {
+            "team_name": "phoenix suns",
+            "founded_year": 1968,
+            "location": "phoenix",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "golden state warriors",
+            "founded_year": 1946,
+            "location": "san francisco",
+            "ownership": "",
+            "championship": 7,
+            "id": null
+          },
+          {
+            "team_name": "atlanta hawks",
+            "founded_year": 1946,
+            "location": "atlanta",
+            "ownership": "atlanta spirit llc",
+            "championship": 1,
+            "id": null
+          },
+          {
+            "team_name": "toronto raptors",
+            "founded_year": 1995,
+            "location": "toronto",
+            "ownership": "",
+            "championship": 1,
+            "id": null
+          }
+        ]
+      }
+    },
+    "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive": {
+      "city": {
+        "columns": [
+          "city_name",
+          "state_name",
+          "population",
+          "area",
+          "gdp",
+          "id"
+        ],
+        "rows": [
+          {
+            "city_name": "los angeles",
+            "state_name": "CA",
+            "population": "3898747",
+            "area": 1215.0,
+            "gdp": "1.0 trillion",
+            "id": null
+          },
+          {
+            "city_name": "toronto",
+            "state_name": "ON",
+            "population": "2794356",
+            "area": 630.0,
+            "gdp": "400.0 billion",
+            "id": null
+          }
+        ]
+      },
+      "owner": {
+        "columns": [
+          "name",
+          "age",
+          "nationality",
+          "nba_team",
+          "own_year",
+          "id"
+        ],
+        "rows": [
+          {
+            "name": "jerry buss",
+            "age": 46,
+            "nationality": "American",
+            "nba_team": "los angeles lakers",
+            "own_year": 1979.0,
+            "id": null
+          }
+        ]
+      },
+      "player": {
+        "columns": [
+          "name",
+          "birth_date",
+          "nationality",
+          "age",
+          "team",
+          "position",
+          "draft_pick",
+          "draft_year",
+          "college",
+          "nba_championships",
+          "mvp_awards",
+          "olympic_gold_medals",
+          "fiba_world_cup",
+          "id"
+        ],
+        "rows": [
+          {
+            "name": "andrew christian wiggins",
+            "birth_date": "1995/2/23",
+            "nationality": "canadian",
+            "age": 30,
+            "team": "golden state warriors",
+            "position": "frontcourt",
+            "draft_pick": 1.0,
+            "draft_year": 2014.0,
+            "college": "kansas jayhawks",
+            "nba_championships": 1.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "kobe bean bryant",
+            "birth_date": "1978/8/23",
+            "nationality": "american",
+            "age": 47,
+            "team": "los angeles lakers",
+            "position": "backcourt",
+            "draft_pick": 13.0,
+            "draft_year": 1996.0,
+            "college": "None",
+            "nba_championships": 5.0,
+            "mvp_awards": 1,
+            "olympic_gold_medals": 2.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "calvin ramsey",
+            "birth_date": "1937/7/13",
+            "nationality": "american",
+            "age": 88,
+            "team": "new york knicks",
+            "position": "frontcourt",
+            "draft_pick": 13.0,
+            "draft_year": 1959.0,
+            "college": "nyu",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "joseph xavier forte",
+            "birth_date": "1981/3/23",
+            "nationality": "american",
+            "age": 44,
+            "team": "golden state warriors",
+            "position": "backcourt",
+            "draft_pick": 21.0,
+            "draft_year": 2001.0,
+            "college": "university of north carolina at chapel hill",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "kevin wayne durant",
+            "birth_date": "1988/9/29",
+            "nationality": "american",
+            "age": 37,
+            "team": "phoenix suns",
+            "position": "frontcourt",
+            "draft_pick": 2.0,
+            "draft_year": 2007.0,
+            "college": "university of texas at austin",
+            "nba_championships": 2.0,
+            "mvp_awards": 1,
+            "olympic_gold_medals": 4.0,
+            "fiba_world_cup": 1.0,
+            "id": null
+          },
+          {
+            "name": "jamal crawford",
+            "birth_date": "1980/3/20",
+            "nationality": "american",
+            "age": 45,
+            "team": "brooklyn nets",
+            "position": "backcourt",
+            "draft_pick": 8.0,
+            "draft_year": 2000.0,
+            "college": "university of michigan",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "kermit washington",
+            "birth_date": "1951/9/17",
+            "nationality": "american",
+            "age": 74,
+            "team": "golden state warriors",
+            "position": "frontcourt",
+            "draft_pick": 5.0,
+            "draft_year": 1973.0,
+            "college": "american university",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "kostas papanikolaou",
+            "birth_date": "1990/7/31",
+            "nationality": "greek",
+            "age": 35,
+            "team": "golden state warriors",
+            "position": "frontcourt",
+            "draft_pick": 48.0,
+            "draft_year": 2012.0,
+            "college": "None",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "max berning fiedler",
+            "birth_date": "2001/2/26",
+            "nationality": "american",
+            "age": 23,
+            "team": "philadelphia 76ers",
+            "position": "frontcourt",
+            "draft_pick": 13.0,
+            "draft_year": 2001.0,
+            "college": "rice owls",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "edrice femi 'bam' adebayo",
+            "birth_date": "1997/7/18",
+            "nationality": "american",
+            "age": 28,
+            "team": "miami heat",
+            "position": "frontcourt",
+            "draft_pick": 14.0,
+            "draft_year": 2017.0,
+            "college": "university of kentucky",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 2.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          }
+        ]
+      },
+      "team": {
+        "columns": [
+          "team_name",
+          "founded_year",
+          "location",
+          "ownership",
+          "championship",
+          "id"
+        ],
+        "rows": [
+          {
+            "team_name": "golden state warriors",
+            "founded_year": 1946,
+            "location": "san francisco",
+            "ownership": "unknown",
+            "championship": 7,
+            "id": null
+          },
+          {
+            "team_name": "los angeles lakers",
+            "founded_year": 1946,
+            "location": "los angeles",
+            "ownership": "jerry buss",
+            "championship": 17,
+            "id": null
+          },
+          {
+            "team_name": "new york knicks",
+            "founded_year": 1967,
+            "location": "new york",
+            "ownership": "unknown",
+            "championship": 2,
+            "id": null
+          },
+          {
+            "team_name": "phoenix suns",
+            "founded_year": 1968,
+            "location": "phoenix",
+            "ownership": "unknown",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "philadelphia 76ers",
+            "founded_year": 1967,
+            "location": "philadelphia",
+            "ownership": "unknown",
+            "championship": 3,
+            "id": null
+          },
+          {
+            "team_name": "brooklyn nets",
+            "founded_year": 1967,
+            "location": "brooklyn",
+            "ownership": "joseph tsai",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "los angeles lakers",
+            "founded_year": 1946,
+            "location": "los angeles",
+            "ownership": "jerry buss",
+            "championship": 17,
+            "id": null
+          },
+          {
+            "team_name": "chicago bulls",
+            "founded_year": 1966,
+            "location": "chicago",
+            "ownership": "unknown",
+            "championship": 6,
+            "id": null
+          },
+          {
+            "team_name": "houston rockets",
+            "founded_year": 1967,
+            "location": "houston",
+            "ownership": "unknown",
+            "championship": 2,
+            "id": null
+          },
+          {
+            "team_name": "detroit pistons",
+            "founded_year": 1937,
+            "location": "detroit",
+            "ownership": "unknown",
+            "championship": 3,
+            "id": null
+          },
+          {
+            "team_name": "indiana pacers",
+            "founded_year": 1967,
+            "location": "indianapolis",
+            "ownership": "unknown",
+            "championship": 3,
+            "id": null
+          },
+          {
+            "team_name": "phoenix suns",
+            "founded_year": 1968,
+            "location": "phoenix",
+            "ownership": "unknown",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "golden state warriors",
+            "founded_year": 1946,
+            "location": "san francisco",
+            "ownership": "unknown",
+            "championship": 7,
+            "id": null
+          },
+          {
+            "team_name": "atlanta hawks",
+            "founded_year": 1946,
+            "location": "atlanta",
+            "ownership": "atlanta spirit llc",
+            "championship": 1,
+            "id": null
+          },
+          {
+            "team_name": "toronto raptors",
+            "founded_year": 1995,
+            "location": "toronto",
+            "ownership": "unknown",
+            "championship": 1,
+            "id": null
+          }
+        ]
+      }
+    }
+  },
+  "probed_configs": [
+    {
+      "config_id": "er=embedding_0.9|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+      "pipe_config_id": "er=embedding_0.9|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "constant",
+        "coerce": "llm"
+      },
+      "structural_score": 0.8549317617866005,
+      "mean_f1": null
+    },
+    {
+      "config_id": "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+      "pipe_config_id": "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "llm",
+        "coerce": "permissive"
+      },
+      "structural_score": 0.9049251152073733,
+      "mean_f1": null
+    },
+    {
+      "config_id": "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=permissive",
+      "pipe_config_id": "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=permissive",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "mode",
+        "coerce": "permissive"
+      },
+      "structural_score": 0.8396091811414392,
+      "mean_f1": null
+    },
+    {
+      "config_id": "er=embedding_0.8|norm=dictionary|unit=none|miss=mean|coerce=llm",
+      "pipe_config_id": "er=embedding_0.8|norm=dictionary|unit=none|miss=mean|coerce=llm",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "mean",
+        "coerce": "llm"
+      },
+      "structural_score": 0.8525201612903226,
+      "mean_f1": null
+    },
+    {
+      "config_id": "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=llm",
+      "pipe_config_id": "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=llm",
+      "settings": {
+        "er": "llm",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "mean",
+        "coerce": "llm"
+      },
+      "structural_score": 0.8883995037220843,
+      "mean_f1": null
+    },
+    {
+      "config_id": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=llm",
+      "pipe_config_id": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=llm",
+      "settings": {
+        "er": "llm",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "mode",
+        "coerce": "llm"
+      },
+      "structural_score": 0.9040322580645161,
+      "mean_f1": null
+    },
+    {
+      "config_id": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=permissive",
+      "pipe_config_id": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=permissive",
+      "settings": {
+        "er": "llm",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "mode",
+        "coerce": "permissive"
+      },
+      "structural_score": 0.9040322580645161,
+      "mean_f1": null
+    },
+    {
+      "config_id": "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+      "pipe_config_id": "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "constant",
+        "coerce": "llm"
+      },
+      "structural_score": 0.8549317617866005,
+      "mean_f1": null
+    }
+  ],
+  "budget_summary": {
+    "total": 80000,
+    "spent": 34194,
+    "remaining": 45806
+  },
+  "demand_profile": {
+    "columns": [
+      {
+        "column": "owner.nationality",
+        "roles": [
+          "group_key",
+          "filter",
+          "join_key"
+        ],
+        "aggregation_functions": [],
+        "query_ids": [
+          "mixed_queries_filter_agg_join_1",
+          "mixed_queries_filter_agg_join_3",
+          "mixed_queries_filter_agg_join_5"
+        ]
+      },
+      {
+        "column": "player.nationality",
+        "roles": [
+          "group_key",
+          "filter",
+          "join_key"
+        ],
+        "aggregation_functions": [],
+        "query_ids": [
+          "mixed_queries_filter_agg_join_1",
+          "mixed_queries_filter_agg_join_3",
+          "mixed_queries_filter_agg_join_5"
+        ]
+      },
+      {
+        "column": "player.team",
+        "roles": [
+          "join_key"
+        ],
+        "aggregation_functions": [],
+        "query_ids": [
+          "mixed_queries_filter_agg_join_1",
+          "mixed_queries_filter_agg_join_3",
+          "mixed_queries_filter_agg_join_5",
+          "mixed_queries_filter_agg_join_7"
+        ]
+      },
+      {
+        "column": "player.olympic_gold_medals",
+        "roles": [
+          "aggregate_input",
+          "filter",
+          "join_key"
+        ],
+        "aggregation_functions": [
+          "MIN"
+        ],
+        "query_ids": [
+          "mixed_queries_filter_agg_join_1",
+          "mixed_queries_filter_agg_join_7"
+        ]
+      },
+      {
+        "column": "player.fiba_world_cup",
+        "roles": [
+          "filter",
+          "join_key",
+          "aggregate_input"
+        ],
+        "aggregation_functions": [
+          "AVG"
+        ],
+        "query_ids": [
+          "mixed_queries_filter_agg_join_1",
+          "mixed_queries_filter_agg_join_5",
+          "mixed_queries_filter_agg_join_7"
+        ]
+      },
+      {
+        "column": "team.team_name",
+        "roles": [
+          "join_key"
+        ],
+        "aggregation_functions": [],
+        "query_ids": [
+          "mixed_queries_filter_agg_join_1",
+          "mixed_queries_filter_agg_join_3",
+          "mixed_queries_filter_agg_join_5",
+          "mixed_queries_filter_agg_join_7"
+        ]
+      },
+      {
+        "column": "owner.age",
+        "roles": [
+          "filter",
+          "join_key"
+        ],
+        "aggregation_functions": [],
+        "query_ids": [
+          "mixed_queries_filter_agg_join_3",
+          "mixed_queries_filter_agg_join_5"
+        ]
+      },
+      {
+        "column": "player.age",
+        "roles": [
+          "filter",
+          "join_key"
+        ],
+        "aggregation_functions": [],
+        "query_ids": [
+          "mixed_queries_filter_agg_join_3",
+          "mixed_queries_filter_agg_join_5"
+        ]
+      },
+      {
+        "column": "player.mvp_awards",
+        "roles": [
+          "aggregate_input"
+        ],
+        "aggregation_functions": [
+          "AVG"
+        ],
+        "query_ids": [
+          "mixed_queries_filter_agg_join_3"
+        ]
+      },
+      {
+        "column": "player.position",
+        "roles": [
+          "group_key",
+          "filter",
+          "join_key"
+        ],
+        "aggregation_functions": [],
+        "query_ids": [
+          "mixed_queries_filter_agg_join_5",
+          "mixed_queries_filter_agg_join_7"
+        ]
+      },
+      {
+        "column": "player.nba_championships",
+        "roles": [
+          "filter",
+          "join_key"
+        ],
+        "aggregation_functions": [],
+        "query_ids": [
+          "mixed_queries_filter_agg_join_5"
+        ]
+      }
+    ],
+    "has_join": true,
+    "has_temporal": false
+  },
+  "supply_profile": {
+    "columns": [
+      {
+        "column": "owner.nationality",
+        "mention_rate": 0.0,
+        "expression_diversity": {
+          "n_distinct_clusters": 0,
+          "n_mentions": 0,
+          "diversity_ratio": 0.0,
+          "example_forms": [],
+          "semantic_collision_rate": 0.0
+        },
+        "derivability": {
+          "direct_rate": 0.0,
+          "derivable_rate": 0.0,
+          "ambiguous_rate": 0.0
+        },
+        "join_key_ambiguity": null,
+        "recommendations": {
+          "norm_recommendation": "dictionary",
+          "coerce_recommendation": "strict",
+          "er_recommendation": "embedding"
+        }
+      },
+      {
+        "column": "player.nationality",
+        "mention_rate": 0.5,
+        "expression_diversity": {
+          "n_distinct_clusters": 3,
+          "n_mentions": 10,
+          "diversity_ratio": 0.3,
+          "example_forms": [
+            "American",
+            "Canadian",
+            "Greek"
+          ],
+          "semantic_collision_rate": 0.0
+        },
+        "derivability": {
+          "direct_rate": 1.0,
+          "derivable_rate": 0.0,
+          "ambiguous_rate": 0.0
+        },
+        "join_key_ambiguity": {
+          "exact_overlap_rate": 0.0,
+          "soft_overlap_rate": 0.0,
+          "mean_variants_per_entity": 1.0,
+          "max_variants_per_entity": 1,
+          "join_feasibility": "low",
+          "join_partner": "owner.nationality"
+        },
+        "recommendations": {
+          "norm_recommendation": "dictionary",
+          "coerce_recommendation": "strict",
+          "er_recommendation": "embedding",
+          "feasibility_flag": true
+        }
+      },
+      {
+        "column": "player.team",
+        "mention_rate": 0.5,
+        "expression_diversity": {
+          "n_distinct_clusters": 9,
+          "n_mentions": 10,
+          "diversity_ratio": 0.9,
+          "example_forms": [
+            "Golden State Warriors",
+            "Los Angeles Lakers",
+            "New York Knicks",
+            "Maccabi Tel Aviv",
+            "Phoenix Suns"
+          ],
+          "semantic_collision_rate": 0.0
+        },
+        "derivability": {
+          "direct_rate": 0.9,
+          "derivable_rate": 0.0,
+          "ambiguous_rate": 0.1
+        },
+        "join_key_ambiguity": {
+          "exact_overlap_rate": 0.0,
+          "soft_overlap_rate": 0.0,
+          "mean_variants_per_entity": 1.0,
+          "max_variants_per_entity": 1,
+          "join_feasibility": "low",
+          "join_partner": "owner.nationality"
+        },
+        "recommendations": {
+          "norm_recommendation": "llm",
+          "coerce_recommendation": "strict",
+          "er_recommendation": "embedding",
+          "feasibility_flag": true
+        }
+      },
+      {
+        "column": "player.olympic_gold_medals",
+        "mention_rate": 0.0,
+        "expression_diversity": {
+          "n_distinct_clusters": 0,
+          "n_mentions": 0,
+          "diversity_ratio": 0.0,
+          "example_forms": []
+        },
+        "derivability": {
+          "direct_rate": 0.0,
+          "derivable_rate": 0.0,
+          "ambiguous_rate": 0.0
+        },
+        "join_key_ambiguity": null,
+        "recommendations": {
+          "norm_recommendation": "dictionary",
+          "coerce_recommendation": "strict",
+          "er_recommendation": "embedding"
+        }
+      },
+      {
+        "column": "player.fiba_world_cup",
+        "mention_rate": 0.0,
+        "expression_diversity": {
+          "n_distinct_clusters": 0,
+          "n_mentions": 0,
+          "diversity_ratio": 0.0,
+          "example_forms": []
+        },
+        "derivability": {
+          "direct_rate": 0.0,
+          "derivable_rate": 0.0,
+          "ambiguous_rate": 0.0
+        },
+        "join_key_ambiguity": null,
+        "recommendations": {
+          "norm_recommendation": "dictionary",
+          "coerce_recommendation": "strict",
+          "er_recommendation": "embedding"
+        }
+      },
+      {
+        "column": "team.team_name",
+        "mention_rate": 0.5,
+        "expression_diversity": {
+          "n_distinct_clusters": 10,
+          "n_mentions": 10,
+          "diversity_ratio": 1.0,
+          "example_forms": [
+            "Brooklyn Nets",
+            "Los Angeles Lakers",
+            "Chicago Bulls",
+            "Houston Rockets",
+            "Detroit Pistons"
+          ],
+          "semantic_collision_rate": 0.0
+        },
+        "derivability": {
+          "direct_rate": 0.0,
+          "derivable_rate": 0.0,
+          "ambiguous_rate": 1.0
+        },
+        "join_key_ambiguity": {
+          "exact_overlap_rate": 0.0,
+          "soft_overlap_rate": 0.0,
+          "mean_variants_per_entity": 1.0,
+          "max_variants_per_entity": 1,
+          "join_feasibility": "low",
+          "join_partner": "owner.nationality"
+        },
+        "recommendations": {
+          "norm_recommendation": "llm",
+          "coerce_recommendation": "strict",
+          "er_recommendation": "llm",
+          "feasibility_flag": true
+        }
+      },
+      {
+        "column": "owner.age",
+        "mention_rate": 0.0,
+        "expression_diversity": {
+          "n_distinct_clusters": 0,
+          "n_mentions": 0,
+          "diversity_ratio": 0.0,
+          "example_forms": []
+        },
+        "derivability": {
+          "direct_rate": 0.0,
+          "derivable_rate": 0.0,
+          "ambiguous_rate": 0.0
+        },
+        "join_key_ambiguity": null,
+        "recommendations": {
+          "norm_recommendation": "dictionary",
+          "coerce_recommendation": "strict",
+          "er_recommendation": "embedding"
+        }
+      },
+      {
+        "column": "player.age",
+        "mention_rate": 0.5,
+        "expression_diversity": {
+          "n_distinct_clusters": 5,
+          "n_mentions": 20,
+          "diversity_ratio": 0.25,
+          "example_forms": [
+            "1995",
+            "1981",
+            "1978",
+            "1937",
+            "2001"
+          ]
+        },
+        "derivability": {
+          "direct_rate": 1.0,
+          "derivable_rate": 0.0,
+          "ambiguous_rate": 0.0
+        },
+        "join_key_ambiguity": {
+          "exact_overlap_rate": 0.0,
+          "soft_overlap_rate": 0.0,
+          "mean_variants_per_entity": 1.0,
+          "max_variants_per_entity": 1,
+          "join_feasibility": "low",
+          "join_partner": "owner.nationality"
+        },
+        "recommendations": {
+          "norm_recommendation": "dictionary",
+          "coerce_recommendation": "strict",
+          "er_recommendation": "embedding",
+          "feasibility_flag": true
+        }
+      },
+      {
+        "column": "player.mvp_awards",
+        "mention_rate": 0.0,
+        "expression_diversity": {
+          "n_distinct_clusters": 0,
+          "n_mentions": 0,
+          "diversity_ratio": 0.0,
+          "example_forms": []
+        },
+        "derivability": {
+          "direct_rate": 0.0,
+          "derivable_rate": 0.0,
+          "ambiguous_rate": 0.0
+        },
+        "join_key_ambiguity": null,
+        "recommendations": {
+          "norm_recommendation": "dictionary",
+          "coerce_recommendation": "strict",
+          "er_recommendation": "embedding"
+        }
+      },
+      {
+        "column": "player.position",
+        "mention_rate": 0.5,
+        "expression_diversity": {
+          "n_distinct_clusters": 2,
+          "n_mentions": 6,
+          "diversity_ratio": 0.3333,
+          "example_forms": [
+            "Frontcourt",
+            "Backcourt"
+          ],
+          "semantic_collision_rate": 0.0
+        },
+        "derivability": {
+          "direct_rate": 1.0,
+          "derivable_rate": 0.0,
+          "ambiguous_rate": 0.0
+        },
+        "join_key_ambiguity": {
+          "exact_overlap_rate": 0.0,
+          "soft_overlap_rate": 0.0,
+          "mean_variants_per_entity": 1.0,
+          "max_variants_per_entity": 1,
+          "join_feasibility": "low",
+          "join_partner": "owner.nationality"
+        },
+        "recommendations": {
+          "norm_recommendation": "llm",
+          "coerce_recommendation": "strict",
+          "er_recommendation": "embedding",
+          "feasibility_flag": true
+        }
+      },
+      {
+        "column": "player.nba_championships",
+        "mention_rate": 0.0,
+        "expression_diversity": {
+          "n_distinct_clusters": 0,
+          "n_mentions": 0,
+          "diversity_ratio": 0.0,
+          "example_forms": []
+        },
+        "derivability": {
+          "direct_rate": 0.0,
+          "derivable_rate": 0.0,
+          "ambiguous_rate": 0.0
+        },
+        "join_key_ambiguity": null,
+        "recommendations": {
+          "norm_recommendation": "dictionary",
+          "coerce_recommendation": "strict",
+          "er_recommendation": "embedding"
+        }
+      }
+    ]
+  },
+  "diagnostics": {
+    "glass_box_composites": {
+      "er=embedding_0.9|norm=dictionary|unit=unit|miss=constant|coerce=llm": 0.8106001861042184,
+      "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive": 0.8389256912442397,
+      "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=permissive": 0.8030397022332506,
+      "er=embedding_0.8|norm=dictionary|unit=none|miss=mean|coerce=llm": 0.8198084677419355,
+      "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=llm": 0.9270316377171216,
+      "er=llm|norm=dictionary|unit=none|miss=mode|coerce=llm": 0.9460685483870968,
+      "er=llm|norm=dictionary|unit=none|miss=mode|coerce=permissive": 0.9460685483870968,
+      "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm": 0.8106001861042184
+    },
+    "btl_scores": {
+      "er=embedding_0.9|norm=dictionary|unit=unit|miss=constant|coerce=llm": 0.0,
+      "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive": 0.0,
+      "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=permissive": 0.0,
+      "er=embedding_0.8|norm=dictionary|unit=none|miss=mean|coerce=llm": 0.0,
+      "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=llm": 0.0,
+      "er=llm|norm=dictionary|unit=none|miss=mode|coerce=llm": 0.0,
+      "er=llm|norm=dictionary|unit=none|miss=mode|coerce=permissive": 0.0,
+      "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm": 0.0
+    },
+    "structural_scores": {
+      "er=embedding_0.9|norm=dictionary|unit=unit|miss=constant|coerce=llm": 0.8549317617866005,
+      "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive": 0.9049251152073733,
+      "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=permissive": 0.8396091811414392,
+      "er=embedding_0.8|norm=dictionary|unit=none|miss=mean|coerce=llm": 0.8525201612903226,
+      "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=llm": 0.8883995037220843,
+      "er=llm|norm=dictionary|unit=none|miss=mode|coerce=llm": 0.9040322580645161,
+      "er=llm|norm=dictionary|unit=none|miss=mode|coerce=permissive": 0.9040322580645161,
+      "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm": 0.8549317617866005
+    }
+  },
+  "catalog_id_to_pipe": {
+    "er=embedding_0.9|norm=dictionary|unit=unit|miss=constant|coerce=llm": "er=embedding_0.9|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+    "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive": "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+    "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=permissive": "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=permissive",
+    "er=embedding_0.8|norm=dictionary|unit=none|miss=mean|coerce=llm": "er=embedding_0.8|norm=dictionary|unit=none|miss=mean|coerce=llm",
+    "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=llm": "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=llm",
+    "er=llm|norm=dictionary|unit=none|miss=mode|coerce=llm": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=llm",
+    "er=llm|norm=dictionary|unit=none|miss=mode|coerce=permissive": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=permissive",
+    "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm": "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm"
+  }
+}

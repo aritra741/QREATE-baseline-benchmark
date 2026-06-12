@@ -62,6 +62,8 @@ def judge_pairwise(
     model_name: str,
     *,
     required_tables: set[str] | None = None,
+    cluster_queries: list[dict] | None = None,
+    cluster_type: str = "workload",
 ) -> dict:
     cfg = load_config()
     base_url = cfg["llm"]["base_url"]
@@ -90,18 +92,19 @@ def judge_pairwise(
             "output TIE. Do not speculate that patterns may extend to missing tables.\n"
         )
 
+    query_sample = cluster_queries if cluster_queries is not None else queries[:8]
     query_summary = "\n".join(
-        f"- {q['query_id']}: {q['sql_query'][:120]}" for q in queries[:8]
+        f"- {q['query_id']}: {q['sql_query'][:120]}" for q in query_sample
     )
     prompt = (
         f"Schema: {schema.description}\n\n"
-        f"Query workload sample:\n{query_summary}\n\n"
+        f"Query workload sample ({cluster_type} queries):\n{query_summary}\n\n"
         f"Configuration A: {_config_description(config_a)}\n"
         f"Configuration B: {_config_description(config_b)}\n\n"
         f"Database A sample rows:\n{json.dumps(_sample_db_rows(db_a), default=str)[:6000]}\n\n"
         f"Database B sample rows:\n{json.dumps(_sample_db_rows(db_b), default=str)[:6000]}\n\n"
         f"{required_note}"
-        "Which populated database is likely to answer the workload more accurately? "
+        f"Which populated database is likely to answer the following {cluster_type} queries more accurately? "
         'Respond with JSON: {"winner": "a"|"b"|"tie", "reasoning": "..."}'
     )
 

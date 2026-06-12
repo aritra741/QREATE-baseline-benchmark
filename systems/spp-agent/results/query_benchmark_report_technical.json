@@ -1,0 +1,4796 @@
+{
+  "slices": {
+    "agg_only": {
+      "agent_mode": "meta_controller",
+      "algorithm_stack": {
+        "summary": "Composite meta-policy: Stage 1 characterizes the workload, Stage 2 picks a surrogate per query cluster, Stage 3 compares selection algorithms (greedy, BO/TPE, hyperband, coordinate descent, ILP, clustered routing), Stage 4 gates architecture components, then the chosen selector deploys pipeline configs.",
+        "stage1_characterization": {
+          "analyses": {
+            "diminishing_returns": "treat_greedy_as_heuristic",
+            "error_surface": "local_coord_methods_viable",
+            "module_ordering": "use_dag_or_optimize_order",
+            "interactions": "linear_surrogate_sufficient",
+            "probe_fidelity": "improve_sampling_or_skip_probes",
+            "clustering": "insufficient_data",
+            "routing_gap": "co_optimize_routing",
+            "schema_ranking": "flat_or_weaker_hierarchy"
+          },
+          "recommendations": {
+            "probe_viable": false,
+            "use_nonlinear": false,
+            "use_routing": true,
+            "use_clustering": false,
+            "schema_first": false,
+            "density_greedy_viable": false
+          },
+          "probe_fidelity_rho": 0.2540371214151702
+        },
+        "stage2_surrogate_selection": {
+          "evidence": "structural_probe_scores",
+          "global_chosen_surrogate": "linear_proxy_glass",
+          "global_surrogate_ranking": [
+            {
+              "name": "linear_proxy_glass",
+              "spearman_rho": 0.5868,
+              "top_k_recall": 0.6667,
+              "mean_regret": 0.000863
+            },
+            {
+              "name": "structural_probe_ranking",
+              "spearman_rho": 0.0,
+              "top_k_recall": 0.6667,
+              "mean_regret": 0.000863
+            },
+            {
+              "name": "rf_proxy_glass",
+              "spearman_rho": -0.012,
+              "top_k_recall": 0.3333,
+              "mean_regret": 0.004315
+            },
+            {
+              "name": "gbdt_proxy_glass",
+              "spearman_rho": -0.2874,
+              "top_k_recall": 0.0,
+              "mean_regret": 0.007426
+            }
+          ],
+          "per_cluster": {
+            "0": {
+              "cluster_type": "aggregation",
+              "n_queries": 3,
+              "chosen_surrogate": "structural_probe_ranking",
+              "surrogate_ranking": [
+                {
+                  "name": "structural_probe_ranking",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 1.0,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "linear_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.6667,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "rf_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.6667,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "gbdt_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.3333,
+                  "mean_regret": 0.0
+                }
+              ]
+            },
+            "1": {
+              "cluster_type": "aggregation",
+              "n_queries": 3,
+              "chosen_surrogate": "structural_probe_ranking",
+              "surrogate_ranking": [
+                {
+                  "name": "structural_probe_ranking",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 1.0,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "linear_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.6667,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "rf_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.6667,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "gbdt_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.3333,
+                  "mean_regret": 0.0
+                }
+              ]
+            },
+            "2": {
+              "cluster_type": "aggregation",
+              "n_queries": 3,
+              "chosen_surrogate": "structural_probe_ranking",
+              "surrogate_ranking": [
+                {
+                  "name": "structural_probe_ranking",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 1.0,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "linear_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.6667,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "rf_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.6667,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "gbdt_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.3333,
+                  "mean_regret": 0.0
+                }
+              ]
+            },
+            "3": {
+              "cluster_type": "aggregation",
+              "n_queries": 1,
+              "chosen_surrogate": "structural_probe_ranking",
+              "surrogate_ranking": [
+                {
+                  "name": "structural_probe_ranking",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 1.0,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "linear_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.6667,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "rf_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.6667,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "gbdt_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.3333,
+                  "mean_regret": 0.0
+                }
+              ]
+            }
+          },
+          "cluster_surrogate_map": {
+            "0": "structural_probe_ranking",
+            "1": "structural_probe_ranking",
+            "2": "structural_probe_ranking",
+            "3": "structural_probe_ranking"
+          }
+        },
+        "stage3_config_selection": {
+          "agent_chosen_algorithm_id": "use_coordinate_descent",
+          "agent_chosen_algorithm_name": "Coordinate descent on config axes",
+          "stage3_engine": "coord_descent",
+          "selection_rationale": "clear_solver_winner|use_coordinate_descent",
+          "algorithms_tried_by_agent": [
+            {
+              "algorithm_id": "use_coordinate_descent",
+              "algorithm_name": "Coordinate descent on config axes",
+              "stage3_engine": "coord_descent",
+              "predicted_score": 6.4531,
+              "n_configs_selected": 8,
+              "selected_by_agent": true
+            },
+            {
+              "algorithm_id": "use_clustered_routing",
+              "algorithm_name": "Cluster-conditioned routing assignment",
+              "stage3_engine": null,
+              "predicted_score": 3.3645,
+              "n_configs_selected": 1,
+              "selected_by_agent": false
+            }
+          ],
+          "all_selection_algorithms_benchmarked": [
+            {
+              "algorithm_id": "use_greedy",
+              "algorithm_name": "Greedy ranking under budget",
+              "stage3_engine": "greedy",
+              "predicted_score": 6.4531,
+              "n_configs_selected": 8,
+              "selected_by_agent": false
+            },
+            {
+              "algorithm_id": "use_bo_tpe",
+              "algorithm_name": "Bayesian optimization / TPE search",
+              "stage3_engine": "bayesian_opt",
+              "predicted_score": 6.4531,
+              "n_configs_selected": 8,
+              "selected_by_agent": false
+            },
+            {
+              "algorithm_id": "use_hyperband",
+              "algorithm_name": "Hyperband multi-fidelity search",
+              "stage3_engine": "hyperband",
+              "predicted_score": 6.4531,
+              "n_configs_selected": 8,
+              "selected_by_agent": false
+            },
+            {
+              "algorithm_id": "use_coordinate_descent",
+              "algorithm_name": "Coordinate descent on config axes",
+              "stage3_engine": "coord_descent",
+              "predicted_score": 6.4531,
+              "n_configs_selected": 8,
+              "selected_by_agent": true
+            },
+            {
+              "algorithm_id": "use_ilp",
+              "algorithm_name": "Integer linear programming assignment",
+              "stage3_engine": "ilp",
+              "predicted_score": 6.4531,
+              "n_configs_selected": 8,
+              "selected_by_agent": false
+            }
+          ]
+        },
+        "stage4_architecture": {
+          "active_components": [
+            "surrogate",
+            "extraction_reuse",
+            "recalibration",
+            "routing",
+            "flat_vs_hier",
+            "cluster_refinement"
+          ],
+          "component_decisions": [
+            {
+              "component": "surrogate",
+              "retained": false,
+              "reason": "stage1_probe_not_viable"
+            },
+            {
+              "component": "extraction_reuse",
+              "retained": true,
+              "reason": "default_retained"
+            },
+            {
+              "component": "recalibration",
+              "retained": true,
+              "reason": "default_retained"
+            },
+            {
+              "component": "routing",
+              "retained": true,
+              "reason": "stage1_routing_gap"
+            },
+            {
+              "component": "flat_vs_hier",
+              "retained": true,
+              "reason": "default_retained"
+            },
+            {
+              "component": "query_clustering",
+              "retained": false,
+              "reason": "stage1_clustering_insufficient"
+            },
+            {
+              "component": "schema_pruning",
+              "retained": false,
+              "reason": "stage1_flat_hierarchy"
+            },
+            {
+              "component": "cluster_refinement",
+              "retained": true,
+              "reason": "default_retained"
+            }
+          ]
+        },
+        "deployment": {
+          "n_query_clusters": 4,
+          "cluster_types": {
+            "0": "aggregation",
+            "1": "aggregation",
+            "2": "aggregation",
+            "3": "aggregation"
+          },
+          "cluster_labels": [
+            1,
+            2,
+            0,
+            3,
+            2,
+            1,
+            0,
+            1,
+            2,
+            0
+          ],
+          "selected_pipeline_configs": [
+            "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+            "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=strict",
+            "er=embedding_0.8|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+            "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+            "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=llm",
+            "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=llm",
+            "er=embedding_0.9|norm=dictionary|unit=unit|miss=mode|coerce=strict",
+            "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=llm"
+          ],
+          "cluster_to_pipeline_config": {
+            "1": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+            "2": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+            "0": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+            "3": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive"
+          },
+          "query_to_pipeline_config": {
+            "agg_queries_1": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+            "agg_queries_2": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+            "agg_queries_3": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+            "agg_queries_4": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+            "agg_queries_5": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+            "agg_queries_6": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+            "agg_queries_7": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+            "agg_subsample_1": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+            "agg_subsample_2": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+            "agg_subsample_3": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive"
+          }
+        },
+        "decision_action_history": [
+          {
+            "round": 1,
+            "action": "use_clustered_routing",
+            "rationale_code": "stage1_routing_gap",
+            "confidence": 0.8,
+            "expected_gain": 0.09,
+            "budget_impact": 0
+          },
+          {
+            "round": 2,
+            "action": "use_coordinate_descent",
+            "rationale_code": "smooth_local_surface",
+            "confidence": 0.72,
+            "expected_gain": 0.07,
+            "budget_impact": 0
+          }
+        ]
+      },
+      "chosen_algorithm_family": "use_coordinate_descent",
+      "selection_rationale": "clear_solver_winner|use_coordinate_descent",
+      "solver_comparison": [
+        {
+          "algorithm_family": "use_coordinate_descent",
+          "predicted_score": 6.4531132739212005,
+          "selected_configs": [
+            "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+            "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=strict",
+            "er=embedding_0.8|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+            "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+            "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=llm",
+            "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=llm",
+            "er=embedding_0.9|norm=dictionary|unit=unit|miss=mode|coerce=strict",
+            "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=llm"
+          ],
+          "wall_time_seconds": 7.5830030255019665e-06
+        },
+        {
+          "algorithm_family": "use_clustered_routing",
+          "predicted_score": 3.3645034843205575,
+          "selected_configs": [
+            "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive"
+          ],
+          "wall_time_seconds": 0.0
+        }
+      ],
+      "baseline_comparison": [
+        {
+          "algorithm_family": "use_greedy",
+          "label": "Greedy ranking under budget",
+          "predicted_score": 6.4531132739212005,
+          "n_selected_configs": 8,
+          "selected_configs": [
+            "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+            "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=strict",
+            "er=embedding_0.8|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+            "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+            "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=llm",
+            "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=llm",
+            "er=embedding_0.9|norm=dictionary|unit=unit|miss=mode|coerce=strict",
+            "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=llm"
+          ],
+          "wall_time_seconds": 3.3750111469998956e-06
+        },
+        {
+          "algorithm_family": "use_bo_tpe",
+          "label": "Bayesian optimization / TPE search",
+          "predicted_score": 6.4531132739212005,
+          "n_selected_configs": 8,
+          "selected_configs": [
+            "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+            "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=strict",
+            "er=embedding_0.8|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+            "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+            "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=llm",
+            "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=llm",
+            "er=embedding_0.9|norm=dictionary|unit=unit|miss=mode|coerce=strict",
+            "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=llm"
+          ],
+          "wall_time_seconds": 7.583992555737495e-06
+        },
+        {
+          "algorithm_family": "use_hyperband",
+          "label": "Hyperband multi-fidelity search",
+          "predicted_score": 6.4531132739212005,
+          "n_selected_configs": 8,
+          "selected_configs": [
+            "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+            "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=strict",
+            "er=embedding_0.8|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+            "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+            "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=llm",
+            "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=llm",
+            "er=embedding_0.9|norm=dictionary|unit=unit|miss=mode|coerce=strict",
+            "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=llm"
+          ],
+          "wall_time_seconds": 6.20899663772434e-06
+        },
+        {
+          "algorithm_family": "use_coordinate_descent",
+          "label": "Coordinate descent on config axes",
+          "predicted_score": 6.4531132739212005,
+          "n_selected_configs": 8,
+          "selected_configs": [
+            "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+            "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=strict",
+            "er=embedding_0.8|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+            "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+            "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=llm",
+            "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=llm",
+            "er=embedding_0.9|norm=dictionary|unit=unit|miss=mode|coerce=strict",
+            "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=llm"
+          ],
+          "wall_time_seconds": 3.500012098811567e-06
+        },
+        {
+          "algorithm_family": "use_ilp",
+          "label": "Integer linear programming assignment",
+          "predicted_score": 6.4531132739212005,
+          "n_selected_configs": 8,
+          "selected_configs": [
+            "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+            "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=strict",
+            "er=embedding_0.8|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+            "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+            "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=llm",
+            "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=llm",
+            "er=embedding_0.9|norm=dictionary|unit=unit|miss=mode|coerce=strict",
+            "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=llm"
+          ],
+          "wall_time_seconds": 1.4999968698248267e-06
+        }
+      ],
+      "stage_summaries": {
+        "stage1": {
+          "diminishing_returns": {
+            "saturates_at_k": 7,
+            "total_configs": 8,
+            "saturated": true,
+            "marginal_gains": [
+              0.0,
+              0.10869765908341554,
+              0.0,
+              0.6092713484998349,
+              0.01599736234751037,
+              0.02520276953511358,
+              0.15647873392680645,
+              0.08435212660731917
+            ],
+            "recommendation": "treat_greedy_as_heuristic"
+          },
+          "error_surface": {
+            "local_minima_count": 1,
+            "total_configs": 8,
+            "smooth": true,
+            "recommendation": "local_coord_methods_viable"
+          },
+          "module_ordering": {
+            "axis_effects": {
+              "er_strategy": {
+                "embedding_0.9": 0.8033692933083177,
+                "embedding_0.8": 0.8143673780487806,
+                "embedding_0.7": 0.7865723834092737,
+                "llm": 0.8411258710801394
+              },
+              "norm_strategy": {
+                "dictionary": 0.8066391592401501
+              },
+              "unit_strategy": {
+                "none": 0.8193989547038327,
+                "unit": 0.7853728334673457
+              },
+              "miss_strategy": {
+                "median": 0.7929115853658537,
+                "llm": 0.8342225609756098,
+                "mode": 0.7850341731439293,
+                "constant": 0.7955281760922005,
+                "mean": 0.8411258710801394
+              }
+            },
+            "variance_by_axis": {
+              "er_strategy": 0.00039333218178308764,
+              "norm_strategy": 0.0,
+              "unit_strategy": 0.0002894442316000291,
+              "miss_strategy": 0.0005360030118381975
+            },
+            "ordering_sensitive": true,
+            "recommendation": "use_dag_or_optimize_order"
+          },
+          "interactions": {
+            "main_effect_r2": 0.0,
+            "interaction_r2": 0.0,
+            "interaction_ratio": 0.0,
+            "sparse": true,
+            "recommendation": "linear_surrogate_sufficient"
+          },
+          "probe_fidelity": {
+            "spearman_rho": 0.2540371214151702,
+            "top_k_recall": 1.0,
+            "best_proxy_regret": 0.15887412891986064,
+            "recommendation": "improve_sampling_or_skip_probes",
+            "score_spread": 0.06350928035379255
+          },
+          "clustering": {
+            "n_clusters": 3,
+            "cluster_sizes": [
+              10
+            ],
+            "purity": null,
+            "recommendation": "insufficient_data"
+          },
+          "routing_gap": {
+            "structural_top_configs": [
+              "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+              "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=strict",
+              "er=embedding_0.8|norm=dictionary|unit=none|miss=llm|coerce=permissive"
+            ],
+            "score_spread": 0.06350928035379255,
+            "mean_disagreement": 0.0,
+            "disagreement_above_threshold": false,
+            "recommendation": "co_optimize_routing"
+          },
+          "schema_ranking": {
+            "full_vs_numeric_rho": 0.9999999999999998,
+            "full_vs_entity_rho": 0.9999999999999998,
+            "min_rho": 0.9999999999999998,
+            "schema_matters": false,
+            "recommendation": "flat_or_weaker_hierarchy"
+          },
+          "recommendations": {
+            "probe_viable": false,
+            "use_nonlinear": false,
+            "use_routing": true,
+            "use_clustering": false,
+            "schema_first": false,
+            "density_greedy_viable": false
+          }
+        },
+        "workload": {
+          "round": 2,
+          "workload_summary": {
+            "n_queries": 10,
+            "n_join_queries": 0,
+            "n_group_by_queries": 10,
+            "has_join": false,
+            "has_temporal": false,
+            "n_demand_columns": 6
+          },
+          "corpus_profile_summary": {
+            "n_profiled_columns": 6,
+            "mean_diversity_ratio": 0.103,
+            "max_diversity_ratio": 0.25,
+            "mean_ambiguous_rate": 0.0,
+            "feasibility_flags": 0
+          },
+          "probe_outcomes": {
+            "n_probed": 8,
+            "top_configs": [
+              {
+                "config_id": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+                "structural_score": 0.8411
+              },
+              {
+                "config_id": "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=strict",
+                "structural_score": 0.8342
+              },
+              {
+                "config_id": "er=embedding_0.8|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+                "structural_score": 0.8342
+              },
+              {
+                "config_id": "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+                "structural_score": 0.7955
+              },
+              {
+                "config_id": "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=llm",
+                "structural_score": 0.7945
+              }
+            ],
+            "score_spread": 0.0635,
+            "probe_token_cost": 39082
+          },
+          "stage1_summary": {
+            "recommendations": {
+              "probe_viable": false,
+              "use_nonlinear": false,
+              "use_routing": true,
+              "use_clustering": false,
+              "schema_first": false,
+              "density_greedy_viable": false
+            },
+            "diminishing_returns": "treat_greedy_as_heuristic",
+            "error_surface": "local_coord_methods_viable",
+            "interactions": "linear_surrogate_sufficient",
+            "probe_fidelity_rho": 0.2540371214151702,
+            "clustering": "insufficient_data",
+            "routing": "co_optimize_routing"
+          },
+          "solver_comparison_summary": [
+            {
+              "algorithm_family": "use_coordinate_descent",
+              "label": "Coordinate descent on config axes",
+              "predicted_score": 6.4531,
+              "n_selected_configs": 8,
+              "wall_time_seconds": 0.0
+            },
+            {
+              "algorithm_family": "use_clustered_routing",
+              "label": "Cluster-conditioned routing assignment",
+              "predicted_score": 3.3645,
+              "n_selected_configs": 1,
+              "wall_time_seconds": 0.0
+            }
+          ],
+          "budget": {
+            "total": 80000,
+            "spent": 40618,
+            "remaining": 39382
+          },
+          "prior_chosen_algorithm_family": "use_coordinate_descent",
+          "available_actions": [
+            "finalize",
+            "probe_more",
+            "use_bo_tpe",
+            "use_clustered_routing",
+            "use_coordinate_descent",
+            "use_greedy",
+            "use_hyperband",
+            "use_ilp"
+          ]
+        }
+      },
+      "audit_log": [
+        {
+          "round": 1,
+          "state": {
+            "round": 1,
+            "workload_summary": {
+              "n_queries": 10,
+              "n_join_queries": 0,
+              "n_group_by_queries": 10,
+              "has_join": false,
+              "has_temporal": false,
+              "n_demand_columns": 6
+            },
+            "corpus_profile_summary": {
+              "n_profiled_columns": 6,
+              "mean_diversity_ratio": 0.103,
+              "max_diversity_ratio": 0.25,
+              "mean_ambiguous_rate": 0.0,
+              "feasibility_flags": 0
+            },
+            "probe_outcomes": {
+              "n_probed": 8,
+              "top_configs": [
+                {
+                  "config_id": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+                  "structural_score": 0.8411
+                },
+                {
+                  "config_id": "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=strict",
+                  "structural_score": 0.8342
+                },
+                {
+                  "config_id": "er=embedding_0.8|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+                  "structural_score": 0.8342
+                },
+                {
+                  "config_id": "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+                  "structural_score": 0.7955
+                },
+                {
+                  "config_id": "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=llm",
+                  "structural_score": 0.7945
+                }
+              ],
+              "score_spread": 0.0635,
+              "probe_token_cost": 39082
+            },
+            "stage1_summary": {
+              "recommendations": {
+                "probe_viable": false,
+                "use_nonlinear": false,
+                "use_routing": true,
+                "use_clustering": false,
+                "schema_first": false,
+                "density_greedy_viable": false
+              },
+              "diminishing_returns": "treat_greedy_as_heuristic",
+              "error_surface": "local_coord_methods_viable",
+              "interactions": "linear_surrogate_sufficient",
+              "probe_fidelity_rho": 0.2540371214151702,
+              "clustering": "insufficient_data",
+              "routing": "co_optimize_routing"
+            },
+            "solver_comparison_summary": [],
+            "budget": {
+              "total": 80000,
+              "spent": 39082,
+              "remaining": 40918
+            },
+            "prior_chosen_algorithm_family": null,
+            "available_actions": [
+              "finalize",
+              "probe_more",
+              "use_bo_tpe",
+              "use_clustered_routing",
+              "use_coordinate_descent",
+              "use_greedy",
+              "use_hyperband",
+              "use_ilp"
+            ]
+          },
+          "decision": {
+            "action": "use_clustered_routing",
+            "rationale_code": "stage1_routing_gap",
+            "confidence": 0.8,
+            "expected_gain": 0.09,
+            "budget_impact": 0,
+            "observation": {}
+          },
+          "observation": {
+            "selected_configs": [
+              "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive"
+            ],
+            "predicted_score": 3.3645034843205575
+          }
+        },
+        {
+          "round": 2,
+          "state": {
+            "round": 2,
+            "workload_summary": {
+              "n_queries": 10,
+              "n_join_queries": 0,
+              "n_group_by_queries": 10,
+              "has_join": false,
+              "has_temporal": false,
+              "n_demand_columns": 6
+            },
+            "corpus_profile_summary": {
+              "n_profiled_columns": 6,
+              "mean_diversity_ratio": 0.103,
+              "max_diversity_ratio": 0.25,
+              "mean_ambiguous_rate": 0.0,
+              "feasibility_flags": 0
+            },
+            "probe_outcomes": {
+              "n_probed": 8,
+              "top_configs": [
+                {
+                  "config_id": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+                  "structural_score": 0.8411
+                },
+                {
+                  "config_id": "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=strict",
+                  "structural_score": 0.8342
+                },
+                {
+                  "config_id": "er=embedding_0.8|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+                  "structural_score": 0.8342
+                },
+                {
+                  "config_id": "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+                  "structural_score": 0.7955
+                },
+                {
+                  "config_id": "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=llm",
+                  "structural_score": 0.7945
+                }
+              ],
+              "score_spread": 0.0635,
+              "probe_token_cost": 39082
+            },
+            "stage1_summary": {
+              "recommendations": {
+                "probe_viable": false,
+                "use_nonlinear": false,
+                "use_routing": true,
+                "use_clustering": false,
+                "schema_first": false,
+                "density_greedy_viable": false
+              },
+              "diminishing_returns": "treat_greedy_as_heuristic",
+              "error_surface": "local_coord_methods_viable",
+              "interactions": "linear_surrogate_sufficient",
+              "probe_fidelity_rho": 0.2540371214151702,
+              "clustering": "insufficient_data",
+              "routing": "co_optimize_routing"
+            },
+            "solver_comparison_summary": [
+              {
+                "algorithm_family": "use_clustered_routing",
+                "label": "Cluster-conditioned routing assignment",
+                "predicted_score": 3.3645,
+                "n_selected_configs": 1,
+                "wall_time_seconds": 0.0
+              }
+            ],
+            "budget": {
+              "total": 80000,
+              "spent": 40618,
+              "remaining": 39382
+            },
+            "prior_chosen_algorithm_family": "use_clustered_routing",
+            "available_actions": [
+              "finalize",
+              "probe_more",
+              "use_bo_tpe",
+              "use_clustered_routing",
+              "use_coordinate_descent",
+              "use_greedy",
+              "use_hyperband",
+              "use_ilp"
+            ]
+          },
+          "decision": {
+            "action": "use_coordinate_descent",
+            "rationale_code": "smooth_local_surface",
+            "confidence": 0.72,
+            "expected_gain": 0.07,
+            "budget_impact": 0,
+            "observation": {}
+          },
+          "observation": {
+            "selected_configs": [
+              "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+              "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=strict",
+              "er=embedding_0.8|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+              "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+              "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=llm",
+              "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=llm",
+              "er=embedding_0.9|norm=dictionary|unit=unit|miss=mode|coerce=strict",
+              "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=llm"
+            ],
+            "predicted_score": 6.4531132739212005
+          }
+        }
+      ],
+      "rounds": 2,
+      "selected_configs": [
+        "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=strict",
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+        "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=llm",
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=llm",
+        "er=embedding_0.9|norm=dictionary|unit=unit|miss=mode|coerce=strict",
+        "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=llm"
+      ],
+      "final_routing": {
+        "agg_queries_1": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+        "agg_queries_2": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+        "agg_queries_3": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+        "agg_queries_4": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+        "agg_queries_5": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+        "agg_queries_6": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+        "agg_queries_7": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+        "agg_subsample_1": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+        "agg_subsample_2": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+        "agg_subsample_3": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive"
+      },
+      "probed_configs": [
+        {
+          "config_id": "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=llm",
+          "pipe_config_id": "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=llm",
+          "settings": {
+            "er": "embedding_0.9",
+            "norm": "dictionary",
+            "unit": "none",
+            "miss": "median",
+            "coerce": "llm"
+          },
+          "structural_score": 0.7929115853658537,
+          "mean_f1": null
+        },
+        {
+          "config_id": "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=strict",
+          "pipe_config_id": "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=strict",
+          "settings": {
+            "er": "embedding_0.9",
+            "norm": "dictionary",
+            "unit": "none",
+            "miss": "llm",
+            "coerce": "strict"
+          },
+          "structural_score": 0.8342225609756098,
+          "mean_f1": null
+        },
+        {
+          "config_id": "er=embedding_0.8|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+          "pipe_config_id": "er=embedding_0.8|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+          "settings": {
+            "er": "embedding_0.8",
+            "norm": "dictionary",
+            "unit": "none",
+            "miss": "llm",
+            "coerce": "permissive"
+          },
+          "structural_score": 0.8342225609756098,
+          "mean_f1": null
+        },
+        {
+          "config_id": "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=llm",
+          "pipe_config_id": "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=llm",
+          "settings": {
+            "er": "embedding_0.8",
+            "norm": "dictionary",
+            "unit": "none",
+            "miss": "mode",
+            "coerce": "llm"
+          },
+          "structural_score": 0.7945121951219513,
+          "mean_f1": null
+        },
+        {
+          "config_id": "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+          "pipe_config_id": "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+          "settings": {
+            "er": "embedding_0.7",
+            "norm": "dictionary",
+            "unit": "unit",
+            "miss": "constant",
+            "coerce": "llm"
+          },
+          "structural_score": 0.7955281760922005,
+          "mean_f1": null
+        },
+        {
+          "config_id": "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=llm",
+          "pipe_config_id": "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=llm",
+          "settings": {
+            "er": "embedding_0.7",
+            "norm": "dictionary",
+            "unit": "unit",
+            "miss": "mode",
+            "coerce": "llm"
+          },
+          "structural_score": 0.7776165907263468,
+          "mean_f1": null
+        },
+        {
+          "config_id": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+          "pipe_config_id": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+          "settings": {
+            "er": "llm",
+            "norm": "dictionary",
+            "unit": "none",
+            "miss": "mean",
+            "coerce": "permissive"
+          },
+          "structural_score": 0.8411258710801394,
+          "mean_f1": null
+        },
+        {
+          "config_id": "er=embedding_0.9|norm=dictionary|unit=unit|miss=mode|coerce=strict",
+          "pipe_config_id": "er=embedding_0.9|norm=dictionary|unit=unit|miss=mode|coerce=strict",
+          "settings": {
+            "er": "embedding_0.9",
+            "norm": "dictionary",
+            "unit": "unit",
+            "miss": "mode",
+            "coerce": "strict"
+          },
+          "structural_score": 0.7829737335834897,
+          "mean_f1": null
+        }
+      ],
+      "budget_summary": {
+        "total": 80000,
+        "spent": 40618,
+        "remaining": 39382
+      },
+      "diagnostics": {
+        "glass_box_composites": {
+          "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=llm": 0.7909679878048781,
+          "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=strict": 0.8149771341463414,
+          "er=embedding_0.8|norm=dictionary|unit=none|miss=llm|coerce=permissive": 0.8149771341463414,
+          "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=llm": 0.7923018292682926,
+          "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm": 0.7742038830072366,
+          "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=llm": 0.7644858952023587,
+          "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive": 0.9115037020905923,
+          "er=embedding_0.9|norm=dictionary|unit=unit|miss=mode|coerce=strict": 0.7778787523452158
+        },
+        "btl_scores": {
+          "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=llm": 0.0,
+          "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=strict": 0.0,
+          "er=embedding_0.8|norm=dictionary|unit=none|miss=llm|coerce=permissive": 0.0,
+          "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=llm": 0.0,
+          "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm": 0.0,
+          "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=llm": 0.0,
+          "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive": 0.0,
+          "er=embedding_0.9|norm=dictionary|unit=unit|miss=mode|coerce=strict": 0.0
+        },
+        "structural_scores": {
+          "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=llm": 0.7929115853658537,
+          "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=strict": 0.8342225609756098,
+          "er=embedding_0.8|norm=dictionary|unit=none|miss=llm|coerce=permissive": 0.8342225609756098,
+          "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=llm": 0.7945121951219513,
+          "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm": 0.7955281760922005,
+          "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=llm": 0.7776165907263468,
+          "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive": 0.8411258710801394,
+          "er=embedding_0.9|norm=dictionary|unit=unit|miss=mode|coerce=strict": 0.7829737335834897
+        }
+      },
+      "catalog_id_to_pipe": {
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=llm": "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=llm",
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=strict": "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=strict",
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=llm|coerce=permissive": "er=embedding_0.8|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=llm": "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=llm",
+        "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm": "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+        "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=llm": "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=llm",
+        "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+        "er=embedding_0.9|norm=dictionary|unit=unit|miss=mode|coerce=strict": "er=embedding_0.9|norm=dictionary|unit=unit|miss=mode|coerce=strict"
+      }
+    },
+    "agg_filter": {
+      "agent_mode": "meta_controller",
+      "algorithm_stack": {
+        "summary": "Composite meta-policy: Stage 1 characterizes the workload, Stage 2 picks a surrogate per query cluster, Stage 3 compares selection algorithms (greedy, BO/TPE, hyperband, coordinate descent, ILP, clustered routing), Stage 4 gates architecture components, then the chosen selector deploys pipeline configs.",
+        "stage1_characterization": {
+          "analyses": {
+            "diminishing_returns": "treat_greedy_as_heuristic",
+            "error_surface": "local_coord_methods_viable",
+            "module_ordering": "use_dag_or_optimize_order",
+            "interactions": "linear_surrogate_sufficient",
+            "probe_fidelity": "improve_sampling_or_skip_probes",
+            "clustering": "insufficient_data",
+            "routing_gap": "co_optimize_routing",
+            "schema_ranking": "flat_or_weaker_hierarchy"
+          },
+          "recommendations": {
+            "probe_viable": false,
+            "use_nonlinear": false,
+            "use_routing": true,
+            "use_clustering": false,
+            "schema_first": false,
+            "density_greedy_viable": false
+          },
+          "probe_fidelity_rho": 0.5294085400409783
+        },
+        "stage2_surrogate_selection": {
+          "evidence": "structural_probe_scores",
+          "global_chosen_surrogate": "gbdt_proxy_glass",
+          "global_surrogate_ranking": [
+            {
+              "name": "gbdt_proxy_glass",
+              "spearman_rho": 0.6868,
+              "top_k_recall": 0.6667,
+              "mean_regret": 0.010456
+            },
+            {
+              "name": "linear_proxy_glass",
+              "spearman_rho": 0.3374,
+              "top_k_recall": 0.6667,
+              "mean_regret": 0.010456
+            },
+            {
+              "name": "rf_proxy_glass",
+              "spearman_rho": 0.1325,
+              "top_k_recall": 0.6667,
+              "mean_regret": 0.010456
+            },
+            {
+              "name": "structural_probe_ranking",
+              "spearman_rho": 0.0,
+              "top_k_recall": 0.3333,
+              "mean_regret": 0.010456
+            }
+          ],
+          "per_cluster": {
+            "0": {
+              "cluster_type": "aggregation",
+              "n_queries": 2,
+              "chosen_surrogate": "structural_probe_ranking",
+              "surrogate_ranking": [
+                {
+                  "name": "structural_probe_ranking",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 1.0,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "linear_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.3333,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "rf_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.3333,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "gbdt_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.3333,
+                  "mean_regret": 0.0
+                }
+              ]
+            },
+            "1": {
+              "cluster_type": "aggregation",
+              "n_queries": 3,
+              "chosen_surrogate": "structural_probe_ranking",
+              "surrogate_ranking": [
+                {
+                  "name": "structural_probe_ranking",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 1.0,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "linear_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.3333,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "rf_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.3333,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "gbdt_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.3333,
+                  "mean_regret": 0.0
+                }
+              ]
+            },
+            "2": {
+              "cluster_type": "aggregation",
+              "n_queries": 2,
+              "chosen_surrogate": "structural_probe_ranking",
+              "surrogate_ranking": [
+                {
+                  "name": "structural_probe_ranking",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 1.0,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "linear_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.3333,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "rf_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.3333,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "gbdt_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.3333,
+                  "mean_regret": 0.0
+                }
+              ]
+            },
+            "3": {
+              "cluster_type": "aggregation",
+              "n_queries": 2,
+              "chosen_surrogate": "structural_probe_ranking",
+              "surrogate_ranking": [
+                {
+                  "name": "structural_probe_ranking",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 1.0,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "linear_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.3333,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "rf_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.3333,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "gbdt_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.3333,
+                  "mean_regret": 0.0
+                }
+              ]
+            }
+          },
+          "cluster_surrogate_map": {
+            "0": "structural_probe_ranking",
+            "1": "structural_probe_ranking",
+            "2": "structural_probe_ranking",
+            "3": "structural_probe_ranking"
+          }
+        },
+        "stage3_config_selection": {
+          "agent_chosen_algorithm_id": "use_coordinate_descent",
+          "agent_chosen_algorithm_name": "Coordinate descent on config axes",
+          "stage3_engine": "coord_descent",
+          "selection_rationale": "clear_solver_winner|use_coordinate_descent",
+          "algorithms_tried_by_agent": [
+            {
+              "algorithm_id": "use_coordinate_descent",
+              "algorithm_name": "Coordinate descent on config axes",
+              "stage3_engine": "coord_descent",
+              "predicted_score": 6.9224,
+              "n_configs_selected": 8,
+              "selected_by_agent": true
+            },
+            {
+              "algorithm_id": "use_clustered_routing",
+              "algorithm_name": "Cluster-conditioned routing assignment",
+              "stage3_engine": null,
+              "predicted_score": 3.8331,
+              "n_configs_selected": 1,
+              "selected_by_agent": false
+            }
+          ],
+          "all_selection_algorithms_benchmarked": [
+            {
+              "algorithm_id": "use_greedy",
+              "algorithm_name": "Greedy ranking under budget",
+              "stage3_engine": "greedy",
+              "predicted_score": 6.9224,
+              "n_configs_selected": 8,
+              "selected_by_agent": false
+            },
+            {
+              "algorithm_id": "use_bo_tpe",
+              "algorithm_name": "Bayesian optimization / TPE search",
+              "stage3_engine": "bayesian_opt",
+              "predicted_score": 6.9224,
+              "n_configs_selected": 8,
+              "selected_by_agent": false
+            },
+            {
+              "algorithm_id": "use_hyperband",
+              "algorithm_name": "Hyperband multi-fidelity search",
+              "stage3_engine": "hyperband",
+              "predicted_score": 6.9224,
+              "n_configs_selected": 8,
+              "selected_by_agent": false
+            },
+            {
+              "algorithm_id": "use_coordinate_descent",
+              "algorithm_name": "Coordinate descent on config axes",
+              "stage3_engine": "coord_descent",
+              "predicted_score": 6.9224,
+              "n_configs_selected": 8,
+              "selected_by_agent": true
+            },
+            {
+              "algorithm_id": "use_ilp",
+              "algorithm_name": "Integer linear programming assignment",
+              "stage3_engine": "ilp",
+              "predicted_score": 6.9224,
+              "n_configs_selected": 8,
+              "selected_by_agent": false
+            }
+          ]
+        },
+        "stage4_architecture": {
+          "active_components": [
+            "surrogate",
+            "extraction_reuse",
+            "recalibration",
+            "routing",
+            "flat_vs_hier",
+            "cluster_refinement"
+          ],
+          "component_decisions": [
+            {
+              "component": "surrogate",
+              "retained": false,
+              "reason": "stage1_probe_not_viable"
+            },
+            {
+              "component": "extraction_reuse",
+              "retained": true,
+              "reason": "default_retained"
+            },
+            {
+              "component": "recalibration",
+              "retained": true,
+              "reason": "default_retained"
+            },
+            {
+              "component": "routing",
+              "retained": true,
+              "reason": "stage1_routing_gap"
+            },
+            {
+              "component": "flat_vs_hier",
+              "retained": true,
+              "reason": "default_retained"
+            },
+            {
+              "component": "query_clustering",
+              "retained": false,
+              "reason": "stage1_clustering_insufficient"
+            },
+            {
+              "component": "schema_pruning",
+              "retained": false,
+              "reason": "stage1_flat_hierarchy"
+            },
+            {
+              "component": "cluster_refinement",
+              "retained": true,
+              "reason": "default_retained"
+            }
+          ]
+        },
+        "deployment": {
+          "n_query_clusters": 4,
+          "cluster_types": {
+            "0": "aggregation",
+            "1": "aggregation",
+            "2": "aggregation",
+            "3": "aggregation"
+          },
+          "cluster_labels": [
+            2,
+            0,
+            1,
+            1,
+            3,
+            2,
+            0,
+            1,
+            3
+          ],
+          "selected_pipeline_configs": [
+            "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict",
+            "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=permissive",
+            "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=strict",
+            "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+            "er=embedding_0.7|norm=dictionary|unit=none|miss=median|coerce=llm",
+            "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive",
+            "er=embedding_0.9|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+            "er=embedding_0.7|norm=dictionary|unit=unit|miss=mean|coerce=llm"
+          ],
+          "cluster_to_pipeline_config": {
+            "2": "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict",
+            "0": "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict",
+            "1": "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict",
+            "3": "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict"
+          },
+          "query_to_pipeline_config": {
+            "mixed_queries_filter_agg_3": "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict",
+            "mixed_queries_filter_agg_5": "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict",
+            "mixed_queries_filter_agg_6": "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict",
+            "mixed_queries_filter_agg_player_1": "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict",
+            "mixed_queries_filter_agg_player_2": "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict",
+            "mixed_queries_filter_agg_player_3": "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict",
+            "mixed_queries_filter_agg_player_5": "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict",
+            "mixed_queries_filter_agg_player_6": "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict",
+            "mixed_subsample_2": "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict"
+          }
+        },
+        "decision_action_history": [
+          {
+            "round": 1,
+            "action": "use_clustered_routing",
+            "rationale_code": "stage1_routing_gap",
+            "confidence": 0.8,
+            "expected_gain": 0.09,
+            "budget_impact": 0
+          },
+          {
+            "round": 2,
+            "action": "use_coordinate_descent",
+            "rationale_code": "smooth_local_surface",
+            "confidence": 0.72,
+            "expected_gain": 0.07,
+            "budget_impact": 0
+          }
+        ]
+      },
+      "chosen_algorithm_family": "use_coordinate_descent",
+      "selection_rationale": "clear_solver_winner|use_coordinate_descent",
+      "solver_comparison": [
+        {
+          "algorithm_family": "use_coordinate_descent",
+          "predicted_score": 6.922398480753302,
+          "selected_configs": [
+            "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict",
+            "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=permissive",
+            "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=strict",
+            "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+            "er=embedding_0.7|norm=dictionary|unit=none|miss=median|coerce=llm",
+            "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive",
+            "er=embedding_0.9|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+            "er=embedding_0.7|norm=dictionary|unit=unit|miss=mean|coerce=llm"
+          ],
+          "wall_time_seconds": 6.2920007621869445e-06
+        },
+        {
+          "algorithm_family": "use_clustered_routing",
+          "predicted_score": 3.8330788177339903,
+          "selected_configs": [
+            "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict"
+          ],
+          "wall_time_seconds": 0.0
+        }
+      ],
+      "baseline_comparison": [
+        {
+          "algorithm_family": "use_greedy",
+          "label": "Greedy ranking under budget",
+          "predicted_score": 6.922398480753302,
+          "n_selected_configs": 8,
+          "selected_configs": [
+            "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict",
+            "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=permissive",
+            "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=strict",
+            "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+            "er=embedding_0.7|norm=dictionary|unit=none|miss=median|coerce=llm",
+            "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive",
+            "er=embedding_0.9|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+            "er=embedding_0.7|norm=dictionary|unit=unit|miss=mean|coerce=llm"
+          ],
+          "wall_time_seconds": 3.6249984987080097e-06
+        },
+        {
+          "algorithm_family": "use_bo_tpe",
+          "label": "Bayesian optimization / TPE search",
+          "predicted_score": 6.922398480753302,
+          "n_selected_configs": 8,
+          "selected_configs": [
+            "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict",
+            "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=permissive",
+            "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=strict",
+            "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+            "er=embedding_0.7|norm=dictionary|unit=none|miss=median|coerce=llm",
+            "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive",
+            "er=embedding_0.9|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+            "er=embedding_0.7|norm=dictionary|unit=unit|miss=mean|coerce=llm"
+          ],
+          "wall_time_seconds": 3.958004526793957e-06
+        },
+        {
+          "algorithm_family": "use_hyperband",
+          "label": "Hyperband multi-fidelity search",
+          "predicted_score": 6.922398480753302,
+          "n_selected_configs": 8,
+          "selected_configs": [
+            "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict",
+            "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=permissive",
+            "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=strict",
+            "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+            "er=embedding_0.7|norm=dictionary|unit=none|miss=median|coerce=llm",
+            "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive",
+            "er=embedding_0.9|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+            "er=embedding_0.7|norm=dictionary|unit=unit|miss=mean|coerce=llm"
+          ],
+          "wall_time_seconds": 1.7920101527124643e-06
+        },
+        {
+          "algorithm_family": "use_coordinate_descent",
+          "label": "Coordinate descent on config axes",
+          "predicted_score": 6.922398480753302,
+          "n_selected_configs": 8,
+          "selected_configs": [
+            "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict",
+            "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=permissive",
+            "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=strict",
+            "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+            "er=embedding_0.7|norm=dictionary|unit=none|miss=median|coerce=llm",
+            "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive",
+            "er=embedding_0.9|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+            "er=embedding_0.7|norm=dictionary|unit=unit|miss=mean|coerce=llm"
+          ],
+          "wall_time_seconds": 2.9999937396496534e-06
+        },
+        {
+          "algorithm_family": "use_ilp",
+          "label": "Integer linear programming assignment",
+          "predicted_score": 6.922398480753302,
+          "n_selected_configs": 8,
+          "selected_configs": [
+            "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict",
+            "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=permissive",
+            "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=strict",
+            "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+            "er=embedding_0.7|norm=dictionary|unit=none|miss=median|coerce=llm",
+            "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive",
+            "er=embedding_0.9|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+            "er=embedding_0.7|norm=dictionary|unit=unit|miss=mean|coerce=llm"
+          ],
+          "wall_time_seconds": 1.5419936971738935e-06
+        }
+      ],
+      "stage_summaries": {
+        "stage1": {
+          "diminishing_returns": {
+            "saturates_at_k": 8,
+            "total_configs": 8,
+            "saturated": true,
+            "marginal_gains": [
+              0.0,
+              0.6320023443478018,
+              0.0,
+              0.19271669108524048,
+              0.013678244234187176,
+              0.0,
+              0.01563227912478471,
+              0.14597044120798586
+            ],
+            "recommendation": "treat_greedy_as_heuristic"
+          },
+          "error_surface": {
+            "local_minima_count": 1,
+            "total_configs": 8,
+            "smooth": true,
+            "recommendation": "local_coord_methods_viable"
+          },
+          "module_ordering": {
+            "axis_effects": {
+              "er_strategy": {
+                "embedding_0.7": 0.855617323390296,
+                "embedding_0.9": 0.8462715517241379,
+                "embedding_0.8": 0.8491163793103449,
+                "llm": 0.9582697044334976
+              },
+              "norm_strategy": {
+                "dictionary": 0.8652998100941628
+              },
+              "unit_strategy": {
+                "none": 0.8709258444757213,
+                "unit": 0.825917569423253
+              },
+              "miss_strategy": {
+                "constant": 0.8746228448275862,
+                "mean": 0.8355773191943852,
+                "median": 0.8473060344827587,
+                "mode": 0.8491163793103449,
+                "llm": 0.9582697044334976
+              }
+            },
+            "variance_by_axis": {
+              "er_strategy": 0.0021958277934718898,
+              "norm_strategy": 0.0,
+              "unit_strategy": 0.00050643620579966,
+              "miss_strategy": 0.0019809236077630217
+            },
+            "ordering_sensitive": true,
+            "recommendation": "use_dag_or_optimize_order"
+          },
+          "interactions": {
+            "main_effect_r2": 0.0,
+            "interaction_r2": 0.0,
+            "interaction_ratio": 0.0,
+            "sparse": true,
+            "recommendation": "linear_surrogate_sufficient"
+          },
+          "probe_fidelity": {
+            "spearman_rho": 0.5294085400409783,
+            "top_k_recall": 1.0,
+            "best_proxy_regret": 0.04173029556650243,
+            "recommendation": "improve_sampling_or_skip_probes",
+            "score_spread": 0.13235213501024456
+          },
+          "clustering": {
+            "n_clusters": 3,
+            "cluster_sizes": [
+              9
+            ],
+            "purity": null,
+            "recommendation": "insufficient_data"
+          },
+          "routing_gap": {
+            "structural_top_configs": [
+              "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict",
+              "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=permissive",
+              "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=strict"
+            ],
+            "score_spread": 0.13235213501024456,
+            "mean_disagreement": 0.0,
+            "disagreement_above_threshold": false,
+            "recommendation": "co_optimize_routing"
+          },
+          "schema_ranking": {
+            "full_vs_numeric_rho": 1.0,
+            "full_vs_entity_rho": 1.0,
+            "min_rho": 1.0,
+            "schema_matters": false,
+            "recommendation": "flat_or_weaker_hierarchy"
+          },
+          "recommendations": {
+            "probe_viable": false,
+            "use_nonlinear": false,
+            "use_routing": true,
+            "use_clustering": false,
+            "schema_first": false,
+            "density_greedy_viable": false
+          }
+        },
+        "workload": {
+          "round": 2,
+          "workload_summary": {
+            "n_queries": 9,
+            "n_join_queries": 0,
+            "n_group_by_queries": 9,
+            "has_join": false,
+            "has_temporal": false,
+            "n_demand_columns": 13
+          },
+          "corpus_profile_summary": {
+            "n_profiled_columns": 13,
+            "mean_diversity_ratio": 0.1372,
+            "max_diversity_ratio": 1.0,
+            "mean_ambiguous_rate": 0.0231,
+            "feasibility_flags": 0
+          },
+          "probe_outcomes": {
+            "n_probed": 8,
+            "top_configs": [
+              {
+                "config_id": "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict",
+                "structural_score": 0.9583
+              },
+              {
+                "config_id": "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=permissive",
+                "structural_score": 0.8746
+              },
+              {
+                "config_id": "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=strict",
+                "structural_score": 0.8746
+              },
+              {
+                "config_id": "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+                "structural_score": 0.8491
+              },
+              {
+                "config_id": "er=embedding_0.7|norm=dictionary|unit=none|miss=median|coerce=llm",
+                "structural_score": 0.8473
+              }
+            ],
+            "score_spread": 0.1324,
+            "probe_token_cost": 37361
+          },
+          "stage1_summary": {
+            "recommendations": {
+              "probe_viable": false,
+              "use_nonlinear": false,
+              "use_routing": true,
+              "use_clustering": false,
+              "schema_first": false,
+              "density_greedy_viable": false
+            },
+            "diminishing_returns": "treat_greedy_as_heuristic",
+            "error_surface": "local_coord_methods_viable",
+            "interactions": "linear_surrogate_sufficient",
+            "probe_fidelity_rho": 0.5294085400409783,
+            "clustering": "insufficient_data",
+            "routing": "co_optimize_routing"
+          },
+          "solver_comparison_summary": [
+            {
+              "algorithm_family": "use_coordinate_descent",
+              "label": "Coordinate descent on config axes",
+              "predicted_score": 6.9224,
+              "n_selected_configs": 8,
+              "wall_time_seconds": 0.0
+            },
+            {
+              "algorithm_family": "use_clustered_routing",
+              "label": "Cluster-conditioned routing assignment",
+              "predicted_score": 3.8331,
+              "n_selected_configs": 1,
+              "wall_time_seconds": 0.0
+            }
+          ],
+          "budget": {
+            "total": 80000,
+            "spent": 40433,
+            "remaining": 39567
+          },
+          "prior_chosen_algorithm_family": "use_coordinate_descent",
+          "available_actions": [
+            "finalize",
+            "probe_more",
+            "use_bo_tpe",
+            "use_clustered_routing",
+            "use_coordinate_descent",
+            "use_greedy",
+            "use_hyperband",
+            "use_ilp"
+          ]
+        }
+      },
+      "audit_log": [
+        {
+          "round": 1,
+          "state": {
+            "round": 1,
+            "workload_summary": {
+              "n_queries": 9,
+              "n_join_queries": 0,
+              "n_group_by_queries": 9,
+              "has_join": false,
+              "has_temporal": false,
+              "n_demand_columns": 13
+            },
+            "corpus_profile_summary": {
+              "n_profiled_columns": 13,
+              "mean_diversity_ratio": 0.1372,
+              "max_diversity_ratio": 1.0,
+              "mean_ambiguous_rate": 0.0231,
+              "feasibility_flags": 0
+            },
+            "probe_outcomes": {
+              "n_probed": 8,
+              "top_configs": [
+                {
+                  "config_id": "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict",
+                  "structural_score": 0.9583
+                },
+                {
+                  "config_id": "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=permissive",
+                  "structural_score": 0.8746
+                },
+                {
+                  "config_id": "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=strict",
+                  "structural_score": 0.8746
+                },
+                {
+                  "config_id": "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+                  "structural_score": 0.8491
+                },
+                {
+                  "config_id": "er=embedding_0.7|norm=dictionary|unit=none|miss=median|coerce=llm",
+                  "structural_score": 0.8473
+                }
+              ],
+              "score_spread": 0.1324,
+              "probe_token_cost": 37361
+            },
+            "stage1_summary": {
+              "recommendations": {
+                "probe_viable": false,
+                "use_nonlinear": false,
+                "use_routing": true,
+                "use_clustering": false,
+                "schema_first": false,
+                "density_greedy_viable": false
+              },
+              "diminishing_returns": "treat_greedy_as_heuristic",
+              "error_surface": "local_coord_methods_viable",
+              "interactions": "linear_surrogate_sufficient",
+              "probe_fidelity_rho": 0.5294085400409783,
+              "clustering": "insufficient_data",
+              "routing": "co_optimize_routing"
+            },
+            "solver_comparison_summary": [],
+            "budget": {
+              "total": 80000,
+              "spent": 37361,
+              "remaining": 42639
+            },
+            "prior_chosen_algorithm_family": null,
+            "available_actions": [
+              "finalize",
+              "probe_more",
+              "use_bo_tpe",
+              "use_clustered_routing",
+              "use_coordinate_descent",
+              "use_greedy",
+              "use_hyperband",
+              "use_ilp"
+            ]
+          },
+          "decision": {
+            "action": "use_clustered_routing",
+            "rationale_code": "stage1_routing_gap",
+            "confidence": 0.8,
+            "expected_gain": 0.09,
+            "budget_impact": 0,
+            "observation": {}
+          },
+          "observation": {
+            "selected_configs": [
+              "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict"
+            ],
+            "predicted_score": 3.8330788177339903
+          }
+        },
+        {
+          "round": 2,
+          "state": {
+            "round": 2,
+            "workload_summary": {
+              "n_queries": 9,
+              "n_join_queries": 0,
+              "n_group_by_queries": 9,
+              "has_join": false,
+              "has_temporal": false,
+              "n_demand_columns": 13
+            },
+            "corpus_profile_summary": {
+              "n_profiled_columns": 13,
+              "mean_diversity_ratio": 0.1372,
+              "max_diversity_ratio": 1.0,
+              "mean_ambiguous_rate": 0.0231,
+              "feasibility_flags": 0
+            },
+            "probe_outcomes": {
+              "n_probed": 8,
+              "top_configs": [
+                {
+                  "config_id": "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict",
+                  "structural_score": 0.9583
+                },
+                {
+                  "config_id": "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=permissive",
+                  "structural_score": 0.8746
+                },
+                {
+                  "config_id": "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=strict",
+                  "structural_score": 0.8746
+                },
+                {
+                  "config_id": "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+                  "structural_score": 0.8491
+                },
+                {
+                  "config_id": "er=embedding_0.7|norm=dictionary|unit=none|miss=median|coerce=llm",
+                  "structural_score": 0.8473
+                }
+              ],
+              "score_spread": 0.1324,
+              "probe_token_cost": 37361
+            },
+            "stage1_summary": {
+              "recommendations": {
+                "probe_viable": false,
+                "use_nonlinear": false,
+                "use_routing": true,
+                "use_clustering": false,
+                "schema_first": false,
+                "density_greedy_viable": false
+              },
+              "diminishing_returns": "treat_greedy_as_heuristic",
+              "error_surface": "local_coord_methods_viable",
+              "interactions": "linear_surrogate_sufficient",
+              "probe_fidelity_rho": 0.5294085400409783,
+              "clustering": "insufficient_data",
+              "routing": "co_optimize_routing"
+            },
+            "solver_comparison_summary": [
+              {
+                "algorithm_family": "use_clustered_routing",
+                "label": "Cluster-conditioned routing assignment",
+                "predicted_score": 3.8331,
+                "n_selected_configs": 1,
+                "wall_time_seconds": 0.0
+              }
+            ],
+            "budget": {
+              "total": 80000,
+              "spent": 40433,
+              "remaining": 39567
+            },
+            "prior_chosen_algorithm_family": "use_clustered_routing",
+            "available_actions": [
+              "finalize",
+              "probe_more",
+              "use_bo_tpe",
+              "use_clustered_routing",
+              "use_coordinate_descent",
+              "use_greedy",
+              "use_hyperband",
+              "use_ilp"
+            ]
+          },
+          "decision": {
+            "action": "use_coordinate_descent",
+            "rationale_code": "smooth_local_surface",
+            "confidence": 0.72,
+            "expected_gain": 0.07,
+            "budget_impact": 0,
+            "observation": {}
+          },
+          "observation": {
+            "selected_configs": [
+              "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict",
+              "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=permissive",
+              "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=strict",
+              "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+              "er=embedding_0.7|norm=dictionary|unit=none|miss=median|coerce=llm",
+              "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive",
+              "er=embedding_0.9|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+              "er=embedding_0.7|norm=dictionary|unit=unit|miss=mean|coerce=llm"
+            ],
+            "predicted_score": 6.922398480753302
+          }
+        }
+      ],
+      "rounds": 2,
+      "selected_configs": [
+        "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict",
+        "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=permissive",
+        "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=strict",
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+        "er=embedding_0.7|norm=dictionary|unit=none|miss=median|coerce=llm",
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive",
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+        "er=embedding_0.7|norm=dictionary|unit=unit|miss=mean|coerce=llm"
+      ],
+      "final_routing": {
+        "mixed_queries_filter_agg_3": "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict",
+        "mixed_queries_filter_agg_5": "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict",
+        "mixed_queries_filter_agg_6": "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict",
+        "mixed_queries_filter_agg_player_1": "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict",
+        "mixed_queries_filter_agg_player_2": "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict",
+        "mixed_queries_filter_agg_player_3": "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict",
+        "mixed_queries_filter_agg_player_5": "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict",
+        "mixed_queries_filter_agg_player_6": "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict",
+        "mixed_subsample_2": "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict"
+      },
+      "probed_configs": [
+        {
+          "config_id": "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=permissive",
+          "pipe_config_id": "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=permissive",
+          "settings": {
+            "er": "embedding_0.7",
+            "norm": "dictionary",
+            "unit": "none",
+            "miss": "constant",
+            "coerce": "permissive"
+          },
+          "structural_score": 0.8746228448275862,
+          "mean_f1": null
+        },
+        {
+          "config_id": "er=embedding_0.9|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+          "pipe_config_id": "er=embedding_0.9|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+          "settings": {
+            "er": "embedding_0.9",
+            "norm": "dictionary",
+            "unit": "none",
+            "miss": "mean",
+            "coerce": "permissive"
+          },
+          "structural_score": 0.8452370689655173,
+          "mean_f1": null
+        },
+        {
+          "config_id": "er=embedding_0.7|norm=dictionary|unit=none|miss=median|coerce=llm",
+          "pipe_config_id": "er=embedding_0.7|norm=dictionary|unit=none|miss=median|coerce=llm",
+          "settings": {
+            "er": "embedding_0.7",
+            "norm": "dictionary",
+            "unit": "none",
+            "miss": "median",
+            "coerce": "llm"
+          },
+          "structural_score": 0.8473060344827587,
+          "mean_f1": null
+        },
+        {
+          "config_id": "er=embedding_0.7|norm=dictionary|unit=unit|miss=mean|coerce=llm",
+          "pipe_config_id": "er=embedding_0.7|norm=dictionary|unit=unit|miss=mean|coerce=llm",
+          "settings": {
+            "er": "embedding_0.7",
+            "norm": "dictionary",
+            "unit": "unit",
+            "miss": "mean",
+            "coerce": "llm"
+          },
+          "structural_score": 0.825917569423253,
+          "mean_f1": null
+        },
+        {
+          "config_id": "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=strict",
+          "pipe_config_id": "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=strict",
+          "settings": {
+            "er": "embedding_0.7",
+            "norm": "dictionary",
+            "unit": "none",
+            "miss": "constant",
+            "coerce": "strict"
+          },
+          "structural_score": 0.8746228448275862,
+          "mean_f1": null
+        },
+        {
+          "config_id": "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive",
+          "pipe_config_id": "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive",
+          "settings": {
+            "er": "embedding_0.9",
+            "norm": "dictionary",
+            "unit": "none",
+            "miss": "median",
+            "coerce": "permissive"
+          },
+          "structural_score": 0.8473060344827587,
+          "mean_f1": null
+        },
+        {
+          "config_id": "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+          "pipe_config_id": "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+          "settings": {
+            "er": "embedding_0.8",
+            "norm": "dictionary",
+            "unit": "none",
+            "miss": "mode",
+            "coerce": "strict"
+          },
+          "structural_score": 0.8491163793103449,
+          "mean_f1": null
+        },
+        {
+          "config_id": "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict",
+          "pipe_config_id": "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict",
+          "settings": {
+            "er": "llm",
+            "norm": "dictionary",
+            "unit": "none",
+            "miss": "llm",
+            "coerce": "strict"
+          },
+          "structural_score": 0.9582697044334976,
+          "mean_f1": null
+        }
+      ],
+      "budget_summary": {
+        "total": 80000,
+        "spent": 40433,
+        "remaining": 39567
+      },
+      "diagnostics": {
+        "glass_box_composites": {
+          "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=permissive": 0.8304148706896551,
+          "er=embedding_0.9|norm=dictionary|unit=none|miss=mean|coerce=permissive": 0.8137392241379311,
+          "er=embedding_0.7|norm=dictionary|unit=none|miss=median|coerce=llm": 0.8154633620689655,
+          "er=embedding_0.7|norm=dictionary|unit=unit|miss=mean|coerce=llm": 0.7891588152273421,
+          "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=strict": 0.8304148706896551,
+          "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 0.8154633620689655,
+          "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 0.8169719827586207,
+          "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict": 0.9732604679802955
+        },
+        "btl_scores": {
+          "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=permissive": 0.0,
+          "er=embedding_0.9|norm=dictionary|unit=none|miss=mean|coerce=permissive": 0.0,
+          "er=embedding_0.7|norm=dictionary|unit=none|miss=median|coerce=llm": 0.0,
+          "er=embedding_0.7|norm=dictionary|unit=unit|miss=mean|coerce=llm": 0.0,
+          "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=strict": 0.0,
+          "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 0.0,
+          "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 0.0,
+          "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict": 0.0
+        },
+        "structural_scores": {
+          "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=permissive": 0.8746228448275862,
+          "er=embedding_0.9|norm=dictionary|unit=none|miss=mean|coerce=permissive": 0.8452370689655173,
+          "er=embedding_0.7|norm=dictionary|unit=none|miss=median|coerce=llm": 0.8473060344827587,
+          "er=embedding_0.7|norm=dictionary|unit=unit|miss=mean|coerce=llm": 0.825917569423253,
+          "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=strict": 0.8746228448275862,
+          "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 0.8473060344827587,
+          "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 0.8491163793103449,
+          "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict": 0.9582697044334976
+        }
+      },
+      "catalog_id_to_pipe": {
+        "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=permissive": "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=permissive",
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=mean|coerce=permissive": "er=embedding_0.9|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+        "er=embedding_0.7|norm=dictionary|unit=none|miss=median|coerce=llm": "er=embedding_0.7|norm=dictionary|unit=none|miss=median|coerce=llm",
+        "er=embedding_0.7|norm=dictionary|unit=unit|miss=mean|coerce=llm": "er=embedding_0.7|norm=dictionary|unit=unit|miss=mean|coerce=llm",
+        "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=strict": "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=strict",
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive",
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+        "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict": "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict"
+      }
+    },
+    "agg_join": {
+      "agent_mode": "meta_controller",
+      "algorithm_stack": {
+        "summary": "Composite meta-policy: Stage 1 characterizes the workload, Stage 2 picks a surrogate per query cluster, Stage 3 compares selection algorithms (greedy, BO/TPE, hyperband, coordinate descent, ILP, clustered routing), Stage 4 gates architecture components, then the chosen selector deploys pipeline configs.",
+        "stage1_characterization": {
+          "analyses": {
+            "diminishing_returns": "treat_greedy_as_heuristic",
+            "error_surface": "include_bo_sa_evo",
+            "module_ordering": "use_dag_or_optimize_order",
+            "interactions": "linear_surrogate_sufficient",
+            "probe_fidelity": "improve_sampling_or_skip_probes",
+            "clustering": "insufficient_data",
+            "routing_gap": "co_optimize_routing",
+            "schema_ranking": "flat_or_weaker_hierarchy"
+          },
+          "recommendations": {
+            "probe_viable": false,
+            "use_nonlinear": false,
+            "use_routing": true,
+            "use_clustering": false,
+            "schema_first": false,
+            "density_greedy_viable": false
+          },
+          "probe_fidelity_rho": 0.3225353394731205
+        },
+        "stage2_surrogate_selection": {
+          "evidence": "structural_probe_scores",
+          "global_chosen_surrogate": "gbdt_proxy_glass",
+          "global_surrogate_ranking": [
+            {
+              "name": "gbdt_proxy_glass",
+              "spearman_rho": 0.0714,
+              "top_k_recall": 0.6667,
+              "mean_regret": 0.013919
+            },
+            {
+              "name": "structural_probe_ranking",
+              "spearman_rho": 0.0,
+              "top_k_recall": 0.3333,
+              "mean_regret": 0.001257
+            },
+            {
+              "name": "linear_proxy_glass",
+              "spearman_rho": -0.0714,
+              "top_k_recall": 0.0,
+              "mean_regret": 0.007539
+            },
+            {
+              "name": "rf_proxy_glass",
+              "spearman_rho": -0.5952,
+              "top_k_recall": 0.0,
+              "mean_regret": 0.005026
+            }
+          ],
+          "per_cluster": {
+            "0": {
+              "cluster_type": "join",
+              "n_queries": 1,
+              "chosen_surrogate": "structural_probe_ranking",
+              "surrogate_ranking": [
+                {
+                  "name": "structural_probe_ranking",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 1.0,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "linear_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.3333,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "rf_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.3333,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "gbdt_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.3333,
+                  "mean_regret": 0.0
+                }
+              ]
+            }
+          },
+          "cluster_surrogate_map": {
+            "0": "structural_probe_ranking"
+          }
+        },
+        "stage3_config_selection": {
+          "agent_chosen_algorithm_id": "use_clustered_routing",
+          "agent_chosen_algorithm_name": "Cluster-conditioned routing assignment",
+          "stage3_engine": null,
+          "selection_rationale": "finalize|prior=use_clustered_routing",
+          "algorithms_tried_by_agent": [
+            {
+              "algorithm_id": "use_clustered_routing",
+              "algorithm_name": "Cluster-conditioned routing assignment",
+              "stage3_engine": null,
+              "predicted_score": 0.9068,
+              "n_configs_selected": 1,
+              "selected_by_agent": true
+            }
+          ],
+          "all_selection_algorithms_benchmarked": [
+            {
+              "algorithm_id": "use_greedy",
+              "algorithm_name": "Greedy ranking under budget",
+              "stage3_engine": "greedy",
+              "predicted_score": 1.8036,
+              "n_configs_selected": 2,
+              "selected_by_agent": false
+            },
+            {
+              "algorithm_id": "use_hyperband",
+              "algorithm_name": "Hyperband multi-fidelity search",
+              "stage3_engine": "hyperband",
+              "predicted_score": 1.8036,
+              "n_configs_selected": 2,
+              "selected_by_agent": false
+            },
+            {
+              "algorithm_id": "use_ilp",
+              "algorithm_name": "Integer linear programming assignment",
+              "stage3_engine": "ilp",
+              "predicted_score": 1.8036,
+              "n_configs_selected": 2,
+              "selected_by_agent": false
+            },
+            {
+              "algorithm_id": "use_bo_tpe",
+              "algorithm_name": "Bayesian optimization / TPE search",
+              "stage3_engine": "bayesian_opt",
+              "predicted_score": 1.7825,
+              "n_configs_selected": 2,
+              "selected_by_agent": false
+            },
+            {
+              "algorithm_id": "use_coordinate_descent",
+              "algorithm_name": "Coordinate descent on config axes",
+              "stage3_engine": "coord_descent",
+              "predicted_score": 1.7811,
+              "n_configs_selected": 2,
+              "selected_by_agent": false
+            }
+          ]
+        },
+        "stage4_architecture": {
+          "active_components": [
+            "surrogate",
+            "extraction_reuse",
+            "recalibration",
+            "routing",
+            "flat_vs_hier",
+            "cluster_refinement"
+          ],
+          "component_decisions": [
+            {
+              "component": "surrogate",
+              "retained": false,
+              "reason": "stage1_probe_not_viable"
+            },
+            {
+              "component": "extraction_reuse",
+              "retained": true,
+              "reason": "default_retained"
+            },
+            {
+              "component": "recalibration",
+              "retained": true,
+              "reason": "default_retained"
+            },
+            {
+              "component": "routing",
+              "retained": true,
+              "reason": "stage1_routing_gap"
+            },
+            {
+              "component": "flat_vs_hier",
+              "retained": true,
+              "reason": "default_retained"
+            },
+            {
+              "component": "query_clustering",
+              "retained": false,
+              "reason": "stage1_clustering_insufficient"
+            },
+            {
+              "component": "schema_pruning",
+              "retained": false,
+              "reason": "stage1_flat_hierarchy"
+            },
+            {
+              "component": "cluster_refinement",
+              "retained": true,
+              "reason": "default_retained"
+            }
+          ]
+        },
+        "deployment": {
+          "n_query_clusters": 1,
+          "cluster_types": {
+            "0": "join"
+          },
+          "cluster_labels": [
+            0
+          ],
+          "selected_pipeline_configs": [
+            "er=embedding_0.7|norm=dictionary|unit=none|miss=llm|coerce=llm"
+          ],
+          "cluster_to_pipeline_config": {
+            "0": "er=embedding_0.7|norm=dictionary|unit=none|miss=llm|coerce=llm"
+          },
+          "query_to_pipeline_config": {
+            "mixed_queries_agg_join_1": "er=embedding_0.7|norm=dictionary|unit=none|miss=llm|coerce=llm"
+          }
+        },
+        "decision_action_history": [
+          {
+            "round": 1,
+            "action": "use_clustered_routing",
+            "rationale_code": "stage1_routing_gap",
+            "confidence": 0.8,
+            "expected_gain": 0.09,
+            "budget_impact": 0
+          }
+        ]
+      },
+      "chosen_algorithm_family": "use_clustered_routing",
+      "selection_rationale": "finalize|prior=use_clustered_routing",
+      "solver_comparison": [
+        {
+          "algorithm_family": "use_clustered_routing",
+          "predicted_score": 0.9068411330049261,
+          "selected_configs": [
+            "er=embedding_0.7|norm=dictionary|unit=none|miss=llm|coerce=llm"
+          ],
+          "wall_time_seconds": 0.0
+        }
+      ],
+      "baseline_comparison": [
+        {
+          "algorithm_family": "use_greedy",
+          "label": "Greedy ranking under budget",
+          "predicted_score": 1.8036299261083744,
+          "n_selected_configs": 2,
+          "selected_configs": [
+            "er=embedding_0.7|norm=dictionary|unit=none|miss=llm|coerce=llm",
+            "er=llm|norm=dictionary|unit=none|miss=median|coerce=permissive"
+          ],
+          "wall_time_seconds": 3.374996595084667e-06
+        },
+        {
+          "algorithm_family": "use_hyperband",
+          "label": "Hyperband multi-fidelity search",
+          "predicted_score": 1.8036299261083744,
+          "n_selected_configs": 2,
+          "selected_configs": [
+            "er=embedding_0.7|norm=dictionary|unit=none|miss=llm|coerce=llm",
+            "er=llm|norm=dictionary|unit=none|miss=median|coerce=permissive"
+          ],
+          "wall_time_seconds": 3.629199636634439e-05
+        },
+        {
+          "algorithm_family": "use_ilp",
+          "label": "Integer linear programming assignment",
+          "predicted_score": 1.8036299261083744,
+          "n_selected_configs": 2,
+          "selected_configs": [
+            "er=llm|norm=dictionary|unit=none|miss=median|coerce=permissive",
+            "er=embedding_0.7|norm=dictionary|unit=none|miss=llm|coerce=llm"
+          ],
+          "wall_time_seconds": 0.030690875006257556
+        },
+        {
+          "algorithm_family": "use_bo_tpe",
+          "label": "Bayesian optimization / TPE search",
+          "predicted_score": 1.7824984605911331,
+          "n_selected_configs": 2,
+          "selected_configs": [
+            "er=embedding_0.7|norm=dictionary|unit=none|miss=llm|coerce=llm",
+            "er=embedding_0.9|norm=dictionary|unit=none|miss=constant|coerce=llm"
+          ],
+          "wall_time_seconds": 0.026822290994459763
+        },
+        {
+          "algorithm_family": "use_coordinate_descent",
+          "label": "Coordinate descent on config axes",
+          "predicted_score": 1.7810698891625616,
+          "n_selected_configs": 2,
+          "selected_configs": [
+            "er=embedding_0.7|norm=dictionary|unit=none|miss=llm|coerce=llm",
+            "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=llm"
+          ],
+          "wall_time_seconds": 6.612500874325633e-05
+        }
+      ],
+      "stage_summaries": {
+        "stage1": {
+          "diminishing_returns": {
+            "saturates_at_k": 8,
+            "total_configs": 8,
+            "saturated": true,
+            "marginal_gains": [
+              0.0,
+              0.12466652389656105,
+              0.26206697910078014,
+              0.017716773993263435,
+              0.30822986650995227,
+              0.04490285822430462,
+              0.004887385929175814,
+              0.2375296123459627
+            ],
+            "recommendation": "treat_greedy_as_heuristic"
+          },
+          "error_surface": {
+            "local_minima_count": 3,
+            "total_configs": 8,
+            "smooth": false,
+            "recommendation": "include_bo_sa_evo"
+          },
+          "module_ordering": {
+            "axis_effects": {
+              "er_strategy": {
+                "embedding_0.7": 0.8631593522435211,
+                "embedding_0.9": 0.8569288793103449,
+                "llm": 0.8967887931034483
+              },
+              "norm_strategy": {
+                "dictionary": 0.8650266050010709
+              },
+              "unit_strategy": {
+                "unit": 0.826207298136646,
+                "none": 0.8705722202674174
+              },
+              "miss_strategy": {
+                "mode": 0.837791149068323,
+                "constant": 0.8749430418719213,
+                "median": 0.8710745073891626,
+                "mean": 0.8457543103448276,
+                "llm": 0.9068411330049261
+              }
+            },
+            "variance_by_axis": {
+              "er_strategy": 0.00030650786812400137,
+              "norm_strategy": 0.0,
+              "unit_strategy": 0.0004920615789173542,
+              "miss_strategy": 0.0005942302765322887
+            },
+            "ordering_sensitive": true,
+            "recommendation": "use_dag_or_optimize_order"
+          },
+          "interactions": {
+            "main_effect_r2": 0.0,
+            "interaction_r2": 0.0,
+            "interaction_ratio": 0.0,
+            "sparse": true,
+            "recommendation": "linear_surrogate_sufficient"
+          },
+          "probe_fidelity": {
+            "spearman_rho": 0.3225353394731205,
+            "top_k_recall": 1.0,
+            "best_proxy_regret": 0.09315886699507392,
+            "recommendation": "improve_sampling_or_skip_probes",
+            "score_spread": 0.08063383486828013
+          },
+          "clustering": {
+            "n_clusters": 1,
+            "cluster_sizes": [
+              1
+            ],
+            "purity": null,
+            "recommendation": "insufficient_data"
+          },
+          "routing_gap": {
+            "structural_top_configs": [
+              "er=embedding_0.7|norm=dictionary|unit=none|miss=llm|coerce=llm",
+              "er=llm|norm=dictionary|unit=none|miss=median|coerce=permissive",
+              "er=embedding_0.9|norm=dictionary|unit=none|miss=constant|coerce=llm"
+            ],
+            "score_spread": 0.08063383486828013,
+            "mean_disagreement": 0.0,
+            "disagreement_above_threshold": false,
+            "recommendation": "co_optimize_routing"
+          },
+          "schema_ranking": {
+            "full_vs_numeric_rho": 0.8095238095238096,
+            "full_vs_entity_rho": 1.0,
+            "min_rho": 0.8095238095238096,
+            "schema_matters": false,
+            "recommendation": "flat_or_weaker_hierarchy"
+          },
+          "recommendations": {
+            "probe_viable": false,
+            "use_nonlinear": false,
+            "use_routing": true,
+            "use_clustering": false,
+            "schema_first": false,
+            "density_greedy_viable": false
+          }
+        },
+        "workload": {
+          "round": 1,
+          "workload_summary": {
+            "n_queries": 1,
+            "n_join_queries": 1,
+            "n_group_by_queries": 1,
+            "has_join": true,
+            "has_temporal": false,
+            "n_demand_columns": 4
+          },
+          "corpus_profile_summary": {
+            "n_profiled_columns": 4,
+            "mean_diversity_ratio": 0.6,
+            "max_diversity_ratio": 1.0,
+            "mean_ambiguous_rate": 0.325,
+            "feasibility_flags": 3
+          },
+          "probe_outcomes": {
+            "n_probed": 8,
+            "top_configs": [
+              {
+                "config_id": "er=embedding_0.7|norm=dictionary|unit=none|miss=llm|coerce=llm",
+                "structural_score": 0.9068
+              },
+              {
+                "config_id": "er=llm|norm=dictionary|unit=none|miss=median|coerce=permissive",
+                "structural_score": 0.8968
+              },
+              {
+                "config_id": "er=embedding_0.9|norm=dictionary|unit=none|miss=constant|coerce=llm",
+                "structural_score": 0.8757
+              },
+              {
+                "config_id": "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=llm",
+                "structural_score": 0.8742
+              },
+              {
+                "config_id": "er=embedding_0.9|norm=dictionary|unit=none|miss=mode|coerce=llm",
+                "structural_score": 0.8494
+              }
+            ],
+            "score_spread": 0.0806,
+            "probe_token_cost": 36931
+          },
+          "stage1_summary": {
+            "recommendations": {
+              "probe_viable": false,
+              "use_nonlinear": false,
+              "use_routing": true,
+              "use_clustering": false,
+              "schema_first": false,
+              "density_greedy_viable": false
+            },
+            "diminishing_returns": "treat_greedy_as_heuristic",
+            "error_surface": "include_bo_sa_evo",
+            "interactions": "linear_surrogate_sufficient",
+            "probe_fidelity_rho": 0.3225353394731205,
+            "clustering": "insufficient_data",
+            "routing": "co_optimize_routing"
+          },
+          "solver_comparison_summary": [
+            {
+              "algorithm_family": "use_clustered_routing",
+              "label": "Cluster-conditioned routing assignment",
+              "predicted_score": 0.9068,
+              "n_selected_configs": 1,
+              "wall_time_seconds": 0.0
+            }
+          ],
+          "budget": {
+            "total": 80000,
+            "spent": 40003,
+            "remaining": 39997
+          },
+          "prior_chosen_algorithm_family": "use_clustered_routing",
+          "available_actions": [
+            "finalize",
+            "probe_more",
+            "use_bo_tpe",
+            "use_clustered_routing",
+            "use_coordinate_descent",
+            "use_greedy",
+            "use_hyperband",
+            "use_ilp"
+          ]
+        }
+      },
+      "audit_log": [
+        {
+          "round": 1,
+          "state": {
+            "round": 1,
+            "workload_summary": {
+              "n_queries": 1,
+              "n_join_queries": 1,
+              "n_group_by_queries": 1,
+              "has_join": true,
+              "has_temporal": false,
+              "n_demand_columns": 4
+            },
+            "corpus_profile_summary": {
+              "n_profiled_columns": 4,
+              "mean_diversity_ratio": 0.6,
+              "max_diversity_ratio": 1.0,
+              "mean_ambiguous_rate": 0.325,
+              "feasibility_flags": 3
+            },
+            "probe_outcomes": {
+              "n_probed": 8,
+              "top_configs": [
+                {
+                  "config_id": "er=embedding_0.7|norm=dictionary|unit=none|miss=llm|coerce=llm",
+                  "structural_score": 0.9068
+                },
+                {
+                  "config_id": "er=llm|norm=dictionary|unit=none|miss=median|coerce=permissive",
+                  "structural_score": 0.8968
+                },
+                {
+                  "config_id": "er=embedding_0.9|norm=dictionary|unit=none|miss=constant|coerce=llm",
+                  "structural_score": 0.8757
+                },
+                {
+                  "config_id": "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=llm",
+                  "structural_score": 0.8742
+                },
+                {
+                  "config_id": "er=embedding_0.9|norm=dictionary|unit=none|miss=mode|coerce=llm",
+                  "structural_score": 0.8494
+                }
+              ],
+              "score_spread": 0.0806,
+              "probe_token_cost": 36931
+            },
+            "stage1_summary": {
+              "recommendations": {
+                "probe_viable": false,
+                "use_nonlinear": false,
+                "use_routing": true,
+                "use_clustering": false,
+                "schema_first": false,
+                "density_greedy_viable": false
+              },
+              "diminishing_returns": "treat_greedy_as_heuristic",
+              "error_surface": "include_bo_sa_evo",
+              "interactions": "linear_surrogate_sufficient",
+              "probe_fidelity_rho": 0.3225353394731205,
+              "clustering": "insufficient_data",
+              "routing": "co_optimize_routing"
+            },
+            "solver_comparison_summary": [],
+            "budget": {
+              "total": 80000,
+              "spent": 36931,
+              "remaining": 43069
+            },
+            "prior_chosen_algorithm_family": null,
+            "available_actions": [
+              "finalize",
+              "probe_more",
+              "use_bo_tpe",
+              "use_clustered_routing",
+              "use_coordinate_descent",
+              "use_greedy",
+              "use_hyperband",
+              "use_ilp"
+            ]
+          },
+          "decision": {
+            "action": "use_clustered_routing",
+            "rationale_code": "stage1_routing_gap",
+            "confidence": 0.8,
+            "expected_gain": 0.09,
+            "budget_impact": 0,
+            "observation": {}
+          },
+          "observation": {
+            "selected_configs": [
+              "er=embedding_0.7|norm=dictionary|unit=none|miss=llm|coerce=llm"
+            ],
+            "predicted_score": 0.9068411330049261
+          }
+        }
+      ],
+      "rounds": 1,
+      "selected_configs": [
+        "er=embedding_0.7|norm=dictionary|unit=none|miss=llm|coerce=llm"
+      ],
+      "final_routing": {
+        "mixed_queries_agg_join_1": "er=embedding_0.7|norm=dictionary|unit=none|miss=llm|coerce=llm"
+      },
+      "probed_configs": [
+        {
+          "config_id": "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=strict",
+          "pipe_config_id": "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=strict",
+          "settings": {
+            "er": "embedding_0.7",
+            "norm": "dictionary",
+            "unit": "unit",
+            "miss": "mode",
+            "coerce": "strict"
+          },
+          "structural_score": 0.826207298136646,
+          "mean_f1": null
+        },
+        {
+          "config_id": "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=llm",
+          "pipe_config_id": "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=llm",
+          "settings": {
+            "er": "embedding_0.7",
+            "norm": "dictionary",
+            "unit": "none",
+            "miss": "constant",
+            "coerce": "llm"
+          },
+          "structural_score": 0.8742287561576355,
+          "mean_f1": null
+        },
+        {
+          "config_id": "er=embedding_0.9|norm=dictionary|unit=none|miss=constant|coerce=llm",
+          "pipe_config_id": "er=embedding_0.9|norm=dictionary|unit=none|miss=constant|coerce=llm",
+          "settings": {
+            "er": "embedding_0.9",
+            "norm": "dictionary",
+            "unit": "none",
+            "miss": "constant",
+            "coerce": "llm"
+          },
+          "structural_score": 0.875657327586207,
+          "mean_f1": null
+        },
+        {
+          "config_id": "er=embedding_0.9|norm=dictionary|unit=none|miss=mode|coerce=llm",
+          "pipe_config_id": "er=embedding_0.9|norm=dictionary|unit=none|miss=mode|coerce=llm",
+          "settings": {
+            "er": "embedding_0.9",
+            "norm": "dictionary",
+            "unit": "none",
+            "miss": "mode",
+            "coerce": "llm"
+          },
+          "structural_score": 0.849375,
+          "mean_f1": null
+        },
+        {
+          "config_id": "er=embedding_0.7|norm=dictionary|unit=none|miss=median|coerce=permissive",
+          "pipe_config_id": "er=embedding_0.7|norm=dictionary|unit=none|miss=median|coerce=permissive",
+          "settings": {
+            "er": "embedding_0.7",
+            "norm": "dictionary",
+            "unit": "none",
+            "miss": "median",
+            "coerce": "permissive"
+          },
+          "structural_score": 0.8453602216748769,
+          "mean_f1": null
+        },
+        {
+          "config_id": "er=embedding_0.9|norm=dictionary|unit=none|miss=mean|coerce=strict",
+          "pipe_config_id": "er=embedding_0.9|norm=dictionary|unit=none|miss=mean|coerce=strict",
+          "settings": {
+            "er": "embedding_0.9",
+            "norm": "dictionary",
+            "unit": "none",
+            "miss": "mean",
+            "coerce": "strict"
+          },
+          "structural_score": 0.8457543103448276,
+          "mean_f1": null
+        },
+        {
+          "config_id": "er=llm|norm=dictionary|unit=none|miss=median|coerce=permissive",
+          "pipe_config_id": "er=llm|norm=dictionary|unit=none|miss=median|coerce=permissive",
+          "settings": {
+            "er": "llm",
+            "norm": "dictionary",
+            "unit": "none",
+            "miss": "median",
+            "coerce": "permissive"
+          },
+          "structural_score": 0.8967887931034483,
+          "mean_f1": null
+        },
+        {
+          "config_id": "er=embedding_0.7|norm=dictionary|unit=none|miss=llm|coerce=llm",
+          "pipe_config_id": "er=embedding_0.7|norm=dictionary|unit=none|miss=llm|coerce=llm",
+          "settings": {
+            "er": "embedding_0.7",
+            "norm": "dictionary",
+            "unit": "none",
+            "miss": "llm",
+            "coerce": "llm"
+          },
+          "structural_score": 0.9068411330049261,
+          "mean_f1": null
+        }
+      ],
+      "budget_summary": {
+        "total": 80000,
+        "spent": 40003,
+        "remaining": 39997
+      },
+      "diagnostics": {
+        "glass_box_composites": {
+          "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=strict": 0.7864421583850931,
+          "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=llm": 0.8277055110837438,
+          "er=embedding_0.9|norm=dictionary|unit=none|miss=constant|coerce=llm": 0.8312769396551725,
+          "er=embedding_0.9|norm=dictionary|unit=none|miss=mode|coerce=llm": 0.8171875,
+          "er=embedding_0.7|norm=dictionary|unit=none|miss=median|coerce=permissive": 0.8114608990147784,
+          "er=embedding_0.9|norm=dictionary|unit=none|miss=mean|coerce=strict": 0.8141702586206897,
+          "er=llm|norm=dictionary|unit=none|miss=median|coerce=permissive": 0.9400323275862069,
+          "er=embedding_0.7|norm=dictionary|unit=none|miss=llm|coerce=llm": 0.844689039408867
+        },
+        "btl_scores": {
+          "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=strict": 0.0,
+          "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=llm": 0.0,
+          "er=embedding_0.9|norm=dictionary|unit=none|miss=constant|coerce=llm": 0.0,
+          "er=embedding_0.9|norm=dictionary|unit=none|miss=mode|coerce=llm": 0.0,
+          "er=embedding_0.7|norm=dictionary|unit=none|miss=median|coerce=permissive": 0.0,
+          "er=embedding_0.9|norm=dictionary|unit=none|miss=mean|coerce=strict": 0.0,
+          "er=llm|norm=dictionary|unit=none|miss=median|coerce=permissive": 0.0,
+          "er=embedding_0.7|norm=dictionary|unit=none|miss=llm|coerce=llm": 0.0
+        },
+        "structural_scores": {
+          "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=strict": 0.826207298136646,
+          "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=llm": 0.8742287561576355,
+          "er=embedding_0.9|norm=dictionary|unit=none|miss=constant|coerce=llm": 0.875657327586207,
+          "er=embedding_0.9|norm=dictionary|unit=none|miss=mode|coerce=llm": 0.849375,
+          "er=embedding_0.7|norm=dictionary|unit=none|miss=median|coerce=permissive": 0.8453602216748769,
+          "er=embedding_0.9|norm=dictionary|unit=none|miss=mean|coerce=strict": 0.8457543103448276,
+          "er=llm|norm=dictionary|unit=none|miss=median|coerce=permissive": 0.8967887931034483,
+          "er=embedding_0.7|norm=dictionary|unit=none|miss=llm|coerce=llm": 0.9068411330049261
+        }
+      },
+      "catalog_id_to_pipe": {
+        "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=strict": "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=strict",
+        "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=llm": "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=llm",
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=constant|coerce=llm": "er=embedding_0.9|norm=dictionary|unit=none|miss=constant|coerce=llm",
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=mode|coerce=llm": "er=embedding_0.9|norm=dictionary|unit=none|miss=mode|coerce=llm",
+        "er=embedding_0.7|norm=dictionary|unit=none|miss=median|coerce=permissive": "er=embedding_0.7|norm=dictionary|unit=none|miss=median|coerce=permissive",
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=mean|coerce=strict": "er=embedding_0.9|norm=dictionary|unit=none|miss=mean|coerce=strict",
+        "er=llm|norm=dictionary|unit=none|miss=median|coerce=permissive": "er=llm|norm=dictionary|unit=none|miss=median|coerce=permissive",
+        "er=embedding_0.7|norm=dictionary|unit=none|miss=llm|coerce=llm": "er=embedding_0.7|norm=dictionary|unit=none|miss=llm|coerce=llm"
+      }
+    },
+    "agg_filter_join": {
+      "agent_mode": "meta_controller",
+      "algorithm_stack": {
+        "summary": "Composite meta-policy: Stage 1 characterizes the workload, Stage 2 picks a surrogate per query cluster, Stage 3 compares selection algorithms (greedy, BO/TPE, hyperband, coordinate descent, ILP, clustered routing), Stage 4 gates architecture components, then the chosen selector deploys pipeline configs.",
+        "stage1_characterization": {
+          "analyses": {
+            "diminishing_returns": "treat_greedy_as_heuristic",
+            "error_surface": "local_coord_methods_viable",
+            "module_ordering": "use_dag_or_optimize_order",
+            "interactions": "linear_surrogate_sufficient",
+            "probe_fidelity": "improve_sampling_or_skip_probes",
+            "clustering": "insufficient_data",
+            "routing_gap": "co_optimize_routing",
+            "schema_ranking": "flat_or_weaker_hierarchy"
+          },
+          "recommendations": {
+            "probe_viable": false,
+            "use_nonlinear": false,
+            "use_routing": true,
+            "use_clustering": false,
+            "schema_first": false,
+            "density_greedy_viable": false
+          },
+          "probe_fidelity_rho": 0.2612637362637362
+        },
+        "stage2_surrogate_selection": {
+          "evidence": "structural_probe_scores",
+          "global_chosen_surrogate": "structural_probe_ranking",
+          "global_surrogate_ranking": [
+            {
+              "name": "structural_probe_ranking",
+              "spearman_rho": 0.0,
+              "top_k_recall": 0.3333,
+              "mean_regret": 0.000112
+            },
+            {
+              "name": "rf_proxy_glass",
+              "spearman_rho": -0.0482,
+              "top_k_recall": 0.6667,
+              "mean_regret": 0.000893
+            },
+            {
+              "name": "linear_proxy_glass",
+              "spearman_rho": -0.0602,
+              "top_k_recall": 0.6667,
+              "mean_regret": 0.000112
+            },
+            {
+              "name": "gbdt_proxy_glass",
+              "spearman_rho": -0.2048,
+              "top_k_recall": 0.6667,
+              "mean_regret": 0.000223
+            }
+          ],
+          "per_cluster": {
+            "0": {
+              "cluster_type": "join",
+              "n_queries": 3,
+              "chosen_surrogate": "structural_probe_ranking",
+              "surrogate_ranking": [
+                {
+                  "name": "structural_probe_ranking",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 1.0,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "linear_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.0,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "rf_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.0,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "gbdt_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.0,
+                  "mean_regret": 0.0
+                }
+              ]
+            },
+            "1": {
+              "cluster_type": "join",
+              "n_queries": 1,
+              "chosen_surrogate": "structural_probe_ranking",
+              "surrogate_ranking": [
+                {
+                  "name": "structural_probe_ranking",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 1.0,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "linear_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.0,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "rf_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.0,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "gbdt_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.0,
+                  "mean_regret": 0.0
+                }
+              ]
+            },
+            "2": {
+              "cluster_type": "join",
+              "n_queries": 0,
+              "chosen_surrogate": "structural_probe_ranking",
+              "surrogate_ranking": [
+                {
+                  "name": "structural_probe_ranking",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 1.0,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "linear_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.0,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "rf_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.0,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "gbdt_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.0,
+                  "mean_regret": 0.0
+                }
+              ]
+            },
+            "3": {
+              "cluster_type": "join",
+              "n_queries": 0,
+              "chosen_surrogate": "structural_probe_ranking",
+              "surrogate_ranking": [
+                {
+                  "name": "structural_probe_ranking",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 1.0,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "linear_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.0,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "rf_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.0,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "gbdt_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.0,
+                  "mean_regret": 0.0
+                }
+              ]
+            }
+          },
+          "cluster_surrogate_map": {
+            "0": "structural_probe_ranking",
+            "1": "structural_probe_ranking",
+            "2": "structural_probe_ranking",
+            "3": "structural_probe_ranking"
+          }
+        },
+        "stage3_config_selection": {
+          "agent_chosen_algorithm_id": "use_coordinate_descent",
+          "agent_chosen_algorithm_name": "Coordinate descent on config axes",
+          "stage3_engine": "coord_descent",
+          "selection_rationale": "clear_solver_winner|use_coordinate_descent",
+          "algorithms_tried_by_agent": [
+            {
+              "algorithm_id": "use_coordinate_descent",
+              "algorithm_name": "Coordinate descent on config axes",
+              "stage3_engine": "coord_descent",
+              "predicted_score": 7.0034,
+              "n_configs_selected": 8,
+              "selected_by_agent": true
+            },
+            {
+              "algorithm_id": "use_clustered_routing",
+              "algorithm_name": "Cluster-conditioned routing assignment",
+              "stage3_engine": null,
+              "predicted_score": 3.6197,
+              "n_configs_selected": 1,
+              "selected_by_agent": false
+            }
+          ],
+          "all_selection_algorithms_benchmarked": [
+            {
+              "algorithm_id": "use_greedy",
+              "algorithm_name": "Greedy ranking under budget",
+              "stage3_engine": "greedy",
+              "predicted_score": 7.0034,
+              "n_configs_selected": 8,
+              "selected_by_agent": false
+            },
+            {
+              "algorithm_id": "use_bo_tpe",
+              "algorithm_name": "Bayesian optimization / TPE search",
+              "stage3_engine": "bayesian_opt",
+              "predicted_score": 7.0034,
+              "n_configs_selected": 8,
+              "selected_by_agent": false
+            },
+            {
+              "algorithm_id": "use_hyperband",
+              "algorithm_name": "Hyperband multi-fidelity search",
+              "stage3_engine": "hyperband",
+              "predicted_score": 7.0034,
+              "n_configs_selected": 8,
+              "selected_by_agent": false
+            },
+            {
+              "algorithm_id": "use_coordinate_descent",
+              "algorithm_name": "Coordinate descent on config axes",
+              "stage3_engine": "coord_descent",
+              "predicted_score": 7.0034,
+              "n_configs_selected": 8,
+              "selected_by_agent": true
+            },
+            {
+              "algorithm_id": "use_ilp",
+              "algorithm_name": "Integer linear programming assignment",
+              "stage3_engine": "ilp",
+              "predicted_score": 7.0034,
+              "n_configs_selected": 8,
+              "selected_by_agent": false
+            }
+          ]
+        },
+        "stage4_architecture": {
+          "active_components": [
+            "surrogate",
+            "extraction_reuse",
+            "recalibration",
+            "routing",
+            "flat_vs_hier",
+            "cluster_refinement"
+          ],
+          "component_decisions": [
+            {
+              "component": "surrogate",
+              "retained": false,
+              "reason": "stage1_probe_not_viable"
+            },
+            {
+              "component": "extraction_reuse",
+              "retained": true,
+              "reason": "default_retained"
+            },
+            {
+              "component": "recalibration",
+              "retained": true,
+              "reason": "default_retained"
+            },
+            {
+              "component": "routing",
+              "retained": true,
+              "reason": "stage1_routing_gap"
+            },
+            {
+              "component": "flat_vs_hier",
+              "retained": true,
+              "reason": "default_retained"
+            },
+            {
+              "component": "query_clustering",
+              "retained": false,
+              "reason": "stage1_clustering_insufficient"
+            },
+            {
+              "component": "schema_pruning",
+              "retained": false,
+              "reason": "stage1_flat_hierarchy"
+            },
+            {
+              "component": "cluster_refinement",
+              "retained": true,
+              "reason": "default_retained"
+            }
+          ]
+        },
+        "deployment": {
+          "n_query_clusters": 4,
+          "cluster_types": {
+            "0": "join",
+            "1": "join",
+            "2": "join",
+            "3": "join"
+          },
+          "cluster_labels": [
+            1,
+            0,
+            0,
+            0
+          ],
+          "selected_pipeline_configs": [
+            "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+            "er=llm|norm=dictionary|unit=none|miss=mode|coerce=llm",
+            "er=llm|norm=dictionary|unit=none|miss=mode|coerce=permissive",
+            "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=llm",
+            "er=embedding_0.9|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+            "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+            "er=embedding_0.8|norm=dictionary|unit=none|miss=mean|coerce=llm",
+            "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=permissive"
+          ],
+          "cluster_to_pipeline_config": {
+            "1": "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+            "0": "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive"
+          },
+          "query_to_pipeline_config": {
+            "mixed_queries_filter_agg_join_1": "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+            "mixed_queries_filter_agg_join_3": "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+            "mixed_queries_filter_agg_join_5": "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+            "mixed_queries_filter_agg_join_7": "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive"
+          }
+        },
+        "decision_action_history": [
+          {
+            "round": 1,
+            "action": "use_clustered_routing",
+            "rationale_code": "stage1_routing_gap",
+            "confidence": 0.8,
+            "expected_gain": 0.09,
+            "budget_impact": 0
+          },
+          {
+            "round": 2,
+            "action": "use_coordinate_descent",
+            "rationale_code": "smooth_local_surface",
+            "confidence": 0.72,
+            "expected_gain": 0.07,
+            "budget_impact": 0
+          }
+        ]
+      },
+      "chosen_algorithm_family": "use_coordinate_descent",
+      "selection_rationale": "clear_solver_winner|use_coordinate_descent",
+      "solver_comparison": [
+        {
+          "algorithm_family": "use_coordinate_descent",
+          "predicted_score": 7.003382001063453,
+          "selected_configs": [
+            "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+            "er=llm|norm=dictionary|unit=none|miss=mode|coerce=llm",
+            "er=llm|norm=dictionary|unit=none|miss=mode|coerce=permissive",
+            "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=llm",
+            "er=embedding_0.9|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+            "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+            "er=embedding_0.8|norm=dictionary|unit=none|miss=mean|coerce=llm",
+            "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=permissive"
+          ],
+          "wall_time_seconds": 2.3329921532422304e-06
+        },
+        {
+          "algorithm_family": "use_clustered_routing",
+          "predicted_score": 3.619700460829493,
+          "selected_configs": [
+            "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive"
+          ],
+          "wall_time_seconds": 0.0
+        }
+      ],
+      "baseline_comparison": [
+        {
+          "algorithm_family": "use_greedy",
+          "label": "Greedy ranking under budget",
+          "predicted_score": 7.003382001063453,
+          "n_selected_configs": 8,
+          "selected_configs": [
+            "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+            "er=llm|norm=dictionary|unit=none|miss=mode|coerce=llm",
+            "er=llm|norm=dictionary|unit=none|miss=mode|coerce=permissive",
+            "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=llm",
+            "er=embedding_0.9|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+            "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+            "er=embedding_0.8|norm=dictionary|unit=none|miss=mean|coerce=llm",
+            "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=permissive"
+          ],
+          "wall_time_seconds": 2.4170003598555923e-06
+        },
+        {
+          "algorithm_family": "use_bo_tpe",
+          "label": "Bayesian optimization / TPE search",
+          "predicted_score": 7.003382001063453,
+          "n_selected_configs": 8,
+          "selected_configs": [
+            "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+            "er=llm|norm=dictionary|unit=none|miss=mode|coerce=llm",
+            "er=llm|norm=dictionary|unit=none|miss=mode|coerce=permissive",
+            "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=llm",
+            "er=embedding_0.9|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+            "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+            "er=embedding_0.8|norm=dictionary|unit=none|miss=mean|coerce=llm",
+            "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=permissive"
+          ],
+          "wall_time_seconds": 2.5420013116672635e-06
+        },
+        {
+          "algorithm_family": "use_hyperband",
+          "label": "Hyperband multi-fidelity search",
+          "predicted_score": 7.003382001063453,
+          "n_selected_configs": 8,
+          "selected_configs": [
+            "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+            "er=llm|norm=dictionary|unit=none|miss=mode|coerce=llm",
+            "er=llm|norm=dictionary|unit=none|miss=mode|coerce=permissive",
+            "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=llm",
+            "er=embedding_0.9|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+            "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+            "er=embedding_0.8|norm=dictionary|unit=none|miss=mean|coerce=llm",
+            "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=permissive"
+          ],
+          "wall_time_seconds": 1.8749997252598405e-06
+        },
+        {
+          "algorithm_family": "use_coordinate_descent",
+          "label": "Coordinate descent on config axes",
+          "predicted_score": 7.003382001063453,
+          "n_selected_configs": 8,
+          "selected_configs": [
+            "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+            "er=llm|norm=dictionary|unit=none|miss=mode|coerce=llm",
+            "er=llm|norm=dictionary|unit=none|miss=mode|coerce=permissive",
+            "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=llm",
+            "er=embedding_0.9|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+            "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+            "er=embedding_0.8|norm=dictionary|unit=none|miss=mean|coerce=llm",
+            "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=permissive"
+          ],
+          "wall_time_seconds": 1.291991793550551e-06
+        },
+        {
+          "algorithm_family": "use_ilp",
+          "label": "Integer linear programming assignment",
+          "predicted_score": 7.003382001063453,
+          "n_selected_configs": 8,
+          "selected_configs": [
+            "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+            "er=llm|norm=dictionary|unit=none|miss=mode|coerce=llm",
+            "er=llm|norm=dictionary|unit=none|miss=mode|coerce=permissive",
+            "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=llm",
+            "er=embedding_0.9|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+            "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+            "er=embedding_0.8|norm=dictionary|unit=none|miss=mean|coerce=llm",
+            "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=permissive"
+          ],
+          "wall_time_seconds": 1.2499949662014842e-06
+        }
+      ],
+      "stage_summaries": {
+        "stage1": {
+          "diminishing_returns": {
+            "saturates_at_k": 8,
+            "total_configs": 8,
+            "saturated": true,
+            "marginal_gains": [
+              0.0,
+              0.013669821240799112,
+              0.0,
+              0.23934059224585438,
+              0.5123978155422133,
+              0.0,
+              0.036922085410941885,
+              0.19766968556019127
+            ],
+            "recommendation": "treat_greedy_as_heuristic"
+          },
+          "error_surface": {
+            "local_minima_count": 0,
+            "total_configs": 8,
+            "smooth": true,
+            "recommendation": "local_coord_methods_viable"
+          },
+          "module_ordering": {
+            "axis_effects": {
+              "er_strategy": {
+                "embedding_0.9": 0.8799284384969869,
+                "embedding_0.7": 0.8472704714640198,
+                "embedding_0.8": 0.8525201612903226,
+                "llm": 0.8988213399503723
+              },
+              "norm_strategy": {
+                "dictionary": 0.8754227501329316
+              },
+              "unit_strategy": {
+                "unit": 0.8594680521091811,
+                "none": 0.8913774481566821
+              },
+              "miss_strategy": {
+                "constant": 0.8549317617866005,
+                "llm": 0.9049251152073733,
+                "mode": 0.8825578990901572,
+                "mean": 0.8704598325062034
+              }
+            },
+            "variance_by_axis": {
+              "er_strategy": 0.00043772178911065537,
+              "norm_strategy": 0.0,
+              "unit_strategy": 0.0002545523890290678,
+              "miss_strategy": 0.00033363569452611564
+            },
+            "ordering_sensitive": true,
+            "recommendation": "use_dag_or_optimize_order"
+          },
+          "interactions": {
+            "main_effect_r2": 0.0,
+            "interaction_r2": 0.0,
+            "interaction_ratio": 0.0,
+            "sparse": true,
+            "recommendation": "linear_surrogate_sufficient"
+          },
+          "probe_fidelity": {
+            "spearman_rho": 0.2612637362637362,
+            "top_k_recall": 1.0,
+            "best_proxy_regret": 0.09507488479262671,
+            "recommendation": "improve_sampling_or_skip_probes",
+            "score_spread": 0.06531593406593406
+          },
+          "clustering": {
+            "n_clusters": 3,
+            "cluster_sizes": [
+              4
+            ],
+            "purity": null,
+            "recommendation": "insufficient_data"
+          },
+          "routing_gap": {
+            "structural_top_configs": [
+              "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+              "er=llm|norm=dictionary|unit=none|miss=mode|coerce=llm",
+              "er=llm|norm=dictionary|unit=none|miss=mode|coerce=permissive"
+            ],
+            "score_spread": 0.06531593406593406,
+            "mean_disagreement": 0.0,
+            "disagreement_above_threshold": false,
+            "recommendation": "co_optimize_routing"
+          },
+          "schema_ranking": {
+            "full_vs_numeric_rho": 1.0,
+            "full_vs_entity_rho": 1.0,
+            "min_rho": 1.0,
+            "schema_matters": false,
+            "recommendation": "flat_or_weaker_hierarchy"
+          },
+          "recommendations": {
+            "probe_viable": false,
+            "use_nonlinear": false,
+            "use_routing": true,
+            "use_clustering": false,
+            "schema_first": false,
+            "density_greedy_viable": false
+          }
+        },
+        "workload": {
+          "round": 2,
+          "workload_summary": {
+            "n_queries": 4,
+            "n_join_queries": 4,
+            "n_group_by_queries": 4,
+            "has_join": true,
+            "has_temporal": false,
+            "n_demand_columns": 11
+          },
+          "corpus_profile_summary": {
+            "n_profiled_columns": 11,
+            "mean_diversity_ratio": 0.253,
+            "max_diversity_ratio": 1.0,
+            "mean_ambiguous_rate": 0.1,
+            "feasibility_flags": 5
+          },
+          "probe_outcomes": {
+            "n_probed": 8,
+            "top_configs": [
+              {
+                "config_id": "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+                "structural_score": 0.9049
+              },
+              {
+                "config_id": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=llm",
+                "structural_score": 0.904
+              },
+              {
+                "config_id": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=permissive",
+                "structural_score": 0.904
+              },
+              {
+                "config_id": "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=llm",
+                "structural_score": 0.8884
+              },
+              {
+                "config_id": "er=embedding_0.9|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+                "structural_score": 0.8549
+              }
+            ],
+            "score_spread": 0.0653,
+            "probe_token_cost": 32658
+          },
+          "stage1_summary": {
+            "recommendations": {
+              "probe_viable": false,
+              "use_nonlinear": false,
+              "use_routing": true,
+              "use_clustering": false,
+              "schema_first": false,
+              "density_greedy_viable": false
+            },
+            "diminishing_returns": "treat_greedy_as_heuristic",
+            "error_surface": "local_coord_methods_viable",
+            "interactions": "linear_surrogate_sufficient",
+            "probe_fidelity_rho": 0.2612637362637362,
+            "clustering": "insufficient_data",
+            "routing": "co_optimize_routing"
+          },
+          "solver_comparison_summary": [
+            {
+              "algorithm_family": "use_coordinate_descent",
+              "label": "Coordinate descent on config axes",
+              "predicted_score": 7.0034,
+              "n_selected_configs": 8,
+              "wall_time_seconds": 0.0
+            },
+            {
+              "algorithm_family": "use_clustered_routing",
+              "label": "Cluster-conditioned routing assignment",
+              "predicted_score": 3.6197,
+              "n_selected_configs": 1,
+              "wall_time_seconds": 0.0
+            }
+          ],
+          "budget": {
+            "total": 80000,
+            "spent": 34194,
+            "remaining": 45806
+          },
+          "prior_chosen_algorithm_family": "use_coordinate_descent",
+          "available_actions": [
+            "finalize",
+            "probe_more",
+            "use_bo_tpe",
+            "use_clustered_routing",
+            "use_coordinate_descent",
+            "use_greedy",
+            "use_hyperband",
+            "use_ilp"
+          ]
+        }
+      },
+      "audit_log": [
+        {
+          "round": 1,
+          "state": {
+            "round": 1,
+            "workload_summary": {
+              "n_queries": 4,
+              "n_join_queries": 4,
+              "n_group_by_queries": 4,
+              "has_join": true,
+              "has_temporal": false,
+              "n_demand_columns": 11
+            },
+            "corpus_profile_summary": {
+              "n_profiled_columns": 11,
+              "mean_diversity_ratio": 0.253,
+              "max_diversity_ratio": 1.0,
+              "mean_ambiguous_rate": 0.1,
+              "feasibility_flags": 5
+            },
+            "probe_outcomes": {
+              "n_probed": 8,
+              "top_configs": [
+                {
+                  "config_id": "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+                  "structural_score": 0.9049
+                },
+                {
+                  "config_id": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=llm",
+                  "structural_score": 0.904
+                },
+                {
+                  "config_id": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=permissive",
+                  "structural_score": 0.904
+                },
+                {
+                  "config_id": "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=llm",
+                  "structural_score": 0.8884
+                },
+                {
+                  "config_id": "er=embedding_0.9|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+                  "structural_score": 0.8549
+                }
+              ],
+              "score_spread": 0.0653,
+              "probe_token_cost": 32658
+            },
+            "stage1_summary": {
+              "recommendations": {
+                "probe_viable": false,
+                "use_nonlinear": false,
+                "use_routing": true,
+                "use_clustering": false,
+                "schema_first": false,
+                "density_greedy_viable": false
+              },
+              "diminishing_returns": "treat_greedy_as_heuristic",
+              "error_surface": "local_coord_methods_viable",
+              "interactions": "linear_surrogate_sufficient",
+              "probe_fidelity_rho": 0.2612637362637362,
+              "clustering": "insufficient_data",
+              "routing": "co_optimize_routing"
+            },
+            "solver_comparison_summary": [],
+            "budget": {
+              "total": 80000,
+              "spent": 32658,
+              "remaining": 47342
+            },
+            "prior_chosen_algorithm_family": null,
+            "available_actions": [
+              "finalize",
+              "probe_more",
+              "use_bo_tpe",
+              "use_clustered_routing",
+              "use_coordinate_descent",
+              "use_greedy",
+              "use_hyperband",
+              "use_ilp"
+            ]
+          },
+          "decision": {
+            "action": "use_clustered_routing",
+            "rationale_code": "stage1_routing_gap",
+            "confidence": 0.8,
+            "expected_gain": 0.09,
+            "budget_impact": 0,
+            "observation": {}
+          },
+          "observation": {
+            "selected_configs": [
+              "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive"
+            ],
+            "predicted_score": 3.619700460829493
+          }
+        },
+        {
+          "round": 2,
+          "state": {
+            "round": 2,
+            "workload_summary": {
+              "n_queries": 4,
+              "n_join_queries": 4,
+              "n_group_by_queries": 4,
+              "has_join": true,
+              "has_temporal": false,
+              "n_demand_columns": 11
+            },
+            "corpus_profile_summary": {
+              "n_profiled_columns": 11,
+              "mean_diversity_ratio": 0.253,
+              "max_diversity_ratio": 1.0,
+              "mean_ambiguous_rate": 0.1,
+              "feasibility_flags": 5
+            },
+            "probe_outcomes": {
+              "n_probed": 8,
+              "top_configs": [
+                {
+                  "config_id": "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+                  "structural_score": 0.9049
+                },
+                {
+                  "config_id": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=llm",
+                  "structural_score": 0.904
+                },
+                {
+                  "config_id": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=permissive",
+                  "structural_score": 0.904
+                },
+                {
+                  "config_id": "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=llm",
+                  "structural_score": 0.8884
+                },
+                {
+                  "config_id": "er=embedding_0.9|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+                  "structural_score": 0.8549
+                }
+              ],
+              "score_spread": 0.0653,
+              "probe_token_cost": 32658
+            },
+            "stage1_summary": {
+              "recommendations": {
+                "probe_viable": false,
+                "use_nonlinear": false,
+                "use_routing": true,
+                "use_clustering": false,
+                "schema_first": false,
+                "density_greedy_viable": false
+              },
+              "diminishing_returns": "treat_greedy_as_heuristic",
+              "error_surface": "local_coord_methods_viable",
+              "interactions": "linear_surrogate_sufficient",
+              "probe_fidelity_rho": 0.2612637362637362,
+              "clustering": "insufficient_data",
+              "routing": "co_optimize_routing"
+            },
+            "solver_comparison_summary": [
+              {
+                "algorithm_family": "use_clustered_routing",
+                "label": "Cluster-conditioned routing assignment",
+                "predicted_score": 3.6197,
+                "n_selected_configs": 1,
+                "wall_time_seconds": 0.0
+              }
+            ],
+            "budget": {
+              "total": 80000,
+              "spent": 34194,
+              "remaining": 45806
+            },
+            "prior_chosen_algorithm_family": "use_clustered_routing",
+            "available_actions": [
+              "finalize",
+              "probe_more",
+              "use_bo_tpe",
+              "use_clustered_routing",
+              "use_coordinate_descent",
+              "use_greedy",
+              "use_hyperband",
+              "use_ilp"
+            ]
+          },
+          "decision": {
+            "action": "use_coordinate_descent",
+            "rationale_code": "smooth_local_surface",
+            "confidence": 0.72,
+            "expected_gain": 0.07,
+            "budget_impact": 0,
+            "observation": {}
+          },
+          "observation": {
+            "selected_configs": [
+              "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+              "er=llm|norm=dictionary|unit=none|miss=mode|coerce=llm",
+              "er=llm|norm=dictionary|unit=none|miss=mode|coerce=permissive",
+              "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=llm",
+              "er=embedding_0.9|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+              "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+              "er=embedding_0.8|norm=dictionary|unit=none|miss=mean|coerce=llm",
+              "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=permissive"
+            ],
+            "predicted_score": 7.003382001063453
+          }
+        }
+      ],
+      "rounds": 2,
+      "selected_configs": [
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=llm",
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=permissive",
+        "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=llm",
+        "er=embedding_0.9|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+        "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mean|coerce=llm",
+        "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=permissive"
+      ],
+      "final_routing": {
+        "mixed_queries_filter_agg_join_1": "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+        "mixed_queries_filter_agg_join_3": "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+        "mixed_queries_filter_agg_join_5": "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+        "mixed_queries_filter_agg_join_7": "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive"
+      },
+      "probed_configs": [
+        {
+          "config_id": "er=embedding_0.9|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+          "pipe_config_id": "er=embedding_0.9|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+          "settings": {
+            "er": "embedding_0.9",
+            "norm": "dictionary",
+            "unit": "unit",
+            "miss": "constant",
+            "coerce": "llm"
+          },
+          "structural_score": 0.8549317617866005,
+          "mean_f1": null
+        },
+        {
+          "config_id": "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+          "pipe_config_id": "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+          "settings": {
+            "er": "embedding_0.9",
+            "norm": "dictionary",
+            "unit": "none",
+            "miss": "llm",
+            "coerce": "permissive"
+          },
+          "structural_score": 0.9049251152073733,
+          "mean_f1": null
+        },
+        {
+          "config_id": "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=permissive",
+          "pipe_config_id": "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=permissive",
+          "settings": {
+            "er": "embedding_0.7",
+            "norm": "dictionary",
+            "unit": "unit",
+            "miss": "mode",
+            "coerce": "permissive"
+          },
+          "structural_score": 0.8396091811414392,
+          "mean_f1": null
+        },
+        {
+          "config_id": "er=embedding_0.8|norm=dictionary|unit=none|miss=mean|coerce=llm",
+          "pipe_config_id": "er=embedding_0.8|norm=dictionary|unit=none|miss=mean|coerce=llm",
+          "settings": {
+            "er": "embedding_0.8",
+            "norm": "dictionary",
+            "unit": "none",
+            "miss": "mean",
+            "coerce": "llm"
+          },
+          "structural_score": 0.8525201612903226,
+          "mean_f1": null
+        },
+        {
+          "config_id": "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=llm",
+          "pipe_config_id": "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=llm",
+          "settings": {
+            "er": "llm",
+            "norm": "dictionary",
+            "unit": "unit",
+            "miss": "mean",
+            "coerce": "llm"
+          },
+          "structural_score": 0.8883995037220843,
+          "mean_f1": null
+        },
+        {
+          "config_id": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=llm",
+          "pipe_config_id": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=llm",
+          "settings": {
+            "er": "llm",
+            "norm": "dictionary",
+            "unit": "none",
+            "miss": "mode",
+            "coerce": "llm"
+          },
+          "structural_score": 0.9040322580645161,
+          "mean_f1": null
+        },
+        {
+          "config_id": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=permissive",
+          "pipe_config_id": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=permissive",
+          "settings": {
+            "er": "llm",
+            "norm": "dictionary",
+            "unit": "none",
+            "miss": "mode",
+            "coerce": "permissive"
+          },
+          "structural_score": 0.9040322580645161,
+          "mean_f1": null
+        },
+        {
+          "config_id": "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+          "pipe_config_id": "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+          "settings": {
+            "er": "embedding_0.7",
+            "norm": "dictionary",
+            "unit": "unit",
+            "miss": "constant",
+            "coerce": "llm"
+          },
+          "structural_score": 0.8549317617866005,
+          "mean_f1": null
+        }
+      ],
+      "budget_summary": {
+        "total": 80000,
+        "spent": 34194,
+        "remaining": 45806
+      },
+      "diagnostics": {
+        "glass_box_composites": {
+          "er=embedding_0.9|norm=dictionary|unit=unit|miss=constant|coerce=llm": 0.8106001861042184,
+          "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive": 0.8389256912442397,
+          "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=permissive": 0.8030397022332506,
+          "er=embedding_0.8|norm=dictionary|unit=none|miss=mean|coerce=llm": 0.8198084677419355,
+          "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=llm": 0.9270316377171216,
+          "er=llm|norm=dictionary|unit=none|miss=mode|coerce=llm": 0.9460685483870968,
+          "er=llm|norm=dictionary|unit=none|miss=mode|coerce=permissive": 0.9460685483870968,
+          "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm": 0.8106001861042184
+        },
+        "btl_scores": {
+          "er=embedding_0.9|norm=dictionary|unit=unit|miss=constant|coerce=llm": 0.0,
+          "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive": 0.0,
+          "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=permissive": 0.0,
+          "er=embedding_0.8|norm=dictionary|unit=none|miss=mean|coerce=llm": 0.0,
+          "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=llm": 0.0,
+          "er=llm|norm=dictionary|unit=none|miss=mode|coerce=llm": 0.0,
+          "er=llm|norm=dictionary|unit=none|miss=mode|coerce=permissive": 0.0,
+          "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm": 0.0
+        },
+        "structural_scores": {
+          "er=embedding_0.9|norm=dictionary|unit=unit|miss=constant|coerce=llm": 0.8549317617866005,
+          "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive": 0.9049251152073733,
+          "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=permissive": 0.8396091811414392,
+          "er=embedding_0.8|norm=dictionary|unit=none|miss=mean|coerce=llm": 0.8525201612903226,
+          "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=llm": 0.8883995037220843,
+          "er=llm|norm=dictionary|unit=none|miss=mode|coerce=llm": 0.9040322580645161,
+          "er=llm|norm=dictionary|unit=none|miss=mode|coerce=permissive": 0.9040322580645161,
+          "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm": 0.8549317617866005
+        }
+      },
+      "catalog_id_to_pipe": {
+        "er=embedding_0.9|norm=dictionary|unit=unit|miss=constant|coerce=llm": "er=embedding_0.9|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive": "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=permissive",
+        "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=permissive": "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=permissive",
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mean|coerce=llm": "er=embedding_0.8|norm=dictionary|unit=none|miss=mean|coerce=llm",
+        "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=llm": "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=llm",
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=llm": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=llm",
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=permissive": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=permissive",
+        "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm": "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm"
+      }
+    },
+    "agg_temporal": {
+      "agent_mode": "meta_controller",
+      "algorithm_stack": {
+        "summary": "Composite meta-policy: Stage 1 characterizes the workload, Stage 2 picks a surrogate per query cluster, Stage 3 compares selection algorithms (greedy, BO/TPE, hyperband, coordinate descent, ILP, clustered routing), Stage 4 gates architecture components, then the chosen selector deploys pipeline configs.",
+        "stage1_characterization": {
+          "analyses": {
+            "diminishing_returns": "treat_greedy_as_heuristic",
+            "error_surface": "include_bo_sa_evo",
+            "module_ordering": "use_dag_or_optimize_order",
+            "interactions": "linear_surrogate_sufficient",
+            "probe_fidelity": "improve_sampling_or_skip_probes",
+            "clustering": "insufficient_data",
+            "routing_gap": "co_optimize_routing",
+            "schema_ranking": "flat_or_weaker_hierarchy"
+          },
+          "recommendations": {
+            "probe_viable": false,
+            "use_nonlinear": false,
+            "use_routing": true,
+            "use_clustering": false,
+            "schema_first": false,
+            "density_greedy_viable": false
+          },
+          "probe_fidelity_rho": 0.25724522292993646
+        },
+        "stage2_surrogate_selection": {
+          "evidence": "structural_probe_scores",
+          "global_chosen_surrogate": "structural_probe_ranking",
+          "global_surrogate_ranking": [
+            {
+              "name": "structural_probe_ranking",
+              "spearman_rho": 0.0,
+              "top_k_recall": 0.3333,
+              "mean_regret": 0.002061
+            },
+            {
+              "name": "linear_proxy_glass",
+              "spearman_rho": 0.0,
+              "top_k_recall": 0.6667,
+              "mean_regret": 0.004273
+            },
+            {
+              "name": "rf_proxy_glass",
+              "spearman_rho": -0.4524,
+              "top_k_recall": 0.3333,
+              "mean_regret": 0.00227
+            },
+            {
+              "name": "gbdt_proxy_glass",
+              "spearman_rho": -0.5714,
+              "top_k_recall": 0.3333,
+              "mean_regret": 0.002061
+            }
+          ],
+          "per_cluster": {
+            "0": {
+              "cluster_type": "aggregation",
+              "n_queries": 2,
+              "chosen_surrogate": "structural_probe_ranking",
+              "surrogate_ranking": [
+                {
+                  "name": "structural_probe_ranking",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 1.0,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "linear_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.0,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "rf_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.0,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "gbdt_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.3333,
+                  "mean_regret": 0.0
+                }
+              ]
+            },
+            "1": {
+              "cluster_type": "join",
+              "n_queries": 1,
+              "chosen_surrogate": "structural_probe_ranking",
+              "surrogate_ranking": [
+                {
+                  "name": "structural_probe_ranking",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 1.0,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "linear_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.0,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "rf_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.0,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "gbdt_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.3333,
+                  "mean_regret": 0.0
+                }
+              ]
+            },
+            "2": {
+              "cluster_type": "join",
+              "n_queries": 1,
+              "chosen_surrogate": "structural_probe_ranking",
+              "surrogate_ranking": [
+                {
+                  "name": "structural_probe_ranking",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 1.0,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "linear_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.0,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "rf_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.0,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "gbdt_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.3333,
+                  "mean_regret": 0.0
+                }
+              ]
+            },
+            "3": {
+              "cluster_type": "aggregation",
+              "n_queries": 0,
+              "chosen_surrogate": "structural_probe_ranking",
+              "surrogate_ranking": [
+                {
+                  "name": "structural_probe_ranking",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 1.0,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "linear_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.0,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "rf_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.0,
+                  "mean_regret": 0.0
+                },
+                {
+                  "name": "gbdt_proxy_glass",
+                  "spearman_rho": 0.0,
+                  "top_k_recall": 0.3333,
+                  "mean_regret": 0.0
+                }
+              ]
+            }
+          },
+          "cluster_surrogate_map": {
+            "0": "structural_probe_ranking",
+            "1": "structural_probe_ranking",
+            "2": "structural_probe_ranking",
+            "3": "structural_probe_ranking"
+          }
+        },
+        "stage3_config_selection": {
+          "agent_chosen_algorithm_id": "use_clustered_routing",
+          "agent_chosen_algorithm_name": "Cluster-conditioned routing assignment",
+          "stage3_engine": null,
+          "selection_rationale": "finalize|prior=use_clustered_routing",
+          "algorithms_tried_by_agent": [
+            {
+              "algorithm_id": "use_clustered_routing",
+              "algorithm_name": "Cluster-conditioned routing assignment",
+              "stage3_engine": null,
+              "predicted_score": 3.5286,
+              "n_configs_selected": 1,
+              "selected_by_agent": true
+            }
+          ],
+          "all_selection_algorithms_benchmarked": [
+            {
+              "algorithm_id": "use_greedy",
+              "algorithm_name": "Greedy ranking under budget",
+              "stage3_engine": "greedy",
+              "predicted_score": 1.7478,
+              "n_configs_selected": 2,
+              "selected_by_agent": false
+            },
+            {
+              "algorithm_id": "use_bo_tpe",
+              "algorithm_name": "Bayesian optimization / TPE search",
+              "stage3_engine": "bayesian_opt",
+              "predicted_score": 1.7478,
+              "n_configs_selected": 2,
+              "selected_by_agent": false
+            },
+            {
+              "algorithm_id": "use_hyperband",
+              "algorithm_name": "Hyperband multi-fidelity search",
+              "stage3_engine": "hyperband",
+              "predicted_score": 1.7478,
+              "n_configs_selected": 2,
+              "selected_by_agent": false
+            },
+            {
+              "algorithm_id": "use_ilp",
+              "algorithm_name": "Integer linear programming assignment",
+              "stage3_engine": "ilp",
+              "predicted_score": 1.7478,
+              "n_configs_selected": 2,
+              "selected_by_agent": false
+            },
+            {
+              "algorithm_id": "use_coordinate_descent",
+              "algorithm_name": "Coordinate descent on config axes",
+              "stage3_engine": "coord_descent",
+              "predicted_score": 1.7,
+              "n_configs_selected": 2,
+              "selected_by_agent": false
+            }
+          ]
+        },
+        "stage4_architecture": {
+          "active_components": [
+            "surrogate",
+            "extraction_reuse",
+            "recalibration",
+            "routing",
+            "flat_vs_hier",
+            "cluster_refinement"
+          ],
+          "component_decisions": [
+            {
+              "component": "surrogate",
+              "retained": false,
+              "reason": "stage1_probe_not_viable"
+            },
+            {
+              "component": "extraction_reuse",
+              "retained": true,
+              "reason": "default_retained"
+            },
+            {
+              "component": "recalibration",
+              "retained": true,
+              "reason": "default_retained"
+            },
+            {
+              "component": "routing",
+              "retained": true,
+              "reason": "stage1_routing_gap"
+            },
+            {
+              "component": "flat_vs_hier",
+              "retained": true,
+              "reason": "default_retained"
+            },
+            {
+              "component": "query_clustering",
+              "retained": false,
+              "reason": "stage1_clustering_insufficient"
+            },
+            {
+              "component": "schema_pruning",
+              "retained": false,
+              "reason": "stage1_flat_hierarchy"
+            },
+            {
+              "component": "cluster_refinement",
+              "retained": true,
+              "reason": "default_retained"
+            }
+          ]
+        },
+        "deployment": {
+          "n_query_clusters": 4,
+          "cluster_types": {
+            "0": "aggregation",
+            "1": "join",
+            "2": "join",
+            "3": "aggregation"
+          },
+          "cluster_labels": [
+            0,
+            2,
+            1,
+            0
+          ],
+          "selected_pipeline_configs": [
+            "er=embedding_0.9|norm=dictionary|unit=unit|miss=llm|coerce=llm"
+          ],
+          "cluster_to_pipeline_config": {
+            "0": "er=embedding_0.9|norm=dictionary|unit=unit|miss=llm|coerce=llm",
+            "2": "er=embedding_0.9|norm=dictionary|unit=unit|miss=llm|coerce=llm",
+            "1": "er=embedding_0.9|norm=dictionary|unit=unit|miss=llm|coerce=llm"
+          },
+          "query_to_pipeline_config": {
+            "mixed_queries_filter_agg_4": "er=embedding_0.9|norm=dictionary|unit=unit|miss=llm|coerce=llm",
+            "mixed_queries_filter_agg_join_9": "er=embedding_0.9|norm=dictionary|unit=unit|miss=llm|coerce=llm",
+            "mixed_queries_filter_agg_join_11": "er=embedding_0.9|norm=dictionary|unit=unit|miss=llm|coerce=llm",
+            "mixed_queries_filter_agg_player_4": "er=embedding_0.9|norm=dictionary|unit=unit|miss=llm|coerce=llm"
+          }
+        },
+        "decision_action_history": [
+          {
+            "round": 1,
+            "action": "use_clustered_routing",
+            "rationale_code": "stage1_routing_gap",
+            "confidence": 0.8,
+            "expected_gain": 0.09,
+            "budget_impact": 0
+          }
+        ]
+      },
+      "chosen_algorithm_family": "use_clustered_routing",
+      "selection_rationale": "finalize|prior=use_clustered_routing",
+      "solver_comparison": [
+        {
+          "algorithm_family": "use_clustered_routing",
+          "predicted_score": 3.528647944412276,
+          "selected_configs": [
+            "er=embedding_0.9|norm=dictionary|unit=unit|miss=llm|coerce=llm"
+          ],
+          "wall_time_seconds": 0.0
+        }
+      ],
+      "baseline_comparison": [
+        {
+          "algorithm_family": "use_greedy",
+          "label": "Greedy ranking under budget",
+          "predicted_score": 1.747838487149793,
+          "n_selected_configs": 2,
+          "selected_configs": [
+            "er=embedding_0.9|norm=dictionary|unit=unit|miss=llm|coerce=llm",
+            "er=llm|norm=dictionary|unit=unit|miss=mode|coerce=strict"
+          ],
+          "wall_time_seconds": 3.082997864112258e-06
+        },
+        {
+          "algorithm_family": "use_bo_tpe",
+          "label": "Bayesian optimization / TPE search",
+          "predicted_score": 1.747838487149793,
+          "n_selected_configs": 2,
+          "selected_configs": [
+            "er=llm|norm=dictionary|unit=unit|miss=mode|coerce=strict",
+            "er=embedding_0.9|norm=dictionary|unit=unit|miss=llm|coerce=llm"
+          ],
+          "wall_time_seconds": 0.02385054199839942
+        },
+        {
+          "algorithm_family": "use_hyperband",
+          "label": "Hyperband multi-fidelity search",
+          "predicted_score": 1.747838487149793,
+          "n_selected_configs": 2,
+          "selected_configs": [
+            "er=embedding_0.9|norm=dictionary|unit=unit|miss=llm|coerce=llm",
+            "er=llm|norm=dictionary|unit=unit|miss=mode|coerce=strict"
+          ],
+          "wall_time_seconds": 7.679199916310608e-05
+        },
+        {
+          "algorithm_family": "use_ilp",
+          "label": "Integer linear programming assignment",
+          "predicted_score": 1.747838487149793,
+          "n_selected_configs": 2,
+          "selected_configs": [
+            "er=embedding_0.9|norm=dictionary|unit=unit|miss=llm|coerce=llm",
+            "er=llm|norm=dictionary|unit=unit|miss=mode|coerce=strict"
+          ],
+          "wall_time_seconds": 0.0011051250039599836
+        },
+        {
+          "algorithm_family": "use_coordinate_descent",
+          "label": "Coordinate descent on config axes",
+          "predicted_score": 1.7000126664736537,
+          "n_selected_configs": 2,
+          "selected_configs": [
+            "er=embedding_0.9|norm=dictionary|unit=unit|miss=llm|coerce=llm",
+            "er=embedding_0.9|norm=dictionary|unit=unit|miss=mean|coerce=llm"
+          ],
+          "wall_time_seconds": 6.587499228771776e-05
+        }
+      ],
+      "stage_summaries": {
+        "stage1": {
+          "diminishing_returns": {
+            "saturates_at_k": 7,
+            "total_configs": 8,
+            "saturated": true,
+            "marginal_gains": [
+              0.0,
+              0.2563388329405044,
+              0.02599814298978581,
+              0.011142061281337268,
+              0.23809013641882693,
+              0.05549928251878111,
+              0.3869334008609787,
+              0.025998142989785755
+            ],
+            "recommendation": "treat_greedy_as_heuristic"
+          },
+          "error_surface": {
+            "local_minima_count": 3,
+            "total_configs": 8,
+            "smooth": false,
+            "recommendation": "include_bo_sa_evo"
+          },
+          "module_ordering": {
+            "axis_effects": {
+              "er_strategy": {
+                "llm": 0.8643229978620107,
+                "embedding_0.8": 0.8373018601621309,
+                "embedding_0.9": 0.8500063332368268
+              },
+              "norm_strategy": {
+                "dictionary": 0.8506109050682598
+              },
+              "unit_strategy": {
+                "unit": 0.851497199058903,
+                "none": 0.844406847133758
+              },
+              "miss_strategy": {
+                "mean": 0.8418484978397399,
+                "llm": 0.882161986103069,
+                "median": 0.864004526524431,
+                "mode": 0.8425995779698009,
+                "constant": 0.8479760784597569
+              }
+            },
+            "variance_by_axis": {
+              "er_strategy": 0.00012183471163239221,
+              "norm_strategy": 0.0,
+              "unit_strategy": 1.2568272605601692e-05,
+              "miss_strategy": 0.00023846887172832118
+            },
+            "ordering_sensitive": true,
+            "recommendation": "use_dag_or_optimize_order"
+          },
+          "interactions": {
+            "main_effect_r2": 0.0,
+            "interaction_r2": 0.0,
+            "interaction_ratio": 0.0,
+            "sparse": true,
+            "recommendation": "linear_surrogate_sufficient"
+          },
+          "probe_fidelity": {
+            "spearman_rho": 0.25724522292993646,
+            "top_k_recall": 1.0,
+            "best_proxy_regret": 0.11783801389693105,
+            "recommendation": "improve_sampling_or_skip_probes",
+            "score_spread": 0.06431130573248411
+          },
+          "clustering": {
+            "n_clusters": 3,
+            "cluster_sizes": [
+              4
+            ],
+            "purity": null,
+            "recommendation": "insufficient_data"
+          },
+          "routing_gap": {
+            "structural_top_configs": [
+              "er=embedding_0.9|norm=dictionary|unit=unit|miss=llm|coerce=llm",
+              "er=llm|norm=dictionary|unit=unit|miss=mode|coerce=strict",
+              "er=llm|norm=dictionary|unit=unit|miss=median|coerce=strict"
+            ],
+            "score_spread": 0.06431130573248411,
+            "mean_disagreement": 0.0,
+            "disagreement_above_threshold": false,
+            "recommendation": "co_optimize_routing"
+          },
+          "schema_ranking": {
+            "full_vs_numeric_rho": 0.9761904761904763,
+            "full_vs_entity_rho": 1.0,
+            "min_rho": 0.9761904761904763,
+            "schema_matters": false,
+            "recommendation": "flat_or_weaker_hierarchy"
+          },
+          "recommendations": {
+            "probe_viable": false,
+            "use_nonlinear": false,
+            "use_routing": true,
+            "use_clustering": false,
+            "schema_first": false,
+            "density_greedy_viable": false
+          }
+        },
+        "workload": {
+          "round": 1,
+          "workload_summary": {
+            "n_queries": 4,
+            "n_join_queries": 2,
+            "n_group_by_queries": 4,
+            "has_join": true,
+            "has_temporal": true,
+            "n_demand_columns": 10
+          },
+          "corpus_profile_summary": {
+            "n_profiled_columns": 10,
+            "mean_diversity_ratio": 0.37,
+            "max_diversity_ratio": 1.0,
+            "mean_ambiguous_rate": 0.1,
+            "feasibility_flags": 4
+          },
+          "probe_outcomes": {
+            "n_probed": 8,
+            "top_configs": [
+              {
+                "config_id": "er=embedding_0.9|norm=dictionary|unit=unit|miss=llm|coerce=llm",
+                "structural_score": 0.8822
+              },
+              {
+                "config_id": "er=llm|norm=dictionary|unit=unit|miss=mode|coerce=strict",
+                "structural_score": 0.8657
+              },
+              {
+                "config_id": "er=llm|norm=dictionary|unit=unit|miss=median|coerce=strict",
+                "structural_score": 0.864
+              },
+              {
+                "config_id": "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=strict",
+                "structural_score": 0.8633
+              },
+              {
+                "config_id": "er=embedding_0.8|norm=dictionary|unit=unit|miss=constant|coerce=permissive",
+                "structural_score": 0.848
+              }
+            ],
+            "score_spread": 0.0643,
+            "probe_token_cost": 35765
+          },
+          "stage1_summary": {
+            "recommendations": {
+              "probe_viable": false,
+              "use_nonlinear": false,
+              "use_routing": true,
+              "use_clustering": false,
+              "schema_first": false,
+              "density_greedy_viable": false
+            },
+            "diminishing_returns": "treat_greedy_as_heuristic",
+            "error_surface": "include_bo_sa_evo",
+            "interactions": "linear_surrogate_sufficient",
+            "probe_fidelity_rho": 0.25724522292993646,
+            "clustering": "insufficient_data",
+            "routing": "co_optimize_routing"
+          },
+          "solver_comparison_summary": [
+            {
+              "algorithm_family": "use_clustered_routing",
+              "label": "Cluster-conditioned routing assignment",
+              "predicted_score": 3.5286,
+              "n_selected_configs": 1,
+              "wall_time_seconds": 0.0
+            }
+          ],
+          "budget": {
+            "total": 80000,
+            "spent": 38837,
+            "remaining": 41163
+          },
+          "prior_chosen_algorithm_family": "use_clustered_routing",
+          "available_actions": [
+            "finalize",
+            "probe_more",
+            "use_bo_tpe",
+            "use_clustered_routing",
+            "use_coordinate_descent",
+            "use_greedy",
+            "use_hyperband",
+            "use_ilp"
+          ]
+        }
+      },
+      "audit_log": [
+        {
+          "round": 1,
+          "state": {
+            "round": 1,
+            "workload_summary": {
+              "n_queries": 4,
+              "n_join_queries": 2,
+              "n_group_by_queries": 4,
+              "has_join": true,
+              "has_temporal": true,
+              "n_demand_columns": 10
+            },
+            "corpus_profile_summary": {
+              "n_profiled_columns": 10,
+              "mean_diversity_ratio": 0.37,
+              "max_diversity_ratio": 1.0,
+              "mean_ambiguous_rate": 0.1,
+              "feasibility_flags": 4
+            },
+            "probe_outcomes": {
+              "n_probed": 8,
+              "top_configs": [
+                {
+                  "config_id": "er=embedding_0.9|norm=dictionary|unit=unit|miss=llm|coerce=llm",
+                  "structural_score": 0.8822
+                },
+                {
+                  "config_id": "er=llm|norm=dictionary|unit=unit|miss=mode|coerce=strict",
+                  "structural_score": 0.8657
+                },
+                {
+                  "config_id": "er=llm|norm=dictionary|unit=unit|miss=median|coerce=strict",
+                  "structural_score": 0.864
+                },
+                {
+                  "config_id": "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=strict",
+                  "structural_score": 0.8633
+                },
+                {
+                  "config_id": "er=embedding_0.8|norm=dictionary|unit=unit|miss=constant|coerce=permissive",
+                  "structural_score": 0.848
+                }
+              ],
+              "score_spread": 0.0643,
+              "probe_token_cost": 35765
+            },
+            "stage1_summary": {
+              "recommendations": {
+                "probe_viable": false,
+                "use_nonlinear": false,
+                "use_routing": true,
+                "use_clustering": false,
+                "schema_first": false,
+                "density_greedy_viable": false
+              },
+              "diminishing_returns": "treat_greedy_as_heuristic",
+              "error_surface": "include_bo_sa_evo",
+              "interactions": "linear_surrogate_sufficient",
+              "probe_fidelity_rho": 0.25724522292993646,
+              "clustering": "insufficient_data",
+              "routing": "co_optimize_routing"
+            },
+            "solver_comparison_summary": [],
+            "budget": {
+              "total": 80000,
+              "spent": 35765,
+              "remaining": 44235
+            },
+            "prior_chosen_algorithm_family": null,
+            "available_actions": [
+              "finalize",
+              "probe_more",
+              "use_bo_tpe",
+              "use_clustered_routing",
+              "use_coordinate_descent",
+              "use_greedy",
+              "use_hyperband",
+              "use_ilp"
+            ]
+          },
+          "decision": {
+            "action": "use_clustered_routing",
+            "rationale_code": "stage1_routing_gap",
+            "confidence": 0.8,
+            "expected_gain": 0.09,
+            "budget_impact": 0,
+            "observation": {}
+          },
+          "observation": {
+            "selected_configs": [
+              "er=embedding_0.9|norm=dictionary|unit=unit|miss=llm|coerce=llm"
+            ],
+            "predicted_score": 3.528647944412276
+          }
+        }
+      ],
+      "rounds": 1,
+      "selected_configs": [
+        "er=embedding_0.9|norm=dictionary|unit=unit|miss=llm|coerce=llm"
+      ],
+      "final_routing": {
+        "mixed_queries_filter_agg_4": "er=embedding_0.9|norm=dictionary|unit=unit|miss=llm|coerce=llm",
+        "mixed_queries_filter_agg_join_9": "er=embedding_0.9|norm=dictionary|unit=unit|miss=llm|coerce=llm",
+        "mixed_queries_filter_agg_join_11": "er=embedding_0.9|norm=dictionary|unit=unit|miss=llm|coerce=llm",
+        "mixed_queries_filter_agg_player_4": "er=embedding_0.9|norm=dictionary|unit=unit|miss=llm|coerce=llm"
+      },
+      "probed_configs": [
+        {
+          "config_id": "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=strict",
+          "pipe_config_id": "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=strict",
+          "settings": {
+            "er": "llm",
+            "norm": "dictionary",
+            "unit": "unit",
+            "miss": "mean",
+            "coerce": "strict"
+          },
+          "structural_score": 0.8632879660148769,
+          "mean_f1": null
+        },
+        {
+          "config_id": "er=embedding_0.8|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+          "pipe_config_id": "er=embedding_0.8|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+          "settings": {
+            "er": "embedding_0.8",
+            "norm": "dictionary",
+            "unit": "none",
+            "miss": "mean",
+            "coerce": "permissive"
+          },
+          "structural_score": 0.844406847133758,
+          "mean_f1": null
+        },
+        {
+          "config_id": "er=embedding_0.9|norm=dictionary|unit=unit|miss=llm|coerce=llm",
+          "pipe_config_id": "er=embedding_0.9|norm=dictionary|unit=unit|miss=llm|coerce=llm",
+          "settings": {
+            "er": "embedding_0.9",
+            "norm": "dictionary",
+            "unit": "unit",
+            "miss": "llm",
+            "coerce": "llm"
+          },
+          "structural_score": 0.882161986103069,
+          "mean_f1": null
+        },
+        {
+          "config_id": "er=embedding_0.9|norm=dictionary|unit=unit|miss=mean|coerce=llm",
+          "pipe_config_id": "er=embedding_0.9|norm=dictionary|unit=unit|miss=mean|coerce=llm",
+          "settings": {
+            "er": "embedding_0.9",
+            "norm": "dictionary",
+            "unit": "unit",
+            "miss": "mean",
+            "coerce": "llm"
+          },
+          "structural_score": 0.8178506803705848,
+          "mean_f1": null
+        },
+        {
+          "config_id": "er=llm|norm=dictionary|unit=unit|miss=median|coerce=strict",
+          "pipe_config_id": "er=llm|norm=dictionary|unit=unit|miss=median|coerce=strict",
+          "settings": {
+            "er": "llm",
+            "norm": "dictionary",
+            "unit": "unit",
+            "miss": "median",
+            "coerce": "strict"
+          },
+          "structural_score": 0.864004526524431,
+          "mean_f1": null
+        },
+        {
+          "config_id": "er=llm|norm=dictionary|unit=unit|miss=mode|coerce=strict",
+          "pipe_config_id": "er=llm|norm=dictionary|unit=unit|miss=mode|coerce=strict",
+          "settings": {
+            "er": "llm",
+            "norm": "dictionary",
+            "unit": "unit",
+            "miss": "mode",
+            "coerce": "strict"
+          },
+          "structural_score": 0.865676501046724,
+          "mean_f1": null
+        },
+        {
+          "config_id": "er=embedding_0.8|norm=dictionary|unit=unit|miss=mode|coerce=permissive",
+          "pipe_config_id": "er=embedding_0.8|norm=dictionary|unit=unit|miss=mode|coerce=permissive",
+          "settings": {
+            "er": "embedding_0.8",
+            "norm": "dictionary",
+            "unit": "unit",
+            "miss": "mode",
+            "coerce": "permissive"
+          },
+          "structural_score": 0.8195226548928778,
+          "mean_f1": null
+        },
+        {
+          "config_id": "er=embedding_0.8|norm=dictionary|unit=unit|miss=constant|coerce=permissive",
+          "pipe_config_id": "er=embedding_0.8|norm=dictionary|unit=unit|miss=constant|coerce=permissive",
+          "settings": {
+            "er": "embedding_0.8",
+            "norm": "dictionary",
+            "unit": "unit",
+            "miss": "constant",
+            "coerce": "permissive"
+          },
+          "structural_score": 0.8479760784597569,
+          "mean_f1": null
+        }
+      ],
+      "budget_summary": {
+        "total": 80000,
+        "spent": 38837,
+        "remaining": 41163
+      },
+      "diagnostics": {
+        "glass_box_composites": {
+          "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=strict": 0.8943410789051712,
+          "er=embedding_0.8|norm=dictionary|unit=none|miss=mean|coerce=permissive": 0.813047372611465,
+          "er=embedding_0.9|norm=dictionary|unit=unit|miss=llm|coerce=llm": 0.8175213520555877,
+          "er=embedding_0.9|norm=dictionary|unit=unit|miss=mean|coerce=llm": 0.7795535972785177,
+          "er=llm|norm=dictionary|unit=unit|miss=median|coerce=strict": 0.8949382126631331,
+          "er=llm|norm=dictionary|unit=unit|miss=mode|coerce=strict": 0.8963315247650439,
+          "er=embedding_0.8|norm=dictionary|unit=unit|miss=mode|coerce=permissive": 0.7809469093804284,
+          "er=embedding_0.8|norm=dictionary|unit=unit|miss=constant|coerce=permissive": 0.796845595686161
+        },
+        "btl_scores": {
+          "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=strict": 0.0,
+          "er=embedding_0.8|norm=dictionary|unit=none|miss=mean|coerce=permissive": 0.0,
+          "er=embedding_0.9|norm=dictionary|unit=unit|miss=llm|coerce=llm": 0.0,
+          "er=embedding_0.9|norm=dictionary|unit=unit|miss=mean|coerce=llm": 0.0,
+          "er=llm|norm=dictionary|unit=unit|miss=median|coerce=strict": 0.0,
+          "er=llm|norm=dictionary|unit=unit|miss=mode|coerce=strict": 0.0,
+          "er=embedding_0.8|norm=dictionary|unit=unit|miss=mode|coerce=permissive": 0.0,
+          "er=embedding_0.8|norm=dictionary|unit=unit|miss=constant|coerce=permissive": 0.0
+        },
+        "structural_scores": {
+          "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=strict": 0.8632879660148769,
+          "er=embedding_0.8|norm=dictionary|unit=none|miss=mean|coerce=permissive": 0.844406847133758,
+          "er=embedding_0.9|norm=dictionary|unit=unit|miss=llm|coerce=llm": 0.882161986103069,
+          "er=embedding_0.9|norm=dictionary|unit=unit|miss=mean|coerce=llm": 0.8178506803705848,
+          "er=llm|norm=dictionary|unit=unit|miss=median|coerce=strict": 0.864004526524431,
+          "er=llm|norm=dictionary|unit=unit|miss=mode|coerce=strict": 0.865676501046724,
+          "er=embedding_0.8|norm=dictionary|unit=unit|miss=mode|coerce=permissive": 0.8195226548928778,
+          "er=embedding_0.8|norm=dictionary|unit=unit|miss=constant|coerce=permissive": 0.8479760784597569
+        }
+      },
+      "catalog_id_to_pipe": {
+        "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=strict": "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=strict",
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mean|coerce=permissive": "er=embedding_0.8|norm=dictionary|unit=none|miss=mean|coerce=permissive",
+        "er=embedding_0.9|norm=dictionary|unit=unit|miss=llm|coerce=llm": "er=embedding_0.9|norm=dictionary|unit=unit|miss=llm|coerce=llm",
+        "er=embedding_0.9|norm=dictionary|unit=unit|miss=mean|coerce=llm": "er=embedding_0.9|norm=dictionary|unit=unit|miss=mean|coerce=llm",
+        "er=llm|norm=dictionary|unit=unit|miss=median|coerce=strict": "er=llm|norm=dictionary|unit=unit|miss=median|coerce=strict",
+        "er=llm|norm=dictionary|unit=unit|miss=mode|coerce=strict": "er=llm|norm=dictionary|unit=unit|miss=mode|coerce=strict",
+        "er=embedding_0.8|norm=dictionary|unit=unit|miss=mode|coerce=permissive": "er=embedding_0.8|norm=dictionary|unit=unit|miss=mode|coerce=permissive",
+        "er=embedding_0.8|norm=dictionary|unit=unit|miss=constant|coerce=permissive": "er=embedding_0.8|norm=dictionary|unit=unit|miss=constant|coerce=permissive"
+      }
+    }
+  }
+}

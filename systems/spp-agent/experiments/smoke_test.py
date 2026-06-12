@@ -19,6 +19,9 @@ from data.query_alignment import prepare_aligned_instance
 from optimizer.config_space import generate_config_space
 from optimizer.probing import run_probes
 from pipeline.evaluation import evaluate_config
+from pipeline.full_pipeline import run_spp_pipeline
+from stage4.query_clustering import cluster_workload
+from thresholds.schema import load_thresholds
 from utils.config import load_config
 from utils.logging import log_step, setup_logger
 
@@ -106,7 +109,11 @@ def main() -> None:
 
     all_configs = generate_config_space()
     rng.shuffle(all_configs)
-    probe_configs = all_configs[:num_configs]
+    # Run a row-retaining config first (coverage assert runs on config 1).
+    probe_configs = sorted(
+        all_configs[: num_configs * 4],
+        key=lambda c: (c.miss_strategy == "drop", c.norm_strategy == "llm"),
+    )[:num_configs]
     logger.info("Selected probe configs: %s", [c.config_id for c in probe_configs])
 
     with log_step(logger, "run_probes"):
@@ -119,6 +126,30 @@ def main() -> None:
             corpus_docs=instance.corpus,
             required_tables=required_tables,
             eval_queries=instance.queries,
+        )
+
+    pipeline_result = None
+    with log_step(logger, "run_pipeline"):
+        query_clusters = cluster_workload(instance.queries, seed=seed)
+        thresholds = load_thresholds()
+        pipeline_result = run_spp_pipeline(
+            probe_data,
+            queries=instance.queries,
+            schema=instance.schema,
+            thresholds=thresholds,
+            token_budget=int(cfg.get("token_budget", 500_000)),
+            seed=seed,
+            instance=instance,
+            query_clusters=query_clusters,
+        )
+        logger.info(
+            "Pipeline: surrogate=%s algorithm=%s selected=%s routing=%s",
+            pipeline_result.best_surrogate,
+            pipeline_result.best_algorithm,
+            pipeline_result.selected_configs,
+            dict(pipeline_result.routing_table.cluster_to_config)
+            if pipeline_result.routing_table
+            else {},
         )
 
     true_errors: dict[str, float] = {}
@@ -157,6 +188,21 @@ def main() -> None:
         ],
         "judge_comparisons": probe_data.pairwise_comparisons,
         "btl_report": probe_data.btl_report,
+        "pipeline": {
+            "best_surrogate": pipeline_result.best_surrogate if pipeline_result else None,
+            "best_algorithm": pipeline_result.best_algorithm if pipeline_result else None,
+            "selected_configs": pipeline_result.selected_configs if pipeline_result else [],
+            "routing_table": (
+                dict(pipeline_result.routing_table.cluster_to_config)
+                if pipeline_result and pipeline_result.routing_table
+                else {}
+            ),
+            "cluster_surrogates": (
+                {str(k): v for k, v in pipeline_result.cluster_surrogates.items()}
+                if pipeline_result
+                else {}
+            ),
+        },
     }
 
     out_path = Path(cfg["paths"]["results_dir"]) / "smoke_test_Player.json"

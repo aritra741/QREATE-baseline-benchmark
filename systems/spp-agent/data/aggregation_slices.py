@@ -21,6 +21,9 @@ AGGREGATION_SLICE_ORDER = [
     "agg_temporal",
 ]
 
+# Single workload containing every aggregation slice query (benchmark mode).
+UNIFIED_WORKLOAD_NAME = "all_queries"
+
 
 def is_aggregation_query(sql: str) -> bool:
     """Query is eligible if it contains aggregation functions or GROUP BY."""
@@ -87,3 +90,28 @@ def queries_for_aggregation_slice(queries: list[dict], slice_name: str) -> list[
             f"Available: {sorted(buckets)}"
         )
     return buckets[slice_name]
+
+
+def unified_aggregation_queries(
+    queries: list[dict],
+    *,
+    slice_names: list[str] | None = None,
+) -> list[dict]:
+    """Union of aggregation queries across slices, deduplicated by query_id."""
+    order = slice_names or AGGREGATION_SLICE_ORDER
+    buckets = group_queries_by_aggregation_slice(filter_aggregation_queries(queries))
+    seen: set[str] = set()
+    unified: list[dict] = []
+    for slice_name in order:
+        for query in buckets.get(slice_name, []):
+            qid = str(query.get("query_id", query.get("sql_query", "")))
+            if qid in seen:
+                continue
+            seen.add(qid)
+            unified.append(query)
+    if not unified:
+        raise RuntimeError(
+            f"No aggregation queries for unified workload. "
+            f"Requested slices: {order}. Available: {sorted(buckets)}"
+        )
+    return unified

@@ -1,0 +1,131 @@
+{
+  "run_id": "2196e8dd-b6f6-4a01-b549-cbe4cabb2469",
+  "timestamp": "2026-06-04T00:34:34Z",
+  "token_budget_initial": 500000,
+  "probe_config_ids": [
+    "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm",
+    "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict",
+    "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm",
+    "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict",
+    "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+    "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive",
+    "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict",
+    "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive"
+  ],
+  "probe_expanded": false,
+  "probe_n_judge_pairs": 13,
+  "probe_total_token_cost": 120104.0,
+  "n_clusters": 3,
+  "cluster_types": {
+    "0": "aggregation",
+    "1": "aggregation",
+    "2": "aggregation"
+  },
+  "cluster_sizes": {
+    "0": 1,
+    "1": 1,
+    "2": 1
+  },
+  "cluster_labels": [
+    2,
+    0,
+    1
+  ],
+  "cluster_btl_scores": {},
+  "cluster_btl_uncertainty": {},
+  "cluster_surrogate_loo_rhos": {
+    "0": {
+      "direct_probe_ranking": 0.0,
+      "glass_box_proxy": -0.33407655239053047,
+      "llm_judge_btl": 0.42761798705987897,
+      "linear_proxy_glass": -0.7319250547113999,
+      "rf_proxy_glass": -0.5367450401216933,
+      "gbdt_proxy_glass": -0.36816052025536194,
+      "gp_proxy_glass": 0.4879500364742666,
+      "tpe_proxy": 0.6350852961085884
+    },
+    "1": {
+      "direct_probe_ranking": 0.0,
+      "glass_box_proxy": -0.33407655239053047,
+      "llm_judge_btl": 0.42761798705987897,
+      "linear_proxy_glass": -0.7319250547113999,
+      "rf_proxy_glass": -0.5367450401216933,
+      "gbdt_proxy_glass": -0.36816052025536194,
+      "gp_proxy_glass": 0.4879500364742666,
+      "tpe_proxy": 0.6350852961085884
+    },
+    "2": {
+      "direct_probe_ranking": 0.0,
+      "glass_box_proxy": -0.33407655239053047,
+      "llm_judge_btl": 0.42761798705987897,
+      "linear_proxy_glass": -0.7319250547113999,
+      "rf_proxy_glass": -0.5367450401216933,
+      "gbdt_proxy_glass": -0.36816052025536194,
+      "gp_proxy_glass": 0.4879500364742666,
+      "tpe_proxy": 0.6350852961085884
+    }
+  },
+  "cluster_selected_surrogates": {
+    "0": "tpe_proxy",
+    "1": "tpe_proxy",
+    "2": "tpe_proxy"
+  },
+  "agent_actions": [
+    {
+      "turn": 1,
+      "thought": "Start by understanding the workload shape, query types, and token budget to plan the pipeline.",
+      "action": "get_dataset_summary",
+      "action_input": {},
+      "observation_summary": "{'slice': 'agg_only', 'dataset': 'Player', 'schema_mode': 'multi_table', 'tables': ['city', 'owner', 'player', 'team'], 'num_probe_configs': 8, 'tier0': {'num_docs': 20, 'avg_doc_tokens': 92.2, 'max_doc_tokens': 100, 'doc_token_std': 3.7629775444453557, 'num_queries': 3, 'query_type_mix': {'Agg': 3}",
+      "timestamp": "2026-06-04T00:34:49Z"
+    },
+    {
+      "turn": 2,
+      "thought": "Budget is 0.0, meaning we cannot afford additional probing beyond the initial 8 configs. Need to understand cluster structure and probe fidelity via stage1.",
+      "action": "run_stage1_characterization",
+      "action_input": {},
+      "observation_summary": "{'recommendations': {'probe_viable': False, 'use_nonlinear': False, 'use_routing': True, 'use_clustering': False, 'schema_first': False, 'density_greedy_viable': False}, 'probe_fidelity': {'spearman_rho': -0.531688167718925, 'top_k_recall': 0.0, 'best_proxy_regret': 5.113285297900165, 'recommendatio",
+      "timestamp": "2026-06-04T00:34:51Z"
+    },
+    {
+      "turn": 3,
+      "thought": "Only 1 cluster detected (all 3 agg queries together). Budget is 0.0 so no probing possible. Check BTL rankings to understand which configs are preferred.",
+      "action": "get_btl_rankings",
+      "action_input": {},
+      "observation_summary": "{'num_pairwise_comparisons': 13, 'btl_spread': 5.113285297900165, 'win_counts': {'er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm': 2, 'er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict': 5, 'er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm': 0, 'er=embedding_0.8|norm=llm|uni",
+      "timestamp": "2026-06-04T00:34:54Z"
+    },
+    {
+      "turn": 4,
+      "thought": "BTL shows a clear winner: er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict with 5 wins, 0 losses, and score 5.11 \u2014 far ahead of rank 2 at 1.86. Budget 0.0 so no more probing. Now see which surrogate best reproduces BTL for the single cluster.",
+      "action": "run_surrogate_bakeoff",
+      "action_input": {},
+      "observation_summary": "{'surrogate_loo_rhos': {'tpe_proxy': 0.6350852961085884, 'gp_proxy_glass': 0.4879500364742666, 'llm_judge_btl': 0.42761798705987897, 'direct_probe_ranking': 0.0, 'glass_box_proxy': -0.33407655239053047, 'gbdt_proxy_glass': -0.36816052025536194, 'rf_proxy_glass': -0.5367450401216933, 'linear_proxy_gl",
+      "timestamp": "2026-06-04T00:35:08Z"
+    },
+    {
+      "turn": 5,
+      "thought": "Only one cluster (all 3 agg queries). tpe_proxy has best LOO \u03c1=0.635, above viability threshold. Top BTL config is clear. Budget 0 prevents further probing. Emitting routing table with tpe_proxy.",
+      "action": "emit_routing_table",
+      "action_input": {
+        "surrogate_name": "tpe_proxy"
+      },
+      "observation_summary": "{'selected_configs': ['er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=llm'], 'n_configs_selected': 1, 'best_surrogate': 'tpe_proxy', 'best_algorithm': 'routing_assignment', 'stage1_recommendations': {'probe_viable': False, 'use_nonlinear': False, 'use_routing': True, 'use_clustering",
+      "timestamp": "2026-06-04T00:35:39Z"
+    }
+  ],
+  "routing_table": {
+    "0": "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=llm",
+    "1": "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=llm",
+    "2": "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=llm"
+  },
+  "selected_configs": [
+    "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=llm"
+  ],
+  "risk_level": "risk_neutral",
+  "n_materializations": 1,
+  "token_budget_spent": 120104,
+  "token_budget_remaining": 379896,
+  "used_fallback": false,
+  "fallback_reason": ""
+}

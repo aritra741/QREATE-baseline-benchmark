@@ -1,0 +1,125 @@
+{
+  "columns": [
+    {
+      "column": "nationality",
+      "mention_rate": 0.6528,
+      "expression_diversity": {
+        "n_distinct_clusters": 23,
+        "n_mentions": 141,
+        "diversity_ratio": 0.1631,
+        "example_forms": [
+          "American",
+          "Canadian",
+          "French",
+          "Mexican-American",
+          "Bahamian"
+        ]
+      },
+      "derivability": {
+        "direct_rate": 0.9858,
+        "derivable_rate": 0.0,
+        "ambiguous_rate": 0.0142
+      },
+      "join_key_ambiguity": null,
+      "recommendations": {
+        "norm_recommendation": "dictionary",
+        "coerce_recommendation": "strict",
+        "er_recommendation": "embedding"
+      }
+    },
+    {
+      "column": "position",
+      "mention_rate": 0.6528,
+      "expression_diversity": {
+        "n_distinct_clusters": 2,
+        "n_mentions": 76,
+        "diversity_ratio": 0.0263,
+        "example_forms": [
+          "Frontcourt",
+          "Backcourt"
+        ]
+      },
+      "derivability": {
+        "direct_rate": 1.0,
+        "derivable_rate": 0.0,
+        "ambiguous_rate": 0.0
+      },
+      "join_key_ambiguity": null,
+      "recommendations": {
+        "norm_recommendation": "dictionary",
+        "coerce_recommendation": "strict",
+        "er_recommendation": "embedding"
+      }
+    },
+    {
+      "column": "player.team",
+      "mention_rate": 0.6528,
+      "expression_diversity": {
+        "n_distinct_clusters": 65,
+        "n_mentions": 142,
+        "diversity_ratio": 0.4577,
+        "example_forms": [
+          "Golden State Warriors",
+          "Philadelphia 76ers",
+          "Los Angeles Lakers",
+          "Boston Celtics",
+          "New York Knicks"
+        ]
+      },
+      "derivability": {
+        "direct_rate": 0.8451,
+        "derivable_rate": 0.0,
+        "ambiguous_rate": 0.1549
+      },
+      "join_key_ambiguity": {
+        "exact_overlap_rate": 0.32,
+        "soft_overlap_rate": 0.32,
+        "mean_variants_per_entity": 1.0,
+        "max_variants_per_entity": 1,
+        "join_feasibility": "low",
+        "join_partner": "team.team_name"
+      },
+      "recommendations": {
+        "norm_recommendation": "llm",
+        "coerce_recommendation": "strict",
+        "er_recommendation": "llm",
+        "feasibility_flag": true
+      }
+    },
+    {
+      "column": "team.team_name",
+      "mention_rate": 0.1389,
+      "expression_diversity": {
+        "n_distinct_clusters": 29,
+        "n_mentions": 31,
+        "diversity_ratio": 0.9355,
+        "example_forms": [
+          "Los Angeles Clippers",
+          "Oklahoma City Thunder",
+          "Atlanta Hawks",
+          "Golden State Warriors",
+          "Houston Rockets"
+        ]
+      },
+      "derivability": {
+        "direct_rate": 0.0,
+        "derivable_rate": 0.0,
+        "ambiguous_rate": 1.0
+      },
+      "join_key_ambiguity": {
+        "exact_overlap_rate": 0.32,
+        "soft_overlap_rate": 0.32,
+        "mean_variants_per_entity": 1.0,
+        "max_variants_per_entity": 1,
+        "join_feasibility": "low",
+        "join_partner": "player.team"
+      },
+      "recommendations": {
+        "norm_recommendation": "llm",
+        "coerce_recommendation": "strict",
+        "er_recommendation": "llm",
+        "feasibility_flag": true
+      }
+    }
+  ]
+}

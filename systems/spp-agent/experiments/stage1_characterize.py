@@ -90,6 +90,7 @@ def main() -> None:
     cache_name = cfg.get("phase1", {}).get("probe_context_cache", "phase1_agg_only_probe_context.json")
     cache_path = results_dir / cache_name
     probe_data = None
+    toolkit = None
     if cache_path.exists():
         try:
             toolkit = load_agent_cache(cache_path)
@@ -106,13 +107,19 @@ def main() -> None:
             f"No probe data at {cache_path}. Run phase1_comparison.py first, or use --offline."
         )
     else:
+        from data.instance_builder import build_instance
+        from pipeline.schema import load_fixed_schema
+
+        instance = build_instance(args.dataset, include_ground_truth=False)
+        schema = load_fixed_schema(args.dataset)
+        queries = instance.queries
         report_obj = characterize(
             probe_data,
-            queries=[],
-            schema=None,
+            queries=queries,
+            schema=schema,
             thresholds=tc,
-            true_errors=true_errors,
-            reward_rows=reward_rows,
+            true_errors=true_errors if not args.offline else None,
+            seed=seed,
         )
 
     out_path = results_dir / "stage1_report.json"

@@ -1,12 +1,18 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+import re
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import pandas as pd
 
-from data.loader import load_ground_truth
+from data.loader import load_ground_truth, load_queries
 from utils.config import load_config
+
+_JOIN_ON_RE = re.compile(
+    r"\bjoin\s+(\w+)\s+on\s+(\w+)\.(\w+)\s*=\s*(\w+)\.(\w+)",
+    re.IGNORECASE,
+)
 
 
 @dataclass
@@ -15,6 +21,36 @@ class Schema:
     tables: dict[str, list[str]]
     column_types: dict[str, dict[str, str]]
     description: str
+    join_keys: list[tuple[str, str, str, str]] = field(default_factory=list)
+
+
+def _canonical_join_pair(
+    left_table: str,
+    left_col: str,
+    right_table: str,
+    right_col: str,
+) -> tuple[str, str, str, str]:
+    left = (left_table.lower(), left_col.lower())
+    right = (right_table.lower(), right_col.lower())
+    if left <= right:
+        return left_table, left_col, right_table, right_col
+    return right_table, right_col, left_table, left_col
+
+
+def infer_join_keys_from_queries(dataset_name: str) -> list[tuple[str, str, str, str]]:
+    """Foreign-key-style join pairs from JOIN ... ON left.col = right.col in workload SQL."""
+    pairs: set[tuple[str, str, str, str]] = set()
+    for query in load_queries(dataset_name):
+        sql = query.get("sql_query", "")
+        for match in _JOIN_ON_RE.finditer(sql):
+            left_table, left_col, right_table, right_col = (
+                match.group(2),
+                match.group(3),
+                match.group(4),
+                match.group(5),
+            )
+            pairs.add(_canonical_join_pair(left_table, left_col, right_table, right_col))
+    return sorted(pairs)
 
 
 def _dtype_to_str(series: pd.Series) -> str:
@@ -66,4 +102,5 @@ def load_fixed_schema(dataset_name: str) -> Schema:
         tables=table_columns,
         column_types=column_types,
         description=description,
+        join_keys=infer_join_keys_from_queries(dataset_name),
     )

@@ -1,0 +1,146 @@
+{
+  "diminishing_returns": {
+    "saturates_at_k": 5,
+    "total_configs": 8,
+    "saturated": true,
+    "marginal_gains": [
+      0.0,
+      0.0,
+      0.0,
+      0.521183284069879,
+      0.4113378030903798,
+      0.0,
+      0.06747891283974117,
+      0.0
+    ],
+    "recommendation": "treat_greedy_as_heuristic"
+  },
+  "error_surface": {
+    "local_minima_count": 1,
+    "total_configs": 8,
+    "smooth": true,
+    "recommendation": "local_coord_methods_viable"
+  },
+  "module_ordering": {
+    "axis_effects": {
+      "er_strategy": {
+        "embedding_0.8": 0.8139490198565071,
+        "llm": 0.7989035399029527,
+        "embedding_0.9": 0.8105404223879826
+      },
+      "norm_strategy": {
+        "llm": 0.8197674610990222,
+        "dictionary": 0.7989035399029527
+      },
+      "unit_strategy": {
+        "unit": 0.8100117321722603,
+        "none": 0.80923889597652
+      },
+      "miss_strategy": {
+        "drop": 0.8100117321722603,
+        "mode": 0.8075035274279028,
+        "median": 0.8147000718390803,
+        "mean": 0.7980614740346892
+      }
+    },
+    "variance_by_axis": {
+      "er_strategy": 4.1489115300626226e-05,
+      "norm_strategy": 0.00010882580191894955,
+      "unit_strategy": 1.4931894636158937e-07,
+      "miss_strategy": 3.680411562901982e-05
+    },
+    "ordering_sensitive": true,
+    "recommendation": "use_dag_or_optimize_order"
+  },
+  "interactions": {
+    "main_effect_r2": 0.0,
+    "interaction_r2": 0.0,
+    "interaction_ratio": 0.0,
+    "sparse": true,
+    "recommendation": "linear_surrogate_sufficient"
+  },
+  "probe_fidelity": {
+    "spearman_rho": 0.0,
+    "top_k_recall": 0.0,
+    "best_proxy_regret": 0.0,
+    "recommendation": "improve_sampling_or_skip_probes"
+  },
+  "clustering": {
+    "n_clusters": 3,
+    "cluster_sizes": [
+      189
+    ],
+    "purity": null,
+    "recommendation": "insufficient_data"
+  },
+  "routing_gap": {
+    "surrogate_rankings": {
+      "direct_probe_ranking": [
+        "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm",
+        "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict",
+        "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive",
+        "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm",
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict",
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+        "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict",
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive"
+      ],
+      "glass_box_proxy": [
+        "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm",
+        "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict",
+        "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive",
+        "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm",
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict",
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+        "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict",
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive"
+      ],
+      "llm_judge_btl": [
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict",
+        "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict",
+        "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm",
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive",
+        "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm",
+        "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict",
+        "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive"
+      ],
+      "rf_proxy_glass": [
+        "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict",
+        "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive",
+        "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm",
+        "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm",
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive",
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict",
+        "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict"
+      ]
+    },
+    "pairwise_kendall_tau": {
+      "direct_probe_ranking_vs_glass_box_proxy": 0.9999999999999998,
+      "direct_probe_ranking_vs_llm_judge_btl": -0.3571428571428571,
+      "direct_probe_ranking_vs_rf_proxy_glass": 0.6428571428571428,
+      "glass_box_proxy_vs_llm_judge_btl": -0.3571428571428571,
+      "glass_box_proxy_vs_rf_proxy_glass": 0.6428571428571428,
+      "llm_judge_btl_vs_rf_proxy_glass": -0.5714285714285714
+    },
+    "mean_disagreement": 0.40476190476190477,
+    "disagreement_above_threshold": false,
+    "recommendation": "routing_secondary"
+  },
+  "schema_ranking": {
+    "full_vs_numeric_rho": 1.0,
+    "full_vs_entity_rho": 1.0,
+    "min_rho": 1.0,
+    "schema_matters": false,
+    "recommendation": "flat_or_weaker_hierarchy"
+  },
+  "recommendations": {
+    "probe_viable": false,
+    "use_nonlinear": false,
+    "use_routing": false,
+    "use_clustering": false,
+    "schema_first": false,
+    "density_greedy_viable": false
+  }
+}

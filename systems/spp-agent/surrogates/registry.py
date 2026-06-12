@@ -8,11 +8,13 @@ from surrogates.linear_proxy_glass import LinearProxyGlassSurrogate
 from surrogates.llm_judge_btl import LLMJudgeBTLSurrogate
 from surrogates.random_ranking import RandomRankingSurrogate
 from surrogates.rf_proxy_glass import RFProxyGlassSurrogate
+from surrogates.structural_probe_ranking import StructuralProbeRankingSurrogate
 from surrogates.tpe_proxy import TPEProxySurrogate
 
 MAIN_SURROGATES: dict[str, type] = {
     "random_ranking": RandomRankingSurrogate,
     "direct_probe_ranking": DirectProbeRankingSurrogate,
+    "structural_probe_ranking": StructuralProbeRankingSurrogate,
     "glass_box_proxy": GlassBoxProxySurrogate,
     "llm_judge_btl": LLMJudgeBTLSurrogate,
     "linear_proxy_glass": LinearProxyGlassSurrogate,

@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+import random
 from collections import defaultdict
 
 import numpy as np
+
+from utils.logging import setup_logger
+
+logger = setup_logger("spp.judge.btl")
 
 
 def fit_btl(
@@ -73,3 +78,48 @@ def fit_btl(
         scores = new_scores
 
     return {players[i]: float(scores[i]) for i in range(n)}
+
+
+def fit_btl_with_uncertainty(
+    comparisons: list[dict],
+    *,
+    all_config_ids: list[str] | None = None,
+    n_bootstrap: int = 50,
+    seed: int = 42,
+    max_iter: int = 200,
+    tol: float = 1e-9,
+) -> dict[str, tuple[float, float]]:
+    """Fit BTL with bootstrap uncertainty estimates."""
+    players = sorted(set(all_config_ids or []))
+    for comp in comparisons:
+        if comp.get("winner"):
+            players.append(comp["winner"])
+        if comp.get("loser"):
+            players.append(comp["loser"])
+    players = sorted(set(players))
+
+    if not players:
+        return {}
+
+    if len(comparisons) < 2:
+        point = fit_btl(comparisons, all_config_ids=players, max_iter=max_iter, tol=tol)
+        return {cid: (point.get(cid, 1.0), 0.0) for cid in players}
+
+    point = fit_btl(comparisons, all_config_ids=players, max_iter=max_iter, tol=tol)
+    bootstrap_scores: dict[str, list[float]] = defaultdict(list)
+
+    for i in range(n_bootstrap):
+        rng = random.Random(seed + i)
+        sample = [comparisons[rng.randrange(len(comparisons))] for _ in range(len(comparisons))]
+        boot = fit_btl(sample, all_config_ids=players, max_iter=max_iter, tol=tol)
+        for cid in players:
+            bootstrap_scores[cid].append(boot.get(cid, point.get(cid, 1.0)))
+
+    result: dict[str, tuple[float, float]] = {}
+    for cid in players:
+        samples = bootstrap_scores[cid]
+        mean = float(np.mean(samples)) if samples else point.get(cid, 1.0)
+        std = float(np.std(samples)) if len(samples) > 1 else 0.0
+        result[cid] = (mean, std)
+
+    return result

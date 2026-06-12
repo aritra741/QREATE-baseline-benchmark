@@ -40,7 +40,6 @@ def characterize(
     schema: Schema,
     thresholds: ThresholdConfig,
     true_errors: dict[str, float] | None = None,
-    reward_rows: list[dict] | None = None,
     seed: int = 42,
 ) -> Stage1Report:
     """Run all Stage 1 analyses and aggregate recommendations."""
@@ -56,12 +55,18 @@ def characterize(
     interact = analyze_interactions(probe_data, thresholds=thresholds)
 
     proxy_scores = dict(probe_data.glass_box_composites)
-    fidelity_errors = true_errors if true_errors is not None else dict(probe_data.true_errors)
+    if true_errors is not None:
+        fidelity_errors = true_errors
+    elif probe_data.btl_scores:
+        # Deployment-visible proxy: correlate glass-box with BTL (never probe_data.true_errors)
+        fidelity_errors = {cid: -score for cid, score in probe_data.btl_scores.items()}
+    else:
+        fidelity_errors = {}
     fidelity = analyze_probe_fidelity(proxy_scores, fidelity_errors, thresholds=thresholds)
 
     clustering = analyze_clustering_validity(queries, thresholds=thresholds, seed=seed)
 
-    routing = analyze_routing_gap(probe_data, thresholds=thresholds, reward_rows=reward_rows)
+    routing = analyze_routing_gap(probe_data, thresholds=thresholds)
 
     schema_rank = analyze_schema_rank_stability(probe_data, schema, thresholds=thresholds)
 

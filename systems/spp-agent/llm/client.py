@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import time
 from typing import Any
+from urllib.parse import urlparse
 
 import httpx
 
@@ -20,15 +21,25 @@ MODEL_ALIASES: dict[str, list[str]] = {
         "deepseek-ai/DeepSeek-V4-Flash",
         "deepseek-chat",
     ],
+    "qwen2.5-7b-instruct": [
+        "qwen2.5:7b-instruct",
+        "qwen2.5:7b",
+        "Qwen2.5:7B-Instruct",
+        "Qwen2.5-7B-Instruct",
+        "Qwen/Qwen2.5-7B-Instruct",
+        "qwen2.5-7b-instruct",
+    ],
     "qwen2.5-14b-instruct": [
         "Qwen2.5-14B-Instruct",
         "Qwen/Qwen2.5-14B-Instruct",
         "qwen2.5-14b-instruct",
+        "qwen2.5:14b-instruct",
     ],
     "qwen2.5-32b-instruct": [
         "Qwen2.5-32B-Instruct",
         "Qwen/Qwen2.5-32B-Instruct",
         "qwen2.5-32b-instruct",
+        "qwen2.5:32b-instruct",
     ],
 }
 
@@ -57,6 +68,14 @@ def _expand_model_candidates(model_name: str) -> set[str]:
     return candidates
 
 
+def _ollama_root_url(base_url: str) -> str:
+    parsed = urlparse(base_url)
+    path = parsed.path.rstrip("/")
+    if path.endswith("/v1"):
+        path = path[: -len("/v1")]
+    return f"{parsed.scheme}://{parsed.netloc}{path}".rstrip("/")
+
+
 def _resolve_api_key(llm_cfg: dict[str, Any]) -> str:
     provider = llm_cfg.get("provider", "local_vllm")
     if provider == "deepseek":
@@ -67,16 +86,38 @@ def _resolve_api_key(llm_cfg: dict[str, Any]) -> str:
                 f"DeepSeek API key not set. Export {env_name} before using profile deepseek_v4_flash."
             )
         return key
+    if provider == "ollama":
+        return os.environ.get("OLLAMA_API_KEY", "ollama")
     return os.environ.get("OPENAI_API_KEY", "EMPTY")
 
 
 def _provider_label(base_url: str, provider: str) -> str:
     if provider == "deepseek":
         return "DeepSeek API"
+    if provider == "ollama":
+        return f"Ollama at {base_url}"
     return f"local vLLM at {base_url}"
 
 
-def _list_available_models(base_url: str, *, api_key: str) -> set[str]:
+def _list_ollama_native_models(base_url: str) -> set[str]:
+    url = _ollama_root_url(base_url) + "/api/tags"
+    try:
+        with httpx.Client(timeout=30.0) as client:
+            resp = client.get(url)
+            resp.raise_for_status()
+            payload = resp.json()
+    except Exception as exc:
+        raise ModelNotAvailableError(f"Cannot list Ollama models from {url}: {exc}") from exc
+
+    names: set[str] = set()
+    for item in payload.get("models", []):
+        model_id = item.get("name") or item.get("model") or ""
+        if model_id:
+            names.update(_expand_model_candidates(model_id))
+    return names
+
+
+def _list_available_models(base_url: str, *, api_key: str, llm_cfg: dict[str, Any]) -> set[str]:
     url = base_url.rstrip("/") + "/models"
     headers = {"Authorization": f"Bearer {api_key}"} if api_key and api_key != "EMPTY" else {}
     try:
@@ -85,9 +126,10 @@ def _list_available_models(base_url: str, *, api_key: str) -> set[str]:
             resp.raise_for_status()
             payload = resp.json()
     except Exception as exc:
-        raise ModelNotAvailableError(
-            f"Cannot list models from {base_url}: {exc}"
-        ) from exc
+        if llm_cfg.get("provider") == "ollama":
+            logger.debug("OpenAI /models failed for Ollama; falling back to /api/tags: %s", exc)
+            return _list_ollama_native_models(base_url)
+        raise ModelNotAvailableError(f"Cannot list models from {base_url}: {exc}") from exc
 
     names: set[str] = set()
     for item in payload.get("data", []):
@@ -110,13 +152,17 @@ def ensure_model_available(
     logger.debug("Checking model availability: %s at %s", model_name, base_url)
 
     api_key = _resolve_api_key(llm_cfg)
-    available = _list_available_models(base_url, api_key=api_key)
+    available = _list_available_models(base_url, api_key=api_key, llm_cfg=llm_cfg)
     candidates = _expand_model_candidates(model_name)
     if not candidates & available:
         provider = llm_cfg.get("provider", "local_vllm")
+        hint = ""
+        if provider == "ollama":
+            hint = f" Run: ollama pull {model_name}"
         raise ModelNotAvailableError(
             REQUIRED_MODEL_ERROR.format(model_name=model_name)
-            + f" ({_provider_label(base_url, provider)})"
+            + f" ({_provider_label(base_url, provider)})."
+            + hint
         )
 
 
@@ -143,6 +189,21 @@ def _extract_message_text(message: Any) -> str:
     return content if isinstance(content, str) else ""
 
 
+def _chat_extra_kwargs(llm_cfg: dict[str, Any]) -> dict[str, Any]:
+    extra_kwargs: dict[str, Any] = {}
+    if llm_cfg.get("provider") == "deepseek" and llm_cfg.get("thinking"):
+        extra_kwargs["extra_body"] = {"thinking": {"type": "enabled"}}
+        logger.debug("DeepSeek thinking mode enabled")
+        return extra_kwargs
+
+    if llm_cfg.get("provider") == "ollama":
+        ollama_options = dict(llm_cfg.get("ollama_options") or {})
+        if ollama_options:
+            extra_kwargs["extra_body"] = {"options": ollama_options}
+            logger.debug("Ollama options: %s", ollama_options)
+    return extra_kwargs
+
+
 def chat_completion(
     model_name: str,
     messages: list[dict[str, str]],
@@ -167,12 +228,10 @@ def chat_completion(
     from openai import OpenAI
 
     api_key = _resolve_api_key(llm_cfg)
-    client = OpenAI(base_url=base_url, api_key=api_key)
+    timeout = float(llm_cfg.get("request_timeout", 300.0 if llm_cfg.get("provider") == "ollama" else 120.0))
+    client = OpenAI(base_url=base_url, api_key=api_key, timeout=timeout)
 
-    extra_kwargs: dict[str, Any] = {}
-    if llm_cfg.get("provider") == "deepseek" and llm_cfg.get("thinking"):
-        extra_kwargs["extra_body"] = {"thinking": {"type": "enabled"}}
-        logger.debug("DeepSeek thinking mode enabled")
+    extra_kwargs = _chat_extra_kwargs(llm_cfg)
 
     started = time.perf_counter()
     response = client.chat.completions.create(
@@ -199,10 +258,19 @@ def chat_completion(
 def estimate_tokens(text: str, model_name: str = "Qwen/Qwen2.5-14B-Instruct") -> int:
     if "deepseek" in model_name.lower():
         return max(1, len(text) // 4)
+    hf_name = model_name
+    if "qwen2.5" in model_name.lower() or model_name.lower().startswith("qwen"):
+        if ":" in model_name:
+            # Ollama tag, e.g. qwen2.5:7b-instruct
+            tag = model_name.split(":")[-1]
+            size = "7B" if "7b" in tag else "14B" if "14b" in tag else "32B" if "32b" in tag else "7B"
+            hf_name = f"Qwen/Qwen2.5-{size}-Instruct"
+        elif "7b" in model_name.lower():
+            hf_name = "Qwen/Qwen2.5-7B-Instruct"
     try:
         from transformers import AutoTokenizer
 
-        tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
+        tokenizer = AutoTokenizer.from_pretrained(hf_name, trust_remote_code=True)
         return len(tokenizer.encode(text))
     except Exception:
-        return max(1, len(text.split()))
+        return max(1, len(text) // 4)

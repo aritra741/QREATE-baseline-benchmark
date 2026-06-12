@@ -4,8 +4,8 @@ import numpy as np
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, WhiteKernel
 
-from optimizer.config_space import PopulationConfig, encode_config_features
-from surrogates.base import BaseSurrogate
+from optimizer.config_space import encode_config_features, parse_config_id
+from surrogates.base import BaseSurrogate, cluster_probe_view
 
 
 class GPProxyGlassSurrogate(BaseSurrogate):
@@ -28,16 +28,20 @@ class GPProxyGlassSurrogate(BaseSurrogate):
         self.model.fit(X, y)
         self.fitted = True
 
+    def fit_cluster(self, probe_data, cluster_id: int) -> None:
+        self.fit(cluster_probe_view(probe_data, cluster_id))
+
     def score(self, config_id: str) -> float:
         if not self.fitted:
             return self._y_mean
-        parts = dict(p.split("=", 1) for p in config_id.split("|") if "=" in p)
-        cfg = PopulationConfig(
-            config_id=config_id,
-            er_strategy=parts.get("er", "embedding_0.7"),
-            norm_strategy=parts.get("norm", "dictionary"),
-            unit_strategy=parts.get("unit", "none"),
-            miss_strategy=parts.get("miss", "drop"),
-        )
+        cfg = parse_config_id(config_id)
         x = encode_config_features(cfg).reshape(1, -1)
         return float(self.model.predict(x)[0])
+
+    def score_with_uncertainty(self, config_id: str) -> tuple[float, float]:
+        if not self.fitted:
+            return self._y_mean, 0.0
+        cfg = parse_config_id(config_id)
+        x = encode_config_features(cfg).reshape(1, -1)
+        mean, std = self.model.predict(x, return_std=True)
+        return float(mean[0]), float(std[0])

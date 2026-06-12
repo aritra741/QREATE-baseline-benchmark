@@ -1,0 +1,139 @@
+{
+  "run_id": "5ac69995-3551-472f-acfd-dff7a93ebc58",
+  "timestamp": "2026-06-04T00:15:56Z",
+  "token_budget_initial": 500000,
+  "probe_config_ids": [
+    "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm",
+    "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict",
+    "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm",
+    "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict",
+    "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+    "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive",
+    "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict",
+    "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive"
+  ],
+  "probe_expanded": false,
+  "probe_n_judge_pairs": 11,
+  "probe_total_token_cost": 0.0,
+  "n_clusters": 1,
+  "cluster_types": {
+    "0": "mixed"
+  },
+  "cluster_sizes": {
+    "0": 0
+  },
+  "cluster_labels": [],
+  "cluster_btl_scores": {},
+  "cluster_btl_uncertainty": {},
+  "cluster_surrogate_loo_rhos": {
+    "0": {
+      "direct_probe_ranking": 0.0,
+      "glass_box_proxy": -0.7349684152591671,
+      "llm_judge_btl": 0.5879747322073337,
+      "linear_proxy_glass": -0.6587325492402599,
+      "rf_proxy_glass": -0.6587325492402599,
+      "gbdt_proxy_glass": -0.44179262430643435,
+      "gp_proxy_glass": 0.5367450401216933,
+      "tpe_proxy": 0.5034878350069641
+    }
+  },
+  "cluster_selected_surrogates": {
+    "0": "gp_proxy_glass"
+  },
+  "agent_actions": [
+    {
+      "turn": 1,
+      "thought": "Start by inspecting the workload shape, query types, and token budgets to understand the corpus and workload.",
+      "action": "get_dataset_summary",
+      "action_input": {},
+      "observation_summary": "{'slice': 'agg_only', 'dataset': 'cached', 'schema_mode': 'multi_table', 'tables': ['city', 'owner', 'player', 'team'], 'num_probe_configs': 8, 'tier0': {'num_docs': 20, 'avg_doc_tokens': 92.45, 'max_doc_tokens': 100, 'doc_token_std': 3.827205246651922, 'num_queries': 3, 'query_type_mix': {'Agg': 3}",
+      "timestamp": "2026-06-04T00:15:57Z"
+    },
+    {
+      "turn": 2,
+      "thought": "Agg-only workload with 3 queries, 20 docs, 8 probed configs. Budget is 0, so no additional probing possible without risking materialization. Let's run stage 1 to see cluster structure and probe fidelity.",
+      "action": "run_stage1_characterization",
+      "action_input": {},
+      "observation_summary": "{'recommendations': {'probe_viable': False, 'use_nonlinear': False, 'use_routing': True, 'use_clustering': False, 'schema_first': False, 'density_greedy_viable': False}, 'probe_fidelity': {'spearman_rho': -0.6962583148700209, 'top_k_recall': 0.0, 'best_proxy_regret': 5.341335153253002, 'recommendati",
+      "timestamp": "2026-06-04T00:16:00Z"
+    },
+    {
+      "turn": 3,
+      "thought": "Probe fidelity is poor, budget is 0 so no more probing. Need to check BTL and surrogate rankings to find signal. Let's get BTL rankings and then run surrogate bakeoff.",
+      "action": "get_btl_rankings",
+      "action_input": {},
+      "observation_summary": "{'num_pairwise_comparisons': 11, 'btl_spread': 5.341335153253002, 'win_counts': {'er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm': 2, 'er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict': 5, 'er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm': 0, 'er=embedding_0.8|norm=llm|uni",
+      "timestamp": "2026-06-04T00:16:02Z"
+    },
+    {
+      "turn": 4,
+      "thought": "BTL shows top-2 configs are clear: embedding_0.8|dictionary|none|mode|strict and llm|dictionary|none|mode|strict. Since stage1 said clustering insufficient and queries are all Agg, single cluster. Let's check surrogate rankings to see which surrogate aligns with BTL.",
+      "action": "get_surrogate_ranking",
+      "action_input": {
+        "surrogate_name": "direct_probe_ranking"
+      },
+      "observation_summary": "{'surrogate': 'direct_probe_ranking', 'ranking': [{'rank': 1, 'config_id': 'er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm', 'proxy_score': 0.8230193707412761}, {'rank': 2, 'config_id': 'er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict', 'proxy_score': 0.8230193707412761}, {'r",
+      "timestamp": "2026-06-04T00:16:05Z"
+    },
+    {
+      "turn": 5,
+      "thought": "Direct probe ranking disagrees strongly with BTL. Let's check glass_box_proxy which uses extraction quality signals.",
+      "action": "get_surrogate_ranking",
+      "action_input": {
+        "surrogate_name": "glass_box_proxy"
+      },
+      "observation_summary": "{'surrogate': 'glass_box_proxy', 'ranking': [{'rank': 1, 'config_id': 'er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm', 'proxy_score': 0.8230193707412761}, {'rank': 2, 'config_id': 'er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict', 'proxy_score': 0.8230193707412761}, {'rank':",
+      "timestamp": "2026-06-04T00:16:07Z"
+    },
+    {
+      "turn": 6,
+      "thought": "Glass box and direct probe give same ranking, disagree with BTL. Let me check llm_judge_btl which should match BTL since it's derived from pairwise LLM judgments, and also a nonlinear proxy.",
+      "action": "get_surrogate_ranking",
+      "action_input": {
+        "surrogate_name": "llm_judge_btl"
+      },
+      "observation_summary": "{'surrogate': 'llm_judge_btl', 'ranking': [{'rank': 1, 'config_id': 'er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict', 'proxy_score': 5.341336151524103}, {'rank': 2, 'config_id': 'er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict', 'proxy_score': 2.180915353208288}, {'rank'",
+      "timestamp": "2026-06-04T00:16:09Z"
+    },
+    {
+      "turn": 7,
+      "thought": "llm_judge_btl matches BTL ranking. Budget 0 prevents more probing. Stage1 says no clustering needed. Let's set cluster granularity to 1 explicitly and then emit.",
+      "action": "choose_cluster_granularity",
+      "action_input": {
+        "n_clusters": 1
+      },
+      "observation_summary": "{'updated': True, 'n_clusters': 1, 'cluster_types': {0: 'mixed'}, 'cluster_sizes': {0: 0}}",
+      "timestamp": "2026-06-04T00:16:14Z"
+    },
+    {
+      "turn": 8,
+      "thought": "Cluster sizes are 0 which is odd - likely all 3 Agg queries are in one cluster. Let's run surrogate bakeoff to get per-cluster LOO Spearman \u03c1 to confirm llm_judge_btl is the best surrogate.",
+      "action": "run_surrogate_bakeoff",
+      "action_input": {},
+      "observation_summary": "{'surrogate_loo_rhos': {'llm_judge_btl': 0.5879747322073337, 'gp_proxy_glass': 0.5367450401216933, 'tpe_proxy': 0.5034878350069641, 'direct_probe_ranking': 0.0, 'gbdt_proxy_glass': -0.44179262430643435, 'linear_proxy_glass': -0.6587325492402599, 'rf_proxy_glass': -0.6587325492402599, 'glass_box_prox",
+      "timestamp": "2026-06-04T00:16:21Z"
+    },
+    {
+      "turn": 9,
+      "thought": "Bakeoff confirms llm_judge_btl as best surrogate (rho=0.588). Single cluster for all Agg queries. Budget 0 prevents more probing. BTL clearly separates top configs. Emitting routing table with llm_judge_btl.",
+      "action": "emit_routing_table",
+      "action_input": {
+        "surrogate_name": "llm_judge_btl"
+      },
+      "observation_summary": "{'selected_configs': ['er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=llm'], 'n_configs_selected': 1, 'best_surrogate': 'gp_proxy_glass', 'best_algorithm': 'routing_assignment', 'stage1_recommendations': {'probe_viable': False, 'use_nonlinear': False, 'use_routing': True, 'use_clustering': F",
+      "timestamp": "2026-06-04T00:16:35Z"
+    }
+  ],
+  "routing_table": {
+    "0": "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=llm"
+  },
+  "selected_configs": [
+    "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=llm"
+  ],
+  "risk_level": "risk_neutral",
+  "n_materializations": 1,
+  "token_budget_spent": 1536,
+  "token_budget_remaining": 498464,
+  "used_fallback": false,
+  "fallback_reason": ""
+}

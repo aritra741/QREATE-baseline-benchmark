@@ -1,0 +1,106 @@
+{
+  "run_id": "d5d0df81-3f3e-4e30-bd50-c62ea84fd85e",
+  "timestamp": "2026-06-04T00:31:33Z",
+  "token_budget_initial": 500000,
+  "probe_config_ids": [
+    "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm",
+    "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict",
+    "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm",
+    "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict",
+    "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+    "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive",
+    "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict",
+    "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive"
+  ],
+  "probe_expanded": false,
+  "probe_n_judge_pairs": 13,
+  "probe_total_token_cost": 120104.0,
+  "n_clusters": 0,
+  "cluster_types": {},
+  "cluster_sizes": {},
+  "cluster_labels": [],
+  "cluster_btl_scores": {},
+  "cluster_btl_uncertainty": {},
+  "cluster_surrogate_loo_rhos": {},
+  "cluster_selected_surrogates": {},
+  "agent_actions": [
+    {
+      "turn": 1,
+      "thought": "Start by understanding the workload shape and query types to inform cluster granularity and surrogate selection.",
+      "action": "get_dataset_summary",
+      "action_input": {},
+      "observation_summary": "{'slice': 'agg_only', 'dataset': 'Player', 'schema_mode': 'multi_table', 'tables': ['city', 'owner', 'player', 'team'], 'num_probe_configs': 8, 'tier0': {'num_docs': 20, 'avg_doc_tokens': 55.3, 'max_doc_tokens': 58, 'doc_token_std': 1.7635192088548397, 'num_queries': 3, 'query_type_mix': {'Agg': 3},",
+      "timestamp": "2026-06-04T00:31:48Z"
+    },
+    {
+      "turn": 2,
+      "thought": "Only 3 queries, all aggregations, on a multi-table schema. Need to see cluster structure and probe fidelity before deciding granularity.",
+      "action": "run_stage1_characterization",
+      "action_input": {},
+      "observation_summary": "{'recommendations': {'probe_viable': False, 'use_nonlinear': False, 'use_routing': True, 'use_clustering': False, 'schema_first': False, 'density_greedy_viable': False}, 'probe_fidelity': {'spearman_rho': -0.531688167718925, 'top_k_recall': 0.0, 'best_proxy_regret': 5.113285297900165, 'recommendatio",
+      "timestamp": "2026-06-04T00:31:50Z"
+    },
+    {
+      "turn": 3,
+      "thought": "Probe fidelity is very poor (negative rho, zero recall). Need to inspect current BTL rankings, per-config diagnostics, and surrogate rankings before deciding whether to probe more or adapt risk. Budget is 0 so need to be careful.",
+      "action": "get_btl_rankings",
+      "action_input": {},
+      "observation_summary": "{'num_pairwise_comparisons': 13, 'btl_spread': 5.113285297900165, 'win_counts': {'er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm': 2, 'er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict': 5, 'er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm': 0, 'er=embedding_0.8|norm=llm|uni",
+      "timestamp": "2026-06-04T00:31:54Z"
+    },
+    {
+      "turn": 4,
+      "thought": "BTL ranking is clear: top config wins all comparisons with high spread. But probe fidelity is poor. Budget is 0 so no more probes. Let's check surrogates to see if any agree with BTL ranking for selecting that top config.",
+      "action": "get_surrogate_ranking",
+      "action_input": {
+        "surrogate_name": "direct_probe_ranking"
+      },
+      "observation_summary": "{'surrogate': 'direct_probe_ranking', 'ranking': [{'rank': 1, 'config_id': 'er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm', 'proxy_score': 0.8031631097560976}, {'rank': 2, 'config_id': 'er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict', 'proxy_score': 0.8031631097560976}, {'r",
+      "timestamp": "2026-06-04T00:31:57Z"
+    },
+    {
+      "turn": 5,
+      "thought": "Direct_probe_ranking disagrees with BTL. The BTL top config gets rank 4 from direct_probe. Need to compare surrogates to find best agreement with BTL. Let's check glass_box_proxy and llm_judge_btl.",
+      "action": "compare_surrogates",
+      "action_input": {
+        "surrogate_a": "glass_box_proxy",
+        "surrogate_b": "direct_probe_ranking"
+      },
+      "observation_summary": "{'surrogate_a': 'glass_box_proxy', 'surrogate_b': 'direct_probe_ranking', 'top3_overlap': ['er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive', 'er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict', 'er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm'], 'top1_agreemen",
+      "timestamp": "2026-06-04T00:32:00Z"
+    },
+    {
+      "turn": 6,
+      "thought": "Glass_box_proxy and direct_probe_ranking agree on top-1 and top-3. But BTL says top config is different. Need to see llm_judge_btl and per-cluster bakeoff.",
+      "action": "compare_surrogates",
+      "action_input": {
+        "surrogate_a": "llm_judge_btl",
+        "surrogate_b": "glass_box_proxy"
+      },
+      "observation_summary": "{'surrogate_a': 'llm_judge_btl', 'surrogate_b': 'glass_box_proxy', 'top3_overlap': [], 'top1_agreement': False, 'num_disagreements': 8, 'largest_disagreements': [{'config_id': 'er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm', 'llm_judge_btl_rank': 6, 'glass_box_proxy_rank': 1, 'rank_delta'",
+      "timestamp": "2026-06-04T00:32:02Z"
+    },
+    {
+      "turn": 8,
+      "thought": "BTL ranking shows clear top config. Surrogates disagree with BTL. Need per-cluster LOO Spearman \u03c1 to choose best surrogate for routing table. Budget is limited so no more probing.",
+      "action": "run_surrogate_bakeoff",
+      "action_input": {},
+      "observation_summary": "{'surrogate_loo_rhos': {'tpe_proxy': 0.6350852961085884, 'gp_proxy_glass': 0.4879500364742666, 'llm_judge_btl': 0.42761798705987897, 'direct_probe_ranking': 0.0, 'glass_box_proxy': -0.33407655239053047, 'gbdt_proxy_glass': -0.36816052025536194, 'rf_proxy_glass': -0.5367450401216933, 'linear_proxy_gl",
+      "timestamp": "2026-06-04T00:32:13Z"
+    }
+  ],
+  "routing_table": {
+    "0": "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm",
+    "1": "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm",
+    "2": "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm"
+  },
+  "selected_configs": [
+    "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm"
+  ],
+  "risk_level": "risk_neutral",
+  "n_materializations": 0,
+  "token_budget_spent": 0,
+  "token_budget_remaining": 0,
+  "used_fallback": true,
+  "fallback_reason": "no_terminal_action"
+}

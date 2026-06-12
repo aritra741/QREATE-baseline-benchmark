@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from optimizer.config_space import encode_config_features
+from optimizer.config_space import encode_config_features, parse_config_id
 from surrogates.base import BaseSurrogate
 
 
@@ -30,24 +30,7 @@ class GlassBoxProxySurrogate(BaseSurrogate):
         if not self.probed_ids:
             return float("-inf")
 
-        from optimizer.config_space import PopulationConfig
-
-        # config_id string encodes modules; rebuild PopulationConfig from probe configs template
-        # Use nearest probed by Hamming distance in one-hot features
-        target = None
-        for cid in self.probed_ids:
-            if cid == config_id:
-                return self.glass_scores[cid]
-
-        # Parse config_id if unprobed
-        parts = dict(p.split("=", 1) for p in config_id.split("|") if "=" in p)
-        dummy = PopulationConfig(
-            config_id=config_id,
-            er_strategy=parts.get("er", "embedding_0.7"),
-            norm_strategy=parts.get("norm", "dictionary"),
-            unit_strategy=parts.get("unit", "none"),
-            miss_strategy=parts.get("miss", "drop"),
-        )
+        dummy = parse_config_id(config_id)
         target = encode_config_features(dummy)
 
         best_score = float("-inf")

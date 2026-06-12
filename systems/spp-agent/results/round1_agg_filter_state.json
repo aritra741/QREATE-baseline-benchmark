@@ -1,0 +1,3242 @@
+{
+  "task": "select_extraction_pipeline_configs_for_aggregation_workload",
+  "round": 1,
+  "budget": {
+    "total": 80000,
+    "spent": 0,
+    "remaining": 80000,
+    "affordable_probes_remaining": 192
+  },
+  "demand_profile": {
+    "columns": [
+      {
+        "column": "owner.name",
+        "roles": [
+          "filter"
+        ],
+        "aggregation_functions": [],
+        "query_ids": [
+          "mixed_queries_filter_agg_3",
+          "mixed_queries_filter_agg_player_3"
+        ]
+      },
+      {
+        "column": "owner.nationality",
+        "roles": [
+          "group_key",
+          "filter"
+        ],
+        "aggregation_functions": [],
+        "query_ids": [
+          "mixed_queries_filter_agg_3",
+          "mixed_queries_filter_agg_5",
+          "mixed_queries_filter_agg_player_2",
+          "mixed_queries_filter_agg_player_3",
+          "mixed_subsample_2"
+        ]
+      },
+      {
+        "column": "player.name",
+        "roles": [
+          "filter"
+        ],
+        "aggregation_functions": [],
+        "query_ids": [
+          "mixed_queries_filter_agg_3",
+          "mixed_queries_filter_agg_player_3"
+        ]
+      },
+      {
+        "column": "player.nationality",
+        "roles": [
+          "group_key",
+          "filter"
+        ],
+        "aggregation_functions": [],
+        "query_ids": [
+          "mixed_queries_filter_agg_3",
+          "mixed_queries_filter_agg_5",
+          "mixed_queries_filter_agg_player_2",
+          "mixed_queries_filter_agg_player_3",
+          "mixed_subsample_2"
+        ]
+      },
+      {
+        "column": "player.nba_championships",
+        "roles": [
+          "filter"
+        ],
+        "aggregation_functions": [],
+        "query_ids": [
+          "mixed_queries_filter_agg_3",
+          "mixed_queries_filter_agg_5",
+          "mixed_queries_filter_agg_player_3",
+          "mixed_queries_filter_agg_player_5"
+        ]
+      },
+      {
+        "column": "player.team",
+        "roles": [
+          "filter",
+          "group_key"
+        ],
+        "aggregation_functions": [],
+        "query_ids": [
+          "mixed_queries_filter_agg_5",
+          "mixed_queries_filter_agg_player_1",
+          "mixed_queries_filter_agg_player_5",
+          "mixed_queries_filter_agg_player_6"
+        ]
+      },
+      {
+        "column": "player.fiba_world_cup",
+        "roles": [
+          "filter",
+          "aggregate_input"
+        ],
+        "aggregation_functions": [
+          "AVG",
+          "MIN"
+        ],
+        "query_ids": [
+          "mixed_queries_filter_agg_5",
+          "mixed_queries_filter_agg_6",
+          "mixed_queries_filter_agg_player_5",
+          "mixed_queries_filter_agg_player_6"
+        ]
+      },
+      {
+        "column": "owner.age",
+        "roles": [
+          "filter",
+          "aggregate_input"
+        ],
+        "aggregation_functions": [
+          "COUNT"
+        ],
+        "query_ids": [
+          "mixed_queries_filter_agg_6",
+          "mixed_queries_filter_agg_player_3",
+          "mixed_queries_filter_agg_player_6"
+        ]
+      },
+      {
+        "column": "player.age",
+        "roles": [
+          "filter",
+          "aggregate_input"
+        ],
+        "aggregation_functions": [
+          "COUNT"
+        ],
+        "query_ids": [
+          "mixed_queries_filter_agg_6",
+          "mixed_queries_filter_agg_player_3",
+          "mixed_queries_filter_agg_player_6"
+        ]
+      },
+      {
+        "column": "player.position",
+        "roles": [
+          "group_key",
+          "filter"
+        ],
+        "aggregation_functions": [],
+        "query_ids": [
+          "mixed_queries_filter_agg_6"
+        ]
+      },
+      {
+        "column": "player.mvp_awards",
+        "roles": [
+          "filter"
+        ],
+        "aggregation_functions": [],
+        "query_ids": [
+          "mixed_queries_filter_agg_6",
+          "mixed_queries_filter_agg_player_6"
+        ]
+      },
+      {
+        "column": "player.draft_pick",
+        "roles": [
+          "filter"
+        ],
+        "aggregation_functions": [],
+        "query_ids": [
+          "mixed_queries_filter_agg_player_1"
+        ]
+      },
+      {
+        "column": "player.olympic_gold_medals",
+        "roles": [
+          "aggregate_input",
+          "filter"
+        ],
+        "aggregation_functions": [
+          "MIN",
+          "SUM"
+        ],
+        "query_ids": [
+          "mixed_queries_filter_agg_player_1",
+          "mixed_queries_filter_agg_player_2",
+          "mixed_subsample_2"
+        ]
+      }
+    ],
+    "has_join": false,
+    "has_temporal": false
+  },
+  "supply_profile_by_query": {
+    "mixed_queries_filter_agg_3": {
+      "columns": [
+        {
+          "column": "owner.name",
+          "mention_rate": 0.0,
+          "expression_diversity": {
+            "n_distinct_clusters": 0,
+            "n_mentions": 0,
+            "diversity_ratio": 0.0,
+            "example_forms": [],
+            "semantic_collision_rate": 0.0
+          },
+          "derivability": {
+            "direct_rate": 0.0,
+            "derivable_rate": 0.0,
+            "ambiguous_rate": 0.0
+          },
+          "join_key_ambiguity": null,
+          "recommendations": {
+            "norm_recommendation": "dictionary",
+            "coerce_recommendation": "strict",
+            "er_recommendation": "embedding"
+          }
+        },
+        {
+          "column": "owner.nationality",
+          "mention_rate": 0.0,
+          "expression_diversity": {
+            "n_distinct_clusters": 0,
+            "n_mentions": 0,
+            "diversity_ratio": 0.0,
+            "example_forms": [],
+            "semantic_collision_rate": 0.0
+          },
+          "derivability": {
+            "direct_rate": 0.0,
+            "derivable_rate": 0.0,
+            "ambiguous_rate": 0.0
+          },
+          "join_key_ambiguity": null,
+          "recommendations": {
+            "norm_recommendation": "dictionary",
+            "coerce_recommendation": "strict",
+            "er_recommendation": "embedding"
+          }
+        },
+        {
+          "column": "player.name",
+          "mention_rate": 0.0,
+          "expression_diversity": {
+            "n_distinct_clusters": 0,
+            "n_mentions": 0,
+            "diversity_ratio": 0.0,
+            "example_forms": [],
+            "semantic_collision_rate": 0.0
+          },
+          "derivability": {
+            "direct_rate": 0.0,
+            "derivable_rate": 0.0,
+            "ambiguous_rate": 0.0
+          },
+          "join_key_ambiguity": null,
+          "recommendations": {
+            "norm_recommendation": "dictionary",
+            "coerce_recommendation": "strict",
+            "er_recommendation": "embedding"
+          }
+        },
+        {
+          "column": "player.nationality",
+          "mention_rate": 0.5,
+          "expression_diversity": {
+            "n_distinct_clusters": 2,
+            "n_mentions": 10,
+            "diversity_ratio": 0.2,
+            "example_forms": [
+              "American",
+              "Mexican-American"
+            ],
+            "semantic_collision_rate": 1.0
+          },
+          "derivability": {
+            "direct_rate": 1.0,
+            "derivable_rate": 0.0,
+            "ambiguous_rate": 0.0
+          },
+          "join_key_ambiguity": null,
+          "recommendations": {
+            "norm_recommendation": "llm",
+            "coerce_recommendation": "strict",
+            "er_recommendation": "embedding"
+          }
+        },
+        {
+          "column": "player.nba_championships",
+          "mention_rate": 0.0,
+          "expression_diversity": {
+            "n_distinct_clusters": 0,
+            "n_mentions": 0,
+            "diversity_ratio": 0.0,
+            "example_forms": []
+          },
+          "derivability": {
+            "direct_rate": 0.0,
+            "derivable_rate": 0.0,
+            "ambiguous_rate": 0.0
+          },
+          "join_key_ambiguity": null,
+          "recommendations": {
+            "norm_recommendation": "dictionary",
+            "coerce_recommendation": "strict",
+            "er_recommendation": "embedding"
+          }
+        }
+      ]
+    },
+    "mixed_queries_filter_agg_5": {
+      "columns": [
+        {
+          "column": "owner.nationality",
+          "mention_rate": 0.0,
+          "expression_diversity": {
+            "n_distinct_clusters": 0,
+            "n_mentions": 0,
+            "diversity_ratio": 0.0,
+            "example_forms": [],
+            "semantic_collision_rate": 0.0
+          },
+          "derivability": {
+            "direct_rate": 0.0,
+            "derivable_rate": 0.0,
+            "ambiguous_rate": 0.0
+          },
+          "join_key_ambiguity": null,
+          "recommendations": {
+            "norm_recommendation": "dictionary",
+            "coerce_recommendation": "strict",
+            "er_recommendation": "embedding"
+          }
+        },
+        {
+          "column": "player.nationality",
+          "mention_rate": 0.5,
+          "expression_diversity": {
+            "n_distinct_clusters": 2,
+            "n_mentions": 10,
+            "diversity_ratio": 0.2,
+            "example_forms": [
+              "American",
+              "Mexican-American"
+            ],
+            "semantic_collision_rate": 1.0
+          },
+          "derivability": {
+            "direct_rate": 1.0,
+            "derivable_rate": 0.0,
+            "ambiguous_rate": 0.0
+          },
+          "join_key_ambiguity": null,
+          "recommendations": {
+            "norm_recommendation": "llm",
+            "coerce_recommendation": "strict",
+            "er_recommendation": "embedding"
+          }
+        },
+        {
+          "column": "player.nba_championships",
+          "mention_rate": 0.0,
+          "expression_diversity": {
+            "n_distinct_clusters": 0,
+            "n_mentions": 0,
+            "diversity_ratio": 0.0,
+            "example_forms": []
+          },
+          "derivability": {
+            "direct_rate": 0.0,
+            "derivable_rate": 0.0,
+            "ambiguous_rate": 0.0
+          },
+          "join_key_ambiguity": null,
+          "recommendations": {
+            "norm_recommendation": "dictionary",
+            "coerce_recommendation": "strict",
+            "er_recommendation": "embedding"
+          }
+        },
+        {
+          "column": "player.team",
+          "mention_rate": 0.5,
+          "expression_diversity": {
+            "n_distinct_clusters": 10,
+            "n_mentions": 10,
+            "diversity_ratio": 1.0,
+            "example_forms": [
+              "New York Knicks",
+              "Washington Bullets",
+              "HTV Basket",
+              "Miami Heat",
+              "San Antonio Spurs"
+            ],
+            "semantic_collision_rate": 0.0
+          },
+          "derivability": {
+            "direct_rate": 0.7,
+            "derivable_rate": 0.0,
+            "ambiguous_rate": 0.3
+          },
+          "join_key_ambiguity": null,
+          "recommendations": {
+            "norm_recommendation": "llm",
+            "coerce_recommendation": "strict",
+            "er_recommendation": "llm"
+          }
+        },
+        {
+          "column": "player.fiba_world_cup",
+          "mention_rate": 0.0,
+          "expression_diversity": {
+            "n_distinct_clusters": 0,
+            "n_mentions": 0,
+            "diversity_ratio": 0.0,
+            "example_forms": []
+          },
+          "derivability": {
+            "direct_rate": 0.0,
+            "derivable_rate": 0.0,
+            "ambiguous_rate": 0.0
+          },
+          "join_key_ambiguity": null,
+          "recommendations": {
+            "norm_recommendation": "dictionary",
+            "coerce_recommendation": "strict",
+            "er_recommendation": "embedding"
+          }
+        }
+      ]
+    },
+    "mixed_queries_filter_agg_6": {
+      "columns": [
+        {
+          "column": "player.fiba_world_cup",
+          "mention_rate": 0.0,
+          "expression_diversity": {
+            "n_distinct_clusters": 0,
+            "n_mentions": 0,
+            "diversity_ratio": 0.0,
+            "example_forms": []
+          },
+          "derivability": {
+            "direct_rate": 0.0,
+            "derivable_rate": 0.0,
+            "ambiguous_rate": 0.0
+          },
+          "join_key_ambiguity": null,
+          "recommendations": {
+            "norm_recommendation": "dictionary",
+            "coerce_recommendation": "strict",
+            "er_recommendation": "embedding"
+          }
+        },
+        {
+          "column": "owner.age",
+          "mention_rate": 0.0,
+          "expression_diversity": {
+            "n_distinct_clusters": 0,
+            "n_mentions": 0,
+            "diversity_ratio": 0.0,
+            "example_forms": []
+          },
+          "derivability": {
+            "direct_rate": 0.0,
+            "derivable_rate": 0.0,
+            "ambiguous_rate": 0.0
+          },
+          "join_key_ambiguity": null,
+          "recommendations": {
+            "norm_recommendation": "dictionary",
+            "coerce_recommendation": "strict",
+            "er_recommendation": "embedding"
+          }
+        },
+        {
+          "column": "player.age",
+          "mention_rate": 0.5,
+          "expression_diversity": {
+            "n_distinct_clusters": 5,
+            "n_mentions": 20,
+            "diversity_ratio": 0.25,
+            "example_forms": [
+              "1996",
+              "1959",
+              "1973",
+              "2001",
+              "1964"
+            ]
+          },
+          "derivability": {
+            "direct_rate": 1.0,
+            "derivable_rate": 0.0,
+            "ambiguous_rate": 0.0
+          },
+          "join_key_ambiguity": null,
+          "recommendations": {
+            "norm_recommendation": "dictionary",
+            "coerce_recommendation": "strict",
+            "er_recommendation": "embedding"
+          }
+        },
+        {
+          "column": "player.position",
+          "mention_rate": 0.5,
+          "expression_diversity": {
+            "n_distinct_clusters": 1,
+            "n_mentions": 3,
+            "diversity_ratio": 0.3333,
+            "example_forms": [
+              "Frontcourt"
+            ],
+            "semantic_collision_rate": 0.0
+          },
+          "derivability": {
+            "direct_rate": 1.0,
+            "derivable_rate": 0.0,
+            "ambiguous_rate": 0.0
+          },
+          "join_key_ambiguity": null,
+          "recommendations": {
+            "norm_recommendation": "llm",
+            "coerce_recommendation": "strict",
+            "er_recommendation": "embedding"
+          }
+        },
+        {
+          "column": "player.mvp_awards",
+          "mention_rate": 0.0,
+          "expression_diversity": {
+            "n_distinct_clusters": 0,
+            "n_mentions": 0,
+            "diversity_ratio": 0.0,
+            "example_forms": []
+          },
+          "derivability": {
+            "direct_rate": 0.0,
+            "derivable_rate": 0.0,
+            "ambiguous_rate": 0.0
+          },
+          "join_key_ambiguity": null,
+          "recommendations": {
+            "norm_recommendation": "dictionary",
+            "coerce_recommendation": "strict",
+            "er_recommendation": "embedding"
+          }
+        }
+      ]
+    },
+    "mixed_queries_filter_agg_player_1": {
+      "columns": [
+        {
+          "column": "player.team",
+          "mention_rate": 0.5,
+          "expression_diversity": {
+            "n_distinct_clusters": 10,
+            "n_mentions": 10,
+            "diversity_ratio": 1.0,
+            "example_forms": [
+              "New York Knicks",
+              "Washington Bullets",
+              "HTV Basket",
+              "Miami Heat",
+              "San Antonio Spurs"
+            ],
+            "semantic_collision_rate": 0.0
+          },
+          "derivability": {
+            "direct_rate": 0.7,
+            "derivable_rate": 0.0,
+            "ambiguous_rate": 0.3
+          },
+          "join_key_ambiguity": null,
+          "recommendations": {
+            "norm_recommendation": "llm",
+            "coerce_recommendation": "strict",
+            "er_recommendation": "llm"
+          }
+        },
+        {
+          "column": "player.draft_pick",
+          "mention_rate": 0.0,
+          "expression_diversity": {
+            "n_distinct_clusters": 0,
+            "n_mentions": 0,
+            "diversity_ratio": 0.0,
+            "example_forms": []
+          },
+          "derivability": {
+            "direct_rate": 0.0,
+            "derivable_rate": 0.0,
+            "ambiguous_rate": 0.0
+          },
+          "join_key_ambiguity": null,
+          "recommendations": {
+            "norm_recommendation": "dictionary",
+            "coerce_recommendation": "strict",
+            "er_recommendation": "embedding"
+          }
+        },
+        {
+          "column": "player.olympic_gold_medals",
+          "mention_rate": 0.0,
+          "expression_diversity": {
+            "n_distinct_clusters": 0,
+            "n_mentions": 0,
+            "diversity_ratio": 0.0,
+            "example_forms": []
+          },
+          "derivability": {
+            "direct_rate": 0.0,
+            "derivable_rate": 0.0,
+            "ambiguous_rate": 0.0
+          },
+          "join_key_ambiguity": null,
+          "recommendations": {
+            "norm_recommendation": "dictionary",
+            "coerce_recommendation": "strict",
+            "er_recommendation": "embedding"
+          }
+        }
+      ]
+    },
+    "mixed_queries_filter_agg_player_2": {
+      "columns": [
+        {
+          "column": "owner.nationality",
+          "mention_rate": 0.0,
+          "expression_diversity": {
+            "n_distinct_clusters": 0,
+            "n_mentions": 0,
+            "diversity_ratio": 0.0,
+            "example_forms": [],
+            "semantic_collision_rate": 0.0
+          },
+          "derivability": {
+            "direct_rate": 0.0,
+            "derivable_rate": 0.0,
+            "ambiguous_rate": 0.0
+          },
+          "join_key_ambiguity": null,
+          "recommendations": {
+            "norm_recommendation": "dictionary",
+            "coerce_recommendation": "strict",
+            "er_recommendation": "embedding"
+          }
+        },
+        {
+          "column": "player.nationality",
+          "mention_rate": 0.5,
+          "expression_diversity": {
+            "n_distinct_clusters": 2,
+            "n_mentions": 10,
+            "diversity_ratio": 0.2,
+            "example_forms": [
+              "American",
+              "Mexican-American"
+            ],
+            "semantic_collision_rate": 1.0
+          },
+          "derivability": {
+            "direct_rate": 1.0,
+            "derivable_rate": 0.0,
+            "ambiguous_rate": 0.0
+          },
+          "join_key_ambiguity": null,
+          "recommendations": {
+            "norm_recommendation": "llm",
+            "coerce_recommendation": "strict",
+            "er_recommendation": "embedding"
+          }
+        },
+        {
+          "column": "player.olympic_gold_medals",
+          "mention_rate": 0.0,
+          "expression_diversity": {
+            "n_distinct_clusters": 0,
+            "n_mentions": 0,
+            "diversity_ratio": 0.0,
+            "example_forms": []
+          },
+          "derivability": {
+            "direct_rate": 0.0,
+            "derivable_rate": 0.0,
+            "ambiguous_rate": 0.0
+          },
+          "join_key_ambiguity": null,
+          "recommendations": {
+            "norm_recommendation": "dictionary",
+            "coerce_recommendation": "strict",
+            "er_recommendation": "embedding"
+          }
+        }
+      ]
+    },
+    "mixed_queries_filter_agg_player_3": {
+      "columns": [
+        {
+          "column": "owner.name",
+          "mention_rate": 0.0,
+          "expression_diversity": {
+            "n_distinct_clusters": 0,
+            "n_mentions": 0,
+            "diversity_ratio": 0.0,
+            "example_forms": [],
+            "semantic_collision_rate": 0.0
+          },
+          "derivability": {
+            "direct_rate": 0.0,
+            "derivable_rate": 0.0,
+            "ambiguous_rate": 0.0
+          },
+          "join_key_ambiguity": null,
+          "recommendations": {
+            "norm_recommendation": "dictionary",
+            "coerce_recommendation": "strict",
+            "er_recommendation": "embedding"
+          }
+        },
+        {
+          "column": "owner.nationality",
+          "mention_rate": 0.0,
+          "expression_diversity": {
+            "n_distinct_clusters": 0,
+            "n_mentions": 0,
+            "diversity_ratio": 0.0,
+            "example_forms": [],
+            "semantic_collision_rate": 0.0
+          },
+          "derivability": {
+            "direct_rate": 0.0,
+            "derivable_rate": 0.0,
+            "ambiguous_rate": 0.0
+          },
+          "join_key_ambiguity": null,
+          "recommendations": {
+            "norm_recommendation": "dictionary",
+            "coerce_recommendation": "strict",
+            "er_recommendation": "embedding"
+          }
+        },
+        {
+          "column": "player.name",
+          "mention_rate": 0.0,
+          "expression_diversity": {
+            "n_distinct_clusters": 0,
+            "n_mentions": 0,
+            "diversity_ratio": 0.0,
+            "example_forms": [],
+            "semantic_collision_rate": 0.0
+          },
+          "derivability": {
+            "direct_rate": 0.0,
+            "derivable_rate": 0.0,
+            "ambiguous_rate": 0.0
+          },
+          "join_key_ambiguity": null,
+          "recommendations": {
+            "norm_recommendation": "dictionary",
+            "coerce_recommendation": "strict",
+            "er_recommendation": "embedding"
+          }
+        },
+        {
+          "column": "player.nationality",
+          "mention_rate": 0.5,
+          "expression_diversity": {
+            "n_distinct_clusters": 2,
+            "n_mentions": 10,
+            "diversity_ratio": 0.2,
+            "example_forms": [
+              "American",
+              "Mexican-American"
+            ],
+            "semantic_collision_rate": 1.0
+          },
+          "derivability": {
+            "direct_rate": 1.0,
+            "derivable_rate": 0.0,
+            "ambiguous_rate": 0.0
+          },
+          "join_key_ambiguity": null,
+          "recommendations": {
+            "norm_recommendation": "llm",
+            "coerce_recommendation": "strict",
+            "er_recommendation": "embedding"
+          }
+        },
+        {
+          "column": "player.nba_championships",
+          "mention_rate": 0.0,
+          "expression_diversity": {
+            "n_distinct_clusters": 0,
+            "n_mentions": 0,
+            "diversity_ratio": 0.0,
+            "example_forms": []
+          },
+          "derivability": {
+            "direct_rate": 0.0,
+            "derivable_rate": 0.0,
+            "ambiguous_rate": 0.0
+          },
+          "join_key_ambiguity": null,
+          "recommendations": {
+            "norm_recommendation": "dictionary",
+            "coerce_recommendation": "strict",
+            "er_recommendation": "embedding"
+          }
+        },
+        {
+          "column": "owner.age",
+          "mention_rate": 0.0,
+          "expression_diversity": {
+            "n_distinct_clusters": 0,
+            "n_mentions": 0,
+            "diversity_ratio": 0.0,
+            "example_forms": []
+          },
+          "derivability": {
+            "direct_rate": 0.0,
+            "derivable_rate": 0.0,
+            "ambiguous_rate": 0.0
+          },
+          "join_key_ambiguity": null,
+          "recommendations": {
+            "norm_recommendation": "dictionary",
+            "coerce_recommendation": "strict",
+            "er_recommendation": "embedding"
+          }
+        },
+        {
+          "column": "player.age",
+          "mention_rate": 0.5,
+          "expression_diversity": {
+            "n_distinct_clusters": 5,
+            "n_mentions": 20,
+            "diversity_ratio": 0.25,
+            "example_forms": [
+              "1996",
+              "1959",
+              "1973",
+              "2001",
+              "1964"
+            ]
+          },
+          "derivability": {
+            "direct_rate": 1.0,
+            "derivable_rate": 0.0,
+            "ambiguous_rate": 0.0
+          },
+          "join_key_ambiguity": null,
+          "recommendations": {
+            "norm_recommendation": "dictionary",
+            "coerce_recommendation": "strict",
+            "er_recommendation": "embedding"
+          }
+        }
+      ]
+    },
+    "mixed_queries_filter_agg_player_5": {
+      "columns": [
+        {
+          "column": "player.nba_championships",
+          "mention_rate": 0.0,
+          "expression_diversity": {
+            "n_distinct_clusters": 0,
+            "n_mentions": 0,
+            "diversity_ratio": 0.0,
+            "example_forms": []
+          },
+          "derivability": {
+            "direct_rate": 0.0,
+            "derivable_rate": 0.0,
+            "ambiguous_rate": 0.0
+          },
+          "join_key_ambiguity": null,
+          "recommendations": {
+            "norm_recommendation": "dictionary",
+            "coerce_recommendation": "strict",
+            "er_recommendation": "embedding"
+          }
+        },
+        {
+          "column": "player.team",
+          "mention_rate": 0.5,
+          "expression_diversity": {
+            "n_distinct_clusters": 10,
+            "n_mentions": 10,
+            "diversity_ratio": 1.0,
+            "example_forms": [
+              "New York Knicks",
+              "Washington Bullets",
+              "HTV Basket",
+              "Miami Heat",
+              "San Antonio Spurs"
+            ],
+            "semantic_collision_rate": 0.0
+          },
+          "derivability": {
+            "direct_rate": 0.7,
+            "derivable_rate": 0.0,
+            "ambiguous_rate": 0.3
+          },
+          "join_key_ambiguity": null,
+          "recommendations": {
+            "norm_recommendation": "llm",
+            "coerce_recommendation": "strict",
+            "er_recommendation": "llm"
+          }
+        },
+        {
+          "column": "player.fiba_world_cup",
+          "mention_rate": 0.0,
+          "expression_diversity": {
+            "n_distinct_clusters": 0,
+            "n_mentions": 0,
+            "diversity_ratio": 0.0,
+            "example_forms": []
+          },
+          "derivability": {
+            "direct_rate": 0.0,
+            "derivable_rate": 0.0,
+            "ambiguous_rate": 0.0
+          },
+          "join_key_ambiguity": null,
+          "recommendations": {
+            "norm_recommendation": "dictionary",
+            "coerce_recommendation": "strict",
+            "er_recommendation": "embedding"
+          }
+        }
+      ]
+    },
+    "mixed_queries_filter_agg_player_6": {
+      "columns": [
+        {
+          "column": "player.team",
+          "mention_rate": 0.5,
+          "expression_diversity": {
+            "n_distinct_clusters": 10,
+            "n_mentions": 10,
+            "diversity_ratio": 1.0,
+            "example_forms": [
+              "New York Knicks",
+              "Washington Bullets",
+              "HTV Basket",
+              "Miami Heat",
+              "San Antonio Spurs"
+            ],
+            "semantic_collision_rate": 0.0
+          },
+          "derivability": {
+            "direct_rate": 0.7,
+            "derivable_rate": 0.0,
+            "ambiguous_rate": 0.3
+          },
+          "join_key_ambiguity": null,
+          "recommendations": {
+            "norm_recommendation": "llm",
+            "coerce_recommendation": "strict",
+            "er_recommendation": "llm"
+          }
+        },
+        {
+          "column": "player.fiba_world_cup",
+          "mention_rate": 0.0,
+          "expression_diversity": {
+            "n_distinct_clusters": 0,
+            "n_mentions": 0,
+            "diversity_ratio": 0.0,
+            "example_forms": []
+          },
+          "derivability": {
+            "direct_rate": 0.0,
+            "derivable_rate": 0.0,
+            "ambiguous_rate": 0.0
+          },
+          "join_key_ambiguity": null,
+          "recommendations": {
+            "norm_recommendation": "dictionary",
+            "coerce_recommendation": "strict",
+            "er_recommendation": "embedding"
+          }
+        },
+        {
+          "column": "owner.age",
+          "mention_rate": 0.0,
+          "expression_diversity": {
+            "n_distinct_clusters": 0,
+            "n_mentions": 0,
+            "diversity_ratio": 0.0,
+            "example_forms": []
+          },
+          "derivability": {
+            "direct_rate": 0.0,
+            "derivable_rate": 0.0,
+            "ambiguous_rate": 0.0
+          },
+          "join_key_ambiguity": null,
+          "recommendations": {
+            "norm_recommendation": "dictionary",
+            "coerce_recommendation": "strict",
+            "er_recommendation": "embedding"
+          }
+        },
+        {
+          "column": "player.age",
+          "mention_rate": 0.5,
+          "expression_diversity": {
+            "n_distinct_clusters": 5,
+            "n_mentions": 20,
+            "diversity_ratio": 0.25,
+            "example_forms": [
+              "1996",
+              "1959",
+              "1973",
+              "2001",
+              "1964"
+            ]
+          },
+          "derivability": {
+            "direct_rate": 1.0,
+            "derivable_rate": 0.0,
+            "ambiguous_rate": 0.0
+          },
+          "join_key_ambiguity": null,
+          "recommendations": {
+            "norm_recommendation": "dictionary",
+            "coerce_recommendation": "strict",
+            "er_recommendation": "embedding"
+          }
+        },
+        {
+          "column": "player.mvp_awards",
+          "mention_rate": 0.0,
+          "expression_diversity": {
+            "n_distinct_clusters": 0,
+            "n_mentions": 0,
+            "diversity_ratio": 0.0,
+            "example_forms": []
+          },
+          "derivability": {
+            "direct_rate": 0.0,
+            "derivable_rate": 0.0,
+            "ambiguous_rate": 0.0
+          },
+          "join_key_ambiguity": null,
+          "recommendations": {
+            "norm_recommendation": "dictionary",
+            "coerce_recommendation": "strict",
+            "er_recommendation": "embedding"
+          }
+        }
+      ]
+    },
+    "mixed_subsample_2": {
+      "columns": [
+        {
+          "column": "owner.nationality",
+          "mention_rate": 0.0,
+          "expression_diversity": {
+            "n_distinct_clusters": 0,
+            "n_mentions": 0,
+            "diversity_ratio": 0.0,
+            "example_forms": [],
+            "semantic_collision_rate": 0.0
+          },
+          "derivability": {
+            "direct_rate": 0.0,
+            "derivable_rate": 0.0,
+            "ambiguous_rate": 0.0
+          },
+          "join_key_ambiguity": null,
+          "recommendations": {
+            "norm_recommendation": "dictionary",
+            "coerce_recommendation": "strict",
+            "er_recommendation": "embedding"
+          }
+        },
+        {
+          "column": "player.nationality",
+          "mention_rate": 0.5,
+          "expression_diversity": {
+            "n_distinct_clusters": 2,
+            "n_mentions": 10,
+            "diversity_ratio": 0.2,
+            "example_forms": [
+              "American",
+              "Mexican-American"
+            ],
+            "semantic_collision_rate": 1.0
+          },
+          "derivability": {
+            "direct_rate": 1.0,
+            "derivable_rate": 0.0,
+            "ambiguous_rate": 0.0
+          },
+          "join_key_ambiguity": null,
+          "recommendations": {
+            "norm_recommendation": "llm",
+            "coerce_recommendation": "strict",
+            "er_recommendation": "embedding"
+          }
+        },
+        {
+          "column": "player.olympic_gold_medals",
+          "mention_rate": 0.0,
+          "expression_diversity": {
+            "n_distinct_clusters": 0,
+            "n_mentions": 0,
+            "diversity_ratio": 0.0,
+            "example_forms": []
+          },
+          "derivability": {
+            "direct_rate": 0.0,
+            "derivable_rate": 0.0,
+            "ambiguous_rate": 0.0
+          },
+          "join_key_ambiguity": null,
+          "recommendations": {
+            "norm_recommendation": "dictionary",
+            "coerce_recommendation": "strict",
+            "er_recommendation": "embedding"
+          }
+        }
+      ]
+    }
+  },
+  "probed_configs": [],
+  "unprobed_configs": [
+    {
+      "config_id": "c1",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "drop",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c2",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "drop",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c3",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "mean",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c4",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "mean",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c5",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "median",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c6",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "median",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c7",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "mode",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c8",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "mode",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c9",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "constant",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c10",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "constant",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c11",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "llm",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c12",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "llm",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c13",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "drop",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c14",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "drop",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c15",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "mean",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c16",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "mean",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c17",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "median",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c18",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "median",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c19",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "mode",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c20",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "mode",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c21",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "constant",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c22",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "constant",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c23",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "llm",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c24",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "llm",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c25",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "drop",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c26",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "drop",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c27",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "mean",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c28",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "mean",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c29",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "median",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c30",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "median",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c31",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "mode",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c32",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "mode",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c33",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "constant",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c34",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "constant",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c35",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "llm",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c36",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "llm",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c37",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "drop",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c38",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "drop",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c39",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "mean",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c40",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "mean",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c41",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "median",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c42",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "median",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c43",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "mode",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c44",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "mode",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c45",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "constant",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c46",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "constant",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c47",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "llm",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c48",
+      "settings": {
+        "er": "embedding_0.7",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "llm",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c49",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "drop",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c50",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "drop",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c51",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "mean",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c52",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "mean",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c53",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "median",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c54",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "median",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c55",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "mode",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c56",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "mode",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c57",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "constant",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c58",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "constant",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c59",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "llm",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c60",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "llm",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c61",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "drop",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c62",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "drop",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c63",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "mean",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c64",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "mean",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c65",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "median",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c66",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "median",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c67",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "mode",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c68",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "mode",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c69",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "constant",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c70",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "constant",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c71",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "llm",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c72",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "llm",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c73",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "drop",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c74",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "drop",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c75",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "mean",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c76",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "mean",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c77",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "median",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c78",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "median",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c79",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "mode",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c80",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "mode",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c81",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "constant",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c82",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "constant",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c83",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "llm",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c84",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "llm",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c85",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "drop",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c86",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "drop",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c87",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "mean",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c88",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "mean",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c89",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "median",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c90",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "median",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c91",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "mode",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c92",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "mode",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c93",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "constant",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c94",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "constant",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c95",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "llm",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c96",
+      "settings": {
+        "er": "embedding_0.8",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "llm",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c97",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "drop",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c98",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "drop",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c99",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "mean",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c100",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "mean",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c101",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "median",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c102",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "median",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c103",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "mode",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c104",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "mode",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c105",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "constant",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c106",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "constant",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c107",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "llm",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c108",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "llm",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c109",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "drop",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c110",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "drop",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c111",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "mean",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c112",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "mean",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c113",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "median",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c114",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "median",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c115",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "mode",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c116",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "mode",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c117",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "constant",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c118",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "constant",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c119",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "llm",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c120",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "llm",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c121",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "drop",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c122",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "drop",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c123",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "mean",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c124",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "mean",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c125",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "median",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c126",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "median",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c127",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "mode",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c128",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "mode",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c129",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "constant",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c130",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "constant",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c131",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "llm",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c132",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "llm",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c133",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "drop",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c134",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "drop",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c135",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "mean",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c136",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "mean",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c137",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "median",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c138",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "median",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c139",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "mode",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c140",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "mode",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c141",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "constant",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c142",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "constant",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c143",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "llm",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c144",
+      "settings": {
+        "er": "embedding_0.9",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "llm",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c145",
+      "settings": {
+        "er": "llm",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "drop",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c146",
+      "settings": {
+        "er": "llm",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "drop",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c147",
+      "settings": {
+        "er": "llm",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "mean",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c148",
+      "settings": {
+        "er": "llm",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "mean",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c149",
+      "settings": {
+        "er": "llm",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "median",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c150",
+      "settings": {
+        "er": "llm",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "median",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c151",
+      "settings": {
+        "er": "llm",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "mode",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c152",
+      "settings": {
+        "er": "llm",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "mode",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c153",
+      "settings": {
+        "er": "llm",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "constant",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c154",
+      "settings": {
+        "er": "llm",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "constant",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c155",
+      "settings": {
+        "er": "llm",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "llm",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c156",
+      "settings": {
+        "er": "llm",
+        "norm": "dictionary",
+        "unit": "none",
+        "miss": "llm",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c157",
+      "settings": {
+        "er": "llm",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "drop",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c158",
+      "settings": {
+        "er": "llm",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "drop",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c159",
+      "settings": {
+        "er": "llm",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "mean",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c160",
+      "settings": {
+        "er": "llm",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "mean",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c161",
+      "settings": {
+        "er": "llm",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "median",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c162",
+      "settings": {
+        "er": "llm",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "median",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c163",
+      "settings": {
+        "er": "llm",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "mode",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c164",
+      "settings": {
+        "er": "llm",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "mode",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c165",
+      "settings": {
+        "er": "llm",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "constant",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c166",
+      "settings": {
+        "er": "llm",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "constant",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c167",
+      "settings": {
+        "er": "llm",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "llm",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c168",
+      "settings": {
+        "er": "llm",
+        "norm": "dictionary",
+        "unit": "unit",
+        "miss": "llm",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1301
+    },
+    {
+      "config_id": "c169",
+      "settings": {
+        "er": "llm",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "drop",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c170",
+      "settings": {
+        "er": "llm",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "drop",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c171",
+      "settings": {
+        "er": "llm",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "mean",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c172",
+      "settings": {
+        "er": "llm",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "mean",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c173",
+      "settings": {
+        "er": "llm",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "median",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c174",
+      "settings": {
+        "er": "llm",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "median",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c175",
+      "settings": {
+        "er": "llm",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "mode",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c176",
+      "settings": {
+        "er": "llm",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "mode",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c177",
+      "settings": {
+        "er": "llm",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "constant",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c178",
+      "settings": {
+        "er": "llm",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "constant",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c179",
+      "settings": {
+        "er": "llm",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "llm",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c180",
+      "settings": {
+        "er": "llm",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "llm",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c181",
+      "settings": {
+        "er": "llm",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "drop",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c182",
+      "settings": {
+        "er": "llm",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "drop",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c183",
+      "settings": {
+        "er": "llm",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "mean",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c184",
+      "settings": {
+        "er": "llm",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "mean",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c185",
+      "settings": {
+        "er": "llm",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "median",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c186",
+      "settings": {
+        "er": "llm",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "median",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c187",
+      "settings": {
+        "er": "llm",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "mode",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c188",
+      "settings": {
+        "er": "llm",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "mode",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c189",
+      "settings": {
+        "er": "llm",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "constant",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c190",
+      "settings": {
+        "er": "llm",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "constant",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c191",
+      "settings": {
+        "er": "llm",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "llm",
+        "coerce": "strict"
+      },
+      "estimated_cost": 1496
+    },
+    {
+      "config_id": "c192",
+      "settings": {
+        "er": "llm",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "llm",
+        "coerce": "llm"
+      },
+      "estimated_cost": 1496
+    }
+  ],
+  "current_best_routing": {},
+  "previous_reflection": ""
+}

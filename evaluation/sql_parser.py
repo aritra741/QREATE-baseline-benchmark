@@ -124,13 +124,25 @@ class SqlParser:
             return "join"
         return "select_filter"
 
+    @staticmethod
+    def _align_key(column_ref: str) -> str:
+        """Map SQL column refs (e.g. player.position) to result-frame names (position)."""
+        if "." in column_ref:
+            return column_ref.split(".", 1)[1]
+        return column_ref
+
     def _infer_primary_keys(
         self, query_type: str, group_by: Sequence[str], tables: Sequence[str], join_keys: Sequence[str]
     ) -> List[str]:
         if query_type == "aggregation":
-            return list(group_by) if group_by else ["id"]
+            if group_by:
+                return [self._align_key(k) for k in group_by]
+            return ["id"]
         if query_type == "join":
-            return [f"{table}.id" for table in tables] if tables else ["id"]
+            if tables:
+                keys = [self._align_key(f"{table}.id") for table in tables]
+                return list(dict.fromkeys(keys))
+            return ["id"]
         return ["id"]
 
     def _parse_select_item(self, node: exp.Expression) -> SelectItem:

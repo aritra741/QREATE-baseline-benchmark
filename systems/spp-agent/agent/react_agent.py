@@ -15,10 +15,33 @@ from llm.client import chat_completion, ModelNotAvailableError
 from optimizer.probing import ProbeData
 from utils.config import load_config
 from utils.logging import setup_logger
+from utils.audit import AuditLog, save_audit_log
+from utils.paths import SPP_AGENT_ROOT
 
 logger = setup_logger("spp.agent")
 
 PROMPT_PATH = Path(__file__).resolve().parent / "prompts" / "react_system.txt"
+
+
+def _merge_pipeline_audit(audit: AuditLog, pipeline_audit: dict[str, Any]) -> None:
+    if not pipeline_audit:
+        return
+    for key in (
+        "n_clusters",
+        "cluster_types",
+        "cluster_sizes",
+        "cluster_labels",
+        "cluster_btl_scores",
+        "cluster_btl_uncertainty",
+        "cluster_surrogate_loo_rhos",
+        "cluster_selected_surrogates",
+        "token_budget_spent",
+        "token_budget_remaining",
+        "n_materializations",
+        "probe_expanded",
+    ):
+        if key in pipeline_audit:
+            setattr(audit, key, pipeline_audit[key])
 
 
 def _load_system_prompt() -> str:
@@ -71,11 +94,11 @@ def run_react_loop(
     system_prompt = _load_system_prompt()
 
     initial_user = (
-        "Select the best surrogate for this aggregation workload using tools.\n"
-        f"Allowed surrogates: {AGENT_SURROGATE_CHOICES}\n"
+        "Build a query-cluster routing table for this aggregation workload using tools.\n"
+        f"Allowed surrogates (optional override): {AGENT_SURROGATE_CHOICES}\n"
         f"Available tools: {TOOL_NAMES}\n"
         f"Probed config ids: {list(toolkit.probe_data.config_ids)}\n"
-        "Begin by inspecting the workload, then gather evidence before commit."
+        "Begin by inspecting the workload, then gather evidence before emit_routing_table()."
     )
     messages: list[dict[str, str]] = [
         {"role": "system", "content": system_prompt},
@@ -84,13 +107,18 @@ def run_react_loop(
 
     trace: list[dict[str, Any]] = []
     parse_retries = 0
+    audit = AuditLog.new(int(cfg.get("token_budget", 500_000)))
+    audit.probe_config_ids = list(toolkit.probe_data.config_ids)
+    audit.probe_total_token_cost = float(toolkit.probe_data.total_cost)
+    audit.probe_n_judge_pairs = len(toolkit.probe_data.pairwise_comparisons)
+    terminal_actions = {"commit", "emit_routing_table"}
 
     for turn in range(max_turns):
         if turn == max_turns - 1:
             messages.append(
                 {
                     "role": "user",
-                    "content": "Final turn: you must call commit with your chosen surrogate.",
+                    "content": "Final turn: you must call emit_routing_table to finalize.",
                 }
             )
 
@@ -106,7 +134,14 @@ def run_react_loop(
         except Exception as exc:
             logger.warning("ReAct LLM call failed on turn %d: %s", turn + 1, exc)
             if allow_fallback:
-                fallback, reason = rule_based_select(toolkit.decision_context(), logger=logger)
+                audit.used_fallback = True
+                audit.fallback_reason = f"llm_error_{exc}"
+                fallback, reason = rule_based_select(
+                    toolkit.decision_context(), logger=logger, toolkit=toolkit
+                )
+                audit.routing_table = dict(toolkit.routing_table)
+                audit.selected_configs = list(toolkit.committed_configs)
+                save_audit_log(audit, SPP_AGENT_ROOT / "results" / f"audit_{audit.run_id}.json")
                 return fallback, f"react_fallback_llm_error_{reason}", trace
             raise
 
@@ -144,10 +179,17 @@ def run_react_loop(
         )
         messages.append({"role": "assistant", "content": json.dumps(payload)})
 
-        if action == "commit":
-            result = toolkit.commit(str(action_input.get("surrogate_name", "")))
+        if action in terminal_actions:
+            result = toolkit.emit_routing_table(str(action_input.get("surrogate_name", "")))
             trace[-1]["observation"] = result
+            audit.log_action(turn + 1, thought, action, action_input, result)
             if result.get("committed") and toolkit.committed_surrogate:
+                _merge_pipeline_audit(audit, result.get("audit_log", {}))
+                audit.routing_table = dict(toolkit.routing_table)
+                audit.selected_configs = list(toolkit.committed_configs)
+                audit.risk_level = toolkit.risk_level
+                audit.n_materializations = len(toolkit.committed_configs)
+                save_audit_log(audit, SPP_AGENT_ROOT / "results" / f"audit_{audit.run_id}.json")
                 logger.info("ReAct committed=%s after %d turns", toolkit.committed_surrogate, turn + 1)
                 return (
                     toolkit.committed_surrogate,
@@ -157,7 +199,7 @@ def run_react_loop(
             messages.append({"role": "user", "content": _format_observation(action, result)})
             continue
 
-        known = {name.removesuffix("()") for name in TOOL_NAMES if name != "commit"}
+        known = set(TOOL_NAMES)
         if action not in known:
             observation = {"error": f"Unknown action {action!r}. Use one of: {TOOL_NAMES}"}
             trace[-1]["observation"] = observation
@@ -166,15 +208,24 @@ def run_react_loop(
 
         observation = toolkit.dispatch(action, action_input)
         trace[-1]["observation"] = observation
+        audit.log_action(turn + 1, thought, action, action_input, observation)
         messages.append({"role": "user", "content": _format_observation(action, observation)})
 
     if toolkit.committed_surrogate:
+        save_audit_log(audit, SPP_AGENT_ROOT / "results" / f"audit_{audit.run_id}.json")
         return toolkit.committed_surrogate, "react_committed", trace
 
     if allow_fallback:
-        fallback, reason = rule_based_select(toolkit.decision_context(), logger=logger)
+        audit.used_fallback = True
+        audit.fallback_reason = "no_terminal_action"
+        fallback, reason = rule_based_select(
+            toolkit.decision_context(), logger=logger, toolkit=toolkit
+        )
+        audit.routing_table = dict(toolkit.routing_table)
+        audit.selected_configs = list(toolkit.committed_configs)
         note = f"react_fallback_{reason}; turns={len(trace)}"
         logger.warning("ReAct did not commit; rule_based fallback=%s", fallback)
+        save_audit_log(audit, SPP_AGENT_ROOT / "results" / f"audit_{audit.run_id}.json")
         return fallback, note, trace
 
     raise ValueError(f"ReAct loop ended without commit. trace={trace[-3:]}")
@@ -214,6 +265,8 @@ def select_surrogate(
         return surrogate, note
     except ModelNotAvailableError as exc:
         if allow_fallback:
-            fallback, reason = rule_based_select(resolved.decision_context(), logger=logger)
+            fallback, reason = rule_based_select(
+                resolved.decision_context(), logger=logger, toolkit=resolved
+            )
             return fallback, f"react_fallback_{reason}; llm={exc}"
         raise

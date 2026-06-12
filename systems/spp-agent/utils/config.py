@@ -5,8 +5,13 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from dotenv import load_dotenv
 
 from utils.paths import SPP_AGENT_ROOT, resolve_benchu_root, resolve_results_dir
+
+_ENV_FILE = SPP_AGENT_ROOT / ".env"
+if _ENV_FILE.is_file():
+    load_dotenv(_ENV_FILE)
 
 
 def _apply_llm_profile(cfg: dict[str, Any]) -> None:

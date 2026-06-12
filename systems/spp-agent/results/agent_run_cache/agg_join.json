@@ -1,0 +1,3908 @@
+{
+  "version": 2,
+  "slice": "agg_join",
+  "seed": 872,
+  "token_budget_total": 80000,
+  "extraction_fingerprint": "6ca1c928c4cb3a2d",
+  "demand_profile": {
+    "columns": [
+      {
+        "column": "player.team",
+        "roles": [
+          "join_key"
+        ],
+        "aggregation_functions": [],
+        "query_ids": [
+          "mixed_queries_agg_join_1"
+        ]
+      },
+      {
+        "column": "player.position",
+        "roles": [
+          "group_key",
+          "join_key"
+        ],
+        "aggregation_functions": [],
+        "query_ids": [
+          "mixed_queries_agg_join_1"
+        ]
+      },
+      {
+        "column": "player.olympic_gold_medals",
+        "roles": [
+          "aggregate_input"
+        ],
+        "aggregation_functions": [
+          "MIN"
+        ],
+        "query_ids": [
+          "mixed_queries_agg_join_1"
+        ]
+      },
+      {
+        "column": "team.team_name",
+        "roles": [
+          "join_key"
+        ],
+        "aggregation_functions": [],
+        "query_ids": [
+          "mixed_queries_agg_join_1"
+        ]
+      }
+    ],
+    "has_join": true,
+    "has_temporal": false
+  },
+  "supply_profile": {
+    "columns": [
+      {
+        "column": "player.team",
+        "mention_rate": 0.5,
+        "expression_diversity": {
+          "n_distinct_clusters": 9,
+          "n_mentions": 10,
+          "diversity_ratio": 0.9,
+          "example_forms": [
+            "Milwaukee Bucks",
+            "Phoenix Suns",
+            "Portland Trail Blazers",
+            "Brooklyn Nets",
+            "Capitanes de Arecibo"
+          ],
+          "semantic_collision_rate": 0.0
+        },
+        "derivability": {
+          "direct_rate": 0.7,
+          "derivable_rate": 0.0,
+          "ambiguous_rate": 0.3
+        },
+        "join_key_ambiguity": {
+          "exact_overlap_rate": 0.0526,
+          "soft_overlap_rate": 0.0526,
+          "mean_variants_per_entity": 1.0,
+          "max_variants_per_entity": 1,
+          "join_feasibility": "low",
+          "join_partner": "team.team_name"
+        },
+        "recommendations": {
+          "norm_recommendation": "llm",
+          "coerce_recommendation": "strict",
+          "er_recommendation": "llm",
+          "feasibility_flag": true
+        }
+      },
+      {
+        "column": "player.position",
+        "mention_rate": 0.5,
+        "expression_diversity": {
+          "n_distinct_clusters": 2,
+          "n_mentions": 4,
+          "diversity_ratio": 0.5,
+          "example_forms": [
+            "Frontcourt",
+            "Backcourt"
+          ],
+          "semantic_collision_rate": 0.0
+        },
+        "derivability": {
+          "direct_rate": 1.0,
+          "derivable_rate": 0.0,
+          "ambiguous_rate": 0.0
+        },
+        "join_key_ambiguity": {
+          "exact_overlap_rate": 0.0,
+          "soft_overlap_rate": 0.0,
+          "mean_variants_per_entity": 1.0,
+          "max_variants_per_entity": 1,
+          "join_feasibility": "low",
+          "join_partner": "team.team_name"
+        },
+        "recommendations": {
+          "norm_recommendation": "llm",
+          "coerce_recommendation": "strict",
+          "er_recommendation": "embedding",
+          "feasibility_flag": true
+        }
+      },
+      {
+        "column": "player.olympic_gold_medals",
+        "mention_rate": 0.0,
+        "expression_diversity": {
+          "n_distinct_clusters": 0,
+          "n_mentions": 0,
+          "diversity_ratio": 0.0,
+          "example_forms": []
+        },
+        "derivability": {
+          "direct_rate": 0.0,
+          "derivable_rate": 0.0,
+          "ambiguous_rate": 0.0
+        },
+        "join_key_ambiguity": null,
+        "recommendations": {
+          "norm_recommendation": "dictionary",
+          "coerce_recommendation": "strict",
+          "er_recommendation": "embedding"
+        }
+      },
+      {
+        "column": "team.team_name",
+        "mention_rate": 0.5,
+        "expression_diversity": {
+          "n_distinct_clusters": 10,
+          "n_mentions": 10,
+          "diversity_ratio": 1.0,
+          "example_forms": [
+            "New Orleans Pelicans",
+            "Indiana Pacers",
+            "Washington Wizards",
+            "Utah Jazz",
+            "Chicago Bulls"
+          ],
+          "semantic_collision_rate": 0.0
+        },
+        "derivability": {
+          "direct_rate": 0.0,
+          "derivable_rate": 0.0,
+          "ambiguous_rate": 1.0
+        },
+        "join_key_ambiguity": {
+          "exact_overlap_rate": 0.0526,
+          "soft_overlap_rate": 0.0526,
+          "mean_variants_per_entity": 1.0,
+          "max_variants_per_entity": 1,
+          "join_feasibility": "low",
+          "join_partner": "player.team"
+        },
+        "recommendations": {
+          "norm_recommendation": "llm",
+          "coerce_recommendation": "strict",
+          "er_recommendation": "llm",
+          "feasibility_flag": true
+        }
+      }
+    ]
+  },
+  "probed_configs": [
+    {
+      "config_id": "c169",
+      "settings": {
+        "er": "llm",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "drop",
+        "coerce": "strict"
+      },
+      "pipe_config_id": "er=llm|norm=llm|unit=none|miss=drop|coerce=strict",
+      "per_query_f1": {
+        "mixed_queries_agg_join_1": 0.7
+      },
+      "mean_f1": 0.7,
+      "cost": 385
+    },
+    {
+      "config_id": "c171",
+      "settings": {
+        "er": "llm",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "mean",
+        "coerce": "strict"
+      },
+      "pipe_config_id": "er=llm|norm=llm|unit=none|miss=mean|coerce=strict",
+      "per_query_f1": {
+        "mixed_queries_agg_join_1": 0.7
+      },
+      "mean_f1": 0.7,
+      "cost": 385
+    },
+    {
+      "config_id": "c173",
+      "settings": {
+        "er": "llm",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "median",
+        "coerce": "strict"
+      },
+      "pipe_config_id": "er=llm|norm=llm|unit=none|miss=median|coerce=strict",
+      "per_query_f1": {
+        "mixed_queries_agg_join_1": 0.7
+      },
+      "mean_f1": 0.7,
+      "cost": 385
+    },
+    {
+      "config_id": "c175",
+      "settings": {
+        "er": "llm",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "mode",
+        "coerce": "strict"
+      },
+      "pipe_config_id": "er=llm|norm=llm|unit=none|miss=mode|coerce=strict",
+      "per_query_f1": {
+        "mixed_queries_agg_join_1": 0.7
+      },
+      "mean_f1": 0.7,
+      "cost": 385
+    },
+    {
+      "config_id": "c177",
+      "settings": {
+        "er": "llm",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "constant",
+        "coerce": "strict"
+      },
+      "pipe_config_id": "er=llm|norm=llm|unit=none|miss=constant|coerce=strict",
+      "per_query_f1": {
+        "mixed_queries_agg_join_1": 0.7
+      },
+      "mean_f1": 0.7,
+      "cost": 385
+    },
+    {
+      "config_id": "c179",
+      "settings": {
+        "er": "llm",
+        "norm": "llm",
+        "unit": "none",
+        "miss": "llm",
+        "coerce": "strict"
+      },
+      "pipe_config_id": "er=llm|norm=llm|unit=none|miss=llm|coerce=strict",
+      "per_query_f1": {
+        "mixed_queries_agg_join_1": 0.7
+      },
+      "mean_f1": 0.7,
+      "cost": 578
+    },
+    {
+      "config_id": "c181",
+      "settings": {
+        "er": "llm",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "drop",
+        "coerce": "strict"
+      },
+      "pipe_config_id": "er=llm|norm=llm|unit=unit|miss=drop|coerce=strict",
+      "per_query_f1": {
+        "mixed_queries_agg_join_1": 0.7
+      },
+      "mean_f1": 0.7,
+      "cost": 385
+    },
+    {
+      "config_id": "c183",
+      "settings": {
+        "er": "llm",
+        "norm": "llm",
+        "unit": "unit",
+        "miss": "mean",
+        "coerce": "strict"
+      },
+      "pipe_config_id": "er=llm|norm=llm|unit=unit|miss=mean|coerce=strict",
+      "per_query_f1": {
+        "mixed_queries_agg_join_1": 0.7
+      },
+      "mean_f1": 0.7,
+      "cost": 385
+    }
+  ],
+  "final_routing": {
+    "mixed_queries_agg_join_1": "c169"
+  },
+  "budget_summary": {
+    "total": 80000,
+    "spent": 3276,
+    "remaining": 76724,
+    "fraction_used": 0.041,
+    "ledger": [
+      {
+        "label": "materialize:c169",
+        "tokens": 385,
+        "remaining": 79615
+      },
+      {
+        "label": "materialize:c171",
+        "tokens": 385,
+        "remaining": 79229
+      },
+      {
+        "label": "materialize:c173",
+        "tokens": 385,
+        "remaining": 78844
+      },
+      {
+        "label": "materialize:c175",
+        "tokens": 385,
+        "remaining": 78458
+      },
+      {
+        "label": "materialize:c177",
+        "tokens": 385,
+        "remaining": 78073
+      },
+      {
+        "label": "materialize:c179",
+        "tokens": 578,
+        "remaining": 77495
+      },
+      {
+        "label": "materialize:c181",
+        "tokens": 385,
+        "remaining": 77109
+      },
+      {
+        "label": "materialize:c183",
+        "tokens": 385,
+        "remaining": 76724
+      }
+    ]
+  },
+  "rounds": 9,
+  "catalog_id_to_pipe": {
+    "c1": "er=embedding_0.7|norm=dictionary|unit=none|miss=drop|coerce=strict",
+    "c2": "er=embedding_0.7|norm=dictionary|unit=none|miss=drop|coerce=llm",
+    "c3": "er=embedding_0.7|norm=dictionary|unit=none|miss=mean|coerce=strict",
+    "c4": "er=embedding_0.7|norm=dictionary|unit=none|miss=mean|coerce=llm",
+    "c5": "er=embedding_0.7|norm=dictionary|unit=none|miss=median|coerce=strict",
+    "c6": "er=embedding_0.7|norm=dictionary|unit=none|miss=median|coerce=llm",
+    "c7": "er=embedding_0.7|norm=dictionary|unit=none|miss=mode|coerce=strict",
+    "c8": "er=embedding_0.7|norm=dictionary|unit=none|miss=mode|coerce=llm",
+    "c9": "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=strict",
+    "c10": "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=llm",
+    "c11": "er=embedding_0.7|norm=dictionary|unit=none|miss=llm|coerce=strict",
+    "c12": "er=embedding_0.7|norm=dictionary|unit=none|miss=llm|coerce=llm",
+    "c13": "er=embedding_0.7|norm=dictionary|unit=unit|miss=drop|coerce=strict",
+    "c14": "er=embedding_0.7|norm=dictionary|unit=unit|miss=drop|coerce=llm",
+    "c15": "er=embedding_0.7|norm=dictionary|unit=unit|miss=mean|coerce=strict",
+    "c16": "er=embedding_0.7|norm=dictionary|unit=unit|miss=mean|coerce=llm",
+    "c17": "er=embedding_0.7|norm=dictionary|unit=unit|miss=median|coerce=strict",
+    "c18": "er=embedding_0.7|norm=dictionary|unit=unit|miss=median|coerce=llm",
+    "c19": "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=strict",
+    "c20": "er=embedding_0.7|norm=dictionary|unit=unit|miss=mode|coerce=llm",
+    "c21": "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=strict",
+    "c22": "er=embedding_0.7|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+    "c23": "er=embedding_0.7|norm=dictionary|unit=unit|miss=llm|coerce=strict",
+    "c24": "er=embedding_0.7|norm=dictionary|unit=unit|miss=llm|coerce=llm",
+    "c25": "er=embedding_0.7|norm=llm|unit=none|miss=drop|coerce=strict",
+    "c26": "er=embedding_0.7|norm=llm|unit=none|miss=drop|coerce=llm",
+    "c27": "er=embedding_0.7|norm=llm|unit=none|miss=mean|coerce=strict",
+    "c28": "er=embedding_0.7|norm=llm|unit=none|miss=mean|coerce=llm",
+    "c29": "er=embedding_0.7|norm=llm|unit=none|miss=median|coerce=strict",
+    "c30": "er=embedding_0.7|norm=llm|unit=none|miss=median|coerce=llm",
+    "c31": "er=embedding_0.7|norm=llm|unit=none|miss=mode|coerce=strict",
+    "c32": "er=embedding_0.7|norm=llm|unit=none|miss=mode|coerce=llm",
+    "c33": "er=embedding_0.7|norm=llm|unit=none|miss=constant|coerce=strict",
+    "c34": "er=embedding_0.7|norm=llm|unit=none|miss=constant|coerce=llm",
+    "c35": "er=embedding_0.7|norm=llm|unit=none|miss=llm|coerce=strict",
+    "c36": "er=embedding_0.7|norm=llm|unit=none|miss=llm|coerce=llm",
+    "c37": "er=embedding_0.7|norm=llm|unit=unit|miss=drop|coerce=strict",
+    "c38": "er=embedding_0.7|norm=llm|unit=unit|miss=drop|coerce=llm",
+    "c39": "er=embedding_0.7|norm=llm|unit=unit|miss=mean|coerce=strict",
+    "c40": "er=embedding_0.7|norm=llm|unit=unit|miss=mean|coerce=llm",
+    "c41": "er=embedding_0.7|norm=llm|unit=unit|miss=median|coerce=strict",
+    "c42": "er=embedding_0.7|norm=llm|unit=unit|miss=median|coerce=llm",
+    "c43": "er=embedding_0.7|norm=llm|unit=unit|miss=mode|coerce=strict",
+    "c44": "er=embedding_0.7|norm=llm|unit=unit|miss=mode|coerce=llm",
+    "c45": "er=embedding_0.7|norm=llm|unit=unit|miss=constant|coerce=strict",
+    "c46": "er=embedding_0.7|norm=llm|unit=unit|miss=constant|coerce=llm",
+    "c47": "er=embedding_0.7|norm=llm|unit=unit|miss=llm|coerce=strict",
+    "c48": "er=embedding_0.7|norm=llm|unit=unit|miss=llm|coerce=llm",
+    "c49": "er=embedding_0.8|norm=dictionary|unit=none|miss=drop|coerce=strict",
+    "c50": "er=embedding_0.8|norm=dictionary|unit=none|miss=drop|coerce=llm",
+    "c51": "er=embedding_0.8|norm=dictionary|unit=none|miss=mean|coerce=strict",
+    "c52": "er=embedding_0.8|norm=dictionary|unit=none|miss=mean|coerce=llm",
+    "c53": "er=embedding_0.8|norm=dictionary|unit=none|miss=median|coerce=strict",
+    "c54": "er=embedding_0.8|norm=dictionary|unit=none|miss=median|coerce=llm",
+    "c55": "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+    "c56": "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=llm",
+    "c57": "er=embedding_0.8|norm=dictionary|unit=none|miss=constant|coerce=strict",
+    "c58": "er=embedding_0.8|norm=dictionary|unit=none|miss=constant|coerce=llm",
+    "c59": "er=embedding_0.8|norm=dictionary|unit=none|miss=llm|coerce=strict",
+    "c60": "er=embedding_0.8|norm=dictionary|unit=none|miss=llm|coerce=llm",
+    "c61": "er=embedding_0.8|norm=dictionary|unit=unit|miss=drop|coerce=strict",
+    "c62": "er=embedding_0.8|norm=dictionary|unit=unit|miss=drop|coerce=llm",
+    "c63": "er=embedding_0.8|norm=dictionary|unit=unit|miss=mean|coerce=strict",
+    "c64": "er=embedding_0.8|norm=dictionary|unit=unit|miss=mean|coerce=llm",
+    "c65": "er=embedding_0.8|norm=dictionary|unit=unit|miss=median|coerce=strict",
+    "c66": "er=embedding_0.8|norm=dictionary|unit=unit|miss=median|coerce=llm",
+    "c67": "er=embedding_0.8|norm=dictionary|unit=unit|miss=mode|coerce=strict",
+    "c68": "er=embedding_0.8|norm=dictionary|unit=unit|miss=mode|coerce=llm",
+    "c69": "er=embedding_0.8|norm=dictionary|unit=unit|miss=constant|coerce=strict",
+    "c70": "er=embedding_0.8|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+    "c71": "er=embedding_0.8|norm=dictionary|unit=unit|miss=llm|coerce=strict",
+    "c72": "er=embedding_0.8|norm=dictionary|unit=unit|miss=llm|coerce=llm",
+    "c73": "er=embedding_0.8|norm=llm|unit=none|miss=drop|coerce=strict",
+    "c74": "er=embedding_0.8|norm=llm|unit=none|miss=drop|coerce=llm",
+    "c75": "er=embedding_0.8|norm=llm|unit=none|miss=mean|coerce=strict",
+    "c76": "er=embedding_0.8|norm=llm|unit=none|miss=mean|coerce=llm",
+    "c77": "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict",
+    "c78": "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=llm",
+    "c79": "er=embedding_0.8|norm=llm|unit=none|miss=mode|coerce=strict",
+    "c80": "er=embedding_0.8|norm=llm|unit=none|miss=mode|coerce=llm",
+    "c81": "er=embedding_0.8|norm=llm|unit=none|miss=constant|coerce=strict",
+    "c82": "er=embedding_0.8|norm=llm|unit=none|miss=constant|coerce=llm",
+    "c83": "er=embedding_0.8|norm=llm|unit=none|miss=llm|coerce=strict",
+    "c84": "er=embedding_0.8|norm=llm|unit=none|miss=llm|coerce=llm",
+    "c85": "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=strict",
+    "c86": "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm",
+    "c87": "er=embedding_0.8|norm=llm|unit=unit|miss=mean|coerce=strict",
+    "c88": "er=embedding_0.8|norm=llm|unit=unit|miss=mean|coerce=llm",
+    "c89": "er=embedding_0.8|norm=llm|unit=unit|miss=median|coerce=strict",
+    "c90": "er=embedding_0.8|norm=llm|unit=unit|miss=median|coerce=llm",
+    "c91": "er=embedding_0.8|norm=llm|unit=unit|miss=mode|coerce=strict",
+    "c92": "er=embedding_0.8|norm=llm|unit=unit|miss=mode|coerce=llm",
+    "c93": "er=embedding_0.8|norm=llm|unit=unit|miss=constant|coerce=strict",
+    "c94": "er=embedding_0.8|norm=llm|unit=unit|miss=constant|coerce=llm",
+    "c95": "er=embedding_0.8|norm=llm|unit=unit|miss=llm|coerce=strict",
+    "c96": "er=embedding_0.8|norm=llm|unit=unit|miss=llm|coerce=llm",
+    "c97": "er=embedding_0.9|norm=dictionary|unit=none|miss=drop|coerce=strict",
+    "c98": "er=embedding_0.9|norm=dictionary|unit=none|miss=drop|coerce=llm",
+    "c99": "er=embedding_0.9|norm=dictionary|unit=none|miss=mean|coerce=strict",
+    "c100": "er=embedding_0.9|norm=dictionary|unit=none|miss=mean|coerce=llm",
+    "c101": "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=strict",
+    "c102": "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=llm",
+    "c103": "er=embedding_0.9|norm=dictionary|unit=none|miss=mode|coerce=strict",
+    "c104": "er=embedding_0.9|norm=dictionary|unit=none|miss=mode|coerce=llm",
+    "c105": "er=embedding_0.9|norm=dictionary|unit=none|miss=constant|coerce=strict",
+    "c106": "er=embedding_0.9|norm=dictionary|unit=none|miss=constant|coerce=llm",
+    "c107": "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=strict",
+    "c108": "er=embedding_0.9|norm=dictionary|unit=none|miss=llm|coerce=llm",
+    "c109": "er=embedding_0.9|norm=dictionary|unit=unit|miss=drop|coerce=strict",
+    "c110": "er=embedding_0.9|norm=dictionary|unit=unit|miss=drop|coerce=llm",
+    "c111": "er=embedding_0.9|norm=dictionary|unit=unit|miss=mean|coerce=strict",
+    "c112": "er=embedding_0.9|norm=dictionary|unit=unit|miss=mean|coerce=llm",
+    "c113": "er=embedding_0.9|norm=dictionary|unit=unit|miss=median|coerce=strict",
+    "c114": "er=embedding_0.9|norm=dictionary|unit=unit|miss=median|coerce=llm",
+    "c115": "er=embedding_0.9|norm=dictionary|unit=unit|miss=mode|coerce=strict",
+    "c116": "er=embedding_0.9|norm=dictionary|unit=unit|miss=mode|coerce=llm",
+    "c117": "er=embedding_0.9|norm=dictionary|unit=unit|miss=constant|coerce=strict",
+    "c118": "er=embedding_0.9|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+    "c119": "er=embedding_0.9|norm=dictionary|unit=unit|miss=llm|coerce=strict",
+    "c120": "er=embedding_0.9|norm=dictionary|unit=unit|miss=llm|coerce=llm",
+    "c121": "er=embedding_0.9|norm=llm|unit=none|miss=drop|coerce=strict",
+    "c122": "er=embedding_0.9|norm=llm|unit=none|miss=drop|coerce=llm",
+    "c123": "er=embedding_0.9|norm=llm|unit=none|miss=mean|coerce=strict",
+    "c124": "er=embedding_0.9|norm=llm|unit=none|miss=mean|coerce=llm",
+    "c125": "er=embedding_0.9|norm=llm|unit=none|miss=median|coerce=strict",
+    "c126": "er=embedding_0.9|norm=llm|unit=none|miss=median|coerce=llm",
+    "c127": "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=strict",
+    "c128": "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm",
+    "c129": "er=embedding_0.9|norm=llm|unit=none|miss=constant|coerce=strict",
+    "c130": "er=embedding_0.9|norm=llm|unit=none|miss=constant|coerce=llm",
+    "c131": "er=embedding_0.9|norm=llm|unit=none|miss=llm|coerce=strict",
+    "c132": "er=embedding_0.9|norm=llm|unit=none|miss=llm|coerce=llm",
+    "c133": "er=embedding_0.9|norm=llm|unit=unit|miss=drop|coerce=strict",
+    "c134": "er=embedding_0.9|norm=llm|unit=unit|miss=drop|coerce=llm",
+    "c135": "er=embedding_0.9|norm=llm|unit=unit|miss=mean|coerce=strict",
+    "c136": "er=embedding_0.9|norm=llm|unit=unit|miss=mean|coerce=llm",
+    "c137": "er=embedding_0.9|norm=llm|unit=unit|miss=median|coerce=strict",
+    "c138": "er=embedding_0.9|norm=llm|unit=unit|miss=median|coerce=llm",
+    "c139": "er=embedding_0.9|norm=llm|unit=unit|miss=mode|coerce=strict",
+    "c140": "er=embedding_0.9|norm=llm|unit=unit|miss=mode|coerce=llm",
+    "c141": "er=embedding_0.9|norm=llm|unit=unit|miss=constant|coerce=strict",
+    "c142": "er=embedding_0.9|norm=llm|unit=unit|miss=constant|coerce=llm",
+    "c143": "er=embedding_0.9|norm=llm|unit=unit|miss=llm|coerce=strict",
+    "c144": "er=embedding_0.9|norm=llm|unit=unit|miss=llm|coerce=llm",
+    "c145": "er=llm|norm=dictionary|unit=none|miss=drop|coerce=strict",
+    "c146": "er=llm|norm=dictionary|unit=none|miss=drop|coerce=llm",
+    "c147": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict",
+    "c148": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=llm",
+    "c149": "er=llm|norm=dictionary|unit=none|miss=median|coerce=strict",
+    "c150": "er=llm|norm=dictionary|unit=none|miss=median|coerce=llm",
+    "c151": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict",
+    "c152": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=llm",
+    "c153": "er=llm|norm=dictionary|unit=none|miss=constant|coerce=strict",
+    "c154": "er=llm|norm=dictionary|unit=none|miss=constant|coerce=llm",
+    "c155": "er=llm|norm=dictionary|unit=none|miss=llm|coerce=strict",
+    "c156": "er=llm|norm=dictionary|unit=none|miss=llm|coerce=llm",
+    "c157": "er=llm|norm=dictionary|unit=unit|miss=drop|coerce=strict",
+    "c158": "er=llm|norm=dictionary|unit=unit|miss=drop|coerce=llm",
+    "c159": "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=strict",
+    "c160": "er=llm|norm=dictionary|unit=unit|miss=mean|coerce=llm",
+    "c161": "er=llm|norm=dictionary|unit=unit|miss=median|coerce=strict",
+    "c162": "er=llm|norm=dictionary|unit=unit|miss=median|coerce=llm",
+    "c163": "er=llm|norm=dictionary|unit=unit|miss=mode|coerce=strict",
+    "c164": "er=llm|norm=dictionary|unit=unit|miss=mode|coerce=llm",
+    "c165": "er=llm|norm=dictionary|unit=unit|miss=constant|coerce=strict",
+    "c166": "er=llm|norm=dictionary|unit=unit|miss=constant|coerce=llm",
+    "c167": "er=llm|norm=dictionary|unit=unit|miss=llm|coerce=strict",
+    "c168": "er=llm|norm=dictionary|unit=unit|miss=llm|coerce=llm",
+    "c169": "er=llm|norm=llm|unit=none|miss=drop|coerce=strict",
+    "c170": "er=llm|norm=llm|unit=none|miss=drop|coerce=llm",
+    "c171": "er=llm|norm=llm|unit=none|miss=mean|coerce=strict",
+    "c172": "er=llm|norm=llm|unit=none|miss=mean|coerce=llm",
+    "c173": "er=llm|norm=llm|unit=none|miss=median|coerce=strict",
+    "c174": "er=llm|norm=llm|unit=none|miss=median|coerce=llm",
+    "c175": "er=llm|norm=llm|unit=none|miss=mode|coerce=strict",
+    "c176": "er=llm|norm=llm|unit=none|miss=mode|coerce=llm",
+    "c177": "er=llm|norm=llm|unit=none|miss=constant|coerce=strict",
+    "c178": "er=llm|norm=llm|unit=none|miss=constant|coerce=llm",
+    "c179": "er=llm|norm=llm|unit=none|miss=llm|coerce=strict",
+    "c180": "er=llm|norm=llm|unit=none|miss=llm|coerce=llm",
+    "c181": "er=llm|norm=llm|unit=unit|miss=drop|coerce=strict",
+    "c182": "er=llm|norm=llm|unit=unit|miss=drop|coerce=llm",
+    "c183": "er=llm|norm=llm|unit=unit|miss=mean|coerce=strict",
+    "c184": "er=llm|norm=llm|unit=unit|miss=mean|coerce=llm",
+    "c185": "er=llm|norm=llm|unit=unit|miss=median|coerce=strict",
+    "c186": "er=llm|norm=llm|unit=unit|miss=median|coerce=llm",
+    "c187": "er=llm|norm=llm|unit=unit|miss=mode|coerce=strict",
+    "c188": "er=llm|norm=llm|unit=unit|miss=mode|coerce=llm",
+    "c189": "er=llm|norm=llm|unit=unit|miss=constant|coerce=strict",
+    "c190": "er=llm|norm=llm|unit=unit|miss=constant|coerce=llm",
+    "c191": "er=llm|norm=llm|unit=unit|miss=llm|coerce=strict",
+    "c192": "er=llm|norm=llm|unit=unit|miss=llm|coerce=llm"
+  },
+  "databases": {
+    "c169": {
+      "city": {
+        "columns": [
+          "city_name",
+          "state_name",
+          "population",
+          "area",
+          "gdp",
+          "id"
+        ],
+        "rows": [
+          {
+            "city_name": "new orleans",
+            "state_name": "",
+            "population": null,
+            "area": null,
+            "gdp": null,
+            "id": null
+          },
+          {
+            "city_name": "salt lake city",
+            "state_name": "utah",
+            "population": null,
+            "area": null,
+            "gdp": null,
+            "id": null
+          },
+          {
+            "city_name": "chicago",
+            "state_name": "",
+            "population": null,
+            "area": null,
+            "gdp": null,
+            "id": null
+          },
+          {
+            "city_name": "minneapolis",
+            "state_name": "minnesota",
+            "population": null,
+            "area": null,
+            "gdp": null,
+            "id": null
+          },
+          {
+            "city_name": "sacramento",
+            "state_name": "",
+            "population": null,
+            "area": null,
+            "gdp": null,
+            "id": null
+          }
+        ]
+      },
+      "owner": {
+        "columns": [
+          "name",
+          "age",
+          "nationality",
+          "nba_team",
+          "own_year",
+          "id"
+        ],
+        "rows": [
+          {
+            "name": "gayle benson",
+            "age": null,
+            "nationality": "",
+            "nba_team": "new orleans pelicans",
+            "own_year": null,
+            "id": null
+          },
+          {
+            "name": "ted leonsis",
+            "age": null,
+            "nationality": "",
+            "nba_team": "washington wizards",
+            "own_year": null,
+            "id": null
+          },
+          {
+            "name": "miriam adelson",
+            "age": null,
+            "nationality": "",
+            "nba_team": "dallas mavericks",
+            "own_year": null,
+            "id": null
+          },
+          {
+            "name": "patrick dumont",
+            "age": null,
+            "nationality": "",
+            "nba_team": "dallas mavericks",
+            "own_year": null,
+            "id": null
+          },
+          {
+            "name": "steve ballmer",
+            "age": null,
+            "nationality": "",
+            "nba_team": "los angeles clippers",
+            "own_year": null,
+            "id": null
+          },
+          {
+            "name": "glen taylor",
+            "age": null,
+            "nationality": "",
+            "nba_team": "minnesota timberwolves",
+            "own_year": null,
+            "id": null
+          }
+        ]
+      },
+      "player": {
+        "columns": [
+          "name",
+          "birth_date",
+          "nationality",
+          "age",
+          "team",
+          "position",
+          "draft_pick",
+          "draft_year",
+          "college",
+          "nba_championships",
+          "mvp_awards",
+          "olympic_gold_medals",
+          "fiba_world_cup",
+          "id"
+        ],
+        "rows": [
+          {
+            "name": "kevin durant",
+            "birth_date": "1988/9/29",
+            "nationality": "american",
+            "age": 37,
+            "team": "phoenix suns",
+            "position": "frontcourt",
+            "draft_pick": 2.0,
+            "draft_year": 2007.0,
+            "college": "university of texas at austin",
+            "nba_championships": 2.0,
+            "mvp_awards": 1,
+            "olympic_gold_medals": 4.0,
+            "fiba_world_cup": 1.0,
+            "id": null
+          },
+          {
+            "name": "guy rodgers",
+            "birth_date": "1935/9/1",
+            "nationality": "american",
+            "age": 90,
+            "team": "milwaukee bucks",
+            "position": null,
+            "draft_pick": 1.0,
+            "draft_year": 1958.0,
+            "college": "temple university",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "dan anderson",
+            "birth_date": "1951/1/1",
+            "nationality": "american",
+            "age": 74,
+            "team": "portland trail blazers",
+            "position": null,
+            "draft_pick": 2.0,
+            "draft_year": 1974.0,
+            "college": "",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "dennis schröder",
+            "birth_date": "1993/9/15",
+            "nationality": "german",
+            "age": 32,
+            "team": "brooklyn nets",
+            "position": null,
+            "draft_pick": 17.0,
+            "draft_year": 2013.0,
+            "college": "",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 1.0,
+            "id": null
+          },
+          {
+            "name": "jahlil okafor",
+            "birth_date": "1995/12/15",
+            "nationality": "american",
+            "age": 30,
+            "team": "capitanes de arecibo",
+            "position": null,
+            "draft_pick": 3.0,
+            "draft_year": 2015.0,
+            "college": "duke university",
+            "nba_championships": 1.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 1.0,
+            "id": null
+          },
+          {
+            "name": "derek grimm",
+            "birth_date": "1974/8/3",
+            "nationality": "american",
+            "age": 51,
+            "team": "sacramento kings",
+            "position": "frontcourt",
+            "draft_pick": 0.0,
+            "draft_year": 0.0,
+            "college": "university of missouri",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "jim brasco",
+            "birth_date": "1931/2/3",
+            "nationality": "american",
+            "age": 94,
+            "team": "milwaukee hawks",
+            "position": null,
+            "draft_pick": 1.0,
+            "draft_year": 1952.0,
+            "college": "new york university",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "nick calathes",
+            "birth_date": "1989/2/7",
+            "nationality": "american",
+            "age": 36,
+            "team": "",
+            "position": "backcourt",
+            "draft_pick": 35.0,
+            "draft_year": 2009.0,
+            "college": "university of florida",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "rodney strickland",
+            "birth_date": "1966/7/11",
+            "nationality": "american",
+            "age": 59,
+            "team": "houston rockets",
+            "position": null,
+            "draft_pick": 19.0,
+            "draft_year": 1988.0,
+            "college": "depaul university",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "kyle lowry",
+            "birth_date": "1986/3/25",
+            "nationality": "american",
+            "age": 39,
+            "team": "philadelphia 76ers",
+            "position": "backcourt",
+            "draft_pick": 24.0,
+            "draft_year": 2006.0,
+            "college": "villanova university",
+            "nba_championships": 1.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 1.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          }
+        ]
+      },
+      "team": {
+        "columns": [
+          "team_name",
+          "founded_year",
+          "location",
+          "ownership",
+          "championship",
+          "id"
+        ],
+        "rows": [
+          {
+            "team_name": "milwaukee bucks",
+            "founded_year": null,
+            "location": "",
+            "ownership": "",
+            "championship": null,
+            "id": null
+          },
+          {
+            "team_name": "brooklyn nets",
+            "founded_year": null,
+            "location": "",
+            "ownership": "",
+            "championship": null,
+            "id": null
+          },
+          {
+            "team_name": "sacramento kings",
+            "founded_year": null,
+            "location": "",
+            "ownership": "",
+            "championship": null,
+            "id": null
+          },
+          {
+            "team_name": "milwaukee hawks",
+            "founded_year": null,
+            "location": "",
+            "ownership": "",
+            "championship": null,
+            "id": null
+          },
+          {
+            "team_name": "new orleans pelicans",
+            "founded_year": 2002,
+            "location": "new orleans",
+            "ownership": "gayle benson",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "indiana pacers",
+            "founded_year": 1967,
+            "location": "indianapolis",
+            "ownership": "",
+            "championship": 3,
+            "id": null
+          },
+          {
+            "team_name": "washington wizards",
+            "founded_year": 1961,
+            "location": "washington",
+            "ownership": "ted leonsis",
+            "championship": 1,
+            "id": null
+          },
+          {
+            "team_name": "utah jazz",
+            "founded_year": 1974,
+            "location": "salt lake city",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "chicago bulls",
+            "founded_year": 1966,
+            "location": "chicago",
+            "ownership": "",
+            "championship": 6,
+            "id": null
+          },
+          {
+            "team_name": "san antonio spurs",
+            "founded_year": 1967,
+            "location": "san antonio",
+            "ownership": "",
+            "championship": 5,
+            "id": null
+          },
+          {
+            "team_name": "dallas mavericks",
+            "founded_year": 1980,
+            "location": "dallas",
+            "ownership": "miriam adelson and patrick dumont",
+            "championship": 1,
+            "id": null
+          },
+          {
+            "team_name": "los angeles clippers",
+            "founded_year": 1970,
+            "location": "los angeles",
+            "ownership": "steve ballmer",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "minnesota timberwolves",
+            "founded_year": 1989,
+            "location": "minneapolis",
+            "ownership": "glen taylor",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "sacramento kings",
+            "founded_year": 1923,
+            "location": "sacramento",
+            "ownership": "",
+            "championship": 1,
+            "id": null
+          }
+        ]
+      }
+    },
+    "c171": {
+      "city": {
+        "columns": [
+          "city_name",
+          "state_name",
+          "population",
+          "area",
+          "gdp",
+          "id"
+        ],
+        "rows": [
+          {
+            "city_name": "new orleans",
+            "state_name": "",
+            "population": null,
+            "area": null,
+            "gdp": null,
+            "id": null
+          },
+          {
+            "city_name": "salt lake city",
+            "state_name": "utah",
+            "population": null,
+            "area": null,
+            "gdp": null,
+            "id": null
+          },
+          {
+            "city_name": "chicago",
+            "state_name": "",
+            "population": null,
+            "area": null,
+            "gdp": null,
+            "id": null
+          },
+          {
+            "city_name": "minneapolis",
+            "state_name": "minnesota",
+            "population": null,
+            "area": null,
+            "gdp": null,
+            "id": null
+          },
+          {
+            "city_name": "sacramento",
+            "state_name": "",
+            "population": null,
+            "area": null,
+            "gdp": null,
+            "id": null
+          }
+        ]
+      },
+      "owner": {
+        "columns": [
+          "name",
+          "age",
+          "nationality",
+          "nba_team",
+          "own_year",
+          "id"
+        ],
+        "rows": [
+          {
+            "name": "gayle benson",
+            "age": null,
+            "nationality": "",
+            "nba_team": "new orleans pelicans",
+            "own_year": null,
+            "id": null
+          },
+          {
+            "name": "ted leonsis",
+            "age": null,
+            "nationality": "",
+            "nba_team": "washington wizards",
+            "own_year": null,
+            "id": null
+          },
+          {
+            "name": "miriam adelson",
+            "age": null,
+            "nationality": "",
+            "nba_team": "dallas mavericks",
+            "own_year": null,
+            "id": null
+          },
+          {
+            "name": "patrick dumont",
+            "age": null,
+            "nationality": "",
+            "nba_team": "dallas mavericks",
+            "own_year": null,
+            "id": null
+          },
+          {
+            "name": "steve ballmer",
+            "age": null,
+            "nationality": "",
+            "nba_team": "los angeles clippers",
+            "own_year": null,
+            "id": null
+          },
+          {
+            "name": "glen taylor",
+            "age": null,
+            "nationality": "",
+            "nba_team": "minnesota timberwolves",
+            "own_year": null,
+            "id": null
+          }
+        ]
+      },
+      "player": {
+        "columns": [
+          "name",
+          "birth_date",
+          "nationality",
+          "age",
+          "team",
+          "position",
+          "draft_pick",
+          "draft_year",
+          "college",
+          "nba_championships",
+          "mvp_awards",
+          "olympic_gold_medals",
+          "fiba_world_cup",
+          "id"
+        ],
+        "rows": [
+          {
+            "name": "kevin durant",
+            "birth_date": "1988/9/29",
+            "nationality": "american",
+            "age": 37,
+            "team": "phoenix suns",
+            "position": "frontcourt",
+            "draft_pick": 2.0,
+            "draft_year": 2007.0,
+            "college": "university of texas at austin",
+            "nba_championships": 2.0,
+            "mvp_awards": 1,
+            "olympic_gold_medals": 4.0,
+            "fiba_world_cup": 1.0,
+            "id": null
+          },
+          {
+            "name": "guy rodgers",
+            "birth_date": "1935/9/1",
+            "nationality": "american",
+            "age": 90,
+            "team": "milwaukee bucks",
+            "position": null,
+            "draft_pick": 1.0,
+            "draft_year": 1958.0,
+            "college": "temple university",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "dan anderson",
+            "birth_date": "1951/1/1",
+            "nationality": "american",
+            "age": 74,
+            "team": "portland trail blazers",
+            "position": null,
+            "draft_pick": 2.0,
+            "draft_year": 1974.0,
+            "college": "",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "dennis schröder",
+            "birth_date": "1993/9/15",
+            "nationality": "german",
+            "age": 32,
+            "team": "brooklyn nets",
+            "position": null,
+            "draft_pick": 17.0,
+            "draft_year": 2013.0,
+            "college": "",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 1.0,
+            "id": null
+          },
+          {
+            "name": "jahlil okafor",
+            "birth_date": "1995/12/15",
+            "nationality": "american",
+            "age": 30,
+            "team": "capitanes de arecibo",
+            "position": null,
+            "draft_pick": 3.0,
+            "draft_year": 2015.0,
+            "college": "duke university",
+            "nba_championships": 1.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 1.0,
+            "id": null
+          },
+          {
+            "name": "derek grimm",
+            "birth_date": "1974/8/3",
+            "nationality": "american",
+            "age": 51,
+            "team": "sacramento kings",
+            "position": "frontcourt",
+            "draft_pick": 0.0,
+            "draft_year": 0.0,
+            "college": "university of missouri",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "jim brasco",
+            "birth_date": "1931/2/3",
+            "nationality": "american",
+            "age": 94,
+            "team": "milwaukee hawks",
+            "position": null,
+            "draft_pick": 1.0,
+            "draft_year": 1952.0,
+            "college": "new york university",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "nick calathes",
+            "birth_date": "1989/2/7",
+            "nationality": "american",
+            "age": 36,
+            "team": "",
+            "position": "backcourt",
+            "draft_pick": 35.0,
+            "draft_year": 2009.0,
+            "college": "university of florida",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "rodney strickland",
+            "birth_date": "1966/7/11",
+            "nationality": "american",
+            "age": 59,
+            "team": "houston rockets",
+            "position": null,
+            "draft_pick": 19.0,
+            "draft_year": 1988.0,
+            "college": "depaul university",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "kyle lowry",
+            "birth_date": "1986/3/25",
+            "nationality": "american",
+            "age": 39,
+            "team": "philadelphia 76ers",
+            "position": "backcourt",
+            "draft_pick": 24.0,
+            "draft_year": 2006.0,
+            "college": "villanova university",
+            "nba_championships": 1.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 1.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          }
+        ]
+      },
+      "team": {
+        "columns": [
+          "team_name",
+          "founded_year",
+          "location",
+          "ownership",
+          "championship",
+          "id"
+        ],
+        "rows": [
+          {
+            "team_name": "milwaukee bucks",
+            "founded_year": null,
+            "location": "",
+            "ownership": "",
+            "championship": null,
+            "id": null
+          },
+          {
+            "team_name": "brooklyn nets",
+            "founded_year": null,
+            "location": "",
+            "ownership": "",
+            "championship": null,
+            "id": null
+          },
+          {
+            "team_name": "sacramento kings",
+            "founded_year": null,
+            "location": "",
+            "ownership": "",
+            "championship": null,
+            "id": null
+          },
+          {
+            "team_name": "milwaukee hawks",
+            "founded_year": null,
+            "location": "",
+            "ownership": "",
+            "championship": null,
+            "id": null
+          },
+          {
+            "team_name": "new orleans pelicans",
+            "founded_year": 2002,
+            "location": "new orleans",
+            "ownership": "gayle benson",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "indiana pacers",
+            "founded_year": 1967,
+            "location": "indianapolis",
+            "ownership": "",
+            "championship": 3,
+            "id": null
+          },
+          {
+            "team_name": "washington wizards",
+            "founded_year": 1961,
+            "location": "washington",
+            "ownership": "ted leonsis",
+            "championship": 1,
+            "id": null
+          },
+          {
+            "team_name": "utah jazz",
+            "founded_year": 1974,
+            "location": "salt lake city",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "chicago bulls",
+            "founded_year": 1966,
+            "location": "chicago",
+            "ownership": "",
+            "championship": 6,
+            "id": null
+          },
+          {
+            "team_name": "san antonio spurs",
+            "founded_year": 1967,
+            "location": "san antonio",
+            "ownership": "",
+            "championship": 5,
+            "id": null
+          },
+          {
+            "team_name": "dallas mavericks",
+            "founded_year": 1980,
+            "location": "dallas",
+            "ownership": "miriam adelson and patrick dumont",
+            "championship": 1,
+            "id": null
+          },
+          {
+            "team_name": "los angeles clippers",
+            "founded_year": 1970,
+            "location": "los angeles",
+            "ownership": "steve ballmer",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "minnesota timberwolves",
+            "founded_year": 1989,
+            "location": "minneapolis",
+            "ownership": "glen taylor",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "sacramento kings",
+            "founded_year": 1923,
+            "location": "sacramento",
+            "ownership": "",
+            "championship": 1,
+            "id": null
+          }
+        ]
+      }
+    },
+    "c173": {
+      "city": {
+        "columns": [
+          "city_name",
+          "state_name",
+          "population",
+          "area",
+          "gdp",
+          "id"
+        ],
+        "rows": [
+          {
+            "city_name": "new orleans",
+            "state_name": "",
+            "population": null,
+            "area": null,
+            "gdp": null,
+            "id": null
+          },
+          {
+            "city_name": "salt lake city",
+            "state_name": "utah",
+            "population": null,
+            "area": null,
+            "gdp": null,
+            "id": null
+          },
+          {
+            "city_name": "chicago",
+            "state_name": "",
+            "population": null,
+            "area": null,
+            "gdp": null,
+            "id": null
+          },
+          {
+            "city_name": "minneapolis",
+            "state_name": "minnesota",
+            "population": null,
+            "area": null,
+            "gdp": null,
+            "id": null
+          },
+          {
+            "city_name": "sacramento",
+            "state_name": "",
+            "population": null,
+            "area": null,
+            "gdp": null,
+            "id": null
+          }
+        ]
+      },
+      "owner": {
+        "columns": [
+          "name",
+          "age",
+          "nationality",
+          "nba_team",
+          "own_year",
+          "id"
+        ],
+        "rows": [
+          {
+            "name": "gayle benson",
+            "age": null,
+            "nationality": "",
+            "nba_team": "new orleans pelicans",
+            "own_year": null,
+            "id": null
+          },
+          {
+            "name": "ted leonsis",
+            "age": null,
+            "nationality": "",
+            "nba_team": "washington wizards",
+            "own_year": null,
+            "id": null
+          },
+          {
+            "name": "miriam adelson",
+            "age": null,
+            "nationality": "",
+            "nba_team": "dallas mavericks",
+            "own_year": null,
+            "id": null
+          },
+          {
+            "name": "patrick dumont",
+            "age": null,
+            "nationality": "",
+            "nba_team": "dallas mavericks",
+            "own_year": null,
+            "id": null
+          },
+          {
+            "name": "steve ballmer",
+            "age": null,
+            "nationality": "",
+            "nba_team": "los angeles clippers",
+            "own_year": null,
+            "id": null
+          },
+          {
+            "name": "glen taylor",
+            "age": null,
+            "nationality": "",
+            "nba_team": "minnesota timberwolves",
+            "own_year": null,
+            "id": null
+          }
+        ]
+      },
+      "player": {
+        "columns": [
+          "name",
+          "birth_date",
+          "nationality",
+          "age",
+          "team",
+          "position",
+          "draft_pick",
+          "draft_year",
+          "college",
+          "nba_championships",
+          "mvp_awards",
+          "olympic_gold_medals",
+          "fiba_world_cup",
+          "id"
+        ],
+        "rows": [
+          {
+            "name": "kevin durant",
+            "birth_date": "1988/9/29",
+            "nationality": "american",
+            "age": 37,
+            "team": "phoenix suns",
+            "position": "frontcourt",
+            "draft_pick": 2.0,
+            "draft_year": 2007.0,
+            "college": "university of texas at austin",
+            "nba_championships": 2.0,
+            "mvp_awards": 1,
+            "olympic_gold_medals": 4.0,
+            "fiba_world_cup": 1.0,
+            "id": null
+          },
+          {
+            "name": "guy rodgers",
+            "birth_date": "1935/9/1",
+            "nationality": "american",
+            "age": 90,
+            "team": "milwaukee bucks",
+            "position": null,
+            "draft_pick": 1.0,
+            "draft_year": 1958.0,
+            "college": "temple university",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "dan anderson",
+            "birth_date": "1951/1/1",
+            "nationality": "american",
+            "age": 74,
+            "team": "portland trail blazers",
+            "position": null,
+            "draft_pick": 2.0,
+            "draft_year": 1974.0,
+            "college": "",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "dennis schröder",
+            "birth_date": "1993/9/15",
+            "nationality": "german",
+            "age": 32,
+            "team": "brooklyn nets",
+            "position": null,
+            "draft_pick": 17.0,
+            "draft_year": 2013.0,
+            "college": "",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 1.0,
+            "id": null
+          },
+          {
+            "name": "jahlil okafor",
+            "birth_date": "1995/12/15",
+            "nationality": "american",
+            "age": 30,
+            "team": "capitanes de arecibo",
+            "position": null,
+            "draft_pick": 3.0,
+            "draft_year": 2015.0,
+            "college": "duke university",
+            "nba_championships": 1.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 1.0,
+            "id": null
+          },
+          {
+            "name": "derek grimm",
+            "birth_date": "1974/8/3",
+            "nationality": "american",
+            "age": 51,
+            "team": "sacramento kings",
+            "position": "frontcourt",
+            "draft_pick": 0.0,
+            "draft_year": 0.0,
+            "college": "university of missouri",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "jim brasco",
+            "birth_date": "1931/2/3",
+            "nationality": "american",
+            "age": 94,
+            "team": "milwaukee hawks",
+            "position": null,
+            "draft_pick": 1.0,
+            "draft_year": 1952.0,
+            "college": "new york university",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "nick calathes",
+            "birth_date": "1989/2/7",
+            "nationality": "american",
+            "age": 36,
+            "team": "",
+            "position": "backcourt",
+            "draft_pick": 35.0,
+            "draft_year": 2009.0,
+            "college": "university of florida",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "rodney strickland",
+            "birth_date": "1966/7/11",
+            "nationality": "american",
+            "age": 59,
+            "team": "houston rockets",
+            "position": null,
+            "draft_pick": 19.0,
+            "draft_year": 1988.0,
+            "college": "depaul university",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "kyle lowry",
+            "birth_date": "1986/3/25",
+            "nationality": "american",
+            "age": 39,
+            "team": "philadelphia 76ers",
+            "position": "backcourt",
+            "draft_pick": 24.0,
+            "draft_year": 2006.0,
+            "college": "villanova university",
+            "nba_championships": 1.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 1.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          }
+        ]
+      },
+      "team": {
+        "columns": [
+          "team_name",
+          "founded_year",
+          "location",
+          "ownership",
+          "championship",
+          "id"
+        ],
+        "rows": [
+          {
+            "team_name": "milwaukee bucks",
+            "founded_year": null,
+            "location": "",
+            "ownership": "",
+            "championship": null,
+            "id": null
+          },
+          {
+            "team_name": "brooklyn nets",
+            "founded_year": null,
+            "location": "",
+            "ownership": "",
+            "championship": null,
+            "id": null
+          },
+          {
+            "team_name": "sacramento kings",
+            "founded_year": null,
+            "location": "",
+            "ownership": "",
+            "championship": null,
+            "id": null
+          },
+          {
+            "team_name": "milwaukee hawks",
+            "founded_year": null,
+            "location": "",
+            "ownership": "",
+            "championship": null,
+            "id": null
+          },
+          {
+            "team_name": "new orleans pelicans",
+            "founded_year": 2002,
+            "location": "new orleans",
+            "ownership": "gayle benson",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "indiana pacers",
+            "founded_year": 1967,
+            "location": "indianapolis",
+            "ownership": "",
+            "championship": 3,
+            "id": null
+          },
+          {
+            "team_name": "washington wizards",
+            "founded_year": 1961,
+            "location": "washington",
+            "ownership": "ted leonsis",
+            "championship": 1,
+            "id": null
+          },
+          {
+            "team_name": "utah jazz",
+            "founded_year": 1974,
+            "location": "salt lake city",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "chicago bulls",
+            "founded_year": 1966,
+            "location": "chicago",
+            "ownership": "",
+            "championship": 6,
+            "id": null
+          },
+          {
+            "team_name": "san antonio spurs",
+            "founded_year": 1967,
+            "location": "san antonio",
+            "ownership": "",
+            "championship": 5,
+            "id": null
+          },
+          {
+            "team_name": "dallas mavericks",
+            "founded_year": 1980,
+            "location": "dallas",
+            "ownership": "miriam adelson and patrick dumont",
+            "championship": 1,
+            "id": null
+          },
+          {
+            "team_name": "los angeles clippers",
+            "founded_year": 1970,
+            "location": "los angeles",
+            "ownership": "steve ballmer",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "minnesota timberwolves",
+            "founded_year": 1989,
+            "location": "minneapolis",
+            "ownership": "glen taylor",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "sacramento kings",
+            "founded_year": 1923,
+            "location": "sacramento",
+            "ownership": "",
+            "championship": 1,
+            "id": null
+          }
+        ]
+      }
+    },
+    "c175": {
+      "city": {
+        "columns": [
+          "city_name",
+          "state_name",
+          "population",
+          "area",
+          "gdp",
+          "id"
+        ],
+        "rows": [
+          {
+            "city_name": "new orleans",
+            "state_name": "",
+            "population": null,
+            "area": null,
+            "gdp": null,
+            "id": null
+          },
+          {
+            "city_name": "salt lake city",
+            "state_name": "utah",
+            "population": null,
+            "area": null,
+            "gdp": null,
+            "id": null
+          },
+          {
+            "city_name": "chicago",
+            "state_name": "",
+            "population": null,
+            "area": null,
+            "gdp": null,
+            "id": null
+          },
+          {
+            "city_name": "minneapolis",
+            "state_name": "minnesota",
+            "population": null,
+            "area": null,
+            "gdp": null,
+            "id": null
+          },
+          {
+            "city_name": "sacramento",
+            "state_name": "",
+            "population": null,
+            "area": null,
+            "gdp": null,
+            "id": null
+          }
+        ]
+      },
+      "owner": {
+        "columns": [
+          "name",
+          "age",
+          "nationality",
+          "nba_team",
+          "own_year",
+          "id"
+        ],
+        "rows": [
+          {
+            "name": "gayle benson",
+            "age": null,
+            "nationality": "",
+            "nba_team": "new orleans pelicans",
+            "own_year": null,
+            "id": null
+          },
+          {
+            "name": "ted leonsis",
+            "age": null,
+            "nationality": "",
+            "nba_team": "washington wizards",
+            "own_year": null,
+            "id": null
+          },
+          {
+            "name": "miriam adelson",
+            "age": null,
+            "nationality": "",
+            "nba_team": "dallas mavericks",
+            "own_year": null,
+            "id": null
+          },
+          {
+            "name": "patrick dumont",
+            "age": null,
+            "nationality": "",
+            "nba_team": "dallas mavericks",
+            "own_year": null,
+            "id": null
+          },
+          {
+            "name": "steve ballmer",
+            "age": null,
+            "nationality": "",
+            "nba_team": "los angeles clippers",
+            "own_year": null,
+            "id": null
+          },
+          {
+            "name": "glen taylor",
+            "age": null,
+            "nationality": "",
+            "nba_team": "minnesota timberwolves",
+            "own_year": null,
+            "id": null
+          }
+        ]
+      },
+      "player": {
+        "columns": [
+          "name",
+          "birth_date",
+          "nationality",
+          "age",
+          "team",
+          "position",
+          "draft_pick",
+          "draft_year",
+          "college",
+          "nba_championships",
+          "mvp_awards",
+          "olympic_gold_medals",
+          "fiba_world_cup",
+          "id"
+        ],
+        "rows": [
+          {
+            "name": "kevin durant",
+            "birth_date": "1988/9/29",
+            "nationality": "american",
+            "age": 37,
+            "team": "phoenix suns",
+            "position": "frontcourt",
+            "draft_pick": 2.0,
+            "draft_year": 2007.0,
+            "college": "university of texas at austin",
+            "nba_championships": 2.0,
+            "mvp_awards": 1,
+            "olympic_gold_medals": 4.0,
+            "fiba_world_cup": 1.0,
+            "id": null
+          },
+          {
+            "name": "guy rodgers",
+            "birth_date": "1935/9/1",
+            "nationality": "american",
+            "age": 90,
+            "team": "milwaukee bucks",
+            "position": "backcourt",
+            "draft_pick": 1.0,
+            "draft_year": 1958.0,
+            "college": "temple university",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "dan anderson",
+            "birth_date": "1951/1/1",
+            "nationality": "american",
+            "age": 74,
+            "team": "portland trail blazers",
+            "position": "backcourt",
+            "draft_pick": 2.0,
+            "draft_year": 1974.0,
+            "college": "",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "dennis schröder",
+            "birth_date": "1993/9/15",
+            "nationality": "german",
+            "age": 32,
+            "team": "brooklyn nets",
+            "position": "backcourt",
+            "draft_pick": 17.0,
+            "draft_year": 2013.0,
+            "college": "",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 1.0,
+            "id": null
+          },
+          {
+            "name": "jahlil okafor",
+            "birth_date": "1995/12/15",
+            "nationality": "american",
+            "age": 30,
+            "team": "capitanes de arecibo",
+            "position": "backcourt",
+            "draft_pick": 3.0,
+            "draft_year": 2015.0,
+            "college": "duke university",
+            "nba_championships": 1.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 1.0,
+            "id": null
+          },
+          {
+            "name": "derek grimm",
+            "birth_date": "1974/8/3",
+            "nationality": "american",
+            "age": 51,
+            "team": "sacramento kings",
+            "position": "frontcourt",
+            "draft_pick": 0.0,
+            "draft_year": 0.0,
+            "college": "university of missouri",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "jim brasco",
+            "birth_date": "1931/2/3",
+            "nationality": "american",
+            "age": 94,
+            "team": "milwaukee hawks",
+            "position": "backcourt",
+            "draft_pick": 1.0,
+            "draft_year": 1952.0,
+            "college": "new york university",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "nick calathes",
+            "birth_date": "1989/2/7",
+            "nationality": "american",
+            "age": 36,
+            "team": "",
+            "position": "backcourt",
+            "draft_pick": 35.0,
+            "draft_year": 2009.0,
+            "college": "university of florida",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "rodney strickland",
+            "birth_date": "1966/7/11",
+            "nationality": "american",
+            "age": 59,
+            "team": "houston rockets",
+            "position": "backcourt",
+            "draft_pick": 19.0,
+            "draft_year": 1988.0,
+            "college": "depaul university",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "kyle lowry",
+            "birth_date": "1986/3/25",
+            "nationality": "american",
+            "age": 39,
+            "team": "philadelphia 76ers",
+            "position": "backcourt",
+            "draft_pick": 24.0,
+            "draft_year": 2006.0,
+            "college": "villanova university",
+            "nba_championships": 1.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 1.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          }
+        ]
+      },
+      "team": {
+        "columns": [
+          "team_name",
+          "founded_year",
+          "location",
+          "ownership",
+          "championship",
+          "id"
+        ],
+        "rows": [
+          {
+            "team_name": "milwaukee bucks",
+            "founded_year": 1967,
+            "location": "",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "brooklyn nets",
+            "founded_year": 1967,
+            "location": "",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "sacramento kings",
+            "founded_year": 1967,
+            "location": "",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "milwaukee hawks",
+            "founded_year": 1967,
+            "location": "",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "new orleans pelicans",
+            "founded_year": 2002,
+            "location": "new orleans",
+            "ownership": "gayle benson",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "indiana pacers",
+            "founded_year": 1967,
+            "location": "indianapolis",
+            "ownership": "",
+            "championship": 3,
+            "id": null
+          },
+          {
+            "team_name": "washington wizards",
+            "founded_year": 1961,
+            "location": "washington",
+            "ownership": "ted leonsis",
+            "championship": 1,
+            "id": null
+          },
+          {
+            "team_name": "utah jazz",
+            "founded_year": 1974,
+            "location": "salt lake city",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "chicago bulls",
+            "founded_year": 1966,
+            "location": "chicago",
+            "ownership": "",
+            "championship": 6,
+            "id": null
+          },
+          {
+            "team_name": "san antonio spurs",
+            "founded_year": 1967,
+            "location": "san antonio",
+            "ownership": "",
+            "championship": 5,
+            "id": null
+          },
+          {
+            "team_name": "dallas mavericks",
+            "founded_year": 1980,
+            "location": "dallas",
+            "ownership": "miriam adelson and patrick dumont",
+            "championship": 1,
+            "id": null
+          },
+          {
+            "team_name": "los angeles clippers",
+            "founded_year": 1970,
+            "location": "los angeles",
+            "ownership": "steve ballmer",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "minnesota timberwolves",
+            "founded_year": 1989,
+            "location": "minneapolis",
+            "ownership": "glen taylor",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "sacramento kings",
+            "founded_year": 1923,
+            "location": "sacramento",
+            "ownership": "",
+            "championship": 1,
+            "id": null
+          }
+        ]
+      }
+    },
+    "c177": {
+      "city": {
+        "columns": [
+          "city_name",
+          "state_name",
+          "population",
+          "area",
+          "gdp",
+          "id"
+        ],
+        "rows": [
+          {
+            "city_name": "new orleans",
+            "state_name": "",
+            "population": null,
+            "area": 0.0,
+            "gdp": null,
+            "id": null
+          },
+          {
+            "city_name": "salt lake city",
+            "state_name": "utah",
+            "population": null,
+            "area": 0.0,
+            "gdp": null,
+            "id": null
+          },
+          {
+            "city_name": "chicago",
+            "state_name": "",
+            "population": null,
+            "area": 0.0,
+            "gdp": null,
+            "id": null
+          },
+          {
+            "city_name": "minneapolis",
+            "state_name": "minnesota",
+            "population": null,
+            "area": 0.0,
+            "gdp": null,
+            "id": null
+          },
+          {
+            "city_name": "sacramento",
+            "state_name": "",
+            "population": null,
+            "area": 0.0,
+            "gdp": null,
+            "id": null
+          }
+        ]
+      },
+      "owner": {
+        "columns": [
+          "name",
+          "age",
+          "nationality",
+          "nba_team",
+          "own_year",
+          "id"
+        ],
+        "rows": [
+          {
+            "name": "gayle benson",
+            "age": 0,
+            "nationality": "",
+            "nba_team": "new orleans pelicans",
+            "own_year": 0.0,
+            "id": null
+          },
+          {
+            "name": "ted leonsis",
+            "age": 0,
+            "nationality": "",
+            "nba_team": "washington wizards",
+            "own_year": 0.0,
+            "id": null
+          },
+          {
+            "name": "miriam adelson",
+            "age": 0,
+            "nationality": "",
+            "nba_team": "dallas mavericks",
+            "own_year": 0.0,
+            "id": null
+          },
+          {
+            "name": "patrick dumont",
+            "age": 0,
+            "nationality": "",
+            "nba_team": "dallas mavericks",
+            "own_year": 0.0,
+            "id": null
+          },
+          {
+            "name": "steve ballmer",
+            "age": 0,
+            "nationality": "",
+            "nba_team": "los angeles clippers",
+            "own_year": 0.0,
+            "id": null
+          },
+          {
+            "name": "glen taylor",
+            "age": 0,
+            "nationality": "",
+            "nba_team": "minnesota timberwolves",
+            "own_year": 0.0,
+            "id": null
+          }
+        ]
+      },
+      "player": {
+        "columns": [
+          "name",
+          "birth_date",
+          "nationality",
+          "age",
+          "team",
+          "position",
+          "draft_pick",
+          "draft_year",
+          "college",
+          "nba_championships",
+          "mvp_awards",
+          "olympic_gold_medals",
+          "fiba_world_cup",
+          "id"
+        ],
+        "rows": [
+          {
+            "name": "kevin durant",
+            "birth_date": "1988/9/29",
+            "nationality": "american",
+            "age": 37,
+            "team": "phoenix suns",
+            "position": "frontcourt",
+            "draft_pick": 2.0,
+            "draft_year": 2007.0,
+            "college": "university of texas at austin",
+            "nba_championships": 2.0,
+            "mvp_awards": 1,
+            "olympic_gold_medals": 4.0,
+            "fiba_world_cup": 1.0,
+            "id": null
+          },
+          {
+            "name": "guy rodgers",
+            "birth_date": "1935/9/1",
+            "nationality": "american",
+            "age": 90,
+            "team": "milwaukee bucks",
+            "position": null,
+            "draft_pick": 1.0,
+            "draft_year": 1958.0,
+            "college": "temple university",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "dan anderson",
+            "birth_date": "1951/1/1",
+            "nationality": "american",
+            "age": 74,
+            "team": "portland trail blazers",
+            "position": null,
+            "draft_pick": 2.0,
+            "draft_year": 1974.0,
+            "college": "",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "dennis schröder",
+            "birth_date": "1993/9/15",
+            "nationality": "german",
+            "age": 32,
+            "team": "brooklyn nets",
+            "position": null,
+            "draft_pick": 17.0,
+            "draft_year": 2013.0,
+            "college": "",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 1.0,
+            "id": null
+          },
+          {
+            "name": "jahlil okafor",
+            "birth_date": "1995/12/15",
+            "nationality": "american",
+            "age": 30,
+            "team": "capitanes de arecibo",
+            "position": null,
+            "draft_pick": 3.0,
+            "draft_year": 2015.0,
+            "college": "duke university",
+            "nba_championships": 1.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 1.0,
+            "id": null
+          },
+          {
+            "name": "derek grimm",
+            "birth_date": "1974/8/3",
+            "nationality": "american",
+            "age": 51,
+            "team": "sacramento kings",
+            "position": "frontcourt",
+            "draft_pick": 0.0,
+            "draft_year": 0.0,
+            "college": "university of missouri",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "jim brasco",
+            "birth_date": "1931/2/3",
+            "nationality": "american",
+            "age": 94,
+            "team": "milwaukee hawks",
+            "position": null,
+            "draft_pick": 1.0,
+            "draft_year": 1952.0,
+            "college": "new york university",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "nick calathes",
+            "birth_date": "1989/2/7",
+            "nationality": "american",
+            "age": 36,
+            "team": "",
+            "position": "backcourt",
+            "draft_pick": 35.0,
+            "draft_year": 2009.0,
+            "college": "university of florida",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "rodney strickland",
+            "birth_date": "1966/7/11",
+            "nationality": "american",
+            "age": 59,
+            "team": "houston rockets",
+            "position": null,
+            "draft_pick": 19.0,
+            "draft_year": 1988.0,
+            "college": "depaul university",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "kyle lowry",
+            "birth_date": "1986/3/25",
+            "nationality": "american",
+            "age": 39,
+            "team": "philadelphia 76ers",
+            "position": "backcourt",
+            "draft_pick": 24.0,
+            "draft_year": 2006.0,
+            "college": "villanova university",
+            "nba_championships": 1.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 1.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          }
+        ]
+      },
+      "team": {
+        "columns": [
+          "team_name",
+          "founded_year",
+          "location",
+          "ownership",
+          "championship",
+          "id"
+        ],
+        "rows": [
+          {
+            "team_name": "milwaukee bucks",
+            "founded_year": 0,
+            "location": "",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "brooklyn nets",
+            "founded_year": 0,
+            "location": "",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "sacramento kings",
+            "founded_year": 0,
+            "location": "",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "milwaukee hawks",
+            "founded_year": 0,
+            "location": "",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "new orleans pelicans",
+            "founded_year": 2002,
+            "location": "new orleans",
+            "ownership": "gayle benson",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "indiana pacers",
+            "founded_year": 1967,
+            "location": "indianapolis",
+            "ownership": "",
+            "championship": 3,
+            "id": null
+          },
+          {
+            "team_name": "washington wizards",
+            "founded_year": 1961,
+            "location": "washington",
+            "ownership": "ted leonsis",
+            "championship": 1,
+            "id": null
+          },
+          {
+            "team_name": "utah jazz",
+            "founded_year": 1974,
+            "location": "salt lake city",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "chicago bulls",
+            "founded_year": 1966,
+            "location": "chicago",
+            "ownership": "",
+            "championship": 6,
+            "id": null
+          },
+          {
+            "team_name": "san antonio spurs",
+            "founded_year": 1967,
+            "location": "san antonio",
+            "ownership": "",
+            "championship": 5,
+            "id": null
+          },
+          {
+            "team_name": "dallas mavericks",
+            "founded_year": 1980,
+            "location": "dallas",
+            "ownership": "miriam adelson and patrick dumont",
+            "championship": 1,
+            "id": null
+          },
+          {
+            "team_name": "los angeles clippers",
+            "founded_year": 1970,
+            "location": "los angeles",
+            "ownership": "steve ballmer",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "minnesota timberwolves",
+            "founded_year": 1989,
+            "location": "minneapolis",
+            "ownership": "glen taylor",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "sacramento kings",
+            "founded_year": 1923,
+            "location": "sacramento",
+            "ownership": "",
+            "championship": 1,
+            "id": null
+          }
+        ]
+      }
+    },
+    "c179": {
+      "city": {
+        "columns": [
+          "city_name",
+          "state_name",
+          "population",
+          "area",
+          "gdp",
+          "id"
+        ],
+        "rows": [
+          {
+            "city_name": "new orleans",
+            "state_name": "louisiana",
+            "population": "390000",
+            "area": 169.4,
+            "gdp": "Unknown",
+            "id": null
+          },
+          {
+            "city_name": "salt lake city",
+            "state_name": "utah",
+            "population": "200000",
+            "area": 110.9,
+            "gdp": "Unknown",
+            "id": null
+          },
+          {
+            "city_name": "chicago",
+            "state_name": "illinois",
+            "population": "2700000",
+            "area": 234.5,
+            "gdp": "Unknown",
+            "id": null
+          },
+          {
+            "city_name": "minneapolis",
+            "state_name": "minnesota",
+            "population": "430000",
+            "area": 54.0,
+            "gdp": "Unknown",
+            "id": null
+          },
+          {
+            "city_name": "sacramento",
+            "state_name": "california",
+            "population": "520000",
+            "area": 100.1,
+            "gdp": "Unknown",
+            "id": null
+          }
+        ]
+      },
+      "owner": {
+        "columns": [
+          "name",
+          "age",
+          "nationality",
+          "nba_team",
+          "own_year",
+          "id"
+        ],
+        "rows": [
+          {
+            "name": "gayle benson",
+            "age": 78,
+            "nationality": "American",
+            "nba_team": "new orleans pelicans",
+            "own_year": 0.0,
+            "id": null
+          },
+          {
+            "name": "ted leonsis",
+            "age": 68,
+            "nationality": "American",
+            "nba_team": "washington wizards",
+            "own_year": 0.0,
+            "id": null
+          },
+          {
+            "name": "miriam adelson",
+            "age": 80,
+            "nationality": "Israeli-American",
+            "nba_team": "dallas mavericks",
+            "own_year": 0.0,
+            "id": null
+          },
+          {
+            "name": "patrick dumont",
+            "age": 52,
+            "nationality": "American",
+            "nba_team": "dallas mavericks",
+            "own_year": 0.0,
+            "id": null
+          },
+          {
+            "name": "steve ballmer",
+            "age": 69,
+            "nationality": "American",
+            "nba_team": "los angeles clippers",
+            "own_year": 0.0,
+            "id": null
+          },
+          {
+            "name": "glen taylor",
+            "age": 84,
+            "nationality": "American",
+            "nba_team": "minnesota timberwolves",
+            "own_year": 0.0,
+            "id": null
+          }
+        ]
+      },
+      "player": {
+        "columns": [
+          "name",
+          "birth_date",
+          "nationality",
+          "age",
+          "team",
+          "position",
+          "draft_pick",
+          "draft_year",
+          "college",
+          "nba_championships",
+          "mvp_awards",
+          "olympic_gold_medals",
+          "fiba_world_cup",
+          "id"
+        ],
+        "rows": [
+          {
+            "name": "kevin durant",
+            "birth_date": "1988/9/29",
+            "nationality": "american",
+            "age": 37,
+            "team": "phoenix suns",
+            "position": "frontcourt",
+            "draft_pick": 2.0,
+            "draft_year": 2007.0,
+            "college": "university of texas at austin",
+            "nba_championships": 2.0,
+            "mvp_awards": 1,
+            "olympic_gold_medals": 4.0,
+            "fiba_world_cup": 1.0,
+            "id": null
+          },
+          {
+            "name": "guy rodgers",
+            "birth_date": "1935/9/1",
+            "nationality": "american",
+            "age": 90,
+            "team": "milwaukee bucks",
+            "position": "backcourt",
+            "draft_pick": 1.0,
+            "draft_year": 1958.0,
+            "college": "temple university",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "dan anderson",
+            "birth_date": "1951/1/1",
+            "nationality": "american",
+            "age": 74,
+            "team": "portland trail blazers",
+            "position": "frontcourt",
+            "draft_pick": 2.0,
+            "draft_year": 1974.0,
+            "college": "Unknown",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "dennis schröder",
+            "birth_date": "1993/9/15",
+            "nationality": "german",
+            "age": 32,
+            "team": "brooklyn nets",
+            "position": "backcourt",
+            "draft_pick": 17.0,
+            "draft_year": 2013.0,
+            "college": "None",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 1.0,
+            "id": null
+          },
+          {
+            "name": "jahlil okafor",
+            "birth_date": "1995/12/15",
+            "nationality": "american",
+            "age": 30,
+            "team": "capitanes de arecibo",
+            "position": "frontcourt",
+            "draft_pick": 3.0,
+            "draft_year": 2015.0,
+            "college": "duke university",
+            "nba_championships": 1.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 1.0,
+            "id": null
+          },
+          {
+            "name": "derek grimm",
+            "birth_date": "1974/8/3",
+            "nationality": "american",
+            "age": 51,
+            "team": "sacramento kings",
+            "position": "frontcourt",
+            "draft_pick": 0.0,
+            "draft_year": 0.0,
+            "college": "university of missouri",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "jim brasco",
+            "birth_date": "1931/2/3",
+            "nationality": "american",
+            "age": 94,
+            "team": "milwaukee hawks",
+            "position": "frontcourt",
+            "draft_pick": 1.0,
+            "draft_year": 1952.0,
+            "college": "new york university",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "nick calathes",
+            "birth_date": "1989/2/7",
+            "nationality": "american",
+            "age": 36,
+            "team": "Unknown",
+            "position": "backcourt",
+            "draft_pick": 35.0,
+            "draft_year": 2009.0,
+            "college": "university of florida",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "rodney strickland",
+            "birth_date": "1966/7/11",
+            "nationality": "american",
+            "age": 59,
+            "team": "houston rockets",
+            "position": "backcourt",
+            "draft_pick": 19.0,
+            "draft_year": 1988.0,
+            "college": "depaul university",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "kyle lowry",
+            "birth_date": "1986/3/25",
+            "nationality": "american",
+            "age": 39,
+            "team": "philadelphia 76ers",
+            "position": "backcourt",
+            "draft_pick": 24.0,
+            "draft_year": 2006.0,
+            "college": "villanova university",
+            "nba_championships": 1.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 1.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          }
+        ]
+      },
+      "team": {
+        "columns": [
+          "team_name",
+          "founded_year",
+          "location",
+          "ownership",
+          "championship",
+          "id"
+        ],
+        "rows": [
+          {
+            "team_name": "milwaukee bucks",
+            "founded_year": 1968,
+            "location": "milwaukee",
+            "ownership": "Wes Edens",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "brooklyn nets",
+            "founded_year": 1968,
+            "location": "brooklyn",
+            "ownership": "Joe Tsai",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "sacramento kings",
+            "founded_year": 1923,
+            "location": "sacramento",
+            "ownership": "Vivek Ranadivé",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "milwaukee hawks",
+            "founded_year": 1968,
+            "location": "milwaukee",
+            "ownership": "Tony Ressler",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "new orleans pelicans",
+            "founded_year": 2002,
+            "location": "new orleans",
+            "ownership": "gayle benson",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "indiana pacers",
+            "founded_year": 1967,
+            "location": "indianapolis",
+            "ownership": "Herb Simon",
+            "championship": 3,
+            "id": null
+          },
+          {
+            "team_name": "washington wizards",
+            "founded_year": 1961,
+            "location": "washington",
+            "ownership": "ted leonsis",
+            "championship": 1,
+            "id": null
+          },
+          {
+            "team_name": "utah jazz",
+            "founded_year": 1974,
+            "location": "salt lake city",
+            "ownership": "Ryan Smith",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "chicago bulls",
+            "founded_year": 1966,
+            "location": "chicago",
+            "ownership": "Jerry Reinsdorf",
+            "championship": 6,
+            "id": null
+          },
+          {
+            "team_name": "san antonio spurs",
+            "founded_year": 1967,
+            "location": "san antonio",
+            "ownership": "Peter Holt",
+            "championship": 5,
+            "id": null
+          },
+          {
+            "team_name": "dallas mavericks",
+            "founded_year": 1980,
+            "location": "dallas",
+            "ownership": "miriam adelson and patrick dumont",
+            "championship": 1,
+            "id": null
+          },
+          {
+            "team_name": "los angeles clippers",
+            "founded_year": 1970,
+            "location": "los angeles",
+            "ownership": "steve ballmer",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "minnesota timberwolves",
+            "founded_year": 1989,
+            "location": "minneapolis",
+            "ownership": "glen taylor",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "sacramento kings",
+            "founded_year": 1923,
+            "location": "sacramento",
+            "ownership": "Vivek Ranadivé",
+            "championship": 1,
+            "id": null
+          }
+        ]
+      }
+    },
+    "c181": {
+      "city": {
+        "columns": [
+          "city_name",
+          "state_name",
+          "population",
+          "area",
+          "gdp",
+          "id"
+        ],
+        "rows": [
+          {
+            "city_name": "new orleans",
+            "state_name": "",
+            "population": null,
+            "area": null,
+            "gdp": null,
+            "id": null
+          },
+          {
+            "city_name": "salt lake city",
+            "state_name": "utah",
+            "population": null,
+            "area": null,
+            "gdp": null,
+            "id": null
+          },
+          {
+            "city_name": "chicago",
+            "state_name": "",
+            "population": null,
+            "area": null,
+            "gdp": null,
+            "id": null
+          },
+          {
+            "city_name": "minneapolis",
+            "state_name": "minnesota",
+            "population": null,
+            "area": null,
+            "gdp": null,
+            "id": null
+          },
+          {
+            "city_name": "sacramento",
+            "state_name": "",
+            "population": null,
+            "area": null,
+            "gdp": null,
+            "id": null
+          }
+        ]
+      },
+      "owner": {
+        "columns": [
+          "name",
+          "age",
+          "nationality",
+          "nba_team",
+          "own_year",
+          "id"
+        ],
+        "rows": [
+          {
+            "name": "gayle benson",
+            "age": null,
+            "nationality": "",
+            "nba_team": "new orleans pelicans",
+            "own_year": null,
+            "id": null
+          },
+          {
+            "name": "ted leonsis",
+            "age": null,
+            "nationality": "",
+            "nba_team": "washington wizards",
+            "own_year": null,
+            "id": null
+          },
+          {
+            "name": "miriam adelson",
+            "age": null,
+            "nationality": "",
+            "nba_team": "dallas mavericks",
+            "own_year": null,
+            "id": null
+          },
+          {
+            "name": "patrick dumont",
+            "age": null,
+            "nationality": "",
+            "nba_team": "dallas mavericks",
+            "own_year": null,
+            "id": null
+          },
+          {
+            "name": "steve ballmer",
+            "age": null,
+            "nationality": "",
+            "nba_team": "los angeles clippers",
+            "own_year": null,
+            "id": null
+          },
+          {
+            "name": "glen taylor",
+            "age": null,
+            "nationality": "",
+            "nba_team": "minnesota timberwolves",
+            "own_year": null,
+            "id": null
+          }
+        ]
+      },
+      "player": {
+        "columns": [
+          "name",
+          "birth_date",
+          "nationality",
+          "age",
+          "team",
+          "position",
+          "draft_pick",
+          "draft_year",
+          "college",
+          "nba_championships",
+          "mvp_awards",
+          "olympic_gold_medals",
+          "fiba_world_cup",
+          "id"
+        ],
+        "rows": [
+          {
+            "name": "kevin durant",
+            "birth_date": "1988/9/29",
+            "nationality": "american",
+            "age": 37,
+            "team": "phoenix suns",
+            "position": "frontcourt",
+            "draft_pick": 2.0,
+            "draft_year": 2007.0,
+            "college": "university of texas at austin",
+            "nba_championships": 2.0,
+            "mvp_awards": 1,
+            "olympic_gold_medals": 4.0,
+            "fiba_world_cup": 1.0,
+            "id": null
+          },
+          {
+            "name": "guy rodgers",
+            "birth_date": "1935/9/1",
+            "nationality": "american",
+            "age": 90,
+            "team": "milwaukee bucks",
+            "position": null,
+            "draft_pick": 1.0,
+            "draft_year": 1958.0,
+            "college": "temple university",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "dan anderson",
+            "birth_date": "1951/1/1",
+            "nationality": "american",
+            "age": 74,
+            "team": "portland trail blazers",
+            "position": null,
+            "draft_pick": 2.0,
+            "draft_year": 1974.0,
+            "college": "",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "dennis schröder",
+            "birth_date": "1993/9/15",
+            "nationality": "german",
+            "age": 32,
+            "team": "brooklyn nets",
+            "position": null,
+            "draft_pick": 17.0,
+            "draft_year": 2013.0,
+            "college": "",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 1.0,
+            "id": null
+          },
+          {
+            "name": "jahlil okafor",
+            "birth_date": "1995/12/15",
+            "nationality": "american",
+            "age": 30,
+            "team": "capitanes de arecibo",
+            "position": null,
+            "draft_pick": 3.0,
+            "draft_year": 2015.0,
+            "college": "duke university",
+            "nba_championships": 1.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 1.0,
+            "id": null
+          },
+          {
+            "name": "derek grimm",
+            "birth_date": "1974/8/3",
+            "nationality": "american",
+            "age": 51,
+            "team": "sacramento kings",
+            "position": "frontcourt",
+            "draft_pick": 0.0,
+            "draft_year": 0.0,
+            "college": "university of missouri",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "jim brasco",
+            "birth_date": "1931/2/3",
+            "nationality": "american",
+            "age": 94,
+            "team": "milwaukee hawks",
+            "position": null,
+            "draft_pick": 1.0,
+            "draft_year": 1952.0,
+            "college": "new york university",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "nick calathes",
+            "birth_date": "1989/2/7",
+            "nationality": "american",
+            "age": 36,
+            "team": "",
+            "position": "backcourt",
+            "draft_pick": 35.0,
+            "draft_year": 2009.0,
+            "college": "university of florida",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "rodney strickland",
+            "birth_date": "1966/7/11",
+            "nationality": "american",
+            "age": 59,
+            "team": "houston rockets",
+            "position": null,
+            "draft_pick": 19.0,
+            "draft_year": 1988.0,
+            "college": "depaul university",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "kyle lowry",
+            "birth_date": "1986/3/25",
+            "nationality": "american",
+            "age": 39,
+            "team": "philadelphia 76ers",
+            "position": "backcourt",
+            "draft_pick": 24.0,
+            "draft_year": 2006.0,
+            "college": "villanova university",
+            "nba_championships": 1.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 1.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          }
+        ]
+      },
+      "team": {
+        "columns": [
+          "team_name",
+          "founded_year",
+          "location",
+          "ownership",
+          "championship",
+          "id"
+        ],
+        "rows": [
+          {
+            "team_name": "milwaukee bucks",
+            "founded_year": null,
+            "location": "",
+            "ownership": "",
+            "championship": null,
+            "id": null
+          },
+          {
+            "team_name": "brooklyn nets",
+            "founded_year": null,
+            "location": "",
+            "ownership": "",
+            "championship": null,
+            "id": null
+          },
+          {
+            "team_name": "sacramento kings",
+            "founded_year": null,
+            "location": "",
+            "ownership": "",
+            "championship": null,
+            "id": null
+          },
+          {
+            "team_name": "milwaukee hawks",
+            "founded_year": null,
+            "location": "",
+            "ownership": "",
+            "championship": null,
+            "id": null
+          },
+          {
+            "team_name": "new orleans pelicans",
+            "founded_year": 2002,
+            "location": "new orleans",
+            "ownership": "gayle benson",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "indiana pacers",
+            "founded_year": 1967,
+            "location": "indianapolis",
+            "ownership": "",
+            "championship": 3,
+            "id": null
+          },
+          {
+            "team_name": "washington wizards",
+            "founded_year": 1961,
+            "location": "washington",
+            "ownership": "ted leonsis",
+            "championship": 1,
+            "id": null
+          },
+          {
+            "team_name": "utah jazz",
+            "founded_year": 1974,
+            "location": "salt lake city",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "chicago bulls",
+            "founded_year": 1966,
+            "location": "chicago",
+            "ownership": "",
+            "championship": 6,
+            "id": null
+          },
+          {
+            "team_name": "san antonio spurs",
+            "founded_year": 1967,
+            "location": "san antonio",
+            "ownership": "",
+            "championship": 5,
+            "id": null
+          },
+          {
+            "team_name": "dallas mavericks",
+            "founded_year": 1980,
+            "location": "dallas",
+            "ownership": "miriam adelson and patrick dumont",
+            "championship": 1,
+            "id": null
+          },
+          {
+            "team_name": "los angeles clippers",
+            "founded_year": 1970,
+            "location": "los angeles",
+            "ownership": "steve ballmer",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "minnesota timberwolves",
+            "founded_year": 1989,
+            "location": "minneapolis",
+            "ownership": "glen taylor",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "sacramento kings",
+            "founded_year": 1923,
+            "location": "sacramento",
+            "ownership": "",
+            "championship": 1,
+            "id": null
+          }
+        ]
+      }
+    },
+    "c183": {
+      "city": {
+        "columns": [
+          "city_name",
+          "state_name",
+          "population",
+          "area",
+          "gdp",
+          "id"
+        ],
+        "rows": [
+          {
+            "city_name": "new orleans",
+            "state_name": "",
+            "population": null,
+            "area": null,
+            "gdp": null,
+            "id": null
+          },
+          {
+            "city_name": "salt lake city",
+            "state_name": "utah",
+            "population": null,
+            "area": null,
+            "gdp": null,
+            "id": null
+          },
+          {
+            "city_name": "chicago",
+            "state_name": "",
+            "population": null,
+            "area": null,
+            "gdp": null,
+            "id": null
+          },
+          {
+            "city_name": "minneapolis",
+            "state_name": "minnesota",
+            "population": null,
+            "area": null,
+            "gdp": null,
+            "id": null
+          },
+          {
+            "city_name": "sacramento",
+            "state_name": "",
+            "population": null,
+            "area": null,
+            "gdp": null,
+            "id": null
+          }
+        ]
+      },
+      "owner": {
+        "columns": [
+          "name",
+          "age",
+          "nationality",
+          "nba_team",
+          "own_year",
+          "id"
+        ],
+        "rows": [
+          {
+            "name": "gayle benson",
+            "age": null,
+            "nationality": "",
+            "nba_team": "new orleans pelicans",
+            "own_year": null,
+            "id": null
+          },
+          {
+            "name": "ted leonsis",
+            "age": null,
+            "nationality": "",
+            "nba_team": "washington wizards",
+            "own_year": null,
+            "id": null
+          },
+          {
+            "name": "miriam adelson",
+            "age": null,
+            "nationality": "",
+            "nba_team": "dallas mavericks",
+            "own_year": null,
+            "id": null
+          },
+          {
+            "name": "patrick dumont",
+            "age": null,
+            "nationality": "",
+            "nba_team": "dallas mavericks",
+            "own_year": null,
+            "id": null
+          },
+          {
+            "name": "steve ballmer",
+            "age": null,
+            "nationality": "",
+            "nba_team": "los angeles clippers",
+            "own_year": null,
+            "id": null
+          },
+          {
+            "name": "glen taylor",
+            "age": null,
+            "nationality": "",
+            "nba_team": "minnesota timberwolves",
+            "own_year": null,
+            "id": null
+          }
+        ]
+      },
+      "player": {
+        "columns": [
+          "name",
+          "birth_date",
+          "nationality",
+          "age",
+          "team",
+          "position",
+          "draft_pick",
+          "draft_year",
+          "college",
+          "nba_championships",
+          "mvp_awards",
+          "olympic_gold_medals",
+          "fiba_world_cup",
+          "id"
+        ],
+        "rows": [
+          {
+            "name": "kevin durant",
+            "birth_date": "1988/9/29",
+            "nationality": "american",
+            "age": 37,
+            "team": "phoenix suns",
+            "position": "frontcourt",
+            "draft_pick": 2.0,
+            "draft_year": 2007.0,
+            "college": "university of texas at austin",
+            "nba_championships": 2.0,
+            "mvp_awards": 1,
+            "olympic_gold_medals": 4.0,
+            "fiba_world_cup": 1.0,
+            "id": null
+          },
+          {
+            "name": "guy rodgers",
+            "birth_date": "1935/9/1",
+            "nationality": "american",
+            "age": 90,
+            "team": "milwaukee bucks",
+            "position": null,
+            "draft_pick": 1.0,
+            "draft_year": 1958.0,
+            "college": "temple university",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "dan anderson",
+            "birth_date": "1951/1/1",
+            "nationality": "american",
+            "age": 74,
+            "team": "portland trail blazers",
+            "position": null,
+            "draft_pick": 2.0,
+            "draft_year": 1974.0,
+            "college": "",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "dennis schröder",
+            "birth_date": "1993/9/15",
+            "nationality": "german",
+            "age": 32,
+            "team": "brooklyn nets",
+            "position": null,
+            "draft_pick": 17.0,
+            "draft_year": 2013.0,
+            "college": "",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 1.0,
+            "id": null
+          },
+          {
+            "name": "jahlil okafor",
+            "birth_date": "1995/12/15",
+            "nationality": "american",
+            "age": 30,
+            "team": "capitanes de arecibo",
+            "position": null,
+            "draft_pick": 3.0,
+            "draft_year": 2015.0,
+            "college": "duke university",
+            "nba_championships": 1.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 1.0,
+            "id": null
+          },
+          {
+            "name": "derek grimm",
+            "birth_date": "1974/8/3",
+            "nationality": "american",
+            "age": 51,
+            "team": "sacramento kings",
+            "position": "frontcourt",
+            "draft_pick": 0.0,
+            "draft_year": 0.0,
+            "college": "university of missouri",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "jim brasco",
+            "birth_date": "1931/2/3",
+            "nationality": "american",
+            "age": 94,
+            "team": "milwaukee hawks",
+            "position": null,
+            "draft_pick": 1.0,
+            "draft_year": 1952.0,
+            "college": "new york university",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "nick calathes",
+            "birth_date": "1989/2/7",
+            "nationality": "american",
+            "age": 36,
+            "team": "",
+            "position": "backcourt",
+            "draft_pick": 35.0,
+            "draft_year": 2009.0,
+            "college": "university of florida",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "rodney strickland",
+            "birth_date": "1966/7/11",
+            "nationality": "american",
+            "age": 59,
+            "team": "houston rockets",
+            "position": null,
+            "draft_pick": 19.0,
+            "draft_year": 1988.0,
+            "college": "depaul university",
+            "nba_championships": 0.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 0.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          },
+          {
+            "name": "kyle lowry",
+            "birth_date": "1986/3/25",
+            "nationality": "american",
+            "age": 39,
+            "team": "philadelphia 76ers",
+            "position": "backcourt",
+            "draft_pick": 24.0,
+            "draft_year": 2006.0,
+            "college": "villanova university",
+            "nba_championships": 1.0,
+            "mvp_awards": 0,
+            "olympic_gold_medals": 1.0,
+            "fiba_world_cup": 0.0,
+            "id": null
+          }
+        ]
+      },
+      "team": {
+        "columns": [
+          "team_name",
+          "founded_year",
+          "location",
+          "ownership",
+          "championship",
+          "id"
+        ],
+        "rows": [
+          {
+            "team_name": "milwaukee bucks",
+            "founded_year": null,
+            "location": "",
+            "ownership": "",
+            "championship": null,
+            "id": null
+          },
+          {
+            "team_name": "brooklyn nets",
+            "founded_year": null,
+            "location": "",
+            "ownership": "",
+            "championship": null,
+            "id": null
+          },
+          {
+            "team_name": "sacramento kings",
+            "founded_year": null,
+            "location": "",
+            "ownership": "",
+            "championship": null,
+            "id": null
+          },
+          {
+            "team_name": "milwaukee hawks",
+            "founded_year": null,
+            "location": "",
+            "ownership": "",
+            "championship": null,
+            "id": null
+          },
+          {
+            "team_name": "new orleans pelicans",
+            "founded_year": 2002,
+            "location": "new orleans",
+            "ownership": "gayle benson",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "indiana pacers",
+            "founded_year": 1967,
+            "location": "indianapolis",
+            "ownership": "",
+            "championship": 3,
+            "id": null
+          },
+          {
+            "team_name": "washington wizards",
+            "founded_year": 1961,
+            "location": "washington",
+            "ownership": "ted leonsis",
+            "championship": 1,
+            "id": null
+          },
+          {
+            "team_name": "utah jazz",
+            "founded_year": 1974,
+            "location": "salt lake city",
+            "ownership": "",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "chicago bulls",
+            "founded_year": 1966,
+            "location": "chicago",
+            "ownership": "",
+            "championship": 6,
+            "id": null
+          },
+          {
+            "team_name": "san antonio spurs",
+            "founded_year": 1967,
+            "location": "san antonio",
+            "ownership": "",
+            "championship": 5,
+            "id": null
+          },
+          {
+            "team_name": "dallas mavericks",
+            "founded_year": 1980,
+            "location": "dallas",
+            "ownership": "miriam adelson and patrick dumont",
+            "championship": 1,
+            "id": null
+          },
+          {
+            "team_name": "los angeles clippers",
+            "founded_year": 1970,
+            "location": "los angeles",
+            "ownership": "steve ballmer",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "minnesota timberwolves",
+            "founded_year": 1989,
+            "location": "minneapolis",
+            "ownership": "glen taylor",
+            "championship": 0,
+            "id": null
+          },
+          {
+            "team_name": "sacramento kings",
+            "founded_year": 1923,
+            "location": "sacramento",
+            "ownership": "",
+            "championship": 1,
+            "id": null
+          }
+        ]
+      }
+    }
+  }
+}

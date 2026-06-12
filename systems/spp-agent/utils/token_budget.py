@@ -17,9 +17,8 @@ Token costs in the pipeline
    cost ≈ N_pairs × avg_judge_tokens_per_pair
 
 3. Per-config marginal cost after extraction
-   - norm_strategy = "dictionary"  →  0 tokens (pure CPU transforms)
-   - norm_strategy = "llm"         →  N_docs × C_llm_norm  (LLM normalization call)
-   - er_strategy, unit_strategy, miss_strategy  →  0 tokens (CPU only)
+   - Each axis set to "llm" (norm, miss, coerce, er) adds N_docs × C_llm_step tokens
+   - dictionary / mean / embedding / strict / etc.  →  0 marginal tokens (CPU only)
 
 Since extraction is shared, the dominant decision is whether to run LLM
 normalization for a config.  Dictionary-norm configs cost nothing extra;
@@ -52,8 +51,9 @@ logger = setup_logger("spp.token_budget")
 # Approximate token overhead per LLM judge call (prompt + response)
 _DEFAULT_JUDGE_TOKENS_PER_PAIR: float = 2000.0
 
-# Fraction of extraction tokens used by LLM normalization pass
-_LLM_NORM_FRACTION: float = 0.15
+# Fraction of extraction tokens charged per LLM population step (norm/miss/coerce/er)
+_LLM_STEP_FRACTION: float = 0.15
+_LLM_NORM_FRACTION = _LLM_STEP_FRACTION  # backward-compatible alias
 
 
 @dataclass
@@ -81,18 +81,30 @@ class CostModel:
         """Total cost of one probe run: extraction + all judge calls."""
         return self.extraction_cost(n_docs) + n_judge_pairs * self.judge_tokens_per_pair
 
+    def count_llm_axes(self, config_id: str) -> int:
+        parts = dict(p.split("=", 1) for p in config_id.split("|") if "=" in p)
+        count = 0
+        if parts.get("norm") == "llm":
+            count += 1
+        if parts.get("miss") == "llm":
+            count += 1
+        if parts.get("coerce") == "llm":
+            count += 1
+        if parts.get("er") == "llm":
+            count += 1
+        return count
+
     def config_marginal_cost(self, config_id: str, n_docs: int) -> float:
         """Marginal token cost of adding one more config to the selected set,
         AFTER extraction has already been paid for.
 
-        Only LLM normalization (norm_strategy=llm) incurs additional tokens.
-        All other axes (er, unit, miss) are CPU-only.
+        Each LLM axis (norm, miss, coerce, er) adds one billed step proportional
+        to corpus size. CPU-only axis values add 0 marginal tokens.
         """
-        parts = dict(p.split("=", 1) for p in config_id.split("|") if "=" in p)
-        if parts.get("norm", "dictionary") == "llm":
-            # LLM normalization: proportional to corpus size
-            return self.extraction_cost(n_docs) * _LLM_NORM_FRACTION
-        return 0.0  # dictionary normalization: pure CPU, no tokens
+        llm_axes = self.count_llm_axes(config_id)
+        if llm_axes == 0:
+            return 0.0
+        return self.extraction_cost(n_docs) * _LLM_STEP_FRACTION * llm_axes
 
     def max_affordable_configs(
         self,

@@ -34,7 +34,12 @@ def _make_reduced_probe_data(probe_data, held_out_id: str):
     """Build a copy of probe_data with one config removed."""
     reduced_ids = [cid for cid in probe_data.config_ids if cid != held_out_id]
     reduced_configs = {cid: probe_data.configs[cid] for cid in reduced_ids}
-    reduced_tier1 = {cid: probe_data.tier1_signals[cid] for cid in reduced_ids}
+    reduced_tier1 = {
+        cid: probe_data.tier1_signals.get(
+            cid, {"glass_box_composite": probe_data.glass_box_composites.get(cid, 0.0)}
+        )
+        for cid in reduced_ids
+    }
     reduced_glass = {cid: probe_data.glass_box_composites[cid] for cid in reduced_ids}
     reduced_btl = {cid: probe_data.btl_scores[cid] for cid in reduced_ids if cid in probe_data.btl_scores}
 
@@ -118,7 +123,17 @@ def compare_surrogates(
     """Compare surrogates via LOO cross-validation on probed configs."""
     config_ids = list(probe_data.config_ids)
 
-    # If true_errors unavailable or too few probed configs, use glass_box as proxy
+    # true_errors must be keyed by config_id (not surrogate name from Phase 0 rows)
+    if true_errors is not None and not all(cid in true_errors for cid in config_ids):
+        logger.info(
+            "Ignoring true_errors with wrong keys (have %d entries, need %d config_ids); "
+            "using deployment-visible proxy",
+            len(true_errors),
+            len(config_ids),
+        )
+        true_errors = None
+
+    # If true_errors unavailable or too few probed configs, use glass-box as proxy
     if true_errors is None or len(config_ids) < 4:
         logger.info(
             "Using glass_box_composites as true_error proxy (configs=%d, true_errors=%s)",
@@ -126,7 +141,7 @@ def compare_surrogates(
             "absent" if true_errors is None else f"n={len(true_errors)}",
         )
         true_errors = {
-            cid: -probe_data.glass_box_composites[cid] for cid in config_ids
+            cid: probe_data.glass_box_composites.get(cid, 0.0) for cid in config_ids
         }
 
     metrics_list: list[SurrogateMetrics] = []
@@ -150,7 +165,7 @@ def compare_surrogates(
         if m.name == "linear_proxy_glass":
             linear_rho = m.spearman_rho
             break
-    use_linear = linear_rho >= best_rho * (1.0 - thresholds.linear_tolerance)
+    use_linear = bool(linear_rho >= best_rho * (1.0 - thresholds.linear_tolerance))
 
     use_acquisition_search = best_name in ("gp_proxy_glass", "tpe_proxy")
 
@@ -158,7 +173,7 @@ def compare_surrogates(
         metrics=metrics_list,
         best_surrogate=best_name,
         use_linear=use_linear,
-        use_acquisition_search=use_acquisition_search,
+        use_acquisition_search=bool(use_acquisition_search),
         ranking=ranking,
     )
     logger.info(
@@ -196,3 +211,111 @@ def select_best_surrogate(
                 return name
 
     return result.best_surrogate
+
+
+def _compute_metrics_cluster(
+    surrogate_name: str,
+    probe_data,
+    cluster_id: int,
+    ref_btl_scores: dict[str, float],
+    seed: int,
+) -> SurrogateMetrics:
+    """LOO metrics for one surrogate on one cluster."""
+    config_ids = list(probe_data.config_ids)
+    n = len(config_ids)
+    true_errors = {cid: -ref_btl_scores.get(cid, 0.0) for cid in config_ids}
+
+    predicted: dict[str, float] = {}
+    regrets: list[float] = []
+    oracle_best_id = min(true_errors, key=true_errors.get)
+    oracle_error = true_errors[oracle_best_id]
+
+    for held_out_id in config_ids:
+        reduced = _make_reduced_probe_data(probe_data, held_out_id)
+        surrogate = build_surrogate(surrogate_name, seed=seed)
+        surrogate.fit_cluster(reduced, cluster_id)
+        pred_score = surrogate.score(held_out_id)
+        predicted[held_out_id] = pred_score
+
+        remaining_ids = [cid for cid in config_ids if cid != held_out_id]
+        if remaining_ids:
+            scores = {cid: surrogate.score(cid) for cid in remaining_ids}
+            proxy_best_id = max(scores, key=scores.get)
+            proxy_best_error = true_errors.get(proxy_best_id, 0.0)
+            regrets.append(proxy_best_error - oracle_error)
+
+    pred_arr = np.array([predicted[cid] for cid in config_ids])
+    true_arr = np.array([-true_errors[cid] for cid in config_ids])
+
+    if len(config_ids) < 3 or np.std(pred_arr) < 1e-12:
+        rho = 0.0
+    else:
+        rho, _ = spearmanr(pred_arr, true_arr)
+        if np.isnan(rho):
+            rho = 0.0
+
+    k = min(3, n)
+    true_top_k = set(sorted(config_ids, key=lambda c: true_errors[c])[:k])
+    pred_top_k = set(sorted(config_ids, key=lambda c: predicted.get(c, float("-inf")), reverse=True)[:k])
+    top_k_recall = len(true_top_k & pred_top_k) / k if k > 0 else 0.0
+    mean_regret = float(np.mean(regrets)) if regrets else 0.0
+
+    return SurrogateMetrics(
+        name=surrogate_name,
+        spearman_rho=rho,
+        top_k_recall=top_k_recall,
+        mean_regret=mean_regret,
+        cv_folds=n,
+    )
+
+
+def compare_surrogates_per_cluster(
+    probe_data,
+    surrogates: list[str],
+    query_clusters,
+    *,
+    thresholds: ThresholdConfig,
+    seed: int = 42,
+) -> dict[int, SurrogateComparisonResult]:
+    """Run surrogate bakeoff separately for each query cluster."""
+    results: dict[int, SurrogateComparisonResult] = {}
+
+    for cluster_id in range(query_clusters.n_clusters):
+        ref_scores = probe_data.cluster_btl_scores.get(cluster_id) or probe_data.btl_scores
+        if not ref_scores:
+            ref_scores = probe_data.glass_box_composites
+
+        metrics_list: list[SurrogateMetrics] = []
+        for name in surrogates:
+            logger.info("Evaluating surrogate %s for cluster %d", name, cluster_id)
+            m = _compute_metrics_cluster(name, probe_data, cluster_id, ref_scores, seed)
+            metrics_list.append(m)
+
+        metrics_list.sort(key=lambda m: m.spearman_rho, reverse=True)
+        ranking = [m.name for m in metrics_list]
+        best_name = ranking[0] if ranking else "direct_probe_ranking"
+        best_rho = metrics_list[0].spearman_rho if metrics_list else 0.0
+
+        linear_rho = 0.0
+        for m in metrics_list:
+            if m.name == "linear_proxy_glass":
+                linear_rho = m.spearman_rho
+                break
+        use_linear = bool(linear_rho >= best_rho * (1.0 - thresholds.linear_tolerance))
+        use_acquisition = best_name in ("gp_proxy_glass", "tpe_proxy")
+
+        results[cluster_id] = SurrogateComparisonResult(
+            metrics=metrics_list,
+            best_surrogate=best_name,
+            use_linear=use_linear,
+            use_acquisition_search=bool(use_acquisition),
+            ranking=ranking,
+        )
+        logger.info(
+            "Cluster %d bakeoff best=%s ranking=%s",
+            cluster_id,
+            best_name,
+            ranking,
+        )
+
+    return results

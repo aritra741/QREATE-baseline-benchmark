@@ -72,8 +72,6 @@ def _compute_loo_rhos(probe_data) -> dict[str, float]:
                     if p.get("winner") != held_out and p.get("loser") != held_out
                 ],
                 databases={c: probe_data.databases.get(c, {}) for c in remaining},
-                # explicitly zero out any true_errors to ensure no leakage
-                true_errors={},
             )
             try:
                 from surrogates.registry import build_surrogate
@@ -94,6 +92,65 @@ def _compute_loo_rhos(probe_data) -> dict[str, float]:
     logger.info("LOO Spearman ρ by surrogate: %s",
                 {k: f"{v:.3f}" for k, v in sorted(results.items(), key=lambda x: -x[1])})
     return results
+
+
+def _compute_loo_rhos_per_cluster(probe_data, query_clusters) -> dict[int, dict[str, float]]:
+    """Returns {cluster_id: {surrogate_name: loo_rho}} for all clusters."""
+    from scipy.stats import spearmanr
+    from surrogates.registry import ALL_SURROGATES, build_surrogate
+
+    config_ids = list(probe_data.config_ids)
+    per_cluster: dict[int, dict[str, float]] = {}
+
+    if len(config_ids) < 3:
+        empty = {name: 0.0 for name in ALL_SURROGATES if name != "random_ranking"}
+        for cluster_id in range(query_clusters.n_clusters):
+            per_cluster[cluster_id] = dict(empty)
+        return per_cluster
+
+    for cluster_id in range(query_clusters.n_clusters):
+        ref_btl = probe_data.cluster_btl_scores.get(cluster_id) or probe_data.btl_scores
+        cluster_rhos: dict[str, float] = {}
+
+        for surrogate_name in ALL_SURROGATES:
+            if surrogate_name == "random_ranking":
+                continue
+            predicted: list[float] = []
+            reference: list[float] = []
+            for held_out in config_ids:
+                remaining = [c for c in config_ids if c != held_out]
+                reduced = dataclasses.replace(
+                    probe_data,
+                    config_ids=remaining,
+                    configs={c: probe_data.configs[c] for c in remaining},
+                    glass_box_composites={c: probe_data.glass_box_composites[c] for c in remaining},
+                    btl_scores={c: ref_btl.get(c, 0.0) for c in remaining},
+                    tier1_signals={c: probe_data.tier1_signals.get(c, {}) for c in remaining},
+                    pairwise_comparisons=[
+                        p for p in probe_data.pairwise_comparisons
+                        if p.get("winner") != held_out and p.get("loser") != held_out
+                    ],
+                    databases={c: probe_data.databases.get(c, {}) for c in remaining},
+                )
+                try:
+                    s = build_surrogate(surrogate_name, seed=42)
+                    s.fit_cluster(reduced, cluster_id)
+                    predicted.append(s.score(held_out))
+                    reference.append(ref_btl.get(held_out, 0.0))
+                except Exception:
+                    predicted.append(0.0)
+                    reference.append(ref_btl.get(held_out, 0.0))
+
+            if len(set(reference)) < 2 or len(set(predicted)) < 2:
+                cluster_rhos[surrogate_name] = 0.0
+            else:
+                rho, _ = spearmanr(predicted, reference)
+                cluster_rhos[surrogate_name] = float(rho) if rho == rho else 0.0
+
+        per_cluster[cluster_id] = cluster_rhos
+        logger.info("Cluster %d LOO rhos: %s", cluster_id, cluster_rhos)
+
+    return per_cluster
 
 
 def simulate_routing(surrogate_rhos: dict[str, float], tc: ThresholdConfig) -> float:

@@ -1,0 +1,729 @@
+{
+  "slices": [
+    {
+      "slice": "agg_only",
+      "n_queries": 10,
+      "best_single_config_id": "c3",
+      "best_single_config_mean_f1": 0.9354,
+      "spp_routing_mean_f1": 0.9376,
+      "configs_materialized": 3,
+      "budget_spent": 0,
+      "budget_total": 50000,
+      "final_routing": {
+        "agg_queries_1": "c1",
+        "agg_queries_2": "c1",
+        "agg_queries_3": "c1",
+        "agg_queries_4": "c1",
+        "agg_queries_5": "c1",
+        "agg_queries_6": "c2",
+        "agg_queries_7": "c2",
+        "agg_subsample_1": "c1",
+        "agg_subsample_2": "c1",
+        "agg_subsample_3": "c1"
+      },
+      "probed_configs": [
+        {
+          "config_id": "c1",
+          "settings": {
+            "er": "embedding_0.7",
+            "norm": "dictionary",
+            "unit": "none",
+            "miss": "drop",
+            "coerce": "strict"
+          },
+          "mean_f1": 0.9323,
+          "per_query_f1": {
+            "agg_queries_1": 1.0,
+            "agg_queries_2": 0.8863636363636362,
+            "agg_queries_3": 1.0,
+            "agg_queries_4": 0.9090909090909091,
+            "agg_queries_5": 0.8863636363636362,
+            "agg_queries_6": 0.8868686868686869,
+            "agg_queries_7": 0.868000851607409,
+            "agg_subsample_1": 1.0,
+            "agg_subsample_2": 0.8863636363636362,
+            "agg_subsample_3": 1.0
+          }
+        },
+        {
+          "config_id": "c2",
+          "settings": {
+            "er": "embedding_0.7",
+            "norm": "dictionary",
+            "unit": "none",
+            "miss": "drop",
+            "coerce": "llm"
+          },
+          "mean_f1": 0.9228,
+          "per_query_f1": {
+            "agg_queries_1": 1.0,
+            "agg_queries_2": 0.8409090909090908,
+            "agg_queries_3": 1.0,
+            "agg_queries_4": 0.8518181818181818,
+            "agg_queries_5": 0.8409090909090908,
+            "agg_queries_6": 0.9090909090909091,
+            "agg_queries_7": 0.898565741397175,
+            "agg_subsample_1": 1.0,
+            "agg_subsample_2": 0.8863636363636362,
+            "agg_subsample_3": 1.0
+          }
+        },
+        {
+          "config_id": "c3",
+          "settings": {
+            "er": "embedding_0.7",
+            "norm": "dictionary",
+            "unit": "none",
+            "miss": "mean",
+            "coerce": "strict"
+          },
+          "mean_f1": 0.9354,
+          "per_query_f1": {
+            "agg_queries_1": 1.0,
+            "agg_queries_2": 0.8863636363636362,
+            "agg_queries_3": 1.0,
+            "agg_queries_4": 0.9090909090909091,
+            "agg_queries_5": 0.8863636363636362,
+            "agg_queries_6": 0.8868686868686869,
+            "agg_queries_7": 0.898565741397175,
+            "agg_subsample_1": 1.0,
+            "agg_subsample_2": 0.8863636363636362,
+            "agg_subsample_3": 1.0
+          }
+        }
+      ],
+      "demand_profile": {
+        "columns": [
+          {
+            "column": "player.position",
+            "roles": [
+              "group_key"
+            ],
+            "aggregation_functions": [],
+            "query_ids": [
+              "agg_queries_1",
+              "agg_queries_3",
+              "agg_subsample_1",
+              "agg_subsample_3"
+            ]
+          },
+          {
+            "column": "player.olympic_gold_medals",
+            "roles": [
+              "aggregate_input"
+            ],
+            "aggregation_functions": [
+              "MIN"
+            ],
+            "query_ids": [
+              "agg_queries_1",
+              "agg_subsample_1"
+            ]
+          },
+          {
+            "column": "owner.nationality",
+            "roles": [
+              "group_key"
+            ],
+            "aggregation_functions": [],
+            "query_ids": [
+              "agg_queries_2",
+              "agg_queries_4",
+              "agg_queries_5",
+              "agg_queries_6",
+              "agg_queries_7",
+              "agg_subsample_2"
+            ]
+          },
+          {
+            "column": "player.nationality",
+            "roles": [
+              "group_key"
+            ],
+            "aggregation_functions": [],
+            "query_ids": [
+              "agg_queries_2",
+              "agg_queries_4",
+              "agg_queries_5",
+              "agg_queries_6",
+              "agg_queries_7",
+              "agg_subsample_2"
+            ]
+          },
+          {
+            "column": "owner.age",
+            "roles": [
+              "aggregate_input"
+            ],
+            "aggregation_functions": [
+              "AVG",
+              "MAX",
+              "MIN"
+            ],
+            "query_ids": [
+              "agg_queries_3",
+              "agg_queries_4",
+              "agg_queries_6",
+              "agg_queries_7",
+              "agg_subsample_3"
+            ]
+          },
+          {
+            "column": "player.age",
+            "roles": [
+              "aggregate_input"
+            ],
+            "aggregation_functions": [
+              "AVG",
+              "MAX",
+              "MIN"
+            ],
+            "query_ids": [
+              "agg_queries_3",
+              "agg_queries_4",
+              "agg_queries_6",
+              "agg_queries_7",
+              "agg_subsample_3"
+            ]
+          }
+        ],
+        "has_join": false,
+        "has_temporal": false
+      },
+      "supply_profile": {
+        "columns": [
+          {
+            "column": "player.position",
+            "mention_rate": 0.0,
+            "value_diversity": 0.0,
+            "form_consistency": 1.0,
+            "example_forms": []
+          },
+          {
+            "column": "player.olympic_gold_medals",
+            "mention_rate": 0.0,
+            "value_diversity": 0.3147,
+            "form_consistency": 1.0,
+            "example_forms": [
+              "0",
+              "2",
+              "1",
+              "8",
+              "10"
+            ]
+          },
+          {
+            "column": "owner.nationality",
+            "mention_rate": 1.0,
+            "value_diversity": 0.3,
+            "form_consistency": 1.0,
+            "example_forms": [
+              "American   national",
+              "American national",
+              "Dutch   national",
+              "Bahamian national",
+              "American-Venezuelan   national"
+            ]
+          },
+          {
+            "column": "player.nationality",
+            "mention_rate": 1.0,
+            "value_diversity": 0.3,
+            "form_consistency": 1.0,
+            "example_forms": [
+              "American   national",
+              "American national",
+              "Dutch   national",
+              "Bahamian national",
+              "American-Venezuelan   national"
+            ]
+          },
+          {
+            "column": "owner.age",
+            "mention_rate": 0.0,
+            "value_diversity": 0.3147,
+            "form_consistency": 1.0,
+            "example_forms": [
+              "0",
+              "2",
+              "1",
+              "8",
+              "10"
+            ]
+          },
+          {
+            "column": "player.age",
+            "mention_rate": 0.0,
+            "value_diversity": 0.3147,
+            "form_consistency": 1.0,
+            "example_forms": [
+              "0",
+              "2",
+              "1",
+              "8",
+              "10"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "slice": "agg_filter",
+      "n_queries": 9,
+      "best_single_config_id": "c1",
+      "best_single_config_mean_f1": 0.395,
+      "spp_routing_mean_f1": 0.395,
+      "configs_materialized": 5,
+      "budget_spent": 2081,
+      "budget_total": 50000,
+      "final_routing": {
+        "mixed_queries_filter_agg_3": "c1",
+        "mixed_queries_filter_agg_5": "c1",
+        "mixed_queries_filter_agg_6": "c1",
+        "mixed_queries_filter_agg_player_1": "c1",
+        "mixed_queries_filter_agg_player_2": "c1",
+        "mixed_queries_filter_agg_player_3": "c1",
+        "mixed_queries_filter_agg_player_5": "c1",
+        "mixed_queries_filter_agg_player_6": "c1",
+        "mixed_subsample_2": "c1"
+      },
+      "probed_configs": [
+        {
+          "config_id": "c1",
+          "settings": {
+            "er": "embedding_0.7",
+            "norm": "dictionary",
+            "unit": "none",
+            "miss": "drop",
+            "coerce": "strict"
+          },
+          "mean_f1": 0.395,
+          "per_query_f1": {
+            "mixed_queries_filter_agg_3": 0.2666666666666667,
+            "mixed_queries_filter_agg_5": 0.25,
+            "mixed_queries_filter_agg_6": 0.8,
+            "mixed_queries_filter_agg_player_1": 0.6153846153846153,
+            "mixed_queries_filter_agg_player_2": 0.0,
+            "mixed_queries_filter_agg_player_3": 0.2666666666666667,
+            "mixed_queries_filter_agg_player_5": 0.6666666666666666,
+            "mixed_queries_filter_agg_player_6": 0.6896551724137931,
+            "mixed_subsample_2": 0.0
+          }
+        },
+        {
+          "config_id": "c25",
+          "settings": {
+            "er": "embedding_0.7",
+            "norm": "llm",
+            "unit": "none",
+            "miss": "drop",
+            "coerce": "strict"
+          },
+          "mean_f1": 0.0,
+          "per_query_f1": {
+            "mixed_queries_filter_agg_3": 0.0,
+            "mixed_queries_filter_agg_5": 0.0,
+            "mixed_queries_filter_agg_6": 0.0,
+            "mixed_queries_filter_agg_player_1": 0.0,
+            "mixed_queries_filter_agg_player_2": 0.0,
+            "mixed_queries_filter_agg_player_3": 0.0,
+            "mixed_queries_filter_agg_player_5": 0.0,
+            "mixed_queries_filter_agg_player_6": 0.0,
+            "mixed_subsample_2": 0.0
+          }
+        },
+        {
+          "config_id": "c26",
+          "settings": {
+            "er": "embedding_0.7",
+            "norm": "llm",
+            "unit": "none",
+            "miss": "drop",
+            "coerce": "llm"
+          },
+          "mean_f1": 0.0,
+          "per_query_f1": {
+            "mixed_queries_filter_agg_3": 0.0,
+            "mixed_queries_filter_agg_5": 0.0,
+            "mixed_queries_filter_agg_6": 0.0,
+            "mixed_queries_filter_agg_player_1": 0.0,
+            "mixed_queries_filter_agg_player_2": 0.0,
+            "mixed_queries_filter_agg_player_3": 0.0,
+            "mixed_queries_filter_agg_player_5": 0.0,
+            "mixed_queries_filter_agg_player_6": 0.0,
+            "mixed_subsample_2": 0.0
+          }
+        },
+        {
+          "config_id": "c27",
+          "settings": {
+            "er": "embedding_0.7",
+            "norm": "llm",
+            "unit": "none",
+            "miss": "mean",
+            "coerce": "strict"
+          },
+          "mean_f1": 0.0,
+          "per_query_f1": {
+            "mixed_queries_filter_agg_3": 0.0,
+            "mixed_queries_filter_agg_5": 0.0,
+            "mixed_queries_filter_agg_6": 0.0,
+            "mixed_queries_filter_agg_player_1": 0.0,
+            "mixed_queries_filter_agg_player_2": 0.0,
+            "mixed_queries_filter_agg_player_3": 0.0,
+            "mixed_queries_filter_agg_player_5": 0.0,
+            "mixed_queries_filter_agg_player_6": 0.0,
+            "mixed_subsample_2": 0.0
+          }
+        },
+        {
+          "config_id": "c28",
+          "settings": {
+            "er": "embedding_0.7",
+            "norm": "llm",
+            "unit": "none",
+            "miss": "mean",
+            "coerce": "llm"
+          },
+          "mean_f1": 0.0,
+          "per_query_f1": {
+            "mixed_queries_filter_agg_3": 0.0,
+            "mixed_queries_filter_agg_5": 0.0,
+            "mixed_queries_filter_agg_6": 0.0,
+            "mixed_queries_filter_agg_player_1": 0.0,
+            "mixed_queries_filter_agg_player_2": 0.0,
+            "mixed_queries_filter_agg_player_3": 0.0,
+            "mixed_queries_filter_agg_player_5": 0.0,
+            "mixed_queries_filter_agg_player_6": 0.0,
+            "mixed_subsample_2": 0.0
+          }
+        }
+      ],
+      "demand_profile": {
+        "columns": [
+          {
+            "column": "owner.name",
+            "roles": [
+              "filter"
+            ],
+            "aggregation_functions": [],
+            "query_ids": [
+              "mixed_queries_filter_agg_3",
+              "mixed_queries_filter_agg_player_3"
+            ]
+          },
+          {
+            "column": "owner.nationality",
+            "roles": [
+              "group_key",
+              "filter"
+            ],
+            "aggregation_functions": [],
+            "query_ids": [
+              "mixed_queries_filter_agg_3",
+              "mixed_queries_filter_agg_5",
+              "mixed_queries_filter_agg_player_2",
+              "mixed_queries_filter_agg_player_3",
+              "mixed_subsample_2"
+            ]
+          },
+          {
+            "column": "player.name",
+            "roles": [
+              "filter"
+            ],
+            "aggregation_functions": [],
+            "query_ids": [
+              "mixed_queries_filter_agg_3",
+              "mixed_queries_filter_agg_player_3"
+            ]
+          },
+          {
+            "column": "player.nationality",
+            "roles": [
+              "group_key",
+              "filter"
+            ],
+            "aggregation_functions": [],
+            "query_ids": [
+              "mixed_queries_filter_agg_3",
+              "mixed_queries_filter_agg_5",
+              "mixed_queries_filter_agg_player_2",
+              "mixed_queries_filter_agg_player_3",
+              "mixed_subsample_2"
+            ]
+          },
+          {
+            "column": "player.nba_championships",
+            "roles": [
+              "filter"
+            ],
+            "aggregation_functions": [],
+            "query_ids": [
+              "mixed_queries_filter_agg_3",
+              "mixed_queries_filter_agg_5",
+              "mixed_queries_filter_agg_player_3",
+              "mixed_queries_filter_agg_player_5"
+            ]
+          },
+          {
+            "column": "player.team",
+            "roles": [
+              "filter",
+              "group_key"
+            ],
+            "aggregation_functions": [],
+            "query_ids": [
+              "mixed_queries_filter_agg_5",
+              "mixed_queries_filter_agg_player_1",
+              "mixed_queries_filter_agg_player_5",
+              "mixed_queries_filter_agg_player_6"
+            ]
+          },
+          {
+            "column": "player.fiba_world_cup",
+            "roles": [
+              "filter",
+              "aggregate_input"
+            ],
+            "aggregation_functions": [
+              "AVG",
+              "MIN"
+            ],
+            "query_ids": [
+              "mixed_queries_filter_agg_5",
+              "mixed_queries_filter_agg_6",
+              "mixed_queries_filter_agg_player_5",
+              "mixed_queries_filter_agg_player_6"
+            ]
+          },
+          {
+            "column": "owner.age",
+            "roles": [
+              "filter",
+              "aggregate_input"
+            ],
+            "aggregation_functions": [
+              "COUNT"
+            ],
+            "query_ids": [
+              "mixed_queries_filter_agg_6",
+              "mixed_queries_filter_agg_player_3",
+              "mixed_queries_filter_agg_player_6"
+            ]
+          },
+          {
+            "column": "player.age",
+            "roles": [
+              "filter",
+              "aggregate_input"
+            ],
+            "aggregation_functions": [
+              "COUNT"
+            ],
+            "query_ids": [
+              "mixed_queries_filter_agg_6",
+              "mixed_queries_filter_agg_player_3",
+              "mixed_queries_filter_agg_player_6"
+            ]
+          },
+          {
+            "column": "player.position",
+            "roles": [
+              "group_key",
+              "filter"
+            ],
+            "aggregation_functions": [],
+            "query_ids": [
+              "mixed_queries_filter_agg_6"
+            ]
+          },
+          {
+            "column": "player.mvp_awards",
+            "roles": [
+              "filter"
+            ],
+            "aggregation_functions": [],
+            "query_ids": [
+              "mixed_queries_filter_agg_6",
+              "mixed_queries_filter_agg_player_6"
+            ]
+          },
+          {
+            "column": "player.draft_pick",
+            "roles": [
+              "filter"
+            ],
+            "aggregation_functions": [],
+            "query_ids": [
+              "mixed_queries_filter_agg_player_1"
+            ]
+          },
+          {
+            "column": "player.olympic_gold_medals",
+            "roles": [
+              "aggregate_input",
+              "filter"
+            ],
+            "aggregation_functions": [
+              "MIN",
+              "SUM"
+            ],
+            "query_ids": [
+              "mixed_queries_filter_agg_player_1",
+              "mixed_queries_filter_agg_player_2",
+              "mixed_subsample_2"
+            ]
+          }
+        ],
+        "has_join": false,
+        "has_temporal": false
+      },
+      "supply_profile": {
+        "columns": [
+          {
+            "column": "owner.name",
+            "mention_rate": 0.0,
+            "value_diversity": 0.0,
+            "form_consistency": 1.0,
+            "example_forms": []
+          },
+          {
+            "column": "owner.nationality",
+            "mention_rate": 0.5,
+            "value_diversity": 0.3,
+            "form_consistency": 1.0,
+            "example_forms": [
+              "American   national",
+              "American national",
+              "Mexican-American   national"
+            ]
+          },
+          {
+            "column": "player.name",
+            "mention_rate": 0.0,
+            "value_diversity": 0.0,
+            "form_consistency": 1.0,
+            "example_forms": []
+          },
+          {
+            "column": "player.nationality",
+            "mention_rate": 0.5,
+            "value_diversity": 0.3,
+            "form_consistency": 1.0,
+            "example_forms": [
+              "American   national",
+              "American national",
+              "Mexican-American   national"
+            ]
+          },
+          {
+            "column": "player.nba_championships",
+            "mention_rate": 0.0,
+            "value_diversity": 0.4083,
+            "form_consistency": 1.0,
+            "example_forms": [
+              "0",
+              "1",
+              "2",
+              "1967",
+              "3"
+            ]
+          },
+          {
+            "column": "player.team",
+            "mention_rate": 0.5,
+            "value_diversity": 0.95,
+            "form_consistency": 1.0,
+            "example_forms": [
+              "is owned by   and has won 1 championships in its history",
+              "is based in Oklahoma City and was founded in 1967",
+              "is owned by Professional Basketball Club LLC",
+              "is based in Miami and was founded in 1988",
+              "is owned by Micky Arison   and has won 3 championships in its history"
+            ]
+          },
+          {
+            "column": "player.fiba_world_cup",
+            "mention_rate": 0.0,
+            "value_diversity": 0.0,
+            "form_consistency": 1.0,
+            "example_forms": []
+          },
+          {
+            "column": "owner.age",
+            "mention_rate": 0.0,
+            "value_diversity": 0.4083,
+            "form_consistency": 1.0,
+            "example_forms": [
+              "0",
+              "1",
+              "2",
+              "1967",
+              "3"
+            ]
+          },
+          {
+            "column": "player.age",
+            "mention_rate": 0.0,
+            "value_diversity": 0.4083,
+            "form_consistency": 1.0,
+            "example_forms": [
+              "0",
+              "1",
+              "2",
+              "1967",
+              "3"
+            ]
+          },
+          {
+            "column": "player.position",
+            "mention_rate": 0.0,
+            "value_diversity": 0.0,
+            "form_consistency": 1.0,
+            "example_forms": []
+          },
+          {
+            "column": "player.mvp_awards",
+            "mention_rate": 0.0,
+            "value_diversity": 0.4083,
+            "form_consistency": 1.0,
+            "example_forms": [
+              "0",
+              "1",
+              "2",
+              "1967",
+              "3"
+            ]
+          },
+          {
+            "column": "player.draft_pick",
+            "mention_rate": 0.0,
+            "value_diversity": 0.4083,
+            "form_consistency": 1.0,
+            "example_forms": [
+              "0",
+              "1",
+              "2",
+              "1967",
+              "3"
+            ]
+          },
+          {
+            "column": "player.olympic_gold_medals",
+            "mention_rate": 0.0,
+            "value_diversity": 0.4083,
+            "form_consistency": 1.0,
+            "example_forms": [
+              "0",
+              "1",
+              "2",
+              "1967",
+              "3"
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

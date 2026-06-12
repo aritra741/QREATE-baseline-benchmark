@@ -3,7 +3,8 @@ paths:
   results_dir: "./results"
 
 llm:
-  # Active profile: qwen_local | deepseek_v4_flash
+  # Active profile: qwen_local | ollama_qwen_7b | deepseek_v4_flash
+  # Override at runtime: export SPP_LLM_PROFILE=ollama_qwen_7b
   profile: "qwen_local"
   provider: "local_vllm"
   max_params: "32B"
@@ -13,6 +14,7 @@ llm:
   agent_model: "Qwen2.5-32B-Instruct"
   temperature: 0.0
   base_url: "http://localhost:8000/v1"
+  request_timeout: 120
   # Set to true for cloud APIs that do not expose OpenAI-compatible /models
   skip_model_check: false
 
@@ -24,7 +26,20 @@ llm_profiles:
     judge_model: "Qwen2.5-32B-Instruct"
     agent_model: "Qwen2.5-32B-Instruct"
     base_url: "http://localhost:8000/v1"
+    request_timeout: 120
     skip_model_check: false
+  ollama_qwen_7b:
+    provider: "ollama"
+    preferred_family: "Qwen"
+    extraction_model: "qwen2.5:7b-instruct"
+    judge_model: "qwen2.5:7b-instruct"
+    agent_model: "qwen2.5:7b-instruct"
+    base_url: "http://localhost:11434/v1"
+    request_timeout: 300
+    skip_model_check: false
+    # Optional Ollama runtime options (num_ctx, temperature, etc.)
+    ollama_options:
+      num_ctx: 8192
   deepseek_v4_flash:
     provider: "deepseek"
     preferred_family: "DeepSeek"
@@ -66,7 +81,15 @@ phase0:
   num_probe_configs: 8
   num_judge_pairs: 14
   num_eval_queries: 3
+  queries_per_slice: 20
+  workload_split:
+    train_per_slice: 20
+    dev_per_slice: 5
+    test_per_slice: 5
+    min_train_total: 100
+    manifest: workload_split_manifest.json
   min_queries_per_slice: 3
+  restrict_gt_to_corpus: true
   budget_levels: [1, 2]
   table_filter: ["player"]
   surrogates:
@@ -131,10 +154,28 @@ finance:
   probe_context_cache: finance_phase1_probe_context.json
 
 population_config_space:
-  er_strategy: ["embedding_0.7", "embedding_0.9"]
-  norm_strategy: ["dictionary", "llm"]
-  unit_strategy: ["none", "unit"]
-  miss_strategy: ["drop", "mean"]
+  er_strategy:
+    - "embedding_0.7"
+    - "embedding_0.8"
+    - "embedding_0.9"
+    - "llm"
+  norm_strategy:
+    - "dictionary"
+    - "llm"
+  unit_strategy:
+    - "none"
+    - "unit"
+  miss_strategy:
+    - "drop"
+    - "mean"
+    - "median"
+    - "mode"
+    - "constant"
+    - "llm"
+  type_coercion:
+    - "strict"
+    - "permissive"
+    - "llm"
 
 surrogates:
   main:
@@ -149,7 +190,8 @@ surrogates:
     - "rf_error"
 
 agent:
-  max_turns: 8
+  max_turns: 10
+  default_risk_level: "risk_neutral"
 
 experiment:
   seed: 42
@@ -172,6 +214,7 @@ stage1:
   schema_variants: ["full", "numeric_only", "entity_only"]
 
 stage2:
+  per_cluster_bakeoff: true
   all_surrogates:
     - random_ranking
     - direct_probe_ranking
@@ -184,14 +227,12 @@ stage2:
     - tpe_proxy
 
 stage3:
-  algorithms:
-    - greedy
-    - bayesian_opt
-    - hyperband
-    - coord_descent
-    - ilp
-  bo_n_trials: 20
-  hyperband_eta: 3
+  risk_level: "risk_neutral"
+  risk_lambda: 0.5
+  routing_assignment:
+    sort_clusters_by_size: true
+  # bo_n_trials: 20
+  # hyperband_eta: 3
 
 stage4:
   components:

@@ -18,10 +18,13 @@ sys.path.insert(0, str(SPP_ROOT.parent.parent))
 
 from agent.react_agent import select_surrogate
 from agent.tools import AgentToolkit, load_agent_cache, rule_based_select, save_agent_cache
-from data.instance_builder import build_instance
-from data.query_alignment import prepare_aggregation_slice_instance
+from data.instance_builder import Instance, build_instance
+from data.query_alignment import corpus_alignment_metadata, prepare_aggregation_slice_instance
 from optimizer.config_space import generate_config_space
+from optimizer.materialize import all_config_ids, materialize_database
 from optimizer.probing import run_probes
+from pipeline.evaluation import evaluate_spp_set
+from surrogates.registry import build_surrogate
 from utils.config import load_config
 from utils.logging import setup_logger
 
@@ -125,6 +128,62 @@ def compute_best_fixed(rows: list[dict], surrogates: list[str]) -> tuple[str, fl
     best_error = min(candidates.values())
     tied = sorted(s for s, err in candidates.items() if abs(err - best_error) < 1e-12)
     return tied[0], float(best_error)
+
+
+def _instance_from_toolkit(toolkit: AgentToolkit) -> Instance:
+    meta = {
+        **corpus_alignment_metadata(toolkit.corpus),
+    }
+    return Instance(
+        dataset_name=getattr(toolkit.schema, "dataset_name", "Player"),
+        corpus=toolkit.corpus,
+        queries=toolkit.queries,
+        schema=toolkit.schema,
+        metadata=meta,
+    )
+
+
+def evaluate_surrogate_spp_error(
+    toolkit: AgentToolkit,
+    surrogate_name: str,
+    budget: int,
+    *,
+    seed: int = 42,
+) -> float:
+    """Phase-0-style true SPP error for a surrogate not present in the reward table."""
+    surrogate = build_surrogate(surrogate_name, seed=seed)
+    surrogate.fit(toolkit.probe_data)
+    selected = surrogate.rank(all_config_ids())[: max(1, budget)]
+    dbs = {
+        cid: materialize_database(toolkit.probe_data, cid, toolkit.schema)
+        for cid in selected
+    }
+    return evaluate_spp_set(_instance_from_toolkit(toolkit), selected, dbs)
+
+
+def resolve_phase0_error(
+    budget: int,
+    selected: str,
+    lookup: dict[tuple[int, str], float],
+    *,
+    agent_toolkit: AgentToolkit | None,
+    seed: int,
+    logger,
+) -> float:
+    key = (budget, selected)
+    if key in lookup:
+        return lookup[key]
+    if agent_toolkit is None:
+        raise KeyError(
+            f"No Phase 0 error for budget={budget} surrogate={selected!r} "
+            "(no probe cache to evaluate)."
+        )
+    logger.warning(
+        "No Phase 0 row for budget=%d surrogate=%s; evaluating from probe cache",
+        budget,
+        selected,
+    )
+    return evaluate_surrogate_spp_error(agent_toolkit, selected, budget, seed=seed)
 
 
 def oracle_for_budget(
@@ -375,7 +434,14 @@ def main() -> None:
                     logger=logger,
                 )
 
-            error = lookup[(budget, selected)]
+            error = resolve_phase0_error(
+                budget,
+                selected,
+                lookup,
+                agent_toolkit=agent_toolkit,
+                seed=int(cfg["experiment"]["seed"]),
+                logger=logger,
+            )
             regret = error - oracle_error
             oracle_match = selected == oracle_surrogate
 

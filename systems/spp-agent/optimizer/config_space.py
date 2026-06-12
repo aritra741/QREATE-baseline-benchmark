@@ -15,32 +15,54 @@ class PopulationConfig:
     norm_strategy: str
     unit_strategy: str
     miss_strategy: str
+    type_coercion: str = "strict"
 
 
-def _make_config_id(er: str, norm: str, unit: str, miss: str) -> str:
-    return f"er={er}|norm={norm}|unit={unit}|miss={miss}"
+def _make_config_id(er: str, norm: str, unit: str, miss: str, coerce: str) -> str:
+    return f"er={er}|norm={norm}|unit={unit}|miss={miss}|coerce={coerce}"
+
+
+def parse_config_id(config_id: str) -> PopulationConfig:
+    """Parse a pipe-delimited config id; defaults coerce=strict for legacy caches."""
+    parts = dict(p.split("=", 1) for p in config_id.split("|") if "=" in p)
+    er = parts.get("er", "embedding_0.7")
+    norm = parts.get("norm", "dictionary")
+    unit = parts.get("unit", "none")
+    miss = parts.get("miss", "drop")
+    coerce = parts.get("coerce", "strict")
+    return PopulationConfig(
+        config_id=config_id,
+        er_strategy=er,
+        norm_strategy=norm,
+        unit_strategy=unit,
+        miss_strategy=miss,
+        type_coercion=coerce,
+    )
 
 
 def generate_config_space() -> list[PopulationConfig]:
     cfg = load_config()
     space = cfg["population_config_space"]
     configs: list[PopulationConfig] = []
-    for er, norm, unit, miss in product(
+    for er, norm, unit, miss, coerce in product(
         space["er_strategy"],
         space["norm_strategy"],
         space["unit_strategy"],
         space["miss_strategy"],
+        space.get("type_coercion", ["strict"]),
     ):
+        cid = _make_config_id(er, norm, unit, miss, coerce)
         configs.append(
             PopulationConfig(
-                config_id=_make_config_id(er, norm, unit, miss),
+                config_id=cid,
                 er_strategy=er,
                 norm_strategy=norm,
                 unit_strategy=unit,
                 miss_strategy=miss,
+                type_coercion=coerce,
             )
         )
-    return configs
+    return sorted(configs, key=lambda c: c.config_id)
 
 
 def encode_config_features(config: PopulationConfig) -> np.ndarray:
@@ -55,4 +77,5 @@ def encode_config_features(config: PopulationConfig) -> np.ndarray:
     features.extend(one_hot(config.norm_strategy, space["norm_strategy"]))
     features.extend(one_hot(config.unit_strategy, space["unit_strategy"]))
     features.extend(one_hot(config.miss_strategy, space["miss_strategy"]))
+    features.extend(one_hot(config.type_coercion, space.get("type_coercion", ["strict"])))
     return np.array(features, dtype=float)

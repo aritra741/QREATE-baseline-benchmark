@@ -8,89 +8,174 @@
     "city": 0,
     "owner": 0,
     "player": 10,
-    "team": 2
+    "team": 6
   },
   "num_docs": 10,
   "num_configs": 4,
-  "num_pairs": 5,
+  "num_pairs": 4,
   "num_eval_queries": 3,
   "llm_profile": "deepseek_v4_flash",
-  "total_token_cost": 39989.0,
+  "total_token_cost": 44860.0,
   "config_table": [
     {
-      "config_id": "er=embedding_0.7|norm=llm|unit=unit|miss=mean",
-      "glass_box_score": 0.7053571428571429,
-      "btl_score": 1.0526312527381794,
-      "true_error": 0.9777777777777779,
-      "tier1": {
-        "tuple_count": 12,
-        "json_parse_error_rate": 0.0,
-        "extraction_refusal_or_empty_rate": 0.0,
-        "schema_column_coverage": 0.5
+      "config_id": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict",
+      "glass_box_score": 0.7819602272727273,
+      "btl_score": 1.9999990000005,
+      "true_error": 0.9786324786324787,
+      "numeric_type_success_rate": 1.0,
+      "required_table_row_count": {
+        "player": 10
       }
     },
     {
-      "config_id": "er=embedding_0.9|norm=dictionary|unit=none|miss=mean",
-      "glass_box_score": 0.762687969924812,
-      "btl_score": 1.0526312527381796,
-      "true_error": 0.7658056190234408,
-      "tier1": {
-        "tuple_count": 12,
-        "json_parse_error_rate": 0.0,
-        "extraction_refusal_or_empty_rate": 0.0,
-        "schema_column_coverage": 0.4375
+      "config_id": "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+      "glass_box_score": 0.7819602272727273,
+      "btl_score": 1.9999990000005,
+      "true_error": 0.9786324786324787,
+      "numeric_type_success_rate": 1.0,
+      "required_table_row_count": {
+        "player": 10
       }
     },
     {
-      "config_id": "er=embedding_0.7|norm=llm|unit=none|miss=mean",
-      "glass_box_score": 0.7767857142857143,
-      "btl_score": 1.0526312527381794,
-      "true_error": 0.9777777777777779,
-      "tier1": {
-        "tuple_count": 12,
-        "json_parse_error_rate": 0.0,
-        "extraction_refusal_or_empty_rate": 0.0,
-        "schema_column_coverage": 0.5
+      "config_id": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict",
+      "glass_box_score": 0.7794744318181819,
+      "btl_score": 9.9999950000025e-07,
+      "true_error": 0.7659195948084837,
+      "numeric_type_success_rate": 1.0,
+      "required_table_row_count": {
+        "player": 10
       }
     },
     {
-      "config_id": "er=embedding_0.7|norm=llm|unit=unit|miss=drop",
-      "glass_box_score": 0.5,
-      "btl_score": 0.8421062417854617,
-      "true_error": 1.0,
-      "tier1": {
-        "tuple_count": 12,
-        "json_parse_error_rate": 0.0,
-        "extraction_refusal_or_empty_rate": 0.0,
-        "schema_column_coverage": 0.0
+      "config_id": "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive",
+      "glass_box_score": 0.7794744318181819,
+      "btl_score": 9.9999950000025e-07,
+      "true_error": 0.7659195948084837,
+      "numeric_type_success_rate": 1.0,
+      "required_table_row_count": {
+        "player": 10
       }
     }
   ],
   "judge_comparisons": [
     {
-      "winner": "er=embedding_0.9|norm=dictionary|unit=none|miss=mean",
-      "loser": "er=embedding_0.7|norm=llm|unit=unit|miss=drop",
-      "reasoning": "Database B contains zero rows in the player table, so it cannot answer any of the aggregate queries. Database A has player data, allowing it to produce results for the queries, despite some missing values."
+      "winner": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict",
+      "loser": "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive",
+      "reasoning": "Configuration B has complete 'position' values for all player rows (mostly 'frontcourt'), while Configuration A has many null positions. Since the workload queries include grouping by position, B provides more accurate results for those aggregations."
     },
     {
-      "winner": "er=embedding_0.9|norm=dictionary|unit=none|miss=mean",
-      "loser": "er=embedding_0.7|norm=llm|unit=unit|miss=mean",
-      "reasoning": "Database A uses SQL NULL for missing position values, which is the standard representation for missing data and avoids creating a misleading separate group. Database B uses the string 'none', which is not a valid position and would introduce an erroneous group in the GROUP BY queries. For the given aggregate queries, proper handling of missing values is crucial. Although both databases have missing and invalid data, Database A's approach is more accurate for SQL aggregation."
+      "winner": "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+      "loser": "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive",
+      "reasoning": "Configuration B has complete data for the position column with no missing values, while configuration A has many nulls. Since the workload queries involve grouping by position (agg_queries_1 and agg_queries_3), missing values in A lead to an extra NULL group and inaccurate average age for frontcourt, as younger players are incorrectly grouped under NULL. B provides more accurate and meaningful results for the queries."
     },
     {
-      "winner": "er=embedding_0.9|norm=dictionary|unit=none|miss=mean",
-      "loser": "er=embedding_0.7|norm=llm|unit=none|miss=mean",
-      "reasoning": "Database A correctly preserves Andrew Wiggins' nationality as 'canadian', while B incorrectly changes it to 'american', which would affect the COUNT aggregation in query 2. Additionally, Database A stores ages as numeric values suitable for AVG calculations, whereas B stores them as strings requiring conversion. Although both have missing positions, A uses NULL (which is standard for missing data) while B uses the string 'none', which could alter grouping results."
+      "winner": "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+      "loser": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict",
+      "reasoning": "Database B has the 'position' column fully populated (9 'frontcourt' and 1 'backcourt'), while Database A has many null values (8 out of 10 rows have null position). Since two of the three workload queries (agg_queries_1 and agg_queries_3) require grouping by 'position', Database B provides more complete and accurate groupings. Both databases have similar quality for 'nationality' and 'age' columns, so the key advantage is the handling of missing position values."
     },
     {
-      "winner": "er=embedding_0.7|norm=llm|unit=none|miss=mean",
-      "loser": "er=embedding_0.7|norm=llm|unit=unit|miss=drop",
-      "reasoning": "Database A has zero rows in the 'player' table, so it cannot return any rows for the aggregate queries. Database B has 10 rows in the 'player' table, enabling it to produce meaningful query results. Therefore, Database B is likely to answer the workload more accurately."
-    },
-    {
-      "winner": "er=embedding_0.7|norm=llm|unit=unit|miss=mean",
-      "loser": "er=embedding_0.7|norm=llm|unit=unit|miss=drop",
-      "reasoning": "Database A contains player rows, while Database B's player table is empty. The workload queries require non-empty player data to produce meaningful aggregates. Therefore Database A is more likely to answer the workload accurately."
+      "winner": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict",
+      "loser": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict",
+      "reasoning": "Configuration A uses mode imputation for missing categorical values (like position and nationality), which is appropriate and preserves the expected categorical domains required by the GROUP BY queries. Configuration B uses mean imputation, which is invalid for categorical data and would introduce incorrect numeric values, leading to inaccurate query results. Sample rows show many null positions in B, and mean imputation would break the grouping. A has no missing positions in the sample, and mode would handle any missing values correctly. Therefore, A is more likely to answer the workload queries accurately."
     }
-  ]
+  ],
+  "btl_report": {
+    "win_counts": {
+      "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": 2,
+      "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 2,
+      "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": 0,
+      "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 0
+    },
+    "loss_counts": {
+      "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+      "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+      "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": 2,
+      "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 2
+    },
+    "tie_counts": {
+      "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+      "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+      "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": 0,
+      "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 0
+    },
+    "win_matrix": {
+      "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": {
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": 1,
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 1
+      },
+      "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": {
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": 1,
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 1
+      },
+      "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": {
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": 0,
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 0
+      },
+      "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": {
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": 0,
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 0
+      }
+    },
+    "comparison_edges": [
+      {
+        "winner": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict",
+        "loser": "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive"
+      },
+      {
+        "winner": "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+        "loser": "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive"
+      },
+      {
+        "winner": "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+        "loser": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict"
+      },
+      {
+        "winner": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict",
+        "loser": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict"
+      }
+    ],
+    "comparison_graph_connected": true,
+    "num_components": 1,
+    "components": [
+      [
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive",
+        "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict",
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict"
+      ]
+    ],
+    "isolated_configs": [],
+    "btl_scores": {
+      "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 1.9999990000005,
+      "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 9.9999950000025e-07,
+      "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": 9.9999950000025e-07,
+      "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": 1.9999990000005
+    }
+  },
+  "pipeline": {
+    "best_surrogate": "direct_probe_ranking",
+    "best_algorithm": "routing_assignment",
+    "selected_configs": [
+      "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict"
+    ],
+    "routing_table": {
+      "0": "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+      "1": "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+      "2": "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict"
+    },
+    "cluster_surrogates": {
+      "0": "direct_probe_ranking",
+      "1": "direct_probe_ranking",
+      "2": "direct_probe_ranking"
+    }
+  }
 }

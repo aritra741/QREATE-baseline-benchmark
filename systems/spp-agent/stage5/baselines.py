@@ -13,6 +13,26 @@ from utils.logging import setup_logger
 logger = setup_logger("spp.stage5.baselines")
 
 
+def build_trivial_routing_table(
+    selected_configs: list[str],
+    query_clusters,
+    probe_data,
+) -> dict[int, str]:
+    """Assign all clusters to the top glass-box config in selected_configs."""
+    if not selected_configs:
+        return {}
+    if probe_data is not None and probe_data.glass_box_composites:
+        best = max(
+            (c for c in selected_configs if c in probe_data.glass_box_composites),
+            key=lambda c: probe_data.glass_box_composites[c],
+            default=selected_configs[0],
+        )
+    else:
+        best = selected_configs[0]
+    n_clusters = getattr(query_clusters, "n_clusters", 1)
+    return {cid: best for cid in range(n_clusters)}
+
+
 def default_config_select(candidate_ids: list[str], budget: int) -> list[str]:
     """Select first *budget* configs in canonical (generate_config_space) order."""
     canonical_order = [c.config_id for c in generate_config_space()]

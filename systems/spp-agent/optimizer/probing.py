@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+import copy
+import dataclasses
 import random
 from dataclasses import dataclass, field
 
 import pandas as pd
 
 from data.query_alignment import assert_required_table_coverage, rows_by_table
+from diagnostics.cluster_glass_box import compute_all_cluster_glass_boxes
 from diagnostics.tier1 import compute_tier1
-from judge.btl import fit_btl
+from judge.btl import fit_btl, fit_btl_with_uncertainty
 from judge.btl_report import build_btl_report, log_btl_report
 from judge.pair_selection import select_diverse_pairs
 from judge.pairwise import judge_pairwise
@@ -30,9 +33,11 @@ class ProbeData:
     btl_scores: dict[str, float]
     databases: dict[str, dict[str, pd.DataFrame]]
     total_cost: float
-    true_errors: dict[str, float] = field(default_factory=dict)
     btl_report: dict = field(default_factory=dict)
     extraction: ExtractionResult | None = None
+    cluster_glass_box_composites: dict[str, dict[int, float]] = field(default_factory=dict)
+    cluster_btl_scores: dict[int, dict[str, float]] = field(default_factory=dict)
+    cluster_btl_uncertainty: dict[int, dict[str, float]] = field(default_factory=dict)
 
 
 def _sample_corpus(corpus: list[dict], fraction: float, min_docs: int, seed: int) -> list[dict]:
@@ -58,6 +63,13 @@ def _sample_corpus(corpus: list[dict], fraction: float, min_docs: int, seed: int
     return sampled
 
 
+def _record_comparison(comparisons: list[dict], winner: str, a: str, b: str, reasoning: str) -> None:
+    if winner == "a":
+        comparisons.append({"winner": a, "loser": b, "reasoning": reasoning})
+    elif winner == "b":
+        comparisons.append({"winner": b, "loser": a, "reasoning": reasoning})
+
+
 def run_probes(
     instance,
     schema,
@@ -70,6 +82,9 @@ def run_probes(
     min_probe_docs: int | None = None,
     required_tables: set[str] | None = None,
     eval_queries: list[dict] | None = None,
+    query_clusters=None,
+    shared_extraction: ExtractionResult | None = None,
+    skip_judge: bool = False,
 ) -> ProbeData:
     cfg = load_config()
     seed = seed if seed is not None else int(cfg["experiment"]["seed"])
@@ -95,10 +110,15 @@ def run_probes(
     else:
         sampled_docs = _sample_corpus(instance.corpus, fraction, min_docs, seed)
 
-    logger.info("Starting extraction on %d docs", len(sampled_docs))
-    extraction = extract_documents(sampled_docs, schema, llm_cfg["extraction_model"])
-    total_cost = extraction.token_cost
-    logger.info("Extraction finished token_cost=%.0f", total_cost)
+    if shared_extraction is not None:
+        extraction = shared_extraction
+        total_cost = float(shared_extraction.token_cost)
+        logger.info("Reusing shared extraction token_cost=%.0f", total_cost)
+    else:
+        logger.info("Starting extraction on %d docs", len(sampled_docs))
+        extraction = extract_documents(sampled_docs, schema, llm_cfg["extraction_model"])
+        total_cost = extraction.token_cost
+        logger.info("Extraction finished token_cost=%.0f", total_cost)
 
     config_ids: list[str] = []
     configs: dict[str, PopulationConfig] = {}
@@ -148,40 +168,99 @@ def run_probes(
         glass_box[config.config_id] = tier1["glass_box_composite"]
         databases[config.config_id] = db
 
-    pairs = select_diverse_pairs(config_ids, configs, judge_pair_budget, seed=seed)
-    logger.info("Selected %d judge pairs: %s", len(pairs), pairs)
     comparisons: list[dict] = []
-    for pair_idx, (a, b) in enumerate(pairs, start=1):
-        logger.info("Judge pair %d/%d: %s vs %s", pair_idx, len(pairs), a, b)
-        result = judge_pairwise(
-            databases[a],
-            databases[b],
-            schema,
-            workload_queries,
-            configs[a],
-            configs[b],
-            llm_cfg["judge_model"],
-            required_tables=required_tables,
-        )
-        total_cost += result["token_cost"]
-        winner = result["winner"]
-        logger.info(
-            "Judge result winner=%s tokens=%.0f reasoning=%s",
-            winner,
-            result["token_cost"],
-            str(result["reasoning"])[:200],
-        )
-        if winner == "a":
-            comparisons.append({"winner": a, "loser": b, "reasoning": result["reasoning"]})
-        elif winner == "b":
-            comparisons.append({"winner": b, "loser": a, "reasoning": result["reasoning"]})
-        else:
-            logger.info("Judge tie skipped for BTL")
+    cluster_btl_scores: dict[int, dict[str, float]] = {}
+    cluster_btl_uncertainty: dict[int, dict[str, float]] = {}
+    btl_scores: dict[str, float] = {}
+    btl_report: dict = {}
 
-    btl_scores = fit_btl(comparisons, all_config_ids=config_ids)
-    btl_report = build_btl_report(comparisons, config_ids, btl_scores)
-    log_btl_report(btl_report, logger)
+    if skip_judge:
+        logger.info("Skipping LLM judge pairs (structural/meta-controller mode)")
+        btl_scores = {cid: 0.0 for cid in config_ids}
+    elif query_clusters is not None and query_clusters.n_clusters > 0:
+        pairs = select_diverse_pairs(config_ids, configs, judge_pair_budget, seed=seed)
+        logger.info("Selected %d judge pairs: %s", len(pairs), pairs)
+        for cluster_id, cluster_queries_list in query_clusters.cluster_to_queries.items():
+            cluster_type = query_clusters.cluster_types.get(cluster_id, "mixed")
+            cluster_comparisons: list[dict] = []
+            for pair_idx, (a, b) in enumerate(pairs, start=1):
+                logger.info(
+                    "Cluster %d judge pair %d/%d: %s vs %s",
+                    cluster_id,
+                    pair_idx,
+                    len(pairs),
+                    a,
+                    b,
+                )
+                result = judge_pairwise(
+                    databases[a],
+                    databases[b],
+                    schema,
+                    workload_queries,
+                    configs[a],
+                    configs[b],
+                    llm_cfg["judge_model"],
+                    required_tables=required_tables,
+                    cluster_queries=cluster_queries_list,
+                    cluster_type=cluster_type,
+                )
+                total_cost += result["token_cost"]
+                winner = result["winner"]
+                _record_comparison(cluster_comparisons, winner, a, b, result["reasoning"])
+                _record_comparison(comparisons, winner, a, b, result["reasoning"])
+
+            btl_result = fit_btl_with_uncertainty(
+                cluster_comparisons,
+                all_config_ids=config_ids,
+                seed=seed,
+            )
+            cluster_btl_scores[cluster_id] = {
+                cid: score for cid, (score, _) in btl_result.items()
+            }
+            cluster_btl_uncertainty[cluster_id] = {
+                cid: std for cid, (_, std) in btl_result.items()
+            }
+
+        btl_scores = fit_btl(comparisons, all_config_ids=config_ids)
+        btl_report = build_btl_report(comparisons, config_ids, btl_scores)
+        log_btl_report(btl_report, logger)
+    else:
+        pairs = select_diverse_pairs(config_ids, configs, judge_pair_budget, seed=seed)
+        logger.info("Selected %d judge pairs: %s", len(pairs), pairs)
+        for pair_idx, (a, b) in enumerate(pairs, start=1):
+            logger.info("Judge pair %d/%d: %s vs %s", pair_idx, len(pairs), a, b)
+            result = judge_pairwise(
+                databases[a],
+                databases[b],
+                schema,
+                workload_queries,
+                configs[a],
+                configs[b],
+                llm_cfg["judge_model"],
+                required_tables=required_tables,
+            )
+            total_cost += result["token_cost"]
+            winner = result["winner"]
+            logger.info(
+                "Judge result winner=%s tokens=%.0f reasoning=%s",
+                winner,
+                result["token_cost"],
+                str(result["reasoning"])[:200],
+            )
+            _record_comparison(comparisons, winner, a, b, result["reasoning"])
+
+        btl_scores = fit_btl(comparisons, all_config_ids=config_ids)
+        btl_report = build_btl_report(comparisons, config_ids, btl_scores)
+        log_btl_report(btl_report, logger)
+
     logger.info("Probe run complete total_token_cost=%.0f", total_cost)
+
+    cluster_glass_box_composites: dict[str, dict[int, float]] = {}
+    if query_clusters is not None:
+        cluster_glass_box_composites = compute_all_cluster_glass_boxes(
+            tier1_signals,
+            query_clusters.cluster_types,
+        )
 
     return ProbeData(
         config_ids=config_ids,
@@ -194,4 +273,60 @@ def run_probes(
         total_cost=total_cost,
         btl_report=btl_report,
         extraction=extraction,
+        cluster_glass_box_composites=cluster_glass_box_composites,
+        cluster_btl_scores=cluster_btl_scores,
+        cluster_btl_uncertainty=cluster_btl_uncertainty,
     )
+
+
+def expand_structural_probes(
+    probe_data: ProbeData,
+    instance,
+    schema,
+    queries: list[dict],
+    *,
+    n_additional: int,
+    seed: int,
+    shared_extraction: ExtractionResult | None = None,
+) -> tuple[ProbeData, int]:
+    """Probe more configs without LLM judge (meta-controller path)."""
+    import dataclasses
+    import random
+
+    from optimizer.config_space import generate_config_space
+
+    existing_ids = set(probe_data.config_ids)
+    remaining = [c for c in generate_config_space() if c.config_id not in existing_ids]
+    if not remaining:
+        return probe_data, 0
+
+    rng = random.Random(seed)
+    rng.shuffle(remaining)
+    extra_configs = remaining[:n_additional]
+    prior_cost = float(probe_data.total_cost)
+
+    extra_probe = run_probes(
+        instance,
+        schema,
+        extra_configs,
+        judge_pair_budget=0,
+        seed=seed,
+        corpus_docs=list(instance.corpus),
+        eval_queries=queries,
+        shared_extraction=shared_extraction or probe_data.extraction,
+        skip_judge=True,
+    )
+
+    merged = dataclasses.replace(
+        probe_data,
+        config_ids=list(probe_data.config_ids) + list(extra_probe.config_ids),
+        configs={**probe_data.configs, **extra_probe.configs},
+        tier1_signals={**probe_data.tier1_signals, **extra_probe.tier1_signals},
+        glass_box_composites={**probe_data.glass_box_composites, **extra_probe.glass_box_composites},
+        pairwise_comparisons=list(probe_data.pairwise_comparisons),
+        btl_scores={**probe_data.btl_scores, **extra_probe.btl_scores},
+        databases={**probe_data.databases, **extra_probe.databases},
+        total_cost=probe_data.total_cost + extra_probe.total_cost,
+        extraction=probe_data.extraction or extra_probe.extraction,
+    )
+    return merged, int(merged.total_cost - prior_cost)

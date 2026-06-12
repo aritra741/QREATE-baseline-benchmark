@@ -1,0 +1,129 @@
+{
+  "run_id": "33d60a52-447e-472b-8bf6-f563e6835356",
+  "timestamp": "2026-06-04T00:11:44Z",
+  "token_budget_initial": 500000,
+  "probe_config_ids": [
+    "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm",
+    "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict",
+    "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm",
+    "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict",
+    "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+    "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive",
+    "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict",
+    "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive"
+  ],
+  "probe_expanded": false,
+  "probe_n_judge_pairs": 11,
+  "probe_total_token_cost": 128186.0,
+  "n_clusters": 3,
+  "cluster_types": {
+    "0": "aggregation",
+    "1": "aggregation",
+    "2": "aggregation"
+  },
+  "cluster_sizes": {
+    "0": 1,
+    "1": 1,
+    "2": 1
+  },
+  "cluster_labels": [
+    2,
+    0,
+    1
+  ],
+  "cluster_btl_scores": {},
+  "cluster_btl_uncertainty": {},
+  "cluster_surrogate_loo_rhos": {
+    "0": {
+      "direct_probe_ranking": 0.0,
+      "glass_box_proxy": -0.7349684152591671,
+      "llm_judge_btl": 0.5879747322073337,
+      "linear_proxy_glass": -0.6587325492402599,
+      "rf_proxy_glass": -0.6587325492402599,
+      "gbdt_proxy_glass": -0.44179262430643435,
+      "gp_proxy_glass": 0.5367450401216933,
+      "tpe_proxy": 0.5034878350069641
+    },
+    "1": {
+      "direct_probe_ranking": 0.0,
+      "glass_box_proxy": -0.7349684152591671,
+      "llm_judge_btl": 0.5879747322073337,
+      "linear_proxy_glass": -0.6587325492402599,
+      "rf_proxy_glass": -0.6587325492402599,
+      "gbdt_proxy_glass": -0.44179262430643435,
+      "gp_proxy_glass": 0.5367450401216933,
+      "tpe_proxy": 0.5034878350069641
+    },
+    "2": {
+      "direct_probe_ranking": 0.0,
+      "glass_box_proxy": -0.7349684152591671,
+      "llm_judge_btl": 0.5879747322073337,
+      "linear_proxy_glass": -0.6587325492402599,
+      "rf_proxy_glass": -0.6587325492402599,
+      "gbdt_proxy_glass": -0.44179262430643435,
+      "gp_proxy_glass": 0.5367450401216933,
+      "tpe_proxy": 0.5034878350069641
+    }
+  },
+  "cluster_selected_surrogates": {
+    "0": "gp_proxy_glass",
+    "1": "gp_proxy_glass",
+    "2": "gp_proxy_glass"
+  },
+  "agent_actions": [
+    {
+      "turn": 1,
+      "thought": "Start by understanding the workload: corpus shape, query types, token counts, schema. This will inform cluster granularity and configuration decisions.",
+      "action": "get_dataset_summary",
+      "action_input": {},
+      "observation_summary": "{'slice': 'agg_only', 'dataset': 'Player', 'schema_mode': 'multi_table', 'tables': ['city', 'owner', 'player', 'team'], 'num_probe_configs': 8, 'tier0': {'num_docs': 20, 'avg_doc_tokens': 55.55, 'max_doc_tokens': 59, 'doc_token_std': 1.8834808201837363, 'num_queries': 3, 'query_type_mix': {'Agg': 3}",
+      "timestamp": "2026-06-04T00:12:00Z"
+    },
+    {
+      "turn": 2,
+      "thought": "Dataset is Player with 4 tables, 3 aggregate queries. 8 probe configs. No explicit token budget mentioned. Proceed to stage 1 characterization to understand cluster structure and probe fidelity.",
+      "action": "run_stage1_characterization",
+      "action_input": {},
+      "observation_summary": "{'recommendations': {'probe_viable': False, 'use_nonlinear': False, 'use_routing': True, 'use_clustering': False, 'schema_first': False, 'density_greedy_viable': False}, 'probe_fidelity': {'spearman_rho': -0.6962583148700209, 'top_k_recall': 0.0, 'best_proxy_regret': 5.341335153253002, 'recommendati",
+      "timestamp": "2026-06-04T00:12:02Z"
+    },
+    {
+      "turn": 3,
+      "thought": "Stage 1 shows low probe fidelity (negative Spearman rho, 0 top-k recall) but smooth error surface and sparse interactions. Only 3 queries, all Agg. Let's examine BTL rankings and probe diagnostics to understand which configs perform well.",
+      "action": "get_btl_rankings",
+      "action_input": {},
+      "observation_summary": "{'num_pairwise_comparisons': 11, 'btl_spread': 5.341335153253002, 'win_counts': {'er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm': 2, 'er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict': 5, 'er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm': 0, 'er=embedding_0.8|norm=llm|uni",
+      "timestamp": "2026-06-04T00:12:06Z"
+    },
+    {
+      "turn": 4,
+      "thought": "Only 3 queries all Agg, stage1 recommended use_routing=true but use_clustering=false. BTL rankings show 'er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict' as clear winner (score 5.34) well ahead of next (2.18). Now run surrogate bakeoff to see which surrogate has best LOO Spearman.",
+      "action": "run_surrogate_bakeoff",
+      "action_input": {},
+      "observation_summary": "{'surrogate_loo_rhos': {'llm_judge_btl': 0.5879747322073337, 'gp_proxy_glass': 0.5367450401216933, 'tpe_proxy': 0.5034878350069641, 'direct_probe_ranking': 0.0, 'gbdt_proxy_glass': -0.44179262430643435, 'linear_proxy_glass': -0.6587325492402599, 'rf_proxy_glass': -0.6587325492402599, 'glass_box_prox",
+      "timestamp": "2026-06-04T00:12:12Z"
+    },
+    {
+      "turn": 5,
+      "thought": "Surrogate bakeoff shows only llm_judge_btl as viable (rho=0.588 above threshold 0.543). Stage1 recommended use_routing=true but clustering=false (3 queries, all Agg). Clear winner config is 'er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict'. No benefit to probing more since BTL spread is high and top-1 is significantly better. Emit routing table.",
+      "action": "emit_routing_table",
+      "action_input": {},
+      "observation_summary": "{'selected_configs': ['er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=llm'], 'n_configs_selected': 1, 'best_surrogate': 'gp_proxy_glass', 'best_algorithm': 'routing_assignment', 'stage1_recommendations': {'probe_viable': False, 'use_nonlinear': False, 'use_routing': True, 'use_clustering': F",
+      "timestamp": "2026-06-04T00:12:42Z"
+    }
+  ],
+  "routing_table": {
+    "0": "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=llm",
+    "1": "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=llm",
+    "2": "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=llm"
+  },
+  "selected_configs": [
+    "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=llm"
+  ],
+  "risk_level": "risk_neutral",
+  "n_materializations": 1,
+  "token_budget_spent": 130589,
+  "token_budget_remaining": 369411,
+  "used_fallback": false,
+  "fallback_reason": ""
+}

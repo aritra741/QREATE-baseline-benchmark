@@ -164,6 +164,9 @@ def load_queries(dataset_name: str) -> list[dict]:
     for sql_file in sql_files:
         if "systems" in sql_file.parts:
             continue
+        # Held-out train/dev/test manifests live here; never load into the general pool.
+        if "Splits" in sql_file.parts:
+            continue
         category = sql_file.parent.name if sql_file.parent != query_root else None
         parsed = _parse_sql_file(sql_file, category)
         if not parsed:

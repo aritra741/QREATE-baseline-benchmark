@@ -8,10 +8,10 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-from llm.client import chat_completion
 from optimizer.config_space import PopulationConfig
 from pipeline.extraction import ExtractionResult
 from pipeline.schema import Schema
+from pipeline.type_coercion import apply_type_coercion
 from utils.config import load_config
 from utils.logging import setup_logger
 
@@ -51,6 +51,14 @@ def _is_entity_column(col: str, dtype: str) -> bool:
     return any(k in name for k in ("name", "team", "city", "owner", "college", "nationality", "location"))
 
 
+def _is_numeric_column_type(dtype: str) -> bool:
+    return dtype in {"int", "float", "numeric"}
+
+
+def _is_categorical_column_type(dtype: str) -> bool:
+    return dtype in {"str", "bool", "string", "categorical"}
+
+
 def _dictionary_normalize(value: object) -> object:
     if not isinstance(value, str):
         return value
@@ -60,36 +68,172 @@ def _dictionary_normalize(value: object) -> object:
 
 
 def _llm_normalize_values(values: list[str], model_name: str) -> dict[str, str]:
-    cfg = load_config()
-    base_url = cfg["llm"]["base_url"]
+    from pipeline.llm_steps import llm_json_call
+    from pipeline.llm_output_cache import get_norm_mapping, put_norm_mapping
+
     unique = sorted({v for v in values if isinstance(v, str) and v.strip()})
     if not unique:
         return {}
+
+    cached = get_norm_mapping(model_name, unique)
+    if cached is not None:
+        return cached
 
     prompt = (
         "Normalize each string to a canonical form (lowercase, trimmed, collapsed whitespace). "
         "Return JSON mapping original -> normalized.\n"
         f"Values: {json_dumps_safe(unique[:100])}"
     )
-    try:
-        raw, _ = chat_completion(
-            model_name,
-            [
-                {"role": "system", "content": "Return strict JSON only."},
-                {"role": "user", "content": prompt},
-            ],
-            base_url=base_url,
-            temperature=0.0,
-            llm_cfg=cfg["llm"],
-        )
-        import json
+    mapping = llm_json_call(model_name, prompt)
+    if mapping is not None:
+        result = {str(k): str(v) for k, v in mapping.items()}
+        put_norm_mapping(model_name, unique, result)
+        return result
+    fallback = {v: _dictionary_normalize(v) for v in unique}
+    put_norm_mapping(model_name, unique, fallback)
+    return fallback
 
-        mapping = json.loads(raw)
-        if isinstance(mapping, dict):
-            return {str(k): str(v) for k, v in mapping.items()}
-    except Exception:
-        pass
-    return {v: _dictionary_normalize(v) for v in unique}
+
+def _llm_entity_mapping(values: list[str], model_name: str) -> dict[str, str]:
+    from pipeline.llm_steps import llm_json_call
+    from pipeline.llm_output_cache import cache_key, get_cached_json, put_cached_json
+
+    unique = sorted({v for v in values if isinstance(v, str) and v.strip()})
+    if not unique:
+        return {}
+    key = cache_key(model_name, "er", unique)
+    cached = get_cached_json("er", key)
+    if isinstance(cached, dict):
+        return {str(k): str(v) for k, v in cached.items()}
+
+    prompt = (
+        "Cluster synonymous entity names. Return JSON mapping each original name "
+        "to a canonical form.\n"
+        f"Values: {json_dumps_safe(unique[:100])}"
+    )
+    mapping = llm_json_call(model_name, prompt)
+    if mapping is not None:
+        result = {str(k): str(v) for k, v in mapping.items()}
+        put_cached_json("er", key, result)
+        return result
+    fallback = {v: v for v in unique}
+    put_cached_json("er", key, fallback)
+    return fallback
+
+
+def _canonicalize_entities(
+    values: list[str],
+    *,
+    er_strategy: str,
+    threshold: float,
+    model_name: str,
+) -> tuple[list[str], int, int]:
+    if er_strategy == "llm":
+        mapping = _llm_entity_mapping(values, model_name)
+        canonical = [mapping.get(v, v) if isinstance(v, str) else v for v in values]
+        unique_in = len({v for v in values if isinstance(v, str) and v.strip()})
+        unique_out = len({v for v in canonical if isinstance(v, str) and v.strip()})
+        return canonical, max(0, unique_in - unique_out), 0
+    return _merge_entities(values, threshold)
+
+
+def _coerce_imputed_value(value: object, dtype: str) -> object:
+    if value is None:
+        return np.nan
+    if isinstance(value, float) and math.isnan(value):
+        return np.nan
+    if dtype in {"int", "float", "numeric"}:
+        if isinstance(value, bool):
+            return int(value)
+        if isinstance(value, int):
+            return value if dtype == "int" else float(value)
+        if isinstance(value, float):
+            return int(value) if dtype == "int" and value == int(value) else value
+        if isinstance(value, str):
+            text = value.strip().replace(",", "")
+            if not text:
+                return np.nan
+            try:
+                num = float(text)
+                return int(num) if dtype == "int" and num == int(num) else num
+            except ValueError:
+                return np.nan
+        return np.nan
+    if dtype == "bool":
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            low = value.strip().lower()
+            if low in {"true", "1", "yes"}:
+                return True
+            if low in {"false", "0", "no"}:
+                return False
+        return bool(value)
+    if isinstance(value, str):
+        return value
+    return str(value)
+
+
+def _apply_llm_imputation(
+    df: pd.DataFrame,
+    table: str,
+    col_types: dict[str, str],
+    model_name: str,
+) -> None:
+    import json
+
+    from pipeline.llm_output_cache import cache_key, get_cached_json, put_cached_json
+    from pipeline.llm_steps import llm_json_call
+
+    if df.empty:
+        return
+
+    rows_payload = json.loads(df.replace({np.nan: None}).to_json(orient="records"))
+    for col in df.columns:
+        if col == "id":
+            continue
+        missing_idx = [
+            i
+            for i, v in enumerate(df[col].tolist())
+            if v is None
+            or (isinstance(v, float) and math.isnan(v))
+            or (isinstance(v, str) and not str(v).strip())
+        ]
+        if not missing_idx:
+            continue
+
+        dtype = col_types.get(col, "str")
+        key = cache_key(model_name, "miss", table, col, dtype, rows_payload)
+        cached = get_cached_json("miss", key)
+        if not isinstance(cached, dict):
+            prompt = (
+                f"Impute missing values for table {table}, column {col} (type {dtype}).\n"
+                f"Rows: {json_dumps_safe(rows_payload[:80])}\n"
+                f"Missing row indices: {missing_idx}\n"
+                "Return JSON mapping row index (as string) -> imputed value."
+            )
+            cached = llm_json_call(model_name, prompt) or {}
+            put_cached_json("miss", key, cached)
+
+        for idx_s, value in cached.items():
+            try:
+                idx = int(idx_s)
+            except (TypeError, ValueError):
+                continue
+            if 0 <= idx < len(df):
+                coerced = _coerce_imputed_value(value, dtype)
+                if pd.api.types.is_string_dtype(df[col]) or (
+                    not pd.api.types.is_numeric_dtype(df[col])
+                    and dtype not in {"int", "float", "numeric"}
+                ):
+                    if coerced is None or (
+                        isinstance(coerced, float) and math.isnan(coerced)
+                    ):
+                        df.at[idx, col] = np.nan
+                    else:
+                        df.at[idx, col] = str(coerced)
+                else:
+                    df.at[idx, col] = coerced
 
 
 def json_dumps_safe(obj) -> str:
@@ -162,6 +306,111 @@ def _merge_entities(values: list[str], threshold: float) -> tuple[list[str], int
     return canonical, merges, ambiguous
 
 
+def _unique_nonempty_strings(values: list[str]) -> list[str]:
+    return list(dict.fromkeys(v for v in values if isinstance(v, str) and v.strip()))
+
+
+def _shared_er_mapping(
+    values: list[str],
+    *,
+    er_strategy: str,
+    threshold: float,
+    model_name: str,
+) -> tuple[dict[str, str], int, int]:
+    unique = _unique_nonempty_strings(values)
+    if not unique:
+        return {}, 0, 0
+    if len(unique) == 1:
+        return {unique[0]: unique[0]}, 0, 0
+    canonical, merges, ambiguous = _canonicalize_entities(
+        unique,
+        er_strategy=er_strategy,
+        threshold=threshold,
+        model_name=model_name,
+    )
+    return dict(zip(unique, canonical)), merges, ambiguous
+
+
+def _apply_cross_table_join_er(
+    db: dict[str, pd.DataFrame],
+    schema: Schema,
+    *,
+    er_strategy: str,
+    threshold: float,
+    model_name: str,
+) -> tuple[set[tuple[str, str]], int, int]:
+    """Run ER jointly on pooled join-key values; return handled (table, col) pairs."""
+    handled: set[tuple[str, str]] = set()
+    er_merges = 0
+    er_ambiguous = 0
+
+    for left_table, left_col, right_table, right_col in schema.join_keys:
+        left_df = db.get(left_table)
+        right_df = db.get(right_table)
+        if left_df is None or right_df is None:
+            continue
+        if left_col not in left_df.columns or right_col not in right_df.columns:
+            continue
+
+        left_dtype = schema.column_types.get(left_table, {}).get(left_col, "str")
+        right_dtype = schema.column_types.get(right_table, {}).get(right_col, "str")
+        if not _is_entity_column(left_col, left_dtype) or not _is_entity_column(
+            right_col, right_dtype
+        ):
+            continue
+
+        left_vals = left_df[left_col].fillna("").astype(str).tolist()
+        right_vals = right_df[right_col].fillna("").astype(str).tolist()
+        mapping, merges, ambiguous = _shared_er_mapping(
+            left_vals + right_vals,
+            er_strategy=er_strategy,
+            threshold=threshold,
+            model_name=model_name,
+        )
+        if not mapping:
+            continue
+
+        for df, col in ((left_df, left_col), (right_df, right_col)):
+            str_vals = df[col].fillna("").astype(str).tolist()
+            df[col] = [mapping.get(v, v) for v in str_vals]
+        handled.add((left_table, left_col))
+        handled.add((right_table, right_col))
+        er_merges += merges
+        er_ambiguous += ambiguous
+
+    return handled, er_merges, er_ambiguous
+
+
+def join_key_exact_overlap(
+    db: dict[str, pd.DataFrame],
+    left_table: str,
+    left_col: str,
+    right_table: str,
+    right_col: str,
+) -> float:
+    """Exact string intersection over the union of unique join-key values."""
+    left_df = db.get(left_table)
+    right_df = db.get(right_table)
+    if left_df is None or right_df is None:
+        return 0.0
+    if left_col not in left_df.columns or right_col not in right_df.columns:
+        return 0.0
+
+    def _value_set(df: pd.DataFrame, col: str) -> set[str]:
+        return {
+            str(v).strip()
+            for v in df[col].tolist()
+            if v is not None and not (isinstance(v, float) and math.isnan(v)) and str(v).strip()
+        }
+
+    left_values = _value_set(left_df, left_col)
+    right_values = _value_set(right_df, right_col)
+    union = left_values | right_values
+    if not union:
+        return 0.0
+    return len(left_values & right_values) / len(union)
+
+
 def _tuples_to_dataframe(
     extraction: ExtractionResult,
     schema: Schema,
@@ -189,6 +438,7 @@ def apply_population(
     schema: Schema,
     *,
     extraction_model: str | None = None,
+    cross_table_join_er: bool = True,
 ) -> tuple[dict[str, pd.DataFrame], PopulationDiagnostics]:
     cfg = load_config()
     model = extraction_model or cfg["llm"]["extraction_model"]
@@ -212,7 +462,24 @@ def apply_population(
     missing_before = 0
     missing_after = 0
 
-    threshold = 0.7 if config.er_strategy == "embedding_0.7" else 0.9
+    threshold = {
+        "embedding_0.7": 0.7,
+        "embedding_0.8": 0.8,
+        "embedding_0.9": 0.9,
+        "llm": 0.9,
+    }.get(config.er_strategy, 0.9)
+
+    cross_table_join_columns: set[tuple[str, str]] = set()
+    if cross_table_join_er and schema.join_keys:
+        cross_table_join_columns, cross_merges, cross_ambiguous = _apply_cross_table_join_er(
+            db,
+            schema,
+            er_strategy=config.er_strategy,
+            threshold=threshold,
+            model_name=model,
+        )
+        er_merges += cross_merges
+        er_ambiguous += cross_ambiguous
 
     for table, df in db.items():
         if df.empty:
@@ -225,9 +492,16 @@ def apply_population(
             series = df[col]
             missing_before += int(series.isna().sum()) + int((series.astype(str).str.strip() == "").sum())
 
-            if _is_entity_column(col, col_types.get(col, "str")):
+            if (table, col) in cross_table_join_columns:
+                pass
+            elif _is_entity_column(col, col_types.get(col, "str")):
                 str_vals = series.fillna("").astype(str).tolist()
-                merged, m, a = _merge_entities(str_vals, threshold)
+                merged, m, a = _canonicalize_entities(
+                    str_vals,
+                    er_strategy=config.er_strategy,
+                    threshold=threshold,
+                    model_name=model,
+                )
                 er_merges += m
                 er_ambiguous += a
                 df[col] = merged
@@ -245,7 +519,11 @@ def apply_population(
                     norm_values.append(new)
             df[col] = new_vals
 
-            if config.unit_strategy == "unit":
+            if config.unit_strategy == "unit" and col_types.get(col, "str") in {
+                "int",
+                "float",
+                "numeric",
+            }:
                 parsed_col = []
                 for v in df[col].tolist():
                     parsed, ok = _parse_unit(v)
@@ -257,13 +535,46 @@ def apply_population(
                 df[col] = parsed_col
 
         if config.miss_strategy == "drop":
-            df.dropna(how="any", inplace=True)
+            # Sparse extraction leaves many null optional columns; drop only fully empty rows.
+            if not df.empty:
+                df.dropna(how="all", inplace=True)
         elif config.miss_strategy == "mean":
             for col in df.columns:
                 if pd.api.types.is_numeric_dtype(df[col]):
                     df[col] = df[col].fillna(df[col].mean())
+        elif config.miss_strategy == "llm":
+            _apply_llm_imputation(df, table, col_types, model)
+        elif config.miss_strategy == "median":
+            for col in df.columns:
+                if pd.api.types.is_numeric_dtype(df[col]):
+                    df[col] = df[col].fillna(df[col].median())
+        elif config.miss_strategy == "mode":
+            for col in df.columns:
+                if not df[col].empty:
+                    mode_val = df[col].mode(dropna=True)
+                    if not mode_val.empty:
+                        df[col] = df[col].fillna(mode_val.iloc[0])
+        elif config.miss_strategy == "constant":
+            for col in df.columns:
+                if col == "id":
+                    continue
+                dtype = col_types.get(col, "str")
+                if _is_numeric_column_type(dtype) or pd.api.types.is_numeric_dtype(df[col]):
+                    df[col] = df[col].fillna(0)
+                elif _is_categorical_column_type(dtype):
+                    # Leave NULL — do not insert numeric sentinels into GROUP BY keys.
+                    continue
+                else:
+                    df[col] = df[col].fillna(0)
 
         missing_after += int(df.isna().sum().sum())
+
+    db = apply_type_coercion(
+        db,
+        schema,
+        config.type_coercion,
+        model_name=model,
+    )
 
     # duplicate rate across all tables
     total_rows = sum(len(df) for df in db.values())

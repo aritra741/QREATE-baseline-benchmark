@@ -1,91 +1,87 @@
 from __future__ import annotations
 
-from collections import defaultdict
+from scipy.stats import kendalltau
 
-from optimizer.probing import ProbeData
+from surrogates.registry import build_surrogate
 from thresholds.schema import ThresholdConfig
 from utils.logging import setup_logger
 
 logger = setup_logger("spp.stage1.1g")
 
-
-def _score_spread(scores: dict[str, float]) -> float:
-    if not scores:
-        return 0.0
-    vals = list(scores.values())
-    return float(max(vals) - min(vals))
-
-
-def _practical_select(glass_box_spread: float, btl_spread: float) -> str:
-    """Mirror rule_based_select logic from agent/tools.py."""
-    if btl_spread > 0:
-        return "llm_judge_btl"
-    if glass_box_spread > 0.01:
-        return "rf_proxy_glass"
-    return "direct_probe_ranking"
+_ROUTING_SURROGATES = [
+    "direct_probe_ranking",
+    "glass_box_proxy",
+    "llm_judge_btl",
+    "rf_proxy_glass",
+]
 
 
 def analyze_routing_gap(
-    probe_data: ProbeData,
+    probe_data,
     *,
     thresholds: ThresholdConfig,
     reward_rows: list[dict] | None = None,
 ) -> dict:
-    """Measure gap between oracle routing and practical heuristic routing."""
-    if not reward_rows:
+    """Measure surrogate disagreement as a deployment-visible routing signal."""
+    _ = reward_rows  # accepted for signature compat; never read
+
+    config_ids = list(probe_data.config_ids)
+    if len(config_ids) < 2:
         return {
-            "oracle_errors": {},
-            "practical_errors": {},
-            "mean_gap": None,
-            "gap_below_threshold": None,
+            "surrogate_rankings": {},
+            "pairwise_kendall_tau": {},
+            "mean_disagreement": None,
+            "disagreement_above_threshold": None,
             "recommendation": "cannot_estimate",
         }
 
-    by_budget: dict[str, list[dict]] = defaultdict(list)
-    for row in reward_rows:
-        by_budget[str(row["budget"])].append(row)
+    surrogate_rankings: dict[str, list[str]] = {}
+    for name in _ROUTING_SURROGATES:
+        if name == "llm_judge_btl" and not probe_data.btl_scores:
+            continue
+        try:
+            surrogate = build_surrogate(name, seed=42)
+            surrogate.fit(probe_data)
+            surrogate_rankings[name] = surrogate.rank(config_ids)
+        except Exception as exc:
+            logger.warning("Routing gap: surrogate %s failed: %s", name, exc)
 
-    glass_spread = _score_spread(probe_data.glass_box_composites)
-    btl_spread = _score_spread(probe_data.btl_scores)
-    practical_choice = _practical_select(glass_spread, btl_spread)
+    names = list(surrogate_rankings.keys())
+    pairwise_tau: dict[str, float] = {}
+    taus: list[float] = []
 
-    oracle_errors: dict[str, float] = {}
-    practical_errors: dict[str, float] = {}
+    for i, a in enumerate(names):
+        for b in names[i + 1 :]:
+            rank_a = {cid: idx for idx, cid in enumerate(surrogate_rankings[a])}
+            rank_b = {cid: idx for idx, cid in enumerate(surrogate_rankings[b])}
+            x = [rank_a[cid] for cid in config_ids]
+            y = [rank_b[cid] for cid in config_ids]
+            tau, _ = kendalltau(x, y)
+            if tau == tau:
+                pairwise_tau[f"{a}_vs_{b}"] = float(tau)
+                taus.append(abs(float(tau)))
 
-    for budget_key, group in by_budget.items():
-        oracle_errors[budget_key] = min(r["true_spp_error"] for r in group)
-
-        matched = [r for r in group if r.get("surrogate") == practical_choice]
-        if matched:
-            practical_errors[budget_key] = min(r["true_spp_error"] for r in matched)
-        else:
-            practical_errors[budget_key] = min(r["true_spp_error"] for r in group)
-
-    common_budgets = set(oracle_errors) & set(practical_errors)
-    if not common_budgets:
-        return {
-            "oracle_errors": oracle_errors,
-            "practical_errors": practical_errors,
-            "mean_gap": None,
-            "gap_below_threshold": None,
-            "recommendation": "cannot_estimate",
-        }
-
-    mean_gap = sum(
-        abs(practical_errors[b] - oracle_errors[b]) for b in common_budgets
-    ) / len(common_budgets)
-
-    gap_below = mean_gap < thresholds.routing_gap
-    recommendation = "routing_secondary" if gap_below else "co_optimize_routing"
+    if not taus:
+        mean_disagreement = None
+        above = None
+        recommendation = "cannot_estimate"
+    else:
+        mean_disagreement = 1.0 - float(sum(taus) / len(taus))
+        above = mean_disagreement > thresholds.surrogate_disagreement_threshold
+        recommendation = "co_optimize_routing" if above else "routing_secondary"
 
     logger.info(
-        "Routing gap: mean_gap=%.4f threshold=%.4f below=%s rec=%s",
-        mean_gap, thresholds.routing_gap, gap_below, recommendation,
+        "Routing disagreement: mean=%.4f threshold=%.4f above=%s rec=%s",
+        mean_disagreement or 0.0,
+        thresholds.surrogate_disagreement_threshold,
+        above,
+        recommendation,
     )
+
     return {
-        "oracle_errors": oracle_errors,
-        "practical_errors": practical_errors,
-        "mean_gap": mean_gap,
-        "gap_below_threshold": gap_below,
+        "surrogate_rankings": surrogate_rankings,
+        "pairwise_kendall_tau": pairwise_tau,
+        "mean_disagreement": mean_disagreement,
+        "disagreement_above_threshold": above,
         "recommendation": recommendation,
     }

@@ -22,6 +22,7 @@ class ThresholdConfig:
     interaction_ratio: float = 0.25
     ablation_gain: float = 0.005
     diminishing_returns_k: int = 4
+    surrogate_disagreement_threshold: float = 0.3
 
 
 THRESHOLD_SEARCH_SPACES: dict[str, tuple] = {
@@ -34,6 +35,7 @@ THRESHOLD_SEARCH_SPACES: dict[str, tuple] = {
     "interaction_ratio": ("float", 0.05, 0.70),
     "ablation_gain": ("float", 0.001, 0.10),
     "diminishing_returns_k": ("int", 2, 12),
+    "surrogate_disagreement_threshold": ("float", 0.1, 0.7),
 }
 
 

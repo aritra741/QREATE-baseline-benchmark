@@ -83,8 +83,7 @@ def _synthetic_probe_data(seed: int):
         pairwise_comparisons=comparisons,
         btl_scores=btl_scores,
         databases={},
-        total_cost=0.0,
-        true_errors={},   # deliberately empty — no ground truth
+        total_cost=5000.0,
         btl_report={},
     )
 

@@ -1,0 +1,4516 @@
+{
+  "report_version": 6,
+  "description": "Workload report: each query is evaluated on the database built with the pipeline config the agent chose.",
+  "evaluation_mode": "fixed_baseline",
+  "algorithm_selection_by_slice": {},
+  "composite_algorithm_stack_by_slice": {},
+  "summary": {
+    "n_slices": 5,
+    "n_queries_total": 28,
+    "n_queries_feasible": 25,
+    "n_corpus_infeasible": 3,
+    "mean_macro_f1_across_slices": 0.6376082572506002,
+    "mean_relative_error_pct_across_queries": 46.070656,
+    "algorithm_selection_table": [],
+    "per_slice": [
+      {
+        "slice": "agg_only",
+        "n_queries": 10,
+        "n_corpus_infeasible": 0,
+        "mean_macro_f1": 0.935361624644768,
+        "mean_relative_error_pct": 12.424109399526431,
+        "mean_relative_accuracy": 0.8758,
+        "chosen_algorithm_id": null,
+        "chosen_algorithm_name": null,
+        "selection_rationale": null,
+        "agent_source": null
+      },
+      {
+        "slice": "agg_filter",
+        "n_queries": 9,
+        "n_corpus_infeasible": 2,
+        "mean_macro_f1": 0.4822431536717251,
+        "mean_relative_error_pct": 68.45598845598846,
+        "mean_relative_accuracy": 0.3154,
+        "chosen_algorithm_id": null,
+        "chosen_algorithm_name": null,
+        "selection_rationale": null,
+        "agent_source": null
+      },
+      {
+        "slice": "agg_join",
+        "n_queries": 1,
+        "n_corpus_infeasible": 0,
+        "mean_macro_f1": 0.7,
+        "mean_relative_error_pct": 66.66666666666667,
+        "mean_relative_accuracy": 0.3333,
+        "chosen_algorithm_id": null,
+        "chosen_algorithm_name": null,
+        "selection_rationale": null,
+        "agent_source": null
+      },
+      {
+        "slice": "agg_filter_join",
+        "n_queries": 4,
+        "n_corpus_infeasible": 0,
+        "mean_macro_f1": 0.3125,
+        "mean_relative_error_pct": 91.66666666666667,
+        "mean_relative_accuracy": 0.0833,
+        "chosen_algorithm_id": null,
+        "chosen_algorithm_name": null,
+        "selection_rationale": null,
+        "agent_source": null
+      },
+      {
+        "slice": "agg_temporal",
+        "n_queries": 4,
+        "n_corpus_infeasible": 1,
+        "mean_macro_f1": 0.7579365079365079,
+        "mean_relative_error_pct": 38.333333333333336,
+        "mean_relative_accuracy": 0.6167,
+        "chosen_algorithm_id": null,
+        "chosen_algorithm_name": null,
+        "selection_rationale": null,
+        "agent_source": null
+      }
+    ]
+  },
+  "slices": {
+    "agg_only": {
+      "slice": "agg_only",
+      "evaluation_mode": "fixed_baseline",
+      "algorithm_selection": null,
+      "n_queries": 10,
+      "n_corpus_infeasible": 0,
+      "extraction_source": "slice_cache",
+      "agent_source": null,
+      "slice_summary": {
+        "n_queries": 10,
+        "per_query_mean_relative_error_pct": [
+          {
+            "query_id": "agg_queries_1",
+            "mean_relative_error_pct": 0.0
+          },
+          {
+            "query_id": "agg_queries_2",
+            "mean_relative_error_pct": 22.2222
+          },
+          {
+            "query_id": "agg_queries_3",
+            "mean_relative_error_pct": 0.0
+          },
+          {
+            "query_id": "agg_queries_4",
+            "mean_relative_error_pct": 16.6667
+          },
+          {
+            "query_id": "agg_queries_5",
+            "mean_relative_error_pct": 22.2222
+          },
+          {
+            "query_id": "agg_queries_6",
+            "mean_relative_error_pct": 22.0588
+          },
+          {
+            "query_id": "agg_queries_7",
+            "mean_relative_error_pct": 18.8489
+          },
+          {
+            "query_id": "agg_subsample_1",
+            "mean_relative_error_pct": 0.0
+          },
+          {
+            "query_id": "agg_subsample_2",
+            "mean_relative_error_pct": 22.2222
+          },
+          {
+            "query_id": "agg_subsample_3",
+            "mean_relative_error_pct": 0.0
+          }
+        ],
+        "relative_error_pct_array": [
+          0.0,
+          22.2222,
+          0.0,
+          16.6667,
+          22.2222,
+          22.0588,
+          18.8489,
+          0.0,
+          22.2222,
+          0.0
+        ],
+        "relative_error": {
+          "mean": 12.424109399526431,
+          "max": 22.222222222222218,
+          "min": 0.0,
+          "std": 10.839989965517294
+        },
+        "macro_f1": {
+          "mean": 0.935361624644768,
+          "max": 1.0,
+          "min": 0.8863636363636362,
+          "std": 0.05608578684567494
+        },
+        "macro_precision": {
+          "mean": 0.9888977871092448,
+          "max": 1.0,
+          "min": 0.975,
+          "std": 0.012355755883205503
+        },
+        "macro_recall": {
+          "mean": 0.8907481559243707,
+          "max": 1.0,
+          "min": 0.8125,
+          "std": 0.09425533475266903
+        }
+      },
+      "agent_pipeline": null,
+      "queries": [
+        {
+          "query_id": "agg_queries_1",
+          "corpus_infeasible": false,
+          "metadata": {
+            "query_id": "agg_queries_1",
+            "sql": "SELECT position, MIN(olympic_gold_medals) AS min_olympic_gold_medals FROM player GROUP BY position;",
+            "slice_type": "agg_only",
+            "n_joins": 0,
+            "n_group_by_columns": 1,
+            "group_by_columns": [
+              "position"
+            ],
+            "n_aggregate_functions": 1,
+            "aggregate_functions": [
+              "MIN"
+            ],
+            "aggregates": [
+              {
+                "output_name": "min_olympic_gold_medals",
+                "function": "MIN",
+                "source": "olympic_gold_medals"
+              }
+            ],
+            "n_where_conditions": 0,
+            "gold_result_row_count": 3
+          },
+          "results": {
+            "gold_result": [
+              {
+                "position": "Frontcourt",
+                "min_olympic_gold_medals": 0.0
+              },
+              {
+                "position": "Backcourt",
+                "min_olympic_gold_medals": 0.0
+              },
+              {
+                "position": null,
+                "min_olympic_gold_medals": 0.0
+              }
+            ],
+            "predicted_result": [
+              {
+                "position": null,
+                "min_olympic_gold_medals": 0.0
+              },
+              {
+                "position": "backcourt",
+                "min_olympic_gold_medals": 0.0
+              },
+              {
+                "position": "frontcourt",
+                "min_olympic_gold_medals": 0.0
+              }
+            ],
+            "aligned_pairs": [
+              {
+                "pair_index": 0,
+                "alignment_key": [
+                  ""
+                ],
+                "gold_row": {
+                  "position": "",
+                  "min_olympic_gold_medals": 0.0
+                },
+                "pred_row": {
+                  "position": "",
+                  "min_olympic_gold_medals": 0.0
+                },
+                "column_relative_error_pct": {
+                  "min_olympic_gold_medals": 0.0
+                }
+              },
+              {
+                "pair_index": 1,
+                "alignment_key": [
+                  "backcourt"
+                ],
+                "gold_row": {
+                  "position": "backcourt",
+                  "min_olympic_gold_medals": 0.0
+                },
+                "pred_row": {
+                  "position": "backcourt",
+                  "min_olympic_gold_medals": 0.0
+                },
+                "column_relative_error_pct": {
+                  "min_olympic_gold_medals": 0.0
+                }
+              },
+              {
+                "pair_index": 2,
+                "alignment_key": [
+                  "frontcourt"
+                ],
+                "gold_row": {
+                  "position": "frontcourt",
+                  "min_olympic_gold_medals": 0.0
+                },
+                "pred_row": {
+                  "position": "frontcourt",
+                  "min_olympic_gold_medals": 0.0
+                },
+                "column_relative_error_pct": {
+                  "min_olympic_gold_medals": 0.0
+                }
+              }
+            ],
+            "unmatched_gold_rows": [],
+            "unmatched_pred_rows": [],
+            "n_aligned_pairs": 3,
+            "n_unmatched_gold_rows": 0,
+            "n_unmatched_pred_rows": 0,
+            "mean_relative_error_pct": 0.0,
+            "macro_f1": 1.0,
+            "macro_precision": 1.0,
+            "macro_recall": 1.0,
+            "column_metrics": {
+              "position": {
+                "precision": 1.0,
+                "recall": 1.0,
+                "f1": 1.0
+              },
+              "min_olympic_gold_medals": {
+                "precision": 1.0,
+                "recall": 1.0,
+                "f1": 1.0
+              }
+            },
+            "alignment_keys": [
+              "position"
+            ],
+            "match_warnings": []
+          }
+        },
+        {
+          "query_id": "agg_queries_2",
+          "corpus_infeasible": false,
+          "metadata": {
+            "query_id": "agg_queries_2",
+            "sql": "SELECT nationality, COUNT(*) AS count_all FROM player GROUP BY nationality;",
+            "slice_type": "agg_only",
+            "n_joins": 0,
+            "n_group_by_columns": 1,
+            "group_by_columns": [
+              "nationality"
+            ],
+            "n_aggregate_functions": 1,
+            "aggregate_functions": [
+              "COUNT"
+            ],
+            "aggregates": [
+              {
+                "output_name": "count_all",
+                "function": "COUNT",
+                "source": "count_all"
+              }
+            ],
+            "n_where_conditions": 0,
+            "gold_result_row_count": 6
+          },
+          "results": {
+            "gold_result": [
+              {
+                "nationality": "Dutch",
+                "count_all": 1
+              },
+              {
+                "nationality": "Bahamian",
+                "count_all": 1
+              },
+              {
+                "nationality": "American",
+                "count_all": 12
+              },
+              {
+                "nationality": "American",
+                "count_all": 4
+              },
+              {
+                "nationality": "French",
+                "count_all": 1
+              },
+              {
+                "nationality": "American-Venezuelan",
+                "count_all": 1
+              }
+            ],
+            "predicted_result": [
+              {
+                "nationality": "bahamian",
+                "count_all": 1
+              },
+              {
+                "nationality": "american",
+                "count_all": 16
+              },
+              {
+                "nationality": "american-venezuelan",
+                "count_all": 1
+              },
+              {
+                "nationality": "french",
+                "count_all": 1
+              },
+              {
+                "nationality": "dutch",
+                "count_all": 1
+              }
+            ],
+            "aligned_pairs": [
+              {
+                "pair_index": 0,
+                "alignment_key": [
+                  "american"
+                ],
+                "gold_row": {
+                  "nationality": "american",
+                  "count_all": 12
+                },
+                "pred_row": {
+                  "nationality": "american",
+                  "count_all": 16
+                },
+                "column_relative_error_pct": {
+                  "count_all": 33.33333333333333
+                }
+              },
+              {
+                "pair_index": 1,
+                "alignment_key": [
+                  "american-venezuelan"
+                ],
+                "gold_row": {
+                  "nationality": "american-venezuelan",
+                  "count_all": 1
+                },
+                "pred_row": {
+                  "nationality": "american-venezuelan",
+                  "count_all": 1
+                },
+                "column_relative_error_pct": {
+                  "count_all": 0.0
+                }
+              },
+              {
+                "pair_index": 2,
+                "alignment_key": [
+                  "bahamian"
+                ],
+                "gold_row": {
+                  "nationality": "bahamian",
+                  "count_all": 1
+                },
+                "pred_row": {
+                  "nationality": "bahamian",
+                  "count_all": 1
+                },
+                "column_relative_error_pct": {
+                  "count_all": 0.0
+                }
+              },
+              {
+                "pair_index": 3,
+                "alignment_key": [
+                  "dutch"
+                ],
+                "gold_row": {
+                  "nationality": "dutch",
+                  "count_all": 1
+                },
+                "pred_row": {
+                  "nationality": "dutch",
+                  "count_all": 1
+                },
+                "column_relative_error_pct": {
+                  "count_all": 0.0
+                }
+              },
+              {
+                "pair_index": 4,
+                "alignment_key": [
+                  "french"
+                ],
+                "gold_row": {
+                  "nationality": "french",
+                  "count_all": 1
+                },
+                "pred_row": {
+                  "nationality": "french",
+                  "count_all": 1
+                },
+                "column_relative_error_pct": {
+                  "count_all": 0.0
+                }
+              }
+            ],
+            "unmatched_gold_rows": [],
+            "unmatched_pred_rows": [],
+            "n_aligned_pairs": 5,
+            "n_unmatched_gold_rows": 0,
+            "n_unmatched_pred_rows": 0,
+            "mean_relative_error_pct": 22.222222222222218,
+            "macro_f1": 0.8863636363636362,
+            "macro_precision": 0.975,
+            "macro_recall": 0.8125,
+            "column_metrics": {
+              "nationality": {
+                "precision": 1.0,
+                "recall": 0.8333333333333334,
+                "f1": 0.9090909090909091
+              },
+              "count_all": {
+                "precision": 0.95,
+                "recall": 0.7916666666666666,
+                "f1": 0.8636363636363635
+              }
+            },
+            "alignment_keys": [
+              "nationality"
+            ],
+            "match_warnings": [
+              "Gold has duplicate keys for [('american',)]"
+            ]
+          }
+        },
+        {
+          "query_id": "agg_queries_3",
+          "corpus_infeasible": false,
+          "metadata": {
+            "query_id": "agg_queries_3",
+            "sql": "SELECT position, AVG(age) AS avg_age FROM player GROUP BY position;",
+            "slice_type": "agg_only",
+            "n_joins": 0,
+            "n_group_by_columns": 1,
+            "group_by_columns": [
+              "position"
+            ],
+            "n_aggregate_functions": 1,
+            "aggregate_functions": [
+              "AVG"
+            ],
+            "aggregates": [
+              {
+                "output_name": "avg_age",
+                "function": "AVG",
+                "source": "age"
+              }
+            ],
+            "n_where_conditions": 0,
+            "gold_result_row_count": 3
+          },
+          "results": {
+            "gold_result": [
+              {
+                "position": "Backcourt",
+                "avg_age": 47.625
+              },
+              {
+                "position": null,
+                "avg_age": 45.0
+              },
+              {
+                "position": "Frontcourt",
+                "avg_age": 63.1666666667
+              }
+            ],
+            "predicted_result": [
+              {
+                "position": null,
+                "avg_age": 45.0
+              },
+              {
+                "position": "backcourt",
+                "avg_age": 47.625
+              },
+              {
+                "position": "frontcourt",
+                "avg_age": 63.1666666667
+              }
+            ],
+            "aligned_pairs": [
+              {
+                "pair_index": 0,
+                "alignment_key": [
+                  ""
+                ],
+                "gold_row": {
+                  "position": "",
+                  "avg_age": 45.0
+                },
+                "pred_row": {
+                  "position": "",
+                  "avg_age": 45.0
+                },
+                "column_relative_error_pct": {
+                  "avg_age": 0.0
+                }
+              },
+              {
+                "pair_index": 1,
+                "alignment_key": [
+                  "backcourt"
+                ],
+                "gold_row": {
+                  "position": "backcourt",
+                  "avg_age": 47.625
+                },
+                "pred_row": {
+                  "position": "backcourt",
+                  "avg_age": 47.625
+                },
+                "column_relative_error_pct": {
+                  "avg_age": 0.0
+                }
+              },
+              {
+                "pair_index": 2,
+                "alignment_key": [
+                  "frontcourt"
+                ],
+                "gold_row": {
+                  "position": "frontcourt",
+                  "avg_age": 63.1666666667
+                },
+                "pred_row": {
+                  "position": "frontcourt",
+                  "avg_age": 63.1666666667
+                },
+                "column_relative_error_pct": {
+                  "avg_age": 0.0
+                }
+              }
+            ],
+            "unmatched_gold_rows": [],
+            "unmatched_pred_rows": [],
+            "n_aligned_pairs": 3,
+            "n_unmatched_gold_rows": 0,
+            "n_unmatched_pred_rows": 0,
+            "mean_relative_error_pct": 0.0,
+            "macro_f1": 1.0,
+            "macro_precision": 1.0,
+            "macro_recall": 1.0,
+            "column_metrics": {
+              "position": {
+                "precision": 1.0,
+                "recall": 1.0,
+                "f1": 1.0
+              },
+              "avg_age": {
+                "precision": 1.0,
+                "recall": 1.0,
+                "f1": 1.0
+              }
+            },
+            "alignment_keys": [
+              "position"
+            ],
+            "match_warnings": []
+          }
+        },
+        {
+          "query_id": "agg_queries_4",
+          "corpus_infeasible": false,
+          "metadata": {
+            "query_id": "agg_queries_4",
+            "sql": "SELECT nationality, MAX(age) AS max_age FROM player GROUP BY nationality;",
+            "slice_type": "agg_only",
+            "n_joins": 0,
+            "n_group_by_columns": 1,
+            "group_by_columns": [
+              "nationality"
+            ],
+            "n_aggregate_functions": 1,
+            "aggregate_functions": [
+              "MAX"
+            ],
+            "aggregates": [
+              {
+                "output_name": "max_age",
+                "function": "MAX",
+                "source": "age"
+              }
+            ],
+            "n_where_conditions": 0,
+            "gold_result_row_count": 6
+          },
+          "results": {
+            "gold_result": [
+              {
+                "nationality": "Dutch",
+                "max_age": 59
+              },
+              {
+                "nationality": "Bahamian",
+                "max_age": 33
+              },
+              {
+                "nationality": "American",
+                "max_age": 100
+              },
+              {
+                "nationality": "American",
+                "max_age": 37
+              },
+              {
+                "nationality": "French",
+                "max_age": 31
+              },
+              {
+                "nationality": "American-Venezuelan",
+                "max_age": 53
+              }
+            ],
+            "predicted_result": [
+              {
+                "nationality": "bahamian",
+                "max_age": 33
+              },
+              {
+                "nationality": "french",
+                "max_age": 31
+              },
+              {
+                "nationality": "dutch",
+                "max_age": 59
+              },
+              {
+                "nationality": "american",
+                "max_age": 100
+              },
+              {
+                "nationality": "american-venezuelan",
+                "max_age": 53
+              }
+            ],
+            "aligned_pairs": [
+              {
+                "pair_index": 0,
+                "alignment_key": [
+                  "american"
+                ],
+                "gold_row": {
+                  "nationality": "american",
+                  "max_age": 100
+                },
+                "pred_row": {
+                  "nationality": "american",
+                  "max_age": 100
+                },
+                "column_relative_error_pct": {
+                  "max_age": 0.0
+                }
+              },
+              {
+                "pair_index": 1,
+                "alignment_key": [
+                  "american-venezuelan"
+                ],
+                "gold_row": {
+                  "nationality": "american-venezuelan",
+                  "max_age": 53
+                },
+                "pred_row": {
+                  "nationality": "american-venezuelan",
+                  "max_age": 53
+                },
+                "column_relative_error_pct": {
+                  "max_age": 0.0
+                }
+              },
+              {
+                "pair_index": 2,
+                "alignment_key": [
+                  "bahamian"
+                ],
+                "gold_row": {
+                  "nationality": "bahamian",
+                  "max_age": 33
+                },
+                "pred_row": {
+                  "nationality": "bahamian",
+                  "max_age": 33
+                },
+                "column_relative_error_pct": {
+                  "max_age": 0.0
+                }
+              },
+              {
+                "pair_index": 3,
+                "alignment_key": [
+                  "dutch"
+                ],
+                "gold_row": {
+                  "nationality": "dutch",
+                  "max_age": 59
+                },
+                "pred_row": {
+                  "nationality": "dutch",
+                  "max_age": 59
+                },
+                "column_relative_error_pct": {
+                  "max_age": 0.0
+                }
+              },
+              {
+                "pair_index": 4,
+                "alignment_key": [
+                  "french"
+                ],
+                "gold_row": {
+                  "nationality": "french",
+                  "max_age": 31
+                },
+                "pred_row": {
+                  "nationality": "french",
+                  "max_age": 31
+                },
+                "column_relative_error_pct": {
+                  "max_age": 0.0
+                }
+              }
+            ],
+            "unmatched_gold_rows": [],
+            "unmatched_pred_rows": [],
+            "n_aligned_pairs": 5,
+            "n_unmatched_gold_rows": 0,
+            "n_unmatched_pred_rows": 0,
+            "mean_relative_error_pct": 16.666666666666668,
+            "macro_f1": 0.9090909090909091,
+            "macro_precision": 1.0,
+            "macro_recall": 0.8333333333333334,
+            "column_metrics": {
+              "nationality": {
+                "precision": 1.0,
+                "recall": 0.8333333333333334,
+                "f1": 0.9090909090909091
+              },
+              "max_age": {
+                "precision": 1.0,
+                "recall": 0.8333333333333334,
+                "f1": 0.9090909090909091
+              }
+            },
+            "alignment_keys": [
+              "nationality"
+            ],
+            "match_warnings": [
+              "Gold has duplicate keys for [('american',)]"
+            ]
+          }
+        },
+        {
+          "query_id": "agg_queries_5",
+          "corpus_infeasible": false,
+          "metadata": {
+            "query_id": "agg_queries_5",
+            "sql": "SELECT nationality, COUNT(*) AS count_all FROM player GROUP BY nationality;",
+            "slice_type": "agg_only",
+            "n_joins": 0,
+            "n_group_by_columns": 1,
+            "group_by_columns": [
+              "nationality"
+            ],
+            "n_aggregate_functions": 1,
+            "aggregate_functions": [
+              "COUNT"
+            ],
+            "aggregates": [
+              {
+                "output_name": "count_all",
+                "function": "COUNT",
+                "source": "count_all"
+              }
+            ],
+            "n_where_conditions": 0,
+            "gold_result_row_count": 6
+          },
+          "results": {
+            "gold_result": [
+              {
+                "nationality": "American",
+                "count_all": 12
+              },
+              {
+                "nationality": "Dutch",
+                "count_all": 1
+              },
+              {
+                "nationality": "Bahamian",
+                "count_all": 1
+              },
+              {
+                "nationality": "American",
+                "count_all": 4
+              },
+              {
+                "nationality": "French",
+                "count_all": 1
+              },
+              {
+                "nationality": "American-Venezuelan",
+                "count_all": 1
+              }
+            ],
+            "predicted_result": [
+              {
+                "nationality": "french",
+                "count_all": 1
+              },
+              {
+                "nationality": "american",
+                "count_all": 16
+              },
+              {
+                "nationality": "american-venezuelan",
+                "count_all": 1
+              },
+              {
+                "nationality": "bahamian",
+                "count_all": 1
+              },
+              {
+                "nationality": "dutch",
+                "count_all": 1
+              }
+            ],
+            "aligned_pairs": [
+              {
+                "pair_index": 0,
+                "alignment_key": [
+                  "american"
+                ],
+                "gold_row": {
+                  "nationality": "american",
+                  "count_all": 12
+                },
+                "pred_row": {
+                  "nationality": "american",
+                  "count_all": 16
+                },
+                "column_relative_error_pct": {
+                  "count_all": 33.33333333333333
+                }
+              },
+              {
+                "pair_index": 1,
+                "alignment_key": [
+                  "american-venezuelan"
+                ],
+                "gold_row": {
+                  "nationality": "american-venezuelan",
+                  "count_all": 1
+                },
+                "pred_row": {
+                  "nationality": "american-venezuelan",
+                  "count_all": 1
+                },
+                "column_relative_error_pct": {
+                  "count_all": 0.0
+                }
+              },
+              {
+                "pair_index": 2,
+                "alignment_key": [
+                  "bahamian"
+                ],
+                "gold_row": {
+                  "nationality": "bahamian",
+                  "count_all": 1
+                },
+                "pred_row": {
+                  "nationality": "bahamian",
+                  "count_all": 1
+                },
+                "column_relative_error_pct": {
+                  "count_all": 0.0
+                }
+              },
+              {
+                "pair_index": 3,
+                "alignment_key": [
+                  "dutch"
+                ],
+                "gold_row": {
+                  "nationality": "dutch",
+                  "count_all": 1
+                },
+                "pred_row": {
+                  "nationality": "dutch",
+                  "count_all": 1
+                },
+                "column_relative_error_pct": {
+                  "count_all": 0.0
+                }
+              },
+              {
+                "pair_index": 4,
+                "alignment_key": [
+                  "french"
+                ],
+                "gold_row": {
+                  "nationality": "french",
+                  "count_all": 1
+                },
+                "pred_row": {
+                  "nationality": "french",
+                  "count_all": 1
+                },
+                "column_relative_error_pct": {
+                  "count_all": 0.0
+                }
+              }
+            ],
+            "unmatched_gold_rows": [],
+            "unmatched_pred_rows": [],
+            "n_aligned_pairs": 5,
+            "n_unmatched_gold_rows": 0,
+            "n_unmatched_pred_rows": 0,
+            "mean_relative_error_pct": 22.222222222222218,
+            "macro_f1": 0.8863636363636362,
+            "macro_precision": 0.975,
+            "macro_recall": 0.8125,
+            "column_metrics": {
+              "nationality": {
+                "precision": 1.0,
+                "recall": 0.8333333333333334,
+                "f1": 0.9090909090909091
+              },
+              "count_all": {
+                "precision": 0.95,
+                "recall": 0.7916666666666666,
+                "f1": 0.8636363636363635
+              }
+            },
+            "alignment_keys": [
+              "nationality"
+            ],
+            "match_warnings": [
+              "Gold has duplicate keys for [('american',)]"
+            ]
+          }
+        },
+        {
+          "query_id": "agg_queries_6",
+          "corpus_infeasible": false,
+          "metadata": {
+            "query_id": "agg_queries_6",
+            "sql": "SELECT nationality, MIN(age) AS min_age FROM player GROUP BY nationality;",
+            "slice_type": "agg_only",
+            "n_joins": 0,
+            "n_group_by_columns": 1,
+            "group_by_columns": [
+              "nationality"
+            ],
+            "n_aggregate_functions": 1,
+            "aggregate_functions": [
+              "MIN"
+            ],
+            "aggregates": [
+              {
+                "output_name": "min_age",
+                "function": "MIN",
+                "source": "age"
+              }
+            ],
+            "n_where_conditions": 0,
+            "gold_result_row_count": 6
+          },
+          "results": {
+            "gold_result": [
+              {
+                "nationality": "Dutch",
+                "min_age": 59
+              },
+              {
+                "nationality": "Bahamian",
+                "min_age": 33
+              },
+              {
+                "nationality": "American",
+                "min_age": 34
+              },
+              {
+                "nationality": "American",
+                "min_age": 23
+              },
+              {
+                "nationality": "French",
+                "min_age": 31
+              },
+              {
+                "nationality": "American-Venezuelan",
+                "min_age": 53
+              }
+            ],
+            "predicted_result": [
+              {
+                "nationality": "bahamian",
+                "min_age": 33
+              },
+              {
+                "nationality": "french",
+                "min_age": 31
+              },
+              {
+                "nationality": "dutch",
+                "min_age": 59
+              },
+              {
+                "nationality": "american",
+                "min_age": 23
+              },
+              {
+                "nationality": "american-venezuelan",
+                "min_age": 53
+              }
+            ],
+            "aligned_pairs": [
+              {
+                "pair_index": 0,
+                "alignment_key": [
+                  "american"
+                ],
+                "gold_row": {
+                  "nationality": "american",
+                  "min_age": 34
+                },
+                "pred_row": {
+                  "nationality": "american",
+                  "min_age": 23
+                },
+                "column_relative_error_pct": {
+                  "min_age": 32.35294117647059
+                }
+              },
+              {
+                "pair_index": 1,
+                "alignment_key": [
+                  "american-venezuelan"
+                ],
+                "gold_row": {
+                  "nationality": "american-venezuelan",
+                  "min_age": 53
+                },
+                "pred_row": {
+                  "nationality": "american-venezuelan",
+                  "min_age": 53
+                },
+                "column_relative_error_pct": {
+                  "min_age": 0.0
+                }
+              },
+              {
+                "pair_index": 2,
+                "alignment_key": [
+                  "bahamian"
+                ],
+                "gold_row": {
+                  "nationality": "bahamian",
+                  "min_age": 33
+                },
+                "pred_row": {
+                  "nationality": "bahamian",
+                  "min_age": 33
+                },
+                "column_relative_error_pct": {
+                  "min_age": 0.0
+                }
+              },
+              {
+                "pair_index": 3,
+                "alignment_key": [
+                  "dutch"
+                ],
+                "gold_row": {
+                  "nationality": "dutch",
+                  "min_age": 59
+                },
+                "pred_row": {
+                  "nationality": "dutch",
+                  "min_age": 59
+                },
+                "column_relative_error_pct": {
+                  "min_age": 0.0
+                }
+              },
+              {
+                "pair_index": 4,
+                "alignment_key": [
+                  "french"
+                ],
+                "gold_row": {
+                  "nationality": "french",
+                  "min_age": 31
+                },
+                "pred_row": {
+                  "nationality": "french",
+                  "min_age": 31
+                },
+                "column_relative_error_pct": {
+                  "min_age": 0.0
+                }
+              }
+            ],
+            "unmatched_gold_rows": [],
+            "unmatched_pred_rows": [],
+            "n_aligned_pairs": 5,
+            "n_unmatched_gold_rows": 0,
+            "n_unmatched_pred_rows": 0,
+            "mean_relative_error_pct": 22.058823529411764,
+            "macro_f1": 0.8868686868686869,
+            "macro_precision": 0.9755555555555555,
+            "macro_recall": 0.812962962962963,
+            "column_metrics": {
+              "nationality": {
+                "precision": 1.0,
+                "recall": 0.8333333333333334,
+                "f1": 0.9090909090909091
+              },
+              "min_age": {
+                "precision": 0.9511111111111111,
+                "recall": 0.7925925925925926,
+                "f1": 0.8646464646464648
+              }
+            },
+            "alignment_keys": [
+              "nationality"
+            ],
+            "match_warnings": [
+              "Gold has duplicate keys for [('american',)]"
+            ]
+          }
+        },
+        {
+          "query_id": "agg_queries_7",
+          "corpus_infeasible": false,
+          "metadata": {
+            "query_id": "agg_queries_7",
+            "sql": "SELECT nationality, AVG(age) AS avg_age FROM player GROUP BY nationality;",
+            "slice_type": "agg_only",
+            "n_joins": 0,
+            "n_group_by_columns": 1,
+            "group_by_columns": [
+              "nationality"
+            ],
+            "n_aggregate_functions": 1,
+            "aggregate_functions": [
+              "AVG"
+            ],
+            "aggregates": [
+              {
+                "output_name": "avg_age",
+                "function": "AVG",
+                "source": "age"
+              }
+            ],
+            "n_where_conditions": 0,
+            "gold_result_row_count": 6
+          },
+          "results": {
+            "gold_result": [
+              {
+                "nationality": "American",
+                "avg_age": 61.4166666667
+              },
+              {
+                "nationality": "Dutch",
+                "avg_age": 59.0
+              },
+              {
+                "nationality": "Bahamian",
+                "avg_age": 33.0
+              },
+              {
+                "nationality": "French",
+                "avg_age": 31.0
+              },
+              {
+                "nationality": "American-Venezuelan",
+                "avg_age": 53.0
+              },
+              {
+                "nationality": "American",
+                "avg_age": 29.25
+              }
+            ],
+            "predicted_result": [
+              {
+                "nationality": "bahamian",
+                "avg_age": 33.0
+              },
+              {
+                "nationality": "french",
+                "avg_age": 31.0
+              },
+              {
+                "nationality": "american",
+                "avg_age": 53.375
+              },
+              {
+                "nationality": "american-venezuelan",
+                "avg_age": 53.0
+              },
+              {
+                "nationality": "dutch",
+                "avg_age": 59.0
+              }
+            ],
+            "aligned_pairs": [
+              {
+                "pair_index": 0,
+                "alignment_key": [
+                  "american"
+                ],
+                "gold_row": {
+                  "nationality": "american",
+                  "avg_age": 61.4166666667
+                },
+                "pred_row": {
+                  "nationality": "american",
+                  "avg_age": 53.375
+                },
+                "column_relative_error_pct": {
+                  "avg_age": 13.093622795115328
+                }
+              },
+              {
+                "pair_index": 1,
+                "alignment_key": [
+                  "american-venezuelan"
+                ],
+                "gold_row": {
+                  "nationality": "american-venezuelan",
+                  "avg_age": 53.0
+                },
+                "pred_row": {
+                  "nationality": "american-venezuelan",
+                  "avg_age": 53.0
+                },
+                "column_relative_error_pct": {
+                  "avg_age": 0.0
+                }
+              },
+              {
+                "pair_index": 2,
+                "alignment_key": [
+                  "bahamian"
+                ],
+                "gold_row": {
+                  "nationality": "bahamian",
+                  "avg_age": 33.0
+                },
+                "pred_row": {
+                  "nationality": "bahamian",
+                  "avg_age": 33.0
+                },
+                "column_relative_error_pct": {
+                  "avg_age": 0.0
+                }
+              },
+              {
+                "pair_index": 3,
+                "alignment_key": [
+                  "dutch"
+                ],
+                "gold_row": {
+                  "nationality": "dutch",
+                  "avg_age": 59.0
+                },
+                "pred_row": {
+                  "nationality": "dutch",
+                  "avg_age": 59.0
+                },
+                "column_relative_error_pct": {
+                  "avg_age": 0.0
+                }
+              },
+              {
+                "pair_index": 4,
+                "alignment_key": [
+                  "french"
+                ],
+                "gold_row": {
+                  "nationality": "french",
+                  "avg_age": 31.0
+                },
+                "pred_row": {
+                  "nationality": "french",
+                  "avg_age": 31.0
+                },
+                "column_relative_error_pct": {
+                  "avg_age": 0.0
+                }
+              }
+            ],
+            "unmatched_gold_rows": [],
+            "unmatched_pred_rows": [],
+            "n_aligned_pairs": 5,
+            "n_unmatched_gold_rows": 0,
+            "n_unmatched_pred_rows": 0,
+            "mean_relative_error_pct": 18.84893713251922,
+            "macro_f1": 0.898565741397175,
+            "macro_precision": 0.9884223155368926,
+            "macro_recall": 0.8236852629474105,
+            "column_metrics": {
+              "nationality": {
+                "precision": 1.0,
+                "recall": 0.8333333333333334,
+                "f1": 0.9090909090909091
+              },
+              "avg_age": {
+                "precision": 0.9768446310737853,
+                "recall": 0.8140371925614877,
+                "f1": 0.888040573703441
+              }
+            },
+            "alignment_keys": [
+              "nationality"
+            ],
+            "match_warnings": [
+              "Gold has duplicate keys for [('american',)]"
+            ]
+          }
+        },
+        {
+          "query_id": "agg_subsample_1",
+          "corpus_infeasible": false,
+          "metadata": {
+            "query_id": "agg_subsample_1",
+            "sql": "SELECT position, MIN(olympic_gold_medals) AS min_olympic_gold_medals FROM player GROUP BY position;",
+            "slice_type": "agg_only",
+            "n_joins": 0,
+            "n_group_by_columns": 1,
+            "group_by_columns": [
+              "position"
+            ],
+            "n_aggregate_functions": 1,
+            "aggregate_functions": [
+              "MIN"
+            ],
+            "aggregates": [
+              {
+                "output_name": "min_olympic_gold_medals",
+                "function": "MIN",
+                "source": "olympic_gold_medals"
+              }
+            ],
+            "n_where_conditions": 0,
+            "gold_result_row_count": 3
+          },
+          "results": {
+            "gold_result": [
+              {
+                "position": "Backcourt",
+                "min_olympic_gold_medals": 0.0
+              },
+              {
+                "position": null,
+                "min_olympic_gold_medals": 0.0
+              },
+              {
+                "position": "Frontcourt",
+                "min_olympic_gold_medals": 0.0
+              }
+            ],
+            "predicted_result": [
+              {
+                "position": null,
+                "min_olympic_gold_medals": 0.0
+              },
+              {
+                "position": "backcourt",
+                "min_olympic_gold_medals": 0.0
+              },
+              {
+                "position": "frontcourt",
+                "min_olympic_gold_medals": 0.0
+              }
+            ],
+            "aligned_pairs": [
+              {
+                "pair_index": 0,
+                "alignment_key": [
+                  ""
+                ],
+                "gold_row": {
+                  "position": "",
+                  "min_olympic_gold_medals": 0.0
+                },
+                "pred_row": {
+                  "position": "",
+                  "min_olympic_gold_medals": 0.0
+                },
+                "column_relative_error_pct": {
+                  "min_olympic_gold_medals": 0.0
+                }
+              },
+              {
+                "pair_index": 1,
+                "alignment_key": [
+                  "backcourt"
+                ],
+                "gold_row": {
+                  "position": "backcourt",
+                  "min_olympic_gold_medals": 0.0
+                },
+                "pred_row": {
+                  "position": "backcourt",
+                  "min_olympic_gold_medals": 0.0
+                },
+                "column_relative_error_pct": {
+                  "min_olympic_gold_medals": 0.0
+                }
+              },
+              {
+                "pair_index": 2,
+                "alignment_key": [
+                  "frontcourt"
+                ],
+                "gold_row": {
+                  "position": "frontcourt",
+                  "min_olympic_gold_medals": 0.0
+                },
+                "pred_row": {
+                  "position": "frontcourt",
+                  "min_olympic_gold_medals": 0.0
+                },
+                "column_relative_error_pct": {
+                  "min_olympic_gold_medals": 0.0
+                }
+              }
+            ],
+            "unmatched_gold_rows": [],
+            "unmatched_pred_rows": [],
+            "n_aligned_pairs": 3,
+            "n_unmatched_gold_rows": 0,
+            "n_unmatched_pred_rows": 0,
+            "mean_relative_error_pct": 0.0,
+            "macro_f1": 1.0,
+            "macro_precision": 1.0,
+            "macro_recall": 1.0,
+            "column_metrics": {
+              "position": {
+                "precision": 1.0,
+                "recall": 1.0,
+                "f1": 1.0
+              },
+              "min_olympic_gold_medals": {
+                "precision": 1.0,
+                "recall": 1.0,
+                "f1": 1.0
+              }
+            },
+            "alignment_keys": [
+              "position"
+            ],
+            "match_warnings": []
+          }
+        },
+        {
+          "query_id": "agg_subsample_2",
+          "corpus_infeasible": false,
+          "metadata": {
+            "query_id": "agg_subsample_2",
+            "sql": "SELECT nationality, COUNT(*) AS count_all FROM player GROUP BY nationality;",
+            "slice_type": "agg_only",
+            "n_joins": 0,
+            "n_group_by_columns": 1,
+            "group_by_columns": [
+              "nationality"
+            ],
+            "n_aggregate_functions": 1,
+            "aggregate_functions": [
+              "COUNT"
+            ],
+            "aggregates": [
+              {
+                "output_name": "count_all",
+                "function": "COUNT",
+                "source": "count_all"
+              }
+            ],
+            "n_where_conditions": 0,
+            "gold_result_row_count": 6
+          },
+          "results": {
+            "gold_result": [
+              {
+                "nationality": "American",
+                "count_all": 12
+              },
+              {
+                "nationality": "American",
+                "count_all": 4
+              },
+              {
+                "nationality": "Dutch",
+                "count_all": 1
+              },
+              {
+                "nationality": "Bahamian",
+                "count_all": 1
+              },
+              {
+                "nationality": "French",
+                "count_all": 1
+              },
+              {
+                "nationality": "American-Venezuelan",
+                "count_all": 1
+              }
+            ],
+            "predicted_result": [
+              {
+                "nationality": "bahamian",
+                "count_all": 1
+              },
+              {
+                "nationality": "french",
+                "count_all": 1
+              },
+              {
+                "nationality": "dutch",
+                "count_all": 1
+              },
+              {
+                "nationality": "american",
+                "count_all": 16
+              },
+              {
+                "nationality": "american-venezuelan",
+                "count_all": 1
+              }
+            ],
+            "aligned_pairs": [
+              {
+                "pair_index": 0,
+                "alignment_key": [
+                  "american"
+                ],
+                "gold_row": {
+                  "nationality": "american",
+                  "count_all": 12
+                },
+                "pred_row": {
+                  "nationality": "american",
+                  "count_all": 16
+                },
+                "column_relative_error_pct": {
+                  "count_all": 33.33333333333333
+                }
+              },
+              {
+                "pair_index": 1,
+                "alignment_key": [
+                  "american-venezuelan"
+                ],
+                "gold_row": {
+                  "nationality": "american-venezuelan",
+                  "count_all": 1
+                },
+                "pred_row": {
+                  "nationality": "american-venezuelan",
+                  "count_all": 1
+                },
+                "column_relative_error_pct": {
+                  "count_all": 0.0
+                }
+              },
+              {
+                "pair_index": 2,
+                "alignment_key": [
+                  "bahamian"
+                ],
+                "gold_row": {
+                  "nationality": "bahamian",
+                  "count_all": 1
+                },
+                "pred_row": {
+                  "nationality": "bahamian",
+                  "count_all": 1
+                },
+                "column_relative_error_pct": {
+                  "count_all": 0.0
+                }
+              },
+              {
+                "pair_index": 3,
+                "alignment_key": [
+                  "dutch"
+                ],
+                "gold_row": {
+                  "nationality": "dutch",
+                  "count_all": 1
+                },
+                "pred_row": {
+                  "nationality": "dutch",
+                  "count_all": 1
+                },
+                "column_relative_error_pct": {
+                  "count_all": 0.0
+                }
+              },
+              {
+                "pair_index": 4,
+                "alignment_key": [
+                  "french"
+                ],
+                "gold_row": {
+                  "nationality": "french",
+                  "count_all": 1
+                },
+                "pred_row": {
+                  "nationality": "french",
+                  "count_all": 1
+                },
+                "column_relative_error_pct": {
+                  "count_all": 0.0
+                }
+              }
+            ],
+            "unmatched_gold_rows": [],
+            "unmatched_pred_rows": [],
+            "n_aligned_pairs": 5,
+            "n_unmatched_gold_rows": 0,
+            "n_unmatched_pred_rows": 0,
+            "mean_relative_error_pct": 22.222222222222218,
+            "macro_f1": 0.8863636363636362,
+            "macro_precision": 0.975,
+            "macro_recall": 0.8125,
+            "column_metrics": {
+              "nationality": {
+                "precision": 1.0,
+                "recall": 0.8333333333333334,
+                "f1": 0.9090909090909091
+              },
+              "count_all": {
+                "precision": 0.95,
+                "recall": 0.7916666666666666,
+                "f1": 0.8636363636363635
+              }
+            },
+            "alignment_keys": [
+              "nationality"
+            ],
+            "match_warnings": [
+              "Gold has duplicate keys for [('american',)]"
+            ]
+          }
+        },
+        {
+          "query_id": "agg_subsample_3",
+          "corpus_infeasible": false,
+          "metadata": {
+            "query_id": "agg_subsample_3",
+            "sql": "SELECT position, AVG(age) AS avg_age FROM player GROUP BY position;",
+            "slice_type": "agg_only",
+            "n_joins": 0,
+            "n_group_by_columns": 1,
+            "group_by_columns": [
+              "position"
+            ],
+            "n_aggregate_functions": 1,
+            "aggregate_functions": [
+              "AVG"
+            ],
+            "aggregates": [
+              {
+                "output_name": "avg_age",
+                "function": "AVG",
+                "source": "age"
+              }
+            ],
+            "n_where_conditions": 0,
+            "gold_result_row_count": 3
+          },
+          "results": {
+            "gold_result": [
+              {
+                "position": "Frontcourt",
+                "avg_age": 63.1666666667
+              },
+              {
+                "position": "Backcourt",
+                "avg_age": 47.625
+              },
+              {
+                "position": null,
+                "avg_age": 45.0
+              }
+            ],
+            "predicted_result": [
+              {
+                "position": null,
+                "avg_age": 45.0
+              },
+              {
+                "position": "backcourt",
+                "avg_age": 47.625
+              },
+              {
+                "position": "frontcourt",
+                "avg_age": 63.1666666667
+              }
+            ],
+            "aligned_pairs": [
+              {
+                "pair_index": 0,
+                "alignment_key": [
+                  ""
+                ],
+                "gold_row": {
+                  "position": "",
+                  "avg_age": 45.0
+                },
+                "pred_row": {
+                  "position": "",
+                  "avg_age": 45.0
+                },
+                "column_relative_error_pct": {
+                  "avg_age": 0.0
+                }
+              },
+              {
+                "pair_index": 1,
+                "alignment_key": [
+                  "backcourt"
+                ],
+                "gold_row": {
+                  "position": "backcourt",
+                  "avg_age": 47.625
+                },
+                "pred_row": {
+                  "position": "backcourt",
+                  "avg_age": 47.625
+                },
+                "column_relative_error_pct": {
+                  "avg_age": 0.0
+                }
+              },
+              {
+                "pair_index": 2,
+                "alignment_key": [
+                  "frontcourt"
+                ],
+                "gold_row": {
+                  "position": "frontcourt",
+                  "avg_age": 63.1666666667
+                },
+                "pred_row": {
+                  "position": "frontcourt",
+                  "avg_age": 63.1666666667
+                },
+                "column_relative_error_pct": {
+                  "avg_age": 0.0
+                }
+              }
+            ],
+            "unmatched_gold_rows": [],
+            "unmatched_pred_rows": [],
+            "n_aligned_pairs": 3,
+            "n_unmatched_gold_rows": 0,
+            "n_unmatched_pred_rows": 0,
+            "mean_relative_error_pct": 0.0,
+            "macro_f1": 1.0,
+            "macro_precision": 1.0,
+            "macro_recall": 1.0,
+            "column_metrics": {
+              "position": {
+                "precision": 1.0,
+                "recall": 1.0,
+                "f1": 1.0
+              },
+              "avg_age": {
+                "precision": 1.0,
+                "recall": 1.0,
+                "f1": 1.0
+              }
+            },
+            "alignment_keys": [
+              "position"
+            ],
+            "match_warnings": []
+          }
+        }
+      ]
+    },
+    "agg_filter": {
+      "slice": "agg_filter",
+      "evaluation_mode": "fixed_baseline",
+      "algorithm_selection": null,
+      "n_queries": 9,
+      "n_corpus_infeasible": 2,
+      "extraction_source": "slice_cache",
+      "agent_source": null,
+      "slice_summary": {
+        "n_queries": 7,
+        "per_query_mean_relative_error_pct": [
+          {
+            "query_id": "mixed_queries_filter_agg_3",
+            "mean_relative_error_pct": 81.8182
+          },
+          {
+            "query_id": "mixed_queries_filter_agg_5",
+            "mean_relative_error_pct": 100.0
+          },
+          {
+            "query_id": "mixed_queries_filter_agg_6",
+            "mean_relative_error_pct": 33.3333
+          },
+          {
+            "query_id": "mixed_queries_filter_agg_player_1",
+            "mean_relative_error_pct": 55.5556
+          },
+          {
+            "query_id": "mixed_queries_filter_agg_player_3",
+            "mean_relative_error_pct": 81.8182
+          },
+          {
+            "query_id": "mixed_queries_filter_agg_player_5",
+            "mean_relative_error_pct": 66.6667
+          },
+          {
+            "query_id": "mixed_queries_filter_agg_player_6",
+            "mean_relative_error_pct": 60.0
+          }
+        ],
+        "relative_error_pct_array": [
+          81.8182,
+          100.0,
+          33.3333,
+          55.5556,
+          81.8182,
+          66.6667,
+          60.0
+        ],
+        "relative_error": {
+          "mean": 68.45598845598846,
+          "max": 100.0,
+          "min": 33.333333333333336,
+          "std": 21.70579251529845
+        },
+        "macro_f1": {
+          "mean": 0.4822431536717251,
+          "max": 0.8,
+          "min": 0.25,
+          "std": 0.19744582734978683
+        },
+        "macro_precision": {
+          "mean": 0.9007936507936508,
+          "max": 1.0,
+          "min": 0.75,
+          "std": 0.10948714016921743
+        },
+        "macro_recall": {
+          "mean": 0.3486424394319131,
+          "max": 0.6666666666666666,
+          "min": 0.15000000000000002,
+          "std": 0.18484092052920706
+        }
+      },
+      "agent_pipeline": null,
+      "queries": [
+        {
+          "query_id": "mixed_queries_filter_agg_3",
+          "corpus_infeasible": false,
+          "metadata": {
+            "query_id": "mixed_queries_filter_agg_3",
+            "sql": "SELECT nationality, COUNT(*) AS count_all FROM player WHERE name = 'Antonius Cleveland' OR nba_championships >= 0 GROUP BY nationality;",
+            "slice_type": "agg_filter",
+            "n_joins": 0,
+            "n_group_by_columns": 1,
+            "group_by_columns": [
+              "nationality"
+            ],
+            "n_aggregate_functions": 1,
+            "aggregate_functions": [
+              "COUNT"
+            ],
+            "aggregates": [
+              {
+                "output_name": "count_all",
+                "function": "COUNT",
+                "source": "count_all"
+              }
+            ],
+            "n_where_conditions": 2,
+            "gold_result_row_count": 5
+          },
+          "results": {
+            "gold_result": [
+              {
+                "nationality": "Mexican-American",
+                "count_all": 1
+              },
+              {
+                "nationality": "American",
+                "count_all": 11
+              },
+              {
+                "nationality": "French",
+                "count_all": 1
+              },
+              {
+                "nationality": "Serbian",
+                "count_all": 1
+              },
+              {
+                "nationality": "American",
+                "count_all": 6
+              }
+            ],
+            "predicted_result": [
+              {
+                "nationality": "american",
+                "count_all": 10
+              }
+            ],
+            "aligned_pairs": [
+              {
+                "pair_index": 0,
+                "alignment_key": [
+                  "american"
+                ],
+                "gold_row": {
+                  "nationality": "american",
+                  "count_all": 11
+                },
+                "pred_row": {
+                  "nationality": "american",
+                  "count_all": 10
+                },
+                "column_relative_error_pct": {
+                  "count_all": 9.090909090909092
+                }
+              }
+            ],
+            "unmatched_gold_rows": [
+              {
+                "nationality": "mexican-american",
+                "count_all": 1
+              },
+              {
+                "nationality": "french",
+                "count_all": 1
+              },
+              {
+                "nationality": "serbian",
+                "count_all": 1
+              }
+            ],
+            "unmatched_pred_rows": [],
+            "n_aligned_pairs": 1,
+            "n_unmatched_gold_rows": 3,
+            "n_unmatched_pred_rows": 0,
+            "mean_relative_error_pct": 81.81818181818181,
+            "macro_f1": 0.3194444444444445,
+            "macro_precision": 0.9583333333333334,
+            "macro_recall": 0.19166666666666668,
+            "column_metrics": {
+              "nationality": {
+                "precision": 1.0,
+                "recall": 0.2,
+                "f1": 0.33333333333333337
+              },
+              "count_all": {
+                "precision": 0.9166666666666667,
+                "recall": 0.18333333333333335,
+                "f1": 0.3055555555555556
+              }
+            },
+            "alignment_keys": [
+              "nationality"
+            ],
+            "match_warnings": [
+              "Gold has duplicate keys for [('american',)]"
+            ]
+          }
+        },
+        {
+          "query_id": "mixed_queries_filter_agg_5",
+          "corpus_infeasible": false,
+          "metadata": {
+            "query_id": "mixed_queries_filter_agg_5",
+            "sql": "SELECT nationality, AVG(fiba_world_cup) AS avg_fiba_world_cup FROM player WHERE team = 'New York Knicks  ' OR nba_championships <= 0 OR fiba_world_cup < 0 GROUP BY nationality;",
+            "slice_type": "agg_filter",
+            "n_joins": 0,
+            "n_group_by_columns": 1,
+            "group_by_columns": [
+              "nationality"
+            ],
+            "n_aggregate_functions": 1,
+            "aggregate_functions": [
+              "AVG"
+            ],
+            "aggregates": [
+              {
+                "output_name": "avg_fiba_world_cup",
+                "function": "AVG",
+                "source": "fiba_world_cup"
+              }
+            ],
+            "n_where_conditions": 3,
+            "gold_result_row_count": 5
+          },
+          "results": {
+            "gold_result": [
+              {
+                "nationality": "Mexican-American",
+                "avg_fiba_world_cup": 0.0
+              },
+              {
+                "nationality": "American",
+                "avg_fiba_world_cup": 0.125
+              },
+              {
+                "nationality": "Serbian",
+                "avg_fiba_world_cup": 0.0
+              },
+              {
+                "nationality": "American",
+                "avg_fiba_world_cup": 0.0
+              },
+              {
+                "nationality": "French",
+                "avg_fiba_world_cup": 0.0
+              }
+            ],
+            "predicted_result": [
+              {
+                "nationality": "american",
+                "avg_fiba_world_cup": 0.0
+              }
+            ],
+            "aligned_pairs": [
+              {
+                "pair_index": 0,
+                "alignment_key": [
+                  "american"
+                ],
+                "gold_row": {
+                  "nationality": "american",
+                  "avg_fiba_world_cup": 0.125
+                },
+                "pred_row": {
+                  "nationality": "american",
+                  "avg_fiba_world_cup": 0.0
+                },
+                "column_relative_error_pct": {
+                  "avg_fiba_world_cup": 100.0
+                }
+              }
+            ],
+            "unmatched_gold_rows": [
+              {
+                "nationality": "mexican-american",
+                "avg_fiba_world_cup": 0.0
+              },
+              {
+                "nationality": "serbian",
+                "avg_fiba_world_cup": 0.0
+              },
+              {
+                "nationality": "french",
+                "avg_fiba_world_cup": 0.0
+              }
+            ],
+            "unmatched_pred_rows": [],
+            "n_aligned_pairs": 1,
+            "n_unmatched_gold_rows": 3,
+            "n_unmatched_pred_rows": 0,
+            "mean_relative_error_pct": 100.0,
+            "macro_f1": 0.25,
+            "macro_precision": 0.75,
+            "macro_recall": 0.15000000000000002,
+            "column_metrics": {
+              "nationality": {
+                "precision": 1.0,
+                "recall": 0.2,
+                "f1": 0.33333333333333337
+              },
+              "avg_fiba_world_cup": {
+                "precision": 0.5,
+                "recall": 0.1,
+                "f1": 0.16666666666666669
+              }
+            },
+            "alignment_keys": [
+              "nationality"
+            ],
+            "match_warnings": [
+              "Gold has duplicate keys for [('american',)]"
+            ]
+          }
+        },
+        {
+          "query_id": "mixed_queries_filter_agg_6",
+          "corpus_infeasible": false,
+          "metadata": {
+            "query_id": "mixed_queries_filter_agg_6",
+            "sql": "SELECT position, MIN(fiba_world_cup) AS min_fiba_world_cup FROM player WHERE (fiba_world_cup < 0 AND mvp_awards <= 0) OR (age < 91 AND fiba_world_cup >= 0) GROUP BY position;",
+            "slice_type": "agg_filter",
+            "n_joins": 0,
+            "n_group_by_columns": 1,
+            "group_by_columns": [
+              "position"
+            ],
+            "n_aggregate_functions": 1,
+            "aggregate_functions": [
+              "MIN"
+            ],
+            "aggregates": [
+              {
+                "output_name": "min_fiba_world_cup",
+                "function": "MIN",
+                "source": "fiba_world_cup"
+              }
+            ],
+            "n_where_conditions": 4,
+            "gold_result_row_count": 3
+          },
+          "results": {
+            "gold_result": [
+              {
+                "position": "Backcourt",
+                "min_fiba_world_cup": 0.0
+              },
+              {
+                "position": null,
+                "min_fiba_world_cup": 0.0
+              },
+              {
+                "position": "Frontcourt",
+                "min_fiba_world_cup": 0.0
+              }
+            ],
+            "predicted_result": [
+              {
+                "position": null,
+                "min_fiba_world_cup": 0.0
+              },
+              {
+                "position": "frontcourt",
+                "min_fiba_world_cup": 0.0
+              }
+            ],
+            "aligned_pairs": [
+              {
+                "pair_index": 0,
+                "alignment_key": [
+                  ""
+                ],
+                "gold_row": {
+                  "position": "",
+                  "min_fiba_world_cup": 0.0
+                },
+                "pred_row": {
+                  "position": "",
+                  "min_fiba_world_cup": 0.0
+                },
+                "column_relative_error_pct": {
+                  "min_fiba_world_cup": 0.0
+                }
+              },
+              {
+                "pair_index": 1,
+                "alignment_key": [
+                  "frontcourt"
+                ],
+                "gold_row": {
+                  "position": "frontcourt",
+                  "min_fiba_world_cup": 0.0
+                },
+                "pred_row": {
+                  "position": "frontcourt",
+                  "min_fiba_world_cup": 0.0
+                },
+                "column_relative_error_pct": {
+                  "min_fiba_world_cup": 0.0
+                }
+              }
+            ],
+            "unmatched_gold_rows": [
+              {
+                "position": "backcourt",
+                "min_fiba_world_cup": 0.0
+              }
+            ],
+            "unmatched_pred_rows": [],
+            "n_aligned_pairs": 2,
+            "n_unmatched_gold_rows": 1,
+            "n_unmatched_pred_rows": 0,
+            "mean_relative_error_pct": 33.333333333333336,
+            "macro_f1": 0.8,
+            "macro_precision": 1.0,
+            "macro_recall": 0.6666666666666666,
+            "column_metrics": {
+              "position": {
+                "precision": 1.0,
+                "recall": 0.6666666666666666,
+                "f1": 0.8
+              },
+              "min_fiba_world_cup": {
+                "precision": 1.0,
+                "recall": 0.6666666666666666,
+                "f1": 0.8
+              }
+            },
+            "alignment_keys": [
+              "position"
+            ],
+            "match_warnings": []
+          }
+        },
+        {
+          "query_id": "mixed_queries_filter_agg_player_1",
+          "corpus_infeasible": false,
+          "metadata": {
+            "query_id": "mixed_queries_filter_agg_player_1",
+            "sql": "SELECT team, MIN(olympic_gold_medals) AS min_olympic_gold_medals FROM player WHERE draft_pick < 1 GROUP BY team;",
+            "slice_type": "agg_filter",
+            "n_joins": 0,
+            "n_group_by_columns": 1,
+            "group_by_columns": [
+              "team"
+            ],
+            "n_aggregate_functions": 1,
+            "aggregate_functions": [
+              "MIN"
+            ],
+            "aggregates": [
+              {
+                "output_name": "min_olympic_gold_medals",
+                "function": "MIN",
+                "source": "olympic_gold_medals"
+              }
+            ],
+            "n_where_conditions": 1,
+            "gold_result_row_count": 9
+          },
+          "results": {
+            "gold_result": [
+              {
+                "team": "Washington Bullets",
+                "min_olympic_gold_medals": 0.0
+              },
+              {
+                "team": "Bursaspor Basketbol",
+                "min_olympic_gold_medals": 0.0
+              },
+              {
+                "team": "Philadelphia 76ers",
+                "min_olympic_gold_medals": 0.0
+              },
+              {
+                "team": "Santa Cruz Warriors",
+                "min_olympic_gold_medals": 0.0
+              },
+              {
+                "team": "HTV Basket",
+                "min_olympic_gold_medals": 0.0
+              },
+              {
+                "team": "Grand Rapids Hoops",
+                "min_olympic_gold_medals": 0.0
+              },
+              {
+                "team": "Milwaukee Bucks",
+                "min_olympic_gold_medals": 0.0
+              },
+              {
+                "team": "Sacramento Kings",
+                "min_olympic_gold_medals": 0.0
+              },
+              {
+                "team": "Memphis Grizzlies",
+                "min_olympic_gold_medals": 0.0
+              }
+            ],
+            "predicted_result": [
+              {
+                "team": "philadelphia 76ers",
+                "min_olympic_gold_medals": 0.0
+              },
+              {
+                "team": "htv basket",
+                "min_olympic_gold_medals": 0.0
+              },
+              {
+                "team": "memphis grizzlies",
+                "min_olympic_gold_medals": 0.0
+              },
+              {
+                "team": "washington bullets",
+                "min_olympic_gold_medals": 0.0
+              }
+            ],
+            "aligned_pairs": [
+              {
+                "pair_index": 0,
+                "alignment_key": [
+                  "htv basket"
+                ],
+                "gold_row": {
+                  "team": "htv basket",
+                  "min_olympic_gold_medals": 0.0
+                },
+                "pred_row": {
+                  "team": "htv basket",
+                  "min_olympic_gold_medals": 0.0
+                },
+                "column_relative_error_pct": {
+                  "min_olympic_gold_medals": 0.0
+                }
+              },
+              {
+                "pair_index": 1,
+                "alignment_key": [
+                  "memphis grizzlies"
+                ],
+                "gold_row": {
+                  "team": "memphis grizzlies",
+                  "min_olympic_gold_medals": 0.0
+                },
+                "pred_row": {
+                  "team": "memphis grizzlies",
+                  "min_olympic_gold_medals": 0.0
+                },
+                "column_relative_error_pct": {
+                  "min_olympic_gold_medals": 0.0
+                }
+              },
+              {
+                "pair_index": 2,
+                "alignment_key": [
+                  "philadelphia 76ers"
+                ],
+                "gold_row": {
+                  "team": "philadelphia 76ers",
+                  "min_olympic_gold_medals": 0.0
+                },
+                "pred_row": {
+                  "team": "philadelphia 76ers",
+                  "min_olympic_gold_medals": 0.0
+                },
+                "column_relative_error_pct": {
+                  "min_olympic_gold_medals": 0.0
+                }
+              },
+              {
+                "pair_index": 3,
+                "alignment_key": [
+                  "washington bullets"
+                ],
+                "gold_row": {
+                  "team": "washington bullets",
+                  "min_olympic_gold_medals": 0.0
+                },
+                "pred_row": {
+                  "team": "washington bullets",
+                  "min_olympic_gold_medals": 0.0
+                },
+                "column_relative_error_pct": {
+                  "min_olympic_gold_medals": 0.0
+                }
+              }
+            ],
+            "unmatched_gold_rows": [
+              {
+                "team": "bursaspor basketbol",
+                "min_olympic_gold_medals": 0.0
+              },
+              {
+                "team": "santa cruz warriors",
+                "min_olympic_gold_medals": 0.0
+              },
+              {
+                "team": "grand rapids hoops",
+                "min_olympic_gold_medals": 0.0
+              },
+              {
+                "team": "milwaukee bucks",
+                "min_olympic_gold_medals": 0.0
+              },
+              {
+                "team": "sacramento kings",
+                "min_olympic_gold_medals": 0.0
+              }
+            ],
+            "unmatched_pred_rows": [],
+            "n_aligned_pairs": 4,
+            "n_unmatched_gold_rows": 5,
+            "n_unmatched_pred_rows": 0,
+            "mean_relative_error_pct": 55.55555555555556,
+            "macro_f1": 0.6153846153846153,
+            "macro_precision": 1.0,
+            "macro_recall": 0.4444444444444444,
+            "column_metrics": {
+              "team": {
+                "precision": 1.0,
+                "recall": 0.4444444444444444,
+                "f1": 0.6153846153846153
+              },
+              "min_olympic_gold_medals": {
+                "precision": 1.0,
+                "recall": 0.4444444444444444,
+                "f1": 0.6153846153846153
+              }
+            },
+            "alignment_keys": [
+              "team"
+            ],
+            "match_warnings": []
+          }
+        },
+        {
+          "query_id": "mixed_queries_filter_agg_player_2",
+          "corpus_infeasible": true,
+          "missing_corpus_literals": [
+            "German"
+          ],
+          "metadata": {
+            "query_id": "mixed_queries_filter_agg_player_2",
+            "sql": "SELECT nationality, SUM(olympic_gold_medals) AS sum_olympic_gold_medals FROM player WHERE nationality = 'German' AND olympic_gold_medals <= 0 GROUP BY nationality;",
+            "slice_type": "agg_filter",
+            "n_joins": 0,
+            "n_group_by_columns": 1,
+            "group_by_columns": [
+              "nationality"
+            ],
+            "n_aggregate_functions": 1,
+            "aggregate_functions": [
+              "SUM"
+            ],
+            "aggregates": [
+              {
+                "output_name": "sum_olympic_gold_medals",
+                "function": "SUM",
+                "source": "olympic_gold_medals"
+              }
+            ],
+            "n_where_conditions": 2,
+            "gold_result_row_count": 0
+          },
+          "results": {
+            "gold_result": [],
+            "predicted_result": [],
+            "aligned_pairs": [],
+            "unmatched_gold_rows": [],
+            "unmatched_pred_rows": [],
+            "n_aligned_pairs": 0,
+            "n_unmatched_gold_rows": 0,
+            "n_unmatched_pred_rows": 0,
+            "mean_relative_error_pct": null,
+            "macro_f1": 0.0,
+            "macro_precision": 0.0,
+            "macro_recall": 0.0,
+            "column_metrics": {
+              "nationality": {
+                "precision": 0.0,
+                "recall": 0.0,
+                "f1": 0.0
+              },
+              "sum_olympic_gold_medals": {
+                "precision": 0.0,
+                "recall": 0.0,
+                "f1": 0.0
+              }
+            },
+            "alignment_keys": [
+              "nationality"
+            ],
+            "match_warnings": []
+          }
+        },
+        {
+          "query_id": "mixed_queries_filter_agg_player_3",
+          "corpus_infeasible": false,
+          "metadata": {
+            "query_id": "mixed_queries_filter_agg_player_3",
+            "sql": "SELECT nationality, COUNT(age) AS count_age FROM player WHERE name = 'Antonius Cleveland  ' OR nba_championships >= 0 GROUP BY nationality;",
+            "slice_type": "agg_filter",
+            "n_joins": 0,
+            "n_group_by_columns": 1,
+            "group_by_columns": [
+              "nationality"
+            ],
+            "n_aggregate_functions": 1,
+            "aggregate_functions": [
+              "COUNT"
+            ],
+            "aggregates": [
+              {
+                "output_name": "count_age",
+                "function": "COUNT",
+                "source": "age"
+              }
+            ],
+            "n_where_conditions": 2,
+            "gold_result_row_count": 5
+          },
+          "results": {
+            "gold_result": [
+              {
+                "nationality": "Mexican-American",
+                "count_age": 1
+              },
+              {
+                "nationality": "American",
+                "count_age": 11
+              },
+              {
+                "nationality": "French",
+                "count_age": 1
+              },
+              {
+                "nationality": "Serbian",
+                "count_age": 1
+              },
+              {
+                "nationality": "American",
+                "count_age": 6
+              }
+            ],
+            "predicted_result": [
+              {
+                "nationality": "american",
+                "count_age": 10
+              }
+            ],
+            "aligned_pairs": [
+              {
+                "pair_index": 0,
+                "alignment_key": [
+                  "american"
+                ],
+                "gold_row": {
+                  "nationality": "american",
+                  "count_age": 11
+                },
+                "pred_row": {
+                  "nationality": "american",
+                  "count_age": 10
+                },
+                "column_relative_error_pct": {
+                  "count_age": 9.090909090909092
+                }
+              }
+            ],
+            "unmatched_gold_rows": [
+              {
+                "nationality": "mexican-american",
+                "count_age": 1
+              },
+              {
+                "nationality": "french",
+                "count_age": 1
+              },
+              {
+                "nationality": "serbian",
+                "count_age": 1
+              }
+            ],
+            "unmatched_pred_rows": [],
+            "n_aligned_pairs": 1,
+            "n_unmatched_gold_rows": 3,
+            "n_unmatched_pred_rows": 0,
+            "mean_relative_error_pct": 81.81818181818181,
+            "macro_f1": 0.3194444444444445,
+            "macro_precision": 0.9583333333333334,
+            "macro_recall": 0.19166666666666668,
+            "column_metrics": {
+              "nationality": {
+                "precision": 1.0,
+                "recall": 0.2,
+                "f1": 0.33333333333333337
+              },
+              "count_age": {
+                "precision": 0.9166666666666667,
+                "recall": 0.18333333333333335,
+                "f1": 0.3055555555555556
+              }
+            },
+            "alignment_keys": [
+              "nationality"
+            ],
+            "match_warnings": [
+              "Gold has duplicate keys for [('american',)]"
+            ]
+          }
+        },
+        {
+          "query_id": "mixed_queries_filter_agg_player_5",
+          "corpus_infeasible": false,
+          "metadata": {
+            "query_id": "mixed_queries_filter_agg_player_5",
+            "sql": "SELECT team, AVG(fiba_world_cup) AS avg_fiba_world_cup FROM player WHERE team = 'New York Knicks  ' OR nba_championships <= 0 OR fiba_world_cup > 0 GROUP BY team;",
+            "slice_type": "agg_filter",
+            "n_joins": 0,
+            "n_group_by_columns": 1,
+            "group_by_columns": [
+              "team"
+            ],
+            "n_aggregate_functions": 1,
+            "aggregate_functions": [
+              "AVG"
+            ],
+            "aggregates": [
+              {
+                "output_name": "avg_fiba_world_cup",
+                "function": "AVG",
+                "source": "fiba_world_cup"
+              }
+            ],
+            "n_where_conditions": 3,
+            "gold_result_row_count": 16
+          },
+          "results": {
+            "gold_result": [
+              {
+                "team": "Washington Bullets",
+                "avg_fiba_world_cup": 0.0
+              },
+              {
+                "team": "Bursaspor Basketbol",
+                "avg_fiba_world_cup": 0.0
+              },
+              {
+                "team": "New York Knicks",
+                "avg_fiba_world_cup": 0.0
+              },
+              {
+                "team": "Grand Rapids Hoops",
+                "avg_fiba_world_cup": 0.0
+              },
+              {
+                "team": "Santa Cruz Warriors",
+                "avg_fiba_world_cup": 0.0
+              },
+              {
+                "team": "Cedevita Olimpija",
+                "avg_fiba_world_cup": 0.0
+              },
+              {
+                "team": "Philadelphia 76ers",
+                "avg_fiba_world_cup": 0.0
+              },
+              {
+                "team": "Chicago Bulls",
+                "avg_fiba_world_cup": 0.0
+              },
+              {
+                "team": "Orlando Magic",
+                "avg_fiba_world_cup": 1.0
+              },
+              {
+                "team": "Sacramento Kings",
+                "avg_fiba_world_cup": 0.0
+              },
+              {
+                "team": "Memphis Grizzlies",
+                "avg_fiba_world_cup": 0.0
+              },
+              {
+                "team": "Milwaukee Bucks",
+                "avg_fiba_world_cup": 0.0
+              },
+              {
+                "team": "Miami Heat",
+                "avg_fiba_world_cup": 0.0
+              },
+              {
+                "team": "HTV Basket",
+                "avg_fiba_world_cup": 0.0
+              },
+              {
+                "team": "Panteras de Miranda",
+                "avg_fiba_world_cup": 0.0
+              },
+              {
+                "team": "Los Angeles Lakers",
+                "avg_fiba_world_cup": 1.0
+              }
+            ],
+            "predicted_result": [
+              {
+                "team": "new york knicks",
+                "avg_fiba_world_cup": 0.0
+              },
+              {
+                "team": "",
+                "avg_fiba_world_cup": 0.0
+              },
+              {
+                "team": "htv basket",
+                "avg_fiba_world_cup": 0.0
+              },
+              {
+                "team": "memphis grizzlies",
+                "avg_fiba_world_cup": 0.0
+              },
+              {
+                "team": "miami heat",
+                "avg_fiba_world_cup": 0.0
+              },
+              {
+                "team": "boston celtics",
+                "avg_fiba_world_cup": 0.0
+              },
+              {
+                "team": "philadelphia 76ers",
+                "avg_fiba_world_cup": 0.0
+              },
+              {
+                "team": "washington bullets",
+                "avg_fiba_world_cup": 0.0
+              }
+            ],
+            "aligned_pairs": [
+              {
+                "pair_index": 0,
+                "alignment_key": [
+                  "htv basket"
+                ],
+                "gold_row": {
+                  "team": "htv basket",
+                  "avg_fiba_world_cup": 0.0
+                },
+                "pred_row": {
+                  "team": "htv basket",
+                  "avg_fiba_world_cup": 0.0
+                },
+                "column_relative_error_pct": {
+                  "avg_fiba_world_cup": 0.0
+                }
+              },
+              {
+                "pair_index": 1,
+                "alignment_key": [
+                  "memphis grizzlies"
+                ],
+                "gold_row": {
+                  "team": "memphis grizzlies",
+                  "avg_fiba_world_cup": 0.0
+                },
+                "pred_row": {
+                  "team": "memphis grizzlies",
+                  "avg_fiba_world_cup": 0.0
+                },
+                "column_relative_error_pct": {
+                  "avg_fiba_world_cup": 0.0
+                }
+              },
+              {
+                "pair_index": 2,
+                "alignment_key": [
+                  "miami heat"
+                ],
+                "gold_row": {
+                  "team": "miami heat",
+                  "avg_fiba_world_cup": 0.0
+                },
+                "pred_row": {
+                  "team": "miami heat",
+                  "avg_fiba_world_cup": 0.0
+                },
+                "column_relative_error_pct": {
+                  "avg_fiba_world_cup": 0.0
+                }
+              },
+              {
+                "pair_index": 3,
+                "alignment_key": [
+                  "new york knicks"
+                ],
+                "gold_row": {
+                  "team": "new york knicks",
+                  "avg_fiba_world_cup": 0.0
+                },
+                "pred_row": {
+                  "team": "new york knicks",
+                  "avg_fiba_world_cup": 0.0
+                },
+                "column_relative_error_pct": {
+                  "avg_fiba_world_cup": 0.0
+                }
+              },
+              {
+                "pair_index": 4,
+                "alignment_key": [
+                  "philadelphia 76ers"
+                ],
+                "gold_row": {
+                  "team": "philadelphia 76ers",
+                  "avg_fiba_world_cup": 0.0
+                },
+                "pred_row": {
+                  "team": "philadelphia 76ers",
+                  "avg_fiba_world_cup": 0.0
+                },
+                "column_relative_error_pct": {
+                  "avg_fiba_world_cup": 0.0
+                }
+              },
+              {
+                "pair_index": 5,
+                "alignment_key": [
+                  "washington bullets"
+                ],
+                "gold_row": {
+                  "team": "washington bullets",
+                  "avg_fiba_world_cup": 0.0
+                },
+                "pred_row": {
+                  "team": "washington bullets",
+                  "avg_fiba_world_cup": 0.0
+                },
+                "column_relative_error_pct": {
+                  "avg_fiba_world_cup": 0.0
+                }
+              }
+            ],
+            "unmatched_gold_rows": [
+              {
+                "team": "bursaspor basketbol",
+                "avg_fiba_world_cup": 0.0
+              },
+              {
+                "team": "grand rapids hoops",
+                "avg_fiba_world_cup": 0.0
+              },
+              {
+                "team": "santa cruz warriors",
+                "avg_fiba_world_cup": 0.0
+              },
+              {
+                "team": "cedevita olimpija",
+                "avg_fiba_world_cup": 0.0
+              },
+              {
+                "team": "chicago bulls",
+                "avg_fiba_world_cup": 0.0
+              },
+              {
+                "team": "orlando magic",
+                "avg_fiba_world_cup": 1.0
+              },
+              {
+                "team": "sacramento kings",
+                "avg_fiba_world_cup": 0.0
+              },
+              {
+                "team": "milwaukee bucks",
+                "avg_fiba_world_cup": 0.0
+              },
+              {
+                "team": "panteras de miranda",
+                "avg_fiba_world_cup": 0.0
+              },
+              {
+                "team": "los angeles lakers",
+                "avg_fiba_world_cup": 1.0
+              }
+            ],
+            "unmatched_pred_rows": [
+              {
+                "team": "",
+                "avg_fiba_world_cup": 0.0
+              },
+              {
+                "team": "boston celtics",
+                "avg_fiba_world_cup": 0.0
+              }
+            ],
+            "n_aligned_pairs": 6,
+            "n_unmatched_gold_rows": 10,
+            "n_unmatched_pred_rows": 2,
+            "mean_relative_error_pct": 66.66666666666667,
+            "macro_f1": 0.5,
+            "macro_precision": 0.75,
+            "macro_recall": 0.375,
+            "column_metrics": {
+              "team": {
+                "precision": 0.75,
+                "recall": 0.375,
+                "f1": 0.5
+              },
+              "avg_fiba_world_cup": {
+                "precision": 0.75,
+                "recall": 0.375,
+                "f1": 0.5
+              }
+            },
+            "alignment_keys": [
+              "team"
+            ],
+            "match_warnings": []
+          }
+        },
+        {
+          "query_id": "mixed_queries_filter_agg_player_6",
+          "corpus_infeasible": false,
+          "metadata": {
+            "query_id": "mixed_queries_filter_agg_player_6",
+            "sql": "SELECT team, MIN(fiba_world_cup) AS min_fiba_world_cup FROM player WHERE (fiba_world_cup > 0 AND mvp_awards <= 0) OR (age < 91 AND fiba_world_cup >= 0) GROUP BY team;",
+            "slice_type": "agg_filter",
+            "n_joins": 0,
+            "n_group_by_columns": 1,
+            "group_by_columns": [
+              "team"
+            ],
+            "n_aggregate_functions": 1,
+            "aggregate_functions": [
+              "MIN"
+            ],
+            "aggregates": [
+              {
+                "output_name": "min_fiba_world_cup",
+                "function": "MIN",
+                "source": "fiba_world_cup"
+              }
+            ],
+            "n_where_conditions": 4,
+            "gold_result_row_count": 19
+          },
+          "results": {
+            "gold_result": [
+              {
+                "team": "Sacramento Kings",
+                "min_fiba_world_cup": 0.0
+              },
+              {
+                "team": "Memphis Grizzlies",
+                "min_fiba_world_cup": 0.0
+              },
+              {
+                "team": "Grand Rapids Hoops",
+                "min_fiba_world_cup": 0.0
+              },
+              {
+                "team": "Santa Cruz Warriors",
+                "min_fiba_world_cup": 0.0
+              },
+              {
+                "team": "Los Angeles Lakers",
+                "min_fiba_world_cup": 0.0
+              },
+              {
+                "team": "Boston Celtics",
+                "min_fiba_world_cup": 0.0
+              },
+              {
+                "team": "Washington Bullets",
+                "min_fiba_world_cup": 0.0
+              },
+              {
+                "team": "Orlando Magic",
+                "min_fiba_world_cup": 1.0
+              },
+              {
+                "team": "HTV Basket",
+                "min_fiba_world_cup": 0.0
+              },
+              {
+                "team": "San Antonio Spurs",
+                "min_fiba_world_cup": 0.0
+              },
+              {
+                "team": "Panteras de Miranda",
+                "min_fiba_world_cup": 0.0
+              },
+              {
+                "team": "Los Angeles Lakers",
+                "min_fiba_world_cup": 0.0
+              },
+              {
+                "team": "Cedevita Olimpija",
+                "min_fiba_world_cup": 0.0
+              },
+              {
+                "team": "Milwaukee Bucks",
+                "min_fiba_world_cup": 0.0
+              },
+              {
+                "team": "Miami Heat",
+                "min_fiba_world_cup": 0.0
+              },
+              {
+                "team": "Philadelphia 76ers",
+                "min_fiba_world_cup": 0.0
+              },
+              {
+                "team": "Chicago Bulls",
+                "min_fiba_world_cup": 0.0
+              },
+              {
+                "team": "Bursaspor Basketbol",
+                "min_fiba_world_cup": 0.0
+              },
+              {
+                "team": "New York Knicks",
+                "min_fiba_world_cup": 0.0
+              }
+            ],
+            "predicted_result": [
+              {
+                "team": "new york knicks",
+                "min_fiba_world_cup": 0.0
+              },
+              {
+                "team": "boston celtics",
+                "min_fiba_world_cup": 0.0
+              },
+              {
+                "team": "philadelphia 76ers",
+                "min_fiba_world_cup": 0.0
+              },
+              {
+                "team": "miami heat",
+                "min_fiba_world_cup": 0.0
+              },
+              {
+                "team": "san antonio spurs",
+                "min_fiba_world_cup": 0.0
+              },
+              {
+                "team": "",
+                "min_fiba_world_cup": 0.0
+              },
+              {
+                "team": "washington bullets",
+                "min_fiba_world_cup": 0.0
+              },
+              {
+                "team": "htv basket",
+                "min_fiba_world_cup": 0.0
+              },
+              {
+                "team": "memphis grizzlies",
+                "min_fiba_world_cup": 0.0
+              }
+            ],
+            "aligned_pairs": [
+              {
+                "pair_index": 0,
+                "alignment_key": [
+                  "boston celtics"
+                ],
+                "gold_row": {
+                  "team": "boston celtics",
+                  "min_fiba_world_cup": 0.0
+                },
+                "pred_row": {
+                  "team": "boston celtics",
+                  "min_fiba_world_cup": 0.0
+                },
+                "column_relative_error_pct": {
+                  "min_fiba_world_cup": 0.0
+                }
+              },
+              {
+                "pair_index": 1,
+                "alignment_key": [
+                  "htv basket"
+                ],
+                "gold_row": {
+                  "team": "htv basket",
+                  "min_fiba_world_cup": 0.0
+                },
+                "pred_row": {
+                  "team": "htv basket",
+                  "min_fiba_world_cup": 0.0
+                },
+                "column_relative_error_pct": {
+                  "min_fiba_world_cup": 0.0
+                }
+              },
+              {
+                "pair_index": 2,
+                "alignment_key": [
+                  "memphis grizzlies"
+                ],
+                "gold_row": {
+                  "team": "memphis grizzlies",
+                  "min_fiba_world_cup": 0.0
+                },
+                "pred_row": {
+                  "team": "memphis grizzlies",
+                  "min_fiba_world_cup": 0.0
+                },
+                "column_relative_error_pct": {
+                  "min_fiba_world_cup": 0.0
+                }
+              },
+              {
+                "pair_index": 3,
+                "alignment_key": [
+                  "miami heat"
+                ],
+                "gold_row": {
+                  "team": "miami heat",
+                  "min_fiba_world_cup": 0.0
+                },
+                "pred_row": {
+                  "team": "miami heat",
+                  "min_fiba_world_cup": 0.0
+                },
+                "column_relative_error_pct": {
+                  "min_fiba_world_cup": 0.0
+                }
+              },
+              {
+                "pair_index": 4,
+                "alignment_key": [
+                  "new york knicks"
+                ],
+                "gold_row": {
+                  "team": "new york knicks",
+                  "min_fiba_world_cup": 0.0
+                },
+                "pred_row": {
+                  "team": "new york knicks",
+                  "min_fiba_world_cup": 0.0
+                },
+                "column_relative_error_pct": {
+                  "min_fiba_world_cup": 0.0
+                }
+              },
+              {
+                "pair_index": 5,
+                "alignment_key": [
+                  "philadelphia 76ers"
+                ],
+                "gold_row": {
+                  "team": "philadelphia 76ers",
+                  "min_fiba_world_cup": 0.0
+                },
+                "pred_row": {
+                  "team": "philadelphia 76ers",
+                  "min_fiba_world_cup": 0.0
+                },
+                "column_relative_error_pct": {
+                  "min_fiba_world_cup": 0.0
+                }
+              },
+              {
+                "pair_index": 6,
+                "alignment_key": [
+                  "san antonio spurs"
+                ],
+                "gold_row": {
+                  "team": "san antonio spurs",
+                  "min_fiba_world_cup": 0.0
+                },
+                "pred_row": {
+                  "team": "san antonio spurs",
+                  "min_fiba_world_cup": 0.0
+                },
+                "column_relative_error_pct": {
+                  "min_fiba_world_cup": 0.0
+                }
+              },
+              {
+                "pair_index": 7,
+                "alignment_key": [
+                  "washington bullets"
+                ],
+                "gold_row": {
+                  "team": "washington bullets",
+                  "min_fiba_world_cup": 0.0
+                },
+                "pred_row": {
+                  "team": "washington bullets",
+                  "min_fiba_world_cup": 0.0
+                },
+                "column_relative_error_pct": {
+                  "min_fiba_world_cup": 0.0
+                }
+              }
+            ],
+            "unmatched_gold_rows": [
+              {
+                "team": "sacramento kings",
+                "min_fiba_world_cup": 0.0
+              },
+              {
+                "team": "grand rapids hoops",
+                "min_fiba_world_cup": 0.0
+              },
+              {
+                "team": "santa cruz warriors",
+                "min_fiba_world_cup": 0.0
+              },
+              {
+                "team": "los angeles lakers",
+                "min_fiba_world_cup": 0.0
+              },
+              {
+                "team": "orlando magic",
+                "min_fiba_world_cup": 1.0
+              },
+              {
+                "team": "panteras de miranda",
+                "min_fiba_world_cup": 0.0
+              },
+              {
+                "team": "los angeles lakers",
+                "min_fiba_world_cup": 0.0
+              },
+              {
+                "team": "cedevita olimpija",
+                "min_fiba_world_cup": 0.0
+              },
+              {
+                "team": "milwaukee bucks",
+                "min_fiba_world_cup": 0.0
+              },
+              {
+                "team": "chicago bulls",
+                "min_fiba_world_cup": 0.0
+              },
+              {
+                "team": "bursaspor basketbol",
+                "min_fiba_world_cup": 0.0
+              }
+            ],
+            "unmatched_pred_rows": [
+              {
+                "team": "",
+                "min_fiba_world_cup": 0.0
+              }
+            ],
+            "n_aligned_pairs": 8,
+            "n_unmatched_gold_rows": 11,
+            "n_unmatched_pred_rows": 1,
+            "mean_relative_error_pct": 60.0,
+            "macro_f1": 0.5714285714285714,
+            "macro_precision": 0.8888888888888888,
+            "macro_recall": 0.42105263157894735,
+            "column_metrics": {
+              "team": {
+                "precision": 0.8888888888888888,
+                "recall": 0.42105263157894735,
+                "f1": 0.5714285714285714
+              },
+              "min_fiba_world_cup": {
+                "precision": 0.8888888888888888,
+                "recall": 0.42105263157894735,
+                "f1": 0.5714285714285714
+              }
+            },
+            "alignment_keys": [
+              "team"
+            ],
+            "match_warnings": [
+              "Gold has duplicate keys for [('los angeles lakers',)]"
+            ]
+          }
+        },
+        {
+          "query_id": "mixed_subsample_2",
+          "corpus_infeasible": true,
+          "missing_corpus_literals": [
+            "German"
+          ],
+          "metadata": {
+            "query_id": "mixed_subsample_2",
+            "sql": "SELECT nationality, SUM(olympic_gold_medals) AS sum_olympic_gold_medals FROM player WHERE nationality = 'German' AND olympic_gold_medals <= 0 GROUP BY nationality;",
+            "slice_type": "agg_filter",
+            "n_joins": 0,
+            "n_group_by_columns": 1,
+            "group_by_columns": [
+              "nationality"
+            ],
+            "n_aggregate_functions": 1,
+            "aggregate_functions": [
+              "SUM"
+            ],
+            "aggregates": [
+              {
+                "output_name": "sum_olympic_gold_medals",
+                "function": "SUM",
+                "source": "olympic_gold_medals"
+              }
+            ],
+            "n_where_conditions": 2,
+            "gold_result_row_count": 0
+          },
+          "results": {
+            "gold_result": [],
+            "predicted_result": [],
+            "aligned_pairs": [],
+            "unmatched_gold_rows": [],
+            "unmatched_pred_rows": [],
+            "n_aligned_pairs": 0,
+            "n_unmatched_gold_rows": 0,
+            "n_unmatched_pred_rows": 0,
+            "mean_relative_error_pct": null,
+            "macro_f1": 0.0,
+            "macro_precision": 0.0,
+            "macro_recall": 0.0,
+            "column_metrics": {
+              "nationality": {
+                "precision": 0.0,
+                "recall": 0.0,
+                "f1": 0.0
+              },
+              "sum_olympic_gold_medals": {
+                "precision": 0.0,
+                "recall": 0.0,
+                "f1": 0.0
+              }
+            },
+            "alignment_keys": [
+              "nationality"
+            ],
+            "match_warnings": []
+          }
+        }
+      ]
+    },
+    "agg_join": {
+      "slice": "agg_join",
+      "evaluation_mode": "fixed_baseline",
+      "algorithm_selection": null,
+      "n_queries": 1,
+      "n_corpus_infeasible": 0,
+      "extraction_source": "slice_cache",
+      "agent_source": null,
+      "slice_summary": {
+        "n_queries": 1,
+        "per_query_mean_relative_error_pct": [
+          {
+            "query_id": "mixed_queries_agg_join_1",
+            "mean_relative_error_pct": 66.6667
+          }
+        ],
+        "relative_error_pct_array": [
+          66.6667
+        ],
+        "relative_error": {
+          "mean": 66.66666666666667,
+          "max": 66.66666666666667,
+          "min": 66.66666666666667,
+          "std": 0.0
+        },
+        "macro_f1": {
+          "mean": 0.7,
+          "max": 0.7,
+          "min": 0.7,
+          "std": 0.0
+        },
+        "macro_precision": {
+          "mean": 0.875,
+          "max": 0.875,
+          "min": 0.875,
+          "std": 0.0
+        },
+        "macro_recall": {
+          "mean": 0.5833333333333333,
+          "max": 0.5833333333333333,
+          "min": 0.5833333333333333,
+          "std": 0.0
+        }
+      },
+      "agent_pipeline": null,
+      "queries": [
+        {
+          "query_id": "mixed_queries_agg_join_1",
+          "corpus_infeasible": false,
+          "metadata": {
+            "query_id": "mixed_queries_agg_join_1",
+            "sql": "SELECT player.position, MIN(player.olympic_gold_medals) AS min_player_olympic_gold_medals FROM player JOIN team ON player.team = team.team_name GROUP BY player.position;",
+            "slice_type": "agg_join",
+            "n_joins": 1,
+            "n_group_by_columns": 1,
+            "group_by_columns": [
+              "player.position"
+            ],
+            "n_aggregate_functions": 1,
+            "aggregate_functions": [
+              "MIN"
+            ],
+            "aggregates": [
+              {
+                "output_name": "min_player_olympic_gold_medals",
+                "function": "MIN",
+                "source": "player.olympic_gold_medals"
+              }
+            ],
+            "n_where_conditions": 0,
+            "gold_result_row_count": 3
+          },
+          "results": {
+            "gold_result": [
+              {
+                "position": "Frontcourt",
+                "min_player_olympic_gold_medals": 2.0
+              },
+              {
+                "position": "Backcourt",
+                "min_player_olympic_gold_medals": 0.0
+              },
+              {
+                "position": null,
+                "min_player_olympic_gold_medals": 0.0
+              }
+            ],
+            "predicted_result": [
+              {
+                "position": null,
+                "min_player_olympic_gold_medals": 0.0
+              },
+              {
+                "position": "frontcourt",
+                "min_player_olympic_gold_medals": 0.0
+              }
+            ],
+            "aligned_pairs": [
+              {
+                "pair_index": 0,
+                "alignment_key": [
+                  ""
+                ],
+                "gold_row": {
+                  "position": "",
+                  "min_player_olympic_gold_medals": 0.0
+                },
+                "pred_row": {
+                  "position": "",
+                  "min_player_olympic_gold_medals": 0.0
+                },
+                "column_relative_error_pct": {
+                  "min_player_olympic_gold_medals": 0.0
+                }
+              },
+              {
+                "pair_index": 1,
+                "alignment_key": [
+                  "frontcourt"
+                ],
+                "gold_row": {
+                  "position": "frontcourt",
+                  "min_player_olympic_gold_medals": 2.0
+                },
+                "pred_row": {
+                  "position": "frontcourt",
+                  "min_player_olympic_gold_medals": 0.0
+                },
+                "column_relative_error_pct": {
+                  "min_player_olympic_gold_medals": 100.0
+                }
+              }
+            ],
+            "unmatched_gold_rows": [
+              {
+                "position": "backcourt",
+                "min_player_olympic_gold_medals": 0.0
+              }
+            ],
+            "unmatched_pred_rows": [],
+            "n_aligned_pairs": 2,
+            "n_unmatched_gold_rows": 1,
+            "n_unmatched_pred_rows": 0,
+            "mean_relative_error_pct": 66.66666666666667,
+            "macro_f1": 0.7,
+            "macro_precision": 0.875,
+            "macro_recall": 0.5833333333333333,
+            "column_metrics": {
+              "position": {
+                "precision": 1.0,
+                "recall": 0.6666666666666666,
+                "f1": 0.8
+              },
+              "min_player_olympic_gold_medals": {
+                "precision": 0.75,
+                "recall": 0.5,
+                "f1": 0.6
+              }
+            },
+            "alignment_keys": [
+              "position"
+            ],
+            "match_warnings": []
+          }
+        }
+      ]
+    },
+    "agg_filter_join": {
+      "slice": "agg_filter_join",
+      "evaluation_mode": "fixed_baseline",
+      "algorithm_selection": null,
+      "n_queries": 4,
+      "n_corpus_infeasible": 0,
+      "extraction_source": "slice_cache",
+      "agent_source": null,
+      "slice_summary": {
+        "n_queries": 4,
+        "per_query_mean_relative_error_pct": [
+          {
+            "query_id": "mixed_queries_filter_agg_join_1",
+            "mean_relative_error_pct": 100.0
+          },
+          {
+            "query_id": "mixed_queries_filter_agg_join_3",
+            "mean_relative_error_pct": 100.0
+          },
+          {
+            "query_id": "mixed_queries_filter_agg_join_5",
+            "mean_relative_error_pct": 100.0
+          },
+          {
+            "query_id": "mixed_queries_filter_agg_join_7",
+            "mean_relative_error_pct": 66.6667
+          }
+        ],
+        "relative_error_pct_array": [
+          100.0,
+          100.0,
+          100.0,
+          66.6667
+        ],
+        "relative_error": {
+          "mean": 91.66666666666667,
+          "max": 100.0,
+          "min": 66.66666666666667,
+          "std": 16.666666666666664
+        },
+        "macro_f1": {
+          "mean": 0.3125,
+          "max": 0.5,
+          "min": 0.0,
+          "std": 0.23935677693908453
+        },
+        "macro_precision": {
+          "mean": 0.34375,
+          "max": 0.5,
+          "min": 0.0,
+          "std": 0.2366211810750114
+        },
+        "macro_recall": {
+          "mean": 0.3541666666666667,
+          "max": 0.75,
+          "min": 0.0,
+          "std": 0.3359274061791062
+        }
+      },
+      "agent_pipeline": null,
+      "queries": [
+        {
+          "query_id": "mixed_queries_filter_agg_join_1",
+          "corpus_infeasible": false,
+          "metadata": {
+            "query_id": "mixed_queries_filter_agg_join_1",
+            "sql": "SELECT player.nationality, MIN(player.olympic_gold_medals) AS min_player_olympic_gold_medals FROM player JOIN team ON player.team = team.team_name WHERE player.fiba_world_cup > 0 GROUP BY player.nationality;",
+            "slice_type": "agg_filter_join",
+            "n_joins": 1,
+            "n_group_by_columns": 1,
+            "group_by_columns": [
+              "player.nationality"
+            ],
+            "n_aggregate_functions": 1,
+            "aggregate_functions": [
+              "MIN"
+            ],
+            "aggregates": [
+              {
+                "output_name": "min_player_olympic_gold_medals",
+                "function": "MIN",
+                "source": "player.olympic_gold_medals"
+              }
+            ],
+            "n_where_conditions": 1,
+            "gold_result_row_count": 2
+          },
+          "results": {
+            "gold_result": [
+              {
+                "nationality": "American",
+                "min_player_olympic_gold_medals": 2.0
+              },
+              {
+                "nationality": "American",
+                "min_player_olympic_gold_medals": 0.0
+              }
+            ],
+            "predicted_result": [
+              {
+                "nationality": "canadian",
+                "min_player_olympic_gold_medals": 4.0
+              }
+            ],
+            "aligned_pairs": [],
+            "unmatched_gold_rows": [
+              {
+                "nationality": "american",
+                "min_player_olympic_gold_medals": 2.0
+              },
+              {
+                "nationality": "american",
+                "min_player_olympic_gold_medals": 0.0
+              }
+            ],
+            "unmatched_pred_rows": [
+              {
+                "nationality": "canadian",
+                "min_player_olympic_gold_medals": 4.0
+              }
+            ],
+            "n_aligned_pairs": 0,
+            "n_unmatched_gold_rows": 2,
+            "n_unmatched_pred_rows": 1,
+            "mean_relative_error_pct": 100.0,
+            "macro_f1": 0.0,
+            "macro_precision": 0.0,
+            "macro_recall": 0.0,
+            "column_metrics": {
+              "nationality": {
+                "precision": 0.0,
+                "recall": 0.0,
+                "f1": 0.0
+              },
+              "min_player_olympic_gold_medals": {
+                "precision": 0.0,
+                "recall": 0.0,
+                "f1": 0.0
+              }
+            },
+            "alignment_keys": [
+              "nationality"
+            ],
+            "match_warnings": [
+              "Gold has duplicate keys for [('american',)]"
+            ]
+          }
+        },
+        {
+          "query_id": "mixed_queries_filter_agg_join_3",
+          "corpus_infeasible": false,
+          "metadata": {
+            "query_id": "mixed_queries_filter_agg_join_3",
+            "sql": "SELECT player.nationality, AVG(player.mvp_awards) AS avg_player_mvp_awards FROM player JOIN team ON player.team = team.team_name WHERE player.age <= 66 GROUP BY player.nationality;",
+            "slice_type": "agg_filter_join",
+            "n_joins": 1,
+            "n_group_by_columns": 1,
+            "group_by_columns": [
+              "player.nationality"
+            ],
+            "n_aggregate_functions": 1,
+            "aggregate_functions": [
+              "AVG"
+            ],
+            "aggregates": [
+              {
+                "output_name": "avg_player_mvp_awards",
+                "function": "AVG",
+                "source": "player.mvp_awards"
+              }
+            ],
+            "n_where_conditions": 1,
+            "gold_result_row_count": 3
+          },
+          "results": {
+            "gold_result": [
+              {
+                "nationality": "Canadian",
+                "avg_player_mvp_awards": 0.0
+              },
+              {
+                "nationality": "American",
+                "avg_player_mvp_awards": 1.5
+              },
+              {
+                "nationality": "American",
+                "avg_player_mvp_awards": 0.6
+              }
+            ],
+            "predicted_result": [
+              {
+                "nationality": "canadian",
+                "avg_player_mvp_awards": 0.5
+              }
+            ],
+            "aligned_pairs": [
+              {
+                "pair_index": 0,
+                "alignment_key": [
+                  "canadian"
+                ],
+                "gold_row": {
+                  "nationality": "canadian",
+                  "avg_player_mvp_awards": 0.0
+                },
+                "pred_row": {
+                  "nationality": "canadian",
+                  "avg_player_mvp_awards": 0.5
+                },
+                "column_relative_error_pct": {
+                  "avg_player_mvp_awards": 100.0
+                }
+              }
+            ],
+            "unmatched_gold_rows": [
+              {
+                "nationality": "american",
+                "avg_player_mvp_awards": 1.5
+              },
+              {
+                "nationality": "american",
+                "avg_player_mvp_awards": 0.6
+              }
+            ],
+            "unmatched_pred_rows": [],
+            "n_aligned_pairs": 1,
+            "n_unmatched_gold_rows": 2,
+            "n_unmatched_pred_rows": 0,
+            "mean_relative_error_pct": 100.0,
+            "macro_f1": 0.25,
+            "macro_precision": 0.5,
+            "macro_recall": 0.16666666666666666,
+            "column_metrics": {
+              "nationality": {
+                "precision": 1.0,
+                "recall": 0.3333333333333333,
+                "f1": 0.5
+              },
+              "avg_player_mvp_awards": {
+                "precision": 0.0,
+                "recall": 0.0,
+                "f1": 0.0
+              }
+            },
+            "alignment_keys": [
+              "nationality"
+            ],
+            "match_warnings": [
+              "Gold has duplicate keys for [('american',)]"
+            ]
+          }
+        },
+        {
+          "query_id": "mixed_queries_filter_agg_join_5",
+          "corpus_infeasible": false,
+          "metadata": {
+            "query_id": "mixed_queries_filter_agg_join_5",
+            "sql": "SELECT player.position, AVG(player.fiba_world_cup) AS avg_player_fiba_world_cup FROM player JOIN team ON player.team = team.team_name WHERE player.nba_championships < 0 OR player.age >= 47 OR player.nationality = 'Greek-American  ' GROUP BY player.position;",
+            "slice_type": "agg_filter_join",
+            "n_joins": 1,
+            "n_group_by_columns": 1,
+            "group_by_columns": [
+              "player.position"
+            ],
+            "n_aggregate_functions": 1,
+            "aggregate_functions": [
+              "AVG"
+            ],
+            "aggregates": [
+              {
+                "output_name": "avg_player_fiba_world_cup",
+                "function": "AVG",
+                "source": "player.fiba_world_cup"
+              }
+            ],
+            "n_where_conditions": 3,
+            "gold_result_row_count": 1
+          },
+          "results": {
+            "gold_result": [
+              {
+                "position": "Backcourt",
+                "avg_player_fiba_world_cup": 0.3333333333
+              }
+            ],
+            "predicted_result": [
+              {
+                "position": "frontcourt",
+                "avg_player_fiba_world_cup": 0.0
+              },
+              {
+                "position": "backcourt",
+                "avg_player_fiba_world_cup": 0.0
+              }
+            ],
+            "aligned_pairs": [
+              {
+                "pair_index": 0,
+                "alignment_key": [
+                  "backcourt"
+                ],
+                "gold_row": {
+                  "position": "backcourt",
+                  "avg_player_fiba_world_cup": 0.3333333333
+                },
+                "pred_row": {
+                  "position": "backcourt",
+                  "avg_player_fiba_world_cup": 0.0
+                },
+                "column_relative_error_pct": {
+                  "avg_player_fiba_world_cup": 100.0
+                }
+              }
+            ],
+            "unmatched_gold_rows": [],
+            "unmatched_pred_rows": [
+              {
+                "position": "frontcourt",
+                "avg_player_fiba_world_cup": 0.0
+              }
+            ],
+            "n_aligned_pairs": 1,
+            "n_unmatched_gold_rows": 0,
+            "n_unmatched_pred_rows": 1,
+            "mean_relative_error_pct": 100.0,
+            "macro_f1": 0.5,
+            "macro_precision": 0.375,
+            "macro_recall": 0.75,
+            "column_metrics": {
+              "position": {
+                "precision": 0.5,
+                "recall": 1.0,
+                "f1": 0.6666666666666666
+              },
+              "avg_player_fiba_world_cup": {
+                "precision": 0.25,
+                "recall": 0.5,
+                "f1": 0.3333333333333333
+              }
+            },
+            "alignment_keys": [
+              "position"
+            ],
+            "match_warnings": []
+          }
+        },
+        {
+          "query_id": "mixed_queries_filter_agg_join_7",
+          "corpus_infeasible": false,
+          "metadata": {
+            "query_id": "mixed_queries_filter_agg_join_7",
+            "sql": "SELECT player.position, AVG(player.fiba_world_cup) AS avg_player_fiba_world_cup FROM player JOIN team ON player.team = team.team_name WHERE player.olympic_gold_medals = 0 GROUP BY player.position;",
+            "slice_type": "agg_filter_join",
+            "n_joins": 1,
+            "n_group_by_columns": 1,
+            "group_by_columns": [
+              "player.position"
+            ],
+            "n_aggregate_functions": 1,
+            "aggregate_functions": [
+              "AVG"
+            ],
+            "aggregates": [
+              {
+                "output_name": "avg_player_fiba_world_cup",
+                "function": "AVG",
+                "source": "player.fiba_world_cup"
+              }
+            ],
+            "n_where_conditions": 1,
+            "gold_result_row_count": 2
+          },
+          "results": {
+            "gold_result": [
+              {
+                "position": null,
+                "avg_player_fiba_world_cup": 0.0
+              },
+              {
+                "position": "Backcourt",
+                "avg_player_fiba_world_cup": 1.0
+              }
+            ],
+            "predicted_result": [
+              {
+                "position": null,
+                "avg_player_fiba_world_cup": 0.0
+              },
+              {
+                "position": "frontcourt",
+                "avg_player_fiba_world_cup": 0.0
+              }
+            ],
+            "aligned_pairs": [
+              {
+                "pair_index": 0,
+                "alignment_key": [
+                  ""
+                ],
+                "gold_row": {
+                  "position": "",
+                  "avg_player_fiba_world_cup": 0.0
+                },
+                "pred_row": {
+                  "position": "",
+                  "avg_player_fiba_world_cup": 0.0
+                },
+                "column_relative_error_pct": {
+                  "avg_player_fiba_world_cup": 0.0
+                }
+              }
+            ],
+            "unmatched_gold_rows": [
+              {
+                "position": "backcourt",
+                "avg_player_fiba_world_cup": 1.0
+              }
+            ],
+            "unmatched_pred_rows": [
+              {
+                "position": "frontcourt",
+                "avg_player_fiba_world_cup": 0.0
+              }
+            ],
+            "n_aligned_pairs": 1,
+            "n_unmatched_gold_rows": 1,
+            "n_unmatched_pred_rows": 1,
+            "mean_relative_error_pct": 66.66666666666667,
+            "macro_f1": 0.5,
+            "macro_precision": 0.5,
+            "macro_recall": 0.5,
+            "column_metrics": {
+              "position": {
+                "precision": 0.5,
+                "recall": 0.5,
+                "f1": 0.5
+              },
+              "avg_player_fiba_world_cup": {
+                "precision": 0.5,
+                "recall": 0.5,
+                "f1": 0.5
+              }
+            },
+            "alignment_keys": [
+              "position"
+            ],
+            "match_warnings": []
+          }
+        }
+      ]
+    },
+    "agg_temporal": {
+      "slice": "agg_temporal",
+      "evaluation_mode": "fixed_baseline",
+      "algorithm_selection": null,
+      "n_queries": 4,
+      "n_corpus_infeasible": 1,
+      "extraction_source": "slice_cache",
+      "agent_source": null,
+      "slice_summary": {
+        "n_queries": 3,
+        "per_query_mean_relative_error_pct": [
+          {
+            "query_id": "mixed_queries_filter_agg_4",
+            "mean_relative_error_pct": 40.0
+          },
+          {
+            "query_id": "mixed_queries_filter_agg_join_11",
+            "mean_relative_error_pct": 25.0
+          },
+          {
+            "query_id": "mixed_queries_filter_agg_player_4",
+            "mean_relative_error_pct": 50.0
+          }
+        ],
+        "relative_error_pct_array": [
+          40.0,
+          25.0,
+          50.0
+        ],
+        "relative_error": {
+          "mean": 38.333333333333336,
+          "max": 50.0,
+          "min": 25.0,
+          "std": 12.583057392117917
+        },
+        "macro_f1": {
+          "mean": 0.7579365079365079,
+          "max": 0.8571428571428571,
+          "min": 0.6666666666666666,
+          "std": 0.09548578901203146
+        },
+        "macro_precision": {
+          "mean": 1.0,
+          "max": 1.0,
+          "min": 1.0,
+          "std": 0.0
+        },
+        "macro_recall": {
+          "mean": 0.6166666666666667,
+          "max": 0.75,
+          "min": 0.5,
+          "std": 0.12583057392117916
+        }
+      },
+      "agent_pipeline": null,
+      "queries": [
+        {
+          "query_id": "mixed_queries_filter_agg_4",
+          "corpus_infeasible": false,
+          "metadata": {
+            "query_id": "mixed_queries_filter_agg_4",
+            "sql": "SELECT nationality, MAX(mvp_awards) AS max_mvp_awards FROM player WHERE draft_year > 2012 OR nba_championships > 0 GROUP BY nationality;",
+            "slice_type": "agg_temporal",
+            "n_joins": 0,
+            "n_group_by_columns": 1,
+            "group_by_columns": [
+              "nationality"
+            ],
+            "n_aggregate_functions": 1,
+            "aggregate_functions": [
+              "MAX"
+            ],
+            "aggregates": [
+              {
+                "output_name": "max_mvp_awards",
+                "function": "MAX",
+                "source": "mvp_awards"
+              }
+            ],
+            "n_where_conditions": 2,
+            "gold_result_row_count": 5
+          },
+          "results": {
+            "gold_result": [
+              {
+                "nationality": "Greek and Nigerian",
+                "max_mvp_awards": 2
+              },
+              {
+                "nationality": "Bahamian",
+                "max_mvp_awards": 0
+              },
+              {
+                "nationality": "French",
+                "max_mvp_awards": 0
+              },
+              {
+                "nationality": "American",
+                "max_mvp_awards": 0
+              },
+              {
+                "nationality": "American",
+                "max_mvp_awards": 1
+              }
+            ],
+            "predicted_result": [
+              {
+                "nationality": "bahamian",
+                "max_mvp_awards": 0
+              },
+              {
+                "nationality": "american",
+                "max_mvp_awards": 0
+              },
+              {
+                "nationality": "greek and nigerian",
+                "max_mvp_awards": 2
+              }
+            ],
+            "aligned_pairs": [
+              {
+                "pair_index": 0,
+                "alignment_key": [
+                  "american"
+                ],
+                "gold_row": {
+                  "nationality": "american",
+                  "max_mvp_awards": 0
+                },
+                "pred_row": {
+                  "nationality": "american",
+                  "max_mvp_awards": 0
+                },
+                "column_relative_error_pct": {
+                  "max_mvp_awards": 0.0
+                }
+              },
+              {
+                "pair_index": 1,
+                "alignment_key": [
+                  "bahamian"
+                ],
+                "gold_row": {
+                  "nationality": "bahamian",
+                  "max_mvp_awards": 0
+                },
+                "pred_row": {
+                  "nationality": "bahamian",
+                  "max_mvp_awards": 0
+                },
+                "column_relative_error_pct": {
+                  "max_mvp_awards": 0.0
+                }
+              },
+              {
+                "pair_index": 2,
+                "alignment_key": [
+                  "greek and nigerian"
+                ],
+                "gold_row": {
+                  "nationality": "greek and nigerian",
+                  "max_mvp_awards": 2
+                },
+                "pred_row": {
+                  "nationality": "greek and nigerian",
+                  "max_mvp_awards": 2
+                },
+                "column_relative_error_pct": {
+                  "max_mvp_awards": 0.0
+                }
+              }
+            ],
+            "unmatched_gold_rows": [
+              {
+                "nationality": "french",
+                "max_mvp_awards": 0
+              }
+            ],
+            "unmatched_pred_rows": [],
+            "n_aligned_pairs": 3,
+            "n_unmatched_gold_rows": 1,
+            "n_unmatched_pred_rows": 0,
+            "mean_relative_error_pct": 40.0,
+            "macro_f1": 0.7499999999999999,
+            "macro_precision": 1.0,
+            "macro_recall": 0.6,
+            "column_metrics": {
+              "nationality": {
+                "precision": 1.0,
+                "recall": 0.6,
+                "f1": 0.7499999999999999
+              },
+              "max_mvp_awards": {
+                "precision": 1.0,
+                "recall": 0.6,
+                "f1": 0.7499999999999999
+              }
+            },
+            "alignment_keys": [
+              "nationality"
+            ],
+            "match_warnings": [
+              "Gold has duplicate keys for [('american',)]"
+            ]
+          }
+        },
+        {
+          "query_id": "mixed_queries_filter_agg_join_9",
+          "corpus_infeasible": true,
+          "missing_corpus_literals": [
+            "Cameroonian-American",
+            "1972/3/6"
+          ],
+          "metadata": {
+            "query_id": "mixed_queries_filter_agg_join_9",
+            "sql": "SELECT player.nationality, COUNT(*) AS count_all FROM player JOIN team ON player.team = team.team_name WHERE player.nationality = 'Cameroonian-American' OR player.birth_date = '1972/3/6' GROUP BY player.nationality;",
+            "slice_type": "agg_temporal",
+            "n_joins": 1,
+            "n_group_by_columns": 1,
+            "group_by_columns": [
+              "player.nationality"
+            ],
+            "n_aggregate_functions": 1,
+            "aggregate_functions": [
+              "COUNT"
+            ],
+            "aggregates": [
+              {
+                "output_name": "count_all",
+                "function": "COUNT",
+                "source": "count_all"
+              }
+            ],
+            "n_where_conditions": 2,
+            "gold_result_row_count": 0
+          },
+          "results": {
+            "gold_result": [],
+            "predicted_result": [],
+            "aligned_pairs": [],
+            "unmatched_gold_rows": [],
+            "unmatched_pred_rows": [],
+            "n_aligned_pairs": 0,
+            "n_unmatched_gold_rows": 0,
+            "n_unmatched_pred_rows": 0,
+            "mean_relative_error_pct": null,
+            "macro_f1": 0.0,
+            "macro_precision": 0.0,
+            "macro_recall": 0.0,
+            "column_metrics": {
+              "nationality": {
+                "precision": 0.0,
+                "recall": 0.0,
+                "f1": 0.0
+              },
+              "count_all": {
+                "precision": 0.0,
+                "recall": 0.0,
+                "f1": 0.0
+              }
+            },
+            "alignment_keys": [
+              "nationality"
+            ],
+            "match_warnings": []
+          }
+        },
+        {
+          "query_id": "mixed_queries_filter_agg_join_11",
+          "corpus_infeasible": false,
+          "metadata": {
+            "query_id": "mixed_queries_filter_agg_join_11",
+            "sql": "SELECT player.nationality, SUM(player.mvp_awards) AS sum_player_mvp_awards FROM player JOIN team ON player.team = team.team_name WHERE player.team != 'Milwaukee Bucks' OR player.nba_championships > 2 OR team.founded_year != 1949 GROUP BY player.nationality;",
+            "slice_type": "agg_temporal",
+            "n_joins": 1,
+            "n_group_by_columns": 1,
+            "group_by_columns": [
+              "player.nationality"
+            ],
+            "n_aggregate_functions": 1,
+            "aggregate_functions": [
+              "SUM"
+            ],
+            "aggregates": [
+              {
+                "output_name": "sum_player_mvp_awards",
+                "function": "SUM",
+                "source": "player.mvp_awards"
+              }
+            ],
+            "n_where_conditions": 3,
+            "gold_result_row_count": 4
+          },
+          "results": {
+            "gold_result": [
+              {
+                "nationality": "Bahamian",
+                "sum_player_mvp_awards": 0.0
+              },
+              {
+                "nationality": "Greek and Nigerian",
+                "sum_player_mvp_awards": 2.0
+              },
+              {
+                "nationality": "American",
+                "sum_player_mvp_awards": 0.0
+              },
+              {
+                "nationality": "American",
+                "sum_player_mvp_awards": 0.0
+              }
+            ],
+            "predicted_result": [
+              {
+                "nationality": "bahamian",
+                "sum_player_mvp_awards": 0.0
+              },
+              {
+                "nationality": "greek and nigerian",
+                "sum_player_mvp_awards": 2.0
+              },
+              {
+                "nationality": "american",
+                "sum_player_mvp_awards": 0.0
+              }
+            ],
+            "aligned_pairs": [
+              {
+                "pair_index": 0,
+                "alignment_key": [
+                  "american"
+                ],
+                "gold_row": {
+                  "nationality": "american",
+                  "sum_player_mvp_awards": 0.0
+                },
+                "pred_row": {
+                  "nationality": "american",
+                  "sum_player_mvp_awards": 0.0
+                },
+                "column_relative_error_pct": {
+                  "sum_player_mvp_awards": 0.0
+                }
+              },
+              {
+                "pair_index": 1,
+                "alignment_key": [
+                  "bahamian"
+                ],
+                "gold_row": {
+                  "nationality": "bahamian",
+                  "sum_player_mvp_awards": 0.0
+                },
+                "pred_row": {
+                  "nationality": "bahamian",
+                  "sum_player_mvp_awards": 0.0
+                },
+                "column_relative_error_pct": {
+                  "sum_player_mvp_awards": 0.0
+                }
+              },
+              {
+                "pair_index": 2,
+                "alignment_key": [
+                  "greek and nigerian"
+                ],
+                "gold_row": {
+                  "nationality": "greek and nigerian",
+                  "sum_player_mvp_awards": 2.0
+                },
+                "pred_row": {
+                  "nationality": "greek and nigerian",
+                  "sum_player_mvp_awards": 2.0
+                },
+                "column_relative_error_pct": {
+                  "sum_player_mvp_awards": 0.0
+                }
+              }
+            ],
+            "unmatched_gold_rows": [],
+            "unmatched_pred_rows": [],
+            "n_aligned_pairs": 3,
+            "n_unmatched_gold_rows": 0,
+            "n_unmatched_pred_rows": 0,
+            "mean_relative_error_pct": 25.0,
+            "macro_f1": 0.8571428571428571,
+            "macro_precision": 1.0,
+            "macro_recall": 0.75,
+            "column_metrics": {
+              "nationality": {
+                "precision": 1.0,
+                "recall": 0.75,
+                "f1": 0.8571428571428571
+              },
+              "sum_player_mvp_awards": {
+                "precision": 1.0,
+                "recall": 0.75,
+                "f1": 0.8571428571428571
+              }
+            },
+            "alignment_keys": [
+              "nationality"
+            ],
+            "match_warnings": [
+              "Gold has duplicate keys for [('american',)]"
+            ]
+          }
+        },
+        {
+          "query_id": "mixed_queries_filter_agg_player_4",
+          "corpus_infeasible": false,
+          "metadata": {
+            "query_id": "mixed_queries_filter_agg_player_4",
+            "sql": "SELECT position, MAX(mvp_awards) AS max_mvp_awards FROM player WHERE nba_championships = 0 AND draft_year > 2012 AND nba_championships != 2 GROUP BY position;",
+            "slice_type": "agg_temporal",
+            "n_joins": 0,
+            "n_group_by_columns": 1,
+            "group_by_columns": [
+              "position"
+            ],
+            "n_aggregate_functions": 1,
+            "aggregate_functions": [
+              "MAX"
+            ],
+            "aggregates": [
+              {
+                "output_name": "max_mvp_awards",
+                "function": "MAX",
+                "source": "mvp_awards"
+              }
+            ],
+            "n_where_conditions": 3,
+            "gold_result_row_count": 2
+          },
+          "results": {
+            "gold_result": [
+              {
+                "position": "Backcourt",
+                "max_mvp_awards": 0
+              },
+              {
+                "position": null,
+                "max_mvp_awards": 0
+              }
+            ],
+            "predicted_result": [
+              {
+                "position": "backcourt",
+                "max_mvp_awards": 0
+              }
+            ],
+            "aligned_pairs": [
+              {
+                "pair_index": 0,
+                "alignment_key": [
+                  "backcourt"
+                ],
+                "gold_row": {
+                  "position": "backcourt",
+                  "max_mvp_awards": 0
+                },
+                "pred_row": {
+                  "position": "backcourt",
+                  "max_mvp_awards": 0
+                },
+                "column_relative_error_pct": {
+                  "max_mvp_awards": 0.0
+                }
+              }
+            ],
+            "unmatched_gold_rows": [
+              {
+                "position": "",
+                "max_mvp_awards": 0
+              }
+            ],
+            "unmatched_pred_rows": [],
+            "n_aligned_pairs": 1,
+            "n_unmatched_gold_rows": 1,
+            "n_unmatched_pred_rows": 0,
+            "mean_relative_error_pct": 50.0,
+            "macro_f1": 0.6666666666666666,
+            "macro_precision": 1.0,
+            "macro_recall": 0.5,
+            "column_metrics": {
+              "position": {
+                "precision": 1.0,
+                "recall": 0.5,
+                "f1": 0.6666666666666666
+              },
+              "max_mvp_awards": {
+                "precision": 1.0,
+                "recall": 0.5,
+                "f1": 0.6666666666666666
+              }
+            },
+            "alignment_keys": [
+              "position"
+            ],
+            "match_warnings": []
+          }
+        }
+      ]
+    }
+  },
+  "_technical_details_path": null
+}
