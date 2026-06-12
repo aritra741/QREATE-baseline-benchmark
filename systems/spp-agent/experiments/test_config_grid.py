@@ -31,8 +31,13 @@ from data.query_alignment import (
     sample_corpus_stratified,
     tables_referenced_by_queries,
 )
+from data.materialized_db_store import (
+    database_path,
+    save_materialized_database,
+    write_database_index,
+)
 from data.workload_splits import HOLDOUT_POLICY, load_split_queries
-from optimizer.config_space import PopulationConfig, generate_config_space, parse_config_id
+from optimizer.config_space import PopulationConfig, generate_config_space
 from pipeline.evaluation import _eval_context
 from pipeline.extraction import ExtractionResult, extract_documents
 from pipeline.population import PopulationDiagnostics, apply_population
@@ -258,6 +263,10 @@ def _summarize_per_config(per_query: list[dict]) -> dict[str, Any]:
     }
 
 
+def _databases_dir(output_dir: Path) -> Path:
+    return output_dir / "databases"
+
+
 def run_config_grid(
     *,
     output_dir: Path,
@@ -265,6 +274,7 @@ def run_config_grid(
     max_configs: int | None = None,
     materialize_only: bool = False,
     resume: bool = True,
+    save_databases: bool = True,
 ) -> dict[str, Any]:
     cfg = load_config()
     phase0 = cfg.get("phase0", {})
@@ -292,37 +302,60 @@ def run_config_grid(
     per_config: dict[str, Any] = dict(checkpoint.get("per_config", {}))
 
     settings, parser, attributes, _ = _eval_context(instance)
+    databases_dir = _databases_dir(output_dir)
 
     logger.info(
-        "Config grid: %d configs, %d test queries, slices=%s",
+        "Config grid: %d configs, %d test queries, slices=%s, save_databases=%s",
         len(all_configs),
         len(test_queries),
         slice_counts,
+        save_databases,
     )
 
     for idx, config in enumerate(all_configs, start=1):
         cid = config.config_id
-        if cid in completed:
+        db_path = database_path(databases_dir, cid)
+        entry = per_config.get(cid)
+        has_db_on_disk = save_databases and db_path.is_file()
+
+        if cid in completed and entry is not None and (has_db_on_disk or not save_databases):
             logger.info("[%d/%d] skip cached %s", idx, len(all_configs), cid)
             continue
 
-        t0 = time.perf_counter()
+        if cid in completed and entry is not None and save_databases and not has_db_on_disk:
+            logger.warning(
+                "[%d/%d] checkpoint hit for %s but database file missing; rematerializing",
+                idx,
+                len(all_configs),
+                cid,
+            )
+
+        config_t0 = time.perf_counter()
         db, diagnostics = materialize_database(
             extraction,
             config,
             instance.schema,
             extraction_model=extraction_model,
         )
-        materialize_sec = time.perf_counter() - t0
+        materialize_sec = time.perf_counter() - config_t0
 
-        entry: dict[str, Any] = {
+        saved_db_path: str | None = None
+        if save_databases:
+            save_materialized_database(db_path, config_id=cid, db=db)
+            saved_db_path = str(db_path.relative_to(output_dir))
+
+        entry = {
             "config_id": cid,
             "row_counts": _db_row_counts(db),
             "population_diagnostics": _diagnostics_to_dict(diagnostics),
             "materialize_seconds": round(materialize_sec, 3),
         }
+        if saved_db_path is not None:
+            entry["database_path"] = saved_db_path
 
+        evaluate_sec: float | None = None
         if not materialize_only:
+            eval_t0 = time.perf_counter()
             per_query = evaluate_queries_on_db(
                 instance,
                 db,
@@ -331,22 +364,45 @@ def run_config_grid(
                 parser=parser,
                 attributes=attributes,
             )
+            evaluate_sec = time.perf_counter() - eval_t0
+            entry["evaluate_seconds"] = round(evaluate_sec, 3)
             entry["per_query"] = per_query
             entry.update(_summarize_per_config(per_query))
+
+        total_sec = time.perf_counter() - config_t0
+        entry["total_seconds"] = round(total_sec, 3)
 
         per_config[cid] = entry
         completed.add(cid)
         checkpoint["completed_configs"] = sorted(completed)
         checkpoint["per_config"] = per_config
         _save_checkpoint(checkpoint_path, checkpoint)
+        timing_parts = [f"total={total_sec:.1f}s", f"materialize={materialize_sec:.1f}s"]
+        if evaluate_sec is not None:
+            timing_parts.append(f"eval={evaluate_sec:.1f}s")
         logger.info(
-            "[%d/%d] %s materialized rows=%s%s",
+            "[%d/%d] %s %s rows=%s%s%s",
             idx,
             len(all_configs),
             cid,
+            " ".join(timing_parts),
             entry["row_counts"],
+            f" db={saved_db_path}" if saved_db_path else "",
             f" mean_f1={entry.get('mean_macro_f1', 0):.3f}" if not materialize_only else "",
         )
+
+    if save_databases:
+        db_index: dict[str, str] = {}
+        for cid, entry in per_config.items():
+            rel = entry.get("database_path")
+            if rel:
+                db_index[cid] = Path(rel).name
+            else:
+                path = database_path(databases_dir, cid)
+                if path.is_file():
+                    db_index[cid] = path.name
+        if db_index:
+            write_database_index(databases_dir, entries=db_index)
 
     manifest = {
         "experiment": EXPERIMENT_NAME,
@@ -362,6 +418,10 @@ def run_config_grid(
         "num_docs": num_docs,
         "seed": seed,
         "materialize_only": materialize_only,
+        "save_databases": save_databases,
+        "databases_dir": str(_databases_dir(output_dir).relative_to(output_dir))
+        if save_databases
+        else None,
     }
     _manifest_path(output_dir).write_text(json.dumps(manifest, indent=2), encoding="utf-8")
 
@@ -427,6 +487,11 @@ def _parse_args() -> argparse.Namespace:
         action="store_true",
         help="Only build databases; skip per-query evaluation",
     )
+    parser.add_argument(
+        "--no-save-databases",
+        action="store_true",
+        help="Do not persist materialized tables to disk (metrics only)",
+    )
     parser.add_argument("--no-resume", action="store_true", help="Ignore checkpoint and start fresh")
     return parser.parse_args()
 
@@ -447,6 +512,7 @@ def main() -> None:
         max_configs=args.max_configs,
         materialize_only=args.materialize_only,
         resume=not args.no_resume,
+        save_databases=not args.no_save_databases,
     )
     summary = results.get("summary", {})
     manifest = results.get("manifest", {})
@@ -455,6 +521,8 @@ def main() -> None:
     print(f"Split: {manifest.get('split')} (held out)")
     print(f"Queries: {manifest.get('n_test_queries')} | slices: {manifest.get('slice_counts')}")
     print(f"Configs: {summary.get('n_configs_completed', 0)}")
+    if manifest.get("save_databases"):
+        print(f"Databases: {_databases_dir(output_dir)}")
     if summary.get("best_config_id") and summary.get("best_mean_macro_f1") is not None:
         print(
             f"Best config: {summary['best_config_id']} "
