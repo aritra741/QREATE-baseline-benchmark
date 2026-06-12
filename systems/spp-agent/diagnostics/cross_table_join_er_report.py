@@ -67,6 +67,7 @@ def _load_extraction(instance, cache_path: Path, *, fresh_extraction: bool):
         instance.corpus,
         instance.schema,
         cfg["llm"]["extraction_model"],
+        queries=instance.queries,
     )
     return instance, extraction
 

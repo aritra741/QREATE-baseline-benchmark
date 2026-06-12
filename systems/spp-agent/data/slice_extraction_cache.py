@@ -175,7 +175,12 @@ def resolve_slice_extraction(
             "extraction_cache_hit": False,
         },
     )
-    extraction = extract_documents(instance.corpus, instance.schema, extraction_model)
+    extraction = extract_documents(
+        instance.corpus,
+        instance.schema,
+        extraction_model,
+        queries=instance.queries,
+    )
     save_slice_extraction_cache(
         cache_path,
         slice_name=slice_name,

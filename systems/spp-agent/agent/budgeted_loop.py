@@ -281,7 +281,7 @@ def run_budgeted_agent_loop(
                 break
 
             if extraction is None:
-                extraction = extract_documents(corpus, schema, llm_model)
+                extraction = extract_documents(corpus, schema, llm_model, queries=queries)
                 budget.spend(int(cost_model.extraction_cost(n_docs)), label="extraction")
 
             pipe_id = catalog_id_to_pipe[target]

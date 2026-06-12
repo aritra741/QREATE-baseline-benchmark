@@ -42,6 +42,7 @@ from data.workload_splits import HOLDOUT_POLICY, load_split_queries
 from optimizer.config_space import PopulationConfig, generate_config_space
 from pipeline.evaluation import _eval_context
 from pipeline.extraction import ExtractionResult, extract_documents
+from pipeline.extraction_context import extract_demand_profile_sql_only
 from pipeline.population import PopulationDiagnostics, apply_population
 from pipeline.query_benchmark_report import evaluate_query_detailed
 from utils.config import load_config
@@ -79,6 +80,13 @@ def _corpus_fingerprint(corpus: list[dict]) -> str:
     return hashlib.sha256("|".join(doc_ids).encode("utf-8")).hexdigest()[:16]
 
 
+def _demand_fingerprint(demand_profile: dict[str, Any] | None) -> str:
+    if not demand_profile:
+        return "none"
+    payload = json.dumps(demand_profile, sort_keys=True, default=str)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
+
+
 def _run_fingerprint(
     *,
     extraction_model: str,
@@ -87,6 +95,8 @@ def _run_fingerprint(
     num_docs: int,
     n_test_queries: int,
     corpus_fingerprint: str,
+    extraction_mode: str,
+    demand_fingerprint: str,
 ) -> dict[str, Any]:
     """Fields that must match for checkpoint / extraction cache reuse."""
     return {
@@ -96,6 +106,8 @@ def _run_fingerprint(
         "num_docs": num_docs,
         "n_test_queries": n_test_queries,
         "corpus_fingerprint": corpus_fingerprint,
+        "extraction_mode": extraction_mode,
+        "demand_fingerprint": demand_fingerprint,
         "split": "test",
     }
 
@@ -111,6 +123,7 @@ def _extraction_to_payload(extraction: ExtractionResult) -> dict[str, Any]:
         "tuples_by_table": extraction.tuples_by_table,
         "token_cost": extraction.token_cost,
         "per_doc_signals": extraction.per_doc_signals,
+        "demand_profile": extraction.demand_profile,
     }
 
 
@@ -119,6 +132,7 @@ def _extraction_from_payload(payload: dict[str, Any]) -> ExtractionResult:
         tuples_by_table=dict(payload.get("tuples_by_table", {})),
         token_cost=float(payload.get("token_cost", 0.0)),
         per_doc_signals=list(payload.get("per_doc_signals", [])),
+        demand_profile=payload.get("demand_profile"),
     )
 
 
@@ -223,9 +237,21 @@ def resolve_extraction(
     llm_profile: str | None,
     seed: int,
     n_test_queries: int,
+    test_queries: list[dict],
     fresh: bool,
 ) -> tuple[ExtractionResult, str]:
     cache_path = _extraction_cache_path(output_dir)
+    cfg = load_config()
+    extraction_mode = (
+        "workload_aware"
+        if cfg.get("extraction", {}).get("workload_aware", True)
+        else "legacy_schema"
+    )
+    demand_fp = _demand_fingerprint(
+        extract_demand_profile_sql_only(test_queries)
+        if extraction_mode == "workload_aware"
+        else None
+    )
     expected_meta = _run_fingerprint(
         extraction_model=extraction_model,
         llm_profile=llm_profile,
@@ -233,6 +259,8 @@ def resolve_extraction(
         num_docs=len(instance.corpus),
         n_test_queries=n_test_queries,
         corpus_fingerprint=_corpus_fingerprint(instance.corpus),
+        extraction_mode=extraction_mode,
+        demand_fingerprint=demand_fp,
     )
     if cache_path.is_file() and not fresh:
         extraction, cached_meta = _load_extraction_cache(cache_path)
@@ -248,8 +276,17 @@ def resolve_extraction(
         )
 
     logger.info("Running LLM extraction on %d docs", len(instance.corpus))
-    extraction = extract_documents(instance.corpus, instance.schema, extraction_model)
-    meta = {**expected_meta, "extraction_fingerprint": _extraction_fingerprint(extraction)}
+    extraction = extract_documents(
+        instance.corpus,
+        instance.schema,
+        extraction_model,
+        queries=instance.queries,
+    )
+    meta = {
+        **expected_meta,
+        "extraction_fingerprint": _extraction_fingerprint(extraction),
+        "demand_profile": extraction.demand_profile,
+    }
     _save_extraction_cache(cache_path, extraction, meta=meta)
     return extraction, "fresh_extraction"
 
@@ -422,6 +459,16 @@ def run_config_grid(
     instance = build_test_instance(test_queries, num_docs=num_docs, seed=seed)
     corpus_fp = _corpus_fingerprint(instance.corpus)
     _warn_infeasible_test_queries(test_queries, instance.corpus)
+    extraction_mode = (
+        "workload_aware"
+        if cfg.get("extraction", {}).get("workload_aware", True)
+        else "legacy_schema"
+    )
+    demand_fp = _demand_fingerprint(
+        extract_demand_profile_sql_only(test_queries)
+        if extraction_mode == "workload_aware"
+        else None
+    )
     run_fingerprint = _run_fingerprint(
         extraction_model=extraction_model,
         llm_profile=llm_profile,
@@ -429,6 +476,8 @@ def run_config_grid(
         num_docs=len(instance.corpus),
         n_test_queries=len(test_queries),
         corpus_fingerprint=corpus_fp,
+        extraction_mode=extraction_mode,
+        demand_fingerprint=demand_fp,
     )
     extraction, extraction_source = resolve_extraction(
         instance,
@@ -437,6 +486,7 @@ def run_config_grid(
         llm_profile=llm_profile,
         seed=seed,
         n_test_queries=len(test_queries),
+        test_queries=test_queries,
         fresh=fresh_extraction,
     )
     extraction_fp = _extraction_fingerprint(extraction)
@@ -578,6 +628,9 @@ def run_config_grid(
         "extraction_fingerprint": extraction_fp,
         "run_fingerprint": run_fingerprint,
         "corpus_fingerprint": corpus_fp,
+        "extraction_mode": extraction_mode,
+        "demand_fingerprint": demand_fp,
+        "demand_profile": extraction.demand_profile,
         "corpus_mode": instance.metadata.get("corpus_mode"),
         "aligned_corpus_size": instance.metadata.get("aligned_corpus_size"),
         "llm_profile": llm_profile,

@@ -125,6 +125,7 @@ def main() -> None:
         agg_filter_instance.corpus,
         agg_filter_instance.schema,
         cfg["llm"]["extraction_model"],
+        queries=agg_filter_instance.queries,
     )
     db, _ = apply_population(
         extraction, parse_config_id(best_config), agg_filter_instance.schema

@@ -5,6 +5,13 @@ import re
 from dataclasses import dataclass, field
 
 from llm.client import chat_completion, estimate_tokens
+from pipeline.extraction_context import (
+    align_tuples_to_schema,
+    build_extraction_task_context,
+    build_workload_aware_extraction_prompt,
+    gold_schema_leaks_in_prompt,
+    resolve_demand_profile,
+)
 from pipeline.schema import Schema
 from utils.config import load_config
 from utils.logging import setup_logger
@@ -17,9 +24,10 @@ class ExtractionResult:
     tuples_by_table: dict[str, list[dict]]
     token_cost: float
     per_doc_signals: list[dict] = field(default_factory=list)
+    demand_profile: dict | None = None
 
 
-def _build_extraction_prompt(doc: dict, schema: Schema) -> str:
+def _build_legacy_schema_prompt(doc: dict, schema: Schema) -> str:
     table_specs = []
     for table, cols in schema.tables.items():
         col_types = schema.column_types.get(table, {})
@@ -66,22 +74,52 @@ def _parse_extraction_json(raw: str) -> tuple[dict[str, list[dict]] | None, bool
     return parsed, True
 
 
+def _workload_aware_enabled(cfg: dict) -> bool:
+    extraction_cfg = cfg.get("extraction", {})
+    if "workload_aware" in extraction_cfg:
+        return bool(extraction_cfg["workload_aware"])
+    return True
+
+
 def extract_documents(
     docs: list[dict],
     schema: Schema,
     model_name: str,
+    *,
+    queries: list[dict] | None = None,
+    demand_profile: dict | None = None,
 ) -> ExtractionResult:
     cfg = load_config()
     llm_cfg = cfg["llm"]
     base_url = llm_cfg.get("base_url", "http://localhost:8000/v1")
     temperature = float(llm_cfg.get("temperature", 0.0))
+    workload_aware = _workload_aware_enabled(cfg)
+
+    if workload_aware and not queries:
+        raise ValueError(
+            "workload_aware extraction requires queries= (SQL workload). "
+            "Set extraction.workload_aware: false to use the legacy schema prompt."
+        )
+
+    resolved_demand = None
+    task_context = None
+    if workload_aware:
+        resolved_demand = resolve_demand_profile(queries, demand_profile=demand_profile)
+        task_context = build_extraction_task_context(queries, resolved_demand)
+        logger.info(
+            "Workload-aware extraction: %d demand columns has_join=%s has_temporal=%s",
+            len(resolved_demand.get("columns", [])),
+            resolved_demand.get("has_join"),
+            resolved_demand.get("has_temporal"),
+        )
 
     logger.info(
-        "Extracting %d docs with model=%s provider=%s base_url=%s",
+        "Extracting %d docs with model=%s provider=%s base_url=%s mode=%s",
         len(docs),
         model_name,
         llm_cfg.get("provider"),
         base_url,
+        "workload_aware" if task_context else "legacy_schema",
     )
 
     tuples_by_table: dict[str, list[dict]] = {t: [] for t in schema.tables}
@@ -100,9 +138,23 @@ def extract_documents(
             doc.get("metadata", {}).get("table_hint"),
         )
 
-        prompt = _build_extraction_prompt(doc, schema)
+        if task_context is not None:
+            prompt = build_workload_aware_extraction_prompt(doc, task_context=task_context)
+            leaks = gold_schema_leaks_in_prompt(prompt, schema)
+            if leaks:
+                raise RuntimeError(
+                    f"Gold schema leaked into workload-aware extraction prompt: {leaks}"
+                )
+        else:
+            prompt = _build_legacy_schema_prompt(doc, schema)
         messages = [
-            {"role": "system", "content": "You are a precise information extraction assistant. Output strict JSON only."},
+            {
+                "role": "system",
+                "content": (
+                    "You are a precise information extraction assistant for analytics workloads. "
+                    "Output strict JSON only."
+                ),
+            },
             {"role": "user", "content": prompt},
         ]
         refusal_markers = ("cannot", "unable", "sorry", "i can't")
@@ -143,6 +195,8 @@ def extract_documents(
 
         tuple_count = 0
         if parsed:
+            if task_context is not None:
+                parsed = align_tuples_to_schema(parsed, schema)
             for table_name, rows in parsed.items():
                 if table_name in tuples_by_table:
                     for row in rows:
@@ -191,4 +245,5 @@ def extract_documents(
         tuples_by_table=tuples_by_table,
         token_cost=total_cost,
         per_doc_signals=per_doc_signals,
+        demand_profile=resolved_demand,
     )

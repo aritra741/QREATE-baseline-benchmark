@@ -116,7 +116,12 @@ def run_probes(
         logger.info("Reusing shared extraction token_cost=%.0f", total_cost)
     else:
         logger.info("Starting extraction on %d docs", len(sampled_docs))
-        extraction = extract_documents(sampled_docs, schema, llm_cfg["extraction_model"])
+        extraction = extract_documents(
+            sampled_docs,
+            schema,
+            llm_cfg["extraction_model"],
+            queries=workload_queries,
+        )
         total_cost = extraction.token_cost
         logger.info("Extraction finished token_cost=%.0f", total_cost)
 
