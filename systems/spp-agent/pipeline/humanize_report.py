@@ -31,7 +31,7 @@ _AXIS_LABELS: dict[str, dict[str, str]] = {
     },
     "coerce": {
         "strict": "Type coercion with strict parsing rules (CPU only)",
-        "permissive": "Type coercion with strict parsing rules (CPU only)",
+        "permissive": "Lenient parsing: truncate floats, extract numbers from text (CPU only)",
         "llm": "Type coercion via LLM for unparseable values (costs tokens)",
     },
 }

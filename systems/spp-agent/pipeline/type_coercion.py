@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import re
 
 import numpy as np
 import pandas as pd
@@ -13,6 +14,7 @@ from utils.logging import setup_logger
 logger = setup_logger("spp.type_coercion")
 
 _NULL_STRINGS = frozenset({"", "null", "none", "nan", "n/a", "na"})
+_NUMERIC_TOKEN_RE = re.compile(r"-?\d+(?:\.\d+)?")
 
 
 def _is_null_like(value: object) -> bool:
@@ -70,6 +72,65 @@ def _cast_strict_float(value: object) -> object:
     return np.nan
 
 
+def _extract_numeric_token(text: str) -> str | None:
+    """Pull the first numeric literal from a messy string (e.g. 'pick 12' -> '12')."""
+    cleaned = text.strip().replace(",", "")
+    if cleaned.lower() in _NULL_STRINGS:
+        return None
+    match = _NUMERIC_TOKEN_RE.search(cleaned)
+    return match.group(0) if match else None
+
+
+def _cast_permissive_int(value: object) -> object:
+    if _is_null_like(value):
+        return np.nan
+    if isinstance(value, bool):
+        return int(value)
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        if math.isnan(value):
+            return np.nan
+        return int(value)
+    if isinstance(value, str):
+        token = _extract_numeric_token(value)
+        if token is None:
+            return np.nan
+        try:
+            return int(float(token))
+        except ValueError:
+            return np.nan
+    return np.nan
+
+
+def _cast_permissive_float(value: object) -> object:
+    if _is_null_like(value):
+        return np.nan
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        if isinstance(value, float) and math.isnan(value):
+            return np.nan
+        return float(value)
+    if isinstance(value, str):
+        token = _extract_numeric_token(value)
+        if token is None:
+            return np.nan
+        try:
+            return float(token)
+        except ValueError:
+            return np.nan
+    return np.nan
+
+
+def _coerce_column_permissive(series: pd.Series, dtype: str) -> pd.Series:
+    if dtype == "int":
+        casted = [_cast_permissive_int(v) for v in series.tolist()]
+        return pd.array(casted, dtype=pd.Int64Dtype())
+    if dtype in {"float", "numeric"}:
+        casted = [_cast_permissive_float(v) for v in series.tolist()]
+        return pd.to_numeric(pd.Series(casted), errors="coerce")
+    return series
+
+
 def _coerce_column_strict(series: pd.Series, dtype: str) -> pd.Series:
     if dtype == "int":
         casted = [_cast_strict_int(v) for v in series.tolist()]
@@ -106,6 +167,38 @@ def apply_strict_type_coercion(
             if after_non_null != before_non_null:
                 logger.debug(
                     "strict coercion %s.%s: non-null %d -> %d",
+                    table,
+                    col,
+                    before_non_null,
+                    after_non_null,
+                )
+    return db
+
+
+def apply_permissive_type_coercion(
+    db: dict[str, pd.DataFrame],
+    schema: Schema,
+) -> dict[str, pd.DataFrame]:
+    """
+    Lenient numeric coercion: truncate floats to ints and extract embedded numbers
+    from strings (e.g. 'draft pick 12' -> 12). Still maps null-like tokens to NULL.
+    """
+    for table, df in db.items():
+        if df.empty:
+            continue
+        col_types = schema.column_types.get(table, {})
+        for col in df.columns:
+            if col not in col_types:
+                continue
+            dtype = col_types[col]
+            if dtype not in {"int", "float", "numeric"}:
+                continue
+            before_non_null = int(df[col].notna().sum())
+            df[col] = _coerce_column_permissive(df[col], dtype)
+            after_non_null = int(df[col].notna().sum())
+            if after_non_null != before_non_null:
+                logger.debug(
+                    "permissive coercion %s.%s: non-null %d -> %d",
                     table,
                     col,
                     before_non_null,
@@ -180,11 +273,13 @@ def apply_llm_type_coercion(
                         coerced.append(np.nan)
                     else:
                         coerced.append(
-                            _cast_strict_int(value) if dtype == "int" else _cast_strict_float(value)
+                            _cast_permissive_int(value)
+                            if dtype == "int"
+                            else _cast_permissive_float(value)
                         )
                 df[col] = coerced
 
-            df[col] = _coerce_column_strict(df[col], dtype)
+            df[col] = _coerce_column_permissive(df[col], dtype)
     return db
 
 
@@ -202,5 +297,5 @@ def apply_type_coercion(
             return apply_strict_type_coercion(db, schema)
         return apply_llm_type_coercion(db, schema, model_name)
     if mode == "permissive":
-        return apply_strict_type_coercion(db, schema)
+        return apply_permissive_type_coercion(db, schema)
     return apply_strict_type_coercion(db, schema)

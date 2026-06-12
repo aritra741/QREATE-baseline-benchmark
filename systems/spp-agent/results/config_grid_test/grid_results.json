@@ -1,0 +1,87 @@
+{
+  "manifest": {
+    "experiment": "config_grid_test",
+    "split": "test",
+    "held_out_policy": "The test split is assigned first from a shuffled per-slice pool and is never included in train or dev. Use train for agent design, prompt tuning, threshold optimization, and algorithm selection. Use dev only for validation during development. The test split must not be used for any tuning or selection.",
+    "n_configs": 2,
+    "n_test_queries": 25,
+    "slice_counts": {
+      "agg_only": 5,
+      "agg_filter": 5,
+      "agg_join": 5,
+      "agg_filter_join": 5,
+      "agg_temporal": 5
+    },
+    "slices_present": [
+      "agg_only",
+      "agg_filter",
+      "agg_join",
+      "agg_filter_join",
+      "agg_temporal"
+    ],
+    "extraction_source": "fresh_extraction",
+    "extraction_model": "deepseek-v4-flash",
+    "llm_profile": "deepseek_v4_flash",
+    "num_docs": 20,
+    "seed": 42,
+    "materialize_only": true
+  },
+  "summary": {
+    "n_configs_completed": 2,
+    "best_config_id": "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=llm",
+    "best_mean_macro_f1": null,
+    "worst_mean_macro_f1": 0.0,
+    "mean_macro_f1_by_slice_averaged_over_configs": {},
+    "expected_slice_counts": {
+      "agg_only": 5,
+      "agg_filter": 5,
+      "agg_join": 5,
+      "agg_filter_join": 5,
+      "agg_temporal": 5
+    }
+  },
+  "per_config": {
+    "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=llm": {
+      "config_id": "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=llm",
+      "row_counts": {
+        "city": 10,
+        "owner": 3,
+        "player": 8,
+        "team": 8
+      },
+      "population_diagnostics": {
+        "er_merge_count": 12,
+        "er_ambiguous_pairs": 14,
+        "norm_changes": 74,
+        "norm_entropy": 3.9402621217938605,
+        "unit_parse_successes": 0,
+        "unit_parse_failures": 0,
+        "missing_before": 47,
+        "missing_after": 46,
+        "duplicate_rate": 0.0
+      },
+      "materialize_seconds": 7.348
+    },
+    "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=permissive": {
+      "config_id": "er=embedding_0.7|norm=dictionary|unit=none|miss=constant|coerce=permissive",
+      "row_counts": {
+        "city": 10,
+        "owner": 3,
+        "player": 8,
+        "team": 8
+      },
+      "population_diagnostics": {
+        "er_merge_count": 12,
+        "er_ambiguous_pairs": 14,
+        "norm_changes": 74,
+        "norm_entropy": 3.9402621217938605,
+        "unit_parse_successes": 0,
+        "unit_parse_failures": 0,
+        "missing_before": 47,
+        "missing_after": 46,
+        "duplicate_rate": 0.0
+      },
+      "materialize_seconds": 0.092
+    }
+  }
+}
