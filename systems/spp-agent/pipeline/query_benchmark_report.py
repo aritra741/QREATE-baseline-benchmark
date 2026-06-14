@@ -20,6 +20,7 @@ from pipeline.evaluation import (
 )
 from pipeline.execution import execute_sql_on_db
 from pipeline.humanize_report import humanize_agent_run, humanize_per_query_agent
+from pipeline.group_by_category_error import compute_group_by_category_error_report
 from pipeline.relative_error import (
     _aggregate_column_names,
     cell_relative_error_pct,
@@ -218,6 +219,14 @@ def evaluate_query_detailed(
 
     metrics = MetricCalculator(manifest, settings).compute(match_result)
     mean_relative_error_pct = query_relative_error_pct(match_result, manifest)
+    agg_cols = _aggregate_column_names(manifest)
+    category_error = compute_group_by_category_error_report(
+        gold_norm,
+        pred_norm,
+        group_keys=join_keys,
+        value_columns=agg_cols,
+        query_id=qid,
+    )
     alignment = _alignment_details(
         gold_norm,
         pred_norm,
@@ -239,6 +248,9 @@ def evaluate_query_detailed(
             "predicted_result": _df_to_records(pred_df),
             **alignment,
             "mean_relative_error_pct": mean_relative_error_pct,
+            "category_error": category_error,
+            "query_error": category_error.get("query_error") if category_error else None,
+            "query_accuracy": category_error.get("query_accuracy") if category_error else None,
             "macro_f1": float(metrics["macro_f1"]),
             "macro_precision": float(metrics["macro_precision"]),
             "macro_recall": float(metrics["macro_recall"]),

@@ -40,7 +40,10 @@ from data.materialized_db_store import (
 )
 from data.workload_splits import HOLDOUT_POLICY, load_split_queries
 from optimizer.config_space import PopulationConfig, generate_config_space
-from pipeline.evaluation import _eval_context
+from pipeline.group_by_category_error import (
+    build_workload_category_error_report,
+    write_category_error_report,
+)
 from pipeline.extraction import ExtractionResult, extract_documents
 from pipeline.extraction_context import extract_demand_profile_sql_only
 from pipeline.population import PopulationDiagnostics, apply_population
@@ -367,6 +370,10 @@ def materialize_database(
     )
 
 
+def _category_error_report_path(output_dir: Path) -> Path:
+    return output_dir / "category_error_report.json"
+
+
 def evaluate_queries_on_db(
     instance,
     db: dict,
@@ -391,16 +398,21 @@ def evaluate_queries_on_db(
                 slice_name=slice_name,
             )
             results = detailed["results"]
-            rows.append(
-                {
-                    "query_id": qid,
-                    "aggregation_slice": slice_name,
-                    "macro_f1": float(results["macro_f1"]),
-                    "mean_relative_error_pct": results.get("mean_relative_error_pct"),
-                    "pred_rows": len(results["predicted_result"]),
-                    "gold_rows": len(results["gold_result"]),
-                }
-            )
+            category_error = results.get("category_error")
+            row = {
+                "query_id": qid,
+                "aggregation_slice": slice_name,
+                "macro_f1": float(results["macro_f1"]),
+                "mean_relative_error_pct": results.get("mean_relative_error_pct"),
+                "query_error": results.get("query_error"),
+                "query_accuracy": results.get("query_accuracy"),
+                "pred_rows": len(results["predicted_result"]),
+                "gold_rows": len(results["gold_result"]),
+            }
+            if category_error:
+                row["category_error"] = category_error
+                row["primary_failure_mode"] = category_error.get("primary_failure_mode")
+            rows.append(row)
         except Exception as exc:
             rows.append(
                 {
@@ -408,8 +420,11 @@ def evaluate_queries_on_db(
                     "aggregation_slice": slice_name,
                     "macro_f1": 0.0,
                     "mean_relative_error_pct": 100.0,
+                    "query_error": 1.0,
+                    "query_accuracy": 0.0,
                     "pred_rows": -1,
                     "gold_rows": -1,
+                    "primary_failure_mode": "evaluation_exception",
                     "error": str(exc),
                 }
             )
@@ -419,17 +434,32 @@ def evaluate_queries_on_db(
 def _summarize_per_config(per_query: list[dict]) -> dict[str, Any]:
     by_slice: dict[str, list[float]] = defaultdict(list)
     f1s: list[float] = []
+    query_errors: list[float] = []
+    query_accuracies: list[float] = []
+    failure_modes: dict[str, int] = defaultdict(int)
     for row in per_query:
         f1 = float(row.get("macro_f1", 0.0))
         f1s.append(f1)
         by_slice[row.get("aggregation_slice", "unknown")].append(f1)
-    return {
+        if row.get("query_error") is not None:
+            query_errors.append(float(row["query_error"]))
+        if row.get("query_accuracy") is not None:
+            query_accuracies.append(float(row["query_accuracy"]))
+        mode = row.get("primary_failure_mode")
+        if mode:
+            failure_modes[str(mode)] += 1
+    summary = {
         "mean_macro_f1": sum(f1s) / len(f1s) if f1s else 0.0,
         "mean_macro_f1_by_slice": {
             slice_name: sum(vals) / len(vals) if vals else 0.0
             for slice_name, vals in sorted(by_slice.items())
         },
     }
+    if query_errors:
+        summary["mean_query_error"] = sum(query_errors) / len(query_errors)
+        summary["mean_query_accuracy"] = sum(query_accuracies) / len(query_accuracies)
+        summary["failure_mode_counts"] = dict(sorted(failure_modes.items()))
+    return summary
 
 
 def _databases_dir(output_dir: Path) -> Path:
@@ -645,10 +675,19 @@ def run_config_grid(
     _manifest_path(output_dir).write_text(json.dumps(manifest, indent=2), encoding="utf-8")
 
     grid_summary = _build_grid_summary(per_config, slice_counts)
+    category_error_report = None
+    if not materialize_only and per_config:
+        category_error_report = build_workload_category_error_report(
+            per_config,
+            query_ids=[str(q.get("query_id", "")) for q in test_queries],
+        )
+        write_category_error_report(category_error_report, _category_error_report_path(output_dir))
+
     results = {
         "manifest": manifest,
         "summary": grid_summary,
         "per_config": per_config,
+        "category_error_report": category_error_report,
     }
     _results_path(output_dir).write_text(json.dumps(results, indent=2), encoding="utf-8")
     return results
@@ -684,6 +723,28 @@ def _build_grid_summary(per_config: dict[str, Any], slice_counts: dict[str, int]
                     slice_name: sum(vals) / len(vals) if vals else 0.0
                     for slice_name, vals in sorted(mean_by_slice_across_configs.items())
                 },
+            }
+        )
+
+    error_ranked = sorted(
+        (
+            (cid, entry)
+            for cid, entry in per_config.items()
+            if entry.get("mean_query_error") is not None
+        ),
+        key=lambda kv: float(kv[1]["mean_query_error"]),
+    )
+    if error_ranked:
+        best_err_cid, best_err_entry = error_ranked[0]
+        worst_err_cid, worst_err_entry = error_ranked[-1]
+        result.update(
+            {
+                "best_config_by_query_error": best_err_cid,
+                "best_mean_query_error": best_err_entry.get("mean_query_error"),
+                "best_mean_query_accuracy": best_err_entry.get("mean_query_accuracy"),
+                "worst_config_by_query_error": worst_err_cid,
+                "worst_mean_query_error": worst_err_entry.get("mean_query_error"),
+                "worst_mean_query_accuracy": worst_err_entry.get("mean_query_accuracy"),
             }
         )
     return result
@@ -755,8 +816,16 @@ def main() -> None:
     print(f"Split: {manifest.get('split')} (held out)")
     print(f"Queries: {manifest.get('n_test_queries')} | slices: {manifest.get('slice_counts')}")
     print(f"Configs: {summary.get('n_configs_completed', 0)}")
+    if summary.get("best_config_by_query_error") and summary.get("best_mean_query_error") is not None:
+        print(
+            f"Best by category error: {summary['best_config_by_query_error']} "
+            f"(mean query error={summary['best_mean_query_error']:.4f}, "
+            f"accuracy={summary.get('best_mean_query_accuracy', 0):.4f})"
+        )
     if manifest.get("save_databases"):
         print(f"Databases: {_databases_dir(output_dir)}")
+    if results.get("category_error_report"):
+        print(f"Category error report: {_category_error_report_path(output_dir)}")
     if summary.get("best_config_id") and summary.get("best_mean_macro_f1") is not None:
         print(
             f"Best config: {summary['best_config_id']} "
