@@ -44,6 +44,7 @@ from pipeline.group_by_category_error import (
     build_workload_category_error_report,
     write_category_error_report,
 )
+from pipeline.evaluation import _eval_context
 from pipeline.extraction import ExtractionResult, extract_documents
 from pipeline.extraction_context import extract_demand_profile_sql_only
 from pipeline.population import PopulationDiagnostics, apply_population
