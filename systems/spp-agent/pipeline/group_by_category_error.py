@@ -268,6 +268,55 @@ def _compact_per_category_summary(value_report: dict[str, Any]) -> dict[str, dic
     return summary
 
 
+def summarize_worst_query_for_json(
+    report: dict[str, Any],
+    *,
+    top_category_errors: int = 10,
+) -> dict[str, Any]:
+    """Small worst-query record for JSON export (no full category maps)."""
+    n_gold = 0
+    n_pred = 0
+    error_rows: list[dict[str, Any]] = []
+
+    for value_report in _value_column_reports(report):
+        gold_map = value_report.get("gold_categories") or {}
+        pred_map = value_report.get("predicted_categories") or {}
+        n_gold += len(gold_map)
+        n_pred += len(pred_map)
+        value_column = value_report.get("value_column")
+        for category, error_term in (value_report.get("per_category_error") or {}).items():
+            if category in gold_map and category in pred_map:
+                status = "matched"
+            elif category in gold_map:
+                status = "missing"
+            else:
+                status = "extra"
+            row: dict[str, Any] = {
+                "category": category,
+                "status": status,
+                "error": float(error_term),
+            }
+            if value_column is not None:
+                row["value_column"] = value_column
+            error_rows.append(row)
+
+    error_rows.sort(key=lambda row: float(row["error"]), reverse=True)
+
+    return {
+        "query_id": report.get("query_id"),
+        "query_error": float(report.get("query_error", 0.0)),
+        "query_accuracy": float(
+            report.get("query_accuracy", 1.0 - float(report.get("query_error", 0.0)))
+        ),
+        "primary_failure_mode": report.get("primary_failure_mode"),
+        "n_gold_categories": n_gold,
+        "n_predicted_categories": n_pred,
+        "n_missing_categories": len(report.get("missing_categories") or []),
+        "n_extra_categories": len(report.get("extra_categories") or []),
+        "top_category_errors": error_rows[:top_category_errors],
+    }
+
+
 def compact_worst_query_audit(
     report: dict[str, Any],
     *,
@@ -418,16 +467,53 @@ def build_config_compact_audit(
             outlier_error_sum / total_category_error if total_category_error > 0 else 0.0
         ),
         "top_worst_queries": [
-            compact_worst_query_audit(row["category_error"], include_category_details=False)
-            for row in worst_rows
-        ],
-        "top_worst_queries_detailed": [
-            compact_worst_query_audit(row["category_error"], include_category_details=True)
+            summarize_worst_query_for_json(row["category_error"])
             for row in worst_rows
         ],
     }
     summary["diagnosis"] = diagnose_category_error_config(summary)
     return summary
+
+
+def build_workload_audit_summary(
+    per_config: dict[str, Any],
+    *,
+    config_ids: list[str] | None = None,
+    worst_query_limit: int = TOP_WORST_QUERIES_DEFAULT,
+) -> dict[str, Any]:
+    """Summarized audit for JSON export (no full category maps)."""
+    configs = [
+        build_config_compact_audit(
+            config_id,
+            entry,
+            worst_query_limit=worst_query_limit,
+        )
+        for config_id, entry in sorted(per_config.items())
+        if (config_ids is None or config_id in config_ids) and entry.get("per_query")
+    ]
+
+    mean_errors = [float(cfg["mean_query_error"]) for cfg in configs]
+    return {
+        "metric": "group_by_category_error",
+        "report_type": "compact_audit_summary",
+        "n_configs": len(configs),
+        "workload_summary": {
+            "mean_of_mean_query_error": (
+                float(sum(mean_errors) / len(mean_errors)) if mean_errors else 0.0
+            ),
+            "max_mean_query_error": max(mean_errors) if mean_errors else 0.0,
+            "configs_with_zero_denom_issues": sum(
+                1 for cfg in configs if int(cfg.get("n_zero_denom_categories") or 0) > 0
+            ),
+            "configs_with_missing_category_queries": sum(
+                1 for cfg in configs if int(cfg.get("n_queries_with_missing_categories") or 0) > 0
+            ),
+            "configs_with_extra_category_queries": sum(
+                1 for cfg in configs if int(cfg.get("n_queries_with_extra_categories") or 0) > 0
+            ),
+        },
+        "configs": configs,
+    }
 
 
 def build_workload_compact_audit(
@@ -436,64 +522,33 @@ def build_workload_compact_audit(
     config_ids: list[str] | None = None,
     worst_query_limit: int = TOP_WORST_QUERIES_DEFAULT,
 ) -> dict[str, Any]:
-    """Compact audit across configs using cached evaluation results."""
-    configs: list[dict[str, Any]] = []
-    for config_id, entry in sorted(per_config.items()):
-        if config_ids is not None and config_id not in config_ids:
-            continue
-        if not entry.get("per_query"):
-            continue
-        configs.append(
-            build_config_compact_audit(
-                config_id,
-                entry,
-                worst_query_limit=worst_query_limit,
-            )
-        )
-
-    return {
-        "metric": "group_by_category_error",
-        "report_type": "compact_audit",
-        "n_configs": len(configs),
-        "configs": configs,
-    }
+    """Alias for summarized audit payload."""
+    return build_workload_audit_summary(
+        per_config,
+        config_ids=config_ids,
+        worst_query_limit=worst_query_limit,
+    )
 
 
-def _format_worst_query_lines(query: dict[str, Any], *, detailed: bool) -> list[str]:
-    lines = [
-        f"  Query: {query.get('query_id')}",
-        f"    gold_categories: {query.get('gold_categories')}",
-        f"    predicted_categories: {query.get('predicted_categories')}",
-        "    per_category_error_summary:",
-    ]
-    for value_column, categories in (query.get("per_category_error_summary") or {}).items():
-        lines.append(f"      [{value_column}]")
-        for category, info in sorted(
-            categories.items(),
-            key=lambda item: float(item[1].get("error") or 0.0),
-            reverse=True,
-        ):
-            lines.append(
-                f"        {category!r}: {info.get('status')} error={info.get('error')}"
-            )
-    lines.append(f"    query_error={query.get('query_error')}")
-    lines.append(f"    query_accuracy={query.get('query_accuracy')}")
-
-    if detailed:
-        for col_audit in query.get("category_details_by_column") or []:
-            lines.append(f"    --- full detail: {col_audit.get('value_column')} ---")
-            for row in col_audit.get("category_details") or []:
-                lines.append(
-                    f"      [{row.get('status')}] {row.get('category')!r}: "
-                    f"gold={row.get('gold_value')!r} pred={row.get('predicted_value')!r} "
-                    f"error={row.get('error_term')} "
-                    f"denom={row.get('relative_error_denominator')!r} "
-                    f"({row.get('formula')})"
-                )
-    return lines
+def _lookup_category_error_report(
+    per_config: dict[str, Any],
+    config_id: str,
+    query_id: str,
+) -> dict[str, Any] | None:
+    entry = per_config.get(config_id) or {}
+    for row in entry.get("per_query") or []:
+        if str(row.get("query_id")) == str(query_id):
+            report = row.get("category_error")
+            if report:
+                return report
+    return None
 
 
-def format_compact_category_error_audit(report: dict[str, Any]) -> str:
+def format_compact_category_error_audit(
+    report: dict[str, Any],
+    *,
+    per_config: dict[str, Any] | None = None,
+) -> str:
     """Human-readable compact audit: summary per config, full detail for worst queries only."""
     lines: list[str] = []
     lines.append("=" * 72)
@@ -501,8 +556,9 @@ def format_compact_category_error_audit(report: dict[str, Any]) -> str:
     lines.append("=" * 72)
 
     for config in report.get("configs", []):
+        config_id = str(config.get("config_id"))
         lines.append("")
-        lines.append(f"Config: {config.get('config_id')}")
+        lines.append(f"Config: {config_id}")
         lines.append(f"  mean_query_error={config.get('mean_query_error')}")
         lines.append(f"  mean_query_accuracy={config.get('mean_query_accuracy')}")
         lines.append(f"  n_queries_audited={config.get('n_queries_audited')}")
@@ -521,22 +577,61 @@ def format_compact_category_error_audit(report: dict[str, Any]) -> str:
             lines.append(f"    - {item}")
 
         lines.append("  top worst queries:")
-        detailed_by_id = {
-            str(query.get("query_id")): query
-            for query in config.get("top_worst_queries_detailed") or []
-        }
         for query in config.get("top_worst_queries") or []:
             qid = str(query.get("query_id"))
-            lines.extend(
-                _format_worst_query_lines(
-                    detailed_by_id.get(qid, query),
-                    detailed=True,
-                )
+            lines.append(f"  Query: {qid}")
+            lines.append(f"    query_error={query.get('query_error')}")
+            lines.append(f"    query_accuracy={query.get('query_accuracy')}")
+            lines.append(f"    primary_failure_mode={query.get('primary_failure_mode')}")
+            lines.append(
+                "    category_counts: "
+                f"gold={query.get('n_gold_categories')} "
+                f"pred={query.get('n_predicted_categories')} "
+                f"missing={query.get('n_missing_categories')} "
+                f"extra={query.get('n_extra_categories')}"
             )
+            lines.append("    top_category_errors:")
+            for row in query.get("top_category_errors") or []:
+                vc = row.get("value_column")
+                vc_suffix = f" [{vc}]" if vc else ""
+                lines.append(
+                    f"      {row.get('category')!r}{vc_suffix}: "
+                    f"{row.get('status')} error={row.get('error')}"
+                )
+
+            if per_config is not None:
+                report_block = _lookup_category_error_report(per_config, config_id, qid)
+                if report_block is not None:
+                    detailed = compact_worst_query_audit(
+                        report_block,
+                        include_category_details=True,
+                    )
+                    lines.append(f"    gold_categories: {detailed.get('gold_categories')}")
+                    lines.append(
+                        f"    predicted_categories: {detailed.get('predicted_categories')}"
+                    )
+                    for col_audit in detailed.get("category_details_by_column") or []:
+                        lines.append(f"    --- full detail: {col_audit.get('value_column')} ---")
+                        for row in col_audit.get("category_details") or []:
+                            lines.append(
+                                f"      [{row.get('status')}] {row.get('category')!r}: "
+                                f"gold={row.get('gold_value')!r} pred={row.get('predicted_value')!r} "
+                                f"error={row.get('error_term')} "
+                                f"denom={row.get('relative_error_denominator')!r} "
+                                f"({row.get('formula')})"
+                            )
             lines.append("")
 
     lines.append("")
     return "\n".join(lines)
+
+
+def write_category_error_audit_summary(payload: dict[str, Any], path) -> None:
+    from pathlib import Path
+
+    out = Path(path)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def build_category_value_map(

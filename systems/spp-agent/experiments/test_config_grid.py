@@ -42,9 +42,10 @@ from data.materialized_db_store import (
 from data.workload_splits import HOLDOUT_POLICY, load_split_queries
 from optimizer.config_space import PopulationConfig, generate_config_space
 from pipeline.group_by_category_error import (
+    build_workload_audit_summary,
     build_workload_category_error_report,
-    build_workload_compact_audit,
     format_compact_category_error_audit,
+    write_category_error_audit_summary,
     write_category_error_report,
 )
 from pipeline.evaluation import _eval_context
@@ -378,8 +379,8 @@ def _category_error_report_path(output_dir: Path) -> Path:
     return output_dir / "category_error_report.json"
 
 
-def _category_error_audit_path(output_dir: Path) -> Path:
-    return output_dir / "category_error_audit.json"
+def _category_error_audit_summary_path(output_dir: Path) -> Path:
+    return output_dir / "category_error_audit_summary.json"
 
 
 def run_category_error_audit(
@@ -389,7 +390,7 @@ def run_category_error_audit(
     config_id: str | None = None,
     worst_query_limit: int = 5,
 ) -> dict[str, Any]:
-    """Build compact per-config audit from cached per_query category_error blocks."""
+    """Build summarized per-config audit JSON; full detail printed to stdout only."""
     evaluated = {
         cid: entry
         for cid, entry in per_config.items()
@@ -405,15 +406,15 @@ def run_category_error_audit(
             f"(available: {sorted(evaluated)})"
         )
 
-    payload = build_workload_compact_audit(
+    payload = build_workload_audit_summary(
         per_config,
         config_ids=config_ids,
         worst_query_limit=worst_query_limit,
     )
-    audit_path = _category_error_audit_path(output_dir)
-    audit_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(format_compact_category_error_audit(payload))
-    print(f"Category error audit JSON: {audit_path}")
+    summary_path = _category_error_audit_summary_path(output_dir)
+    write_category_error_audit_summary(payload, summary_path)
+    print(format_compact_category_error_audit(payload, per_config=per_config))
+    print(f"Category error audit summary: {summary_path}")
     return payload
 
 
@@ -954,7 +955,7 @@ def main() -> None:
     if results.get("category_error_report"):
         print(f"Category error report: {_category_error_report_path(output_dir)}")
     if results.get("category_error_audit"):
-        print(f"Category error audit: {_category_error_audit_path(output_dir)}")
+        print(f"Category error audit summary: {_category_error_audit_summary_path(output_dir)}")
     if summary.get("best_config_id") and summary.get("best_mean_macro_f1") is not None:
         print(
             f"Best config: {summary['best_config_id']} "
