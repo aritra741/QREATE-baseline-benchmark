@@ -42,9 +42,9 @@ from data.materialized_db_store import (
 from data.workload_splits import HOLDOUT_POLICY, load_split_queries
 from optimizer.config_space import PopulationConfig, generate_config_space
 from pipeline.group_by_category_error import (
-    audit_group_by_category_error_report,
     build_workload_category_error_report,
-    format_category_error_audit_log,
+    build_workload_compact_audit,
+    format_compact_category_error_audit,
     write_category_error_report,
 )
 from pipeline.evaluation import _eval_context
@@ -384,18 +384,12 @@ def _category_error_audit_path(output_dir: Path) -> Path:
 
 def run_category_error_audit(
     *,
-    instance,
     per_config: dict[str, Any],
-    test_queries: list[dict],
     output_dir: Path,
-    settings,
-    parser,
-    attributes,
     config_id: str | None = None,
-    query_ids: list[str] | None = None,
-    max_queries: int = 3,
+    worst_query_limit: int = 5,
 ) -> dict[str, Any]:
-    """Re-evaluate selected queries on one config and print exact metric decomposition."""
+    """Build compact per-config audit from cached per_query category_error blocks."""
     evaluated = {
         cid: entry
         for cid, entry in per_config.items()
@@ -404,71 +398,21 @@ def run_category_error_audit(
     if not evaluated:
         raise ValueError("No evaluated configs available for category-error audit")
 
-    if config_id is None:
-        config_id = max(
-            evaluated.items(),
-            key=lambda kv: float(kv[1].get("mean_query_error") or 0.0),
-        )[0]
-    elif config_id not in evaluated:
+    config_ids = [config_id] if config_id is not None else None
+    if config_id is not None and config_id not in evaluated:
         raise ValueError(
             f"Config {config_id!r} has no per_query results "
             f"(available: {sorted(evaluated)})"
         )
 
-    entry = evaluated[config_id]
-    db_path = database_path(_databases_dir(output_dir), config_id)
-    rel_path = entry.get("database_path")
-    if rel_path:
-        db_path = output_dir / rel_path
-    if not db_path.is_file():
-        raise FileNotFoundError(
-            f"Database not found for audit config {config_id!r}: {db_path}"
-        )
-
-    _, db = load_materialized_database(db_path)
-    per_query_by_id = {str(row["query_id"]): row for row in entry["per_query"]}
-    query_by_id = {str(query.get("query_id", "")): query for query in test_queries}
-
-    if query_ids is None:
-        ranked = sorted(
-            per_query_by_id.values(),
-            key=lambda row: float(row.get("query_error") or 0.0),
-            reverse=True,
-        )
-        query_ids = [str(row["query_id"]) for row in ranked[:max_queries]]
-
-    audits: list[dict[str, Any]] = []
-    for qid in query_ids:
-        query = query_by_id.get(qid)
-        if query is None:
-            logger.warning("Audit skip unknown query_id=%s", qid)
-            continue
-        slice_name = classify_aggregation_slice(query.get("sql_query", "")) or "unknown"
-        detailed = evaluate_query_detailed(
-            instance,
-            db,
-            query,
-            parser,
-            attributes,
-            settings,
-            slice_name=slice_name,
-        )
-        category_error = detailed["results"].get("category_error")
-        if not category_error:
-            logger.warning("Audit skip query_id=%s (no category_error block)", qid)
-            continue
-        audits.append(audit_group_by_category_error_report(category_error))
-
-    payload = {
-        "metric": "group_by_category_error",
-        "config_id": config_id,
-        "database_path": str(db_path.relative_to(output_dir) if db_path.is_relative_to(output_dir) else db_path),
-        "query_ids": query_ids,
-        "queries": audits,
-    }
+    payload = build_workload_compact_audit(
+        per_config,
+        config_ids=config_ids,
+        worst_query_limit=worst_query_limit,
+    )
     audit_path = _category_error_audit_path(output_dir)
     audit_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(format_category_error_audit_log(config_id=config_id, audits=audits))
+    print(format_compact_category_error_audit(payload))
     print(f"Category error audit JSON: {audit_path}")
     return payload
 
@@ -576,8 +520,7 @@ def run_config_grid(
     num_docs: int | None = None,
     audit_metric: bool = False,
     audit_config_id: str | None = None,
-    audit_max_queries: int = 3,
-    audit_query_ids: list[str] | None = None,
+    audit_worst_queries: int = 5,
 ) -> dict[str, Any]:
     cfg = load_config()
     grid_cfg = cfg.get("config_grid", {})
@@ -846,20 +789,12 @@ def run_config_grid(
     if audit_metric:
         if materialize_only:
             logger.warning("--audit-metric ignored with --materialize-only")
-        elif not save_databases:
-            logger.warning("--audit-metric requires saved databases; re-run without --no-save-databases")
         else:
             results["category_error_audit"] = run_category_error_audit(
-                instance=instance,
                 per_config=per_config,
-                test_queries=test_queries,
                 output_dir=output_dir,
-                settings=settings,
-                parser=parser,
-                attributes=attributes,
                 config_id=audit_config_id,
-                query_ids=audit_query_ids,
-                max_queries=audit_max_queries,
+                worst_query_limit=audit_worst_queries,
             )
 
     _results_path(output_dir).write_text(json.dumps(results, indent=2), encoding="utf-8")
@@ -960,23 +895,18 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--audit-metric",
         action="store_true",
-        help="Print exact category-error decomposition for a few queries on one config",
+        help="Print compact category-error audit per config (full detail for worst queries only)",
     )
     parser.add_argument(
         "--audit-config-id",
         default=None,
-        help="Config to audit (default: config with highest mean query error)",
+        help="Limit audit to one config (default: all evaluated configs)",
     )
     parser.add_argument(
-        "--audit-max-queries",
+        "--audit-worst-queries",
         type=int,
-        default=3,
-        help="How many queries to audit when --audit-query-ids is not set (default: 3)",
-    )
-    parser.add_argument(
-        "--audit-query-ids",
-        default=None,
-        help="Comma-separated query ids to audit (default: highest query_error first)",
+        default=5,
+        help="Number of worst queries per config to show with full per-category detail (default: 5)",
     )
     return parser.parse_args()
 
@@ -1004,12 +934,7 @@ def main() -> None:
         num_docs=args.num_docs,
         audit_metric=args.audit_metric,
         audit_config_id=args.audit_config_id,
-        audit_max_queries=args.audit_max_queries,
-        audit_query_ids=(
-            [q.strip() for q in args.audit_query_ids.split(",") if q.strip()]
-            if args.audit_query_ids
-            else None
-        ),
+        audit_worst_queries=args.audit_worst_queries,
     )
     summary = results.get("summary", {})
     manifest = results.get("manifest", {})
