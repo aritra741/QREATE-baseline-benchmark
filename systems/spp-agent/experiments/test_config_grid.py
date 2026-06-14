@@ -35,13 +35,16 @@ from data.query_alignment import (
 )
 from data.materialized_db_store import (
     database_path,
+    load_materialized_database,
     save_materialized_database,
     write_database_index,
 )
 from data.workload_splits import HOLDOUT_POLICY, load_split_queries
 from optimizer.config_space import PopulationConfig, generate_config_space
 from pipeline.group_by_category_error import (
+    audit_group_by_category_error_report,
     build_workload_category_error_report,
+    format_category_error_audit_log,
     write_category_error_report,
 )
 from pipeline.evaluation import _eval_context
@@ -375,6 +378,101 @@ def _category_error_report_path(output_dir: Path) -> Path:
     return output_dir / "category_error_report.json"
 
 
+def _category_error_audit_path(output_dir: Path) -> Path:
+    return output_dir / "category_error_audit.json"
+
+
+def run_category_error_audit(
+    *,
+    instance,
+    per_config: dict[str, Any],
+    test_queries: list[dict],
+    output_dir: Path,
+    settings,
+    parser,
+    attributes,
+    config_id: str | None = None,
+    query_ids: list[str] | None = None,
+    max_queries: int = 3,
+) -> dict[str, Any]:
+    """Re-evaluate selected queries on one config and print exact metric decomposition."""
+    evaluated = {
+        cid: entry
+        for cid, entry in per_config.items()
+        if entry.get("per_query")
+    }
+    if not evaluated:
+        raise ValueError("No evaluated configs available for category-error audit")
+
+    if config_id is None:
+        config_id = max(
+            evaluated.items(),
+            key=lambda kv: float(kv[1].get("mean_query_error") or 0.0),
+        )[0]
+    elif config_id not in evaluated:
+        raise ValueError(
+            f"Config {config_id!r} has no per_query results "
+            f"(available: {sorted(evaluated)})"
+        )
+
+    entry = evaluated[config_id]
+    db_path = database_path(_databases_dir(output_dir), config_id)
+    rel_path = entry.get("database_path")
+    if rel_path:
+        db_path = output_dir / rel_path
+    if not db_path.is_file():
+        raise FileNotFoundError(
+            f"Database not found for audit config {config_id!r}: {db_path}"
+        )
+
+    _, db = load_materialized_database(db_path)
+    per_query_by_id = {str(row["query_id"]): row for row in entry["per_query"]}
+    query_by_id = {str(query.get("query_id", "")): query for query in test_queries}
+
+    if query_ids is None:
+        ranked = sorted(
+            per_query_by_id.values(),
+            key=lambda row: float(row.get("query_error") or 0.0),
+            reverse=True,
+        )
+        query_ids = [str(row["query_id"]) for row in ranked[:max_queries]]
+
+    audits: list[dict[str, Any]] = []
+    for qid in query_ids:
+        query = query_by_id.get(qid)
+        if query is None:
+            logger.warning("Audit skip unknown query_id=%s", qid)
+            continue
+        slice_name = classify_aggregation_slice(query.get("sql_query", "")) or "unknown"
+        detailed = evaluate_query_detailed(
+            instance,
+            db,
+            query,
+            parser,
+            attributes,
+            settings,
+            slice_name=slice_name,
+        )
+        category_error = detailed["results"].get("category_error")
+        if not category_error:
+            logger.warning("Audit skip query_id=%s (no category_error block)", qid)
+            continue
+        audits.append(audit_group_by_category_error_report(category_error))
+
+    payload = {
+        "metric": "group_by_category_error",
+        "config_id": config_id,
+        "database_path": str(db_path.relative_to(output_dir) if db_path.is_relative_to(output_dir) else db_path),
+        "query_ids": query_ids,
+        "queries": audits,
+    }
+    audit_path = _category_error_audit_path(output_dir)
+    audit_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(format_category_error_audit_log(config_id=config_id, audits=audits))
+    print(f"Category error audit JSON: {audit_path}")
+    return payload
+
+
 def evaluate_queries_on_db(
     instance,
     db: dict,
@@ -476,6 +574,10 @@ def run_config_grid(
     resume: bool = True,
     save_databases: bool = True,
     num_docs: int | None = None,
+    audit_metric: bool = False,
+    audit_config_id: str | None = None,
+    audit_max_queries: int = 3,
+    audit_query_ids: list[str] | None = None,
 ) -> dict[str, Any]:
     cfg = load_config()
     grid_cfg = cfg.get("config_grid", {})
@@ -561,7 +663,57 @@ def run_config_grid(
         has_db_on_disk = save_databases and db_path.is_file()
 
         if cid in completed and entry is not None and (has_db_on_disk or not save_databases):
-            logger.info("[%d/%d] skip cached %s", idx, len(all_configs), cid)
+            needs_eval = not materialize_only and not entry.get("per_query")
+            if not needs_eval:
+                logger.info("[%d/%d] skip cached %s", idx, len(all_configs), cid)
+                continue
+            logger.info(
+                "[%d/%d] re-evaluating cached %s (missing per_query results)",
+                idx,
+                len(all_configs),
+                cid,
+            )
+            if has_db_on_disk:
+                _, db = load_materialized_database(db_path)
+                config_t0 = time.perf_counter()
+                materialize_sec = 0.0
+            else:
+                config_t0 = time.perf_counter()
+                db, diagnostics = materialize_database(
+                    extraction,
+                    config,
+                    instance.schema,
+                    extraction_model=extraction_model,
+                )
+                materialize_sec = time.perf_counter() - config_t0
+                entry["population_diagnostics"] = _diagnostics_to_dict(diagnostics)
+                entry["materialize_seconds"] = round(materialize_sec, 3)
+
+            eval_t0 = time.perf_counter()
+            per_query = evaluate_queries_on_db(
+                instance,
+                db,
+                test_queries,
+                settings=settings,
+                parser=parser,
+                attributes=attributes,
+            )
+            evaluate_sec = time.perf_counter() - eval_t0
+            entry["evaluate_seconds"] = round(evaluate_sec, 3)
+            entry["per_query"] = per_query
+            entry.update(_summarize_per_config(per_query))
+            entry["total_seconds"] = round(time.perf_counter() - config_t0, 3)
+            per_config[cid] = entry
+            checkpoint["per_config"] = per_config
+            _save_checkpoint(checkpoint_path, checkpoint)
+            logger.info(
+                "[%d/%d] %s eval=%.1fs mean_f1=%.3f",
+                idx,
+                len(all_configs),
+                cid,
+                evaluate_sec,
+                entry.get("mean_macro_f1", 0),
+            )
             continue
 
         if cid in completed and entry is not None and save_databases and not has_db_on_disk:
@@ -690,6 +842,26 @@ def run_config_grid(
         "per_config": per_config,
         "category_error_report": category_error_report,
     }
+
+    if audit_metric:
+        if materialize_only:
+            logger.warning("--audit-metric ignored with --materialize-only")
+        elif not save_databases:
+            logger.warning("--audit-metric requires saved databases; re-run without --no-save-databases")
+        else:
+            results["category_error_audit"] = run_category_error_audit(
+                instance=instance,
+                per_config=per_config,
+                test_queries=test_queries,
+                output_dir=output_dir,
+                settings=settings,
+                parser=parser,
+                attributes=attributes,
+                config_id=audit_config_id,
+                query_ids=audit_query_ids,
+                max_queries=audit_max_queries,
+            )
+
     _results_path(output_dir).write_text(json.dumps(results, indent=2), encoding="utf-8")
     return results
 
@@ -785,6 +957,27 @@ def _parse_args() -> argparse.Namespace:
         help="Do not persist materialized tables to disk (metrics only)",
     )
     parser.add_argument("--no-resume", action="store_true", help="Ignore checkpoint and start fresh")
+    parser.add_argument(
+        "--audit-metric",
+        action="store_true",
+        help="Print exact category-error decomposition for a few queries on one config",
+    )
+    parser.add_argument(
+        "--audit-config-id",
+        default=None,
+        help="Config to audit (default: config with highest mean query error)",
+    )
+    parser.add_argument(
+        "--audit-max-queries",
+        type=int,
+        default=3,
+        help="How many queries to audit when --audit-query-ids is not set (default: 3)",
+    )
+    parser.add_argument(
+        "--audit-query-ids",
+        default=None,
+        help="Comma-separated query ids to audit (default: highest query_error first)",
+    )
     return parser.parse_args()
 
 
@@ -809,6 +1002,14 @@ def main() -> None:
         resume=resume,
         save_databases=not args.no_save_databases,
         num_docs=args.num_docs,
+        audit_metric=args.audit_metric,
+        audit_config_id=args.audit_config_id,
+        audit_max_queries=args.audit_max_queries,
+        audit_query_ids=(
+            [q.strip() for q in args.audit_query_ids.split(",") if q.strip()]
+            if args.audit_query_ids
+            else None
+        ),
     )
     summary = results.get("summary", {})
     manifest = results.get("manifest", {})
@@ -827,6 +1028,8 @@ def main() -> None:
         print(f"Databases: {_databases_dir(output_dir)}")
     if results.get("category_error_report"):
         print(f"Category error report: {_category_error_report_path(output_dir)}")
+    if results.get("category_error_audit"):
+        print(f"Category error audit: {_category_error_audit_path(output_dir)}")
     if summary.get("best_config_id") and summary.get("best_mean_macro_f1") is not None:
         print(
             f"Best config: {summary['best_config_id']} "

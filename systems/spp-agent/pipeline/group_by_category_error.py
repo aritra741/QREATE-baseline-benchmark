@@ -44,6 +44,195 @@ def _to_float(value: object) -> float | None:
     return out if math.isfinite(out) else None
 
 
+def _matched_relative_error(pred: float, gold: float, *, epsilon: float) -> float:
+    denom = max(abs(gold), epsilon)
+    return abs(pred - gold) / denom
+
+
+def _relative_error_denominator(gold: float, *, epsilon: float) -> float:
+    return max(abs(gold), epsilon)
+
+
+def audit_category_errors(
+    gold_map: dict[str, float],
+    pred_map: dict[str, float],
+    *,
+    epsilon: float = DEFAULT_EPSILON,
+    value_column: str | None = None,
+) -> dict[str, Any]:
+    """Exact score decomposition for one aggregate column (does not change the metric)."""
+    scored = compute_category_errors(gold_map, pred_map, epsilon=epsilon)
+    categories = scored["categories_union"]
+    category_details: list[dict[str, Any]] = []
+    n_gold_zero = 0
+
+    for category in categories:
+        in_gold = category in gold_map
+        in_pred = category in pred_map
+        gold_val = gold_map.get(category) if in_gold else None
+        pred_val = pred_map.get(category) if in_pred else None
+
+        if in_gold and gold_val is not None and gold_val == 0.0:
+            n_gold_zero += 1
+
+        if in_gold and in_pred:
+            status = "matched"
+            assert gold_val is not None and pred_val is not None
+            denominator = _relative_error_denominator(gold_val, epsilon=epsilon)
+            error_term = scored["per_category_error"][category]
+            formula = f"|{pred_val} - {gold_val}| / max(|{gold_val}|, {epsilon})"
+        elif in_gold:
+            status = "missing"
+            denominator = None
+            error_term = MISSING_CATEGORY_PENALTY
+            formula = f"penalty (missing from prediction) = {MISSING_CATEGORY_PENALTY}"
+        else:
+            status = "extra"
+            denominator = None
+            error_term = MISSING_CATEGORY_PENALTY
+            formula = f"penalty (extra in prediction) = {MISSING_CATEGORY_PENALTY}"
+
+        category_details.append(
+            {
+                "category": category,
+                "status": status,
+                "gold_value": gold_val,
+                "predicted_value": pred_val,
+                "error_term": error_term,
+                "relative_error_denominator": denominator,
+                "formula": formula,
+            }
+        )
+
+    sum_category_errors = float(sum(scored["per_category_error"].values()))
+    n_union = len(categories)
+
+    return {
+        "value_column": value_column,
+        "epsilon": epsilon,
+        "gold_categories": dict(gold_map),
+        "predicted_categories": dict(pred_map),
+        "categories_union": categories,
+        "category_details": category_details,
+        "n_categories_union": n_union,
+        "n_gold_zero": n_gold_zero,
+        "n_missing": len(scored["missing_categories"]),
+        "n_extra": len(scored["extra_categories"]),
+        "n_matched": len(scored["matched_categories"]),
+        "sum_category_errors": sum_category_errors,
+        "query_error": scored["query_error"],
+        "query_accuracy": scored["query_accuracy"],
+        "average_formula": (
+            f"({sum_category_errors}) / {n_union} = {scored['query_error']}"
+            if n_union
+            else f"empty union -> query_error={scored['query_error']}"
+        ),
+    }
+
+
+def audit_group_by_category_error_report(report: dict[str, Any]) -> dict[str, Any]:
+    """Attach per-value-column audit blocks to an existing category_error report."""
+    if not report:
+        return {}
+    epsilon = float(report.get("epsilon", DEFAULT_EPSILON))
+    by_column = report.get("by_value_column")
+    if not by_column:
+        return {"query_id": report.get("query_id"), "value_column_audits": []}
+
+    audits = [
+        audit_category_errors(
+            vr["gold_categories"],
+            vr["predicted_categories"],
+            epsilon=epsilon,
+            value_column=vr.get("value_column"),
+        )
+        for vr in by_column
+    ]
+
+    query_error = float(report.get("query_error", 0.0))
+    return {
+        "query_id": report.get("query_id"),
+        "group_keys": report.get("group_keys"),
+        "value_columns": report.get("value_columns"),
+        "epsilon": epsilon,
+        "value_column_audits": audits,
+        "query_error": query_error,
+        "query_accuracy": float(report.get("query_accuracy", 1.0 - query_error)),
+        "query_error_average_formula": (
+            " + ".join(f"{a['query_error']}" for a in audits)
+            + f" / {len(audits)} = {query_error}"
+            if len(audits) > 1
+            else audits[0]["average_formula"] if audits else ""
+        ),
+        "primary_failure_mode": report.get("primary_failure_mode"),
+    }
+
+
+def format_category_error_audit_log(
+    *,
+    config_id: str,
+    audits: list[dict[str, Any]],
+) -> str:
+    lines: list[str] = []
+    lines.append("=" * 72)
+    lines.append(f"CATEGORY ERROR AUDIT — config: {config_id}")
+    lines.append("=" * 72)
+
+    for audit in audits:
+        lines.append("")
+        lines.append(f"Query: {audit.get('query_id')}")
+        lines.append(f"  group_keys: {audit.get('group_keys')}")
+        lines.append(f"  value_columns: {audit.get('value_columns')}")
+        lines.append(f"  epsilon: {audit.get('epsilon')}")
+        lines.append(f"  primary_failure_mode: {audit.get('primary_failure_mode')}")
+
+        for col_audit in audit.get("value_column_audits", []):
+            lines.append("")
+            lines.append(f"  --- value_column: {col_audit.get('value_column')} ---")
+            lines.append(
+                f"  gold categories ({len(col_audit.get('gold_categories', {}))}): "
+                f"{col_audit.get('gold_categories')}"
+            )
+            lines.append(
+                f"  predicted categories ({len(col_audit.get('predicted_categories', {}))}): "
+                f"{col_audit.get('predicted_categories')}"
+            )
+            lines.append(
+                f"  union for scoring ({col_audit.get('n_categories_union')}): "
+                f"{col_audit.get('categories_union')}"
+            )
+            lines.append(
+                f"  counts: matched={col_audit.get('n_matched')} "
+                f"missing={col_audit.get('n_missing')} "
+                f"extra={col_audit.get('n_extra')} "
+                f"gold_zero={col_audit.get('n_gold_zero')}"
+            )
+            lines.append(
+                f"  sum(category_errors)={col_audit.get('sum_category_errors')} "
+                f"-> {col_audit.get('average_formula')}"
+            )
+            lines.append("  per-category breakdown:")
+            for row in col_audit.get("category_details", []):
+                lines.append(
+                    f"    [{row['status']}] {row['category']!r}: "
+                    f"gold={row['gold_value']!r} pred={row['predicted_value']!r} "
+                    f"error={row['error_term']} "
+                    f"denom={row['relative_error_denominator']!r} "
+                    f"({row['formula']})"
+                )
+
+        lines.append("")
+        lines.append(
+            f"  FINAL query_error={audit.get('query_error')} "
+            f"query_accuracy={audit.get('query_accuracy')}"
+        )
+        if audit.get("query_error_average_formula"):
+            lines.append(f"  ({audit['query_error_average_formula']})")
+
+    lines.append("")
+    return "\n".join(lines)
+
+
 def build_category_value_map(
     df: pd.DataFrame,
     *,
@@ -61,11 +250,6 @@ def build_category_value_map(
             continue
         out[category] = val
     return out
-
-
-def _matched_relative_error(pred: float, gold: float, *, epsilon: float) -> float:
-    denom = max(abs(gold), epsilon)
-    return abs(pred - gold) / denom
 
 
 def compute_category_errors(
