@@ -390,6 +390,7 @@ def run_category_error_audit(
     config_id: str | None = None,
     worst_query_limit: int = 5,
     detail_config_limit: int = 10,
+    include_all_config_scalars: bool = False,
 ) -> dict[str, Any]:
     """Build summarized per-config audit JSON; full detail printed to stdout only."""
     evaluated = {
@@ -412,6 +413,7 @@ def run_category_error_audit(
         config_ids=config_ids,
         worst_query_limit=worst_query_limit,
         detail_config_limit=detail_config_limit,
+        include_all_config_scalars=include_all_config_scalars,
     )
     summary_path = _category_error_audit_summary_path(output_dir)
     write_category_error_audit_summary(payload, summary_path)
@@ -530,6 +532,7 @@ def run_config_grid(
     audit_config_id: str | None = None,
     audit_worst_queries: int = 5,
     audit_detail_configs: int = 10,
+    audit_all_config_scalars: bool = False,
 ) -> dict[str, Any]:
     cfg = load_config()
     grid_cfg = cfg.get("config_grid", {})
@@ -805,6 +808,7 @@ def run_config_grid(
                 config_id=audit_config_id,
                 worst_query_limit=audit_worst_queries,
                 detail_config_limit=audit_detail_configs,
+                include_all_config_scalars=audit_all_config_scalars,
             )
 
     _results_path(output_dir).write_text(json.dumps(results, indent=2), encoding="utf-8")
@@ -924,6 +928,11 @@ def _parse_args() -> argparse.Namespace:
         default=10,
         help="How many highest-error configs get per-query detail in the summary JSON (default: 10)",
     )
+    parser.add_argument(
+        "--audit-all-config-scalars",
+        action="store_true",
+        help="Include full per-config scalar blocks in JSON (large; default is ranking only)",
+    )
     return parser.parse_args()
 
 
@@ -952,6 +961,7 @@ def main() -> None:
         audit_config_id=args.audit_config_id,
         audit_worst_queries=args.audit_worst_queries,
         audit_detail_configs=args.audit_detail_configs,
+        audit_all_config_scalars=args.audit_all_config_scalars,
     )
     summary = results.get("summary", {})
     manifest = results.get("manifest", {})

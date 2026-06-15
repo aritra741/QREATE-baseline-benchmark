@@ -337,24 +337,6 @@ def summarize_worst_query_for_json(
     }
 
 
-def _worst_query_stubs(
-    scored_rows: list[dict[str, Any]],
-    *,
-    worst_query_limit: int,
-) -> tuple[list[str], list[float]]:
-    ranked_rows = sorted(
-        scored_rows,
-        key=lambda row: float(row["category_error"]["query_error"]),
-        reverse=True,
-    )[:worst_query_limit]
-    ids = [str(row.get("query_id", "")) for row in ranked_rows]
-    errors = [
-        _round_json_float(float(row["category_error"]["query_error"]))
-        for row in ranked_rows
-    ]
-    return ids, errors
-
-
 def build_config_scalar_summary(
     config_id: str,
     entry: dict[str, Any],
@@ -405,11 +387,6 @@ def build_config_scalar_summary(
     outlier_threshold = max(10.0, 5.0 * avg_per_category_error) if avg_per_category_error > 0 else 10.0
     outlier_error_sum = float(sum(err for err in all_category_errors if err >= outlier_threshold))
 
-    worst_query_ids, worst_query_errors = _worst_query_stubs(
-        scored_rows,
-        worst_query_limit=worst_query_limit,
-    )
-
     summary: dict[str, Any] = {
         "config_id": config_id,
         "mean_query_error": _round_json_float(
@@ -431,11 +408,22 @@ def build_config_scalar_summary(
         "outlier_error_share": _round_json_float(
             outlier_error_sum / total_category_error if total_category_error > 0 else 0.0
         ),
-        "worst_query_ids": worst_query_ids,
-        "worst_query_errors": worst_query_errors,
     }
     summary["diagnosis"] = diagnose_category_error_config(summary)
     return summary
+
+
+def build_config_ranking(scalar_configs: list[dict[str, Any]]) -> dict[str, Any]:
+    """Compact config leaderboard for JSON (two parallel arrays, sorted by error desc)."""
+    ranked = sorted(
+        scalar_configs,
+        key=lambda cfg: float(cfg["mean_query_error"]),
+        reverse=True,
+    )
+    return {
+        "config_ids": [str(cfg["config_id"]) for cfg in ranked],
+        "mean_query_errors": [cfg["mean_query_error"] for cfg in ranked],
+    }
 
 
 def build_config_query_details(
@@ -459,9 +447,7 @@ def build_config_query_details(
         worst_query_limit=worst_query_limit,
     )
     return {
-        "config_id": config_id,
-        "mean_query_error": scalar["mean_query_error"],
-        "diagnosis": scalar["diagnosis"],
+        **scalar,
         "queries": [
             summarize_worst_query_for_json(
                 row["category_error"],
@@ -493,8 +479,9 @@ def build_workload_audit_summary(
     worst_query_limit: int = TOP_WORST_QUERIES_DEFAULT,
     detail_config_limit: int = DETAIL_CONFIG_LIMIT_DEFAULT,
     top_category_errors: int = TOP_CATEGORY_ERRORS_JSON_DEFAULT,
+    include_all_config_scalars: bool = False,
 ) -> dict[str, Any]:
-    """Summarized audit for JSON export: scalar rows for all configs, detail for worst only."""
+    """Summarized audit for JSON: ranking for all configs, detail only for worst N."""
     scalar_configs: list[dict[str, Any]] = []
     entries_by_id: dict[str, dict[str, Any]] = {}
 
@@ -519,11 +506,12 @@ def build_workload_audit_summary(
         reverse=True,
     )[:detail_config_limit]
 
-    return {
+    payload: dict[str, Any] = {
         "metric": "group_by_category_error",
         "report_type": "compact_audit_summary",
         "n_configs": len(scalar_configs),
         "detail_config_limit": detail_config_limit,
+        "worst_query_limit": worst_query_limit,
         "workload_summary": {
             "mean_of_mean_query_error": _round_json_float(
                 float(sum(mean_errors) / len(mean_errors)) if mean_errors else 0.0
@@ -543,7 +531,7 @@ def build_workload_audit_summary(
                 if int(cfg.get("n_queries_with_extra_categories") or 0) > 0
             ),
         },
-        "configs": scalar_configs,
+        "config_ranking": build_config_ranking(scalar_configs),
         "worst_config_details": [
             build_config_query_details(
                 str(cfg["config_id"]),
@@ -554,6 +542,9 @@ def build_workload_audit_summary(
             for cfg in ranked_for_detail
         ],
     }
+    if include_all_config_scalars:
+        payload["configs"] = scalar_configs
+    return payload
 
 
 def compact_worst_query_audit(
@@ -635,6 +626,7 @@ def build_workload_compact_audit(
     worst_query_limit: int = TOP_WORST_QUERIES_DEFAULT,
     detail_config_limit: int = DETAIL_CONFIG_LIMIT_DEFAULT,
     top_category_errors: int = TOP_CATEGORY_ERRORS_JSON_DEFAULT,
+    include_all_config_scalars: bool = False,
 ) -> dict[str, Any]:
     """Alias for summarized audit payload."""
     return build_workload_audit_summary(
@@ -643,6 +635,7 @@ def build_workload_compact_audit(
         worst_query_limit=worst_query_limit,
         detail_config_limit=detail_config_limit,
         top_category_errors=top_category_errors,
+        include_all_config_scalars=include_all_config_scalars,
     )
 
 
@@ -678,17 +671,26 @@ def format_compact_category_error_audit(
         lines.append(f"  {key}={value}")
     lines.append(f"  n_configs={report.get('n_configs')}")
 
+    ranking = report.get("config_ranking") or {}
     lines.append("")
-    lines.append("All configs (scalar summary):")
-    for config in report.get("configs", []):
-        lines.append(
-            f"  {config.get('config_id')}: "
-            f"mean_error={config.get('mean_query_error')} "
-            f"missing_q={config.get('n_queries_with_missing_categories')} "
-            f"extra_q={config.get('n_queries_with_extra_categories')} "
-            f"gold_zero_q={config.get('n_queries_with_gold_zero')} "
-            f"worst_queries={config.get('worst_query_ids')}"
-        )
+    lines.append("Config ranking (mean query error, highest first):")
+    for config_id, mean_error in zip(
+        ranking.get("config_ids") or [],
+        ranking.get("mean_query_errors") or [],
+    ):
+        lines.append(f"  {config_id}: {mean_error}")
+
+    if report.get("configs"):
+        lines.append("")
+        lines.append("All configs (full scalar summary):")
+        for config in report["configs"]:
+            lines.append(
+                f"  {config.get('config_id')}: "
+                f"mean_error={config.get('mean_query_error')} "
+                f"missing_q={config.get('n_queries_with_missing_categories')} "
+                f"extra_q={config.get('n_queries_with_extra_categories')} "
+                f"gold_zero_q={config.get('n_queries_with_gold_zero')}"
+            )
 
     lines.append("")
     lines.append(
