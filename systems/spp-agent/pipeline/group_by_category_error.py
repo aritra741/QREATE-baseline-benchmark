@@ -1155,6 +1155,44 @@ def refresh_category_error_block(report: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def refresh_per_query_row_scores(row: dict[str, Any]) -> dict[str, Any]:
+    """Recompute query_error/query_accuracy from cached category maps (current metric)."""
+    block = row.get("category_error")
+    if not block:
+        return row
+    refreshed = refresh_category_error_block(block)
+    return {
+        **row,
+        "category_error": refreshed,
+        "query_error": refreshed.get("query_error"),
+        "query_accuracy": refreshed.get("query_accuracy"),
+        "primary_failure_mode": refreshed.get("primary_failure_mode"),
+    }
+
+
+def refresh_per_config_scores(per_config: dict[str, Any]) -> dict[str, Any]:
+    """Refresh all per_query category_error scores and config-level summaries."""
+    for entry in per_config.values():
+        per_query = entry.get("per_query")
+        if not per_query:
+            continue
+        entry["per_query"] = [refresh_per_query_row_scores(row) for row in per_query]
+        errors = [
+            float(row["query_error"])
+            for row in entry["per_query"]
+            if row.get("query_error") is not None
+        ]
+        accuracies = [
+            float(row["query_accuracy"])
+            for row in entry["per_query"]
+            if row.get("query_accuracy") is not None
+        ]
+        if errors:
+            entry["mean_query_error"] = float(sum(errors) / len(errors))
+            entry["mean_query_accuracy"] = float(sum(accuracies) / len(accuracies))
+    return per_config
+
+
 def _primary_failure_mode(missing: list[str], extra: list[str], matched_errors: list[float]) -> str:
     if missing and extra:
         return "missing_and_extra_categories"

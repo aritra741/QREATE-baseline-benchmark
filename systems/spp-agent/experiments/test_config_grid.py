@@ -47,6 +47,8 @@ from pipeline.group_by_category_error import (
     build_workload_category_error_report,
     format_compact_category_error_audit,
     format_top_category_error_calculations,
+    refresh_per_config_scores,
+    refresh_per_query_row_scores,
     write_category_error_audit_summary,
     write_category_error_report,
     write_top_category_error_audit,
@@ -409,6 +411,8 @@ def run_category_error_audit(
     if not evaluated:
         raise ValueError("No evaluated configs available for category-error audit")
 
+    refresh_per_config_scores(per_config)
+
     config_ids = [config_id] if config_id is not None else None
     if config_id is not None and config_id not in evaluated:
         raise ValueError(
@@ -514,6 +518,7 @@ def _summarize_per_config(per_query: list[dict]) -> dict[str, Any]:
         f1 = float(row.get("macro_f1", 0.0))
         f1s.append(f1)
         by_slice[row.get("aggregation_slice", "unknown")].append(f1)
+        row = refresh_per_query_row_scores(row)
         if row.get("query_error") is not None:
             query_errors.append(float(row["query_error"]))
         if row.get("query_accuracy") is not None:
@@ -802,6 +807,11 @@ def run_config_grid(
         else None,
     }
     _manifest_path(output_dir).write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+
+    if not materialize_only and per_config:
+        refresh_per_config_scores(per_config)
+        checkpoint["per_config"] = per_config
+        _save_checkpoint(checkpoint_path, checkpoint)
 
     grid_summary = _build_grid_summary(per_config, slice_counts)
     category_error_report = None
