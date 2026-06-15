@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import json
 import math
+from collections import defaultdict
 from typing import Any
 
 import numpy as np
 import pandas as pd
+
+from data.aggregation_slices import AGGREGATION_SLICE_ORDER
 
 DEFAULT_EPSILON = 1e-9
 MISSING_CATEGORY_PENALTY = 1.0
@@ -1365,6 +1368,221 @@ def build_workload_category_error_report(
         "config_scores": score_table,
         "configs": config_summaries,
     }
+
+
+def _leaderboard_rows_from_win_counts(
+    per_config: dict[str, Any],
+    win_counts: dict[str, int],
+    *,
+    n_queries: int,
+    config_mean_error: dict[str, float | None],
+) -> list[dict[str, Any]]:
+    return sorted(
+        [
+            {
+                "config_id": config_id,
+                "wins": win_counts.get(config_id, 0),
+                "win_rate": float(win_counts.get(config_id, 0)) / n_queries if n_queries else 0.0,
+                "mean_query_error": config_mean_error.get(config_id),
+                "mean_query_accuracy": (
+                    None
+                    if config_mean_error.get(config_id) is None
+                    else 1.0 - float(config_mean_error[config_id])
+                ),
+            }
+            for config_id in per_config
+        ],
+        key=lambda row: (
+            -int(row["wins"]),
+            float(row["mean_query_error"] if row["mean_query_error"] is not None else float("inf")),
+            str(row["config_id"]),
+        ),
+    )
+
+
+def _winners_for_query_subset(
+    query_scores: dict[str, dict[str, float]],
+    query_ids: list[str],
+    query_slices: dict[str, str],
+) -> tuple[dict[str, int], list[dict[str, Any]]]:
+    win_counts: dict[str, int] = defaultdict(int)
+    per_query_winners: list[dict[str, Any]] = []
+
+    for qid in sorted(query_ids):
+        scores = query_scores.get(qid)
+        if not scores:
+            continue
+        best_error = min(scores.values())
+        tied = sorted(cid for cid, err in scores.items() if err == best_error)
+        winner = tied[0]
+        win_counts[winner] += 1
+        per_query_winners.append(
+            {
+                "query_id": qid,
+                "query_type": query_slices.get(qid, "unknown"),
+                "best_config_id": winner,
+                "best_query_error": best_error,
+                "n_tied_at_best": len(tied),
+                "tied_config_ids": tied if len(tied) > 1 else None,
+            }
+        )
+
+    return dict(win_counts), per_query_winners
+
+
+def build_config_leaderboard(
+    per_config: dict[str, Any],
+    *,
+    query_ids: list[str] | None = None,
+) -> dict[str, Any]:
+    """
+    Count how often each config achieves the best (lowest) query_error per query.
+
+    Uses refreshed category_error scores from cached gold/pred maps.
+    """
+    query_scores: dict[str, dict[str, float]] = {}
+    query_slices: dict[str, str] = {}
+    config_mean_error: dict[str, float | None] = {}
+    config_mean_error_by_slice: dict[str, dict[str, float]] = defaultdict(dict)
+
+    for config_id, entry in sorted(per_config.items()):
+        config_mean_error[config_id] = entry.get("mean_query_error")
+        slice_errors: dict[str, list[float]] = defaultdict(list)
+        for row in entry.get("per_query") or []:
+            qid = str(row.get("query_id", ""))
+            if query_ids is not None and qid not in query_ids:
+                continue
+            slice_name = str(row.get("aggregation_slice") or "unknown")
+            query_slices[qid] = slice_name
+            refreshed = refresh_per_query_row_scores(row)
+            if refreshed.get("query_error") is None:
+                continue
+            err = float(refreshed["query_error"])
+            query_scores.setdefault(qid, {})[config_id] = err
+            slice_errors[slice_name].append(err)
+        for slice_name, errors in slice_errors.items():
+            config_mean_error_by_slice[slice_name][config_id] = float(sum(errors) / len(errors))
+
+    scored_query_ids = sorted(query_scores)
+    n_queries = len(scored_query_ids)
+    win_counts, per_query_winners = _winners_for_query_subset(
+        query_scores,
+        scored_query_ids,
+        query_slices,
+    )
+    for config_id in per_config:
+        win_counts.setdefault(config_id, 0)
+
+    leaderboard = _leaderboard_rows_from_win_counts(
+        per_config,
+        win_counts,
+        n_queries=n_queries,
+        config_mean_error=config_mean_error,
+    )
+
+    top_wins = leaderboard[0]["wins"] if leaderboard else 0
+    leaders_at_top = [row for row in leaderboard if row["wins"] == top_wins and top_wins > 0]
+
+    slice_names = sorted(
+        {query_slices[qid] for qid in scored_query_ids},
+        key=lambda name: (
+            AGGREGATION_SLICE_ORDER.index(name)
+            if name in AGGREGATION_SLICE_ORDER
+            else len(AGGREGATION_SLICE_ORDER)
+        ),
+    )
+    by_query_type: dict[str, dict[str, Any]] = {}
+    for slice_name in slice_names:
+        slice_qids = [qid for qid in scored_query_ids if query_slices.get(qid) == slice_name]
+        slice_wins, slice_per_query = _winners_for_query_subset(
+            query_scores,
+            slice_qids,
+            query_slices,
+        )
+        for config_id in per_config:
+            slice_wins.setdefault(config_id, 0)
+        slice_leaderboard = _leaderboard_rows_from_win_counts(
+            per_config,
+            slice_wins,
+            n_queries=len(slice_qids),
+            config_mean_error=config_mean_error_by_slice.get(slice_name, {}),
+        )
+        slice_top = slice_leaderboard[0]["wins"] if slice_leaderboard else 0
+        by_query_type[slice_name] = {
+            "query_type": slice_name,
+            "n_queries": len(slice_qids),
+            "query_ids": slice_qids,
+            "leaderboard": slice_leaderboard,
+            "per_query_winners": slice_per_query,
+            "top_win_count": slice_top,
+            "configs_at_top_win_count": [
+                row for row in slice_leaderboard if row["wins"] == slice_top and slice_top > 0
+            ],
+        }
+
+    return {
+        "metric": "group_by_category_error",
+        "report_type": "config_leaderboard",
+        "scoring_rule": "lowest query_error per query wins; ties broken by config_id",
+        "n_queries": n_queries,
+        "n_configs": len(per_config),
+        "per_query_winners": per_query_winners,
+        "leaderboard": leaderboard,
+        "top_win_count": top_wins,
+        "configs_at_top_win_count": leaders_at_top,
+        "by_query_type": by_query_type,
+    }
+
+
+def format_config_leaderboard(
+    leaderboard_report: dict[str, Any],
+    *,
+    top_n: int = 15,
+    top_n_per_query_type: int = 5,
+) -> str:
+    """Human-readable config win-count table."""
+    lines: list[str] = []
+    n_queries = int(leaderboard_report.get("n_queries") or 0)
+    lines.append("=" * 72)
+    lines.append("CONFIG LEADERBOARD (query wins = lowest category error)")
+    lines.append("=" * 72)
+    lines.append(f"Queries scored: {n_queries} | Configs: {leaderboard_report.get('n_configs')}")
+    lines.append(f"Rule: {leaderboard_report.get('scoring_rule')}")
+    lines.append("")
+    lines.append("Overall:")
+    lines.append(f"{'wins':>5}  {'win%':>6}  {'mean_err':>10}  config_id")
+    for row in (leaderboard_report.get("leaderboard") or [])[:top_n]:
+        wins = int(row.get("wins") or 0)
+        win_rate = float(row.get("win_rate") or 0.0)
+        mean_err = row.get("mean_query_error")
+        mean_err_s = f"{float(mean_err):.4f}" if mean_err is not None else "n/a"
+        lines.append(f"{wins:5d}  {win_rate:6.1%}  {mean_err_s:>10}  {row.get('config_id')}")
+    if len(leaderboard_report.get("leaderboard") or []) > top_n:
+        lines.append(f"... ({len(leaderboard_report['leaderboard']) - top_n} more configs in JSON)")
+
+    by_query_type = leaderboard_report.get("by_query_type") or {}
+    if by_query_type:
+        lines.append("")
+        lines.append("By query type (aggregation slice):")
+        for slice_name, slice_report in by_query_type.items():
+            n_slice = int(slice_report.get("n_queries") or 0)
+            lines.append("")
+            lines.append(f"  [{slice_name}] {n_slice} queries")
+            lines.append(f"  {'wins':>5}  {'win%':>6}  {'mean_err':>10}  config_id")
+            for row in (slice_report.get("leaderboard") or [])[:top_n_per_query_type]:
+                wins = int(row.get("wins") or 0)
+                win_rate = float(row.get("win_rate") or 0.0)
+                mean_err = row.get("mean_query_error")
+                mean_err_s = f"{float(mean_err):.4f}" if mean_err is not None else "n/a"
+                lines.append(
+                    f"  {wins:5d}  {win_rate:6.1%}  {mean_err_s:>10}  {row.get('config_id')}"
+                )
+            rest = len(slice_report.get("leaderboard") or []) - top_n_per_query_type
+            if rest > 0:
+                lines.append(f"  ... ({rest} more configs in JSON)")
+
+    lines.append("")
+    return "\n".join(lines)
 
 
 def write_category_error_report(payload: dict[str, Any], path) -> None:

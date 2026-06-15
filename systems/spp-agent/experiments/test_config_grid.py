@@ -42,10 +42,12 @@ from data.materialized_db_store import (
 from data.workload_splits import HOLDOUT_POLICY, load_split_queries
 from optimizer.config_space import PopulationConfig, generate_config_space
 from pipeline.group_by_category_error import (
+    build_config_leaderboard,
     build_top_category_error_audit,
     build_workload_audit_summary,
     build_workload_category_error_report,
     format_compact_category_error_audit,
+    format_config_leaderboard,
     format_top_category_error_calculations,
     refresh_per_config_scores,
     refresh_per_query_row_scores,
@@ -390,6 +392,15 @@ def _category_error_audit_summary_path(output_dir: Path) -> Path:
 
 def _category_error_top_calculations_path(output_dir: Path) -> Path:
     return output_dir / "category_error_top_calculations.json"
+
+
+def _config_leaderboard_path(output_dir: Path) -> Path:
+    return output_dir / "config_leaderboard.json"
+
+
+def _write_config_leaderboard(payload: dict[str, Any], path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def run_category_error_audit(
@@ -815,18 +826,32 @@ def run_config_grid(
 
     grid_summary = _build_grid_summary(per_config, slice_counts)
     category_error_report = None
+    config_leaderboard = None
+    test_query_ids = [str(q.get("query_id", "")) for q in test_queries]
     if not materialize_only and per_config:
         category_error_report = build_workload_category_error_report(
             per_config,
-            query_ids=[str(q.get("query_id", "")) for q in test_queries],
+            query_ids=test_query_ids,
         )
         write_category_error_report(category_error_report, _category_error_report_path(output_dir))
+        config_leaderboard = build_config_leaderboard(
+            per_config,
+            query_ids=test_query_ids,
+        )
+        _write_config_leaderboard(config_leaderboard, _config_leaderboard_path(output_dir))
+        grid_summary["config_leaderboard"] = {
+            "n_queries": config_leaderboard.get("n_queries"),
+            "top_win_count": config_leaderboard.get("top_win_count"),
+            "top_configs": (config_leaderboard.get("configs_at_top_win_count") or [])[:5],
+            "leaderboard_path": str(_config_leaderboard_path(output_dir).name),
+        }
 
     results = {
         "manifest": manifest,
         "summary": grid_summary,
         "per_config": per_config,
         "category_error_report": category_error_report,
+        "config_leaderboard": config_leaderboard,
     }
 
     if audit_metric:
@@ -1019,6 +1044,9 @@ def main() -> None:
         print(f"Databases: {_databases_dir(output_dir)}")
     if results.get("category_error_report"):
         print(f"Category error report: {_category_error_report_path(output_dir)}")
+    if results.get("config_leaderboard"):
+        print(format_config_leaderboard(results["config_leaderboard"]))
+        print(f"Config leaderboard: {_config_leaderboard_path(output_dir)}")
     if results.get("category_error_audit"):
         print(f"Category error audit summary: {_category_error_audit_summary_path(output_dir)}")
     if summary.get("best_config_id") and summary.get("best_mean_macro_f1") is not None:
