@@ -11,6 +11,7 @@ import pandas as pd
 
 DEFAULT_EPSILON = 1e-9
 MISSING_CATEGORY_PENALTY = 1.0
+GOLD_ZERO_MATCHED_PENALTY = 1.0
 
 
 def _serialize_category(key: object) -> str:
@@ -44,13 +45,30 @@ def _to_float(value: object) -> float | None:
     return out if math.isfinite(out) else None
 
 
+def _matched_category_error(pred: float, gold: float, *, epsilon: float = DEFAULT_EPSILON) -> float:
+    """
+    Matched-category error.
+
+    - gold == 0: 0 if pred == 0 else fixed penalty (bounded, no epsilon division)
+    - gold > 0: |pred - gold| / |gold|
+    """
+    del epsilon  # retained for API compatibility; not used for gold == 0
+    if gold == 0.0:
+        if pred == 0.0:
+            return 0.0
+        return GOLD_ZERO_MATCHED_PENALTY
+    return abs(pred - gold) / abs(gold)
+
+
 def _matched_relative_error(pred: float, gold: float, *, epsilon: float) -> float:
-    denom = max(abs(gold), epsilon)
-    return abs(pred - gold) / denom
+    """Backward-compatible alias."""
+    return _matched_category_error(pred, gold, epsilon=epsilon)
 
 
-def _relative_error_denominator(gold: float, *, epsilon: float) -> float:
-    return max(abs(gold), epsilon)
+def _relative_error_denominator(gold: float, *, epsilon: float) -> float | None:
+    if gold == 0.0:
+        return None
+    return abs(gold)
 
 
 def audit_category_errors(
@@ -76,11 +94,22 @@ def audit_category_errors(
             n_gold_zero += 1
 
         if in_gold and in_pred:
-            status = "matched"
             assert gold_val is not None and pred_val is not None
-            denominator = _relative_error_denominator(gold_val, epsilon=epsilon)
             error_term = scored["per_category_error"][category]
-            formula = f"|{pred_val} - {gold_val}| / max(|{gold_val}|, {epsilon})"
+            if gold_val == 0.0:
+                status = "matched_gold_zero"
+                denominator = None
+                if pred_val == 0.0:
+                    formula = "gold=0 and pred=0 -> error=0"
+                else:
+                    formula = (
+                        f"gold=0 and pred!={pred_val} -> "
+                        f"penalty={GOLD_ZERO_MATCHED_PENALTY}"
+                    )
+            else:
+                status = "matched"
+                denominator = _relative_error_denominator(gold_val, epsilon=epsilon)
+                formula = f"|{pred_val} - {gold_val}| / |{gold_val}|"
         elif in_gold:
             status = "missing"
             denominator = None
@@ -298,7 +327,7 @@ def summarize_worst_query_for_json(
     n_pred = 0
     error_rows: list[dict[str, Any]] = []
 
-    for value_report in _value_column_reports(report):
+    for value_report in _fresh_value_reports(report):
         gold_map = value_report.get("gold_categories") or {}
         pred_map = value_report.get("predicted_categories") or {}
         n_gold += len(gold_map)
@@ -306,7 +335,11 @@ def summarize_worst_query_for_json(
         value_column = value_report.get("value_column")
         for category, error_term in (value_report.get("per_category_error") or {}).items():
             if category in gold_map and category in pred_map:
-                status = "matched"
+                status = (
+                    "matched_gold_zero"
+                    if gold_map.get(category) == 0.0
+                    else "matched"
+                )
             elif category in gold_map:
                 status = "missing"
             else:
@@ -353,9 +386,11 @@ def build_config_scalar_summary(
     n_queries_with_missing = 0
     n_queries_with_extra = 0
     n_queries_with_gold_zero = 0
+    refreshed_reports: list[dict[str, Any]] = []
 
     for row in scored_rows:
-        report = row["category_error"]
+        report = refresh_category_error_block(row["category_error"])
+        refreshed_reports.append(report)
         if report.get("missing_categories"):
             n_queries_with_missing += 1
         if report.get("extra_categories"):
@@ -363,19 +398,23 @@ def build_config_scalar_summary(
         if _report_has_gold_zero(report):
             n_queries_with_gold_zero += 1
 
-        for value_report in _value_column_reports(report):
+        for value_report in _fresh_value_reports(report):
             gold_map = value_report.get("gold_categories") or {}
             pred_map = value_report.get("predicted_categories") or {}
-            matched = set(value_report.get("matched_categories") or [])
             for category, error_term in (value_report.get("per_category_error") or {}).items():
                 err = float(error_term)
                 all_category_errors.append(err)
-                if category in matched and gold_map.get(category) == 0.0 and pred_map.get(category) != 0.0:
+                if (
+                    category in gold_map
+                    and category in pred_map
+                    and gold_map.get(category) == 0.0
+                    and pred_map.get(category) != 0.0
+                ):
                     n_zero_denom_categories += 1
                     zero_denom_error_sum += err
 
-    query_errors = [float(row["category_error"]["query_error"]) for row in scored_rows]
-    query_accuracies = [float(row["category_error"]["query_accuracy"]) for row in scored_rows]
+    query_errors = [float(report["query_error"]) for report in refreshed_reports]
+    query_accuracies = [float(report["query_accuracy"]) for report in refreshed_reports]
 
     avg_per_category_error = (
         float(sum(all_category_errors) / len(all_category_errors))
@@ -402,6 +441,7 @@ def build_config_scalar_summary(
         "avg_per_category_error": _round_json_float(avg_per_category_error),
         "max_per_category_error": _round_json_float(max_per_category_error),
         "n_zero_denom_categories": n_zero_denom_categories,
+        "gold_zero_mismatch_penalty": GOLD_ZERO_MATCHED_PENALTY,
         "zero_denom_error_share": _round_json_float(
             zero_denom_error_sum / total_category_error if total_category_error > 0 else 0.0
         ),
@@ -438,7 +478,7 @@ def build_config_query_details(
     scored_rows = [row for row in per_query if row.get("category_error")]
     ranked_rows = sorted(
         scored_rows,
-        key=lambda row: float(row["category_error"]["query_error"]),
+        key=lambda row: float(refresh_category_error_block(row["category_error"])["query_error"]),
         reverse=True,
     )[:worst_query_limit]
     scalar = build_config_scalar_summary(
@@ -450,7 +490,7 @@ def build_config_query_details(
         **scalar,
         "queries": [
             summarize_worst_query_for_json(
-                row["category_error"],
+                refresh_category_error_block(row["category_error"]),
                 top_category_errors=top_category_errors,
             )
             for row in ranked_rows
@@ -592,7 +632,8 @@ def diagnose_category_error_config(summary: dict[str, Any]) -> list[str]:
     n_zero_denom = int(summary.get("n_zero_denom_categories") or 0)
     if n_zero_denom > 0 and zero_denom_share >= 0.25:
         diagnoses.append(
-            "zero denominators (gold=0 categories use epsilon and inflate relative error)"
+            "gold=0 matched categories with nonzero predictions "
+            f"(fixed penalty={GOLD_ZERO_MATCHED_PENALTY} each)"
         )
 
     missing_frac = float(summary.get("n_queries_with_missing_categories") or 0) / n_audited
@@ -753,6 +794,232 @@ def format_compact_category_error_audit(
     return "\n".join(lines)
 
 
+def category_error_metric_formula(*, epsilon: float = DEFAULT_EPSILON) -> dict[str, str]:
+    """Document the exact category_error formulas (for audit output only)."""
+    del epsilon
+    return {
+        "matched_gold_positive": "error = |predicted - gold| / |gold| when gold > 0",
+        "matched_gold_zero": (
+            f"error = 0 when pred=0; else fixed penalty={GOLD_ZERO_MATCHED_PENALTY}"
+        ),
+        "missing_or_extra": f"error = {MISSING_CATEGORY_PENALTY} (category in union but only one side)",
+        "query_error": "mean(per_category_error over union of gold and predicted categories)",
+        "query_accuracy": "1 - query_error",
+    }
+
+
+def build_category_calculation_record(
+    *,
+    config_id: str,
+    query_id: str,
+    value_column: str | None,
+    category: str,
+    status: str,
+    gold_value: float | None,
+    predicted_value: float | None,
+    error_term: float,
+    epsilon: float = DEFAULT_EPSILON,
+) -> dict[str, Any]:
+    """One category's exact calculation path."""
+    row: dict[str, Any] = {
+        "config_id": config_id,
+        "query_id": query_id,
+        "value_column": value_column,
+        "category": category,
+        "status": status,
+        "gold_value": gold_value,
+        "predicted_value": predicted_value,
+        "error_term": error_term,
+        "epsilon": epsilon,
+    }
+    if status == "matched":
+        assert gold_value is not None and predicted_value is not None
+        numerator = abs(predicted_value - gold_value)
+        denominator = abs(gold_value)
+        row.update(
+            {
+                "numerator": numerator,
+                "denominator": denominator,
+                "uses_epsilon_denominator": False,
+                "formula": "matched_relative_error",
+                "expression": (
+                    f"|predicted - gold| / |gold| = "
+                    f"|{predicted_value} - {gold_value}| / |{gold_value}|"
+                ),
+                "substitution": f"{numerator} / {denominator} = {error_term}",
+            }
+        )
+    elif status == "matched_gold_zero":
+        assert gold_value is not None and predicted_value is not None
+        row.update(
+            {
+                "numerator": abs(predicted_value - gold_value),
+                "denominator": None,
+                "uses_epsilon_denominator": False,
+                "formula": "matched_gold_zero_penalty",
+                "expression": (
+                    "gold=0: error=0 if pred=0 "
+                    f"else penalty={GOLD_ZERO_MATCHED_PENALTY}"
+                ),
+                "substitution": (
+                    f"0 (both zero)"
+                    if predicted_value == 0.0
+                    else f"penalty={GOLD_ZERO_MATCHED_PENALTY}"
+                ),
+            }
+        )
+    else:
+        row.update(
+            {
+                "numerator": MISSING_CATEGORY_PENALTY,
+                "denominator": None,
+                "uses_epsilon_denominator": False,
+                "formula": "missing_or_extra_penalty",
+                "expression": f"penalty = {MISSING_CATEGORY_PENALTY}",
+                "substitution": str(error_term),
+            }
+        )
+    return row
+
+
+def iter_category_calculation_records(
+    per_config: dict[str, Any],
+    *,
+    config_ids: list[str] | None = None,
+) -> list[dict[str, Any]]:
+    """Flatten all per-category calculations from cached evaluation results."""
+    rows: list[dict[str, Any]] = []
+    for config_id, entry in sorted(per_config.items()):
+        if config_ids is not None and config_id not in config_ids:
+            continue
+        for per_query_row in entry.get("per_query") or []:
+            report = per_query_row.get("category_error")
+            if not report:
+                continue
+            report = refresh_category_error_block(report)
+            query_id = str(per_query_row.get("query_id", report.get("query_id", "")))
+            epsilon = float(report.get("epsilon", DEFAULT_EPSILON))
+            for value_report in _fresh_value_reports(report):
+                gold_map = value_report.get("gold_categories") or {}
+                pred_map = value_report.get("predicted_categories") or {}
+                value_column = value_report.get("value_column")
+                for category, error_term in (value_report.get("per_category_error") or {}).items():
+                    if category in gold_map and category in pred_map:
+                        gold_value = float(gold_map[category])
+                        predicted_value = float(pred_map[category])
+                        status = "matched_gold_zero" if gold_value == 0.0 else "matched"
+                    elif category in gold_map:
+                        status = "missing"
+                        gold_value = float(gold_map[category])
+                        predicted_value = None
+                    else:
+                        status = "extra"
+                        gold_value = None
+                        predicted_value = float(pred_map[category])
+                    rows.append(
+                        build_category_calculation_record(
+                            config_id=config_id,
+                            query_id=query_id,
+                            value_column=value_column,
+                            category=category,
+                            status=status,
+                            gold_value=gold_value,
+                            predicted_value=predicted_value,
+                            error_term=float(error_term),
+                            epsilon=epsilon,
+                        )
+                    )
+    return rows
+
+
+def top_category_error_calculations(
+    per_config: dict[str, Any],
+    *,
+    config_ids: list[str] | None = None,
+    limit: int = 10,
+) -> list[dict[str, Any]]:
+    """Largest per-category error terms with full calculation path."""
+    rows = iter_category_calculation_records(per_config, config_ids=config_ids)
+    rows.sort(key=lambda row: float(row["error_term"]), reverse=True)
+    return rows[:limit]
+
+
+def format_top_category_error_calculations(
+    rows: list[dict[str, Any]],
+    *,
+    epsilon: float = DEFAULT_EPSILON,
+) -> str:
+    """Human-readable report of the largest category errors and how they were computed."""
+    formulas = category_error_metric_formula(epsilon=epsilon)
+    lines: list[str] = []
+    lines.append("=" * 72)
+    lines.append("TOP CATEGORY ERROR CALCULATIONS (exact metric path)")
+    lines.append("=" * 72)
+    lines.append("")
+    lines.append("Metric formulas:")
+    for key, value in formulas.items():
+        lines.append(f"  {key}: {value}")
+    lines.append("")
+    lines.append(
+        "Gold=0 matched categories use a fixed penalty (not epsilon division). "
+        f"Example: gold=0, pred=17 -> error={GOLD_ZERO_MATCHED_PENALTY}."
+    )
+    lines.append("")
+
+    for rank, row in enumerate(rows, start=1):
+        lines.append(f"#{rank} error_term={row.get('error_term')}")
+        lines.append(f"  config_id: {row.get('config_id')}")
+        lines.append(f"  query_id: {row.get('query_id')}")
+        lines.append(f"  value_column: {row.get('value_column')}")
+        lines.append(f"  category: {row.get('category')!r}")
+        lines.append(f"  status: {row.get('status')}")
+        lines.append(f"  gold_value: {row.get('gold_value')!r}")
+        lines.append(f"  predicted_value: {row.get('predicted_value')!r}")
+        lines.append(f"  numerator: {row.get('numerator')!r}")
+        lines.append(f"  denominator: {row.get('denominator')!r}")
+        lines.append(f"  epsilon: {row.get('epsilon')}")
+        lines.append(f"  uses_epsilon_denominator: {row.get('uses_epsilon_denominator')}")
+        lines.append(f"  formula: {row.get('formula')}")
+        lines.append(f"  expression: {row.get('expression')}")
+        lines.append(f"  substitution: {row.get('substitution')}")
+        lines.append("")
+
+    return "\n".join(lines)
+
+
+def build_top_category_error_audit(
+    per_config: dict[str, Any],
+    *,
+    config_ids: list[str] | None = None,
+    limit: int = 10,
+) -> dict[str, Any]:
+    top_rows = top_category_error_calculations(
+        per_config,
+        config_ids=config_ids,
+        limit=limit,
+    )
+    epsilon = float(top_rows[0]["epsilon"]) if top_rows else DEFAULT_EPSILON
+    return {
+        "metric": "group_by_category_error",
+        "report_type": "top_category_error_calculations",
+        "limit": limit,
+        "formulas": category_error_metric_formula(epsilon=epsilon),
+        "zero_denominator_note": (
+            "When gold=0 and pred!=0, error is a fixed penalty "
+            f"({GOLD_ZERO_MATCHED_PENALTY}), not relative error / epsilon."
+        ),
+        "top_errors": top_rows,
+    }
+
+
+def write_top_category_error_audit(payload: dict[str, Any], path) -> None:
+    from pathlib import Path
+
+    out = Path(path)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
 def write_category_error_audit_summary(payload: dict[str, Any], path) -> None:
     from pathlib import Path
 
@@ -799,7 +1066,7 @@ def compute_category_errors(
         in_pred = category in pred_map
         if in_gold and in_pred:
             matched.append(category)
-            rel = _matched_relative_error(pred_map[category], gold_map[category], epsilon=epsilon)
+            rel = _matched_category_error(pred_map[category], gold_map[category], epsilon=epsilon)
             per_category_error[category] = rel
             per_category_relative_error[category] = rel
         else:
@@ -826,6 +1093,65 @@ def compute_category_errors(
         "category_penalty_count": penalty_count,
         "query_error": query_error,
         "query_accuracy": 1.0 - query_error,
+    }
+
+
+def _fresh_value_reports(report: dict[str, Any]) -> list[dict[str, Any]]:
+    """Recompute per-value-column errors from cached gold/pred maps."""
+    epsilon = float(report.get("epsilon", DEFAULT_EPSILON))
+    fresh: list[dict[str, Any]] = []
+    for value_report in _value_column_reports(report):
+        gold_map = value_report.get("gold_categories") or {}
+        pred_map = value_report.get("predicted_categories") or {}
+        scored = compute_category_errors(gold_map, pred_map, epsilon=epsilon)
+        fresh.append(
+            {
+                "value_column": value_report.get("value_column"),
+                "gold_categories": gold_map,
+                "predicted_categories": pred_map,
+                **scored,
+            }
+        )
+    return fresh
+
+
+def refresh_category_error_block(report: dict[str, Any]) -> dict[str, Any]:
+    """Recompute query-level category_error fields from cached category maps."""
+    value_reports = _fresh_value_reports(report)
+    if not value_reports:
+        return report
+
+    query_error = float(sum(r["query_error"] for r in value_reports) / len(value_reports))
+    merged_missing = sorted({c for r in value_reports for c in r["missing_categories"]})
+    merged_extra = sorted({c for r in value_reports for c in r["extra_categories"]})
+    merged_matched = sorted({c for r in value_reports for c in r["matched_categories"]})
+    matched_errors = [
+        err
+        for r in value_reports
+        for cat, err in r["per_category_relative_error"].items()
+        if err is not None
+    ]
+
+    return {
+        **report,
+        "matched_categories": merged_matched,
+        "missing_categories": merged_missing,
+        "extra_categories": merged_extra,
+        "per_category_relative_error": (
+            value_reports[0]["per_category_relative_error"]
+            if len(value_reports) == 1
+            else {r["value_column"]: r["per_category_relative_error"] for r in value_reports}
+        ),
+        "per_category_error": (
+            value_reports[0]["per_category_error"]
+            if len(value_reports) == 1
+            else {r["value_column"]: r["per_category_error"] for r in value_reports}
+        ),
+        "category_penalty_count": sum(r["category_penalty_count"] for r in value_reports),
+        "query_error": query_error,
+        "query_accuracy": 1.0 - query_error,
+        "primary_failure_mode": _primary_failure_mode(merged_missing, merged_extra, matched_errors),
+        "by_value_column": value_reports,
     }
 
 
@@ -955,6 +1281,7 @@ def build_workload_category_error_report(
             if not block:
                 config_scores[qid] = None
                 continue
+            block = refresh_category_error_block(block)
             scored_rows.append(block)
             config_scores[qid] = float(block["query_error"])
 

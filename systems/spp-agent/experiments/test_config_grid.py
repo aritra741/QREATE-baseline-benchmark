@@ -42,11 +42,14 @@ from data.materialized_db_store import (
 from data.workload_splits import HOLDOUT_POLICY, load_split_queries
 from optimizer.config_space import PopulationConfig, generate_config_space
 from pipeline.group_by_category_error import (
+    build_top_category_error_audit,
     build_workload_audit_summary,
     build_workload_category_error_report,
     format_compact_category_error_audit,
+    format_top_category_error_calculations,
     write_category_error_audit_summary,
     write_category_error_report,
+    write_top_category_error_audit,
 )
 from pipeline.evaluation import _eval_context
 from pipeline.extraction import ExtractionResult, extract_documents
@@ -383,6 +386,10 @@ def _category_error_audit_summary_path(output_dir: Path) -> Path:
     return output_dir / "category_error_audit_summary.json"
 
 
+def _category_error_top_calculations_path(output_dir: Path) -> Path:
+    return output_dir / "category_error_top_calculations.json"
+
+
 def run_category_error_audit(
     *,
     per_config: dict[str, Any],
@@ -391,6 +398,7 @@ def run_category_error_audit(
     worst_query_limit: int = 5,
     detail_config_limit: int = 10,
     include_all_config_scalars: bool = False,
+    top_error_limit: int = 10,
 ) -> dict[str, Any]:
     """Build summarized per-config audit JSON; full detail printed to stdout only."""
     evaluated = {
@@ -419,8 +427,20 @@ def run_category_error_audit(
     write_category_error_audit_summary(payload, summary_path)
     print(format_compact_category_error_audit(payload, per_config=per_config))
     print(f"Category error audit summary: {summary_path}")
+
+    top_calc = build_top_category_error_audit(
+        per_config,
+        config_ids=config_ids,
+        limit=top_error_limit,
+    )
+    top_calc_path = _category_error_top_calculations_path(output_dir)
+    write_top_category_error_audit(top_calc, top_calc_path)
+    print(format_top_category_error_calculations(top_calc.get("top_errors") or []))
+    print(f"Top category error calculations: {top_calc_path}")
+
     return {
         "path": str(summary_path),
+        "top_calculations_path": str(top_calc_path),
         "n_configs": payload.get("n_configs"),
         "workload_summary": payload.get("workload_summary"),
         "detail_config_limit": payload.get("detail_config_limit"),
@@ -533,6 +553,7 @@ def run_config_grid(
     audit_worst_queries: int = 5,
     audit_detail_configs: int = 10,
     audit_all_config_scalars: bool = False,
+    audit_top_errors: int = 10,
 ) -> dict[str, Any]:
     cfg = load_config()
     grid_cfg = cfg.get("config_grid", {})
@@ -809,6 +830,7 @@ def run_config_grid(
                 worst_query_limit=audit_worst_queries,
                 detail_config_limit=audit_detail_configs,
                 include_all_config_scalars=audit_all_config_scalars,
+                top_error_limit=audit_top_errors,
             )
 
     _results_path(output_dir).write_text(json.dumps(results, indent=2), encoding="utf-8")
@@ -933,6 +955,12 @@ def _parse_args() -> argparse.Namespace:
         action="store_true",
         help="Include full per-config scalar blocks in JSON (large; default is ranking only)",
     )
+    parser.add_argument(
+        "--audit-top-errors",
+        type=int,
+        default=10,
+        help="Print exact numerator/denominator path for the N largest category errors (default: 10)",
+    )
     return parser.parse_args()
 
 
@@ -962,6 +990,7 @@ def main() -> None:
         audit_worst_queries=args.audit_worst_queries,
         audit_detail_configs=args.audit_detail_configs,
         audit_all_config_scalars=args.audit_all_config_scalars,
+        audit_top_errors=args.audit_top_errors,
     )
     summary = results.get("summary", {})
     manifest = results.get("manifest", {})

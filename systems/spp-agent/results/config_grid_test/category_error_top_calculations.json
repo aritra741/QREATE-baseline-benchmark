@@ -1,0 +1,14 @@
+{
+  "metric": "group_by_category_error",
+  "report_type": "top_category_error_calculations",
+  "limit": 10,
+  "formulas": {
+    "matched_gold_positive": "error = |predicted - gold| / |gold| when gold > 0",
+    "matched_gold_zero": "error = 0 when pred=0; else fixed penalty=1.0",
+    "missing_or_extra": "error = 1.0 (category in union but only one side)",
+    "query_error": "mean(per_category_error over union of gold and predicted categories)",
+    "query_accuracy": "1 - query_error"
+  },
+  "zero_denominator_note": "When gold=0 and pred!=0, error is a fixed penalty (1.0), not relative error / epsilon.",
+  "top_errors": []
+}
