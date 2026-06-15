@@ -234,6 +234,26 @@ def format_category_error_audit_log(
 
 
 TOP_WORST_QUERIES_DEFAULT = 5
+DETAIL_CONFIG_LIMIT_DEFAULT = 10
+TOP_CATEGORY_ERRORS_JSON_DEFAULT = 5
+CATEGORY_LABEL_MAX_LEN = 64
+
+
+def _round_json_float(value: float) -> float:
+    if not math.isfinite(value):
+        return value
+    if value == 0.0:
+        return 0.0
+    if abs(value) >= 1_000_000 or abs(value) < 1e-4:
+        return float(f"{value:.4g}")
+    return round(value, 6)
+
+
+def _truncate_category_label(category: object) -> str:
+    text = "" if category is None else str(category)
+    if len(text) <= CATEGORY_LABEL_MAX_LEN:
+        return text
+    return f"{text[: CATEGORY_LABEL_MAX_LEN - 3]}..."
 
 
 def _value_column_reports(report: dict[str, Any]) -> list[dict[str, Any]]:
@@ -271,9 +291,9 @@ def _compact_per_category_summary(value_report: dict[str, Any]) -> dict[str, dic
 def summarize_worst_query_for_json(
     report: dict[str, Any],
     *,
-    top_category_errors: int = 10,
+    top_category_errors: int = TOP_CATEGORY_ERRORS_JSON_DEFAULT,
 ) -> dict[str, Any]:
-    """Small worst-query record for JSON export (no full category maps)."""
+    """Small worst-query record for JSON detail section (no full category maps)."""
     n_gold = 0
     n_pred = 0
     error_rows: list[dict[str, Any]] = []
@@ -292,9 +312,9 @@ def summarize_worst_query_for_json(
             else:
                 status = "extra"
             row: dict[str, Any] = {
-                "category": category,
+                "category": _truncate_category_label(category),
                 "status": status,
-                "error": float(error_term),
+                "error": _round_json_float(float(error_term)),
             }
             if value_column is not None:
                 row["value_column"] = value_column
@@ -304,9 +324,9 @@ def summarize_worst_query_for_json(
 
     return {
         "query_id": report.get("query_id"),
-        "query_error": float(report.get("query_error", 0.0)),
-        "query_accuracy": float(
-            report.get("query_accuracy", 1.0 - float(report.get("query_error", 0.0)))
+        "query_error": _round_json_float(float(report.get("query_error", 0.0))),
+        "query_accuracy": _round_json_float(
+            float(report.get("query_accuracy", 1.0 - float(report.get("query_error", 0.0))))
         ),
         "primary_failure_mode": report.get("primary_failure_mode"),
         "n_gold_categories": n_gold,
@@ -314,6 +334,225 @@ def summarize_worst_query_for_json(
         "n_missing_categories": len(report.get("missing_categories") or []),
         "n_extra_categories": len(report.get("extra_categories") or []),
         "top_category_errors": error_rows[:top_category_errors],
+    }
+
+
+def _worst_query_stubs(
+    scored_rows: list[dict[str, Any]],
+    *,
+    worst_query_limit: int,
+) -> tuple[list[str], list[float]]:
+    ranked_rows = sorted(
+        scored_rows,
+        key=lambda row: float(row["category_error"]["query_error"]),
+        reverse=True,
+    )[:worst_query_limit]
+    ids = [str(row.get("query_id", "")) for row in ranked_rows]
+    errors = [
+        _round_json_float(float(row["category_error"]["query_error"]))
+        for row in ranked_rows
+    ]
+    return ids, errors
+
+
+def build_config_scalar_summary(
+    config_id: str,
+    entry: dict[str, Any],
+    *,
+    worst_query_limit: int = TOP_WORST_QUERIES_DEFAULT,
+) -> dict[str, Any]:
+    """Per-config scalar audit row for JSON (no per-category error lists)."""
+    per_query = entry.get("per_query") or []
+    scored_rows = [row for row in per_query if row.get("category_error")]
+
+    all_category_errors: list[float] = []
+    n_zero_denom_categories = 0
+    zero_denom_error_sum = 0.0
+    n_queries_with_missing = 0
+    n_queries_with_extra = 0
+    n_queries_with_gold_zero = 0
+
+    for row in scored_rows:
+        report = row["category_error"]
+        if report.get("missing_categories"):
+            n_queries_with_missing += 1
+        if report.get("extra_categories"):
+            n_queries_with_extra += 1
+        if _report_has_gold_zero(report):
+            n_queries_with_gold_zero += 1
+
+        for value_report in _value_column_reports(report):
+            gold_map = value_report.get("gold_categories") or {}
+            pred_map = value_report.get("predicted_categories") or {}
+            matched = set(value_report.get("matched_categories") or [])
+            for category, error_term in (value_report.get("per_category_error") or {}).items():
+                err = float(error_term)
+                all_category_errors.append(err)
+                if category in matched and gold_map.get(category) == 0.0 and pred_map.get(category) != 0.0:
+                    n_zero_denom_categories += 1
+                    zero_denom_error_sum += err
+
+    query_errors = [float(row["category_error"]["query_error"]) for row in scored_rows]
+    query_accuracies = [float(row["category_error"]["query_accuracy"]) for row in scored_rows]
+
+    avg_per_category_error = (
+        float(sum(all_category_errors) / len(all_category_errors))
+        if all_category_errors
+        else 0.0
+    )
+    max_per_category_error = max(all_category_errors) if all_category_errors else 0.0
+    total_category_error = float(sum(all_category_errors))
+    outlier_threshold = max(10.0, 5.0 * avg_per_category_error) if avg_per_category_error > 0 else 10.0
+    outlier_error_sum = float(sum(err for err in all_category_errors if err >= outlier_threshold))
+
+    worst_query_ids, worst_query_errors = _worst_query_stubs(
+        scored_rows,
+        worst_query_limit=worst_query_limit,
+    )
+
+    summary: dict[str, Any] = {
+        "config_id": config_id,
+        "mean_query_error": _round_json_float(
+            float(sum(query_errors) / len(query_errors)) if query_errors else 0.0
+        ),
+        "mean_query_accuracy": _round_json_float(
+            float(sum(query_accuracies) / len(query_accuracies)) if query_accuracies else 0.0
+        ),
+        "n_queries_audited": len(scored_rows),
+        "n_queries_with_missing_categories": n_queries_with_missing,
+        "n_queries_with_extra_categories": n_queries_with_extra,
+        "n_queries_with_gold_zero": n_queries_with_gold_zero,
+        "avg_per_category_error": _round_json_float(avg_per_category_error),
+        "max_per_category_error": _round_json_float(max_per_category_error),
+        "n_zero_denom_categories": n_zero_denom_categories,
+        "zero_denom_error_share": _round_json_float(
+            zero_denom_error_sum / total_category_error if total_category_error > 0 else 0.0
+        ),
+        "outlier_error_share": _round_json_float(
+            outlier_error_sum / total_category_error if total_category_error > 0 else 0.0
+        ),
+        "worst_query_ids": worst_query_ids,
+        "worst_query_errors": worst_query_errors,
+    }
+    summary["diagnosis"] = diagnose_category_error_config(summary)
+    return summary
+
+
+def build_config_query_details(
+    config_id: str,
+    entry: dict[str, Any],
+    *,
+    worst_query_limit: int = TOP_WORST_QUERIES_DEFAULT,
+    top_category_errors: int = TOP_CATEGORY_ERRORS_JSON_DEFAULT,
+) -> dict[str, Any]:
+    """Per-query breakdown for the JSON detail section (worst configs only)."""
+    per_query = entry.get("per_query") or []
+    scored_rows = [row for row in per_query if row.get("category_error")]
+    ranked_rows = sorted(
+        scored_rows,
+        key=lambda row: float(row["category_error"]["query_error"]),
+        reverse=True,
+    )[:worst_query_limit]
+    scalar = build_config_scalar_summary(
+        config_id,
+        entry,
+        worst_query_limit=worst_query_limit,
+    )
+    return {
+        "config_id": config_id,
+        "mean_query_error": scalar["mean_query_error"],
+        "diagnosis": scalar["diagnosis"],
+        "queries": [
+            summarize_worst_query_for_json(
+                row["category_error"],
+                top_category_errors=top_category_errors,
+            )
+            for row in ranked_rows
+        ],
+    }
+
+
+def build_config_compact_audit(
+    config_id: str,
+    entry: dict[str, Any],
+    *,
+    worst_query_limit: int = TOP_WORST_QUERIES_DEFAULT,
+) -> dict[str, Any]:
+    """Backward-compatible alias for scalar config summary."""
+    return build_config_scalar_summary(
+        config_id,
+        entry,
+        worst_query_limit=worst_query_limit,
+    )
+
+
+def build_workload_audit_summary(
+    per_config: dict[str, Any],
+    *,
+    config_ids: list[str] | None = None,
+    worst_query_limit: int = TOP_WORST_QUERIES_DEFAULT,
+    detail_config_limit: int = DETAIL_CONFIG_LIMIT_DEFAULT,
+    top_category_errors: int = TOP_CATEGORY_ERRORS_JSON_DEFAULT,
+) -> dict[str, Any]:
+    """Summarized audit for JSON export: scalar rows for all configs, detail for worst only."""
+    scalar_configs: list[dict[str, Any]] = []
+    entries_by_id: dict[str, dict[str, Any]] = {}
+
+    for config_id, entry in sorted(per_config.items()):
+        if config_ids is not None and config_id not in config_ids:
+            continue
+        if not entry.get("per_query"):
+            continue
+        entries_by_id[config_id] = entry
+        scalar_configs.append(
+            build_config_scalar_summary(
+                config_id,
+                entry,
+                worst_query_limit=worst_query_limit,
+            )
+        )
+
+    mean_errors = [float(cfg["mean_query_error"]) for cfg in scalar_configs]
+    ranked_for_detail = sorted(
+        scalar_configs,
+        key=lambda cfg: float(cfg["mean_query_error"]),
+        reverse=True,
+    )[:detail_config_limit]
+
+    return {
+        "metric": "group_by_category_error",
+        "report_type": "compact_audit_summary",
+        "n_configs": len(scalar_configs),
+        "detail_config_limit": detail_config_limit,
+        "workload_summary": {
+            "mean_of_mean_query_error": _round_json_float(
+                float(sum(mean_errors) / len(mean_errors)) if mean_errors else 0.0
+            ),
+            "max_mean_query_error": _round_json_float(max(mean_errors) if mean_errors else 0.0),
+            "configs_with_zero_denom_issues": sum(
+                1 for cfg in scalar_configs if int(cfg.get("n_zero_denom_categories") or 0) > 0
+            ),
+            "configs_with_missing_category_queries": sum(
+                1
+                for cfg in scalar_configs
+                if int(cfg.get("n_queries_with_missing_categories") or 0) > 0
+            ),
+            "configs_with_extra_category_queries": sum(
+                1
+                for cfg in scalar_configs
+                if int(cfg.get("n_queries_with_extra_categories") or 0) > 0
+            ),
+        },
+        "configs": scalar_configs,
+        "worst_config_details": [
+            build_config_query_details(
+                str(cfg["config_id"]),
+                entries_by_id[str(cfg["config_id"])],
+                worst_query_limit=worst_query_limit,
+                top_category_errors=top_category_errors,
+            )
+            for cfg in ranked_for_detail
+        ],
     }
 
 
@@ -389,144 +628,21 @@ def diagnose_category_error_config(summary: dict[str, Any]) -> list[str]:
     return diagnoses
 
 
-def build_config_compact_audit(
-    config_id: str,
-    entry: dict[str, Any],
-    *,
-    worst_query_limit: int = TOP_WORST_QUERIES_DEFAULT,
-) -> dict[str, Any]:
-    """Build compact per-config audit from cached per_query category_error blocks."""
-    per_query = entry.get("per_query") or []
-    scored_rows = [row for row in per_query if row.get("category_error")]
-
-    all_category_errors: list[float] = []
-    n_zero_denom_categories = 0
-    zero_denom_error_sum = 0.0
-    outlier_error_sum = 0.0
-    n_queries_with_missing = 0
-    n_queries_with_extra = 0
-    n_queries_with_gold_zero = 0
-
-    for row in scored_rows:
-        report = row["category_error"]
-        if report.get("missing_categories"):
-            n_queries_with_missing += 1
-        if report.get("extra_categories"):
-            n_queries_with_extra += 1
-        if _report_has_gold_zero(report):
-            n_queries_with_gold_zero += 1
-
-        for value_report in _value_column_reports(report):
-            gold_map = value_report.get("gold_categories") or {}
-            pred_map = value_report.get("predicted_categories") or {}
-            matched = set(value_report.get("matched_categories") or [])
-            for category, error_term in (value_report.get("per_category_error") or {}).items():
-                err = float(error_term)
-                all_category_errors.append(err)
-                if category in matched and gold_map.get(category) == 0.0 and pred_map.get(category) != 0.0:
-                    n_zero_denom_categories += 1
-                    zero_denom_error_sum += err
-
-    query_errors = [float(row["category_error"]["query_error"]) for row in scored_rows]
-    query_accuracies = [float(row["category_error"]["query_accuracy"]) for row in scored_rows]
-
-    ranked_rows = sorted(
-        scored_rows,
-        key=lambda row: float(row["category_error"]["query_error"]),
-        reverse=True,
-    )
-    worst_rows = ranked_rows[:worst_query_limit]
-
-    avg_per_category_error = (
-        float(sum(all_category_errors) / len(all_category_errors))
-        if all_category_errors
-        else 0.0
-    )
-    max_per_category_error = max(all_category_errors) if all_category_errors else 0.0
-    total_category_error = float(sum(all_category_errors))
-    outlier_threshold = max(10.0, 5.0 * avg_per_category_error) if avg_per_category_error > 0 else 10.0
-    outlier_error_sum = float(sum(err for err in all_category_errors if err >= outlier_threshold))
-
-    summary: dict[str, Any] = {
-        "config_id": config_id,
-        "mean_query_error": float(sum(query_errors) / len(query_errors)) if query_errors else 0.0,
-        "mean_query_accuracy": float(sum(query_accuracies) / len(query_accuracies))
-        if query_accuracies
-        else 0.0,
-        "n_queries_audited": len(scored_rows),
-        "n_queries_with_missing_categories": n_queries_with_missing,
-        "n_queries_with_extra_categories": n_queries_with_extra,
-        "n_queries_with_gold_zero": n_queries_with_gold_zero,
-        "avg_per_category_error": avg_per_category_error,
-        "max_per_category_error": max_per_category_error,
-        "n_zero_denom_categories": n_zero_denom_categories,
-        "zero_denom_error_share": (
-            zero_denom_error_sum / total_category_error if total_category_error > 0 else 0.0
-        ),
-        "outlier_error_share": (
-            outlier_error_sum / total_category_error if total_category_error > 0 else 0.0
-        ),
-        "top_worst_queries": [
-            summarize_worst_query_for_json(row["category_error"])
-            for row in worst_rows
-        ],
-    }
-    summary["diagnosis"] = diagnose_category_error_config(summary)
-    return summary
-
-
-def build_workload_audit_summary(
-    per_config: dict[str, Any],
-    *,
-    config_ids: list[str] | None = None,
-    worst_query_limit: int = TOP_WORST_QUERIES_DEFAULT,
-) -> dict[str, Any]:
-    """Summarized audit for JSON export (no full category maps)."""
-    configs = [
-        build_config_compact_audit(
-            config_id,
-            entry,
-            worst_query_limit=worst_query_limit,
-        )
-        for config_id, entry in sorted(per_config.items())
-        if (config_ids is None or config_id in config_ids) and entry.get("per_query")
-    ]
-
-    mean_errors = [float(cfg["mean_query_error"]) for cfg in configs]
-    return {
-        "metric": "group_by_category_error",
-        "report_type": "compact_audit_summary",
-        "n_configs": len(configs),
-        "workload_summary": {
-            "mean_of_mean_query_error": (
-                float(sum(mean_errors) / len(mean_errors)) if mean_errors else 0.0
-            ),
-            "max_mean_query_error": max(mean_errors) if mean_errors else 0.0,
-            "configs_with_zero_denom_issues": sum(
-                1 for cfg in configs if int(cfg.get("n_zero_denom_categories") or 0) > 0
-            ),
-            "configs_with_missing_category_queries": sum(
-                1 for cfg in configs if int(cfg.get("n_queries_with_missing_categories") or 0) > 0
-            ),
-            "configs_with_extra_category_queries": sum(
-                1 for cfg in configs if int(cfg.get("n_queries_with_extra_categories") or 0) > 0
-            ),
-        },
-        "configs": configs,
-    }
-
-
 def build_workload_compact_audit(
     per_config: dict[str, Any],
     *,
     config_ids: list[str] | None = None,
     worst_query_limit: int = TOP_WORST_QUERIES_DEFAULT,
+    detail_config_limit: int = DETAIL_CONFIG_LIMIT_DEFAULT,
+    top_category_errors: int = TOP_CATEGORY_ERRORS_JSON_DEFAULT,
 ) -> dict[str, Any]:
     """Alias for summarized audit payload."""
     return build_workload_audit_summary(
         per_config,
         config_ids=config_ids,
         worst_query_limit=worst_query_limit,
+        detail_config_limit=detail_config_limit,
+        top_category_errors=top_category_errors,
     )
 
 
@@ -549,39 +665,48 @@ def format_compact_category_error_audit(
     *,
     per_config: dict[str, Any] | None = None,
 ) -> str:
-    """Human-readable compact audit: summary per config, full detail for worst queries only."""
+    """Human-readable audit: workload summary, scalar config rows, detail for worst configs."""
     lines: list[str] = []
     lines.append("=" * 72)
     lines.append("CATEGORY ERROR COMPACT AUDIT")
     lines.append("=" * 72)
 
+    workload = report.get("workload_summary") or {}
+    lines.append("")
+    lines.append("Workload:")
+    for key, value in workload.items():
+        lines.append(f"  {key}={value}")
+    lines.append(f"  n_configs={report.get('n_configs')}")
+
+    lines.append("")
+    lines.append("All configs (scalar summary):")
     for config in report.get("configs", []):
+        lines.append(
+            f"  {config.get('config_id')}: "
+            f"mean_error={config.get('mean_query_error')} "
+            f"missing_q={config.get('n_queries_with_missing_categories')} "
+            f"extra_q={config.get('n_queries_with_extra_categories')} "
+            f"gold_zero_q={config.get('n_queries_with_gold_zero')} "
+            f"worst_queries={config.get('worst_query_ids')}"
+        )
+
+    lines.append("")
+    lines.append(
+        f"Worst config details (top {report.get('detail_config_limit', DETAIL_CONFIG_LIMIT_DEFAULT)}):"
+    )
+    for config in report.get("worst_config_details", []):
         config_id = str(config.get("config_id"))
         lines.append("")
         lines.append(f"Config: {config_id}")
         lines.append(f"  mean_query_error={config.get('mean_query_error')}")
-        lines.append(f"  mean_query_accuracy={config.get('mean_query_accuracy')}")
-        lines.append(f"  n_queries_audited={config.get('n_queries_audited')}")
-        lines.append(
-            "  n_queries_with_missing_categories="
-            f"{config.get('n_queries_with_missing_categories')}"
-        )
-        lines.append(
-            f"  n_queries_with_extra_categories={config.get('n_queries_with_extra_categories')}"
-        )
-        lines.append(f"  n_queries_with_gold_zero={config.get('n_queries_with_gold_zero')}")
-        lines.append(f"  avg_per_category_error={config.get('avg_per_category_error')}")
-        lines.append(f"  max_per_category_error={config.get('max_per_category_error')}")
         lines.append("  diagnosis:")
         for item in config.get("diagnosis") or []:
             lines.append(f"    - {item}")
 
-        lines.append("  top worst queries:")
-        for query in config.get("top_worst_queries") or []:
+        for query in config.get("queries") or []:
             qid = str(query.get("query_id"))
             lines.append(f"  Query: {qid}")
             lines.append(f"    query_error={query.get('query_error')}")
-            lines.append(f"    query_accuracy={query.get('query_accuracy')}")
             lines.append(f"    primary_failure_mode={query.get('primary_failure_mode')}")
             lines.append(
                 "    category_counts: "

@@ -389,6 +389,7 @@ def run_category_error_audit(
     output_dir: Path,
     config_id: str | None = None,
     worst_query_limit: int = 5,
+    detail_config_limit: int = 10,
 ) -> dict[str, Any]:
     """Build summarized per-config audit JSON; full detail printed to stdout only."""
     evaluated = {
@@ -410,12 +411,18 @@ def run_category_error_audit(
         per_config,
         config_ids=config_ids,
         worst_query_limit=worst_query_limit,
+        detail_config_limit=detail_config_limit,
     )
     summary_path = _category_error_audit_summary_path(output_dir)
     write_category_error_audit_summary(payload, summary_path)
     print(format_compact_category_error_audit(payload, per_config=per_config))
     print(f"Category error audit summary: {summary_path}")
-    return payload
+    return {
+        "path": str(summary_path),
+        "n_configs": payload.get("n_configs"),
+        "workload_summary": payload.get("workload_summary"),
+        "detail_config_limit": payload.get("detail_config_limit"),
+    }
 
 
 def evaluate_queries_on_db(
@@ -522,6 +529,7 @@ def run_config_grid(
     audit_metric: bool = False,
     audit_config_id: str | None = None,
     audit_worst_queries: int = 5,
+    audit_detail_configs: int = 10,
 ) -> dict[str, Any]:
     cfg = load_config()
     grid_cfg = cfg.get("config_grid", {})
@@ -796,6 +804,7 @@ def run_config_grid(
                 output_dir=output_dir,
                 config_id=audit_config_id,
                 worst_query_limit=audit_worst_queries,
+                detail_config_limit=audit_detail_configs,
             )
 
     _results_path(output_dir).write_text(json.dumps(results, indent=2), encoding="utf-8")
@@ -907,7 +916,13 @@ def _parse_args() -> argparse.Namespace:
         "--audit-worst-queries",
         type=int,
         default=5,
-        help="Number of worst queries per config to show with full per-category detail (default: 5)",
+        help="Worst queries per config in the detail section (default: 5)",
+    )
+    parser.add_argument(
+        "--audit-detail-configs",
+        type=int,
+        default=10,
+        help="How many highest-error configs get per-query detail in the summary JSON (default: 10)",
     )
     return parser.parse_args()
 
@@ -936,6 +951,7 @@ def main() -> None:
         audit_metric=args.audit_metric,
         audit_config_id=args.audit_config_id,
         audit_worst_queries=args.audit_worst_queries,
+        audit_detail_configs=args.audit_detail_configs,
     )
     summary = results.get("summary", {})
     manifest = results.get("manifest", {})
