@@ -67,6 +67,33 @@ def _dictionary_normalize(value: object) -> object:
     return text
 
 
+def _mode_value_key(value: object) -> object:
+    if isinstance(value, (list, dict)):
+        import json
+
+        return json.dumps(value, sort_keys=True, default=str)
+    return value
+
+
+def _column_mode_value(series: pd.Series) -> object | None:
+    non_null = series.dropna()
+    if non_null.empty:
+        return None
+    if pd.api.types.is_numeric_dtype(non_null):
+        mode_val = non_null.mode(dropna=True)
+        return None if mode_val.empty else mode_val.iloc[0]
+
+    counts: Counter[object] = Counter()
+    key_to_value: dict[object, object] = {}
+    for value in non_null:
+        key = _mode_value_key(value)
+        counts[key] += 1
+        key_to_value.setdefault(key, value)
+    if not counts:
+        return None
+    return key_to_value[counts.most_common(1)[0][0]]
+
+
 def _llm_normalize_values(values: list[str], model_name: str) -> dict[str, str]:
     from pipeline.llm_steps import llm_json_call
     from pipeline.llm_output_cache import get_norm_mapping, put_norm_mapping
@@ -550,10 +577,13 @@ def apply_population(
                     df[col] = df[col].fillna(df[col].median())
         elif config.miss_strategy == "mode":
             for col in df.columns:
-                if not df[col].empty:
-                    mode_val = df[col].mode(dropna=True)
-                    if not mode_val.empty:
-                        df[col] = df[col].fillna(mode_val.iloc[0])
+                if df[col].empty:
+                    continue
+                mode_value = _column_mode_value(df[col])
+                if mode_value is not None and not (
+                    isinstance(mode_value, float) and math.isnan(mode_value)
+                ):
+                    df[col] = df[col].fillna(mode_value)
         elif config.miss_strategy == "constant":
             for col in df.columns:
                 if col == "id":
