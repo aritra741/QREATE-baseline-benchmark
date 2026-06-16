@@ -580,10 +580,19 @@ def apply_population(
                 if df[col].empty:
                     continue
                 mode_value = _column_mode_value(df[col])
-                if mode_value is not None and not (
+                if mode_value is None or (
                     isinstance(mode_value, float) and math.isnan(mode_value)
                 ):
-                    df[col] = df[col].fillna(mode_value)
+                    continue
+                # fillna requires a scalar; stringify any list/dict values that
+                # the LLM emitted as nested JSON in this cell.
+                if isinstance(mode_value, (list, dict)):
+                    import json as _json
+
+                    fill_scalar = _json.dumps(mode_value, ensure_ascii=False)
+                else:
+                    fill_scalar = mode_value
+                df[col] = df[col].fillna(fill_scalar)
         elif config.miss_strategy == "constant":
             for col in df.columns:
                 if col == "id":
