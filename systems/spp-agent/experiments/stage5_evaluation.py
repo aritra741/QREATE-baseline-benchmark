@@ -16,6 +16,13 @@ sys.path.insert(0, str(SPP_ROOT))
 sys.path.insert(0, str(SPP_ROOT.parent.parent))
 
 from agent.tools import load_agent_cache
+from data.dataset_registry import (
+    dataset_phase0_settings,
+    normalize_dataset_name,
+    phase0_reward_table_path,
+    phase1_probe_cache_path,
+    results_dir_for_dataset,
+)
 from optimizer.materialize import all_config_ids
 from stage1.characterizer import Stage1Report, load_stage1_report
 from stage5.evaluation import run_stage5_evaluation
@@ -26,6 +33,7 @@ from utils.logging import setup_logger
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Stage 5 end-to-end evaluation.")
+    parser.add_argument("--dataset", default="Player")
     parser.add_argument("--log-level", default=None)
     parser.add_argument(
         "--offline",
@@ -145,7 +153,7 @@ def _print_summary(report: dict) -> None:
         print("  Conclusion: full_system routed error matches or beats all baselines.")
     else:
         print("  Conclusion: full_system routed error does not beat the best baseline on this slice.")
-    print("  Scope: Player agg_only only; do not generalize beyond this pilot slice.")
+    print(f"  Scope: {dataset} agg_only only; do not generalize beyond this pilot slice.")
 
 
 def main() -> None:
@@ -155,9 +163,12 @@ def main() -> None:
 
     logger = setup_logger("spp.stage5_evaluation")
     cfg = load_config()
+    dataset = normalize_dataset_name(args.dataset)
     seed = int(cfg["experiment"]["seed"])
 
-    results_dir = Path(args.results_dir) if args.results_dir else Path(cfg["paths"]["results_dir"])
+    results_dir = (
+        Path(args.results_dir) if args.results_dir else results_dir_for_dataset(dataset)
+    )
     results_dir.mkdir(parents=True, exist_ok=True)
 
     # Load thresholds
@@ -169,11 +180,11 @@ def main() -> None:
 
     # Budget levels
     budget_levels = args.budget_levels or [
-        int(b) for b in cfg.get("phase0", {}).get("budget_levels", [1, 2])
+        int(b) for b in dataset_phase0_settings(dataset).get("budget_levels", [1, 2])
     ]
 
     # Load reward rows
-    phase0_path = results_dir / "phase0_reward_table_Player.json"
+    phase0_path = phase0_reward_table_path(results_dir, dataset)
     reward_rows: list[dict] = []
     if phase0_path.exists():
         report = json.loads(phase0_path.read_text(encoding="utf-8"))
@@ -182,12 +193,11 @@ def main() -> None:
     elif not args.offline:
         raise FileNotFoundError(
             f"Phase 0 reward table not found at {phase0_path}. "
-            "Run phase0_reward_table.py first, or use --offline."
+            f"Run: python experiments/phase0_reward_table.py --dataset {dataset}"
         )
 
     # Load probe data
-    cache_name = cfg.get("phase1", {}).get("probe_context_cache", "phase1_agg_only_probe_context.json")
-    cache_path = results_dir / cache_name
+    cache_path = phase1_probe_cache_path(results_dir, dataset)
     probe_data = None
     queries: list[dict] = []
     schema = None

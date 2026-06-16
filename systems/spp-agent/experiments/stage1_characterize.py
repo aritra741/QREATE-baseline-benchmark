@@ -15,6 +15,12 @@ sys.path.insert(0, str(SPP_ROOT))
 sys.path.insert(0, str(SPP_ROOT.parent.parent))
 
 from agent.tools import load_agent_cache
+from data.dataset_registry import (
+    normalize_dataset_name,
+    phase0_reward_table_path,
+    phase1_probe_cache_path,
+    results_dir_for_dataset,
+)
 from stage1.characterizer import Stage1Report, characterize, save_stage1_report
 from thresholds.schema import default_thresholds, load_thresholds
 from utils.config import load_config
@@ -60,9 +66,14 @@ def main() -> None:
 
     logger = setup_logger("spp.stage1_characterize")
     cfg = load_config()
+    dataset = normalize_dataset_name(args.dataset)
     seed = int(cfg["experiment"]["seed"])
 
-    results_dir = Path(args.results_dir) if args.results_dir else Path(cfg["paths"]["results_dir"])
+    results_dir = (
+        Path(args.results_dir)
+        if args.results_dir
+        else results_dir_for_dataset(dataset)
+    )
     results_dir.mkdir(parents=True, exist_ok=True)
 
     # Load thresholds (optimized if available, else defaults)
@@ -75,7 +86,7 @@ def main() -> None:
         logger.info("Using default thresholds (no optimal_thresholds.json found)")
 
     # Load reward rows for true_errors
-    phase0_path = results_dir / "phase0_reward_table_Player.json"
+    phase0_path = phase0_reward_table_path(results_dir, dataset)
     reward_rows: list[dict] = []
     true_errors: dict[str, float] = {}
     if phase0_path.exists():
@@ -87,8 +98,7 @@ def main() -> None:
         logger.info("Loaded %d reward rows for true_errors", len(reward_rows))
 
     # Load probe data from agent cache
-    cache_name = cfg.get("phase1", {}).get("probe_context_cache", "phase1_agg_only_probe_context.json")
-    cache_path = results_dir / cache_name
+    cache_path = phase1_probe_cache_path(results_dir, dataset)
     probe_data = None
     toolkit = None
     if cache_path.exists():
@@ -110,8 +120,8 @@ def main() -> None:
         from data.instance_builder import build_instance
         from pipeline.schema import load_fixed_schema
 
-        instance = build_instance(args.dataset, include_ground_truth=False)
-        schema = load_fixed_schema(args.dataset)
+        instance = build_instance(dataset, include_ground_truth=False)
+        schema = load_fixed_schema(dataset)
         queries = instance.queries
         report_obj = characterize(
             probe_data,

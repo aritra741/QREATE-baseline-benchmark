@@ -21,6 +21,11 @@ sys.path.insert(0, str(SPP_ROOT.parent.parent))
 
 from thresholds.optimizer import optimize_thresholds
 from thresholds.schema import default_thresholds
+from data.dataset_registry import (
+    normalize_dataset_name,
+    phase1_probe_cache_path,
+    results_dir_for_dataset,
+)
 from utils.config import load_config
 from utils.logging import setup_logger
 
@@ -29,6 +34,7 @@ def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Optimize ThresholdConfig from probe data (no ground-truth access)."
     )
+    parser.add_argument("--dataset", default="Player")
     parser.add_argument("--log-level", default=None)
     parser.add_argument("--n-trials", type=int, default=100)
     parser.add_argument(
@@ -95,17 +101,17 @@ def main() -> None:
 
     logger = setup_logger("spp.optimize_thresholds")
     cfg = load_config()
+    dataset = normalize_dataset_name(args.dataset)
     seed = int(cfg["experiment"]["seed"])
     threshold_cfg = cfg.get("threshold_optimization", {})
 
-    results_dir = Path(args.results_dir) if args.results_dir else Path(cfg["paths"]["results_dir"])
+    results_dir = (
+        Path(args.results_dir) if args.results_dir else results_dir_for_dataset(dataset)
+    )
     results_dir.mkdir(parents=True, exist_ok=True)
 
     # Resolve probe cache path
-    cache_name = cfg.get("phase1", {}).get(
-        "probe_context_cache", "phase1_agg_only_probe_context.json"
-    )
-    cache_path = args.cache or results_dir / cache_name
+    cache_path = args.cache or phase1_probe_cache_path(results_dir, dataset)
 
     if cache_path.exists():
         from agent.tools import load_agent_cache

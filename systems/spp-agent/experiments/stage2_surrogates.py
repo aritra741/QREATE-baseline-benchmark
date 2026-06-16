@@ -15,6 +15,11 @@ sys.path.insert(0, str(SPP_ROOT))
 sys.path.insert(0, str(SPP_ROOT.parent.parent))
 
 from agent.tools import load_agent_cache, lock_toolkit_corpus_to_probe
+from data.dataset_registry import (
+    normalize_dataset_name,
+    phase1_probe_cache_path,
+    results_dir_for_dataset,
+)
 from data.instance_builder import Instance
 from data.query_alignment import corpus_alignment_metadata
 from optimizer.materialize import materialize_database
@@ -28,6 +33,7 @@ from utils.logging import setup_logger
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Stage 2 surrogate comparison.")
+    parser.add_argument("--dataset", default="Player")
     parser.add_argument("--log-level", default=None)
     parser.add_argument(
         "--offline",
@@ -45,8 +51,11 @@ def main() -> None:
 
     logger = setup_logger("spp.stage2_surrogates")
     cfg = load_config()
+    dataset = normalize_dataset_name(args.dataset)
 
-    results_dir = Path(args.results_dir) if args.results_dir else Path(cfg["paths"]["results_dir"])
+    results_dir = (
+        Path(args.results_dir) if args.results_dir else results_dir_for_dataset(dataset)
+    )
     results_dir.mkdir(parents=True, exist_ok=True)
 
     # Load thresholds
@@ -59,8 +68,7 @@ def main() -> None:
         logger.info("Using default thresholds")
 
     # Load probe data
-    cache_name = cfg.get("phase1", {}).get("probe_context_cache", "phase1_agg_only_probe_context.json")
-    cache_path = results_dir / cache_name
+    cache_path = phase1_probe_cache_path(results_dir, dataset)
     probe_data = None
     toolkit = None
     if cache_path.exists():
@@ -93,7 +101,7 @@ def main() -> None:
                     "re-run phase1_comparison.py --force-probe"
                 )
             eval_instance = Instance(
-                dataset_name="Player",
+                dataset_name=dataset,
                 corpus=toolkit.corpus,
                 queries=toolkit.queries,
                 schema=toolkit.schema,

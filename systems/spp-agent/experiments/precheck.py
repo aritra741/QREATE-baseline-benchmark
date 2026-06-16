@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Player precheck: validate glass-box and BTL signals against post-hoc true error."""
+"""Precheck: validate glass-box and BTL signals against post-hoc true error."""
 
 from __future__ import annotations
 
@@ -14,6 +14,7 @@ SPP_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(SPP_ROOT))
 sys.path.insert(0, str(SPP_ROOT.parent.parent))
 
+from data.dataset_registry import normalize_dataset_name, precheck_path, results_dir_for_dataset
 from data.instance_builder import build_instance
 from data.query_alignment import prepare_aligned_instance
 from experiments.ranking_metrics import proxy_vs_true_correlation
@@ -25,7 +26,8 @@ from utils.logging import log_step, setup_logger
 
 
 def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="SPP Player precheck experiment.")
+    parser = argparse.ArgumentParser(description="SPP precheck experiment.")
+    parser.add_argument("--dataset", default="Player", help="Bench-U dataset (Player, Med, ...)")
     parser.add_argument("--log-level", default=None, help="DEBUG, INFO, WARNING")
     parser.add_argument("--num-docs", type=int, default=None)
     parser.add_argument("--num-configs", type=int, default=None)
@@ -41,6 +43,7 @@ def main() -> None:
 
     logger = setup_logger("spp.precheck")
     cfg = load_config()
+    dataset = normalize_dataset_name(args.dataset)
     seed = int(cfg["experiment"]["seed"])
     rng = random.Random(seed)
 
@@ -71,13 +74,14 @@ def main() -> None:
         llm.get("judge_model"),
     )
 
-    with log_step(logger, "load_instance", dataset="Player"):
-        instance = build_instance("Player", include_ground_truth=False)
+    with log_step(logger, "load_instance", dataset=dataset):
+        instance = build_instance(dataset, include_ground_truth=False)
         instance, required_tables = prepare_aligned_instance(
             instance,
             num_docs=num_docs,
             num_eval_queries=num_eval_queries,
             seed=seed,
+            dataset=dataset,
         )
         logger.info(
             "Aligned corpus=%d queries=%d required_tables=%s",
@@ -137,7 +141,7 @@ def main() -> None:
     ]
 
     report = {
-        "dataset": "Player",
+        "dataset": dataset,
         "required_tables": sorted(required_tables),
         "num_docs": len(instance.corpus),
         "num_configs": len(probe_data.config_ids),
@@ -149,7 +153,7 @@ def main() -> None:
         "config_table": config_table,
     }
 
-    out_path = Path(cfg["paths"]["results_dir"]) / "precheck_Player.json"
+    out_path = precheck_path(results_dir_for_dataset(dataset), dataset)
     out_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
 
     logger.info("Saved precheck report to %s", out_path)

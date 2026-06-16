@@ -6,9 +6,12 @@ from dataclasses import replace
 
 import pandas as pd
 
-from pipeline.schema import Schema
-
-from data.instance_builder import Instance
+from data.dataset_registry import (
+    default_table_filter,
+    normalize_dataset_name,
+    schema_tables_from_corpus,
+    table_to_corpus_folder,
+)
 from data.aggregation_slices import (
     AGGREGATION_SLICE_ORDER,
     UNIFIED_WORKLOAD_NAME,
@@ -16,7 +19,9 @@ from data.aggregation_slices import (
     queries_for_aggregation_slice,
     unified_aggregation_queries,
 )
+from data.instance_builder import Instance
 from data.workload_selection import dedupe_queries, select_balanced_queries, stable_slice_seed
+from pipeline.schema import Schema
 
 _SPLIT_ALLOWED = frozenset({"train", "dev", "test"})
 
@@ -37,28 +42,35 @@ def tables_referenced_by_queries(queries: list[dict], schema: Schema) -> set[str
     return referenced
 
 
-def filter_docs_for_tables(corpus: list[dict], required_tables: set[str]) -> list[dict]:
+def filter_docs_for_tables(
+    corpus: list[dict],
+    required_tables: set[str],
+    *,
+    dataset: str = "Player",
+) -> list[dict]:
     """
-    Keep documents whose doc_id prefix matches one of the required tables.
-    Example: required_tables={"player"} keeps docs like "player/player_1".
+    Keep documents whose doc_id prefix / table_hint matches one of the required tables.
     """
     if not required_tables:
         raise ValueError("required_tables must not be empty")
 
+    dataset_key = normalize_dataset_name(dataset)
     normalized = {t.lower() for t in required_tables}
+    corpus_prefixes = {table_to_corpus_folder(dataset_key, t) for t in normalized} | normalized
     matched: list[dict] = []
 
     for doc in corpus:
         doc_id = doc.get("doc_id", "")
         prefix = doc_id.split("/")[0].lower() if "/" in doc_id else doc_id.split("_")[0].lower()
         hint = str(doc.get("metadata", {}).get("table_hint", "")).lower()
-        if prefix in normalized or hint in normalized:
+        folder = str(doc.get("metadata", {}).get("corpus_folder", "")).lower()
+        if prefix in corpus_prefixes or hint in normalized or folder in corpus_prefixes:
             matched.append(doc)
 
     if not matched:
         raise RuntimeError(
             f"No corpus documents match required tables {sorted(required_tables)}. "
-            "Check doc_id prefixes (e.g. player/player_1)."
+            "Check doc_id prefixes and table_hint metadata."
         )
     return matched
 
@@ -170,18 +182,9 @@ def corpus_alignment_metadata(corpus: list[dict], *, restrict_gt: bool = True) -
     }
 
 
-def corpus_entity_types(corpus: list[dict]) -> set[str]:
-    """Entity types present in the text corpus (doc_id prefix / table_hint)."""
-    types: set[str] = set()
-    for doc in corpus:
-        doc_id = doc.get("doc_id", "")
-        prefix = doc_id.split("/")[0].lower() if "/" in doc_id else doc_id.split("_")[0].lower()
-        if prefix:
-            types.add(prefix)
-        hint = str(doc.get("metadata", {}).get("table_hint", "")).lower()
-        if hint:
-            types.add(hint)
-    return types
+def corpus_entity_types(corpus: list[dict], *, dataset: str = "Player") -> set[str]:
+    """Schema table names present in the text corpus."""
+    return schema_tables_from_corpus(corpus, dataset=dataset)
 
 
 def filter_queries_by_corpus_coverage(
@@ -203,6 +206,8 @@ def sample_corpus_stratified(
     required_tables: set[str],
     num_docs: int,
     seed: int,
+    *,
+    dataset: str = "Player",
 ) -> list[dict]:
     """Sample docs evenly across required entity types present in the corpus."""
     rng = random.Random(seed)
@@ -214,7 +219,7 @@ def sample_corpus_stratified(
     seen_ids: set[str] = set()
 
     for table in sorted(required_tables):
-        table_docs = filter_docs_for_tables(corpus, {table})
+        table_docs = filter_docs_for_tables(corpus, {table}, dataset=dataset)
         rng.shuffle(table_docs)
         for doc in table_docs[:per_table]:
             if doc["doc_id"] not in seen_ids:
@@ -222,7 +227,7 @@ def sample_corpus_stratified(
                 seen_ids.add(doc["doc_id"])
 
     if len(sampled) < num_docs:
-        pool = filter_docs_for_tables(corpus, required_tables)
+        pool = filter_docs_for_tables(corpus, required_tables, dataset=dataset)
         rng.shuffle(pool)
         for doc in pool:
             if doc["doc_id"] in seen_ids:
@@ -274,11 +279,13 @@ def prepare_aggregation_slice_instance(
     query_table_filter: set[str] | None = None,
     queries_per_slice: int | None = None,
     workload_split: str | None = None,
+    dataset: str | None = None,
 ) -> tuple[Instance, set[str]]:
     """Build an aligned instance for an aggregation workload slice."""
     schema = instance.schema
-    table_filter = query_table_filter or {"player"}
-    corpus_types = corpus_entity_types(instance.corpus)
+    dataset_key = normalize_dataset_name(dataset or instance.dataset_name)
+    table_filter = query_table_filter or default_table_filter(dataset_key)
+    corpus_types = corpus_entity_types(instance.corpus, dataset=dataset_key)
 
     if workload_split:
         if workload_split not in _SPLIT_ALLOWED:
@@ -287,7 +294,7 @@ def prepare_aggregation_slice_instance(
 
         slice_queries = [
             q
-            for q in load_split_queries(workload_split)
+            for q in load_split_queries(workload_split, results_dir=None, dataset=dataset_key)
             if classify_aggregation_slice(q.get("sql_query", "")) == slice_name
         ]
     else:
@@ -326,6 +333,7 @@ def prepare_aggregation_slice_instance(
         required_tables,
         num_docs,
         seed,
+        dataset=dataset_key,
     )
 
     trimmed = replace(
@@ -336,6 +344,7 @@ def prepare_aggregation_slice_instance(
             **(instance.metadata or {}),
             **corpus_alignment_metadata(sampled_corpus),
             "aggregation_slice": slice_name,
+            "dataset": dataset_key,
             "num_docs": len(sampled_corpus),
             "num_eval_queries": len(eval_queries),
             "num_queries_in_slice": len(slice_queries),
@@ -355,11 +364,13 @@ def prepare_unified_aggregation_instance(
     query_table_filter: set[str] | None = None,
     slice_names: list[str] | None = None,
     queries_per_slice: int | None = None,
+    dataset: str | None = None,
 ) -> tuple[Instance, set[str]]:
     """Build one instance whose workload contains all aggregation-slice queries."""
     schema = instance.schema
-    table_filter = query_table_filter or {"player"}
-    corpus_types = corpus_entity_types(instance.corpus)
+    dataset_key = normalize_dataset_name(dataset or instance.dataset_name)
+    table_filter = query_table_filter or default_table_filter(dataset_key)
+    corpus_types = corpus_entity_types(instance.corpus, dataset=dataset_key)
     order = slice_names or list(AGGREGATION_SLICE_ORDER)
 
     eval_queries: list[dict] = []
@@ -401,6 +412,7 @@ def prepare_unified_aggregation_instance(
         required_tables,
         num_docs,
         seed,
+        dataset=dataset_key,
     )
 
     trimmed = replace(
@@ -431,17 +443,19 @@ def prepare_slice_instance(
     num_eval_queries: int,
     seed: int,
     query_table_filter: set[str] | None = None,
+    dataset: str | None = None,
 ) -> tuple[Instance, set[str]]:
     """Build an aligned instance for a workload slice (e.g. Agg, Select, Filter)."""
     schema = instance.schema
-    table_filter = query_table_filter or {"player"}
+    dataset_key = normalize_dataset_name(dataset or instance.dataset_name)
+    table_filter = query_table_filter or default_table_filter(dataset_key)
 
     slice_queries = filter_queries_by_category(instance.queries, categories)
     slice_queries = filter_queries_for_tables(slice_queries, schema, table_filter)
     eval_queries = slice_queries[:num_eval_queries]
     required_tables = tables_referenced_by_queries(eval_queries, schema)
 
-    aligned_corpus = filter_docs_for_tables(instance.corpus, required_tables)
+    aligned_corpus = filter_docs_for_tables(instance.corpus, required_tables, dataset=dataset_key)
     rng = random.Random(seed)
     rng.shuffle(aligned_corpus)
     sampled_corpus = aligned_corpus[: min(num_docs, len(aligned_corpus))]
@@ -469,16 +483,18 @@ def prepare_aligned_instance(
     num_eval_queries: int,
     seed: int,
     query_table_filter: set[str] | None = None,
+    dataset: str | None = None,
 ) -> tuple[Instance, set[str]]:
     """Align corpus docs and eval queries to the same required tables."""
     schema = instance.schema
-    table_filter = query_table_filter or {"player"}
+    dataset_key = normalize_dataset_name(dataset or instance.dataset_name)
+    table_filter = query_table_filter or default_table_filter(dataset_key)
 
-    player_queries = filter_queries_for_tables(instance.queries, schema, table_filter)
-    eval_queries = player_queries[:num_eval_queries]
+    aligned_queries = filter_queries_for_tables(instance.queries, schema, table_filter)
+    eval_queries = aligned_queries[:num_eval_queries]
     required_tables = tables_referenced_by_queries(eval_queries, schema)
 
-    aligned_corpus = filter_docs_for_tables(instance.corpus, required_tables)
+    aligned_corpus = filter_docs_for_tables(instance.corpus, required_tables, dataset=dataset_key)
     rng = random.Random(seed)
     rng.shuffle(aligned_corpus)
     sampled_corpus = aligned_corpus[: min(num_docs, len(aligned_corpus))]

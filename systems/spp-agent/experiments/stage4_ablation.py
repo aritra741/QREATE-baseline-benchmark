@@ -15,6 +15,11 @@ sys.path.insert(0, str(SPP_ROOT))
 sys.path.insert(0, str(SPP_ROOT.parent.parent))
 
 from agent.tools import load_agent_cache
+from data.dataset_registry import (
+    normalize_dataset_name,
+    phase0_reward_table_path,
+    results_dir_for_dataset,
+)
 from stage4.ablation import AblationResult, describe_ablation_components, run_ablation
 from thresholds.schema import default_thresholds, load_thresholds
 from utils.config import load_config
@@ -23,6 +28,7 @@ from utils.logging import setup_logger
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Stage 4 ablation study.")
+    parser.add_argument("--dataset", default="Player")
     parser.add_argument("--log-level", default=None)
     parser.add_argument(
         "--offline",
@@ -69,8 +75,11 @@ def main() -> None:
 
     logger = setup_logger("spp.stage4_ablation")
     cfg = load_config()
+    dataset = normalize_dataset_name(args.dataset)
 
-    results_dir = Path(args.results_dir) if args.results_dir else Path(cfg["paths"]["results_dir"])
+    results_dir = (
+        Path(args.results_dir) if args.results_dir else results_dir_for_dataset(dataset)
+    )
     results_dir.mkdir(parents=True, exist_ok=True)
 
     # Load thresholds
@@ -83,7 +92,7 @@ def main() -> None:
         logger.info("Using default thresholds")
 
     # Load reward rows from Phase 0
-    phase0_path = results_dir / "phase0_reward_table_Player.json"
+    phase0_path = phase0_reward_table_path(results_dir, dataset)
     reward_rows: list[dict] = []
     if phase0_path.exists():
         report = json.loads(phase0_path.read_text(encoding="utf-8"))

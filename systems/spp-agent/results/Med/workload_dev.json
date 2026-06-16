@@ -1,0 +1,54 @@
+[
+  {
+    "query_id": "agg_queries_drug_4",
+    "sql_query": "SELECT prescription_status, MAX(recommended_usage) AS max_recommended_usage FROM drug GROUP BY prescription_status;",
+    "nl_query": null,
+    "category": "Agg",
+    "metadata": {
+      "source_file": "/Users/aritramazumder/Documents/UDA-Bench-main/Query/Med/Agg/agg_queries_drug.sql",
+      "query_index": 4,
+      "subcategory": "aggregation",
+      "tables": [
+        "drug"
+      ],
+      "split": "dev",
+      "aggregation_slice": "agg_only",
+      "held_out": false
+    }
+  },
+  {
+    "query_id": "mixed_queries_filter_agg_2",
+    "sql_query": "SELECT institution_type, SUM(institution_country) AS sum_institution_country FROM institution WHERE parent_organization = 'University of Wisconsin' AND funding_sources != 'other' GROUP BY institution_type;",
+    "nl_query": null,
+    "category": "Mixed",
+    "metadata": {
+      "source_file": "/Users/aritramazumder/Documents/UDA-Bench-main/Query/Med/Mixed/mixed_queries_filter_agg.sql",
+      "query_index": 2,
+      "subcategory": "filter2_agg1",
+      "tables": [
+        "institution"
+      ],
+      "split": "dev",
+      "aggregation_slice": "agg_filter",
+      "held_out": false
+    }
+  },
+  {
+    "query_id": "mixed_queries_filter_agg_join_11",
+    "sql_query": "SELECT drug.prescription_status, SUM(disease.treatment_challenges) AS sum_disease_treatment_challenges FROM disease JOIN drug ON disease.disease_name = drug.disease_name WHERE disease.treatments != 'radiotherapy' OR drug.brand_name != 'Lo Loestrin FE' OR drug.brand_name = 'Nucala' GROUP BY drug.prescription_status;",
+    "nl_query": null,
+    "category": "Mixed",
+    "metadata": {
+      "source_file": "/Users/aritramazumder/Documents/UDA-Bench-main/Query/Med/Mixed/mixed_queries_filter_agg_join.sql",
+      "query_index": 11,
+      "subcategory": "filter5_agg1_join1",
+      "tables": [
+        "disease",
+        "drug"
+      ],
+      "split": "dev",
+      "aggregation_slice": "agg_filter_join",
+      "held_out": false
+    }
+  }
+]

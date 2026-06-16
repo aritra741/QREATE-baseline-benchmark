@@ -1,0 +1,178 @@
+{
+  "dataset": "Med",
+  "split_targets_per_slice": {
+    "train": 4,
+    "dev": 1,
+    "test": 1
+  },
+  "counts_per_slice": {
+    "agg_only": {
+      "train": 4,
+      "dev": 1,
+      "test": 1
+    },
+    "agg_filter": {
+      "train": 3,
+      "dev": 1,
+      "test": 0
+    },
+    "agg_join": {
+      "train": 2,
+      "dev": 0,
+      "test": 0
+    },
+    "agg_filter_join": {
+      "train": 4,
+      "dev": 1,
+      "test": 1
+    }
+  },
+  "totals": {
+    "train": 13,
+    "dev": 3,
+    "test": 2
+  },
+  "train_met_minimum": true,
+  "min_train_total": 12,
+  "removed_infeasible_count": 7,
+  "removed_duplicates_count": 1,
+  "removed_infeasible_sample": [
+    {
+      "query_id": "mixed_queries_filter_agg_4",
+      "reason": "missing_where_literals:['competitive inhibition of HMG-CoA reductase, reduces cholesterol synthesis, increases LDL receptor expression, increases LDL catabolism, inhibits VLDL synthesis']",
+      "sql": "SELECT prescription_status, MAX(dosage_frequency) AS max_dosage_frequency FROM drug WHERE mechanism_of_action != 'competitive inhibition of HMG-CoA reductase, reduces cholesterol synthesis, increases LDL receptor expression, increases LDL catabolism, inhibits VLDL synthesis' AND mechanism_of_action = 'relieve watery eyes, itchy eyes/nose/throat, runny nose, and sneezing' AND pharmaceutical_form != 'gel' GROUP BY prescription_status;"
+    },
+    {
+      "query_id": "mixed_queries_filter_agg_5",
+      "reason": "missing_where_literals:['adults 25 mg']",
+      "sql": "SELECT prescription_status, AVG(storage_conditions) AS avg_storage_conditions FROM drug WHERE single_dose = 'adults 25 mg' OR unsuitable_population != 'patients with diabetes' OR recommended_usage != 'intravenous' GROUP BY prescription_status;"
+    },
+    {
+      "query_id": "mixed_queries_filter_agg_join_3",
+      "reason": "missing_where_literals:['only_one_drug_available']",
+      "sql": "SELECT drug.prescription_status, AVG(disease.quality_of_life_impact) AS avg_disease_quality_of_life_impact FROM disease JOIN drug ON disease.disease_name = drug.disease_name WHERE disease.treatment_challenges != 'only_one_drug_available' OR disease.drugs != 'diuretics' GROUP BY drug.prescription_status;"
+    },
+    {
+      "query_id": "mixed_queries_filter_agg_join_5",
+      "reason": "missing_where_literals:['genetic_testing', 'requires co-administration with other drugs']",
+      "sql": "SELECT drug.prescription_status, AVG(disease.quality_of_life_impact) AS avg_disease_quality_of_life_impact FROM disease JOIN drug ON disease.disease_name = drug.disease_name WHERE drug.brand_name = 'Nucala' OR disease.diagnostic_methods = 'genetic_testing' OR drug.activation_conditions = 'requires co-administration with other drugs' GROUP BY drug.prescription_status;"
+    },
+    {
+      "query_id": "mixed_queries_filter_agg_join_9",
+      "reason": "missing_where_literals:['genetic_testing']",
+      "sql": "SELECT drug.prescription_status, COUNT(disease.common_symptoms) AS count_disease_common_symptoms FROM disease JOIN drug ON disease.disease_name = drug.disease_name WHERE disease.diagnostic_methods = 'genetic_testing' OR disease.pathogenesis = 'traumatic' GROUP BY drug.prescription_status;"
+    },
+    {
+      "query_id": "mixed_queries_filter_agg_join_10",
+      "reason": "missing_where_literals:['lack of early recognition', '27% of constipated patients relate constipation to medications']",
+      "sql": "SELECT drug.prescription_status, SUM(institution.institution_country) AS sum_institution_institution_country FROM disease JOIN drug ON disease.disease_name = drug.disease_name JOIN institution ON disease.disease_name = institution.research_diseases WHERE disease.diagnosis_challenges = 'lack of early recognition' AND disease.disease_name = 'Acute Intermittent Porphyria' AND disease.epidemiology = '27% of constipated patients relate constipation to medications' GROUP BY drug.prescription_status;"
+    },
+    {
+      "query_id": "mixed_queries_filter_agg_join_12",
+      "reason": "missing_where_literals:['infectious_fungal']",
+      "sql": "SELECT institution.institution_type, MIN(disease.diagnosis_challenges) AS min_disease_diagnosis_challenges FROM disease JOIN drug ON disease.disease_name = drug.disease_name JOIN institution ON disease.disease_name = institution.research_diseases WHERE (drug.side_effects = 'diarrhea' AND drug.generic_name = 'Esomeprazole') OR (institution.research_diseases = 'Gut Microbiome Imbalance' AND disease.pathogenesis = 'infectious_fungal') GROUP BY institution.institution_type;"
+    }
+  ],
+  "removed_duplicates_sample": [
+    {
+      "query_id": "agg_queries_drug_7",
+      "reason": "duplicate_sql",
+      "sql": "SELECT prescription_status, MAX(recommended_usage) AS max_recommended_usage FROM drug GROUP BY prescription_status;"
+    }
+  ],
+  "generated_candidate_count": 0,
+  "holdout_policy": "The test split is assigned first from a shuffled per-slice pool and is never included in train or dev. Use train for agent design, prompt tuning, threshold optimization, and algorithm selection. Use dev only for validation during development. The test split must not be used for any tuning or selection.",
+  "test_held_out": true,
+  "slice_reports": [
+    {
+      "slice": "agg_only",
+      "targets": {
+        "train": 4,
+        "dev": 1,
+        "test": 1
+      },
+      "counts": {
+        "train": 4,
+        "dev": 1,
+        "test": 1
+      },
+      "max_feasible": 9,
+      "reached_target": false,
+      "shortfall_reason": "insufficient unique corpus-feasible queries after deduplication"
+    },
+    {
+      "slice": "agg_filter",
+      "targets": {
+        "train": 3,
+        "dev": 1,
+        "test": 0
+      },
+      "counts": {
+        "train": 3,
+        "dev": 1,
+        "test": 0
+      },
+      "max_feasible": 4,
+      "reached_target": false,
+      "shortfall_reason": "insufficient unique corpus-feasible queries after deduplication"
+    },
+    {
+      "slice": "agg_join",
+      "targets": {
+        "train": 2,
+        "dev": 0,
+        "test": 0
+      },
+      "counts": {
+        "train": 2,
+        "dev": 0,
+        "test": 0
+      },
+      "max_feasible": 2,
+      "reached_target": false,
+      "shortfall_reason": "insufficient unique corpus-feasible queries after deduplication"
+    },
+    {
+      "slice": "agg_filter_join",
+      "targets": {
+        "train": 4,
+        "dev": 1,
+        "test": 1
+      },
+      "counts": {
+        "train": 4,
+        "dev": 1,
+        "test": 1
+      },
+      "max_feasible": 7,
+      "reached_target": false,
+      "shortfall_reason": "insufficient unique corpus-feasible queries after deduplication"
+    }
+  ],
+  "query_ids": {
+    "train": [
+      "agg_queries_drug_2",
+      "agg_queries_drug_8",
+      "agg_queries_institution_2",
+      "agg_queries_drug_3",
+      "mixed_queries_filter_agg_1",
+      "mixed_queries_filter_agg_6",
+      "mixed_queries_filter_agg_3",
+      "mixed_queries_agg_join_1",
+      "mixed_queries_agg_join_2",
+      "mixed_queries_filter_agg_join_8",
+      "mixed_queries_filter_agg_join_4",
+      "mixed_queries_filter_agg_join_6",
+      "mixed_queries_filter_agg_join_1"
+    ],
+    "dev": [
+      "agg_queries_drug_4",
+      "mixed_queries_filter_agg_2",
+      "mixed_queries_filter_agg_join_11"
+    ],
+    "test": [
+      "agg_queries_drug_6",
+      "mixed_queries_filter_agg_join_7"
+    ]
+  }
+}

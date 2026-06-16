@@ -14,6 +14,7 @@ SPP_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(SPP_ROOT))
 sys.path.insert(0, str(SPP_ROOT.parent.parent))
 
+from data.dataset_registry import normalize_dataset_name, results_dir_for_dataset, smoke_test_path
 from data.instance_builder import Instance, build_instance
 from data.query_alignment import prepare_aligned_instance
 from optimizer.config_space import generate_config_space
@@ -28,6 +29,7 @@ from utils.logging import log_step, setup_logger
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="SPP agent smoke test (minimal docs/configs/queries).")
+    parser.add_argument("--dataset", default="Player", help="Bench-U dataset (Player, Med, ...)")
     parser.add_argument("--log-level", default=None, help="DEBUG, INFO, WARNING (overrides config/env)")
     parser.add_argument("--num-docs", type=int, default=None)
     parser.add_argument("--num-configs", type=int, default=None)
@@ -39,6 +41,7 @@ def _parse_args() -> argparse.Namespace:
 def _prepare_smoke_instance(
     instance: Instance,
     *,
+    dataset: str,
     num_docs: int,
     num_eval_queries: int,
     seed: int,
@@ -48,6 +51,7 @@ def _prepare_smoke_instance(
         num_docs=num_docs,
         num_eval_queries=num_eval_queries,
         seed=seed,
+        dataset=dataset,
     )
 
 
@@ -58,6 +62,7 @@ def main() -> None:
 
     logger = setup_logger("spp.smoke")
     cfg = load_config()
+    dataset = normalize_dataset_name(args.dataset)
     smoke = cfg.get("smoke_test", {})
 
     num_docs = args.num_docs or int(smoke.get("num_docs", 10))
@@ -88,10 +93,11 @@ def main() -> None:
     seed = int(cfg["experiment"]["seed"])
     rng = random.Random(seed)
 
-    with log_step(logger, "load_instance", dataset="Player"):
-        instance = build_instance("Player", include_ground_truth=False)
+    with log_step(logger, "load_instance", dataset=dataset):
+        instance = build_instance(dataset, include_ground_truth=False)
         instance, required_tables = _prepare_smoke_instance(
             instance,
+            dataset=dataset,
             num_docs=num_docs,
             num_eval_queries=num_eval_queries,
             seed=seed,
@@ -166,7 +172,7 @@ def main() -> None:
 
     report = {
         "mode": "smoke_test",
-        "dataset": "Player",
+        "dataset": dataset,
         "required_tables": sorted(required_tables),
         "rows_by_table": first_db_rows,
         "num_docs": len(instance.corpus),
@@ -205,7 +211,7 @@ def main() -> None:
         },
     }
 
-    out_path = Path(cfg["paths"]["results_dir"]) / "smoke_test_Player.json"
+    out_path = smoke_test_path(results_dir_for_dataset(dataset), dataset)
     out_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
 
     logger.info("=" * 60)

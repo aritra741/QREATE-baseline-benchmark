@@ -15,12 +15,18 @@ def resolve_benchu_root(configured: str | Path) -> Path:
     if (candidate / "Data" / "Player").is_dir():
         return candidate
 
+    if (candidate / "Data" / "Med").is_dir():
+        return candidate
+
     fallback = SPP_AGENT_ROOT.parent.parent.resolve()
     if (fallback / "Data" / "Player").is_dir():
         return fallback
 
+    if (fallback / "Data" / "Med").is_dir():
+        return fallback
+
     raise FileNotFoundError(
-        f"Bench-U root not found at {candidate}. Expected Data/Player/ subdirectory."
+        f"Bench-U root not found at {candidate}. Expected Data/Player/ or Data/Med/ subdirectory."
     )
 
 

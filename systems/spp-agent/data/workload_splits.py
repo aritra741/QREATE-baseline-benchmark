@@ -1,4 +1,4 @@
-"""Train/dev/test splits for balanced Player aggregation workloads."""
+"""Train/dev/test splits for balanced aggregation workloads (Player, Med, ...)."""
 
 from __future__ import annotations
 
@@ -9,6 +9,13 @@ from typing import Any
 
 from data.aggregation_slices import AGGREGATION_SLICE_ORDER
 from data.balanced_workload import build_feasible_slice_pool
+from data.dataset_registry import (
+    default_table_filter,
+    normalize_dataset_name,
+    results_dir_for_dataset,
+    workload_slices_for_dataset,
+    workload_split_targets,
+)
 from data.instance_builder import Instance, build_instance
 from data.loader import _benchu_root, load_corpus
 from data.player_workload_generator import generate_all_candidates, mine_corpus_literals
@@ -34,8 +41,12 @@ def build_expanded_query_pool(
     instance: Instance,
     *,
     corpus: list[dict],
+    dataset: str = "Player",
 ) -> tuple[list[dict], list[dict]]:
-    """Legacy + on-disk queries plus freshly generated candidates."""
+    """Legacy + on-disk queries plus freshly generated candidates (Player only)."""
+    dataset_key = normalize_dataset_name(dataset or instance.dataset_name)
+    if dataset_key != "Player":
+        return list(instance.queries), []
     gt = load_ground_truth("Player")
     literals = mine_corpus_literals(corpus, gt)
     generated_by_slice = generate_all_candidates(literals)
@@ -130,32 +141,43 @@ def assign_slice_split(
 
 def create_train_dev_test_split(
     *,
-    train_per_slice: int = 20,
-    dev_per_slice: int = 5,
-    test_per_slice: int = 5,
+    dataset: str = "Player",
+    train_per_slice: int | None = None,
+    dev_per_slice: int | None = None,
+    test_per_slice: int | None = None,
+    min_train_total: int | None = None,
     seed: int | None = None,
     table_filter: set[str] | None = None,
-    min_train_total: int = 100,
 ) -> dict[str, Any]:
     cfg = load_config()
+    dataset_key = normalize_dataset_name(dataset)
     seed = seed if seed is not None else int(cfg["experiment"]["seed"])
-    table_filter = table_filter or set(cfg.get("phase0", {}).get("table_filter", ["player"]))
+    split_targets = workload_split_targets(dataset_key)
     targets = {
-        "train": train_per_slice,
-        "dev": dev_per_slice,
-        "test": test_per_slice,
+        "train": train_per_slice if train_per_slice is not None else split_targets["train"],
+        "dev": dev_per_slice if dev_per_slice is not None else split_targets["dev"],
+        "test": test_per_slice if test_per_slice is not None else split_targets["test"],
     }
+    min_train = (
+        min_train_total if min_train_total is not None else split_targets["min_train_total"]
+    )
+    table_filter = table_filter or default_table_filter(dataset_key)
 
-    corpus = load_corpus("Player")
-    instance = build_instance("Player", include_ground_truth=False)
-    combined_queries, generated_queries = build_expanded_query_pool(instance, corpus=corpus)
+    corpus = load_corpus(dataset_key)
+    instance = build_instance(dataset_key, include_ground_truth=False)
+    combined_queries, generated_queries = build_expanded_query_pool(
+        instance,
+        corpus=corpus,
+        dataset=dataset_key,
+    )
 
+    slice_order = workload_slices_for_dataset(dataset_key)
     slice_reports: list[dict[str, Any]] = []
     removed_infeasible: list[dict] = []
     removed_duplicates: list[dict] = []
     splits: dict[str, list[dict]] = {"train": [], "dev": [], "test": []}
 
-    for slice_name in AGGREGATION_SLICE_ORDER:
+    for slice_name in slice_order:
         pool_report = build_feasible_slice_pool(
             combined_queries,
             slice_name=slice_name,
@@ -195,14 +217,15 @@ def create_train_dev_test_split(
 
     counts_per_slice = {r["slice"]: r["counts"] for r in slice_reports}
     totals = {split: len(splits[split]) for split in splits}
-    train_met_minimum = totals["train"] >= min_train_total
+    train_met_minimum = totals["train"] >= min_train
 
     return {
+        "dataset": dataset_key,
         "split_targets_per_slice": targets,
         "counts_per_slice": counts_per_slice,
         "totals": totals,
         "train_met_minimum": train_met_minimum,
-        "min_train_total": min_train_total,
+        "min_train_total": min_train,
         "removed_infeasible_count": len(removed_infeasible),
         "removed_duplicates_count": len(removed_duplicates),
         "removed_infeasible_sample": removed_infeasible[:40],
@@ -232,7 +255,9 @@ def write_split_artifacts(
     *,
     results_dir: Path,
     write_sql: bool = True,
+    dataset: str | None = None,
 ) -> dict[str, str]:
+    dataset_key = normalize_dataset_name(dataset or report.get("dataset", "Player"))
     results_dir.mkdir(parents=True, exist_ok=True)
     manifest_path = results_dir / "workload_split_manifest.json"
     payload = {
@@ -256,7 +281,7 @@ def write_split_artifacts(
         paths[split] = str(split_path)
 
     if write_sql:
-        sql_root = _benchu_root() / "Query" / "Player" / "Splits"
+        sql_root = _benchu_root() / "Query" / dataset_key / "Splits"
         for split in ("train", "dev", "test"):
             sql_path = sql_root / f"{split}.sql"
             _write_split_sql(sql_path, report["splits"][split], split)
@@ -265,9 +290,16 @@ def write_split_artifacts(
     return paths
 
 
-def load_split_manifest(manifest_path: Path | None = None) -> dict[str, Any]:
+def load_split_manifest(
+    manifest_path: Path | None = None,
+    *,
+    dataset: str = "Player",
+) -> dict[str, Any]:
     cfg = load_config()
-    path = manifest_path or Path(cfg["paths"]["results_dir"]) / "workload_split_manifest.json"
+    if manifest_path is None:
+        path = results_dir_for_dataset(dataset) / "workload_split_manifest.json"
+    else:
+        path = manifest_path
     return json.loads(path.read_text(encoding="utf-8"))
 
 
@@ -275,15 +307,15 @@ def load_split_queries(
     split: str,
     *,
     results_dir: Path | None = None,
+    dataset: str = "Player",
 ) -> list[dict]:
-    cfg = load_config()
-    root = results_dir or Path(cfg["paths"]["results_dir"])
+    root = results_dir or results_dir_for_dataset(dataset)
     path = root / f"workload_{split}.json"
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def filter_queries_to_split(queries: list[dict], split: str) -> list[dict]:
-    allowed = {q["query_id"] for q in load_split_queries(split)}
+def filter_queries_to_split(queries: list[dict], split: str, *, dataset: str = "Player") -> list[dict]:
+    allowed = {q["query_id"] for q in load_split_queries(split, dataset=dataset)}
     return [q for q in queries if q.get("query_id") in allowed]
 
 
@@ -291,22 +323,29 @@ def main() -> None:
     import argparse
 
     parser = argparse.ArgumentParser(description="Create train/dev/test workload split")
-    parser.add_argument("--train-per-slice", type=int, default=20)
-    parser.add_argument("--dev-per-slice", type=int, default=5)
-    parser.add_argument("--test-per-slice", type=int, default=5)
+    parser.add_argument("--dataset", default="Player")
+    parser.add_argument("--train-per-slice", type=int, default=None)
+    parser.add_argument("--dev-per-slice", type=int, default=None)
+    parser.add_argument("--test-per-slice", type=int, default=None)
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--no-write-sql", action="store_true")
     args = parser.parse_args()
 
-    cfg = load_config()
-    results_dir = Path(cfg["paths"]["results_dir"])
+    dataset_key = normalize_dataset_name(args.dataset)
+    results_dir = results_dir_for_dataset(dataset_key)
     report = create_train_dev_test_split(
+        dataset=dataset_key,
         train_per_slice=args.train_per_slice,
         dev_per_slice=args.dev_per_slice,
         test_per_slice=args.test_per_slice,
         seed=args.seed,
     )
-    paths = write_split_artifacts(report, results_dir=results_dir, write_sql=not args.no_write_sql)
+    paths = write_split_artifacts(
+        report,
+        results_dir=results_dir,
+        write_sql=not args.no_write_sql,
+        dataset=dataset_key,
+    )
 
     summary = {
         "counts_per_slice": report["counts_per_slice"],

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Phase 1 — surrogate-selection comparison on Player agg_only using Phase 0 reward table."""
+"""Phase 1 — surrogate-selection comparison on agg_only using Phase 0 reward table."""
 
 from __future__ import annotations
 
@@ -18,6 +18,15 @@ sys.path.insert(0, str(SPP_ROOT.parent.parent))
 
 from agent.react_agent import select_surrogate
 from agent.tools import AgentToolkit, load_agent_cache, rule_based_select, save_agent_cache
+from data.dataset_registry import (
+    dataset_phase0_settings,
+    dataset_phase1_settings,
+    normalize_dataset_name,
+    phase0_reward_table_path,
+    phase1_comparison_path,
+    phase1_probe_cache_path,
+    results_dir_for_dataset,
+)
 from data.instance_builder import Instance, build_instance
 from data.query_alignment import corpus_alignment_metadata, prepare_aggregation_slice_instance
 from optimizer.config_space import generate_config_space
@@ -61,7 +70,8 @@ ALWAYS_METHOD_SURROGATE = {
 
 
 def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Phase 1 Player agg_only surrogate comparison.")
+    parser = argparse.ArgumentParser(description="Phase 1 agg_only surrogate comparison.")
+    parser.add_argument("--dataset", default="Player", help="Bench-U dataset (Player, Med, ...)")
     parser.add_argument("--log-level", default=None)
     parser.add_argument(
         "--phase0",
@@ -88,11 +98,12 @@ def normalize_slice_name(slice_name: str) -> str:
     return slice_name
 
 
-def load_phase0_agg_only_rows(path: Path) -> tuple[list[dict], dict]:
+def load_phase0_agg_only_rows(path: Path, *, dataset: str) -> tuple[list[dict], dict]:
     report = json.loads(path.read_text(encoding="utf-8"))
+    dataset_key = normalize_dataset_name(dataset)
     rows = []
     for row in report.get("rows", []):
-        if row.get("dataset") != "Player":
+        if normalize_dataset_name(str(row.get("dataset", dataset_key))) != dataset_key:
             continue
         slice_name = normalize_slice_name(str(row.get("slice", "")))
         if slice_name != "agg_only":
@@ -101,7 +112,7 @@ def load_phase0_agg_only_rows(path: Path) -> tuple[list[dict], dict]:
         normalized["slice"] = slice_name
         rows.append(normalized)
     if not rows:
-        raise RuntimeError(f"No Player agg_only rows found in {path}")
+        raise RuntimeError(f"No {dataset_key} agg_only rows found in {path}")
     meta = {
         "budget_levels": report.get("budget_levels", sorted({int(r["budget"]) for r in rows})),
         "surrogates": report.get("surrogates", MAIN_SURROGATES),
@@ -201,6 +212,7 @@ def oracle_for_budget(
 
 def _load_or_build_agent_toolkit(
     *,
+    dataset: str,
     cache_path: Path,
     cfg: dict,
     logger,
@@ -217,7 +229,8 @@ def _load_or_build_agent_toolkit(
         )
         return None
 
-    phase0 = cfg.get("phase0", {})
+    dataset_key = normalize_dataset_name(dataset)
+    phase0 = dataset_phase0_settings(dataset_key)
     precheck = cfg.get("precheck", {})
     seed = int(cfg["experiment"]["seed"])
     num_docs = int(phase0.get("num_docs", precheck.get("num_docs", 20)))
@@ -227,13 +240,14 @@ def _load_or_build_agent_toolkit(
     table_filter = set(phase0.get("table_filter", ["player"]))
 
     logger.info(
-        "Running agg_only probes for agent/rule diagnostics (docs=%d configs=%d pairs=%d)",
+        "Running agg_only probes for agent/rule diagnostics (%s docs=%d configs=%d pairs=%d)",
+        dataset_key,
         num_docs,
         num_configs,
         num_pairs,
     )
 
-    base_instance = build_instance("Player", include_ground_truth=False)
+    base_instance = build_instance(dataset_key, include_ground_truth=False)
     instance, required_tables = prepare_aggregation_slice_instance(
         base_instance,
         slice_name="agg_only",
@@ -241,6 +255,7 @@ def _load_or_build_agent_toolkit(
         num_eval_queries=num_eval_queries,
         seed=seed + hash("agg_only") % 1000,
         query_table_filter=table_filter,
+        dataset=dataset_key,
     )
 
     all_configs = generate_config_space()
@@ -332,6 +347,7 @@ def _aggregate_method_results(per_instance: list[dict]) -> list[dict]:
 
 def _print_advisor_summary(
     *,
+    dataset: str,
     best_fixed_surrogate: str,
     best_fixed_avg_error: float,
     method_summaries: list[dict],
@@ -342,7 +358,7 @@ def _print_advisor_summary(
     best_fixed = by_method.get("best_fixed", {})
 
     print()
-    print("PHASE 1: Player agg_only surrogate-selection comparison")
+    print(f"PHASE 1: {dataset} agg_only surrogate-selection comparison")
     print()
     print(f"Best fixed surrogate: {best_fixed_surrogate} (avg error {best_fixed_avg_error:.4f})")
     print(f"Oracle avg error: {oracle_avg_error:.4f}")
@@ -368,7 +384,7 @@ def _print_advisor_summary(
         print("- React matches best_fixed error but not oracle surrogate identity on all budgets.")
     else:
         print("- React underperforms best_fixed: agent reasoning is not adding value yet.")
-    print("- Scope: Player agg_only only; do not generalize beyond this pilot slice.")
+    print(f"- Scope: {dataset} agg_only only; do not generalize beyond this pilot slice.")
 
 
 def main() -> None:
@@ -378,18 +394,18 @@ def main() -> None:
 
     logger = setup_logger("spp.phase1")
     cfg = load_config()
-    phase1_cfg = cfg.get("phase1", {})
-    results_dir = Path(cfg["paths"]["results_dir"])
+    dataset = normalize_dataset_name(args.dataset)
+    phase1_cfg = dataset_phase1_settings(dataset)
+    results_dir = results_dir_for_dataset(dataset)
 
-    phase0_path = args.phase0 or results_dir / phase1_cfg.get(
-        "source_phase0", "phase0_reward_table_Player.json"
-    )
+    phase0_path = args.phase0 or phase0_reward_table_path(results_dir, dataset)
     if not phase0_path.exists():
         raise FileNotFoundError(
-            f"Phase 0 reward table not found at {phase0_path}. Run phase0_reward_table.py first."
+            f"Phase 0 reward table not found at {phase0_path}. "
+            f"Run: python experiments/phase0_reward_table.py --dataset {dataset}"
         )
 
-    rows, meta = load_phase0_agg_only_rows(phase0_path)
+    rows, meta = load_phase0_agg_only_rows(phase0_path, dataset=dataset)
     lookup = build_error_lookup(rows)
     budget_levels = [int(b) for b in meta["budget_levels"]]
     surrogates = [s for s in MAIN_SURROGATES if any((b, s) in lookup for b in budget_levels)]
@@ -402,9 +418,9 @@ def main() -> None:
         best_fixed_avg_error,
     )
 
-    cache_name = phase1_cfg.get("probe_context_cache", "phase1_agg_only_probe_context.json")
-    cache_path = results_dir / cache_name
+    cache_path = phase1_probe_cache_path(results_dir, dataset)
     agent_toolkit = _load_or_build_agent_toolkit(
+        dataset=dataset,
         cache_path=cache_path,
         cfg=cfg,
         logger=logger,
@@ -472,12 +488,12 @@ def main() -> None:
     oracle_avg_error = float(mean(oracle_errors)) if oracle_errors else 0.0
 
     report = {
-        "dataset": "Player",
+        "dataset": dataset,
         "slice": "agg_only",
-        "scope_note": "Player agg_only only; not a cross-dataset or cross-slice generalization claim.",
+        "scope_note": f"{dataset} agg_only only; not a cross-dataset or cross-slice generalization claim.",
         "source_phase0": str(phase0_path),
         "best_fixed_surrogate": best_fixed_surrogate,
-        "best_fixed_label": "best_fixed_on_player_agg_only",
+        "best_fixed_label": f"best_fixed_on_{dataset.lower()}_agg_only",
         "best_fixed_avg_error": best_fixed_avg_error,
         "main_surrogates": surrogates,
         "budget_levels": budget_levels,
@@ -486,11 +502,12 @@ def main() -> None:
         "per_instance": per_instance,
     }
 
-    out_path = results_dir / phase1_cfg.get("output_file", "phase1_comparison_Player_agg_only.json")
+    out_path = phase1_comparison_path(results_dir, dataset)
     out_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
     logger.info("Saved Phase 1 comparison to %s", out_path)
 
     _print_advisor_summary(
+        dataset=dataset,
         best_fixed_surrogate=best_fixed_surrogate,
         best_fixed_avg_error=best_fixed_avg_error,
         method_summaries=method_summaries,

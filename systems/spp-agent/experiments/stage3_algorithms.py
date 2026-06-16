@@ -15,6 +15,11 @@ sys.path.insert(0, str(SPP_ROOT))
 sys.path.insert(0, str(SPP_ROOT.parent.parent))
 
 from agent.tools import load_agent_cache
+from data.dataset_registry import (
+    normalize_dataset_name,
+    phase1_probe_cache_path,
+    results_dir_for_dataset,
+)
 from optimizer.materialize import all_config_ids
 from stage3.comparison import AlgorithmResult, compare_algorithms
 from surrogates.registry import build_surrogate
@@ -25,6 +30,7 @@ from utils.logging import setup_logger
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Stage 3 algorithm comparison.")
+    parser.add_argument("--dataset", default="Player")
     parser.add_argument("--log-level", default=None)
     parser.add_argument(
         "--surrogate",
@@ -67,9 +73,12 @@ def main() -> None:
 
     logger = setup_logger("spp.stage3_algorithms")
     cfg = load_config()
+    dataset = normalize_dataset_name(args.dataset)
     seed = int(cfg["experiment"]["seed"])
 
-    results_dir = Path(args.results_dir) if args.results_dir else Path(cfg["paths"]["results_dir"])
+    results_dir = (
+        Path(args.results_dir) if args.results_dir else results_dir_for_dataset(dataset)
+    )
     results_dir.mkdir(parents=True, exist_ok=True)
 
     # Load thresholds
@@ -80,8 +89,7 @@ def main() -> None:
         tc = default_thresholds()
 
     # Load probe data
-    cache_name = cfg.get("phase1", {}).get("probe_context_cache", "phase1_agg_only_probe_context.json")
-    cache_path = results_dir / cache_name
+    cache_path = phase1_probe_cache_path(results_dir, dataset)
     probe_data = None
     if cache_path.exists():
         try:

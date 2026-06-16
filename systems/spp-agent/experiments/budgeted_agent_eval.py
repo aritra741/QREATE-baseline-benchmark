@@ -13,6 +13,12 @@ sys.path.insert(0, str(SPP_ROOT))
 sys.path.insert(0, str(SPP_ROOT.parent.parent))
 
 from agent.tools import load_agent_cache, lock_toolkit_corpus_to_probe
+from data.dataset_registry import (
+    dataset_phase0_settings,
+    normalize_dataset_name,
+    phase1_probe_cache_path,
+    results_dir_for_dataset,
+)
 from data.instance_builder import Instance, build_instance
 from data.query_alignment import corpus_alignment_metadata, prepare_aggregation_slice_instance
 from pipeline.budgeted_pipeline import run_budgeted_spp_pipeline
@@ -28,17 +34,19 @@ def _stable_slice_seed(base_seed: int, slice_name: str) -> int:
 def _evaluate_slice(
     slice_name: str,
     *,
+    dataset: str,
     cfg: dict,
     offline: bool,
     token_budget: int,
     max_rounds: int,
 ) -> dict:
-    phase0 = cfg.get("phase0", {})
+    dataset_key = normalize_dataset_name(dataset)
+    phase0 = dataset_phase0_settings(dataset_key)
     seed = int(cfg["experiment"]["seed"])
     num_docs = int(phase0.get("num_docs", 20))
     table_filter = set(phase0.get("table_filter", ["player"]))
 
-    base = build_instance("Player", include_ground_truth=False)
+    base = build_instance(dataset_key, include_ground_truth=False)
     slice_instance, _ = prepare_aggregation_slice_instance(
         base,
         slice_name=slice_name,
@@ -46,18 +54,19 @@ def _evaluate_slice(
         num_eval_queries=9999,
         seed=_stable_slice_seed(seed, slice_name),
         query_table_filter=table_filter,
+        dataset=dataset_key,
     )
 
     shared_extraction = None
     instance = slice_instance
     if offline and slice_name == "agg_only":
-        cache_path = SPP_ROOT / "results" / "phase1_agg_only_probe_context.json"
+        cache_path = phase1_probe_cache_path(results_dir_for_dataset(dataset_key), dataset_key)
         if cache_path.exists():
             toolkit = load_agent_cache(cache_path)
             lock_toolkit_corpus_to_probe(toolkit)
             shared_extraction = toolkit.probe_data.extraction
             instance = Instance(
-                dataset_name="Player",
+                dataset_name=dataset_key,
                 corpus=list(toolkit.corpus),
                 queries=list(slice_instance.queries),
                 schema=slice_instance.schema,
@@ -130,6 +139,7 @@ def _print_table(rows: list[dict]) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Budgeted SPP agent evaluation.")
+    parser.add_argument("--dataset", default="Player", help="Bench-U dataset (Player, Med, ...)")
     parser.add_argument(
         "--slices",
         nargs="+",
@@ -144,13 +154,21 @@ def main() -> None:
 
     logger = setup_logger("spp.budgeted_eval")
     cfg = load_config()
+    dataset = normalize_dataset_name(args.dataset)
     token_budget = int(args.token_budget or cfg.get("token_budget", 50_000))
 
     rows: list[dict] = []
     for slice_name in args.slices:
-        logger.info("Evaluating slice=%s offline=%s budget=%d", slice_name, args.offline, token_budget)
+        logger.info(
+            "Evaluating dataset=%s slice=%s offline=%s budget=%d",
+            dataset,
+            slice_name,
+            args.offline,
+            token_budget,
+        )
         row = _evaluate_slice(
             slice_name,
+            dataset=dataset,
             cfg=cfg,
             offline=args.offline,
             token_budget=token_budget,
@@ -160,7 +178,7 @@ def main() -> None:
 
     _print_table(rows)
 
-    out_path = args.output or (SPP_ROOT / "results" / "budgeted_agent_eval.json")
+    out_path = args.output or (results_dir_for_dataset(dataset) / "budgeted_agent_eval.json")
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps({"slices": rows}, indent=2), encoding="utf-8")
     logger.info("Wrote %s", out_path)

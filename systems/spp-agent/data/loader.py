@@ -17,12 +17,16 @@ def _corpus_dir(dataset_name: str) -> Path:
     synthetic = root / "source_data" / f"Synthetic{dataset_name}"
     if synthetic.is_dir():
         return synthetic
+    if dataset_name == "Med":
+        healthcare = root / "source_data" / "Healthcare"
+        if healthcare.is_dir():
+            return healthcare
     data_dir = root / "Data" / dataset_name
     if data_dir.is_dir():
         return data_dir
     raise FileNotFoundError(
         f"Corpus directory not found for dataset {dataset_name}. "
-        f"Expected {synthetic} or text files under {data_dir}."
+        f"Expected {synthetic}, source_data/Healthcare/ (Med), or text files under {data_dir}."
     )
 
 
@@ -45,10 +49,14 @@ def load_corpus(dataset_name: str) -> list[dict]:
             "Bench-U Player corpus is expected in source_data/SyntheticPlayer/."
         )
 
+    from data.dataset_registry import corpus_folder_to_table, normalize_dataset_name
+
+    dataset_key = normalize_dataset_name(dataset_name)
     for path in txt_files:
         text = path.read_text(encoding="utf-8", errors="replace")
         rel = path.relative_to(corpus_root)
-        table_hint = rel.parts[0] if len(rel.parts) > 1 else "unknown"
+        folder = rel.parts[0] if len(rel.parts) > 1 else "unknown"
+        table_hint = corpus_folder_to_table(dataset_key, folder)
         docs.append(
             {
                 "doc_id": str(rel.with_suffix("")),
@@ -56,6 +64,7 @@ def load_corpus(dataset_name: str) -> list[dict]:
                 "metadata": {
                     "file_name": path.name,
                     "table_hint": table_hint,
+                    "corpus_folder": folder,
                     "source_path": str(path),
                 },
             }
@@ -186,13 +195,18 @@ def load_ground_truth(dataset_name: str) -> dict[str, pd.DataFrame]:
     Return table_name -> DataFrame.
     """
     root = _benchu_root()
-    gt_dir = root / "GroundTruth" / dataset_name
-    if not gt_dir.is_dir():
-        gt_dir = root / "Query" / dataset_name
-    if not gt_dir.is_dir():
+    for candidate in (
+        root / "GroundTruth" / dataset_name,
+        root / "Data" / dataset_name,
+        root / "Query" / dataset_name,
+    ):
+        if candidate.is_dir():
+            gt_dir = candidate
+            break
+    else:
         raise FileNotFoundError(
             f"Ground-truth tables not found for {dataset_name}. "
-            f"Checked GroundTruth/{dataset_name}/ and Query/{dataset_name}/."
+            f"Checked GroundTruth/, Data/, and Query/{dataset_name}/."
         )
 
     csv_files = sorted(gt_dir.glob("*.csv"))

@@ -26,6 +26,12 @@ sys.path.insert(0, str(SPP_ROOT))
 sys.path.insert(0, str(SPP_ROOT.parent.parent))
 
 from data.aggregation_slices import AGGREGATION_SLICE_ORDER, classify_aggregation_slice
+from data.dataset_registry import (
+    config_grid_output_dir,
+    normalize_dataset_name,
+    results_dir_for_dataset,
+    workload_slices_for_dataset,
+)
 from data.instance_builder import build_instance
 from data.query_alignment import (
     corpus_alignment_metadata,
@@ -170,21 +176,40 @@ def _db_row_counts(db: dict) -> dict[str, int]:
     return {table: len(df) for table, df in db.items()}
 
 
-def load_and_validate_test_queries() -> tuple[list[dict], dict[str, int]]:
-    """Load held-out test queries; require all five aggregation slices."""
-    queries = load_split_queries("test")
+def load_and_validate_test_queries(*, dataset: str = "Player") -> tuple[list[dict], dict[str, int]]:
+    """Load held-out test queries; require all slices that have test assignments."""
+    import json
+
+    dataset_key = normalize_dataset_name(dataset)
+    queries = load_split_queries("test", dataset=dataset_key)
     by_slice: dict[str, list[dict]] = defaultdict(list)
     for query in queries:
         slice_name = classify_aggregation_slice(query.get("sql_query", ""))
         if slice_name:
             by_slice[slice_name].append(query)
 
-    counts = {slice_name: len(by_slice.get(slice_name, [])) for slice_name in AGGREGATION_SLICE_ORDER}
-    missing = [s for s in AGGREGATION_SLICE_ORDER if counts[s] == 0]
+    manifest_path = results_dir_for_dataset(dataset_key) / "workload_split_manifest.json"
+    if manifest_path.is_file():
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        required_slices = [
+            slice_name
+            for slice_name, counts in manifest.get("counts_per_slice", {}).items()
+            if counts.get("test", 0) > 0
+        ]
+    else:
+        required_slices = workload_slices_for_dataset(dataset_key)
+
+    counts = {slice_name: len(by_slice.get(slice_name, [])) for slice_name in required_slices}
+    missing = [s for s in required_slices if counts[s] == 0]
     if missing:
         raise RuntimeError(
             f"Test split missing slices: {missing}. "
-            "Regenerate with: python -m data.workload_splits"
+            f"Regenerate with: python -m data.workload_splits --dataset {dataset_key}"
+        )
+    if not queries:
+        raise RuntimeError(
+            f"No test queries for {dataset_key}. "
+            f"Regenerate with: python -m data.workload_splits --dataset {dataset_key}"
         )
     return queries, dict(counts)
 
@@ -192,19 +217,23 @@ def load_and_validate_test_queries() -> tuple[list[dict], dict[str, int]]:
 def build_test_instance(
     test_queries: list[dict],
     *,
+    dataset: str = "Player",
     num_docs: int | None,
     seed: int,
 ):
     """Corpus aligned to all test queries (full aligned set by default)."""
-    base = build_instance("Player", include_ground_truth=False)
+    dataset_key = normalize_dataset_name(dataset)
+    base = build_instance(dataset_key, include_ground_truth=False)
     schema = base.schema
     required_tables = tables_referenced_by_queries(test_queries, schema)
-    aligned_corpus = filter_docs_for_tables(base.corpus, required_tables)
+    aligned_corpus = filter_docs_for_tables(base.corpus, required_tables, dataset=dataset_key)
     if num_docs is None or num_docs <= 0 or num_docs >= len(aligned_corpus):
         corpus = aligned_corpus
         corpus_mode = "full_aligned"
     else:
-        corpus = sample_corpus_stratified(base.corpus, required_tables, num_docs, seed)
+        corpus = sample_corpus_stratified(
+            base.corpus, required_tables, num_docs, seed, dataset=dataset_key
+        )
         corpus_mode = f"sampled_{num_docs}"
     return replace(
         base,
@@ -214,6 +243,7 @@ def build_test_instance(
             **(base.metadata or {}),
             **corpus_alignment_metadata(corpus),
             "workload_split": "test",
+            "dataset": dataset_key,
             "experiment": EXPERIMENT_NAME,
             "corpus_mode": corpus_mode,
             "num_docs": len(corpus),
@@ -557,6 +587,7 @@ def _databases_dir(output_dir: Path) -> Path:
 
 def run_config_grid(
     *,
+    dataset: str = "Player",
     output_dir: Path,
     fresh_extraction: bool = False,
     max_configs: int | None = None,
@@ -572,6 +603,7 @@ def run_config_grid(
     audit_top_errors: int = 10,
 ) -> dict[str, Any]:
     cfg = load_config()
+    dataset_key = normalize_dataset_name(dataset)
     grid_cfg = cfg.get("config_grid", {})
     seed = int(cfg["experiment"]["seed"])
     if num_docs is None:
@@ -580,8 +612,8 @@ def run_config_grid(
     extraction_model = llm_cfg["extraction_model"]
     llm_profile = llm_cfg.get("profile")
 
-    test_queries, slice_counts = load_and_validate_test_queries()
-    instance = build_test_instance(test_queries, num_docs=num_docs, seed=seed)
+    test_queries, slice_counts = load_and_validate_test_queries(dataset=dataset_key)
+    instance = build_test_instance(test_queries, dataset=dataset_key, num_docs=num_docs, seed=seed)
     corpus_fp = _corpus_fingerprint(instance.corpus)
     _warn_infeasible_test_queries(test_queries, instance.corpus)
     extraction_mode = (
@@ -797,7 +829,8 @@ def run_config_grid(
         "n_configs": len(all_configs),
         "n_test_queries": len(test_queries),
         "slice_counts": slice_counts,
-        "slices_present": list(AGGREGATION_SLICE_ORDER),
+        "dataset": dataset_key,
+        "slices_present": list(slice_counts.keys()),
         "extraction_source": extraction_source,
         "extraction_model": extraction_model,
         "extraction_fingerprint": extraction_fp,
@@ -933,11 +966,12 @@ def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Materialize all pipeline configs and evaluate on held-out test split."
     )
+    parser.add_argument("--dataset", default="Player", help="Bench-U dataset (Player, Med, ...)")
     parser.add_argument(
         "--output-dir",
         type=Path,
         default=None,
-        help=f"Results directory (default: results/{DEFAULT_OUTPUT_DIR})",
+        help="Results directory (default: results/<dataset>/config_grid_test...)",
     )
     parser.add_argument(
         "--fresh",
@@ -1002,10 +1036,13 @@ def _parse_args() -> argparse.Namespace:
 def main() -> None:
     args = _parse_args()
     cfg = load_config()
-    output_dir = args.output_dir or (Path(cfg["paths"]["results_dir"]) / DEFAULT_OUTPUT_DIR)
+    dataset = normalize_dataset_name(args.dataset)
+    dataset_results = results_dir_for_dataset(dataset)
+    default_grid_name = config_grid_output_dir(dataset_results, dataset)
+    output_dir = args.output_dir or (dataset_results / default_grid_name)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    print(f"Test config grid → {output_dir}")
+    print(f"Test config grid ({dataset}) → {output_dir}")
     print(f"LLM profile: {cfg['llm'].get('profile')} model={cfg['llm']['extraction_model']}")
     print()
 
@@ -1013,6 +1050,7 @@ def main() -> None:
     resume = not args.no_resume and not args.fresh
 
     results = run_config_grid(
+        dataset=dataset,
         output_dir=output_dir,
         fresh_extraction=fresh,
         max_configs=args.max_configs,

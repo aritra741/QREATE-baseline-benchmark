@@ -1,0 +1,233 @@
+[
+  {
+    "query_id": "agg_queries_drug_2",
+    "sql_query": "SELECT prescription_status, COUNT(generic_name) AS count_generic_name FROM drug GROUP BY prescription_status;",
+    "nl_query": null,
+    "category": "Agg",
+    "metadata": {
+      "source_file": "/Users/aritramazumder/Documents/UDA-Bench-main/Query/Med/Agg/agg_queries_drug.sql",
+      "query_index": 2,
+      "subcategory": "aggregation",
+      "tables": [
+        "drug"
+      ],
+      "split": "train",
+      "aggregation_slice": "agg_only",
+      "held_out": false
+    }
+  },
+  {
+    "query_id": "agg_queries_drug_8",
+    "sql_query": "SELECT prescription_status, SUM(recommended_usage) AS sum_recommended_usage FROM drug GROUP BY prescription_status;",
+    "nl_query": null,
+    "category": "Agg",
+    "metadata": {
+      "source_file": "/Users/aritramazumder/Documents/UDA-Bench-main/Query/Med/Agg/agg_queries_drug.sql",
+      "query_index": 8,
+      "subcategory": "aggregation",
+      "tables": [
+        "drug"
+      ],
+      "split": "train",
+      "aggregation_slice": "agg_only",
+      "held_out": false
+    }
+  },
+  {
+    "query_id": "agg_queries_institution_2",
+    "sql_query": "SELECT institution_type, COUNT(institution_name) AS count_institution_name FROM institution GROUP BY institution_type;",
+    "nl_query": null,
+    "category": "Agg",
+    "metadata": {
+      "source_file": "/Users/aritramazumder/Documents/UDA-Bench-main/Query/Med/Agg/agg_queries_institution.sql",
+      "query_index": 2,
+      "subcategory": "aggregation",
+      "tables": [
+        "institution"
+      ],
+      "split": "train",
+      "aggregation_slice": "agg_only",
+      "held_out": false
+    }
+  },
+  {
+    "query_id": "agg_queries_drug_3",
+    "sql_query": "SELECT prescription_status, AVG(recommended_usage) AS avg_recommended_usage FROM drug GROUP BY prescription_status;",
+    "nl_query": null,
+    "category": "Agg",
+    "metadata": {
+      "source_file": "/Users/aritramazumder/Documents/UDA-Bench-main/Query/Med/Agg/agg_queries_drug.sql",
+      "query_index": 3,
+      "subcategory": "aggregation",
+      "tables": [
+        "drug"
+      ],
+      "split": "train",
+      "aggregation_slice": "agg_only",
+      "held_out": false
+    }
+  },
+  {
+    "query_id": "mixed_queries_filter_agg_1",
+    "sql_query": "SELECT research_fields, MIN(institution_country) AS min_institution_country FROM institution WHERE research_diseases != 'post-traumatic stress disorder' GROUP BY research_fields;",
+    "nl_query": null,
+    "category": "Mixed",
+    "metadata": {
+      "source_file": "/Users/aritramazumder/Documents/UDA-Bench-main/Query/Med/Mixed/mixed_queries_filter_agg.sql",
+      "query_index": 1,
+      "subcategory": "filter1_agg1",
+      "tables": [
+        "institution"
+      ],
+      "split": "train",
+      "aggregation_slice": "agg_filter",
+      "held_out": false
+    }
+  },
+  {
+    "query_id": "mixed_queries_filter_agg_6",
+    "sql_query": "SELECT prescription_status, MIN(storage_conditions) AS min_storage_conditions FROM drug WHERE (prescription_status < 'unclassified' AND side_effects != 'hair loss') OR (disease_name != 'Chronic Obstructive Pulmonary Disease' AND administration_route = 'intravenous') GROUP BY prescription_status;",
+    "nl_query": null,
+    "category": "Mixed",
+    "metadata": {
+      "source_file": "/Users/aritramazumder/Documents/UDA-Bench-main/Query/Med/Mixed/mixed_queries_filter_agg.sql",
+      "query_index": 6,
+      "subcategory": "filter6_agg1",
+      "tables": [
+        "drug"
+      ],
+      "split": "train",
+      "aggregation_slice": "agg_filter",
+      "held_out": false
+    }
+  },
+  {
+    "query_id": "mixed_queries_filter_agg_3",
+    "sql_query": "SELECT prescription_status, COUNT(manufacturer) AS count_manufacturer FROM drug WHERE brand_name = 'Savella' OR recommended_usage >= 'oral' GROUP BY prescription_status;",
+    "nl_query": null,
+    "category": "Mixed",
+    "metadata": {
+      "source_file": "/Users/aritramazumder/Documents/UDA-Bench-main/Query/Med/Mixed/mixed_queries_filter_agg.sql",
+      "query_index": 3,
+      "subcategory": "filter3_agg1",
+      "tables": [
+        "drug"
+      ],
+      "split": "train",
+      "aggregation_slice": "agg_filter",
+      "held_out": false
+    }
+  },
+  {
+    "query_id": "mixed_queries_agg_join_1",
+    "sql_query": "SELECT drug.prescription_status, MIN(drug.recommended_usage) AS min_drug_recommended_usage FROM disease JOIN drug ON disease.disease_name = drug.disease_name GROUP BY drug.prescription_status;",
+    "nl_query": null,
+    "category": "Mixed",
+    "metadata": {
+      "source_file": "/Users/aritramazumder/Documents/UDA-Bench-main/Query/Med/Mixed/mixed_queries_agg_join.sql",
+      "query_index": 1,
+      "subcategory": "agg1_join1",
+      "tables": [
+        "disease",
+        "drug"
+      ],
+      "split": "train",
+      "aggregation_slice": "agg_join",
+      "held_out": false
+    }
+  },
+  {
+    "query_id": "mixed_queries_agg_join_2",
+    "sql_query": "SELECT institution.institution_type, MIN(drug.recommended_usage) AS min_drug_recommended_usage FROM disease JOIN drug ON disease.disease_name = drug.disease_name JOIN institution ON disease.disease_name = institution.research_diseases GROUP BY institution.institution_type;",
+    "nl_query": null,
+    "category": "Mixed",
+    "metadata": {
+      "source_file": "/Users/aritramazumder/Documents/UDA-Bench-main/Query/Med/Mixed/mixed_queries_agg_join.sql",
+      "query_index": 2,
+      "subcategory": "agg1_join2",
+      "tables": [
+        "disease",
+        "drug",
+        "institution"
+      ],
+      "split": "train",
+      "aggregation_slice": "agg_join",
+      "held_out": false
+    }
+  },
+  {
+    "query_id": "mixed_queries_filter_agg_join_8",
+    "sql_query": "SELECT institution.institution_type, AVG(drug.dosage_frequency) AS avg_drug_dosage_frequency FROM disease JOIN drug ON disease.disease_name = drug.disease_name JOIN institution ON disease.disease_name = institution.research_diseases WHERE drug.generic_name != 'Linaclotide' AND disease.common_symptoms != 'headache' GROUP BY institution.institution_type;",
+    "nl_query": null,
+    "category": "Mixed",
+    "metadata": {
+      "source_file": "/Users/aritramazumder/Documents/UDA-Bench-main/Query/Med/Mixed/mixed_queries_filter_agg_join.sql",
+      "query_index": 8,
+      "subcategory": "filter2_agg1_join2",
+      "tables": [
+        "disease",
+        "drug",
+        "institution"
+      ],
+      "split": "train",
+      "aggregation_slice": "agg_filter_join",
+      "held_out": false
+    }
+  },
+  {
+    "query_id": "mixed_queries_filter_agg_join_4",
+    "sql_query": "SELECT institution.research_fields, MAX(disease.diagnosis_challenges) AS max_disease_diagnosis_challenges FROM disease JOIN drug ON disease.disease_name = drug.disease_name JOIN institution ON disease.disease_name = institution.research_diseases WHERE institution.institution_country = 'United Kingdom' AND institution.research_fields != 'gastroenterology' AND disease.etiology = 'pulmonary embolism' GROUP BY institution.research_fields;",
+    "nl_query": null,
+    "category": "Mixed",
+    "metadata": {
+      "source_file": "/Users/aritramazumder/Documents/UDA-Bench-main/Query/Med/Mixed/mixed_queries_filter_agg_join.sql",
+      "query_index": 4,
+      "subcategory": "filter4_agg1_join2",
+      "tables": [
+        "disease",
+        "drug",
+        "institution"
+      ],
+      "split": "train",
+      "aggregation_slice": "agg_filter_join",
+      "held_out": false
+    }
+  },
+  {
+    "query_id": "mixed_queries_filter_agg_join_6",
+    "sql_query": "SELECT institution.institution_type, AVG(disease.epidemiology) AS avg_disease_epidemiology FROM disease JOIN drug ON disease.disease_name = drug.disease_name JOIN institution ON disease.disease_name = institution.research_diseases WHERE (drug.brand_name != 'Daliresp' AND disease.common_symptoms != 'back pain') OR (institution.key_technologies = 'enzyme-linked immunosorbent assay (ELISA)' AND drug.pharmaceutical_form != 'ointment') GROUP BY institution.institution_type;",
+    "nl_query": null,
+    "category": "Mixed",
+    "metadata": {
+      "source_file": "/Users/aritramazumder/Documents/UDA-Bench-main/Query/Med/Mixed/mixed_queries_filter_agg_join.sql",
+      "query_index": 6,
+      "subcategory": "filter6_agg1_join2",
+      "tables": [
+        "disease",
+        "drug",
+        "institution"
+      ],
+      "split": "train",
+      "aggregation_slice": "agg_filter_join",
+      "held_out": false
+    }
+  },
+  {
+    "query_id": "mixed_queries_filter_agg_join_1",
+    "sql_query": "SELECT drug.prescription_status, MIN(drug.recommended_usage) AS min_drug_recommended_usage FROM disease JOIN drug ON disease.disease_name = drug.disease_name WHERE drug.manufacturer != 'GSK' GROUP BY drug.prescription_status;",
+    "nl_query": null,
+    "category": "Mixed",
+    "metadata": {
+      "source_file": "/Users/aritramazumder/Documents/UDA-Bench-main/Query/Med/Mixed/mixed_queries_filter_agg_join.sql",
+      "query_index": 1,
+      "subcategory": "filter1_agg1_join1",
+      "tables": [
+        "disease",
+        "drug"
+      ],
+      "split": "train",
+      "aggregation_slice": "agg_filter_join",
+      "held_out": false
+    }
+  }
+]

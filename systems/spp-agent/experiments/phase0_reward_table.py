@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Phase 0 — build instance × surrogate reward table (Player only, aggregation slices)."""
+"""Phase 0 — build instance × surrogate reward table (aggregation slices)."""
 
 from __future__ import annotations
 
@@ -14,8 +14,16 @@ SPP_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(SPP_ROOT))
 sys.path.insert(0, str(SPP_ROOT.parent.parent))
 
-from data.aggregation_slices import group_queries_by_aggregation_slice
+from data.dataset_registry import (
+    dataset_phase0_settings,
+    normalize_dataset_name,
+    phase0_checkpoint_path,
+    phase0_reward_table_path,
+    results_dir_for_dataset,
+    workload_slices_for_dataset,
+)
 from data.instance_builder import build_instance
+from data.aggregation_slices import group_queries_by_aggregation_slice
 from data.query_alignment import (
     corpus_entity_types,
     filter_queries_by_corpus_coverage,
@@ -34,7 +42,8 @@ CHECKPOINT_VERSION = 1
 
 
 def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Phase 0 Player reward table (aggregation slices).")
+    parser = argparse.ArgumentParser(description="Phase 0 reward table (aggregation slices).")
+    parser.add_argument("--dataset", default="Player", help="Bench-U dataset (Player, Med, ...)")
     parser.add_argument("--log-level", default=None)
     parser.add_argument(
         "--slices",
@@ -60,8 +69,8 @@ def _select_configs(surrogate, candidates: list[str], budget: int) -> list[str]:
     return ranked[: max(1, budget)]
 
 
-def _feasible_slice_counts(base_instance) -> dict[str, int]:
-    corpus_types = corpus_entity_types(base_instance.corpus)
+def _feasible_slice_counts(base_instance, *, dataset: str) -> dict[str, int]:
+    corpus_types = corpus_entity_types(base_instance.corpus, dataset=dataset)
     counts: dict[str, int] = {}
     for name, queries in group_queries_by_aggregation_slice(base_instance.queries).items():
         kept = filter_queries_by_corpus_coverage(queries, base_instance.schema, corpus_types)
@@ -69,9 +78,9 @@ def _feasible_slice_counts(base_instance) -> dict[str, int]:
     return counts
 
 
-def _resolve_slice_names(base_instance, phase0: dict, cli_slices: list[str] | None) -> list[str]:
+def _resolve_slice_names(base_instance, phase0: dict, cli_slices: list[str] | None, *, dataset: str) -> list[str]:
     min_queries = int(phase0.get("min_queries_per_slice", 3))
-    feasible_counts = _feasible_slice_counts(base_instance)
+    feasible_counts = _feasible_slice_counts(base_instance, dataset=dataset)
 
     configured = phase0.get("workload_slices")
     if isinstance(configured, list) and configured and isinstance(configured[0], str):
@@ -98,6 +107,7 @@ def _resolve_slice_names(base_instance, phase0: dict, cli_slices: list[str] | No
 
 def _build_report_meta(
     *,
+    dataset: str,
     slice_names: list[str],
     slice_counts: dict[str, int],
     corpus_types: set[str],
@@ -107,7 +117,7 @@ def _build_report_meta(
     fingerprint: dict,
 ) -> dict:
     return {
-        "dataset": "Player",
+        "dataset": dataset,
         "phase": 0,
         "workload_type": "aggregation_only",
         "slice_query_counts": slice_counts,
@@ -162,7 +172,8 @@ def main() -> None:
 
     logger = setup_logger("spp.phase0")
     cfg = load_config()
-    phase0 = cfg.get("phase0", {})
+    dataset = normalize_dataset_name(args.dataset)
+    phase0 = dataset_phase0_settings(dataset)
     precheck = cfg.get("precheck", {})
     seed = int(cfg["experiment"]["seed"])
     rng = random.Random(seed)
@@ -175,14 +186,14 @@ def main() -> None:
     surrogates = phase0.get("surrogates", list(MAIN_SURROGATES.keys()))
     table_filter = set(phase0.get("table_filter", ["player"]))
 
-    results_dir = Path(cfg["paths"]["results_dir"])
-    out_path = results_dir / "phase0_reward_table_Player.json"
-    checkpoint_path = results_dir / "phase0_reward_table_Player.checkpoint.json"
+    results_dir = results_dir_for_dataset(dataset)
+    out_path = phase0_reward_table_path(results_dir, dataset)
+    checkpoint_path = phase0_checkpoint_path(results_dir, dataset)
 
-    base_instance = build_instance("Player", include_ground_truth=False)
-    slice_names = _resolve_slice_names(base_instance, phase0, args.slices)
-    slice_counts = _feasible_slice_counts(base_instance)
-    corpus_types = corpus_entity_types(base_instance.corpus)
+    base_instance = build_instance(dataset, include_ground_truth=False)
+    slice_names = _resolve_slice_names(base_instance, phase0, args.slices, dataset=dataset)
+    slice_counts = _feasible_slice_counts(base_instance, dataset=dataset)
+    corpus_types = corpus_entity_types(base_instance.corpus, dataset=dataset)
 
     all_configs = generate_config_space()
     rng.shuffle(all_configs)
@@ -203,6 +214,7 @@ def main() -> None:
     )
 
     report_meta = _build_report_meta(
+        dataset=dataset,
         slice_names=slice_names,
         slice_counts=slice_counts,
         corpus_types=corpus_types,
@@ -236,7 +248,7 @@ def main() -> None:
 
     pending_slices = [s for s in slice_names if s not in completed_slices]
 
-    logger.info("Phase 0 Player reward table (aggregation-only)")
+    logger.info("Phase 0 %s reward table (aggregation-only)", dataset)
     logger.info("planned=%s pending=%s", slice_names, pending_slices)
     logger.info("slice_query_counts=%s", slice_counts)
     logger.info("budgets=%s surrogates=%s", budget_levels, surrogates)
@@ -269,6 +281,7 @@ def main() -> None:
                     num_eval_queries=num_eval_queries,
                     seed=seed + hash(slice_name) % 1000,
                     query_table_filter=table_filter,
+                    dataset=dataset,
                 )
                 logger.info(
                     "Slice %s docs=%d eval_queries=%d required_tables=%s",
@@ -303,7 +316,7 @@ def main() -> None:
                     true_spp_error = evaluate_spp_set(instance, selected, dbs)
 
                     row = {
-                        "dataset": "Player",
+                        "dataset": dataset,
                         "slice": slice_name,
                         "num_queries": len(instance.queries),
                         "num_queries_in_slice_pool": slice_counts.get(slice_name, 0),

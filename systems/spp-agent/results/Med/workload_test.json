@@ -1,0 +1,37 @@
+[
+  {
+    "query_id": "agg_queries_drug_6",
+    "sql_query": "SELECT prescription_status, MIN(recommended_usage) AS min_recommended_usage FROM drug GROUP BY prescription_status;",
+    "nl_query": null,
+    "category": "Agg",
+    "metadata": {
+      "source_file": "/Users/aritramazumder/Documents/UDA-Bench-main/Query/Med/Agg/agg_queries_drug.sql",
+      "query_index": 6,
+      "subcategory": "aggregation",
+      "tables": [
+        "drug"
+      ],
+      "split": "test",
+      "aggregation_slice": "agg_only",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "mixed_queries_filter_agg_join_7",
+    "sql_query": "SELECT drug.prescription_status, AVG(disease.epidemiology) AS avg_disease_epidemiology FROM disease JOIN drug ON disease.disease_name = drug.disease_name WHERE drug.pharmaceutical_form = 'tablet' GROUP BY drug.prescription_status;",
+    "nl_query": null,
+    "category": "Mixed",
+    "metadata": {
+      "source_file": "/Users/aritramazumder/Documents/UDA-Bench-main/Query/Med/Mixed/mixed_queries_filter_agg_join.sql",
+      "query_index": 7,
+      "subcategory": "filter1_agg1_join1",
+      "tables": [
+        "disease",
+        "drug"
+      ],
+      "split": "test",
+      "aggregation_slice": "agg_filter_join",
+      "held_out": true
+    }
+  }
+]
