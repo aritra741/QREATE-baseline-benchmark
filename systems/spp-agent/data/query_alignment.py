@@ -509,6 +509,9 @@ def prepare_aligned_instance(
             "num_docs": len(sampled_corpus),
             "num_eval_queries": len(eval_queries),
             "required_tables": sorted(required_tables),
+            "corpus_entity_types": sorted(
+                corpus_entity_types(sampled_corpus, dataset=dataset_key)
+            ),
         },
     )
     return trimmed, required_tables

@@ -136,13 +136,20 @@ def compact_workload_summary(queries: list[dict], demand_profile: dict[str, Any]
 
 
 def entity_hint_from_doc(doc: dict) -> str:
+    """Schema table name for this document (prefer normalized table_hint)."""
+    hint = doc.get("metadata", {}).get("table_hint")
+    if hint:
+        return str(hint).lower()
     doc_id = str(doc.get("doc_id", ""))
     if "/" in doc_id:
-        return doc_id.split("/")[0].lower()
-    if "_" in doc_id:
-        return doc_id.split("_")[0].lower()
-    hint = doc.get("metadata", {}).get("table_hint")
-    return str(hint).lower() if hint else ""
+        folder = doc_id.split("/")[0].lower()
+    elif "_" in doc_id:
+        folder = doc_id.split("_")[0].lower()
+    else:
+        return ""
+    from data.dataset_registry import MED_CORPUS_FOLDER_TO_TABLE
+
+    return MED_CORPUS_FOLDER_TO_TABLE.get(folder, folder)
 
 
 def demand_columns_for_entity(demand_profile: dict[str, Any], entity_hint: str) -> list[dict[str, Any]]:
@@ -274,11 +281,18 @@ def align_tuples_to_schema(
     schema: Schema,
 ) -> dict[str, list[dict]]:
     """Map free-form extractor output onto evaluation schema table buckets."""
+    from data.dataset_registry import corpus_folder_to_table
+
     aligned: dict[str, list[dict]] = {table: [] for table in schema.tables}
     schema_tables = {t.lower(): t for t in schema.tables}
+    dataset = getattr(schema, "dataset_name", "Player")
 
     for raw_table, rows in parsed.items():
-        canonical = schema_tables.get(str(raw_table).lower())
+        raw_lower = str(raw_table).lower()
+        canonical = schema_tables.get(raw_lower)
+        if canonical is None:
+            mapped = corpus_folder_to_table(dataset, raw_lower)
+            canonical = schema_tables.get(mapped)
         if canonical is None:
             continue
         allowed_cols = {c.lower() for c in schema.tables[canonical]}
