@@ -7,10 +7,12 @@ from dataclasses import dataclass, field
 from llm.client import chat_completion, estimate_tokens
 from pipeline.extraction_context import (
     align_tuples_to_schema,
+    bucket_extraction_for_doc,
     build_extraction_task_context,
     build_workload_aware_extraction_prompt,
     gold_schema_leaks_in_prompt,
     resolve_demand_profile,
+    entity_hint_from_doc,
 )
 from pipeline.schema import Schema
 from utils.config import load_config
@@ -28,10 +30,19 @@ class ExtractionResult:
 
 
 def _build_legacy_schema_prompt(doc: dict, schema: Schema) -> str:
+    entity = entity_hint_from_doc(doc)
+    table_names = (
+        [entity]
+        if entity and entity in schema.tables
+        else sorted(schema.tables)
+    )
     table_specs = []
-    for table, cols in schema.tables.items():
+    for table in table_names:
+        cols = schema.tables[table]
         col_types = schema.column_types.get(table, {})
-        col_desc = ", ".join(f"{c} ({col_types.get(c, 'str')})" for c in cols if c.lower() != "id")
+        col_desc = ", ".join(
+            f"{c} ({col_types.get(c, 'str')})" for c in cols if c.lower() not in {"id", "unnamed: 0"}
+        )
         table_specs.append(f'  "{table}": [{col_desc}]')
 
     return (
@@ -195,8 +206,7 @@ def extract_documents(
 
         tuple_count = 0
         if parsed:
-            if task_context is not None:
-                parsed = align_tuples_to_schema(parsed, schema)
+            parsed = bucket_extraction_for_doc(parsed, schema, doc)
             for table_name, rows in parsed.items():
                 if table_name in tuples_by_table:
                     for row in rows:

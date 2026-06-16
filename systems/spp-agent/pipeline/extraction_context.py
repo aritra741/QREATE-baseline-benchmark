@@ -70,7 +70,8 @@ def extract_demand_profile_sql_only(queries: list[dict]) -> dict[str, Any]:
 
         group_match = _BARE_COL_IN_GROUP_RE.search(sql)
         if group_match:
-            for token in re.split(r",", group_match.group(1)):
+            group_clause = group_match.group(1).strip().rstrip(";")
+            for token in re.split(r",", group_clause):
                 token = token.strip()
                 qm = _QUALIFIED_COL_RE.search(token)
                 if qm:
@@ -305,4 +306,32 @@ def align_tuples_to_schema(
                 if str(k).lower() in allowed_cols
             }
             aligned[canonical].append(cleaned)
+    return aligned
+
+
+def bucket_extraction_for_doc(
+    parsed: dict[str, list[dict]],
+    schema: Schema,
+    doc: dict,
+) -> dict[str, list[dict]]:
+    """Align extractor JSON to schema tables and route rows to the document's entity table."""
+    aligned = align_tuples_to_schema(parsed, schema)
+    entity = entity_hint_from_doc(doc)
+    if not entity or entity not in schema.tables:
+        return aligned
+
+    primary = list(aligned.get(entity, []))
+    if primary:
+        aligned[entity] = primary
+        return aligned
+
+    merged: list[dict] = []
+    for table, rows in aligned.items():
+        if rows:
+            merged.extend(rows)
+    if merged:
+        aligned[entity] = merged
+        for table in list(aligned):
+            if table != entity:
+                aligned[table] = []
     return aligned
