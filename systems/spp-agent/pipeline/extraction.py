@@ -248,6 +248,21 @@ def extract_documents(
         table_counts,
     )
 
+    # Detect total LLM failure (e.g. server down) before returning silent zeros.
+    failed_docs = [s for s in per_doc_signals if not s.get("json_parse_success") and s.get("tuple_count", 0) == 0]
+    if len(failed_docs) == len(docs) and docs:
+        sample_err = (failed_docs[0].get("raw_output", "") or "")[:200]
+        conn_refused = "connection refused" in sample_err.lower() or "errno 111" in sample_err.lower()
+        hint = (
+            " LLM server appears to be unreachable (Connection refused). "
+            "Start the vLLM / Ollama server and retry."
+            if conn_refused
+            else f" Sample error: {sample_err}"
+        )
+        raise RuntimeError(
+            f"Extraction returned 0 tuples across all {len(docs)} documents.{hint}"
+        )
+
     if total_cost == 0.0:
         total_cost = float(sum(estimate_tokens(d["text"]) for d in docs))
 

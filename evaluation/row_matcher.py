@@ -113,7 +113,9 @@ class RowMatcher:
     def _with_key_column(self, df: pd.DataFrame, keys: Sequence[str]) -> pd.DataFrame:
         df = df.copy()
         for key in keys:
-            df[key] = df[key].fillna("").astype(str)
+            # Cast to object first so pandas nullable integer/boolean dtypes
+            # (Int32, Int64, boolean) accept fillna("") without raising TypeError.
+            df[key] = df[key].astype(object).fillna("").astype(str)
         df["__key"] = df.apply(lambda r: format_primary_key(r, keys), axis=1)
         return df
 
