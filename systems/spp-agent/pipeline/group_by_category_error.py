@@ -1585,6 +1585,320 @@ def format_config_leaderboard(
     return "\n".join(lines)
 
 
+CONFIG_DIMENSION_FIELDS: tuple[tuple[str, str], ...] = (
+    ("er", "er_strategy"),
+    ("norm", "norm_strategy"),
+    ("unit", "unit_strategy"),
+    ("miss", "miss_strategy"),
+    ("coerce", "type_coercion"),
+)
+
+
+def _dimension_value_counts(per_query_winners: list[dict[str, Any]]) -> dict[str, dict[str, int]]:
+    from collections import Counter
+
+    from optimizer.config_space import parse_config_id
+
+    counters: dict[str, Counter[str]] = {dim: Counter() for dim, _ in CONFIG_DIMENSION_FIELDS}
+    for row in per_query_winners:
+        config_id = str(row.get("best_config_id") or "")
+        if not config_id:
+            continue
+        cfg = parse_config_id(config_id)
+        for dim, field in CONFIG_DIMENSION_FIELDS:
+            counters[dim][str(getattr(cfg, field))] += 1
+
+    out: dict[str, dict[str, int]] = {}
+    for dim, counter in counters.items():
+        positive = {value: count for value, count in counter.items() if count > 0}
+        out[dim] = dict(sorted(positive.items(), key=lambda kv: (-kv[1], kv[0])))
+    return out
+
+
+def build_config_winner_dimension_histograms(
+    leaderboard_report: dict[str, Any],
+) -> dict[str, Any]:
+    """
+  Count how often each config-dimension value appears among per-query winners.
+
+  Only values with at least one win are included (zero counts omitted).
+  """
+    overall_winners = list(leaderboard_report.get("per_query_winners") or [])
+    by_scope: dict[str, dict[str, Any]] = {
+        "overall": {
+            "scope": "overall",
+            "n_queries": int(leaderboard_report.get("n_queries") or len(overall_winners)),
+            "dimension_counts": _dimension_value_counts(overall_winners),
+        }
+    }
+
+    for slice_name, slice_report in sorted(
+        (leaderboard_report.get("by_query_type") or {}).items(),
+        key=lambda item: (
+            AGGREGATION_SLICE_ORDER.index(item[0])
+            if item[0] in AGGREGATION_SLICE_ORDER
+            else len(AGGREGATION_SLICE_ORDER)
+        ),
+    ):
+        slice_winners = list(slice_report.get("per_query_winners") or [])
+        by_scope[slice_name] = {
+            "scope": slice_name,
+            "query_type": slice_name,
+            "n_queries": int(slice_report.get("n_queries") or len(slice_winners)),
+            "dimension_counts": _dimension_value_counts(slice_winners),
+        }
+
+    return {
+        "report_type": "config_winner_dimension_histograms",
+        "scoring_rule": leaderboard_report.get("scoring_rule"),
+        "n_queries": leaderboard_report.get("n_queries"),
+        "dimensions": [dim for dim, _ in CONFIG_DIMENSION_FIELDS],
+        "by_scope": by_scope,
+    }
+
+
+def save_config_winner_dimension_histogram_chart(
+    *,
+    scope: str,
+    dimension: str,
+    counts: dict[str, int],
+    output_path,
+) -> str | None:
+    if not counts:
+        return None
+
+    from pathlib import Path
+
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    labels = list(counts.keys())
+    values = [counts[label] for label in labels]
+
+    fig, ax = plt.subplots(figsize=(max(6, len(labels) * 1.1), 5))
+    bars = ax.bar(labels, values, color="#4C78A8", edgecolor="white")
+    ax.set_title(f"Winning config values — {dimension} ({scope})")
+    ax.set_xlabel(dimension)
+    ax.set_ylabel("Query wins")
+    ax.set_ylim(bottom=0)
+    plt.setp(ax.get_xticklabels(), rotation=25, ha="right")
+    for bar, count in zip(bars, values):
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            bar.get_height(),
+            str(count),
+            ha="center",
+            va="bottom",
+            fontsize=9,
+        )
+    fig.tight_layout()
+    out = Path(output_path)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out, dpi=150)
+    plt.close(fig)
+    return str(out.resolve())
+
+
+def write_config_winner_dimension_histograms(
+    histogram_report: dict[str, Any],
+    output_dir,
+    *,
+    charts_subdir: str = "config_winner_dimension_charts",
+) -> dict[str, Any]:
+    from pathlib import Path
+
+    root = Path(output_dir)
+    chart_dir = root / charts_subdir
+    chart_paths: dict[str, dict[str, str | None]] = {}
+
+    for scope_name, scope_report in (histogram_report.get("by_scope") or {}).items():
+        scope_paths: dict[str, str | None] = {}
+        for dimension, counts in (scope_report.get("dimension_counts") or {}).items():
+            chart_name = f"config_winner_{scope_name}_{dimension}.png"
+            scope_paths[dimension] = save_config_winner_dimension_histogram_chart(
+                scope=scope_name,
+                dimension=dimension,
+                counts=counts,
+                output_path=chart_dir / chart_name,
+            )
+        chart_paths[scope_name] = scope_paths
+
+    payload = {
+        **histogram_report,
+        "chart_paths": chart_paths,
+        "charts_dir": str(chart_dir.resolve()),
+    }
+    out_json = root / "config_winner_dimension_histograms.json"
+    out_json.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    return payload
+
+
+def analyze_viable_config_search_space(
+    leaderboard_report: dict[str, Any],
+    *,
+    full_config_space_size: int | None = None,
+) -> dict[str, Any]:
+    """
+    Identify configs that ever win at least one query vs configs that never win.
+
+    Configs with zero wins across all scored queries are candidates for pruning
+    from search; they never achieve the lowest query_error on any query.
+    """
+    if full_config_space_size is None:
+        from optimizer.config_space import generate_config_space
+
+        full_config_space_size = len(generate_config_space())
+
+    leaderboard = list(leaderboard_report.get("leaderboard") or [])
+    n_evaluated = len(leaderboard)
+    n_queries = int(leaderboard_report.get("n_queries") or 0)
+
+    ever_winning = [row for row in leaderboard if int(row.get("wins") or 0) > 0]
+    never_winning = [row for row in leaderboard if int(row.get("wins") or 0) == 0]
+
+    by_query_type: dict[str, dict[str, Any]] = {}
+    union_ever_winning: set[str] = set()
+    for slice_name, slice_report in (leaderboard_report.get("by_query_type") or {}).items():
+        slice_leaderboard = list(slice_report.get("leaderboard") or [])
+        slice_ever = [row for row in slice_leaderboard if int(row.get("wins") or 0) > 0]
+        slice_never = [row for row in slice_leaderboard if int(row.get("wins") or 0) == 0]
+        ever_ids = sorted(str(row["config_id"]) for row in slice_ever)
+        union_ever_winning.update(ever_ids)
+        by_query_type[slice_name] = {
+            "query_type": slice_name,
+            "n_queries": int(slice_report.get("n_queries") or 0),
+            "n_evaluated_configs": len(slice_leaderboard),
+            "n_ever_winning": len(slice_ever),
+            "n_never_winning": len(slice_never),
+            "ever_winning_fraction_of_evaluated": (
+                float(len(slice_ever)) / len(slice_leaderboard) if slice_leaderboard else 0.0
+            ),
+            "ever_winning_config_ids": ever_ids,
+            "never_winning_config_ids": sorted(str(row["config_id"]) for row in slice_never),
+        }
+
+    n_ever_global = len(ever_winning)
+    n_never_global = len(never_winning)
+    n_unevaluated = max(0, full_config_space_size - n_evaluated)
+
+    return {
+        "report_type": "viable_config_search_space",
+        "scoring_rule": leaderboard_report.get("scoring_rule"),
+        "full_config_space_size": full_config_space_size,
+        "n_evaluated_configs": n_evaluated,
+        "n_unevaluated_configs": n_unevaluated,
+        "n_queries": n_queries,
+        "n_ever_winning": n_ever_global,
+        "n_never_winning": n_never_global,
+        "ever_winning_fraction_of_evaluated": (
+            float(n_ever_global) / n_evaluated if n_evaluated else 0.0
+        ),
+        "never_winning_fraction_of_evaluated": (
+            float(n_never_global) / n_evaluated if n_evaluated else 0.0
+        ),
+        "ever_winning_fraction_of_full_space": (
+            float(n_ever_global) / full_config_space_size if full_config_space_size else 0.0
+        ),
+        "never_winning_fraction_of_full_space": (
+            float(n_never_global) / full_config_space_size if full_config_space_size else 0.0
+        ),
+        "n_ever_winning_union_across_slices": len(union_ever_winning),
+        "ever_winning_union_fraction_of_evaluated": (
+            float(len(union_ever_winning)) / n_evaluated if n_evaluated else 0.0
+        ),
+        "ever_winning_config_ids": sorted(str(row["config_id"]) for row in ever_winning),
+        "never_winning_config_ids": sorted(str(row["config_id"]) for row in never_winning),
+        "ever_winning_union_across_slices_config_ids": sorted(union_ever_winning),
+        "by_query_type": by_query_type,
+        "pruning_note": (
+            "never_winning_config_ids never achieve the lowest query_error on any scored query "
+            "in this evaluation and are safe to drop from search under the same scoring rule."
+        ),
+    }
+
+
+def write_viable_config_search_space(payload: dict[str, Any], path) -> None:
+    from pathlib import Path
+
+    out = Path(path)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def build_and_write_config_winner_analysis(
+    leaderboard_report: dict[str, Any],
+    output_dir,
+) -> dict[str, Any]:
+    histograms = build_config_winner_dimension_histograms(leaderboard_report)
+    histogram_payload = write_config_winner_dimension_histograms(histograms, output_dir)
+    viability = analyze_viable_config_search_space(leaderboard_report)
+    from pathlib import Path
+
+    write_viable_config_search_space(
+        viability,
+        Path(output_dir) / "viable_config_search_space.json",
+    )
+    return {
+        "dimension_histograms": histogram_payload,
+        "viable_search_space": viability,
+    }
+
+
+def format_config_winner_dimension_histograms(
+    histogram_report: dict[str, Any],
+) -> str:
+    lines: list[str] = []
+    lines.append("=" * 72)
+    lines.append("CONFIG WINNER DIMENSION HISTOGRAMS")
+    lines.append("=" * 72)
+    lines.append(f"Rule: {histogram_report.get('scoring_rule')}")
+    lines.append("")
+
+    for scope_name, scope_report in (histogram_report.get("by_scope") or {}).items():
+        n_queries = int(scope_report.get("n_queries") or 0)
+        lines.append(f"{scope_name} ({n_queries} queries):")
+        for dimension, counts in (scope_report.get("dimension_counts") or {}).items():
+            if not counts:
+                continue
+            parts = ", ".join(f"{value}={count}" for value, count in counts.items())
+            lines.append(f"  {dimension}: {parts}")
+        lines.append("")
+
+    return "\n".join(lines).rstrip()
+
+
+def format_viable_config_search_space(report: dict[str, Any]) -> str:
+    lines: list[str] = []
+    lines.append("=" * 72)
+    lines.append("VIABLE CONFIG SEARCH SPACE")
+    lines.append("=" * 72)
+    full = int(report.get("full_config_space_size") or 0)
+    evaluated = int(report.get("n_evaluated_configs") or 0)
+    ever = int(report.get("n_ever_winning") or 0)
+    never = int(report.get("n_never_winning") or 0)
+    union = int(report.get("n_ever_winning_union_across_slices") or 0)
+    lines.append(f"Full config space: {full}")
+    lines.append(f"Evaluated in grid: {evaluated}")
+    lines.append(
+        f"Ever win at least one query (overall): {ever} "
+        f"({float(report.get('ever_winning_fraction_of_evaluated') or 0):.1%} of evaluated, "
+        f"{float(report.get('ever_winning_fraction_of_full_space') or 0):.1%} of full space)"
+    )
+    lines.append(
+        f"Never win any query (prunable): {never} "
+        f"({float(report.get('never_winning_fraction_of_evaluated') or 0):.1%} of evaluated)"
+    )
+    lines.append(
+        f"Ever win in at least one slice (union): {union} "
+        f"({float(report.get('ever_winning_union_fraction_of_evaluated') or 0):.1%} of evaluated)"
+    )
+    lines.append("")
+    lines.append(str(report.get("pruning_note") or ""))
+    return "\n".join(lines)
+
+
 def write_category_error_report(payload: dict[str, Any], path) -> None:
     from pathlib import Path
 

@@ -48,13 +48,16 @@ from data.materialized_db_store import (
 from data.workload_splits import HOLDOUT_POLICY, load_split_queries
 from optimizer.config_space import PopulationConfig, generate_config_space
 from pipeline.group_by_category_error import (
+    build_and_write_config_winner_analysis,
     build_config_leaderboard,
     build_top_category_error_audit,
     build_workload_audit_summary,
     build_workload_category_error_report,
     format_compact_category_error_audit,
     format_config_leaderboard,
+    format_config_winner_dimension_histograms,
     format_top_category_error_calculations,
+    format_viable_config_search_space,
     refresh_per_config_scores,
     refresh_per_query_row_scores,
     write_category_error_audit_summary,
@@ -426,6 +429,14 @@ def _category_error_top_calculations_path(output_dir: Path) -> Path:
 
 def _config_leaderboard_path(output_dir: Path) -> Path:
     return output_dir / "config_leaderboard.json"
+
+
+def _config_winner_dimension_histograms_path(output_dir: Path) -> Path:
+    return output_dir / "config_winner_dimension_histograms.json"
+
+
+def _viable_config_search_space_path(output_dir: Path) -> Path:
+    return output_dir / "viable_config_search_space.json"
 
 
 def _write_config_leaderboard(payload: dict[str, Any], path: Path) -> None:
@@ -860,6 +871,7 @@ def run_config_grid(
     grid_summary = _build_grid_summary(per_config, slice_counts)
     category_error_report = None
     config_leaderboard = None
+    config_winner_analysis = None
     test_query_ids = [str(q.get("query_id", "")) for q in test_queries]
     if not materialize_only and per_config:
         category_error_report = build_workload_category_error_report(
@@ -872,11 +884,24 @@ def run_config_grid(
             query_ids=test_query_ids,
         )
         _write_config_leaderboard(config_leaderboard, _config_leaderboard_path(output_dir))
+        config_winner_analysis = build_and_write_config_winner_analysis(
+            config_leaderboard,
+            output_dir,
+        )
         grid_summary["config_leaderboard"] = {
             "n_queries": config_leaderboard.get("n_queries"),
             "top_win_count": config_leaderboard.get("top_win_count"),
             "top_configs": (config_leaderboard.get("configs_at_top_win_count") or [])[:5],
             "leaderboard_path": str(_config_leaderboard_path(output_dir).name),
+        }
+        viable = config_winner_analysis.get("viable_search_space") or {}
+        grid_summary["viable_config_search_space"] = {
+            "n_ever_winning": viable.get("n_ever_winning"),
+            "n_never_winning": viable.get("n_never_winning"),
+            "ever_winning_fraction_of_evaluated": viable.get("ever_winning_fraction_of_evaluated"),
+            "ever_winning_fraction_of_full_space": viable.get("ever_winning_fraction_of_full_space"),
+            "report_path": str(_viable_config_search_space_path(output_dir).name),
+            "histogram_path": str(_config_winner_dimension_histograms_path(output_dir).name),
         }
 
     results = {
@@ -885,6 +910,7 @@ def run_config_grid(
         "per_config": per_config,
         "category_error_report": category_error_report,
         "config_leaderboard": config_leaderboard,
+        "config_winner_analysis": config_winner_analysis,
     }
 
     if audit_metric:
@@ -1085,6 +1111,17 @@ def main() -> None:
     if results.get("config_leaderboard"):
         print(format_config_leaderboard(results["config_leaderboard"]))
         print(f"Config leaderboard: {_config_leaderboard_path(output_dir)}")
+    if results.get("config_winner_analysis"):
+        dim_payload = results["config_winner_analysis"].get("dimension_histograms") or {}
+        viable_payload = results["config_winner_analysis"].get("viable_search_space") or {}
+        print()
+        print(format_config_winner_dimension_histograms(dim_payload))
+        print()
+        print(format_viable_config_search_space(viable_payload))
+        print(f"Winner dimension histograms: {_config_winner_dimension_histograms_path(output_dir)}")
+        print(f"Viable search space: {_viable_config_search_space_path(output_dir)}")
+        if dim_payload.get("charts_dir"):
+            print(f"Winner dimension charts: {dim_payload['charts_dir']}")
     if results.get("category_error_audit"):
         print(f"Category error audit summary: {_category_error_audit_summary_path(output_dir)}")
     if summary.get("best_config_id") and summary.get("best_mean_macro_f1") is not None:

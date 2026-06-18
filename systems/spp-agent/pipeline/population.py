@@ -438,6 +438,23 @@ def join_key_exact_overlap(
     return len(left_values & right_values) / len(union)
 
 
+def _flatten_unhashable_cells(df: pd.DataFrame) -> pd.DataFrame:
+    """Stringify any list/dict values left behind by the LLM so that all
+    downstream pandas operations (drop_duplicates, mode, factorize …) work on
+    hashable scalars only."""
+    import json as _json
+
+    for col in df.columns:
+        if df[col].dtype == object:
+            def _coerce(v):
+                if isinstance(v, (list, dict)):
+                    return _json.dumps(v, ensure_ascii=False)
+                return v
+
+            df[col] = df[col].map(_coerce)
+    return df
+
+
 def _tuples_to_dataframe(
     extraction: ExtractionResult,
     schema: Schema,
@@ -455,7 +472,8 @@ def _tuples_to_dataframe(
         keep = [c for c in cols if c in df.columns]
         if "id" in df.columns and "id" not in keep:
             keep = ["id"] + keep
-        frames[table] = df[keep] if keep else df
+        df = _flatten_unhashable_cells(df[keep] if keep else df)
+        frames[table] = df
     return frames
 
 
@@ -584,15 +602,7 @@ def apply_population(
                     isinstance(mode_value, float) and math.isnan(mode_value)
                 ):
                     continue
-                # fillna requires a scalar; stringify any list/dict values that
-                # the LLM emitted as nested JSON in this cell.
-                if isinstance(mode_value, (list, dict)):
-                    import json as _json
-
-                    fill_scalar = _json.dumps(mode_value, ensure_ascii=False)
-                else:
-                    fill_scalar = mode_value
-                df[col] = df[col].fillna(fill_scalar)
+                df[col] = df[col].fillna(mode_value)
         elif config.miss_strategy == "constant":
             for col in df.columns:
                 if col == "id":
