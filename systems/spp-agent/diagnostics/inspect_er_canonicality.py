@@ -84,6 +84,14 @@ def _analyse(dataset: str) -> None:
     print(f"Cache: {cache_path}")
     print(f"{'='*70}")
 
+    # Show what tables/columns are actually present in the extraction cache
+    raw = json.loads(cache_path.read_text(encoding="utf-8"))
+    tuples_by_table = raw.get("extraction", {}).get("tuples_by_table", {})
+    print(f"\nExtracted tables in cache: {list(tuples_by_table.keys())}")
+    for t, rows in tuples_by_table.items():
+        sample_keys = list(rows[0].keys()) if rows and isinstance(rows[0], dict) else []
+        print(f"  {t}: {len(rows)} rows, columns: {sample_keys[:8]}")
+
     for table, (gt_rel, key_col) in gt_specs.items():
         # GT CSVs live two directories above systems/spp-agent (i.e., the repo root)
         repo_root = Path(__file__).resolve().parent.parent.parent.parent
