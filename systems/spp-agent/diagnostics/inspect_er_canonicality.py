@@ -27,7 +27,10 @@ DATASET_GT = {
         "drug":        ("Data/Med/drug.csv",        "generic_name"),
         "disease":     ("Data/Med/disease.csv",     "disease_name"),
         "institution": ("Data/Med/institution.csv", "institution_name"),
-    }
+    },
+    "Finan": {
+        "finance":     ("Data/Finan/Finan.csv",     "company_name"),
+    },
 }
 
 
