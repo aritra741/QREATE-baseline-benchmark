@@ -18,7 +18,11 @@ from pathlib import Path
 
 import pandas as pd
 
+from data.dataset_registry import results_dir_for_dataset
+from data.slice_extraction_cache import slice_extraction_cache_path
+
 # ── config ────────────────────────────────────────────────────────────────────
+# GT paths are relative to the repo root (two levels above systems/spp-agent)
 DATASET_GT = {
     "Med": {
         "drug":        ("Data/Med/drug.csv",        "generic_name"),
@@ -26,9 +30,6 @@ DATASET_GT = {
         "institution": ("Data/Med/institution.csv", "institution_name"),
     }
 }
-
-# Where test_config_grid writes slice caches
-CACHE_ROOT = Path("results")
 
 
 def _load_gt_names(gt_path: Path, col: str) -> set[str]:
@@ -60,14 +61,14 @@ def _load_extracted_names(cache_path: Path, table: str, col: str) -> list[str]:
 def _analyse(
     dataset: str,
     slice_name: str,
-    repo_root: Path,
 ) -> None:
     gt_specs = DATASET_GT.get(dataset)
     if gt_specs is None:
         print(f"No GT spec for dataset '{dataset}'. Available: {list(DATASET_GT)}")
         return
 
-    cache_path = repo_root / CACHE_ROOT / dataset / "slice_extraction_cache" / f"{slice_name}.json"
+    results_dir = results_dir_for_dataset(dataset)
+    cache_path = slice_extraction_cache_path(results_dir, slice_name)
     if not cache_path.exists():
         print(f"Cache not found: {cache_path}")
         print("Run test_config_grid first so extraction is cached.")
@@ -79,6 +80,8 @@ def _analyse(
     print(f"{'='*70}")
 
     for table, (gt_rel, key_col) in gt_specs.items():
+        # GT CSVs live two directories above systems/spp-agent (i.e., the repo root)
+        repo_root = Path(__file__).resolve().parent.parent.parent.parent
         gt_path = repo_root / gt_rel
         if not gt_path.exists():
             print(f"\n[{table}] GT file not found: {gt_path}")
@@ -130,12 +133,7 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    # Walk up from this file to find the repo root (contains systems/)
-    here = Path(__file__).resolve().parent
-    # diagnostics/ -> spp-agent/ -> systems/ -> repo root
-    repo_root = here.parent.parent.parent
-
-    _analyse(args.dataset, args.slice, repo_root)
+    _analyse(args.dataset, args.slice)
 
 
 if __name__ == "__main__":
