@@ -39,28 +39,32 @@ def _load_per_config(output_dir: Path) -> dict:
     )
 
 
-def _load_leaderboard(output_dir: Path) -> dict:
-    leaderboard_path = output_dir / "config_leaderboard.json"
-    if leaderboard_path.is_file():
-        return json.loads(leaderboard_path.read_text(encoding="utf-8"))
-
-    per_config = _load_per_config(output_dir)
+def _load_query_ids(output_dir: Path, per_config: dict) -> list[str] | None:
     manifest_path = output_dir / "manifest.json"
-    query_ids = None
-    if manifest_path.is_file():
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        n_queries = int(manifest.get("n_test_queries") or 0)
-        if n_queries:
-            query_ids = []
-            for entry in per_config.values():
-                for row in entry.get("per_query") or []:
-                    qid = str(row.get("query_id", ""))
-                    if qid and qid not in query_ids:
-                        query_ids.append(qid)
-                if len(query_ids) >= n_queries:
-                    break
-            query_ids = sorted(query_ids)[:n_queries] if query_ids else None
+    if not manifest_path.is_file():
+        return None
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    n_queries = int(manifest.get("n_test_queries") or 0)
+    if not n_queries:
+        return None
+    query_ids: list[str] = []
+    for entry in per_config.values():
+        for row in entry.get("per_query") or []:
+            qid = str(row.get("query_id", ""))
+            if qid and qid not in query_ids:
+                query_ids.append(qid)
+    return sorted(query_ids)[:n_queries] if query_ids else None
 
+
+def _load_leaderboard(output_dir: Path) -> dict:
+    """Always rebuild leaderboard from per_config raw scores.
+
+    Loading cached config_leaderboard.json is intentionally avoided because
+    the cached version may pre-date the fractional-wins logic and will produce
+    incorrect dimension counts (missing win_share_per_config field).
+    """
+    per_config = _load_per_config(output_dir)
+    query_ids = _load_query_ids(output_dir, per_config)
     return build_config_leaderboard(per_config, query_ids=query_ids)
 
 
