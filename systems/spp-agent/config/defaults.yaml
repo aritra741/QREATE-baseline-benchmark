@@ -61,7 +61,28 @@ extraction:
   workload_aware: true
 
 datasets:
-  pilot: ["Player", "Med"]
+  pilot: ["Player", "Med", "Finan"]
+
+  Finan:
+    corpus_path: source_data/Finance/finance
+    table_filter: ["finance"]
+    workload_slices:
+      - agg_only
+      - agg_filter
+    num_docs: 20
+    num_probe_configs: 8
+    num_judge_pairs: 14
+    num_eval_queries: 3
+    min_queries_per_slice: 2
+    budget_levels: [1, 2]
+    workload_split:
+      train_per_slice: 20
+      dev_per_slice: 5
+      test_per_slice: 5
+      min_train_total: 60
+    source_phase0: phase0_reward_table_Finan.json
+    output_file: phase1_comparison_Finan_agg_only.json
+    probe_context_cache: phase1_Finan_agg_only_probe_context.json
 
   Med:
     table_filter: ["disease", "drug", "institution"]
@@ -90,6 +111,7 @@ preprocessing:
   Med: "whole_doc"
   Legal: "whole_doc"
   Finan: "whole_doc"
+  Finance: "whole_doc"
 
 probing:
   num_probe_configs: 12

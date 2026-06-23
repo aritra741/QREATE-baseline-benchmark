@@ -13,20 +13,38 @@ def _benchu_root() -> Path:
 
 
 def _corpus_dir(dataset_name: str) -> Path:
+    from data.dataset_registry import normalize_dataset_name
+
     root = _benchu_root()
+    ds_key = normalize_dataset_name(dataset_name)
+
+    # Check dataset-specific corpus_path from config first
+    from utils.config import load_config
+    cfg = load_config()
+    ds_block = cfg.get("datasets", {}).get(ds_key, {})
+    if isinstance(ds_block, dict) and ds_block.get("corpus_path"):
+        configured = root / ds_block["corpus_path"]
+        if configured.is_dir():
+            return configured
+
     synthetic = root / "source_data" / f"Synthetic{dataset_name}"
     if synthetic.is_dir():
         return synthetic
-    if dataset_name == "Med":
+    if ds_key == "Med":
         healthcare = root / "source_data" / "Healthcare"
         if healthcare.is_dir():
             return healthcare
+    if ds_key == "Finan":
+        finance = root / "source_data" / "Finance" / "finance"
+        if finance.is_dir():
+            return finance
     data_dir = root / "Data" / dataset_name
     if data_dir.is_dir():
         return data_dir
     raise FileNotFoundError(
         f"Corpus directory not found for dataset {dataset_name}. "
-        f"Expected {synthetic}, source_data/Healthcare/ (Med), or text files under {data_dir}."
+        f"Expected {synthetic}, source_data/Healthcare/ (Med), "
+        f"source_data/Finance/finance/ (Finan), or text files under {data_dir}."
     )
 
 
@@ -51,12 +69,19 @@ def load_corpus(dataset_name: str) -> list[dict]:
 
     from data.dataset_registry import corpus_folder_to_table, normalize_dataset_name
 
+    from data.dataset_registry import FINAN_DATASET, FINAN_SQL_TABLE
+
     dataset_key = normalize_dataset_name(dataset_name)
     for path in txt_files:
         text = path.read_text(encoding="utf-8", errors="replace")
         rel = path.relative_to(corpus_root)
-        folder = rel.parts[0] if len(rel.parts) > 1 else "unknown"
-        table_hint = corpus_folder_to_table(dataset_key, folder)
+        folder = rel.parts[0] if len(rel.parts) > 1 else path.stem
+        mapped = corpus_folder_to_table(dataset_key, folder)
+        # For flat single-table corpora (e.g. Finan), all docs belong to one table
+        if mapped in ("unknown", folder) and dataset_key == FINAN_DATASET:
+            table_hint = FINAN_SQL_TABLE
+        else:
+            table_hint = mapped
         docs.append(
             {
                 "doc_id": str(rel.with_suffix("")),
@@ -64,7 +89,7 @@ def load_corpus(dataset_name: str) -> list[dict]:
                 "metadata": {
                     "file_name": path.name,
                     "table_hint": table_hint,
-                    "corpus_folder": folder,
+                    "corpus_folder": folder if folder != path.stem else table_hint,
                     "source_path": str(path),
                 },
             }
@@ -213,7 +238,14 @@ def load_ground_truth(dataset_name: str) -> dict[str, pd.DataFrame]:
     if not csv_files:
         raise FileNotFoundError(f"No ground-truth CSV tables found in {gt_dir}")
 
+    from data.dataset_registry import normalize_dataset_name, corpus_folder_to_table
+
+    ds_key = normalize_dataset_name(dataset_name)
     tables: dict[str, pd.DataFrame] = {}
     for csv_path in csv_files:
-        tables[csv_path.stem] = pd.read_csv(csv_path)
+        stem = csv_path.stem
+        # Normalise GT table name to match what SQL queries use.
+        # e.g. Finan.csv -> "Finan" but queries say "finance"
+        canonical = corpus_folder_to_table(ds_key, stem.lower()) or stem
+        tables[canonical] = pd.read_csv(csv_path)
     return tables

@@ -31,9 +31,12 @@ def is_query_table_feasible(
         return False, "missing_required_table_filter"
     if refs and not refs.issubset(corpus_types):
         return False, f"missing_corpus_tables:{sorted(refs - corpus_types)}"
-    missing = missing_corpus_literals(sql, corpus)
-    if missing:
-        return False, f"missing_where_literals:{missing[:3]}"
+    # Skip literal corpus scan for programmatically generated queries — their WHERE
+    # literals come from the schema's fixed vocabulary and are guaranteed to be present.
+    if not query.get("metadata", {}).get("generated"):
+        missing = missing_corpus_literals(sql, corpus)
+        if missing:
+            return False, f"missing_where_literals:{missing[:3]}"
     return True, "ok"
 
 

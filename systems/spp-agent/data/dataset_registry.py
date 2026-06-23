@@ -10,6 +10,7 @@ from utils.config import load_config
 
 MED_DATASET = "Med"
 PLAYER_DATASET = "Player"
+FINAN_DATASET = "Finan"
 
 # Healthcare corpus folders -> SQL / ground-truth table names.
 MED_CORPUS_FOLDER_TO_TABLE: dict[str, str] = {
@@ -24,6 +25,22 @@ MED_TABLE_TO_CORPUS_FOLDER: dict[str, str] = {
 
 SUPPORTED_MULTI_TABLE_DATASETS = frozenset({PLAYER_DATASET, MED_DATASET})
 
+# Finan is a single-table dataset — one corpus folder maps to one table.
+# The GT CSV is named "Finan.csv" so the GT table is "Finan", but SQL queries
+# reference "finance". Both names map to the same table.
+FINAN_CORPUS_FOLDER_TO_TABLE: dict[str, str] = {
+    "finance": "finance",
+    "finan": "finance",
+}
+FINAN_TABLE_TO_CORPUS_FOLDER: dict[str, str] = {
+    "finance": "finance",
+    "finan": "finance",
+}
+# Canonical SQL table name for Finan (used in queries)
+FINAN_SQL_TABLE = "finance"
+# GT CSV stem name
+FINAN_GT_TABLE = "Finan"
+
 
 def normalize_dataset_name(name: str) -> str:
     aliases = {
@@ -31,20 +48,29 @@ def normalize_dataset_name(name: str) -> str:
         "medical": MED_DATASET,
         "healthcare": MED_DATASET,
         "player": PLAYER_DATASET,
+        "finan": FINAN_DATASET,
+        "finance": FINAN_DATASET,
+        "financial": FINAN_DATASET,
     }
     key = (name or PLAYER_DATASET).strip()
     return aliases.get(key.lower(), key)
 
 
 def corpus_folder_to_table(dataset: str, folder: str) -> str:
-    if normalize_dataset_name(dataset) == MED_DATASET:
+    ds = normalize_dataset_name(dataset)
+    if ds == MED_DATASET:
         return MED_CORPUS_FOLDER_TO_TABLE.get(folder.lower(), folder.lower())
+    if ds == FINAN_DATASET:
+        return FINAN_CORPUS_FOLDER_TO_TABLE.get(folder.lower(), folder.lower())
     return folder.lower()
 
 
 def table_to_corpus_folder(dataset: str, table: str) -> str:
-    if normalize_dataset_name(dataset) == MED_DATASET:
+    ds = normalize_dataset_name(dataset)
+    if ds == MED_DATASET:
         return MED_TABLE_TO_CORPUS_FOLDER.get(table.lower(), table.lower())
+    if ds == FINAN_DATASET:
+        return FINAN_TABLE_TO_CORPUS_FOLDER.get(table.lower(), table.lower())
     return table.lower()
 
 
@@ -71,6 +97,8 @@ def default_table_filter(dataset: str) -> set[str]:
     phase0 = cfg.get("phase0", {})
     if dataset == MED_DATASET:
         return set(phase0.get("med_table_filter", ["disease", "drug", "institution"]))
+    if dataset == FINAN_DATASET:
+        return {"finance"}
     return set(phase0.get("table_filter", ["player"]))
 
 
