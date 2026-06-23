@@ -1372,7 +1372,7 @@ def build_workload_category_error_report(
 
 def _leaderboard_rows_from_win_counts(
     per_config: dict[str, Any],
-    win_counts: dict[str, int],
+    win_counts: dict[str, float],
     *,
     n_queries: int,
     config_mean_error: dict[str, float | None],
@@ -1381,8 +1381,12 @@ def _leaderboard_rows_from_win_counts(
         [
             {
                 "config_id": config_id,
-                "wins": win_counts.get(config_id, 0),
-                "win_rate": float(win_counts.get(config_id, 0)) / n_queries if n_queries else 0.0,
+                "wins": round(float(win_counts.get(config_id, 0.0)), 4),
+                "win_rate": (
+                    round(float(win_counts.get(config_id, 0.0)) / n_queries, 6)
+                    if n_queries
+                    else 0.0
+                ),
                 "mean_query_error": config_mean_error.get(config_id),
                 "mean_query_accuracy": (
                     None
@@ -1393,7 +1397,7 @@ def _leaderboard_rows_from_win_counts(
             for config_id in per_config
         ],
         key=lambda row: (
-            -int(row["wins"]),
+            -float(row["wins"]),
             float(row["mean_query_error"] if row["mean_query_error"] is not None else float("inf")),
             str(row["config_id"]),
         ),
@@ -1404,8 +1408,15 @@ def _winners_for_query_subset(
     query_scores: dict[str, dict[str, float]],
     query_ids: list[str],
     query_slices: dict[str, str],
-) -> tuple[dict[str, int], list[dict[str, Any]]]:
-    win_counts: dict[str, int] = defaultdict(int)
+) -> tuple[dict[str, float], list[dict[str, Any]]]:
+    """Return fractional win counts and per-query winner records.
+
+    When multiple configs tie for the lowest query_error on a query, each tied
+    config receives 1/n_tied of a win rather than giving all credit to the
+    alphabetically first config.  This removes alphabetical tie-break bias and
+    makes the wins column a true measure of how often each config is optimal.
+    """
+    win_counts: dict[str, float] = defaultdict(float)
     per_query_winners: list[dict[str, Any]] = []
 
     for qid in sorted(query_ids):
@@ -1414,16 +1425,20 @@ def _winners_for_query_subset(
             continue
         best_error = min(scores.values())
         tied = sorted(cid for cid, err in scores.items() if err == best_error)
-        winner = tied[0]
-        win_counts[winner] += 1
+        share = 1.0 / len(tied)
+        for cid in tied:
+            win_counts[cid] += share
         per_query_winners.append(
             {
                 "query_id": qid,
                 "query_type": query_slices.get(qid, "unknown"),
-                "best_config_id": winner,
+                # best_config_id is still reported for reference (alphabetically first
+                # tied config), but wins are shared fractionally across all tied configs.
+                "best_config_id": tied[0],
                 "best_query_error": best_error,
                 "n_tied_at_best": len(tied),
-                "tied_config_ids": tied if len(tied) > 1 else None,
+                "tied_config_ids": tied,
+                "win_share_per_config": share,
             }
         )
 
@@ -1523,7 +1538,10 @@ def build_config_leaderboard(
     return {
         "metric": "group_by_category_error",
         "report_type": "config_leaderboard",
-        "scoring_rule": "lowest query_error per query wins; ties broken by config_id",
+        "scoring_rule": (
+            "fractional wins: each tied config at lowest query_error gets 1/n_tied of a win; "
+            "leaderboard sorted by wins desc then mean_query_error asc"
+        ),
         "n_queries": n_queries,
         "n_configs": len(per_config),
         "per_query_winners": per_query_winners,
@@ -1550,13 +1568,14 @@ def format_config_leaderboard(
     lines.append(f"Rule: {leaderboard_report.get('scoring_rule')}")
     lines.append("")
     lines.append("Overall:")
-    lines.append(f"{'wins':>5}  {'win%':>6}  {'mean_err':>10}  config_id")
+    lines.append(f"{'wins':>7}  {'win%':>6}  {'mean_err':>10}  config_id")
     for row in (leaderboard_report.get("leaderboard") or [])[:top_n]:
-        wins = int(row.get("wins") or 0)
+        wins = float(row.get("wins") or 0.0)
         win_rate = float(row.get("win_rate") or 0.0)
         mean_err = row.get("mean_query_error")
         mean_err_s = f"{float(mean_err):.4f}" if mean_err is not None else "n/a"
-        lines.append(f"{wins:5d}  {win_rate:6.1%}  {mean_err_s:>10}  {row.get('config_id')}")
+        wins_s = f"{wins:.2f}" if wins != int(wins) else f"{int(wins)}"
+        lines.append(f"{wins_s:>7}  {win_rate:6.1%}  {mean_err_s:>10}  {row.get('config_id')}")
     if len(leaderboard_report.get("leaderboard") or []) > top_n:
         lines.append(f"... ({len(leaderboard_report['leaderboard']) - top_n} more configs in JSON)")
 
@@ -1568,14 +1587,15 @@ def format_config_leaderboard(
             n_slice = int(slice_report.get("n_queries") or 0)
             lines.append("")
             lines.append(f"  [{slice_name}] {n_slice} queries")
-            lines.append(f"  {'wins':>5}  {'win%':>6}  {'mean_err':>10}  config_id")
+            lines.append(f"  {'wins':>7}  {'win%':>6}  {'mean_err':>10}  config_id")
             for row in (slice_report.get("leaderboard") or [])[:top_n_per_query_type]:
-                wins = int(row.get("wins") or 0)
+                wins = float(row.get("wins") or 0.0)
                 win_rate = float(row.get("win_rate") or 0.0)
                 mean_err = row.get("mean_query_error")
                 mean_err_s = f"{float(mean_err):.4f}" if mean_err is not None else "n/a"
+                wins_s = f"{wins:.2f}" if wins != int(wins) else f"{int(wins)}"
                 lines.append(
-                    f"  {wins:5d}  {win_rate:6.1%}  {mean_err_s:>10}  {row.get('config_id')}"
+                    f"  {wins_s:>7}  {win_rate:6.1%}  {mean_err_s:>10}  {row.get('config_id')}"
                 )
             rest = len(slice_report.get("leaderboard") or []) - top_n_per_query_type
             if rest > 0:
@@ -1594,23 +1614,29 @@ CONFIG_DIMENSION_FIELDS: tuple[tuple[str, str], ...] = (
 )
 
 
-def _dimension_value_counts(per_query_winners: list[dict[str, Any]]) -> dict[str, dict[str, int]]:
-    from collections import Counter
+def _dimension_value_counts(per_query_winners: list[dict[str, Any]]) -> dict[str, dict[str, float]]:
+    """Count fractional wins per dimension value across all tied configs.
+
+    Each tied config receives win_share_per_config (= 1/n_tied) of a win so
+    the total across all values in a dimension equals the number of queries.
+    """
+    from collections import defaultdict
 
     from optimizer.config_space import parse_config_id
 
-    counters: dict[str, Counter[str]] = {dim: Counter() for dim, _ in CONFIG_DIMENSION_FIELDS}
+    counters: dict[str, dict[str, float]] = {dim: defaultdict(float) for dim, _ in CONFIG_DIMENSION_FIELDS}
     for row in per_query_winners:
-        config_id = str(row.get("best_config_id") or "")
-        if not config_id:
-            continue
-        cfg = parse_config_id(config_id)
-        for dim, field in CONFIG_DIMENSION_FIELDS:
-            counters[dim][str(getattr(cfg, field))] += 1
+        share = float(row.get("win_share_per_config") or 1.0)
+        for config_id in row.get("tied_config_ids") or [str(row.get("best_config_id") or "")]:
+            if not config_id:
+                continue
+            cfg = parse_config_id(config_id)
+            for dim, field in CONFIG_DIMENSION_FIELDS:
+                counters[dim][str(getattr(cfg, field))] += share
 
-    out: dict[str, dict[str, int]] = {}
+    out: dict[str, dict[str, float]] = {}
     for dim, counter in counters.items():
-        positive = {value: count for value, count in counter.items() if count > 0}
+        positive = {value: round(count, 4) for value, count in counter.items() if count > 0}
         out[dim] = dict(sorted(positive.items(), key=lambda kv: (-kv[1], kv[0])))
     return out
 
@@ -1740,11 +1766,16 @@ def analyze_viable_config_search_space(
     *,
     full_config_space_size: int | None = None,
 ) -> dict[str, Any]:
-    """
-    Identify configs that ever win at least one query vs configs that never win.
+    """Identify which configs are ever tied-best on at least one query.
 
-    Configs with zero wins across all scored queries are candidates for pruning
-    from search; they never achieve the lowest query_error on any query.
+    Uses the tied_config_ids from per_query_winners so that configs are counted
+    as 'viable' whenever they achieve the lowest query_error on a query — even
+    if they share that position with other configs.  This avoids the misleading
+    result where alphabetical tie-breaking makes 286/288 configs look 'prunable'
+    when they are actually tied-best.
+
+    A config is 'never optimal' only if it never achieves the minimum error on
+    any query, regardless of ties.
     """
     if full_config_space_size is None:
         from optimizer.config_space import generate_config_space
@@ -1755,28 +1786,39 @@ def analyze_viable_config_search_space(
     n_evaluated = len(leaderboard)
     n_queries = int(leaderboard_report.get("n_queries") or 0)
 
-    ever_winning = [row for row in leaderboard if int(row.get("wins") or 0) > 0]
-    never_winning = [row for row in leaderboard if int(row.get("wins") or 0) == 0]
+    # Collect which configs ever appear in the tied-best set for any query
+    ever_optimal_ids: set[str] = set()
+    for row in leaderboard_report.get("per_query_winners") or []:
+        for cid in row.get("tied_config_ids") or [str(row.get("best_config_id") or "")]:
+            if cid:
+                ever_optimal_ids.add(cid)
+
+    ever_winning = [row for row in leaderboard if str(row["config_id"]) in ever_optimal_ids]
+    never_winning = [row for row in leaderboard if str(row["config_id"]) not in ever_optimal_ids]
 
     by_query_type: dict[str, dict[str, Any]] = {}
     union_ever_winning: set[str] = set()
     for slice_name, slice_report in (leaderboard_report.get("by_query_type") or {}).items():
+        slice_optimal: set[str] = set()
+        for row in slice_report.get("per_query_winners") or []:
+            for cid in row.get("tied_config_ids") or [str(row.get("best_config_id") or "")]:
+                if cid:
+                    slice_optimal.add(cid)
+        union_ever_winning.update(slice_optimal)
         slice_leaderboard = list(slice_report.get("leaderboard") or [])
-        slice_ever = [row for row in slice_leaderboard if int(row.get("wins") or 0) > 0]
-        slice_never = [row for row in slice_leaderboard if int(row.get("wins") or 0) == 0]
-        ever_ids = sorted(str(row["config_id"]) for row in slice_ever)
-        union_ever_winning.update(ever_ids)
+        slice_ever = [row for row in slice_leaderboard if str(row["config_id"]) in slice_optimal]
+        slice_never = [row for row in slice_leaderboard if str(row["config_id"]) not in slice_optimal]
         by_query_type[slice_name] = {
             "query_type": slice_name,
             "n_queries": int(slice_report.get("n_queries") or 0),
             "n_evaluated_configs": len(slice_leaderboard),
-            "n_ever_winning": len(slice_ever),
-            "n_never_winning": len(slice_never),
-            "ever_winning_fraction_of_evaluated": (
+            "n_ever_optimal": len(slice_ever),
+            "n_never_optimal": len(slice_never),
+            "ever_optimal_fraction_of_evaluated": (
                 float(len(slice_ever)) / len(slice_leaderboard) if slice_leaderboard else 0.0
             ),
-            "ever_winning_config_ids": ever_ids,
-            "never_winning_config_ids": sorted(str(row["config_id"]) for row in slice_never),
+            "ever_optimal_config_ids": sorted(str(row["config_id"]) for row in slice_ever),
+            "never_optimal_config_ids": sorted(str(row["config_id"]) for row in slice_never),
         }
 
     n_ever_global = len(ever_winning)
@@ -1786,35 +1828,36 @@ def analyze_viable_config_search_space(
     return {
         "report_type": "viable_config_search_space",
         "scoring_rule": leaderboard_report.get("scoring_rule"),
+        "tie_handling": "configs are ever_optimal if they appear in the tied-best set for any query",
         "full_config_space_size": full_config_space_size,
         "n_evaluated_configs": n_evaluated,
         "n_unevaluated_configs": n_unevaluated,
         "n_queries": n_queries,
-        "n_ever_winning": n_ever_global,
-        "n_never_winning": n_never_global,
-        "ever_winning_fraction_of_evaluated": (
+        "n_ever_optimal": n_ever_global,
+        "n_never_optimal": n_never_global,
+        "ever_optimal_fraction_of_evaluated": (
             float(n_ever_global) / n_evaluated if n_evaluated else 0.0
         ),
-        "never_winning_fraction_of_evaluated": (
+        "never_optimal_fraction_of_evaluated": (
             float(n_never_global) / n_evaluated if n_evaluated else 0.0
         ),
-        "ever_winning_fraction_of_full_space": (
+        "ever_optimal_fraction_of_full_space": (
             float(n_ever_global) / full_config_space_size if full_config_space_size else 0.0
         ),
-        "never_winning_fraction_of_full_space": (
+        "never_optimal_fraction_of_full_space": (
             float(n_never_global) / full_config_space_size if full_config_space_size else 0.0
         ),
-        "n_ever_winning_union_across_slices": len(union_ever_winning),
-        "ever_winning_union_fraction_of_evaluated": (
+        "n_ever_optimal_union_across_slices": len(union_ever_winning),
+        "ever_optimal_union_fraction_of_evaluated": (
             float(len(union_ever_winning)) / n_evaluated if n_evaluated else 0.0
         ),
-        "ever_winning_config_ids": sorted(str(row["config_id"]) for row in ever_winning),
-        "never_winning_config_ids": sorted(str(row["config_id"]) for row in never_winning),
-        "ever_winning_union_across_slices_config_ids": sorted(union_ever_winning),
+        "ever_optimal_config_ids": sorted(str(row["config_id"]) for row in ever_winning),
+        "never_optimal_config_ids": sorted(str(row["config_id"]) for row in never_winning),
+        "ever_optimal_union_across_slices_config_ids": sorted(union_ever_winning),
         "by_query_type": by_query_type,
         "pruning_note": (
-            "never_winning_config_ids never achieve the lowest query_error on any scored query "
-            "in this evaluation and are safe to drop from search under the same scoring rule."
+            "never_optimal_config_ids never appear in the tied-best set for any scored query "
+            "and are safe to deprioritize in search under the same scoring rule."
         ),
     }
 
@@ -1874,25 +1917,26 @@ def format_viable_config_search_space(report: dict[str, Any]) -> str:
     lines.append("=" * 72)
     lines.append("VIABLE CONFIG SEARCH SPACE")
     lines.append("=" * 72)
+    lines.append(f"Tie handling: {report.get('tie_handling', 'tied-best set membership')}")
     full = int(report.get("full_config_space_size") or 0)
     evaluated = int(report.get("n_evaluated_configs") or 0)
-    ever = int(report.get("n_ever_winning") or 0)
-    never = int(report.get("n_never_winning") or 0)
-    union = int(report.get("n_ever_winning_union_across_slices") or 0)
+    ever = int(report.get("n_ever_optimal") or 0)
+    never = int(report.get("n_never_optimal") or 0)
+    union = int(report.get("n_ever_optimal_union_across_slices") or 0)
     lines.append(f"Full config space: {full}")
     lines.append(f"Evaluated in grid: {evaluated}")
     lines.append(
-        f"Ever win at least one query (overall): {ever} "
-        f"({float(report.get('ever_winning_fraction_of_evaluated') or 0):.1%} of evaluated, "
-        f"{float(report.get('ever_winning_fraction_of_full_space') or 0):.1%} of full space)"
+        f"Ever tied-best on ≥1 query (overall): {ever} "
+        f"({float(report.get('ever_optimal_fraction_of_evaluated') or 0):.1%} of evaluated, "
+        f"{float(report.get('ever_optimal_fraction_of_full_space') or 0):.1%} of full space)"
     )
     lines.append(
-        f"Never win any query (prunable): {never} "
-        f"({float(report.get('never_winning_fraction_of_evaluated') or 0):.1%} of evaluated)"
+        f"Never optimal on any query: {never} "
+        f"({float(report.get('never_optimal_fraction_of_evaluated') or 0):.1%} of evaluated)"
     )
     lines.append(
-        f"Ever win in at least one slice (union): {union} "
-        f"({float(report.get('ever_winning_union_fraction_of_evaluated') or 0):.1%} of evaluated)"
+        f"Ever optimal in ≥1 slice (union): {union} "
+        f"({float(report.get('ever_optimal_union_fraction_of_evaluated') or 0):.1%} of evaluated)"
     )
     lines.append("")
     lines.append(str(report.get("pruning_note") or ""))
