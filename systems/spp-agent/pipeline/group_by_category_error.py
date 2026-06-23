@@ -1870,22 +1870,119 @@ def write_viable_config_search_space(payload: dict[str, Any], path) -> None:
     out.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+def save_config_wins_histogram(
+    leaderboard_report: dict[str, Any],
+    output_path,
+    *,
+    scope: str = "overall",
+    top_n: int = 30,
+    min_wins: float = 0.0,
+) -> str | None:
+    """Bar chart: fractional wins per config, sorted descending.
+
+    Shows only configs with wins > min_wins (default: all configs with any wins).
+    Configs are labelled by a short hash of their config_id to keep x-axis readable;
+    full config_ids are printed in the legend / title tooltip.
+    """
+    from pathlib import Path
+
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    leaderboard = list(leaderboard_report.get("leaderboard") or [])
+    # Filter and sort
+    rows = sorted(
+        [r for r in leaderboard if float(r.get("wins") or 0) > min_wins],
+        key=lambda r: -float(r.get("wins") or 0),
+    )[:top_n]
+
+    if not rows:
+        return None
+
+    labels = [str(r["config_id"]) for r in rows]
+    wins = [float(r.get("wins") or 0) for r in rows]
+    mean_errs = [
+        float(r["mean_query_error"]) if r.get("mean_query_error") is not None else float("nan")
+        for r in rows
+    ]
+
+    # Shorten labels: keep only values (strip keys like "er=", "norm=", …)
+    short_labels = [
+        "|".join(v.split("=", 1)[1] if "=" in v else v for v in lbl.split("|"))
+        for lbl in labels
+    ]
+
+    fig, ax = plt.subplots(figsize=(max(10, len(rows) * 0.55), 6))
+    bars = ax.bar(range(len(rows)), wins, color="#4C78A8", edgecolor="white")
+    ax.set_xticks(range(len(rows)))
+    ax.set_xticklabels(short_labels, rotation=45, ha="right", fontsize=7)
+    ax.set_ylabel("Fractional wins (sum = n_queries for ties)")
+    ax.set_title(
+        f"Config wins — {scope} "
+        f"({leaderboard_report.get('n_queries')} queries, "
+        f"{leaderboard_report.get('n_configs')} configs evaluated)"
+    )
+    ax.set_ylim(bottom=0)
+    for bar, w in zip(bars, wins):
+        label = f"{w:.2f}" if w != int(w) else str(int(w))
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            bar.get_height() + 0.02,
+            label,
+            ha="center",
+            va="bottom",
+            fontsize=7,
+        )
+    fig.tight_layout()
+    out = Path(output_path)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out, dpi=150)
+    plt.close(fig)
+    return str(out.resolve())
+
+
 def build_and_write_config_winner_analysis(
     leaderboard_report: dict[str, Any],
     output_dir,
 ) -> dict[str, Any]:
+    from pathlib import Path
+
+    root = Path(output_dir)
+
     histograms = build_config_winner_dimension_histograms(leaderboard_report)
     histogram_payload = write_config_winner_dimension_histograms(histograms, output_dir)
     viability = analyze_viable_config_search_space(leaderboard_report)
-    from pathlib import Path
-
     write_viable_config_search_space(
         viability,
-        Path(output_dir) / "viable_config_search_space.json",
+        root / "viable_config_search_space.json",
     )
+
+    # Per-config wins histogram (overall + per slice)
+    wins_chart_paths: dict[str, str | None] = {}
+    wins_chart_paths["overall"] = save_config_wins_histogram(
+        leaderboard_report,
+        root / "config_wins_overall.png",
+        scope="overall",
+    )
+    for slice_name, slice_report in (leaderboard_report.get("by_query_type") or {}).items():
+        # Build a minimal leaderboard_report-shaped dict for the slice
+        slice_lb_report = {
+            "leaderboard": slice_report.get("leaderboard"),
+            "n_queries": slice_report.get("n_queries"),
+            "n_configs": leaderboard_report.get("n_configs"),
+        }
+        wins_chart_paths[slice_name] = save_config_wins_histogram(
+            slice_lb_report,
+            root / f"config_wins_{slice_name}.png",
+            scope=slice_name,
+        )
+
     return {
         "dimension_histograms": histogram_payload,
         "viable_search_space": viability,
+        "config_wins_charts": wins_chart_paths,
     }
 
 

@@ -1122,6 +1122,10 @@ def main() -> None:
         print(f"Viable search space: {_viable_config_search_space_path(output_dir)}")
         if dim_payload.get("charts_dir"):
             print(f"Winner dimension charts: {dim_payload['charts_dir']}")
+        wins_charts = results["config_winner_analysis"].get("config_wins_charts") or {}
+        for scope, path in wins_charts.items():
+            if path:
+                print(f"Config wins chart [{scope}]: {path}")
     if results.get("category_error_audit"):
         print(f"Category error audit summary: {_category_error_audit_summary_path(output_dir)}")
     if summary.get("best_config_id") and summary.get("best_mean_macro_f1") is not None:

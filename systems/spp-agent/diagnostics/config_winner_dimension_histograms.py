@@ -91,9 +91,13 @@ def main() -> None:
     print()
     print(format_viable_config_search_space(analysis["viable_search_space"]))
     print()
-    print(f"Histogram JSON: {output_dir / 'config_winner_dimension_histograms.json'}")
-    print(f"Charts dir: {analysis['dimension_histograms'].get('charts_dir')}")
+    print(f"Dimension histogram JSON: {output_dir / 'config_winner_dimension_histograms.json'}")
+    print(f"Dimension charts dir: {analysis['dimension_histograms'].get('charts_dir')}")
     print(f"Viable search space: {output_dir / 'viable_config_search_space.json'}")
+    wins_charts = analysis.get("config_wins_charts") or {}
+    for scope, path in wins_charts.items():
+        if path:
+            print(f"Config wins chart [{scope}]: {path}")
 
 
 if __name__ == "__main__":
