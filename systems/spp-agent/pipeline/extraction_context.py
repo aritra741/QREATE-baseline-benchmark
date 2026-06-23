@@ -148,9 +148,11 @@ def entity_hint_from_doc(doc: dict) -> str:
         folder = doc_id.split("_")[0].lower()
     else:
         return ""
-    from data.dataset_registry import MED_CORPUS_FOLDER_TO_TABLE
+    from data.dataset_registry import corpus_folder_to_table
 
-    return MED_CORPUS_FOLDER_TO_TABLE.get(folder, folder)
+    # Use the generic folder→table mapping instead of hardcoding Med's map.
+    # Falls back to the raw folder string if no mapping is registered for this dataset.
+    return corpus_folder_to_table("", folder)
 
 
 def demand_columns_for_entity(demand_profile: dict[str, Any], entity_hint: str) -> list[dict[str, Any]]:
@@ -286,7 +288,9 @@ def align_tuples_to_schema(
 
     aligned: dict[str, list[dict]] = {table: [] for table in schema.tables}
     schema_tables = {t.lower(): t for t in schema.tables}
-    dataset = getattr(schema, "dataset_name", "Player")
+    # Never default to "Player" — use an empty string so corpus_folder_to_table
+    # falls back to the raw folder name rather than silently applying Player mappings.
+    dataset = getattr(schema, "dataset_name", "") or ""
 
     for raw_table, rows in parsed.items():
         raw_lower = str(raw_table).lower()

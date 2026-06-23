@@ -120,9 +120,8 @@ def _run_gold_sql(instance, sql: str) -> pd.DataFrame:
         gt = load_ground_truth(instance.dataset_name)
         restricted = restrict_ground_truth_tables(gt, instance.corpus)
         logger.debug(
-            "Gold SQL on corpus-restricted GT (n_player_rows=%d, sampled_ids=%d)",
-            len(restricted.get("player", [])),
-            len((instance.metadata or {}).get("sampled_player_ids", [])),
+            "Gold SQL on corpus-restricted GT (rows_by_table=%s)",
+            {t: len(df) for t, df in restricted.items()},
         )
         return _post_process_gold_df(execute_sql_on_db(restricted, sql), benchu_root)
 

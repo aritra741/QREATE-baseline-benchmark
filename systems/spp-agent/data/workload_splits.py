@@ -41,7 +41,7 @@ def build_expanded_query_pool(
     instance: Instance,
     *,
     corpus: list[dict],
-    dataset: str = "Player",
+    dataset: str = "",
 ) -> tuple[list[dict], list[dict]]:
     """Legacy + on-disk queries plus freshly generated candidates (Player and Med)."""
     dataset_key = normalize_dataset_name(dataset or instance.dataset_name)
@@ -157,7 +157,7 @@ def assign_slice_split(
 
 def create_train_dev_test_split(
     *,
-    dataset: str = "Player",
+    dataset: str = "",
     train_per_slice: int | None = None,
     dev_per_slice: int | None = None,
     test_per_slice: int | None = None,
@@ -273,7 +273,7 @@ def write_split_artifacts(
     write_sql: bool = True,
     dataset: str | None = None,
 ) -> dict[str, str]:
-    dataset_key = normalize_dataset_name(dataset or report.get("dataset", "Player"))
+    dataset_key = normalize_dataset_name(dataset or report.get("dataset") or "Player")
     results_dir.mkdir(parents=True, exist_ok=True)
     manifest_path = results_dir / "workload_split_manifest.json"
     payload = {
@@ -309,7 +309,7 @@ def write_split_artifacts(
 def load_split_manifest(
     manifest_path: Path | None = None,
     *,
-    dataset: str = "Player",
+    dataset: str = "",
 ) -> dict[str, Any]:
     cfg = load_config()
     if manifest_path is None:
@@ -323,14 +323,14 @@ def load_split_queries(
     split: str,
     *,
     results_dir: Path | None = None,
-    dataset: str = "Player",
+    dataset: str = "",
 ) -> list[dict]:
     root = results_dir or results_dir_for_dataset(dataset)
     path = root / f"workload_{split}.json"
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def filter_queries_to_split(queries: list[dict], split: str, *, dataset: str = "Player") -> list[dict]:
+def filter_queries_to_split(queries: list[dict], split: str, *, dataset: str = "") -> list[dict]:
     allowed = {q["query_id"] for q in load_split_queries(split, dataset=dataset)}
     return [q for q in queries if q.get("query_id") in allowed]
 

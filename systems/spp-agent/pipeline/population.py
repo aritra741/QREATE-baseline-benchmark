@@ -45,10 +45,15 @@ class PopulationDiagnostics:
 
 
 def _is_entity_column(col: str, dtype: str) -> bool:
-    if dtype != "str":
-        return False
-    name = col.lower()
-    return any(k in name for k in ("name", "team", "city", "owner", "college", "nationality", "location"))
+    """Return True for any string column — all string columns are candidates for ER.
+
+    The previous keyword-based heuristic (name/team/city/…) was Player-specific and
+    silently skipped ER on all Med columns such as prescription_status, manufacturer,
+    disease_type, administration_route, etc.  ER on non-entity columns is harmless
+    (the similarity threshold prevents spurious merges), while skipping it on real
+    entity columns breaks config differentiation entirely.
+    """
+    return dtype == "str"
 
 
 def _is_numeric_column_type(dtype: str) -> bool:

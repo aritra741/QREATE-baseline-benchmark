@@ -10,9 +10,11 @@ def stable_slice_seed(base_seed: int, slice_name: str) -> int:
     return base_seed + sum(ord(c) for c in slice_name) % 1000
 
 _AGG_FUNCS = ("count", "sum", "avg", "min", "max")
+# Kept for backwards compat but no longer used for binning (binning now uses schema-agnostic date regex)
 _TEMPORAL_COLS = frozenset(
     {"birth_date", "draft_year", "founded_year", "death_date", "own_year"}
 )
+_TEMPORAL_RE = re.compile(r"\b\w*(?:date|year|time)\w*\b")
 
 
 def normalize_sql(sql: str) -> str:
@@ -23,7 +25,9 @@ def normalize_sql(sql: str) -> str:
 
 def sql_signature(sql: str) -> str:
     norm = normalize_sql(sql)
-    tables = sorted(set(re.findall(r"\b(player|team|city|owner)\b", norm)))
+    # Parse all table names from FROM / JOIN clauses rather than using a hardcoded
+    # Player-specific list.  This works for any dataset schema.
+    tables = sorted(set(re.findall(r"(?:from|join)\s+(\w+)", norm)))
     group_cols = re.findall(r"group\s+by\s+([^;]+?)(?:\s+order\s+by|\s+limit|$)", norm)
     group_part = group_cols[0].strip() if group_cols else ""
     agg_exprs = re.findall(r"\b(count|sum|avg|min|max)\s*\(\s*([^)]*)\)", norm)
@@ -79,17 +83,20 @@ def _difficulty_bin(slice_name: str, sql: str) -> str:
         return f"{pred_type}|preds_{min(n_preds + 1, 4)}"
     if slice_name == "agg_join":
         n_joins = len(re.findall(r"\bjoin\b", norm))
-        tables = sorted(set(re.findall(r"\b(player|team|city)\b", norm)))
+        # Parse actual table names from FROM/JOIN instead of hardcoded Player names
+        tables = sorted(set(re.findall(r"(?:from|join)\s+(\w+)", norm)))
         return f"joins_{n_joins}|{'_'.join(tables)}"
     if slice_name == "agg_filter_join":
         n_joins = len(re.findall(r"\bjoin\b", norm))
         n_preds = len(re.findall(r"\b(and|or)\b", norm))
         return f"joins_{n_joins}|preds_{min(n_preds + 1, 4)}"
     if slice_name == "agg_temporal":
-        temporal_col = next((c for c in _TEMPORAL_COLS if c in norm), "year_expr")
-        has_range = bool(
-            re.search(r"birth_date\s*[<>]", norm) or re.search(r"draft_year\s*[<>]", norm)
+        # Find the first date/year-like column name present in the SQL (schema-agnostic)
+        temporal_col = next(
+            (m.group(0) for m in _TEMPORAL_RE.finditer(norm) if m.group(0) != "year"),
+            "year_expr",
         )
+        has_range = bool(re.search(rf"{re.escape(temporal_col)}\s*[<>]", norm))
         mode = "range" if has_range else "equality"
         return f"{temporal_col}|{mode}"
     return "default"

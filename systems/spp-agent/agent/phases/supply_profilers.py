@@ -105,6 +105,20 @@ def column_synonyms(column: str, schema: Schema) -> list[str]:
             if col.lower() == bare:
                 names.add(f"{table}.{col}".lower())
                 names.add(col.lower())
+    # Generic synonyms based on common column naming patterns
+    if "name" in bare:
+        names.update({"known as", "called", "named"})
+    if "date" in bare or "year" in bare:
+        names.update({"year", "date", "when"})
+    if "type" in bare or "kind" in bare or "category" in bare:
+        names.update({"type", "category", "kind", "class"})
+    if "status" in bare:
+        names.update({"status", "state", "condition"})
+    if "route" in bare or "administration" in bare:
+        names.update({"route", "administered", "given via", "taken by"})
+    if "manufacturer" in bare or "maker" in bare:
+        names.update({"manufacturer", "made by", "produced by", "company"})
+    # Player-specific synonyms (kept for backwards compat with Player dataset)
     if bare == "nationality":
         names.update({"national", "citizen", "born in", "demonym"})
     if bare in {"team", "team_name"}:
@@ -131,12 +145,20 @@ def column_kind(column: str, schema: Schema) -> str:
         next((c for c in schema.tables.get(table, []) if c.lower() == bare), bare), "str"
     ) in {"int", "float", "numeric"}:
         return "numeric"
+    # Date/temporal columns — generic pattern
+    if any(k in bare for k in ("date", "birth", "year", "time", "founded", "draft", "death")):
+        return "date"
+    # Entity/name columns — generic pattern covering any dataset's name columns
+    if "name" in bare or bare in {
+        "nationality", "team_name", "team", "position", "location", "ownership",
+        # Med-specific entity columns
+        "manufacturer", "institution_name", "disease_name", "generic_name", "brand_name",
+        "administration_route", "pharmaceutical_form", "prescription_status",
+    }:
+        return "name"
+    # Player-specific nationality kind (kept for backwards compat)
     if bare in {"nationality"} or "nationality" in bare:
         return "nationality"
-    if bare in {"name", "team_name", "team", "position", "location", "ownership"}:
-        return "name"
-    if any(k in bare for k in ("date", "birth", "year")):
-        return "date"
     return "text"
 
 
@@ -204,6 +226,7 @@ def extract_value_span(window: str, column: str, schema: Schema) -> str:
             if m:
                 return m.group(1).strip()
         if bare == "position":
+            # Player-specific basketball position pattern
             m = re.search(
                 r"\bplay(?:s)?\s+as\s+a\s+(Frontcourt|Backcourt)\s+for\b",
                 window,
@@ -211,7 +234,9 @@ def extract_value_span(window: str, column: str, schema: Schema) -> str:
             )
             if m:
                 return m.group(1).strip()
-            return ""
+            # Generic fallback: extract a proper noun or quoted value near the column name
+            nouns = _PROPER_NOUN_RE.findall(window)
+            return nouns[0] if nouns else ""
         nouns = _PROPER_NOUN_RE.findall(window)
         return nouns[0] if nouns else ""
     bare = column_bare_name(column)

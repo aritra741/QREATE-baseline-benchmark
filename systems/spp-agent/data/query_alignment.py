@@ -26,6 +26,7 @@ from pipeline.schema import Schema
 _SPLIT_ALLOWED = frozenset({"train", "dev", "test"})
 
 _PLAYER_ID_RE = re.compile(r"player[_/](\d+)", re.IGNORECASE)
+_GENERIC_ID_RE = re.compile(r"[_/](\d+)$")
 
 
 def tables_referenced_by_queries(queries: list[dict], schema: Schema) -> set[str]:
@@ -46,7 +47,7 @@ def filter_docs_for_tables(
     corpus: list[dict],
     required_tables: set[str],
     *,
-    dataset: str = "Player",
+    dataset: str = "",
 ) -> list[dict]:
     """
     Keep documents whose doc_id prefix / table_hint matches one of the required tables.
@@ -94,7 +95,10 @@ def filter_queries_for_tables(queries: list[dict], schema: Schema, required_tabl
 
 
 def player_ids_from_corpus(corpus: list[dict]) -> set[int]:
-    """Infer ground-truth player.id values from sampled corpus doc_ids (e.g. player/player_16)."""
+    """Infer ground-truth player.id values from sampled corpus doc_ids (e.g. player/player_16).
+
+    Kept for backwards compatibility; prefer entity_ids_from_corpus for new code.
+    """
     ids: set[int] = set()
     for doc in corpus:
         doc_id = doc.get("doc_id", "")
@@ -102,9 +106,37 @@ def player_ids_from_corpus(corpus: list[dict]) -> set[int]:
         if match:
             ids.add(int(match.group(1)))
             continue
-        parts = doc_id.replace("/", "_").split("_")
-        if parts and parts[-1].isdigit():
-            ids.add(int(parts[-1]))
+        # Only apply the generic trailing-digit fallback for Player-style doc IDs
+        # (those whose prefix is "player" or "player_…") to avoid false matches on
+        # non-Player datasets whose doc_ids may also end with digits.
+        if doc_id.lower().startswith("player"):
+            parts = doc_id.replace("/", "_").split("_")
+            if parts and parts[-1].isdigit():
+                ids.add(int(parts[-1]))
+    return ids
+
+
+def entity_ids_from_corpus(corpus: list[dict], primary_table: str) -> set[int]:
+    """Infer numeric IDs for *primary_table* from sampled corpus doc_ids.
+
+    Works for any dataset: matches doc_ids of the form ``<table>/<table>_<id>``
+    or ``<table>_<id>`` where *table* matches *primary_table* (case-insensitive).
+    """
+    table_lower = primary_table.lower()
+    pattern = re.compile(rf"{re.escape(table_lower)}[_/](\d+)", re.IGNORECASE)
+    ids: set[int] = set()
+    for doc in corpus:
+        doc_id = doc.get("doc_id", "")
+        hint = str(doc.get("metadata", {}).get("table_hint", "")).lower()
+        if hint != table_lower and not doc_id.lower().startswith(table_lower):
+            continue
+        m = pattern.search(doc_id)
+        if m:
+            ids.add(int(m.group(1)))
+        else:
+            m2 = _GENERIC_ID_RE.search(doc_id)
+            if m2:
+                ids.add(int(m2.group(1)))
     return ids
 
 
@@ -114,25 +146,43 @@ def restrict_ground_truth_tables(
     *,
     restrict_related: bool = True,
 ) -> dict[str, pd.DataFrame]:
-    """Restrict GT to rows for entities present in the sampled corpus."""
-    player_ids = player_ids_from_corpus(corpus)
-    if not player_ids:
+    """Restrict GT to rows for entities present in the sampled corpus.
+
+    Works for any dataset: for each GT table that has an ``id`` column, keeps only
+    rows whose ``id`` appears in the sampled corpus doc_ids for that table.
+    Falls back to the full GT table when no IDs can be inferred (i.e. full-corpus runs).
+    """
+    restricted: dict[str, pd.DataFrame] = {k: v.copy() for k, v in gt.items()}
+    any_restricted = False
+
+    for table, df in restricted.items():
+        if "id" not in df.columns:
+            continue
+        ids = entity_ids_from_corpus(corpus, table)
+        if not ids:
+            continue
+        restricted[table] = df[df["id"].isin(ids)].copy()
+        any_restricted = True
+
+    if not any_restricted:
+        # No numeric IDs found in corpus doc_ids — return full GT (full-corpus run)
         return {k: v.copy() for k, v in gt.items()}
 
-    restricted: dict[str, pd.DataFrame] = {k: v.copy() for k, v in gt.items()}
-    if "player" in restricted and "id" in restricted["player"].columns:
-        restricted["player"] = restricted["player"][
-            restricted["player"]["id"].isin(player_ids)
-        ].copy()
-
+    # For Player: also restrict the related `team` table by the teams in filtered players
     if restrict_related and "player" in restricted and not restricted["player"].empty:
         pdf = restricted["player"]
         if "team" in restricted and "team" in pdf.columns:
-            team_col = "team_name" if "team_name" in restricted["team"].columns else restricted["team"].columns[0]
+            team_col = (
+                "team_name"
+                if "team_name" in restricted["team"].columns
+                else restricted["team"].columns[0]
+            )
             teams = {str(v).strip() for v in pdf["team"].dropna().unique()}
             tdf = restricted["team"]
             if team_col in tdf.columns:
-                restricted["team"] = tdf[tdf[team_col].astype(str).str.strip().isin(teams)].copy()
+                restricted["team"] = tdf[
+                    tdf[team_col].astype(str).str.strip().isin(teams)
+                ].copy()
 
     return restricted
 
@@ -174,15 +224,29 @@ def corpus_for_probe_extraction(
 
 
 def corpus_alignment_metadata(corpus: list[dict], *, restrict_gt: bool = True) -> dict:
-    """Metadata fields to attach when corpus is a pilot sample."""
+    """Metadata fields to attach when corpus is a pilot sample.
+
+    Uses a generic ``restrict_gt_to_corpus`` flag driven by whether any entity IDs
+    can be inferred from the corpus doc_ids.  The legacy ``sampled_player_ids`` key
+    is still populated for Player backwards compatibility.
+    """
     pids = sorted(player_ids_from_corpus(corpus))
+    # Check whether *any* table has corpus-inferrable IDs (generic check)
+    has_any_ids = bool(pids) or any(
+        entity_ids_from_corpus(corpus, table)
+        for table in {
+            doc.get("metadata", {}).get("table_hint", "")
+            for doc in corpus
+            if doc.get("metadata", {}).get("table_hint")
+        }
+    )
     return {
-        "sampled_player_ids": pids,
-        "restrict_gt_to_corpus": restrict_gt and bool(pids),
+        "sampled_player_ids": pids,  # kept for backwards compat
+        "restrict_gt_to_corpus": restrict_gt and has_any_ids,
     }
 
 
-def corpus_entity_types(corpus: list[dict], *, dataset: str = "Player") -> set[str]:
+def corpus_entity_types(corpus: list[dict], *, dataset: str = "") -> set[str]:
     """Schema table names present in the text corpus."""
     return schema_tables_from_corpus(corpus, dataset=dataset)
 
@@ -207,7 +271,7 @@ def sample_corpus_stratified(
     num_docs: int,
     seed: int,
     *,
-    dataset: str = "Player",
+    dataset: str = "",
 ) -> list[dict]:
     """Sample docs evenly across required entity types present in the corpus."""
     rng = random.Random(seed)

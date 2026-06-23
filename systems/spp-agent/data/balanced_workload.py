@@ -21,9 +21,11 @@ def is_query_table_feasible(
     schema: Schema,
     corpus: list[dict],
     table_filter: set[str],
+    *,
+    dataset: str = "",
 ) -> tuple[bool, str]:
     sql = query.get("sql_query", "")
-    corpus_types = corpus_entity_types(corpus)
+    corpus_types = corpus_entity_types(corpus, dataset=dataset or getattr(schema, "dataset_name", ""))
     refs = tables_referenced_by_queries([query], schema)
     if table_filter and not any(t in refs for t in table_filter):
         return False, "missing_required_table_filter"
@@ -40,11 +42,14 @@ def filter_feasible_queries(
     schema: Schema,
     corpus: list[dict],
     table_filter: set[str],
+    *,
+    dataset: str = "",
 ) -> tuple[list[dict], list[dict]]:
     feasible: list[dict] = []
     removed: list[dict] = []
+    _dataset = dataset or getattr(schema, "dataset_name", "")
     for query in queries:
-        ok, reason = is_query_table_feasible(query, schema, corpus, table_filter)
+        ok, reason = is_query_table_feasible(query, schema, corpus, table_filter, dataset=_dataset)
         if ok:
             feasible.append(query)
         else:
@@ -67,7 +72,9 @@ def build_balanced_slice_pool(
     table_filter: set[str],
     target_count: int,
     seed: int,
+    dataset: str = "",
 ) -> dict[str, Any]:
+    _dataset = dataset or getattr(schema, "dataset_name", "")
     slice_queries = [
         q
         for q in queries
@@ -75,10 +82,10 @@ def build_balanced_slice_pool(
     ]
     slice_queries = filter_queries_for_tables(slice_queries, schema, table_filter)
     slice_queries = filter_queries_by_corpus_coverage(
-        slice_queries, schema, corpus_entity_types(corpus)
+        slice_queries, schema, corpus_entity_types(corpus, dataset=_dataset)
     )
     feasible, infeasible = filter_feasible_queries(
-        slice_queries, schema, corpus, table_filter
+        slice_queries, schema, corpus, table_filter, dataset=_dataset
     )
     deduped, dupes = dedupe_queries(feasible)
     selected = select_balanced_queries(
@@ -108,8 +115,10 @@ def build_feasible_slice_pool(
     schema: Schema,
     corpus: list[dict],
     table_filter: set[str],
+    dataset: str = "",
 ) -> dict[str, Any]:
     """Return deduplicated feasible queries for a slice (no count cap)."""
+    _dataset = dataset or getattr(schema, "dataset_name", "")
     slice_queries = [
         q
         for q in queries
@@ -117,10 +126,10 @@ def build_feasible_slice_pool(
     ]
     slice_queries = filter_queries_for_tables(slice_queries, schema, table_filter)
     slice_queries = filter_queries_by_corpus_coverage(
-        slice_queries, schema, corpus_entity_types(corpus)
+        slice_queries, schema, corpus_entity_types(corpus, dataset=_dataset)
     )
     feasible, infeasible = filter_feasible_queries(
-        slice_queries, schema, corpus, table_filter
+        slice_queries, schema, corpus, table_filter, dataset=_dataset
     )
     deduped, dupes = dedupe_queries(feasible)
     return {

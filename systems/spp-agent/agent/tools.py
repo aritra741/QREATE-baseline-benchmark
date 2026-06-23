@@ -517,7 +517,7 @@ class AgentToolkit:
             from data.instance_builder import Instance
 
             self.instance = Instance(
-                dataset_name=getattr(self.schema, "dataset_name", "Player"),
+                dataset_name=getattr(self.schema, "dataset_name", None) or "Player",
                 corpus=list(self.corpus),
                 queries=list(self.queries),
                 schema=self.schema,
