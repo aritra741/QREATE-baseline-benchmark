@@ -1545,6 +1545,7 @@ def build_config_leaderboard(
         "n_queries": n_queries,
         "n_configs": len(per_config),
         "per_query_winners": per_query_winners,
+        "query_scores": query_scores,
         "leaderboard": leaderboard,
         "top_win_count": top_wins,
         "configs_at_top_win_count": leaders_at_top,
@@ -1614,38 +1615,42 @@ CONFIG_DIMENSION_FIELDS: tuple[tuple[str, str], ...] = (
 )
 
 
-def _dimension_value_counts(per_query_winners: list[dict[str, Any]]) -> dict[str, dict[str, int]]:
-    """Count how many queries had their best result achieved by a config with each dimension value.
+def _dimension_value_counts(
+    query_scores: dict[str, dict[str, float]],
+) -> dict[str, dict[str, int]]:
+    """For each dimension, count how many queries each value wins.
 
-    For each query, if ANY of the tied-best configs has dimension value V, that
-    query is counted once for V.  A query can count toward multiple values of the
-    same dimension when configs with different values are equally good — this is
-    intentional: both values produced the best result.
+    For each query and each dimension we ask:
+      "What is the lowest error achievable by any config that uses value V
+       for this dimension?"
+    The dimension value(s) that achieve the overall minimum for that query
+    are the winners.  Ties across dimension values count for both values.
 
-    The count for each value is therefore the number of queries (out of n_queries)
-    for which that value was present in at least one best config.  The total
-    across all values in a dimension can exceed n_queries when multiple values
-    tie, but each individual bar is always a whole number ≤ n_queries.
+    This gives the correct answer to "how many of the N test queries had the
+    best result produced by a config with er=llm (regardless of other dims)?"
+    and keeps each bar a whole number ≤ n_queries.
     """
     from collections import defaultdict
 
     from optimizer.config_space import parse_config_id
 
     counters: dict[str, dict[str, int]] = {dim: defaultdict(int) for dim, _ in CONFIG_DIMENSION_FIELDS}
-    for row in per_query_winners:
-        tied_ids = row.get("tied_config_ids") or [str(row.get("best_config_id") or "")]
-        # Collect which dimension values appear in the tied-best set for this query
-        seen: dict[str, set[str]] = {dim: set() for dim, _ in CONFIG_DIMENSION_FIELDS}
-        for config_id in tied_ids:
-            if not config_id:
+
+    for qid, scores in query_scores.items():
+        # For each dimension, group configs by their value and find best error per value
+        for dim, field in CONFIG_DIMENSION_FIELDS:
+            best_per_value: dict[str, float] = {}
+            for config_id, err in scores.items():
+                value = str(getattr(parse_config_id(config_id), field))
+                if value not in best_per_value or err < best_per_value[value]:
+                    best_per_value[value] = err
+            if not best_per_value:
                 continue
-            cfg = parse_config_id(config_id)
-            for dim, field in CONFIG_DIMENSION_FIELDS:
-                seen[dim].add(str(getattr(cfg, field)))
-        # Add 1 per dimension value that appears (integer count, not fractional)
-        for dim, values in seen.items():
-            for value in values:
-                counters[dim][value] += 1
+            # The dimension value(s) that achieve the overall minimum for this query
+            overall_best = min(best_per_value.values())
+            for value, best_err in best_per_value.items():
+                if best_err == overall_best:
+                    counters[dim][value] += 1
 
     out: dict[str, dict[str, int]] = {}
     for dim, counter in counters.items():
@@ -1657,17 +1662,26 @@ def _dimension_value_counts(per_query_winners: list[dict[str, Any]]) -> dict[str
 def build_config_winner_dimension_histograms(
     leaderboard_report: dict[str, Any],
 ) -> dict[str, Any]:
-    """
-  Count how often each config-dimension value appears among per-query winners.
+    """For each dimension, count how many queries each value wins.
 
-  Only values with at least one win are included (zero counts omitted).
-  """
-    overall_winners = list(leaderboard_report.get("per_query_winners") or [])
+    Uses dimension-level comparison: for each query, the best error achievable
+    by any config with value V is compared across all values of that dimension.
+    The value(s) with the lowest achievable error win the query.  This gives
+    integer counts ≤ n_queries and correctly shows whether a dimension
+    discriminates or all its values are equally good.
+    """
+    query_scores: dict[str, dict[str, float]] = leaderboard_report.get("query_scores") or {}
+
+    # Build per-slice query_scores subsets
+    slice_query_ids: dict[str, list[str]] = {}
+    for slice_name, slice_report in (leaderboard_report.get("by_query_type") or {}).items():
+        slice_query_ids[slice_name] = list(slice_report.get("query_ids") or [])
+
     by_scope: dict[str, dict[str, Any]] = {
         "overall": {
             "scope": "overall",
-            "n_queries": int(leaderboard_report.get("n_queries") or len(overall_winners)),
-            "dimension_counts": _dimension_value_counts(overall_winners),
+            "n_queries": int(leaderboard_report.get("n_queries") or 0),
+            "dimension_counts": _dimension_value_counts(query_scores),
         }
     }
 
@@ -1679,12 +1693,13 @@ def build_config_winner_dimension_histograms(
             else len(AGGREGATION_SLICE_ORDER)
         ),
     ):
-        slice_winners = list(slice_report.get("per_query_winners") or [])
+        qids = slice_query_ids.get(slice_name) or []
+        slice_scores = {qid: query_scores[qid] for qid in qids if qid in query_scores}
         by_scope[slice_name] = {
             "scope": slice_name,
             "query_type": slice_name,
-            "n_queries": int(slice_report.get("n_queries") or len(slice_winners)),
-            "dimension_counts": _dimension_value_counts(slice_winners),
+            "n_queries": int(slice_report.get("n_queries") or len(qids)),
+            "dimension_counts": _dimension_value_counts(slice_scores),
         }
 
     return {
