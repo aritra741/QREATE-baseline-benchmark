@@ -1614,29 +1614,42 @@ CONFIG_DIMENSION_FIELDS: tuple[tuple[str, str], ...] = (
 )
 
 
-def _dimension_value_counts(per_query_winners: list[dict[str, Any]]) -> dict[str, dict[str, float]]:
-    """Count fractional wins per dimension value across all tied configs.
+def _dimension_value_counts(per_query_winners: list[dict[str, Any]]) -> dict[str, dict[str, int]]:
+    """Count how many queries had their best result achieved by a config with each dimension value.
 
-    Each tied config receives win_share_per_config (= 1/n_tied) of a win so
-    the total across all values in a dimension equals the number of queries.
+    For each query, if ANY of the tied-best configs has dimension value V, that
+    query is counted once for V.  A query can count toward multiple values of the
+    same dimension when configs with different values are equally good — this is
+    intentional: both values produced the best result.
+
+    The count for each value is therefore the number of queries (out of n_queries)
+    for which that value was present in at least one best config.  The total
+    across all values in a dimension can exceed n_queries when multiple values
+    tie, but each individual bar is always a whole number ≤ n_queries.
     """
     from collections import defaultdict
 
     from optimizer.config_space import parse_config_id
 
-    counters: dict[str, dict[str, float]] = {dim: defaultdict(float) for dim, _ in CONFIG_DIMENSION_FIELDS}
+    counters: dict[str, dict[str, int]] = {dim: defaultdict(int) for dim, _ in CONFIG_DIMENSION_FIELDS}
     for row in per_query_winners:
-        share = float(row.get("win_share_per_config") or 1.0)
-        for config_id in row.get("tied_config_ids") or [str(row.get("best_config_id") or "")]:
+        tied_ids = row.get("tied_config_ids") or [str(row.get("best_config_id") or "")]
+        # Collect which dimension values appear in the tied-best set for this query
+        seen: dict[str, set[str]] = {dim: set() for dim, _ in CONFIG_DIMENSION_FIELDS}
+        for config_id in tied_ids:
             if not config_id:
                 continue
             cfg = parse_config_id(config_id)
             for dim, field in CONFIG_DIMENSION_FIELDS:
-                counters[dim][str(getattr(cfg, field))] += share
+                seen[dim].add(str(getattr(cfg, field)))
+        # Add 1 per dimension value that appears (integer count, not fractional)
+        for dim, values in seen.items():
+            for value in values:
+                counters[dim][value] += 1
 
-    out: dict[str, dict[str, float]] = {}
+    out: dict[str, dict[str, int]] = {}
     for dim, counter in counters.items():
-        positive = {value: round(count, 4) for value, count in counter.items() if count > 0}
+        positive = {value: count for value, count in counter.items() if count > 0}
         out[dim] = dict(sorted(positive.items(), key=lambda kv: (-kv[1], kv[0])))
     return out
 
@@ -1714,7 +1727,7 @@ def save_config_winner_dimension_histogram_chart(
         ax.text(
             bar.get_x() + bar.get_width() / 2,
             bar.get_height(),
-            str(count),
+            str(int(count)) if isinstance(count, (int, float)) and count == int(count) else f"{count:.2f}",
             ha="center",
             va="bottom",
             fontsize=9,
