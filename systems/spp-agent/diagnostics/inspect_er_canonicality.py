@@ -19,7 +19,6 @@ from pathlib import Path
 import pandas as pd
 
 from data.dataset_registry import results_dir_for_dataset
-from data.slice_extraction_cache import slice_extraction_cache_path
 
 # ── config ────────────────────────────────────────────────────────────────────
 # GT paths are relative to the repo root (two levels above systems/spp-agent)
@@ -58,24 +57,27 @@ def _load_extracted_names(cache_path: Path, table: str, col: str) -> list[str]:
     return values
 
 
-def _analyse(
-    dataset: str,
-    slice_name: str,
-) -> None:
+def _analyse(dataset: str) -> None:
     gt_specs = DATASET_GT.get(dataset)
     if gt_specs is None:
         print(f"No GT spec for dataset '{dataset}'. Available: {list(DATASET_GT)}")
         return
 
     results_dir = results_dir_for_dataset(dataset)
-    cache_path = slice_extraction_cache_path(results_dir, slice_name)
+    # test_config_grid writes extraction_cache.json inside its output dir
+    grid_dir = next(results_dir.glob("config_grid_test_*"), None)
+    if grid_dir is None:
+        print(f"No config_grid_test_* directory found under {results_dir}")
+        print("Run test_config_grid first.")
+        return
+    cache_path = grid_dir / "extraction_cache.json"
     if not cache_path.exists():
         print(f"Cache not found: {cache_path}")
         print("Run test_config_grid first so extraction is cached.")
         return
 
     print(f"\n{'='*70}")
-    print(f"ER Canonicality Audit  |  dataset={dataset}  slice={slice_name}")
+    print(f"ER Canonicality Audit  |  dataset={dataset}")
     print(f"Cache: {cache_path}")
     print(f"{'='*70}")
 
@@ -125,15 +127,9 @@ def _analyse(
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dataset", default="Med", help="Dataset key (default: Med)")
-    parser.add_argument(
-        "--slice",
-        default="agg_only",
-        help="Aggregation slice to inspect (default: agg_only). "
-             "Other options: agg_filter, agg_join, agg_filter_join",
-    )
     args = parser.parse_args()
 
-    _analyse(args.dataset, args.slice)
+    _analyse(args.dataset)
 
 
 if __name__ == "__main__":
