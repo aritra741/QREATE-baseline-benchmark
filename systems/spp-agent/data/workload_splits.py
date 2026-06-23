@@ -43,23 +43,39 @@ def build_expanded_query_pool(
     corpus: list[dict],
     dataset: str = "Player",
 ) -> tuple[list[dict], list[dict]]:
-    """Legacy + on-disk queries plus freshly generated candidates (Player only)."""
+    """Legacy + on-disk queries plus freshly generated candidates (Player and Med)."""
     dataset_key = normalize_dataset_name(dataset or instance.dataset_name)
-    if dataset_key != "Player":
-        return list(instance.queries), []
-    gt = load_ground_truth("Player")
-    literals = mine_corpus_literals(corpus, gt)
-    generated_by_slice = generate_all_candidates(literals)
-    new_queries: list[dict] = []
-    for slice_name, candidates in generated_by_slice.items():
-        for i, query in enumerate(candidates, start=1):
-            q = dict(query)
-            q["query_id"] = f"{slice_name}_gen_{i}"
-            meta = dict(q.get("metadata") or {})
-            meta["generated"] = True
-            q["metadata"] = meta
-            new_queries.append(q)
-    return list(instance.queries) + new_queries, new_queries
+
+    if dataset_key == "Player":
+        gt = load_ground_truth("Player")
+        literals = mine_corpus_literals(corpus, gt)
+        generated_by_slice = generate_all_candidates(literals)
+        new_queries: list[dict] = []
+        for slice_name, candidates in generated_by_slice.items():
+            for i, query in enumerate(candidates, start=1):
+                q = dict(query)
+                q["query_id"] = f"{slice_name}_gen_{i}"
+                meta = dict(q.get("metadata") or {})
+                meta["generated"] = True
+                q["metadata"] = meta
+                new_queries.append(q)
+        return list(instance.queries) + new_queries, new_queries
+
+    if dataset_key == "Med":
+        from data.med_workload_generator import generate_all_candidates_med
+
+        generated_by_slice = generate_all_candidates_med()
+        new_queries = []
+        for slice_name, candidates in generated_by_slice.items():
+            for query in candidates:
+                q = dict(query)
+                meta = dict(q.get("metadata") or {})
+                meta["generated"] = True
+                q["metadata"] = meta
+                new_queries.append(q)
+        return list(instance.queries) + new_queries, new_queries
+
+    return list(instance.queries), []
 
 
 def _adjust_split_targets(

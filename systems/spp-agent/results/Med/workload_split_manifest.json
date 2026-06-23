@@ -1,41 +1,41 @@
 {
   "dataset": "Med",
   "split_targets_per_slice": {
-    "train": 4,
-    "dev": 1,
-    "test": 1
+    "train": 20,
+    "dev": 5,
+    "test": 5
   },
   "counts_per_slice": {
     "agg_only": {
-      "train": 4,
-      "dev": 1,
-      "test": 1
+      "train": 20,
+      "dev": 5,
+      "test": 5
     },
     "agg_filter": {
-      "train": 3,
-      "dev": 1,
-      "test": 0
+      "train": 20,
+      "dev": 5,
+      "test": 5
     },
     "agg_join": {
-      "train": 2,
-      "dev": 0,
-      "test": 0
+      "train": 20,
+      "dev": 5,
+      "test": 5
     },
     "agg_filter_join": {
-      "train": 4,
-      "dev": 1,
-      "test": 1
+      "train": 20,
+      "dev": 5,
+      "test": 5
     }
   },
   "totals": {
-    "train": 13,
-    "dev": 3,
-    "test": 2
+    "train": 80,
+    "dev": 20,
+    "test": 20
   },
   "train_met_minimum": true,
-  "min_train_total": 12,
-  "removed_infeasible_count": 7,
-  "removed_duplicates_count": 1,
+  "min_train_total": 60,
+  "removed_infeasible_count": 220,
+  "removed_duplicates_count": 97,
   "removed_infeasible_sample": [
     {
       "query_id": "mixed_queries_filter_agg_4",
@@ -48,29 +48,194 @@
       "sql": "SELECT prescription_status, AVG(storage_conditions) AS avg_storage_conditions FROM drug WHERE single_dose = 'adults 25 mg' OR unsuitable_population != 'patients with diabetes' OR recommended_usage != 'intravenous' GROUP BY prescription_status;"
     },
     {
-      "query_id": "mixed_queries_filter_agg_join_3",
-      "reason": "missing_where_literals:['only_one_drug_available']",
-      "sql": "SELECT drug.prescription_status, AVG(disease.quality_of_life_impact) AS avg_disease_quality_of_life_impact FROM disease JOIN drug ON disease.disease_name = drug.disease_name WHERE disease.treatment_challenges != 'only_one_drug_available' OR disease.drugs != 'diuretics' GROUP BY drug.prescription_status;"
+      "query_id": "agg_filter_med_gen_80",
+      "reason": "missing_where_literals:['no special condition']",
+      "sql": "SELECT prescription_status, COUNT(side_effects) AS count_side_effects FROM drug WHERE (pharmaceutical_form != 'tablet' AND pharmaceutical_form = 'cream') OR (activation_conditions = 'no special condition') GROUP BY prescription_status;"
     },
     {
-      "query_id": "mixed_queries_filter_agg_join_5",
-      "reason": "missing_where_literals:['genetic_testing', 'requires co-administration with other drugs']",
-      "sql": "SELECT drug.prescription_status, AVG(disease.quality_of_life_impact) AS avg_disease_quality_of_life_impact FROM disease JOIN drug ON disease.disease_name = drug.disease_name WHERE drug.brand_name = 'Nucala' OR disease.diagnostic_methods = 'genetic_testing' OR drug.activation_conditions = 'requires co-administration with other drugs' GROUP BY drug.prescription_status;"
+      "query_id": "agg_filter_med_gen_88",
+      "reason": "missing_where_literals:['no special condition']",
+      "sql": "SELECT prescription_status, MIN(dosage_frequency) AS min_dosage_frequency FROM drug WHERE (pharmaceutical_form != 'tablet' AND pharmaceutical_form = 'cream') OR (activation_conditions = 'no special condition') GROUP BY prescription_status;"
     },
     {
-      "query_id": "mixed_queries_filter_agg_join_9",
-      "reason": "missing_where_literals:['genetic_testing']",
-      "sql": "SELECT drug.prescription_status, COUNT(disease.common_symptoms) AS count_disease_common_symptoms FROM disease JOIN drug ON disease.disease_name = drug.disease_name WHERE disease.diagnostic_methods = 'genetic_testing' OR disease.pathogenesis = 'traumatic' GROUP BY drug.prescription_status;"
+      "query_id": "agg_filter_med_gen_92",
+      "reason": "missing_where_literals:['no special condition']",
+      "sql": "SELECT prescription_status, MIN(dosage_frequency) AS min_dosage_frequency FROM drug WHERE (pharmaceutical_form = 'capsule' AND pharmaceutical_form != 'cream') OR (activation_conditions != 'no special condition') GROUP BY prescription_status;"
     },
     {
-      "query_id": "mixed_queries_filter_agg_join_10",
-      "reason": "missing_where_literals:['lack of early recognition', '27% of constipated patients relate constipation to medications']",
-      "sql": "SELECT drug.prescription_status, SUM(institution.institution_country) AS sum_institution_institution_country FROM disease JOIN drug ON disease.disease_name = drug.disease_name JOIN institution ON disease.disease_name = institution.research_diseases WHERE disease.diagnosis_challenges = 'lack of early recognition' AND disease.disease_name = 'Acute Intermittent Porphyria' AND disease.epidemiology = '27% of constipated patients relate constipation to medications' GROUP BY drug.prescription_status;"
+      "query_id": "agg_filter_med_gen_102",
+      "reason": "missing_where_literals:['prescription_only']",
+      "sql": "SELECT administration_route, COUNT(*) AS count_all FROM drug WHERE (pharmaceutical_form != 'cream') AND (prescription_status = 'prescription_only') GROUP BY administration_route;"
     },
     {
-      "query_id": "mixed_queries_filter_agg_join_12",
-      "reason": "missing_where_literals:['infectious_fungal']",
-      "sql": "SELECT institution.institution_type, MIN(disease.diagnosis_challenges) AS min_disease_diagnosis_challenges FROM disease JOIN drug ON disease.disease_name = drug.disease_name JOIN institution ON disease.disease_name = institution.research_diseases WHERE (drug.side_effects = 'diarrhea' AND drug.generic_name = 'Esomeprazole') OR (institution.research_diseases = 'Gut Microbiome Imbalance' AND disease.pathogenesis = 'infectious_fungal') GROUP BY institution.institution_type;"
+      "query_id": "agg_filter_med_gen_103",
+      "reason": "missing_where_literals:['prescription_only']",
+      "sql": "SELECT administration_route, COUNT(*) AS count_all FROM drug WHERE (pharmaceutical_form != 'cream') OR (prescription_status = 'prescription_only') GROUP BY administration_route;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_104",
+      "reason": "missing_where_literals:['prescription_only']",
+      "sql": "SELECT administration_route, COUNT(*) AS count_all FROM drug WHERE (pharmaceutical_form != 'cream' AND prescription_status = 'prescription_only') OR (pharmaceutical_form = 'tablet') GROUP BY administration_route;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_106",
+      "reason": "missing_where_literals:['prescription_only']",
+      "sql": "SELECT administration_route, COUNT(*) AS count_all FROM drug WHERE (pharmaceutical_form = 'gel') AND (prescription_status != 'prescription_only') GROUP BY administration_route;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_107",
+      "reason": "missing_where_literals:['prescription_only']",
+      "sql": "SELECT administration_route, COUNT(*) AS count_all FROM drug WHERE (pharmaceutical_form = 'gel') OR (prescription_status != 'prescription_only') GROUP BY administration_route;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_108",
+      "reason": "missing_where_literals:['prescription_only']",
+      "sql": "SELECT administration_route, COUNT(*) AS count_all FROM drug WHERE (pharmaceutical_form = 'gel' AND prescription_status != 'prescription_only') OR (pharmaceutical_form != 'tablet') GROUP BY administration_route;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_110",
+      "reason": "missing_where_literals:['over_the_counter']",
+      "sql": "SELECT administration_route, COUNT(*) AS count_all FROM drug WHERE (pharmaceutical_form != 'gel') AND (prescription_status = 'over_the_counter') GROUP BY administration_route;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_111",
+      "reason": "missing_where_literals:['over_the_counter']",
+      "sql": "SELECT administration_route, COUNT(*) AS count_all FROM drug WHERE (pharmaceutical_form != 'gel') OR (prescription_status = 'over_the_counter') GROUP BY administration_route;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_112",
+      "reason": "missing_where_literals:['over_the_counter']",
+      "sql": "SELECT administration_route, COUNT(*) AS count_all FROM drug WHERE (pharmaceutical_form != 'gel' AND prescription_status = 'over_the_counter') OR (pharmaceutical_form = 'capsule') GROUP BY administration_route;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_114",
+      "reason": "missing_where_literals:['over_the_counter']",
+      "sql": "SELECT administration_route, COUNT(*) AS count_all FROM drug WHERE (pharmaceutical_form = 'spray') AND (prescription_status != 'over_the_counter') GROUP BY administration_route;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_115",
+      "reason": "missing_where_literals:['over_the_counter']",
+      "sql": "SELECT administration_route, COUNT(*) AS count_all FROM drug WHERE (pharmaceutical_form = 'spray') OR (prescription_status != 'over_the_counter') GROUP BY administration_route;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_116",
+      "reason": "missing_where_literals:['over_the_counter']",
+      "sql": "SELECT administration_route, COUNT(*) AS count_all FROM drug WHERE (pharmaceutical_form = 'spray' AND prescription_status != 'over_the_counter') OR (pharmaceutical_form != 'capsule') GROUP BY administration_route;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_122",
+      "reason": "missing_where_literals:['over_the_counter']",
+      "sql": "SELECT administration_route, COUNT(generic_name) AS count_generic_name FROM drug WHERE (pharmaceutical_form = 'spray') AND (prescription_status != 'over_the_counter') GROUP BY administration_route;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_123",
+      "reason": "missing_where_literals:['over_the_counter']",
+      "sql": "SELECT administration_route, COUNT(generic_name) AS count_generic_name FROM drug WHERE (pharmaceutical_form = 'spray') OR (prescription_status != 'over_the_counter') GROUP BY administration_route;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_124",
+      "reason": "missing_where_literals:['over_the_counter']",
+      "sql": "SELECT administration_route, COUNT(generic_name) AS count_generic_name FROM drug WHERE (pharmaceutical_form = 'spray' AND prescription_status != 'over_the_counter') OR (pharmaceutical_form != 'capsule') GROUP BY administration_route;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_129",
+      "reason": "missing_where_literals:['no special condition']",
+      "sql": "SELECT administration_route, COUNT(generic_name) AS count_generic_name FROM drug WHERE activation_conditions = 'no special condition' GROUP BY administration_route;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_130",
+      "reason": "missing_where_literals:['no special condition']",
+      "sql": "SELECT administration_route, COUNT(generic_name) AS count_generic_name FROM drug WHERE (activation_conditions = 'no special condition') AND (prescription_status != 'unclassified') GROUP BY administration_route;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_131",
+      "reason": "missing_where_literals:['no special condition']",
+      "sql": "SELECT administration_route, COUNT(generic_name) AS count_generic_name FROM drug WHERE (activation_conditions = 'no special condition') OR (prescription_status != 'unclassified') GROUP BY administration_route;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_132",
+      "reason": "missing_where_literals:['no special condition']",
+      "sql": "SELECT administration_route, COUNT(generic_name) AS count_generic_name FROM drug WHERE (activation_conditions = 'no special condition' AND prescription_status != 'unclassified') OR (pharmaceutical_form != 'injection') GROUP BY administration_route;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_133",
+      "reason": "missing_where_literals:['no special condition']",
+      "sql": "SELECT administration_route, COUNT(generic_name) AS count_generic_name FROM drug WHERE activation_conditions != 'no special condition' GROUP BY administration_route;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_134",
+      "reason": "missing_where_literals:['no special condition']",
+      "sql": "SELECT administration_route, COUNT(generic_name) AS count_generic_name FROM drug WHERE (activation_conditions != 'no special condition') AND (pharmaceutical_form = 'tablet') GROUP BY administration_route;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_135",
+      "reason": "missing_where_literals:['no special condition']",
+      "sql": "SELECT administration_route, COUNT(generic_name) AS count_generic_name FROM drug WHERE (activation_conditions != 'no special condition') OR (pharmaceutical_form = 'tablet') GROUP BY administration_route;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_136",
+      "reason": "missing_where_literals:['no special condition']",
+      "sql": "SELECT administration_route, COUNT(generic_name) AS count_generic_name FROM drug WHERE (activation_conditions != 'no special condition' AND pharmaceutical_form = 'tablet') OR (pharmaceutical_form = 'solution') GROUP BY administration_route;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_137",
+      "reason": "missing_where_literals:['prescription_only']",
+      "sql": "SELECT administration_route, COUNT(generic_name) AS count_generic_name FROM drug WHERE prescription_status = 'prescription_only' GROUP BY administration_route;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_138",
+      "reason": "missing_where_literals:['prescription_only']",
+      "sql": "SELECT administration_route, COUNT(generic_name) AS count_generic_name FROM drug WHERE (prescription_status = 'prescription_only') AND (pharmaceutical_form != 'tablet') GROUP BY administration_route;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_139",
+      "reason": "missing_where_literals:['prescription_only']",
+      "sql": "SELECT administration_route, COUNT(generic_name) AS count_generic_name FROM drug WHERE (prescription_status = 'prescription_only') OR (pharmaceutical_form != 'tablet') GROUP BY administration_route;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_140",
+      "reason": "missing_where_literals:['prescription_only']",
+      "sql": "SELECT administration_route, COUNT(generic_name) AS count_generic_name FROM drug WHERE (prescription_status = 'prescription_only' AND pharmaceutical_form != 'tablet') OR (pharmaceutical_form != 'solution') GROUP BY administration_route;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_141",
+      "reason": "missing_where_literals:['no special condition']",
+      "sql": "SELECT administration_route, COUNT(manufacturer) AS count_manufacturer FROM drug WHERE activation_conditions != 'no special condition' GROUP BY administration_route;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_142",
+      "reason": "missing_where_literals:['no special condition']",
+      "sql": "SELECT administration_route, COUNT(manufacturer) AS count_manufacturer FROM drug WHERE (activation_conditions != 'no special condition') AND (pharmaceutical_form = 'tablet') GROUP BY administration_route;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_143",
+      "reason": "missing_where_literals:['no special condition']",
+      "sql": "SELECT administration_route, COUNT(manufacturer) AS count_manufacturer FROM drug WHERE (activation_conditions != 'no special condition') OR (pharmaceutical_form = 'tablet') GROUP BY administration_route;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_144",
+      "reason": "missing_where_literals:['no special condition']",
+      "sql": "SELECT administration_route, COUNT(manufacturer) AS count_manufacturer FROM drug WHERE (activation_conditions != 'no special condition' AND pharmaceutical_form = 'tablet') OR (pharmaceutical_form = 'solution') GROUP BY administration_route;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_145",
+      "reason": "missing_where_literals:['prescription_only']",
+      "sql": "SELECT administration_route, COUNT(manufacturer) AS count_manufacturer FROM drug WHERE prescription_status = 'prescription_only' GROUP BY administration_route;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_146",
+      "reason": "missing_where_literals:['prescription_only']",
+      "sql": "SELECT administration_route, COUNT(manufacturer) AS count_manufacturer FROM drug WHERE (prescription_status = 'prescription_only') AND (pharmaceutical_form != 'tablet') GROUP BY administration_route;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_147",
+      "reason": "missing_where_literals:['prescription_only']",
+      "sql": "SELECT administration_route, COUNT(manufacturer) AS count_manufacturer FROM drug WHERE (prescription_status = 'prescription_only') OR (pharmaceutical_form != 'tablet') GROUP BY administration_route;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_148",
+      "reason": "missing_where_literals:['prescription_only']",
+      "sql": "SELECT administration_route, COUNT(manufacturer) AS count_manufacturer FROM drug WHERE (prescription_status = 'prescription_only' AND pharmaceutical_form != 'tablet') OR (pharmaceutical_form != 'solution') GROUP BY administration_route;"
     }
   ],
   "removed_duplicates_sample": [
@@ -78,101 +243,398 @@
       "query_id": "agg_queries_drug_7",
       "reason": "duplicate_sql",
       "sql": "SELECT prescription_status, MAX(recommended_usage) AS max_recommended_usage FROM drug GROUP BY prescription_status;"
+    },
+    {
+      "query_id": "agg_only_med_gen_2",
+      "reason": "duplicate_sql",
+      "sql": "SELECT prescription_status, COUNT(generic_name) AS count_generic_name FROM drug GROUP BY prescription_status;"
+    },
+    {
+      "query_id": "agg_only_med_gen_5",
+      "reason": "duplicate_sql",
+      "sql": "SELECT prescription_status, MIN(dosage_frequency) AS min_dosage_frequency FROM drug GROUP BY prescription_status;"
+    },
+    {
+      "query_id": "agg_only_med_gen_26",
+      "reason": "duplicate_sql",
+      "sql": "SELECT institution_type, COUNT(institution_name) AS count_institution_name FROM institution GROUP BY institution_type;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_9",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT prescription_status, COUNT(*) AS count_all FROM drug WHERE administration_route = 'intravenous' GROUP BY prescription_status;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_10",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT prescription_status, COUNT(*) AS count_all FROM drug WHERE (administration_route = 'intravenous') AND (administration_route != 'inhalation') GROUP BY prescription_status;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_11",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT prescription_status, COUNT(*) AS count_all FROM drug WHERE (administration_route = 'intravenous') OR (administration_route != 'inhalation') GROUP BY prescription_status;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_12",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT prescription_status, COUNT(*) AS count_all FROM drug WHERE (administration_route = 'intravenous' AND administration_route != 'inhalation') OR (pharmaceutical_form != 'capsule') GROUP BY prescription_status;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_13",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT prescription_status, COUNT(*) AS count_all FROM drug WHERE administration_route != 'intravenous' GROUP BY prescription_status;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_14",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT prescription_status, COUNT(*) AS count_all FROM drug WHERE (administration_route != 'intravenous') AND (administration_route = 'subcutaneous') GROUP BY prescription_status;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_15",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT prescription_status, COUNT(*) AS count_all FROM drug WHERE (administration_route != 'intravenous') OR (administration_route = 'subcutaneous') GROUP BY prescription_status;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_16",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT prescription_status, COUNT(*) AS count_all FROM drug WHERE (administration_route != 'intravenous' AND administration_route = 'subcutaneous') OR (pharmaceutical_form = 'injection') GROUP BY prescription_status;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_17",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT prescription_status, COUNT(*) AS count_all FROM drug WHERE administration_route = 'injection' GROUP BY prescription_status;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_18",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT prescription_status, COUNT(*) AS count_all FROM drug WHERE (administration_route = 'injection') AND (administration_route != 'subcutaneous') GROUP BY prescription_status;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_19",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT prescription_status, COUNT(*) AS count_all FROM drug WHERE (administration_route = 'injection') OR (administration_route != 'subcutaneous') GROUP BY prescription_status;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_20",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT prescription_status, COUNT(*) AS count_all FROM drug WHERE (administration_route = 'injection' AND administration_route != 'subcutaneous') OR (pharmaceutical_form != 'injection') GROUP BY prescription_status;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_29",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT prescription_status, COUNT(generic_name) AS count_generic_name FROM drug WHERE administration_route != 'injection' GROUP BY prescription_status;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_33",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT prescription_status, COUNT(generic_name) AS count_generic_name FROM drug WHERE administration_route = 'topical' GROUP BY prescription_status;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_37",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT prescription_status, COUNT(generic_name) AS count_generic_name FROM drug WHERE administration_route != 'topical' GROUP BY prescription_status;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_38",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT prescription_status, COUNT(generic_name) AS count_generic_name FROM drug WHERE (administration_route != 'topical') AND (pharmaceutical_form = 'capsule') GROUP BY prescription_status;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_39",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT prescription_status, COUNT(generic_name) AS count_generic_name FROM drug WHERE (administration_route != 'topical') OR (pharmaceutical_form = 'capsule') GROUP BY prescription_status;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_40",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT prescription_status, COUNT(generic_name) AS count_generic_name FROM drug WHERE (administration_route != 'topical' AND pharmaceutical_form = 'capsule') OR (pharmaceutical_form = 'cream') GROUP BY prescription_status;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_49",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT prescription_status, COUNT(manufacturer) AS count_manufacturer FROM drug WHERE administration_route = 'inhalation' GROUP BY prescription_status;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_50",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT prescription_status, COUNT(manufacturer) AS count_manufacturer FROM drug WHERE (administration_route = 'inhalation') AND (pharmaceutical_form != 'capsule') GROUP BY prescription_status;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_51",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT prescription_status, COUNT(manufacturer) AS count_manufacturer FROM drug WHERE (administration_route = 'inhalation') OR (pharmaceutical_form != 'capsule') GROUP BY prescription_status;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_52",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT prescription_status, COUNT(manufacturer) AS count_manufacturer FROM drug WHERE (administration_route = 'inhalation' AND pharmaceutical_form != 'capsule') OR (pharmaceutical_form != 'cream') GROUP BY prescription_status;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_53",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT prescription_status, COUNT(manufacturer) AS count_manufacturer FROM drug WHERE administration_route != 'inhalation' GROUP BY prescription_status;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_54",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT prescription_status, COUNT(manufacturer) AS count_manufacturer FROM drug WHERE (administration_route != 'inhalation') AND (pharmaceutical_form = 'injection') GROUP BY prescription_status;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_55",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT prescription_status, COUNT(manufacturer) AS count_manufacturer FROM drug WHERE (administration_route != 'inhalation') OR (pharmaceutical_form = 'injection') GROUP BY prescription_status;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_56",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT prescription_status, COUNT(manufacturer) AS count_manufacturer FROM drug WHERE (administration_route != 'inhalation' AND pharmaceutical_form = 'injection') OR (pharmaceutical_form = 'gel') GROUP BY prescription_status;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_57",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT prescription_status, COUNT(manufacturer) AS count_manufacturer FROM drug WHERE administration_route = 'subcutaneous' GROUP BY prescription_status;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_58",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT prescription_status, COUNT(manufacturer) AS count_manufacturer FROM drug WHERE (administration_route = 'subcutaneous') AND (pharmaceutical_form != 'injection') GROUP BY prescription_status;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_59",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT prescription_status, COUNT(manufacturer) AS count_manufacturer FROM drug WHERE (administration_route = 'subcutaneous') OR (pharmaceutical_form != 'injection') GROUP BY prescription_status;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_60",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT prescription_status, COUNT(manufacturer) AS count_manufacturer FROM drug WHERE (administration_route = 'subcutaneous' AND pharmaceutical_form != 'injection') OR (pharmaceutical_form != 'gel') GROUP BY prescription_status;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_69",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT prescription_status, COUNT(side_effects) AS count_side_effects FROM drug WHERE administration_route != 'subcutaneous' GROUP BY prescription_status;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_70",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT prescription_status, COUNT(side_effects) AS count_side_effects FROM drug WHERE (administration_route != 'subcutaneous') AND (pharmaceutical_form = 'solution') GROUP BY prescription_status;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_71",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT prescription_status, COUNT(side_effects) AS count_side_effects FROM drug WHERE (administration_route != 'subcutaneous') OR (pharmaceutical_form = 'solution') GROUP BY prescription_status;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_72",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT prescription_status, COUNT(side_effects) AS count_side_effects FROM drug WHERE (administration_route != 'subcutaneous' AND pharmaceutical_form = 'solution') OR (pharmaceutical_form = 'spray') GROUP BY prescription_status;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_89",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT prescription_status, MIN(dosage_frequency) AS min_dosage_frequency FROM drug WHERE pharmaceutical_form = 'capsule' GROUP BY prescription_status;"
+    },
+    {
+      "query_id": "agg_filter_med_gen_90",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT prescription_status, MIN(dosage_frequency) AS min_dosage_frequency FROM drug WHERE (pharmaceutical_form = 'capsule') AND (pharmaceutical_form != 'cream') GROUP BY prescription_status;"
     }
   ],
-  "generated_candidate_count": 0,
+  "generated_candidate_count": 614,
   "holdout_policy": "The test split is assigned first from a shuffled per-slice pool and is never included in train or dev. Use train for agent design, prompt tuning, threshold optimization, and algorithm selection. Use dev only for validation during development. The test split must not be used for any tuning or selection.",
   "test_held_out": true,
   "slice_reports": [
     {
       "slice": "agg_only",
       "targets": {
-        "train": 4,
-        "dev": 1,
-        "test": 1
+        "train": 20,
+        "dev": 5,
+        "test": 5
       },
       "counts": {
-        "train": 4,
-        "dev": 1,
-        "test": 1
+        "train": 20,
+        "dev": 5,
+        "test": 5
       },
-      "max_feasible": 9,
-      "reached_target": false,
-      "shortfall_reason": "insufficient unique corpus-feasible queries after deduplication"
+      "max_feasible": 40,
+      "reached_target": true,
+      "shortfall_reason": null
     },
     {
       "slice": "agg_filter",
       "targets": {
-        "train": 3,
-        "dev": 1,
-        "test": 0
+        "train": 20,
+        "dev": 5,
+        "test": 5
       },
       "counts": {
-        "train": 3,
-        "dev": 1,
-        "test": 0
+        "train": 20,
+        "dev": 5,
+        "test": 5
       },
-      "max_feasible": 4,
-      "reached_target": false,
-      "shortfall_reason": "insufficient unique corpus-feasible queries after deduplication"
+      "max_feasible": 163,
+      "reached_target": true,
+      "shortfall_reason": null
     },
     {
       "slice": "agg_join",
       "targets": {
-        "train": 2,
-        "dev": 0,
-        "test": 0
+        "train": 20,
+        "dev": 5,
+        "test": 5
       },
       "counts": {
-        "train": 2,
-        "dev": 0,
-        "test": 0
+        "train": 20,
+        "dev": 5,
+        "test": 5
       },
-      "max_feasible": 2,
-      "reached_target": false,
-      "shortfall_reason": "insufficient unique corpus-feasible queries after deduplication"
+      "max_feasible": 30,
+      "reached_target": true,
+      "shortfall_reason": null
     },
     {
       "slice": "agg_filter_join",
       "targets": {
-        "train": 4,
-        "dev": 1,
-        "test": 1
+        "train": 20,
+        "dev": 5,
+        "test": 5
       },
       "counts": {
-        "train": 4,
-        "dev": 1,
-        "test": 1
+        "train": 20,
+        "dev": 5,
+        "test": 5
       },
-      "max_feasible": 7,
-      "reached_target": false,
-      "shortfall_reason": "insufficient unique corpus-feasible queries after deduplication"
+      "max_feasible": 94,
+      "reached_target": true,
+      "shortfall_reason": null
     }
   ],
   "query_ids": {
     "train": [
-      "agg_queries_drug_2",
-      "agg_queries_drug_8",
-      "agg_queries_institution_2",
+      "agg_only_med_gen_13",
+      "agg_only_med_gen_11",
+      "agg_only_med_gen_24",
+      "agg_only_med_gen_21",
+      "agg_only_med_gen_23",
+      "agg_only_med_gen_14",
+      "agg_only_med_gen_16",
+      "agg_only_med_gen_27",
+      "agg_only_med_gen_22",
+      "agg_only_med_gen_28",
+      "agg_queries_drug_5",
       "agg_queries_drug_3",
-      "mixed_queries_filter_agg_1",
+      "agg_only_med_gen_31",
+      "agg_queries_drug_8",
+      "agg_only_med_gen_30",
+      "agg_only_med_gen_33",
+      "agg_only_med_gen_10",
+      "agg_only_med_gen_20",
+      "agg_queries_drug_2",
+      "agg_queries_institution_2",
+      "agg_filter_med_gen_188",
+      "agg_filter_med_gen_320",
+      "agg_filter_med_gen_248",
+      "agg_filter_med_gen_306",
+      "agg_filter_med_gen_169",
+      "agg_filter_med_gen_48",
+      "agg_filter_med_gen_83",
+      "agg_filter_med_gen_76",
+      "agg_filter_med_gen_346",
       "mixed_queries_filter_agg_6",
-      "mixed_queries_filter_agg_3",
-      "mixed_queries_agg_join_1",
+      "agg_filter_med_gen_125",
+      "agg_filter_med_gen_364",
+      "agg_filter_med_gen_28",
+      "agg_filter_med_gen_310",
+      "agg_filter_med_gen_64",
+      "agg_filter_med_gen_61",
+      "agg_filter_med_gen_367",
+      "agg_filter_med_gen_330",
+      "agg_filter_med_gen_372",
+      "agg_filter_med_gen_294",
+      "agg_join_med_gen_3",
+      "agg_join_med_gen_10",
+      "agg_join_med_gen_11",
+      "agg_join_med_gen_27",
+      "agg_join_med_gen_19",
+      "agg_join_med_gen_7",
+      "agg_join_med_gen_8",
+      "agg_join_med_gen_18",
+      "agg_join_med_gen_23",
+      "agg_join_med_gen_22",
       "mixed_queries_agg_join_2",
-      "mixed_queries_filter_agg_join_8",
-      "mixed_queries_filter_agg_join_4",
-      "mixed_queries_filter_agg_join_6",
-      "mixed_queries_filter_agg_join_1"
-    ],
-    "dev": [
-      "agg_queries_drug_4",
-      "mixed_queries_filter_agg_2",
+      "agg_join_med_gen_1",
+      "agg_join_med_gen_26",
+      "agg_join_med_gen_21",
+      "agg_join_med_gen_9",
+      "agg_join_med_gen_2",
+      "agg_join_med_gen_28",
+      "agg_join_med_gen_4",
+      "agg_join_med_gen_20",
+      "agg_join_med_gen_13",
+      "agg_filter_join_med_gen_175",
+      "agg_filter_join_med_gen_112",
+      "agg_filter_join_med_gen_30",
+      "agg_filter_join_med_gen_60",
+      "agg_filter_join_med_gen_1",
+      "agg_filter_join_med_gen_173",
+      "agg_filter_join_med_gen_101",
+      "agg_filter_join_med_gen_103",
+      "mixed_queries_filter_agg_join_2",
+      "mixed_queries_filter_agg_join_7",
+      "agg_filter_join_med_gen_138",
+      "agg_filter_join_med_gen_127",
+      "agg_filter_join_med_gen_58",
+      "agg_filter_join_med_gen_137",
+      "agg_filter_join_med_gen_96",
+      "agg_filter_join_med_gen_172",
+      "agg_filter_join_med_gen_23",
+      "agg_filter_join_med_gen_42",
+      "agg_filter_join_med_gen_102",
       "mixed_queries_filter_agg_join_11"
     ],
+    "dev": [
+      "agg_only_med_gen_29",
+      "agg_only_med_gen_9",
+      "agg_only_med_gen_7",
+      "agg_only_med_gen_34",
+      "agg_only_med_gen_32",
+      "agg_filter_med_gen_305",
+      "agg_filter_med_gen_292",
+      "agg_filter_med_gen_304",
+      "agg_filter_med_gen_26",
+      "agg_filter_med_gen_347",
+      "mixed_queries_agg_join_1",
+      "agg_join_med_gen_25",
+      "agg_join_med_gen_16",
+      "agg_join_med_gen_5",
+      "agg_join_med_gen_24",
+      "agg_filter_join_med_gen_25",
+      "agg_filter_join_med_gen_49",
+      "agg_filter_join_med_gen_155",
+      "agg_filter_join_med_gen_28",
+      "agg_filter_join_med_gen_61"
+    ],
     "test": [
-      "agg_queries_drug_6",
-      "mixed_queries_filter_agg_join_7"
+      "agg_only_med_gen_8",
+      "agg_queries_drug_4",
+      "agg_only_med_gen_19",
+      "agg_queries_institution_1",
+      "agg_only_med_gen_15",
+      "agg_filter_med_gen_77",
+      "agg_filter_med_gen_65",
+      "agg_filter_med_gen_84",
+      "agg_filter_med_gen_120",
+      "agg_filter_med_gen_371",
+      "agg_join_med_gen_6",
+      "agg_join_med_gen_12",
+      "agg_join_med_gen_14",
+      "agg_join_med_gen_17",
+      "agg_join_med_gen_15",
+      "agg_filter_join_med_gen_165",
+      "mixed_queries_filter_agg_join_8",
+      "mixed_queries_filter_agg_join_4",
+      "agg_filter_join_med_gen_109",
+      "mixed_queries_filter_agg_join_6"
     ]
   }
 }

@@ -1,12 +1,25 @@
 [
   {
-    "query_id": "agg_queries_drug_6",
-    "sql_query": "SELECT prescription_status, MIN(recommended_usage) AS min_recommended_usage FROM drug GROUP BY prescription_status;",
+    "query_id": "agg_only_med_gen_8",
+    "sql_query": "SELECT prescription_status, MAX(storage_conditions) AS max_storage_conditions FROM drug GROUP BY prescription_status;",
+    "nl_query": null,
+    "category": "Generated",
+    "metadata": {
+      "generated": true,
+      "template": "agg_only|drug|prescription_status|max_storage_conditions",
+      "split": "test",
+      "aggregation_slice": "agg_only",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_queries_drug_4",
+    "sql_query": "SELECT prescription_status, MAX(recommended_usage) AS max_recommended_usage FROM drug GROUP BY prescription_status;",
     "nl_query": null,
     "category": "Agg",
     "metadata": {
       "source_file": "/Users/aritramazumder/Documents/UDA-Bench-main/Query/Med/Agg/agg_queries_drug.sql",
-      "query_index": 6,
+      "query_index": 4,
       "subcategory": "aggregation",
       "tables": [
         "drug"
@@ -17,17 +30,255 @@
     }
   },
   {
-    "query_id": "mixed_queries_filter_agg_join_7",
-    "sql_query": "SELECT drug.prescription_status, AVG(disease.epidemiology) AS avg_disease_epidemiology FROM disease JOIN drug ON disease.disease_name = drug.disease_name WHERE drug.pharmaceutical_form = 'tablet' GROUP BY drug.prescription_status;",
+    "query_id": "agg_only_med_gen_19",
+    "sql_query": "SELECT pharmaceutical_form, COUNT(manufacturer) AS count_manufacturer FROM drug GROUP BY pharmaceutical_form;",
+    "nl_query": null,
+    "category": "Generated",
+    "metadata": {
+      "generated": true,
+      "template": "agg_only|drug|pharmaceutical_form|count_manufacturer",
+      "split": "test",
+      "aggregation_slice": "agg_only",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_queries_institution_1",
+    "sql_query": "SELECT research_fields, MIN(institution_country) AS min_institution_country FROM institution GROUP BY research_fields;",
+    "nl_query": null,
+    "category": "Agg",
+    "metadata": {
+      "source_file": "/Users/aritramazumder/Documents/UDA-Bench-main/Query/Med/Agg/agg_queries_institution.sql",
+      "query_index": 1,
+      "subcategory": "aggregation",
+      "tables": [
+        "institution"
+      ],
+      "split": "test",
+      "aggregation_slice": "agg_only",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_only_med_gen_15",
+    "sql_query": "SELECT administration_route, MIN(storage_conditions) AS min_storage_conditions FROM drug GROUP BY administration_route;",
+    "nl_query": null,
+    "category": "Generated",
+    "metadata": {
+      "generated": true,
+      "template": "agg_only|drug|administration_route|min_storage_conditions",
+      "split": "test",
+      "aggregation_slice": "agg_only",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_filter_med_gen_77",
+    "sql_query": "SELECT prescription_status, COUNT(side_effects) AS count_side_effects FROM drug WHERE pharmaceutical_form != 'tablet' GROUP BY prescription_status;",
+    "nl_query": null,
+    "category": "Generated",
+    "metadata": {
+      "generated": true,
+      "template": "agg_filter|drug|prescription_status|single|3_4",
+      "split": "test",
+      "aggregation_slice": "agg_filter",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_filter_med_gen_65",
+    "sql_query": "SELECT prescription_status, COUNT(side_effects) AS count_side_effects FROM drug WHERE administration_route = 'subcutaneous' GROUP BY prescription_status;",
+    "nl_query": null,
+    "category": "Generated",
+    "metadata": {
+      "generated": true,
+      "template": "agg_filter|drug|prescription_status|single|3_1",
+      "split": "test",
+      "aggregation_slice": "agg_filter",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_filter_med_gen_84",
+    "sql_query": "SELECT prescription_status, MIN(dosage_frequency) AS min_dosage_frequency FROM drug WHERE (pharmaceutical_form = 'tablet' AND pharmaceutical_form != 'solution') OR (pharmaceutical_form != 'spray') GROUP BY prescription_status;",
+    "nl_query": null,
+    "category": "Generated",
+    "metadata": {
+      "generated": true,
+      "template": "agg_filter|drug|prescription_status|mixed|4_0",
+      "split": "test",
+      "aggregation_slice": "agg_filter",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_filter_med_gen_120",
+    "sql_query": "SELECT administration_route, COUNT(*) AS count_all FROM drug WHERE (pharmaceutical_form != 'spray' AND prescription_status = 'unclassified') OR (pharmaceutical_form = 'injection') GROUP BY administration_route;",
+    "nl_query": null,
+    "category": "Generated",
+    "metadata": {
+      "generated": true,
+      "template": "agg_filter|drug|administration_route|mixed|5_4",
+      "split": "test",
+      "aggregation_slice": "agg_filter",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_filter_med_gen_371",
+    "sql_query": "SELECT institution_country, MIN(research_fields) AS min_research_fields FROM institution WHERE (institution_type = 'university-affiliated') AND (institution_type != 'public') GROUP BY institution_country;",
+    "nl_query": null,
+    "category": "Generated",
+    "metadata": {
+      "generated": true,
+      "template": "agg_filter|institution|institution_country|and|7_2",
+      "split": "test",
+      "aggregation_slice": "agg_filter",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_join_med_gen_6",
+    "sql_query": "SELECT drug.prescription_status, MIN(drug.storage_conditions) AS min_drug_storage_conditions FROM drug JOIN disease ON drug.disease_name = disease.disease_name GROUP BY drug.prescription_status;",
+    "nl_query": null,
+    "category": "Generated",
+    "metadata": {
+      "generated": true,
+      "template": "agg_join|drug_disease|drug.prescription_status|min_drug_storage_conditions",
+      "split": "test",
+      "aggregation_slice": "agg_join",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_join_med_gen_12",
+    "sql_query": "SELECT drug.administration_route, MAX(drug.dosage_frequency) AS max_drug_dosage_frequency FROM drug JOIN disease ON drug.disease_name = disease.disease_name GROUP BY drug.administration_route;",
+    "nl_query": null,
+    "category": "Generated",
+    "metadata": {
+      "generated": true,
+      "template": "agg_join|drug_disease|drug.administration_route|max_drug_dosage_frequency",
+      "split": "test",
+      "aggregation_slice": "agg_join",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_join_med_gen_14",
+    "sql_query": "SELECT drug.administration_route, COUNT(disease.treatments) AS count_disease_treatments FROM drug JOIN disease ON drug.disease_name = disease.disease_name GROUP BY drug.administration_route;",
+    "nl_query": null,
+    "category": "Generated",
+    "metadata": {
+      "generated": true,
+      "template": "agg_join|drug_disease|drug.administration_route|count_disease_treatments",
+      "split": "test",
+      "aggregation_slice": "agg_join",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_join_med_gen_17",
+    "sql_query": "SELECT drug.pharmaceutical_form, COUNT(disease.disease_name) AS count_disease_disease_name FROM drug JOIN disease ON drug.disease_name = disease.disease_name GROUP BY drug.pharmaceutical_form;",
+    "nl_query": null,
+    "category": "Generated",
+    "metadata": {
+      "generated": true,
+      "template": "agg_join|drug_disease|drug.pharmaceutical_form|count_disease_disease_name",
+      "split": "test",
+      "aggregation_slice": "agg_join",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_join_med_gen_15",
+    "sql_query": "SELECT drug.pharmaceutical_form, COUNT(*) AS count_all FROM drug JOIN disease ON drug.disease_name = disease.disease_name GROUP BY drug.pharmaceutical_form;",
+    "nl_query": null,
+    "category": "Generated",
+    "metadata": {
+      "generated": true,
+      "template": "agg_join|drug_disease|drug.pharmaceutical_form|count_all",
+      "split": "test",
+      "aggregation_slice": "agg_join",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_filter_join_med_gen_165",
+    "sql_query": "SELECT drug.pharmaceutical_form, MIN(drug.dosage_frequency) AS min_drug_dosage_frequency FROM drug JOIN disease ON drug.disease_name = disease.disease_name WHERE (drug.prescription_status = 'unclassified') OR (disease.disease_type = 'infectious') GROUP BY drug.pharmaceutical_form;",
+    "nl_query": null,
+    "category": "Generated",
+    "metadata": {
+      "generated": true,
+      "template": "agg_filter_join|drug_disease|or|13_2",
+      "split": "test",
+      "aggregation_slice": "agg_filter_join",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "mixed_queries_filter_agg_join_8",
+    "sql_query": "SELECT institution.institution_type, AVG(drug.dosage_frequency) AS avg_drug_dosage_frequency FROM disease JOIN drug ON disease.disease_name = drug.disease_name JOIN institution ON disease.disease_name = institution.research_diseases WHERE drug.generic_name != 'Linaclotide' AND disease.common_symptoms != 'headache' GROUP BY institution.institution_type;",
     "nl_query": null,
     "category": "Mixed",
     "metadata": {
       "source_file": "/Users/aritramazumder/Documents/UDA-Bench-main/Query/Med/Mixed/mixed_queries_filter_agg_join.sql",
-      "query_index": 7,
-      "subcategory": "filter1_agg1_join1",
+      "query_index": 8,
+      "subcategory": "filter2_agg1_join2",
       "tables": [
         "disease",
-        "drug"
+        "drug",
+        "institution"
+      ],
+      "split": "test",
+      "aggregation_slice": "agg_filter_join",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "mixed_queries_filter_agg_join_4",
+    "sql_query": "SELECT institution.research_fields, MAX(disease.diagnosis_challenges) AS max_disease_diagnosis_challenges FROM disease JOIN drug ON disease.disease_name = drug.disease_name JOIN institution ON disease.disease_name = institution.research_diseases WHERE institution.institution_country = 'United Kingdom' AND institution.research_fields != 'gastroenterology' AND disease.etiology = 'pulmonary embolism' GROUP BY institution.research_fields;",
+    "nl_query": null,
+    "category": "Mixed",
+    "metadata": {
+      "source_file": "/Users/aritramazumder/Documents/UDA-Bench-main/Query/Med/Mixed/mixed_queries_filter_agg_join.sql",
+      "query_index": 4,
+      "subcategory": "filter4_agg1_join2",
+      "tables": [
+        "disease",
+        "drug",
+        "institution"
+      ],
+      "split": "test",
+      "aggregation_slice": "agg_filter_join",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_filter_join_med_gen_109",
+    "sql_query": "SELECT drug.administration_route, MAX(drug.dosage_frequency) AS max_drug_dosage_frequency FROM drug JOIN disease ON drug.disease_name = disease.disease_name WHERE disease.disease_type = 'degenerative' GROUP BY drug.administration_route;",
+    "nl_query": null,
+    "category": "Generated",
+    "metadata": {
+      "generated": true,
+      "template": "agg_filter_join|drug_disease|single|9_0",
+      "split": "test",
+      "aggregation_slice": "agg_filter_join",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "mixed_queries_filter_agg_join_6",
+    "sql_query": "SELECT institution.institution_type, AVG(disease.epidemiology) AS avg_disease_epidemiology FROM disease JOIN drug ON disease.disease_name = drug.disease_name JOIN institution ON disease.disease_name = institution.research_diseases WHERE (drug.brand_name != 'Daliresp' AND disease.common_symptoms != 'back pain') OR (institution.key_technologies = 'enzyme-linked immunosorbent assay (ELISA)' AND drug.pharmaceutical_form != 'ointment') GROUP BY institution.institution_type;",
+    "nl_query": null,
+    "category": "Mixed",
+    "metadata": {
+      "source_file": "/Users/aritramazumder/Documents/UDA-Bench-main/Query/Med/Mixed/mixed_queries_filter_agg_join.sql",
+      "query_index": 6,
+      "subcategory": "filter6_agg1_join2",
+      "tables": [
+        "disease",
+        "drug",
+        "institution"
       ],
       "split": "test",
       "aggregation_slice": "agg_filter_join",

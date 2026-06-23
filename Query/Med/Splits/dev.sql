@@ -1,0 +1,59 @@
+-- Query 1: dev (agg_only) id=agg_only_med_gen_29
+SELECT institution_type, MAX(research_fields) AS max_research_fields FROM institution GROUP BY institution_type;
+
+-- Query 2: dev (agg_only) id=agg_only_med_gen_9
+SELECT administration_route, COUNT(*) AS count_all FROM drug GROUP BY administration_route;
+
+-- Query 3: dev (agg_only) id=agg_only_med_gen_7
+SELECT prescription_status, MIN(storage_conditions) AS min_storage_conditions FROM drug GROUP BY prescription_status;
+
+-- Query 4: dev (agg_only) id=agg_only_med_gen_34
+SELECT institution_country, MAX(research_fields) AS max_research_fields FROM institution GROUP BY institution_country;
+
+-- Query 5: dev (agg_only) id=agg_only_med_gen_32
+SELECT institution_country, COUNT(funding_sources) AS count_funding_sources FROM institution GROUP BY institution_country;
+
+-- Query 6: dev (agg_filter) id=agg_filter_med_gen_305
+SELECT institution_type, COUNT(*) AS count_all FROM institution WHERE (institution_country != 'USA') AND (institution_country = 'Australia') GROUP BY institution_type;
+
+-- Query 7: dev (agg_filter) id=agg_filter_med_gen_292
+SELECT pharmaceutical_form, MIN(dosage_frequency) AS min_dosage_frequency FROM drug WHERE (prescription_status = 'unclassified' AND administration_route != 'injection') OR (administration_route != 'subcutaneous') GROUP BY pharmaceutical_form;
+
+-- Query 8: dev (agg_filter) id=agg_filter_med_gen_304
+SELECT institution_type, COUNT(*) AS count_all FROM institution WHERE institution_country != 'USA' GROUP BY institution_type;
+
+-- Query 9: dev (agg_filter) id=agg_filter_med_gen_26
+SELECT prescription_status, COUNT(generic_name) AS count_generic_name FROM drug WHERE (administration_route = 'injection') AND (administration_route != 'subcutaneous') GROUP BY prescription_status;
+
+-- Query 10: dev (agg_filter) id=agg_filter_med_gen_347
+SELECT institution_country, COUNT(institution_name) AS count_institution_name FROM institution WHERE (research_fields = 'immunology') AND (research_fields != 'microbiology') GROUP BY institution_country;
+
+-- Query 11: dev (agg_join) id=mixed_queries_agg_join_1
+SELECT drug.prescription_status, MIN(drug.recommended_usage) AS min_drug_recommended_usage FROM disease JOIN drug ON disease.disease_name = drug.disease_name GROUP BY drug.prescription_status;
+
+-- Query 12: dev (agg_join) id=agg_join_med_gen_25
+SELECT disease.disease_type, MIN(drug.dosage_frequency) AS min_drug_dosage_frequency FROM drug JOIN disease ON drug.disease_name = disease.disease_name GROUP BY disease.disease_type;
+
+-- Query 13: dev (agg_join) id=agg_join_med_gen_16
+SELECT drug.pharmaceutical_form, COUNT(drug.generic_name) AS count_drug_generic_name FROM drug JOIN disease ON drug.disease_name = disease.disease_name GROUP BY drug.pharmaceutical_form;
+
+-- Query 14: dev (agg_join) id=agg_join_med_gen_5
+SELECT drug.prescription_status, MAX(drug.dosage_frequency) AS max_drug_dosage_frequency FROM drug JOIN disease ON drug.disease_name = disease.disease_name GROUP BY drug.prescription_status;
+
+-- Query 15: dev (agg_join) id=agg_join_med_gen_24
+SELECT disease.disease_type, COUNT(disease.disease_name) AS count_disease_disease_name FROM drug JOIN disease ON drug.disease_name = disease.disease_name GROUP BY disease.disease_type;
+
+-- Query 16: dev (agg_filter_join) id=agg_filter_join_med_gen_25
+SELECT drug.prescription_status, COUNT(disease.disease_name) AS count_disease_disease_name FROM drug JOIN disease ON drug.disease_name = disease.disease_name WHERE drug.administration_route = 'injection' GROUP BY drug.prescription_status;
+
+-- Query 17: dev (agg_filter_join) id=agg_filter_join_med_gen_49
+SELECT drug.prescription_status, MAX(drug.dosage_frequency) AS max_drug_dosage_frequency FROM drug JOIN disease ON drug.disease_name = disease.disease_name WHERE drug.pharmaceutical_form = 'capsule' GROUP BY drug.prescription_status;
+
+-- Query 18: dev (agg_filter_join) id=agg_filter_join_med_gen_155
+SELECT drug.pharmaceutical_form, COUNT(disease.disease_name) AS count_disease_disease_name FROM drug JOIN disease ON drug.disease_name = disease.disease_name WHERE (drug.prescription_status = 'unclassified') AND (disease.disease_type = 'infectious') GROUP BY drug.pharmaceutical_form;
+
+-- Query 19: dev (agg_filter_join) id=agg_filter_join_med_gen_28
+SELECT drug.prescription_status, COUNT(disease.disease_name) AS count_disease_disease_name FROM drug JOIN disease ON drug.disease_name = disease.disease_name WHERE drug.pharmaceutical_form = 'tablet' GROUP BY drug.prescription_status;
+
+-- Query 20: dev (agg_filter_join) id=agg_filter_join_med_gen_61
+SELECT drug.administration_route, COUNT(*) AS count_all FROM drug JOIN disease ON drug.disease_name = disease.disease_name WHERE drug.pharmaceutical_form = 'injection' GROUP BY drug.administration_route;
