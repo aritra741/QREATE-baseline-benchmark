@@ -76,7 +76,8 @@ def load_corpus(dataset_name: str) -> list[dict]:
     if not txt_files:
         raise FileNotFoundError(
             f"No .txt corpus files found under {corpus_root}. "
-            "Bench-U Player corpus is expected in source_data/SyntheticPlayer/."
+            "Player corpus expected in source_data/SyntheticPlayer/, "
+            "CSPaper corpus expected in source_data/CSPaper/txt/."
         )
 
     from data.dataset_registry import corpus_folder_to_table, normalize_dataset_name
