@@ -66,6 +66,7 @@ from pipeline.group_by_category_error import (
     write_category_error_report,
     write_top_category_error_audit,
 )
+from data.loader import schema_value_hints_from_gt
 from pipeline.evaluation import _eval_context
 from pipeline.extraction import ExtractionResult, extract_documents
 from pipeline.extraction_context import extract_demand_profile_sql_only
@@ -123,6 +124,7 @@ def _run_fingerprint(
     corpus_fingerprint: str,
     extraction_mode: str,
     demand_fingerprint: str,
+    value_hints_fingerprint: str = "none",
 ) -> dict[str, Any]:
     """Fields that must match for checkpoint / extraction cache reuse."""
     return {
@@ -134,6 +136,7 @@ def _run_fingerprint(
         "corpus_fingerprint": corpus_fingerprint,
         "extraction_mode": extraction_mode,
         "demand_fingerprint": demand_fingerprint,
+        "value_hints_fingerprint": value_hints_fingerprint,
         "split": "test",
     }
 
@@ -302,6 +305,12 @@ def resolve_extraction(
         if extraction_mode == "workload_aware"
         else None
     )
+    try:
+        _vh = schema_value_hints_from_gt(instance.dataset_name)
+        _vh_payload = json.dumps(_vh, sort_keys=True, default=str)
+        value_hints_fp = hashlib.sha256(_vh_payload.encode()).hexdigest()[:16]
+    except Exception:
+        value_hints_fp = "none"
     expected_meta = _run_fingerprint(
         extraction_model=extraction_model,
         llm_profile=llm_profile,
@@ -311,6 +320,7 @@ def resolve_extraction(
         corpus_fingerprint=_corpus_fingerprint(instance.corpus),
         extraction_mode=extraction_mode,
         demand_fingerprint=demand_fp,
+        value_hints_fingerprint=value_hints_fp,
     )
     if cache_path.is_file() and not fresh:
         extraction, cached_meta = _load_extraction_cache(cache_path)
@@ -326,11 +336,17 @@ def resolve_extraction(
         )
 
     logger.info("Running LLM extraction on %d docs", len(instance.corpus))
+    try:
+        _value_hints = schema_value_hints_from_gt(instance.dataset_name)
+        logger.info("Schema value hints for %d categorical columns", len(_value_hints))
+    except Exception:
+        _value_hints = None
     extraction = extract_documents(
         instance.corpus,
         instance.schema,
         extraction_model,
         queries=instance.queries,
+        schema_value_hints=_value_hints or None,
     )
     meta = {
         **expected_meta,

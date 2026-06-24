@@ -194,8 +194,26 @@ def infer_output_tables(demand_profile: dict[str, Any], entity_hint: str) -> lis
 def build_extraction_task_context(
     queries: list[dict],
     demand_profile: dict[str, Any],
+    *,
+    schema_value_hints: dict[str, list[str]] | None = None,
 ) -> dict[str, Any]:
-    """Compact workload context passed to the extractor (agent-visible shape)."""
+    """Compact workload context passed to the extractor (agent-visible shape).
+
+    schema_value_hints: mapping of column_name -> sorted list of valid values for
+    categorical columns (e.g. {'uses_knowledge_graph': ['No', 'Yes']}).  When
+    provided the hints are injected into each matching demand-profile column entry
+    so the LLM knows the valid vocabulary without receiving the full GT schema.
+    """
+    if schema_value_hints:
+        annotated_columns = []
+        for col_entry in demand_profile.get("columns", []):
+            col_name = col_entry.get("column", "")
+            hints = schema_value_hints.get(col_name)
+            if hints:
+                col_entry = {**col_entry, "valid_values": hints}
+            annotated_columns.append(col_entry)
+        demand_profile = {**demand_profile, "columns": annotated_columns}
+
     return {
         "task": "extract_structured_facts_for_query_workload",
         "workload_summary": compact_workload_summary(queries, demand_profile),
@@ -231,6 +249,20 @@ def build_workload_aware_extraction_prompt(
         indent=2,
     )
 
+    # Build a human-readable block for categorical hints so the LLM sees them prominently.
+    value_hint_lines: list[str] = []
+    for col_entry in (relevant_columns or demand_profile.get("columns", [])):
+        vv = col_entry.get("valid_values")
+        if vv:
+            col_name = col_entry.get("column", "")
+            value_hint_lines.append(f'  - {col_name}: one of {vv}')
+    categorical_hint_block = (
+        "\nCategorical column vocabularies (use ONLY these exact values):\n"
+        + "\n".join(value_hint_lines)
+        + "\n"
+        if value_hint_lines else ""
+    )
+
     return (
         "Extract structured tuples from the document to support the query workload.\n"
         "You are NOT given the target database schema — only workload demand (columns, "
@@ -241,8 +273,11 @@ def build_workload_aware_extraction_prompt(
         + '\n  }\n}\n'
         "Each table value must be a list of objects with attribute names as keys.\n"
         "Extract values supported by the text for workload-relevant attributes.\n"
-        "Do not invent facts. Use null for missing fields.\n\n"
-        f"Workload task context:\n{context_json}\n\n"
+        "Do not invent facts. Use null for missing fields.\n"
+        + categorical_hint_block
+        + "\nWorkload task context:\n"
+        + context_json
+        + "\n\n"
         f"Document entity hint: {entity_hint or '(unknown)'}\n"
         f"Document ID: {doc['doc_id']}\n"
         f"Document:\n{doc['text']}\n"

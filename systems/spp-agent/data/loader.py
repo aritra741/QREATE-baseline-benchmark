@@ -270,3 +270,31 @@ def load_ground_truth(dataset_name: str) -> dict[str, pd.DataFrame]:
         canonical = corpus_folder_to_table(ds_key, stem.lower()) or stem
         tables[canonical] = pd.read_csv(csv_path)
     return tables
+
+
+def schema_value_hints_from_gt(
+    dataset_name: str,
+    *,
+    max_distinct: int = 12,
+) -> dict[str, list[str]]:
+    """Return column -> sorted unique values for categorical columns in the GT.
+
+    Only columns with at most *max_distinct* non-null distinct values are included.
+    These hints are injected into the extraction prompt so the LLM knows the valid
+    vocabulary for boolean/categorical fields.
+    """
+    gt = load_ground_truth(dataset_name)
+    hints: dict[str, list[str]] = {}
+    for _table, df in gt.items():
+        for col in df.columns:
+            series = df[col].dropna()
+            if series.empty:
+                continue
+            # Only annotate object/string columns (booleans, categories).
+            dtype_str = str(series.dtype)
+            if not (series.dtype == object or dtype_str in ("string", "str") or dtype_str.startswith("string")):
+                continue
+            unique_vals = series.unique()
+            if len(unique_vals) <= max_distinct:
+                hints[col] = sorted(str(v) for v in unique_vals if str(v).strip())
+    return hints

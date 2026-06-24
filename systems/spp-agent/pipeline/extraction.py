@@ -241,6 +241,7 @@ def extract_documents(
     *,
     queries: list[dict] | None = None,
     demand_profile: dict | None = None,
+    schema_value_hints: dict[str, list[str]] | None = None,
 ) -> ExtractionResult:
     cfg = load_config()
     llm_cfg = cfg["llm"]
@@ -258,7 +259,9 @@ def extract_documents(
     task_context = None
     if workload_aware:
         resolved_demand = resolve_demand_profile(queries, demand_profile=demand_profile)
-        task_context = build_extraction_task_context(queries, resolved_demand)
+        task_context = build_extraction_task_context(
+            queries, resolved_demand, schema_value_hints=schema_value_hints
+        )
         logger.info(
             "Workload-aware extraction: %d demand columns has_join=%s has_temporal=%s",
             len(resolved_demand.get("columns", [])),
