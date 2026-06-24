@@ -1,0 +1,73 @@
+LLM-assisted Graph-RAG Information Extraction from IFC Data 
+Sima Iranmanesh∗, Hadeel Saadany∗, and Edlira Vakaj∗ 
+∗ College of Computing, Birmingham City University, birmingham, UK 
+ 
+Abstract 
+IFC data has become the general building information 
+standard for collaborative work in the construction in- 
+dustry. However, IFC data can be very complicated be- 
+cause it allows for multiple ways to represent the same 
+product information. In this research, we utilise the ca- 
+pabilities of LLMs to parse the IFC data with Graph 
+Retrieval-Augmented Generation (Graph-RAG) technique 
+to retrieve building object properties and their relations. 
+We will show that, despite limitations due to the com- 
+plex hierarchy of the IFC data, the Graph-RAG parsing 
+enhances generative LLMs like GPT-4o with graph-based 
+knowledge, enabling natural language query-response re- 
+trieval without the need for a complex pipeline. 
+Introduction 
+BIM (Building Information Modelling) technology is used 
+in the architecture, engineering, construction, and opera- 
+tion (AECO) industry to manage and share building in- 
+formation throughout the construction cycle. Since build- 
+ingSMART (Liebich et al., 2010) has published the IFC 
+(Industry Foundation Classes), the BIM servers gener- 
+ally use IFC data as a standard for storing, exchanging 
+and extracting information on architectural elements (Xu 
+et al., 2018; Faraj et al., 2000). IFC files are essentially 
+information-intensive complex text files that share data 
+throughout the project life cycle across disciplines and 
+technical applications. There are various commercial as 
+well as open source tools available for working with IFC 
+data. However, extracting information from IFC data re- 
+quires not only technical knowledge of the complicated 
+schema of the IFC documentation but also an experience 
+in manipulating the different BIM software to extract the 
+required information from the building model data. More- 
+over, many IFC open-source parsing tools can lose the se- 
+mantics of IFC when different entities are combined or 
+compared across IFC files (Zhao et al., 2020). 
+Several research studies attempted to overcome these chal- 
+lenges by introducing automatic methods and tools to fa- 
+cilitate the parsing of complex data from IFC files. These 
+studies mainly focused on transforming IFC files into an al- 
+ternative data format via mapping rules (Kang and Hong, 
+2018), graph-theory-based technology (Zhu et al., 2023), 
+a structured query language (Krijnen and Beetz, 2018) or 
+an ontology-based language (Liu et al., 2016). However, 
+in such methods, an in-depth knowledge of query formu- 
+lation and mapping rules is required in order to extract an 
+attribute or an entity relation. Moreover, when the rules are 
+incomplete, the extracted attribute may also be incomplete 
+or irrelevant to the user requirements (Du et al., 2021). 
+Recently, a number of studies have adopted Natural Lan- 
+guage Processing (NLP) techniques to provide natural 
+language-based information extraction from IFC data. 
+NLP-based information retrieval systems have focused on 
+parsing IFC data via syntactic tagging tools (Park and 
+Kang, 2018), dependency rules (Wang and Issa, 2019), and 
+keyword classification (Wu et al., 2019). Although, the ex- 
+isting effort to parse IFC data in natural language queries 
+and responses is limited, it proved to significantly facili- 
+tate the process of information acquisition from building 
+information models (Lin et al., 2016; Wang et al., 2022). 
+Such query-answer (QA) models parsing IFC in natural 
+language directly extract information from BIM data with- 
+out complex reasoning and expensive computation. 
+In this research, we advance NLP methodologies by har- 
+nessing the power of generative AI and Graph-RAG tech- 
+niques to create a QA system capable of processing IFC 
+data where both queries and responses are constructed in 
+plain language. Graph-RAG is a specialized variant of the 
+Retrieval-A

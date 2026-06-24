@@ -1,0 +1,83 @@
+DrugMCTS: a Drug Repositioning Framework Combining
+Multi-Agent, RAG and Monte Carlo Tree Search
+Zerui Yang1,2
+, Yuwei Wan1, Siyu Yan3, Yudai Matsuda1, Tong Xie4, Bram Hoex5, and Linqi Song1,2⋆
+1 City University of Hong Kong, Hong Kong, PR China
+2 City University of Hong Kong Shenzhen Research Institute, Shenzhen, PR China
+3 The Hong Kong University of Science and Technology (Guangzhou), Guangzhou PR China
+4 GreenDynamics, Sydney, NSW, Australia
+5 University of New South Wales, Kensington, NSW, Australia
+6
+Abstract
+Recent advances in large language models have
+demonstrated considerable potential in scientific do-
+mains such as drug repositioning. However, their ef-
+fectiveness remains constrained when reasoning ex-
+tends beyond the knowledge acquired during pre-
+training. Conventional approaches, such as fine-
+tuning or retrieval-augmented generation, face limita-
+tions in either imposing high computational overhead
+or failing to fully exploit structured scientific data.
+To overcome these challenges, we propose DrugM-
+CTS, a novel framework that synergistically inte-
+grates RAG, multi-agent collaboration, and Monte
+Carlo Tree Search for drug repositioning. The frame-
+work employs five specialized agents tasked with re-
+trieving and analyzing molecular and protein infor-
+mation, thereby enabling structured and iterative
+reasoning. Extensive experiments on the DrugBank
+and KIBA datasets demonstrate that DrugMCTS
+achieves substantially higher recall and robustness
+compared to both general-purpose LLMs and deep
+learning baselines. Our results highlight the impor-
+tance of structured reasoning, agent-based collab-
+oration, and feedback-driven search mechanisms in
+advancing LLM applications for drug repositioning.
+Contact: zeruiyang2-c@my.cityu.edu.hk
+1
+Introduction
+Large language models (LLMs) have demonstrated
+remarkable capabilities across a wide range of do-
+mains, including question answering, logical reason-
+ing, and knowledge-intensive tasks such as mathe-
+matics and code generation. These models are in-
+creasingly being explored for applications in scientific
+fields, particularly in drug discovery [33]. However,
+when confronted with problems that lie beyond their
+⋆Corresponding author
+pre-training knowledge or inherent reasoning abili-
+ties, such as predicting novel drug-target interactions,
+their performance may fall short of expectations [38].
+As general-purpose large models gain traction
+in scientific domains, fine-tuning on domain-specific
+datasets has emerged as a common approach [36,27].
+However, this method faces several well-recognized
+limitations. Fine-tuning is computationally expensive
+and typically domain-specific, making it inefficient
+and often impractical for extending to new scientific
+areas. Furthermore, given the dynamic nature of sci-
+entific knowledge, maintaining up-to-date models re-
+quires continual retraining, which increases computa-
+tional overhead and risks catastrophic forgetting [19].
+These challenges hinder the scalability and long-term
+utility of fine-tuning in real-world scientific applica-
+tions.
+To address the drawbacks of fine-tuning, retrieval-
+augmented generation (RAG) has emerged as a
+promising alternative [35]. By leveraging external
+agents to retrieve relevant information from literature
+and databases, RAG enhances the reasoning capabil-
+ities of LLMs without requiring model updates [3].
+This makes it particularly suitable for dynamic do-
+mains such as drug discovery.
+Despite its advantages, RAG faces notable limita-
+tions. Scientific data can be broadly categorized into
+structured scientific data and unstructured general-
+purpose text [39]. Existing RAG systems often pri-
+oritize the latter due to better compatibility with
+LLMs [23], overlooking the richness of structured
+data such as molecular structures and protein se-
+quences. For example, drug-target interaction tasks
+frequently exclude structural information, relying
+solely on knowledge graphs or text [14], which com-
+promises bo

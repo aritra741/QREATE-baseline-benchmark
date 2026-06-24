@@ -1,0 +1,93 @@
+Post-training an LLM for RAG? Train on Self-Generated Demonstrations
+Matthew Finlayson∗
+Ilia Kulikov†
+Daniel M. Bikel†
+Barlas Oguz†
+Xilun Chen†
+Aasish Pappu†
+∗University of Southern California
+†Meta, Inc.
+mfinlays@usc.edu
+aasish@meta.com
+Abstract
+Large language models (LLMs) often struggle
+with knowledge intensive NLP tasks, such as
+answering “Who won the latest World Cup?”
+because the knowledge they learn during train-
+ing may be insufficient or outdated. Condi-
+tioning generation on retrieved documents—a
+technique known as retrieval augmented gen-
+eration (RAG)—mitigates these shortcomings
+by allowing the model to leverage in-context
+information. Practitioners can improve LLM
+RAG performance by fine-tuning on retrieval-
+augmented instructions, but must beware that
+this can cause undesirable model behaviors like
+hallucinations. We attribute this degradation
+to the fact that the training data is likely to be
+out-of-distribution for the model and may suf-
+fer from quality issues, such as misalignment
+between retrievals and target responses (since re-
+trievals are frequently added post-hoc). We pro-
+pose a recipe for training RAG-enabled LLMs
+using self-generated demonstrations, thereby
+avoiding training on out-of-distribution text and
+integrating retrievals into the LLM responses.
+We evaluate our method on knowledge intensive
+question answering (QA) tasks and show that
+our method teaches LLMs to properly handle
+in-context retrievals and abstain from questions
+it will likely get wrong. Compared to conven-
+tional RA-IT methods, our method prevents
+model degradation in non-RAG settings while
+exhibiting superior QA performance.
+1
+Introduction
+Typically, large language models (LLMs) must rely
+solely on knowledge learned during pre-training
+to perform downstream tasks like question answer-
+ing. This situation becomes problematic when the
+task depends on knowledge that the model has not
+encountered or learned. A popular framework for
+mitigating this issue is to provide the model with
+contextual knowledge, i.e., providing relevant infor-
+mation for the task as input. This crucial context
+typically comes from retrieval systems that fetch
+documents from some database based on their rele-
+vance to the task. The combination of retrieval and
+language generation, known as retrieval-augmented
+generation (RAG), often outperforms LLMs with-
+out retrievals on downstream tasks, particularly for
+knowledge intensive tasks where parametric (i.e.,
+learned during pre-training) knowledge fails.
+Integrating an LLM into a RAG system can be
+tricky, since the LLM may not properly leverage
+the additional context to improve performance. In
+particular, if the retrievals are irrelevant to the task,
+they may distract the LLM from the objective or
+cause the LLM to integrate incorrect information
+into its generations. The LLM may also fail to
+integrate the provided context even when it contains
+the solution to the task. We hypothesize that these
+shortcomings are caused by distributional mismatch
+between the model’s training data and the RAG-
+style inputs it receives at test time.
+Several prior efforts have sought to better in-
+tegrate LLMs into RAG systems by fine-tuning
+them for the task. This usually involves training
+the model with in-context retrievals, and may be
+implemented during pre-training (e.g., Guu et al.,
+2020), or as a post-training step (Lin et al., 2024b).
+Since pre-training can be prohibitively expensive,
+we focus on the more accessible and common post-
+training methods. In particular, we concentrate
+on retrieval-augmented instruction tuning (RA-IT)
+where an LLM is fine-tuned on an instruction tuning
+dataset which has been modified to include one or
+more retrievals for each instance.
+One easy way to obtain a RA-IT training set is to
+augment existing instruction-response pairs from
+an instruction tuning dataset with retrievals. This
+approach poses two significant challenges. First,
+there may be a misalignment between the retrieved
+content and the

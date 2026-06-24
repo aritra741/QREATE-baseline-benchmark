@@ -1,0 +1,75 @@
+1
+RAG-Based Fuzzing of Cross-Architecture
+Compilers
+Rana Elnaggar, Brian Delgado, and Jason M. Fung
+Intel Corporation
+E-mail: rana.elnaggar@intel.com, brian.delgado@intel.com, and jason.m.fung@intel.com
+Abstract—OneAPI is an open standard that supports cross-
+architecture software development with minimal effort from
+developers. It brings DPC++ and C++ compilers which need
+to be thoroughly tested to verify their correctness, relia-
+bility, and security. Compilers have numerous code flows
+and optimization features. This process requires developers
+with deep understanding of the different compiler flows to
+craft testcases specific to target paths in the compiler. This
+testcase creation is a time-consuming and costly process.
+In this paper, we propose a large-language model (LLM)-
+based compiler fuzzing tool that integrates the concept of
+retrieval-augmented generation (RAG). This tool automates
+the testcase generation task and relieves experienced com-
+piler developers from investing time to craft testcase gener-
+ation patterns. We test our proposed approach on the Intel
+DPC++/C++ compiler. This compiler compiles SYCL code and
+allows developers to offload it to different architectures, e.g.
+GPUs and CPUs from different vendors. Using this tool, we
+managed to identify 87 SYCL code test cases that lead to
+output value mismatch or compiler runtime errors when
+compiled using Intel DPC++ and clang++ compilers and run
+on different architectures. The testcases and the identified
+unexpected behaviors of the compilers under test were ob-
+tained within only few hours with no prior background on
+the compiler passes under tests. This tool facilitates efficient
+compiler fuzzing with reduced developer time requirements
+via the dynamic testcase creation capability provided by an
+LLM with RAG.
+Index Terms—compilers, fuzzing, DPC++, sycl, LLM, RAG
+I. INTRODUCTION
+The Intel DPC++ compiler enables the same source
+code to be compiled to generate binaries of different
+vendor architectures. Accomplishing this purpose requires
+numerous complicated flows that are implemented across
+several development teams. Thus, this compiler needs to
+be thoroughly tested to ensure that it does not crash, nor
+introduce exploitable bugs in the generated binaries or
+differing behavior on other architectures. Compiler fuzzing
+has been widely adopted to test different compilers (e.g.,
+LLVM, Nvidia NVCC and OpenCL compilers) [1]. Prior
+work has relied on three major paradigms for compiler
+fuzzing: (1) closed-box fuzzing, which generates random
+code snippets based on the target language grammar
+and features of the target language; (2) partially-closed
+box fuzzing, which utilizes information about test cases
+coverage to guide further test generation; and (3) open-
+box fuzzing which generates test cases based on inspecting
+the source code of the compiler passes. Closed-box and
+partially closed box fuzzing techniques suffer from low
+compiler code coverage and the inability to target specific
+compiler passes. The ability to test a specific compiler
+pass is crucial during the compiler development phase.
+Thus, when closed-box and partially closed box fuzzing
+techniques are applied, multiple bugs remain unrevealed
+by fuzzing campaigns that continue to run over years [2].
+Open-box fuzzing addresses the limitations in closed and
+partially-closed fuzzing, however, it utilizes hand-written
+code generation templates and policies to cover language
+features related to a specific compiler pass [3]. Thus, this
+methodology is highly labor-intensive. It requires experi-
+enced compiler developers with extensive knowledge in
+compiler features and compiler passes to develop these
+templates and generation policies. In addition, a custom
+template needs to be implemented for every compiler
+pass under test. This severely affects the scalability and
+feasibility of open-box fuzzing.
+Recently, large language models (LLMs) have proven
+their success in code generation. The work in [1] pro-
+poses to gen

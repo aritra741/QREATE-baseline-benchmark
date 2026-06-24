@@ -1,0 +1,63 @@
+REBot: From RAG to CatRAG with Semantic
+Enrichment and Graph Routing
+Thanh Ma, Tam-Tri La, Nghi-Minh Nguyen, Van-Khanh Pham Luu,
+Thu-Lam Le Huu, and Huu-Hoa Nguyen∗
+{mtthanh,nhhoa}@ctu.edu.vn
+{tamb2203579,nghib2203570,vanb2203592,thub2206018}@student.ctu.edu.vn
+∗corresponding author
+Abstract. Academic regulation advising is vital for helping students
+interpret and comply with institutional policies, yet building effective
+systems requires domain-specific regulatory resources. To address this
+challenge, we propose REBot, an LLM-enhanced advisory chatbot pow-
+ered by CatRAG, a hybrid retrieval–reasoning framework that integrates
+RAG with GraphRAG. We introduce CatRAG that unifies dense re-
+trieval and graph-based reasoning, supported by a hierarchical, category-
+labeled knowledge graph enriched with semantic features for domain
+alignment. A lightweight intent classifier routes queries to the appro-
+priate retrieval modules, ensuring both factual accuracy and contex-
+tual depth. We construct a regulation-specific dataset and assess REBot
+on classification and question-answering tasks, achieving state-of-the-art
+performance with an F1-score of 98.89%. Finally, we implement a web
+application that demonstrates the practical value of REBot in real-world
+academic advising scenarios.
+Keywords: Regulation Advisor · Artificial Intelligence · Chatbot · Text
+Classification · Knowledge Graph · RAG · GraphRAG
+1
+Introduction
+Addressing student inquiries regarding university regulations remains a persis-
+tent challenge for many Vietnamese universities and institutes. At Can Tho
+University (CTU), such information is primarily disseminated through official
+sources including the student handbook, departmental websites, and PDF docu-
+ments. Consequently, students often face difficulties in locating precise answers,
+leading to uncertainty about critical academic procedures and policies. Com-
+mon questions include: ’What is the maximum study duration?’, ’What are the
+requirements for receiving a university scholarship?’, or ’How can I change my
+major?’ To find answers, students may either consult multiple documents or seek
+assistance from the relevant department, both of which can be time-consuming
+and inefficient. Frequent policy updates further complicate maintaining aware-
+ness of the latest regulations.
+Artificial intelligence (AI) has been widely adopted in chatbot-based advi-
+sory systems. In Vietnam, Phuoc et al. [4] employed Rasa to build a regulation
+arXiv:2510.01800v1  [cs.AI]  2 Oct 2025
+2
+Thanh Ma et al.
+management chatbot capable of intent detection, entity extraction, and dialogue
+management; while effective for FAQs, its heavy reliance on a small dataset lim-
+ited robustness for unseen queries. Similarly, Luong and Luong [14] developed
+an NLP/ML chatbot for student services, providing fast responses but strug-
+gling with policy-specific reasoning. Recent advances in large language models
+(LLMs) [1, 18, 22] such as ChatGPT and Gemini overcome these issues by mod-
+eling complex semantics and sustaining multi-turn dialogue, offering valuable
+insights for academic advisory systems. Complementary techniques have also
+emerged: Retrieval-Augmented Generation (RAG) improves factual grounding
+but falters with ambiguous queries, whereas Knowledge Graphs (KGs) capture
+structured policy relations but lack generative flexibility. To address these gaps,
+we integrate both in GraphRAG, achieving precise, context-aware, and explain-
+able responses to complex regulation-related questions.
+We present REBot, an LLM-powered chatbot that offers CTU students [15]
+fast, accurate, and up-to-date answers on academic regulations. At its core
+is CatRAG, a hybrid framework combining RAG for factual reliability with
+GraphRAG for structured contextual reasoning. To meet the dual need for di-
+rect responses and explanatory context, CatRAG integrates NER for semantic
+enrichment and a routing classifier for precise subgraph selection, enhancing both
+accuracy and effic

@@ -1,0 +1,65 @@
+Under Review
+LINGUISTIC NEPOTISM: TRADING-OFF QUALITY FOR
+LANGUAGE PREFERENCE IN MULTILINGUAL RAG
+Dayeon Ki✽§
+Marine Carpuat✽
+Paul McNamee✛
+Daniel Khashabi✛
+Eugene Yang✛
+Dawn Lawrie✛
+Kevin Duh✛
+✽University of Maryland
+✛Johns Hopkins University
+dayeonki@umd.edu
+ABSTRACT
+Multilingual Retrieval-Augmented Generation (mRAG) systems enable language
+models to answer knowledge-intensive queries with citation-supported responses
+across languages. While such systems have been proposed, an open questions is
+whether the mixture of different document languages impacts generation and ci-
+tation in unintended ways. To investigate, we introduce a controlled methodology
+using model internals to measure language preference while holding other factors
+such as document relevance constant. Across eight languages and six open-weight
+models, we find that models preferentially cite English sources when queries are in
+English, with this bias amplified for lower-resource languages and for documents
+positioned mid-context. Crucially, we find that models sometimes trade-off doc-
+ument relevance for language preference, indicating that citation choices are not
+always driven by informativeness alone. Our findings shed light on how language
+models leverage multilingual context and influence citation behavior.1
+1
+INTRODUCTION
+Retrieval-Augmented Generation (RAG) systems have become a core component of modern large
+language model (LLM) pipelines, enabling models to answer knowledge-intensive queries by sup-
+plementing their limited parametric knowledge with external information (Lewis et al., 2020;
+Karpukhin et al., 2020; Gao et al., 2024). Given that over 50% of digital content is produced in
+languages other than English (Statista, 2025), recent work has extended these systems to multi-
+lingual RAG (mRAG) settings, which handle queries and documents in languages beyond English
+(Chirkova et al., 2024; Wu et al., 2024).
+Despite recent advances, prior work highlights a key challenge in mRAG systems: language pref-
+erence – a systematic tendency of models to favor sources written in certain languages during gen-
+eration (Park & Lee, 2025). Understanding this behavior is crucial, as citation patterns shape both
+the information users see and the languages prioritized in multilingual knowledge access.
+Existing approaches to measuring language preference, however, often fail to capture citation cor-
+rectness. In short-form mRAG, preference has been estimated via information overlap (Sharma
+et al., 2025) or embedding similarity (Park & Lee, 2025), which do not directly account for cor-
+rectness. In long-form mRAG, where outputs contain in-line citations (Zheng et al., 2025; Xu &
+Peng, 2025), preference has typically been measured by comparing citation frequencies against the
+language distribution of retrieved documents. This signal is coarse and confounded by the relevance
+and informativeness of multilingual sources (C1). Moreover, in-line citations are prone to hallucina-
+tions (Gao et al., 2023; Zhang et al., 2024), making it unclear whether observed preferences reflect
+true attribution or spurious citations (C2).
+To address these challenges, we propose a controlled methodology for measuring language pref-
+erence using model internal metrics (illustrated in Figure 1). We first construct a synthetic multi-
+parallel dataset of relevant documents, which allows us to isolate the effect of language while con-
+trolling for other factors such as document content and relevance (Step 1+2; addresses C1). Citation
+§Work done while visiting at Johns Hopkins University.
+1Code and data are released at https://github.com/dayeonki/linguistic_nepotism.
+1
+arXiv:2509.13930v2  [cs.CL]  2 Oct 2025
+Under Review
+Step 1 : Translate each relevant evidence document
+How Touch ID works: To make sense of 
+Apple's ﬁngerprint identity sensor [...]
+Step 2 :  Generate English reference citation-supported report
+Query +        ,        ,
+When you rest a finger on the scanner, an 
+array of hundreds

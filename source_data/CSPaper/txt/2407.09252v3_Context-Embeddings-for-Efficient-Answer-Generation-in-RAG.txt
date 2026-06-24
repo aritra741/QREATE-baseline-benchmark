@@ -1,0 +1,102 @@
+Context Embeddings for Efficient Answer Generation in RAG
+David Rau∗
+University of Amsterdam
+Amsterdam, Netherlands
+d.m.rau@uva.nl
+Shuai Wang∗†
+The University of Queensland
+Brisbane, Australia
+shuai.wang2@uq.edu.au
+Hervé Déjean
+Naver Labs Europe
+Grenoble, France
+herve.dejean@naverlabs.com
+Stéphane Clinchant
+Naver Labs Europe
+Grenoble, France
+stephane.clinchant@naverlabs.com
+ABSTRACT
+Retrieval-Augmented Generation (RAG) allows overcoming the lim-
+ited knowledge of LLMs by extending the input with external in-
+formation. As a consequence, the contextual inputs to the model
+become much longer which slows down decoding time directly
+translating to the time a user has to wait for an answer. We address
+this challenge by presenting COCOM, an effective context compres-
+sion method, reducing long contexts to only a handful of Context
+Embeddings speeding up the generation time by a large margin. Our
+method allows for different compression rates trading off decoding
+time for answer quality. Compared to earlier methods, COCOM al-
+lows for handling multiple contexts more effectively, significantly
+reducing decoding time for long inputs. Our method demonstrates
+an inference speed-up of up to 5.69× while achieving higher perfor-
+mance compared to existing efficient context compression methods.
+Model checkpoints: https://huggingface.co/naver/cocom-v1-128-
+mistral-7b.
+KEYWORDS
+Context Compression, LLM, RAG
+ACM Reference Format:
+David Rau, Shuai Wang, Hervé Déjean, and Stéphane Clinchant. 2024. Con-
+text Embeddings for Efficient Answer Generation in RAG. In . ACM, New
+York, NY, USA, 13 pages. https://doi.org/10.1145/nnnnnnn.nnnnnnn
+1
+INTRODUCTION
+Large Language Models (LLMs) are pre-trained on massive amounts
+of textual data; for instance, Llama 2 [32] has been trained on 3
+trillion tokens during pre-training. Through billions of learnable
+parameters, LLMs not only excel at modeling language but at the
+same time, build up a knowledge base that could be later used for
+question answering. On the other hand, the model is limited to
+∗Equal Contribution.
+†Work performed during an internship at Naver Labs Europe.
+Permission to make digital or hard copies of all or part of this work for personal or
+classroom use is granted without fee provided that copies are not made or distributed
+for profit or commercial advantage and that copies bear this notice and the full citation
+on the first page. Copyrights for third-party components of this work must be honored.
+For all other uses, contact the owner/author(s).
+Conference’17, July 2017, Washington, DC, USA
+© 2024 Copyright held by the owner/author(s).
+ACM ISBN 978-x-xxxx-xxxx-x/YY/MM
+https://doi.org/10.1145/nnnnnnn.nnnnnnn
+200
+400
+600
+800
+1000
+Decoding time (ms)
+0.2
+0.3
+0.4
+0.5
+0.6
+Performance (EM)
+xRAG-7B
+RAG (no compr.)
+ICAE
+COCOM (ours)
+LLM no context
+Pareto frontier
+Decoder fine-tuned
+Decoder frozen
+Comp. rate 
+4
+16
+128
+Figure 1: COCOM: Compressing multiple contexts for RAG
+into a small set (𝜉= 4, 16, 128) of Context Embeddings leads to
+a massive speed up in answer generation while maintaining
+higher performance compared to other methods. Results are
+shown for the ASQA dataset.
+the knowledge contained in the pre-training data. In knowledge-
+intensive scenarios, relying solely on the parametric memory of
+the model is often insufficient. To alleviate this, context can be
+provided explicitly from an external source through a preceding
+retrieval step (Retrieval-Augmented Generation–RAG). Although
+LLMs show notable improvements when given additional relevant
+context in knowledge-intensive tasks, this approach has limitations.
+A key drawback is that adding more context to the input consid-
+erably slows down generation during inference. This occurs because
+the self-attention mechanism in transformers grows exponentially
+in space and memory requirements with increasing input length.
+At the same time, previous research has shown providing multiple
+documents as context can improve RAG performance [10, 12]. This
+is

@@ -1,0 +1,87 @@
+Question-Based Retrieval using Atomic Units for Enterprise RAG
+Vatsal Raina, Mark Gales
+ALTA Institute, University of Cambridge
+{vr311,mjfg}@cam.ac.uk
+Abstract
+Enterprise retrieval augmented generation
+(RAG) offers a highly flexible framework for
+combining powerful large language models
+(LLMs) with internal, possibly temporally
+changing, documents.
+In RAG, documents
+are first chunked. Relevant chunks are then
+retrieved for a user query, which are passed
+as context to a synthesizer LLM to generate
+the query response. However, the retrieval step
+can limit performance, as incorrect chunks can
+lead the synthesizer LLM to generate a false
+response. This work applies a zero-shot adapta-
+tion of standard dense retrieval steps for more
+accurate chunk recall. Specifically, a chunk
+is first decomposed into atomic statements. A
+set of synthetic questions are then generated
+on these atoms (with the chunk as the context).
+Dense retrieval involves finding the closest set
+of synthetic questions, and associated chunks,
+to the user query. It is found that retrieval with
+the atoms leads to higher recall than retrieval
+with chunks. Further performance gain is ob-
+served with retrieval using the synthetic ques-
+tions generated over the atoms. Higher recall
+at the retrieval step enables higher performance
+of the enterprise LLM using the RAG pipeline.
+1
+Introduction
+Since the popularized ChatGPT as an instruction-
+finetuned large language model (LLM) deployed at
+scale to the lay market, there has been a substantial
+uptake on the interest of businesses to incorporate
+LLMs in their products for a variety of downstream
+tasks (Bahrini et al., 2023; Castelvecchi, 2023; Ba-
+dini et al., 2023; Kim and Min, 2024). For most
+companies, they are interested in using such mod-
+els as enterprise LLMs where the model can handle
+queries related to proprietary on-premise data.
+It has been repeatedly demonstrated that these
+LLMs have general (public) knowledge implic-
+itly embedded in their parametric memory which
+can be extracted upon querying (Yu et al., 2023a).
+However, the LLMs do not have implicit knowl-
+edge about a specific enterprise’s textual database
+in a custom domain and hence are prone to hal-
+lucinate in such situations (Xu et al., 2024b; Yu
+et al., 2023b). Additionally, the transformer-based
+(Vaswani et al., 2017) LLMs typically have a lim-
+ited context window (due to quadratic order in cost
+of the attention mechanism), which means informa-
+tion for a specific company to be queried over can-
+not be directly fed-in as a prompt to the LLM. Due
+to limited budget, it is typically not feasible to fine-
+tune LLMs on a specific enterprise’s data. In par-
+ticular, with evolving data from ongoing projects,
+it is challenging to maintain a constantly updated
+company-specific LLM finetuned on new data with-
+out catastrophic forgetting (Luo et al., 2023).
+To tackle this issue, and with retrieval augmented
+generation (RAG) proposed by Lewis et al. (2020),
+RAG-inspired systems have rapidly become the de-
+facto as a zero-shot solution for enterprise LLMs.
+At the essence, there are 2 steps: 1. retrieval and
+2. synthesis. Documents are split into indepen-
+dent chunks, and a retrieval process is applied to
+identify the relevant chunks to a given query. The
+retrieved chunks (which should fit into the context
+window) with the query are passed as the prompt
+to the synthesizer LLM to get the desired response.
+Currently, the bottleneck for most enterprise
+LLMs is the retrieval step, where the correct in-
+formation is not retrieved for the LLM to answer
+the question (Arora et al., 2023). Hence, this work
+focuses on building upon zero-shot approaches to
+improve the retrieval step for RAG. A potential
+limitation of the RAG set-up is that an embedding
+model is used to retrieve the relevant chunks effi-
+ciently when given a query. Each pre-calculated
+chunk has its corresponding embedding stored in
+memory, which allows the closes chunks to be re-
+trieved by embedding the incoming

@@ -1,0 +1,89 @@
+Multi-task retriever fine-tuning for domain-specific and
+efficient RAG
+Patrice Bechard
+ServiceNow
+Montreal, Canada
+patrice.bechard@servicenow.com
+Orlando Marquez Ayala
+ServiceNow
+Montreal, Canada
+orlando.marquez@servicenow.com
+Abstract
+Retrieval-Augmented Generation (RAG) has become ubiquitous
+when deploying Large Language Models (LLMs), as it can address
+typical limitations such as generating hallucinated or outdated in-
+formation. However, when building real-world RAG applications,
+practical issues arise. First, the retrieved information is generally
+domain-specific. Since it is computationally expensive to fine-tune
+LLMs, it is more feasible to fine-tune the retriever model to improve
+the quality of the data included in the LLM input. Second, as more
+applications are deployed in the same real-world system, one cannot
+afford to deploy separate retrievers for different tasks. Moreover,
+these RAG applications normally retrieve different kinds of data.
+Our solution is to instruction fine-tune a small retriever model on a
+variety of domain-specific tasks to allow us to deploy one model that
+can serve many use cases, thereby achieving low-cost, scalability,
+and speed. We show how this model generalizes to out-of-domain
+settings as well as to an unseen retrieval task on real-world enterprise
+use cases.
+CCS Concepts
+• Computing methodologies →Information extraction; Multi-
+task learning; Learning to rank; • Information systems →Re-
+trieval models and ranking.
+Keywords
+Retrieval-Augmented Generation, Workflows, Fine-Tuning, Multi-
+Task, Retriever
+1
+Introduction
+As more and more Generative AI (GenAI) applications are inte-
+grated into real-world production systems, Retrieval-Augmented
+Generation (RAG) has been adopted in industry as a common tech-
+nique to improve the output of Large Language Models (LLMs).
+RAG alleviates inherent LLM pitfalls such as propensity to halluci-
+nate, generating outdated knowledge, and lack of traceability to data
+sources [6, 9].
+Introducing a retrieval step into the generation process introduces,
+however, several practical challenges. While an LLM with a large
+number of parameters, such as GPT-4 [19], can be prompted to work
+with any kind of input and generate any kind of textual output, the
+retriever needs to be small, fast, and perform well with data sources
+that tend to be domain-specific.
+KDD Workshop ’25, Toronto, Canada
+2025.
+steps
+table names
+field names
+activities
+subflows
+field values
+catalog items
+Workflows
+Playbooks
+Code
+Retriever
+LLM
+Figure 1: Given an ecosystem of RAG applications, how do we
+build a retriever that can adapt to a specific domain and to a
+variety of retrieval tasks?
+Off-the-shelf retrievers of different sizes are available to AI prac-
+titioners. Embedding services such as Voyage1 perform well on
+open-source benchmarks but they do not necessarily generalize to
+the kind of data seen in real-world settings, especially when this data
+is structured and comes from existing databases.
+Another practical challenge is achieving scalability and general-
+ization across different GenAI use cases that depend on retrieval. A
+crucial advantage of LLMs compared to traditional machine learning
+models is that they can generalize to a myriad of tasks due to vast
+amounts of pretraining data and instruction fine-tuning [20, 31, 34].
+But if the retriever does not perform well and fast across many re-
+trieval tasks, the downstream generation will be negatively affected.
+The problem we are trying to solve is then: how to adapt the
+retrieval step to a specific domain and to a variety of retrieval
+tasks? In this work, we are not interested in the choice of LLM,
+1https://docs.voyageai.com/docs/embeddings
+arXiv:2501.04652v2  [cs.CL]  16 Jul 2025
+KDD Workshop ’25, August 03–07,2025, Toronto, Canada
+Patrice Bechard and Orlando Marquez Ayala
+assuming that improvements in the retrieved results translate into
+improvements in the downstream generation task.
+The context is an enterprise company that deploys seve

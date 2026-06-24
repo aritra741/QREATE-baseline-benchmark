@@ -1,0 +1,100 @@
+Hindsight Distillation Reasoning with Knowledge Encouragement
+Preference for Knowledge-based Visual Question Answering
+Yu Zhao1,2
+Ying Zhang1
+Xuhui Sui1
+Baohang Zhou3
+Li Shen4
+Dacheng Tao2
+1 College of Computer Science, Nankai University, Tianjin, China
+2 College of Computing and Data Science, Nanyang Technological University, Singapore
+3 School of Software, Tiangong University, Tianjin, China 4 Sun Yat-sen University, Shenzhen, China
+zhaoyu@dbis.nankai.edu.cn, yingzhang@nankai.edu.cn
+Abstract
+Knowledge-based Visual Question Answering (KBVQA)
+necessitates external knowledge incorporation beyond
+cross-modal understanding. Existing KBVQA methods
+either utilize implicit knowledge in multimodal large
+language models (MLLMs) via in-context learning or
+explicit knowledge via retrieval augmented generation.
+However, their reasoning processes remain implicit,
+without explicit multi-step trajectories from MLLMs.
+To address this gap, we provide a Hindsight Distilled
+Reasoning (HinD) framework with Knowledge Encour-
+agement Preference Optimization (KEPO), designed to
+elicit and harness internal knowledge reasoning ability
+in MLLMs. First, to tackle the reasoning supervision
+problem, we propose to emphasize the hindsight wisdom
+of MLLM by prompting a frozen 7B-size MLLM to com-
+plete the reasoning process between the question and its
+ground truth answer, constructing Hindsight-Zero train-
+ing data. Then we self-distill Hindsight-Zero into Chain-
+of-Thought (CoT) Generator and Knowledge Genera-
+tor, enabling the generation of sequential steps and dis-
+crete facts.
+Secondly, to tackle the misalignment be-
+tween knowledge correctness and confidence, we opti-
+mize the Knowledge Generator with KEPO, preferring
+under-confident but helpful knowledge over the over-
+confident but unhelpful one.
+The generated CoT and
+sampled knowledge are then exploited for answer pre-
+diction. Experiments on OK-VQA and A-OKVQA vali-
+date the effectiveness of HinD, showing that HinD with
+elicited reasoning from 7B-size MLLM achieves supe-
+rior performance without commercial model APIs or
+outside knowledge.
+1. Introduction
+Knowledge-based Visual Question Answering (KB-
+VQA) [31] is a challenging task for cross-modal rea-
+Q1 C1 A1
+Examples
+Doc 1
+Documents
+Reason Path
+Retrieval Augmented Methods
+In-Context Learning Methods
+Which American 
+president is 
+associated with 
+stuffed animal 
+seen here?
+Teddy
+Roosevelt
+?
+Our Hindsight Reasoning
+Figure 1. KBVQA requires necessary knowledge incorpora-
+tion for reasoning.
+Unlike existing in-context learning and
+retrieval-augmented methods, we elicit the reasoning paths in-
+side MLLMs through Hindsight self-distillation.
+soning, aiming at answering the question based on the
+image and external knowledge.
+Unlike conventional
+VQA [2, 12], which answers questions based solely on
+image content, KBVQA necessitates the commonsense
+incorporation beyond the image. Take Figure 1 as an
+example, answering the question requires (1) identify-
+ing the stuffed animals in the image as teddy bears, (2)
+associating the teddy bear with President Teddy Roo-
+sevelt.
+KBVQA is essential for knowledge-intensive
+visual-language application scenarios [36].
+Existing KBVQA studies can be categorized into two
+mainstreams: (1) In-context learning methods [17, 22,
+52] usually construct relative examples with captions or
+zero-shot captions [50] to prompt large language models
+(LLMs) [1, 3, 19, 40] to exploit their implicit knowl-
+edge.
+However, the in-context learning paradigm is
+basically an “imitation” of the context examples, lack-
+ing explicit reasoning paths to explain their reasonabil-
+ity. (2) Retrieval augmented methods [13, 25, 28] usu-
+ally retrieve relevant knowledge triples or documents to
+augment the answer prediction. They usually fine-tune
+1
+arXiv:2511.11132v1  [cs.CV]  14 Nov 2025
+the Multimodal LLMs (MLLMs) to answer the question
+based on the retrieved knowledge, in which the reason-
+ing source and process remain non-transparent.
+Thus, inspired

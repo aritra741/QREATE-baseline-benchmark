@@ -1,0 +1,48 @@
+MetaRAG: Metamorphic Testing for Hallucination
+Detection in RAG Systems⋆
+Channdeth Sok1,2,*, David Luz1 and Yacine Haddam1
+1Forvia Paris Tech Center, GIT, Immeuble Lumière, 40 avenue des Terroirs de France, 75012 Paris, France
+2ENSAE Paris, Institut Polytechnique de Paris
+Abstract
+Large Language Models (LLMs) are increasingly deployed in enterprise applications, yet their reliability remains
+limited by hallucinations, i.e., confident but factually incorrect information. Existing detection approaches, such
+as SelfCheckGPT and MetaQA, primarily target standalone LLMs and do not address the unique challenges of
+Retrieval-Augmented Generation (RAG) systems, where responses must be consistent with retrieved evidence.
+We therefore present MetaRAG, a metamorphic testing framework for hallucination detection in Retrieval-
+Augmented Generation (RAG) systems. MetaRAG operates in a real-time, unsupervised, black-box setting,
+requiring neither ground-truth references nor access to model internals, making it suitable for proprietary and
+enterprise deployments. The framework proceeds in four stages: (1) decompose answers into atomic factoids,
+(2) generate controlled mutations of each factoid using synonym and antonym substitutions, (3) verify each
+variant against the retrieved context (synonyms are expected to be entailed and antonyms contradicted), and
+(4) aggregate penalties for inconsistencies into a response-level hallucination score. MetaRAG further localizes
+unsupported claims at the span level, enabling transparent visualization of potentially hallucinated segments
+and supporting configurable safeguards in sensitive use cases. Experiments on a proprietary enterprise dataset
+demonstrate the effectiveness of MetaRAG for detecting hallucinations and enabling trustworthy deployment of
+RAG-based conversational agents. We also outline a topic-based deployment design that translates MetaRAG’s
+span-level scores into identity-aware safeguards; this design is discussed but not evaluated in our experiments.
+Keywords
+Large Language Models, Retrieval-Augmented Generation, Hallucination Detection, Metamorphic Testing, Trust-
+worthy AI
+1. Introduction
+Large Language Models (LLMs) such as GPT-4 and Llama-3 are transforming enterprise applications in
+healthcare, law, and customer service [1, 2, 3]. They power chatbots and virtual assistants that interact
+in natural language, offering unprecedented convenience and efficiency [4]. However, as these systems
+move into production, a persistent challenge emerges: hallucinations, i.e., responses that are fluent and
+convincing but factually incorrect or unsupported by evidence [5, 6].
+In domains such as healthcare, law, and finance, hallucinations are not merely a nuisance but a critical
+barrier to reliable adoption, raising concerns about user trust, regulatory compliance, and business
+risk [7]. Moreover, hallucinations are not uniformly risky: the same unsupported claim can differen-
+tially affect specific populations. In healthcare (e.g., pregnancy/trimester-specific contraindications),
+migration and asylum (e.g., protections for LGBTQ+ refugees), or labor rights (e.g., eligibility by status),
+ungrounded spans can cause disproportionate harm. Rather than treating users as homogeneous,
+hallucination detection methods should make such spans reviewable at the factoid level so downstream
+systems can apply identity-aware policies (e.g., stricter thresholds, forced citations, or escalation to
+a human) when the topic indicates elevated risk. This perspective connects hallucination detection
+to identity-aware deployment, where span-level evidence enables topic-conditioned safeguards that
+reduce disproportionate risk.
+Ji et al. [6] categorize hallucinations into two types:
+Identity-Aware AI workshop at 28th European Conference on Artificial Intelligence, October 25, 2025, Bologna, Italy
+*Corresponding author.
+$ channdeth.sok@forvia.com (C. Sok)
+ 0009-0008-4547-5946 (C. Sok)
+© 2025 Copyright for this paper by its

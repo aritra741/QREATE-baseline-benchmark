@@ -1,0 +1,106 @@
+Large-Scale Data Selection for Instruction Tuning
+Hamish Ivison1,2, Muru Zhang1,3, Faeze Brahman2,
+Pang Wei Koh1,2, Pradeep Dasigi2
+1University of Washington, 2Allen Institute for AI, 3University of Southern California
+hamishiv@cs.washington.edu
+Abstract
+Selecting high-quality training data from a
+larger pool is a crucial step when instruction-
+tuning language models, as carefully curated
+datasets often produce models that outper-
+form those trained on much larger, noisier
+datasets. Automated data selection approaches
+for instruction-tuning are typically tested by
+selecting small datasets (roughly 10k samples)
+from small pools (100-200k samples). How-
+ever, popular deployed instruction-tuned mod-
+els often train on hundreds of thousands to
+millions of samples, subsampled from even
+larger data pools.
+We present a systematic
+study of how well data selection methods scale
+to these settings, selecting up to 2.5M sam-
+ples from pools of up to 5.8M samples and
+evaluating across 7 diverse tasks. We show
+that many recently proposed methods fall short
+of random selection in this setting (while us-
+ing more compute), and even decline in per-
+formance when given access to larger pools
+of data to select over.
+However, we find
+that a variant of representation-based data se-
+lection (RDS+), which uses weighted mean
+pooling of pretrained LM hidden states, con-
+sistently outperforms more complex methods
+across all settings tested – all whilst being more
+compute-efficient. Our findings highlight that
+the scaling properties of proposed automated
+selection methods should be more closely ex-
+amined.
+We release our code, data, and
+models at https://github.com/hamishivi/
+automated-instruction-selection.
+1
+Introduction
+Instruction tuning has quickly become a crucial
+element of building modern language model (LM)
+systems, and a step for which curating high-quality
+data is especially important (Zhou et al., 2023;
+Wang et al., 2023). Finetuning on as few as 1,000
+carefully chosen samples can yield models more
+preferred by human users than models trained on
+noisier datasets 10 times larger (Zhou et al., 2023).
+1019
+1020
+Estimated Overall FLOPs Cost
+30
+35
+40
+45
+50
+Average Performance
+Random (unbal.)
+Random (bal.)
+Embed (NV)
+Embed (GTR)
+Top-PPL
+Mid-PPL
+RDS+
+IFD
+LESS
+Figure 1: Performance against estimated compute cost
+of varied data selection methods when selecting 10k
+points from data pools consisting of 200k (left points)
+and 5.8M (right points) data points in the single-task
+setup described in §4.1. We do not run LESS with
+5.8M samples due to its high compute cost. Most data
+selection methods do not improve in performance with
+a larger pool, with the exception of RDS+ and Embed
+(GTR). We shade the Pareto frontier of efficiency and
+performance in red.
+The importance of data quality has led to a surge
+of papers proposing and investigating methods for
+selecting small (1–10k) datasets that outperform
+larger (50-200k) ones (Chen et al., 2024; Xia et al.,
+2024; Li et al., 2024b; Liu et al., 2024). However,
+the sizes of the selected datasets are often signifi-
+cantly smaller than those of commonly used open
+post-training datasets, which typically contain hun-
+dreds of thousands to millions of examples(Ivison
+et al., 2023b; Lambert et al., 2024; Llama Team,
+2024; DeepSeek-AI, 2025). As such, it is unclear
+how well these data selection approaches scale as
+both the number of the selected data points and size
+of the data pool grow. Additionally, prior work sug-
+gests that common data selection approaches under-
+perform random selection when considering the ad-
+ditional compute cost incurred by running the data
+selection techniques themselves even in smaller-
+scale settings (Yin and Rush, 2024). It is unclear
+how performance and compute costs further change
+1
+arXiv:2503.01807v1  [cs.CL]  3 Mar 2025
+as we further scale beyond smaller-scale (selecting
+10k data points from 200k samples) settings. In this
+work, we aim to answer these questions by inves-
+tigating how w

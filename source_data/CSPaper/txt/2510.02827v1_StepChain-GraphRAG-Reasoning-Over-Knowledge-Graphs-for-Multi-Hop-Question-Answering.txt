@@ -1,0 +1,71 @@
+StepChain GraphRAG: Reasoning Over
+Knowledge Graphs for Multi-Hop Question
+Answering
+Tengjun Ni1, Xin Yuan2,4, Shenghong Li2, Kai Wu1, Ren Ping Liu1, Wei
+Ni3,4⋆, and Wenjie Zhang4
+1 University of Technology Sydney, Australia
+nitengjun2002@gmail.com
+Kai.Wu@uts.edu.au
+RenPing.Liu@uts.edu.au
+2 Data61, CSIRO, Australia
+xin.yuan@ieee.org
+shenghong.li@csiro.au
+3 School of Engineering, Edith Cowan University, Australia
+Wei.ni@ieee.org
+4 University of New South Wales, Australia
+wenjie.zhang@unsw.edu.au
+Abstract. Recent progress in retrieval-augmented generation (RAG)
+has led to more accurate and interpretable multi-hop question answering
+(QA). Yet, challenges persist in integrating iterative reasoning steps with
+external knowledge retrieval. To address this, we introduce StepChain
+GraphRAG, a framework that unites question decomposition with a
+Breadth-First Search (BFS) Reasoning Flow for enhanced multi-hop
+QA. Our approach first builds a global index over the corpus; at in-
+ference time, only retrieved passages are parsed on-the-fly into a knowl-
+edge graph, and the complex query is split into sub-questions. For each
+sub-question, a BFS-based traversal dynamically expands along relevant
+edges, assembling explicit evidence chains without overwhelming the lan-
+guage model with superfluous context. Experiments on MuSiQue, 2Wiki-
+MultiHopQA, and HotpotQA show that StepChain GraphRAG achieves
+state-of-the-art Exact Match and F1 scores. StepChain GraphRAG lifts
+average EM by 2.57% and F1 by 2.13% over the SOTA method, achiev-
+ing the largest gain on HotpotQA (+4.70% EM, +3.44% F1). StepChain
+GraphRAG also fosters enhanced explainability by preserving the chain-
+of-thought across intermediate retrieval steps. We conclude by discussing
+how future work can mitigate the computational overhead and address
+potential hallucinations from large language models to refine efficiency
+and reliability in multi-hop QA.
+Keywords: Multi-Hop Question Answering · Retrieval-Augmented Gen-
+eration · Knowledge Graph Construction.
+⋆Corresponding author.
+arXiv:2510.02827v1  [cs.CL]  3 Oct 2025
+2
+T. Ni et al.
+1
+Introduction
+Large language models (LLMs) have recently demonstrated remarkable capa-
+bilities in open-domain question answering (QA), summarization, and various
+knowledge-intensive tasks [31, 14]. Relying solely on parametric knowledge em-
+bedded within an LLM poses challenges for correctness, interpretability, and
+scalability [13]. As queries become more complex or domain-specific, a single
+pass through the model may overlook vital details, leading to incomplete or in-
+consistent answers [41]. To tackle this, researchers have increasingly embraced
+the paradigm of Retrieval-Augmented Generation (RAG), where external cor-
+pora or knowledge bases are leveraged to supplement the LLM’s internal repre-
+sentations [18].
+While RAG has emerged as a promising approach to mitigating the limita-
+tions of purely parametric knowledge, simply retrieving or concatenating exter-
+nal evidence without a coherent strategy can still lead to fragmented reasoning
+and opaque answers [18, 8]. Recent work has focused on Knowledge Graph RAG
+pipelines, such as GraphRAG, where evidence is organized into a single graph for
+improved interpretability [3, 25, 6, 15]. Existing GraphRAG methods often rely
+on ad-hoc strategies that fail to exploit the full potential of multi-hop reason-
+ing, especially when queries demand traversing multiple interconnected pieces of
+information.
+Improving these limitations requires overcoming several hurdles. Specifically,
+naively performing one-shot retrieval for multi-hop questions can lead to ei-
+ther missing critical details or overwhelming the model with superfluous infor-
+mation [12]. Such a lack of selectivity compromises the clarity of intermediate
+reasoning steps by making it difficult to identify and integrate only the most
+relevant evidence [20, 42]. Moreover, even when a graph structure is introduced
+to enhance explainability, it often remains s

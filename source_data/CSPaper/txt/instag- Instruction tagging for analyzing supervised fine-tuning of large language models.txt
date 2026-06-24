@@ -1,0 +1,59 @@
+Preprint
+#INSTAG:
+INSTRUCTION TAGGING
+FOR ANALYZ-
+ING SUPERVISED FINE-TUNING OF LARGE LANGUAGE
+MODELS
+Keming Lu∗& Hongyi Yuan∗†& Zheng Yuan & Runji Lin†
+Alibaba DAMO Academy
+{lukeming.lkm,yuanhongyi.yhy,yuanzheng.yuanzhen,linrunji.lrj}@alibaba-inc.com
+Junyang Lin & Chuanqi Tan & Chang Zhou & Jingren Zhou
+Alibaba DAMO Academy
+{junyang.ljy,chuanqi.tcq,ericzhou.zc,jingren.zhou}@alibaba-inc.com
+ABSTRACT
+Foundation language models obtain the instruction-following ability through su-
+pervised fine-tuning (SFT). Diversity and complexity are considered critical fac-
+tors of a successful SFT dataset, while their definitions remain obscure and lack
+quantitative analyses. In this work, we propose INSTAG, an open-set fine-grained
+tagger, to tag samples within SFT datasets based on semantics and intentions and
+define instruction diversity and complexity regarding tags. We obtain 6.6K tags
+to describe comprehensive user queries. We analyze popular open-sourced SFT
+datasets and find that the model ability grows with more diverse and complex data.
+Based on this observation, we propose a data selector based on INSTAG to select
+6K diverse and complex samples from open-source datasets and fine-tune mod-
+els on INSTAG-selected data. The resulting models, TAGLM, outperform open-
+source models based on considerably larger SFT data evaluated by MT-BENCH,
+echoing the importance of query diversity and complexity. We open-source IN-
+STAG in https://github.com/OFA-Sys/InsTag.
+1
+INTRODUCTION
+The rise of contemporary chatbots, including GPT-4 (OpenAI, 2023), has brought to the forefront
+of generative artificial intelligence that is based on large language models (LLMs) to tackle a variety
+of real-world tasks. Well-aligned LLMs with human expectations can precisely recognize human
+intentions and properly formalize responses expressed in natural languages (Wang et al., 2023d).
+Achieving such a level of alignment typically necessitates fine-tuning processes, such as supervised
+fine-tuning (SFT) (Taori et al., 2023; Chiang et al., 2023; Touvron et al., 2023b), response ranking
+(Yuan et al., 2023b; Song et al., 2023; Rafailov et al., 2023), and reinforcement learning with human
+feedback (RLHF) (Bai et al., 2022a; Ouyang et al., 2022; Touvron et al., 2023b), to enable LLMs to
+comprehend and execute diverse instructions effectively.
+A broad range of training data covering various semantics and specialties is crucial for achieving
+alignment with human preference through SFT, which is typically gathered through crowd-sourcing
+(Ouyang et al., 2022; Bai et al., 2022a; Touvron et al., 2023b) or by distilling from other LLMs
+(Taori et al., 2023; Ding et al., 2023). The SFT data for alignment is generally formalized in a
+multi-turn utterance manner, and each turn is composed of a human query and a corresponding
+response expected to generate by well-aligned chatbots. Recent research indicates that the training
+dataset for alignment should be diverse and complex, covering various domains, tasks, and formats
+(Xu et al., 2023a; Mukherjee et al., 2023; Wang et al., 2023b). Such diversity and complexity are
+mainly determined by query formation. Various methods are proposed and claimed to improve the
+diversity and complexity of the queries and advance the alignment of LLMs (Wang et al. 2023c; Xu
+∗Equally Contributed. Order determined by swapping the one in Yuan et al. (2023a).
+†Work done during internships at Alibaba DAMO Academy.
+1
+arXiv:2308.07074v2  [cs.CL]  15 Aug 2023
+Preprint
+et al. 2023a; Ding et al. 2023; inter alia). However, how to quantify the diversity and complexity of
+queries is significantly understudied and hence less analyzed.
+To shed light on this topic, we propose using a tagging system to feature and categorize samples in
+SFT datasets. Given the versatile tasks aligned LLMs are expected to handle, an equally versatile
+tag system is necessary to distinguish open-world human queries. However, building an open, fine-
+grained tagging system manually is infeasi

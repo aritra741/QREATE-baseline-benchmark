@@ -1,0 +1,55 @@
+A RAG-Based Institutional Assistant
+Gustavo Kuratomi1, Paulo Pirozelli2, Fabio G. Cozman1, Sarajane M. Peres3
+1 Escola Polit´ecnica
+2Instituto de Estudos Avanc¸ados
+3Escola de Artes, Ciˆencias e Humanidades
+Universidade de S˜ao Paulo
+{gustavokpc,paulo.pirozelli.silva,fgcozman,sarajane}@usp.br
+Abstract. Although large language models (LLMs) demonstrate strong text
+generation capabilities, they struggle in scenarios requiring access to struc-
+tured knowledge bases or specific documents, limiting their effectiveness in
+knowledge-intensive tasks. To address this limitation, retrieval-augmented ge-
+neration (RAG) models have been developed, enabling generative models to
+incorporate relevant document fragments into their inputs. In this paper, we
+design and evaluate a RAG-based virtual assistant specifically tailored for the
+University of S˜ao Paulo. Our system architecture comprises two key modules: a
+retriever and a generative model. We experiment with different types of models
+for both components, adjusting hyperparameters such as chunk size and the
+number of retrieved documents. Our optimal retriever model achieves a Top-
+5 accuracy of 30%, while our most effective generative model scores 22.04%
+against ground truth answers. Notably, when the correct document chunks are
+supplied to the LLMs, accuracy significantly improves to 54.02%, an increase of
+over 30 percentage points. Conversely, without contextual input, performance
+declines to 13.68%. These findings highlight the critical role of database ac-
+cess in enhancing LLM performance. They also reveal the limitations of current
+semantic search methods in accurately identifying relevant documents and un-
+derscore the ongoing challenges LLMs face in generating precise responses.
+1. Introduction
+Question answering (QA) has long been a central concern in natural language proces-
+sing. Traditionally, models have been fine-tuned on question-answering datasets—such
+as SQuAD [Rajpurkar et al. 2016] and MS MARCO [Nguyen et al. 2016]—following an
+initial phase of language model pretraining. With the advent of large language models
+(LLMs), standalone fine-tuning has mostly become obsolete, due to to these models’ im-
+pressive in-context learning abilities [Bubeck et al. 2023]. LLMs generally perform sa-
+tisfactorily on question-answering tasks, especially for factual questions, since they have
+likely encountered relevant information during training. However, LLMs still face a signi-
+ficant limitation: they do not have access to external knowledge bases, making it difficult
+to ensure they respond according to predefined answers. This limitation is particularly
+pressing when answers depend on documents that are private, frequently updated, or dif-
+ficult to access.
+Retrieval-Augmented Generation (RAG) [Lewis et al. 2020] is an architecture de-
+signed to address this problem. It consists of a modular structure where—in its standard
+arXiv:2501.13880v1  [cs.CL]  23 Jan 2025
+version—two components are coupled together: a retriever module, responsible for fin-
+ding relevant chunks of text, and a language generation module, which takes a question
+and the retrieved information to create an answer. This complex architecture allows better
+control over the information the model uses to answer questions, enables tracing back the
+source of answers, and disentangles the different steps in answer generation (retrieval and
+generation). More importantly, new documents can be constantly added to the database
+without the need for additional retraining.
+In this paper, we present and evaluate a RAG-based application tailored for an
+educational context: a virtual assistant for the University of S˜ao Paulo (USP).1 USP, one
+of the largest universities in Brazil, with nearly 100K students and a complex structure
+that includes multiple campuses, institutes, and courses, presents unique challenges in
+accessing information related to its institutional and regulatory aspects. This environment
+provides a valuable oppor

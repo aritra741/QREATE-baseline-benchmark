@@ -1,0 +1,90 @@
+Contradiction Detection in RAG Systems: Evaluating LLMs as Context
+Validators for Improved Information Consistency
+Vignesh Gokul
+vgokulgv@amazon.com
+Srikanth Tenneti
+stenneti@amazon.com
+Alwarappan Nakkiran
+nakkiran@amazon.com
+Abstract
+Retrieval Augmented Generation (RAG) sys-
+tems have emerged as a powerful method for
+enhancing large language models (LLMs) with
+up-to-date information. However, the retrieval
+step in RAG can sometimes surface documents
+containing contradictory information, particu-
+larly in rapidly evolving domains such as news.
+These contradictions can significantly impact
+the performance of LLMs, leading to inconsis-
+tent or erroneous outputs. This study addresses
+this critical challenge in two ways. First, we
+present a novel data generation framework to
+simulate different types of contradictions that
+may occur in the retrieval stage of a RAG sys-
+tem. Second, we evaluate the robustness of
+different LLMs in performing as context val-
+idators, assessing their ability to detect contra-
+dictory information within retrieved document
+sets. Our experimental results reveal that con-
+text validation remains a challenging task even
+for state-of-the-art LLMs, with performance
+varying significantly across different types of
+contradictions. While larger models generally
+perform better at contradiction detection, the
+effectiveness of different prompting strategies
+varies across tasks and model architectures. We
+find that chain-of-thought prompting shows no-
+table improvements for some models but may
+hinder performance in others, highlighting the
+complexity of the task and the need for more
+robust approaches to context validation in RAG
+systems.
+1
+Introduction
+Large language models (LLMs) (Brown et al.,
+2020) have become ubiquitous in a wide range
+of natural language processing applications, from
+chatbots to text generation systems. However, a key
+limitation of using LLMs is that their knowledge is
+static, reflecting only the information available dur-
+ing the training process. As a result, these models
+may lack the latest up-to-date facts and information
+needed for real-world tasks. To address this chal-
+lenge, researchers have explored techniques like
+Retrieval Augmented Generation (RAG) (Lewis
+et al., 2020), where relevant documents are dynam-
+ically retrieved and provided as context to the LLM.
+While this approach can help improve the model’s
+knowledge, it introduces new problems related to
+contextual conflicts. Specifically, there are two
+main types of conflicts that can arise: 1) Context-
+memory conflict: cases where the retrieved context
+contradicts the parametric knowledge learned by
+the LLM during training, 2) Context-context con-
+flict: situations where the retrieved contextual in-
+formation itself contains contradictory statements.
+This work focuses on the latter issue of conflicts
+in the retrieved documents. Effectively detecting
+and resolving such conflicts is crucial for ensuring
+the reliability and consistency of LLM applications
+that rely on dynamic retrieval of external informa-
+tion.
+Detecting contradictions in text is a challenging
+task for several reasons. First, there is a scarcity
+of large-scale datasets specifically focused on con-
+tradiction detection. This lack of comprehensive
+data makes it difficult to train and evaluate systems
+effectively. Second, contradictions can be quite
+subtle and complex. While some contradictions
+are straightforward, such as conflicting numbers,
+others involve intricate logical inconsistencies that
+are not easily spotted. These nuances make it hard
+for models to reliably identify contradictions. In
+fact, psychological studies (Graesser and McMa-
+hen, 1993; Otero and Kintsch, 1992) have shown
+that even humans struggle with this task. Further-
+more, recent research (Li et al., 2023) has revealed
+that advanced language models like GPT-4, GPT-
+3.5, and LLaMA-3 perform only slightly better
+than random guessing when it comes to detecting
+contradictions. This highlights the sign

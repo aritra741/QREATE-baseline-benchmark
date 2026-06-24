@@ -87,6 +87,18 @@ def build_expanded_query_pool(
             new_queries.append(q)
         return list(instance.queries) + new_queries, new_queries
 
+    if dataset_key == "CSPaper":
+        from data.cspaper_workload_generator import generate_all_candidates_cspaper
+
+        new_queries = []
+        for query in generate_all_candidates_cspaper():
+            q = dict(query)
+            meta = dict(q.get("metadata") or {})
+            meta["generated"] = True
+            q["metadata"] = meta
+            new_queries.append(q)
+        return list(instance.queries) + new_queries, new_queries
+
     if dataset_key == "Art":
         from data.art_workload_generator import generate_all_candidates_art
 

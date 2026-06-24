@@ -1,0 +1,73 @@
+arXiv:2506.00576v1  [cs.LG]  31 May 2025
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021
+1
+ORAN-GUIDE: RAG-Driven Prompt Learning for
+LLM-Augmented Reinforcement Learning in
+O-RAN Network Slicing
+Fatemeh Lotfi, member, IEEE, Hossein Rajoli, member, IEEE, Fatemeh Afghah Senior member, IEEE
+Abstract—Advanced wireless networks must support highly
+dynamic and heterogeneous service demands. Open Radio Ac-
+cess Network (O-RAN) architecture enables this flexibility by
+adopting modular, disaggregated components, such as the RAN
+Intelligent Controller (RIC), Centralized Unit (CU), and Dis-
+tributed Unit (DU), that can support intelligent control via ma-
+chine learning (ML). While deep reinforcement learning (DRL)
+is a powerful tool for managing dynamic resource allocation
+and slicing, it often struggles to process raw, unstructured
+input like RF features, QoS metrics, and traffic trends. These
+limitations hinder policy generalization and decision efficiency
+in partially observable and evolving environments. To address
+this, we propose ORAN-GUIDE, a dual-LLM framework that
+enhances multi-agent RL (MARL) with task-relevant, semanti-
+cally enriched state representations. The architecture employs
+a domain-specific language model, ORANSight, pretrained on
+O-RAN control and configuration data, to generate structured,
+context-aware prompts. These prompts are fused with learnable
+tokens and passed to a frozen GPT-based encoder that outputs
+high-level semantic representations for DRL agents. This design
+adopts a retrieval-augmented generation (RAG) style pipeline
+tailored for technical decision-making in wireless systems. Ex-
+perimental results show that ORAN-GUIDE improves sample
+efficiency, policy convergence, and performance generalization
+over standard MARL and single-LLM baselines.
+Index Terms—Open RAN, Network Slicing, Deep Reinforce-
+ment Learning, Retrieval-augmented generation (RAG), knowl-
+edge distillation.
+I. INTRODUCTION
+N
+ETWORK slicing is a critical technology for enabling
+flexible and intelligent radio access networks (RAN)
+in next-generation wireless networks, as it allows efficient
+support for highly dynamic and heterogeneous service de-
+mands such as enhanced Mobile Broadband (eMBB), Ultra-
+Reliable Low-Latency Communications (URLLC), and mas-
+sive Machine-Type Communications (mMTC) [1].
+Open RAN’s (O-RAN) disaggregated architecture—with
+its clear separation of control and processing elements like
+the RAN Intelligent Controller (RIC), Centralized Unit (CU),
+Distributed Unit (DU), and Radio Unit (RU), opens the door
+to designing scalable, decentralized intelligence. This modular
+structure is ideal for realizing multi-agent deep reinforcement
+learning (DRL) systems, where autonomous agents distributed
+This material is based upon work supported by the National Science
+Foundation under Grant Numbers CNS-2202972, CNS- 2318726, and CNS-
+2232048.
+F. Lotfi, H. Rajoli and F. Afghah are with the Department of Electrical
+& Computer Engineering, Clemson University e-mail: flotfi@clemson.edu,
+hrajoli@clemson.edu, fafghah@clemson.edu.
+across CU and DU components collaboratively manage the
+network, coordinated by RIC-based xApps [2]–[8]. At the DU
+level, decentralized agents handle localized control tasks such
+as resource block (RB) allocation and user scheduling. By co-
+ordinating across agents, the system can achieve broader, end-
+to-end optimization goals. Multi-Agent Reinforcement Learn-
+ing (MARL) aligns naturally with the modular and distributed
+nature of O-RAN, supporting adaptive and near real-time
+decision-making for tasks like dynamic slicing and resource
+provisioning [7]–[10]. However, standard DRL methods face
+notable limitations in highly dynamic network environments.
+They typically demand extensive interaction cycles to learn
+stable policies and often fail to adapt quickly when network
+states shift. Additionally, the unstructured, noisy, and delayed
+feedback inherent to wireless systems makes it challenging
+for agent

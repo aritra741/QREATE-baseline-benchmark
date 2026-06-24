@@ -1,0 +1,78 @@
+TabRAG: Tabular Document Retrieval
+via Structured Language Representations
+Jacob Si1∗, Mike Qu2∗, Michelle Lee1, Yingzhen Li1
+Imperial College London1
+Columbia University2
+{y.si23, chi.m.lee24, yingzhen.li}@imperial.ac.uk
+{zq2234}@columbia.edu
+Abstract
+Ingesting data for Retrieval-Augmented Generation (RAG) involves either fine-
+tuning the embedding model directly on the target corpus or parsing documents for
+embedding model encoding. The former, while accurate, incurs high computational
+hardware requirements, while the latter suffers from suboptimal performance
+when extracting tabular data. In this work, we address the latter by presenting
+TABRAG, a parsing-based RAG pipeline designed to tackle table-heavy documents
+via structured language representations. TABRAG outperforms existing popular
+parsing-based methods for generation and retrieval. Code is available at: https:
+//github.com/jacobyhsi/TabRAG.
+1
+Introduction
+The latest retrieval-augmented generation (RAG) pipelines focus on fine-tuning language models
+to output high-quality embeddings [7, 28, 27]. However, these approaches often require expensive
+computational hardware to extend to new, unseen data. On the other hand, traditional RAG [13, 8]
+relies on parsing the document to obtain text [15, 6]. While straightforward, the most common
+parsing techniques [19, 9, 20, 26, 24] often struggle to tackle large, complex tables.
+Since the newest embedding models in RAG systems are built upon foundation language models,
+processing and designing an effective data representation is critical for the embedding model to work
+effectively [29]. In this work, we propose TABRAG, an end-to-end parsing-based RAG pipeline for
+tabular documents via structured language representations. TABRAG first segments the data via a
+layout detector [14, 11] that allows the pipeline to focus on smaller data chunks. Next, we engineer
+prompts for a vision language model (VLM) to parse various data types [5, 21]. Specifically, for
+tables, we focus on extracting the values along with their corresponding column and row names
+into a structured representation. This is followed by a large language model (LLM) that generates
+natural language descriptions from the structured representation, obtaining a coherent and sequential
+output that can be effectively encoded by the embedding model [29, 23]. Extensive experiments
+demonstrate that TABRAG outperforms existing methods in both generation and retrieval across
+various benchmarks. Our architecture is shown in Figure 1.
+2
+Method
+While retrieval-augmented generation (RAG) performs well on standard text corpora, extending it
+to tabular documents is not as straightforward. Unlike plain text, which follows a natural sequence
+and benefits from a wide range of pretrained language embeddings [3, 8, 13], tables convey meaning
+∗Equal Contribution.
+AI for Tabular Data Workshop at NeurIPS 2025.
+arXiv:2511.06582v1  [cs.CL]  10 Nov 2025
+Step 1: 
+Layout Parsing &
+Component Extraction
+VLM
+Step 2: 
+Generate Structured
+Representation for
+Components
+LLM
+Step 3: 
+Generate Language
+Representation Friendly
+for Embedding Model
+TabRAG
+Text
+Figures
+Tables
+Retrieval & Generation
+Query
+Step 4: 
+Retrieval through
+Vector Database
+Answer
+Step 5: 
+Generation through
+In-Context Learning
+Figure 1: The TABRAG Architecture, a parsing-based RAG pipeline designed specifically for tables.
+First, a layout detection model is applied to segment various components from the documents.
+Specifically, the tables are then passed into a vision language model, which extracts cell values along
+with their corresponding column and row names in a structured representation. Lastly, the structured
+representation is inputted into a language model that generates natural language descriptions.
+through a two-dimensional layout, where each cell’s interpretation depends on both its row and
+column context [2, 22]. Naive text extraction [19, 9, 20] can often disrupt this structure, as it is unable
+to identify layout-related cue

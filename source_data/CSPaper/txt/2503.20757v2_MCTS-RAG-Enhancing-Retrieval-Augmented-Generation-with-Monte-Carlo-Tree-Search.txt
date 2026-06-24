@@ -1,0 +1,104 @@
+MCTS-RAG: Enhancing Retrieval-Augmented Generation with
+Monte Carlo Tree Search
+Yunhai HuN ∗
+Yilun ZhaoY ∗
+Chen ZhaoN
+Arman CohanY
+Y Yale University
+NNew York University
+https://github.com/yale-nlp/MCTS-RAG
+Abstract
+We introduce MCTS-RAG, a novel approach
+that enhances the reasoning capabilities of
+small language models on knowledge-intensive
+tasks by leveraging retrieval-augmented gen-
+eration (RAG) to provide relevant context and
+Monte Carlo Tree Search (MCTS) to refine
+reasoning paths. MCTS-RAG dynamically in-
+tegrates retrieval and reasoning through an iter-
+ative decision-making process. Unlike standard
+RAG methods, which typically retrieve infor-
+mation independently from reasoning and thus
+integrate knowledge suboptimally, or conven-
+tional MCTS reasoning, which depends solely
+on internal model knowledge without exter-
+nal facts, MCTS-RAG combines structured
+reasoning with adaptive retrieval. This inte-
+grated approach enhances decision-making, re-
+duces hallucinations, and ensures improved fac-
+tual accuracy and response consistency. The
+experimental results on multiple reasoning
+and knowledge-intensive datasets datasets (i.e.,
+ComplexWebQA, GPQA, and FoolMeTwice)
+show that our method enables small-scale LMs
+to achieve performance comparable to fron-
+tier LLMs like GPT-4o by effectively scaling
+inference-time compute, setting a new standard
+for reasoning in small-scale models.
+1
+Introduction
+Recent advancements in MCTS-based reason-
+ing have demonstrated remarkable improvements
+in structured decision-making and logical infer-
+ence (Kocsis and Szepesvári, 2006; Browne et al.,
+2012; Xie et al., 2024a). The rStar framework (Qi
+et al., 2024), for instance, has shown that system-
+atic search and exploration can significantly en-
+hance reasoning performance, enabling small-scale
+LMs (i.e., models with up to 7B parameters) to
+compete with much larger models. However, a
+key limitation of these approaches is their heavy
+∗Equal contributions.
+Correspondence: Yilun Zhao
+(yilun.zhao@yale.edu)
+A textile dye containing an 
+conjugated pi-electrons emits 
+light with energy of 2.3393 eV. 
+What color of light is absorbed 
+by the organic compound?
+Finding 1: MCTS-RAG achieves better performance than baselines 
+Finding 2: Concurrency + Pruning = Faster Tree Search
+Finding 3: In-depth Analysis on Effectiveness of MCTS-RAG
+The answer is: 
+Red
+MCTS-RAG Framework
+Parallel action expansions & retrieval 
+pruning greatly improve efficiency
+Parallel Expansion
+Retrieval Pruning
+….
+Base LLM
+Compared Baselines
+rStar, ReAct, Self-Ask, Self-RAG, FLARE, Iter-RetGen, 
+Search-O1, AutoRAG, TC-RAG, IterDRAG, DeepRAG
+Evaluation Datasets
+QA: ComplexWebQA, GPQA
+Fact Checking: FoolMeTwice
+Impact of different actions
+Impact of different rollout strategies 
+MCTS-RAG demonstrates (1) enhanced external 
+knowledge utilization and (2) reduced hallucination
+Human analysis & Case Study 
+Figure 1: Overview of the research. The top panel
+illustrates the proposed MCTS-RAG framework, while
+the bottom panel summarizes three key findings from
+our experiments and analysis.
+reliance on internal knowledge, which hinders their
+effectiveness in knowledge-intensive tasks.
+On the other hand, RAG has been widely used to
+solve knowledge-intensive tasks (Lewis et al., 2020;
+Karpukhin et al., 2020; Izacard and Grave, 2021;
+Zhao et al., 2025), but its effectiveness with small-
+scale LMs remains limited. small-scale LMs strug-
+gle with query formulation and retrieved content
+comprehension, often generating vague queries and
+misinterpreting key details (Fan et al., 2025). More-
+over, existing RAG systems do not dynamically
+adjust their retrieval strategies based on changing
+informational or reasoning requirements, which re-
+sults in unnecessary or repetitive retrieval steps (Li
+et al., 2024; Gao et al., 2024). For example, when
+answering a multi-hop question like “Which novel
+inspired the movie that won Best Picture in 1994?”,
+a standard retrieval system might retrieve docu-
+ments about

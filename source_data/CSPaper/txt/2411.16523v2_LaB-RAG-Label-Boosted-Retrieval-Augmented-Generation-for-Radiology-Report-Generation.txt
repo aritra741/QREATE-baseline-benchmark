@@ -1,0 +1,80 @@
+Preprint under review
+LAB-RAG:
+LABEL
+BOOSTED
+RETRIEVAL
+AUGMENTED GENERATION FOR RADIOLOGY REPORT
+GENERATION
+Steven Song *, 1, 2, 3, Anirudh Subramanyam *, 2, Irene Madejski 1, 2, Robert L. Grossman1, 2, 4
+1 Department of Computer Science
+2 Center for Translational Data Science
+3 Medical Scientist Training Program
+4 Section of Biomedical Data Science, Department of Medicine
+University of Chicago, Chicago, IL 60637, USA
+{songs1, anisub, imadejski, rgrossman1}@uchicago.edu
+ABSTRACT
+In the current paradigm of image captioning, deep learning models are trained
+to generate text from image embeddings of latent features. We challenge the
+assumption that fine-tuning of large, bespoke models is required to improve
+model generation accuracy.
+Here we propose Label Boosted Retrieval Aug-
+mented Generation (LaB-RAG), a small-model-based approach to image caption-
+ing that leverages image descriptors in the form of categorical labels to boost
+standard retrieval augmented generation (RAG) with pretrained large language
+models (LLMs). We study our method in the context of radiology report genera-
+tion (RRG) over MIMIC-CXR and CheXpert Plus. We argue that simple classi-
+fication models combined with zero-shot embeddings can effectively transform
+X-rays into text-space as radiology-specific labels. In combination with stan-
+dard RAG, we show that these derived text labels can be used with general-
+domain LLMs to generate radiology reports. Without ever training our genera-
+tive language model or image embedding models specifically for the task, and
+without ever directly “showing” the LLM an X-ray, we demonstrate that LaB-
+RAG achieves better results across natural language and radiology language met-
+rics compared with other retrieval-based RRG methods, while attaining compet-
+itive results compared to other fine-tuned vision-language RRG models. We fur-
+ther conduct extensive ablation experiments to better understand the components
+of LaB-RAG. Our results suggest broader compatibility and synergy with fine-
+tuned methods to further enhance RRG performance. Our code is available at:
+https://github.com/uc-cdis/label-boosted-RAG-for-RRG.
+*Equal contribution.
+1
+arXiv:2411.16523v2  [cs.CV]  6 Oct 2025
+Preprint under review
+Radiology
+Labels
+Retrieval
+Augmentation
+Generation
+LaB-RAG
+Standard RAG
+Label Boost:  
+Filter
+Label Boost:  
+Format
+Retrieval
+Augmentation
+Generation
+Radiology 
+Reports
+Retrieval 
+Data
+Chest
+X-rays
+Figure 1: Overview of LaB-RAG for RRG compared to standard RAG.
+1
+INTRODUCTION
+Radiology reports are free-text natural language notes describing the observations seen in radiolog-
+ical images, such as X-rays, CT scans, or MRI scans. These reports are written by board-certified
+radiologists, highly specialized doctors (Rosenkrantz et al., 2020) who are in worsening short supply
+(Kumar et al., 2020; Christensen et al., 2023; Rimmer, 2017; Ismail et al., 2024). Motivated by the
+popularization of large language models (LLMs), there has been an increasing interest in AI tools to
+help bridge the radiologist shortage gap (Hosny et al., 2018; Najjar, 2023; Kelly et al., 2022).
+Radiology report generation (RRG) is the task of automatically generating these reports given the
+images (Sloan et al., 2024; Messina et al., 2022). While RRG can be applied to any radiological
+imaging modality, the most frequent modality studied in the literature is chest X-rays (CXRs). This
+is evidenced by the large number of publicly available paired CXR-report datasets (Sloan et al.,
+2024), such as MIMIC-CXR (Johnson et al., 2019), CheXpert Plus (Chambon et al., 2024), and
+others (Demner-Fushman et al., 2016; Bustos et al., 2020; Vay´a et al., 2020; Nguyen et al., 2022).
+For CXRs, RRG is typically formulated as generating the “Findings” or “Impression” section of the
+report (Messina et al., 2022). Conceptually, the findings section describes all positive or negative ob-
+servations seen in the X-ray, while the impression section summarizes and interprets those findings

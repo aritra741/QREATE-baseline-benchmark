@@ -1,0 +1,111 @@
+MMKB-RAG: A Multi-Modal Knowledge-Based
+Retrieval-Augmented Generation Framework
+Zihan Ling
+Peking University
+China
+lingzihan@stu.pku.edu.cn
+Zhiyao Guo†
+Alibaba Group
+China
+guozhiyao45@gmail.com
+Yixuan Huang
+Alibaba Group
+China
+huangyixuan@sjtu.edu.cn
+Yi An
+Peking University
+China
+anyi@stu.pku.edu.cn
+Shuai Xiao
+Alibaba Group
+China
+shuai.xsh@gmail.com
+Jinsong Lan
+Alibaba Group
+China
+jinsonglan.ljs@taobao.com
+Xiaoyong Zhu
+Alibaba Group
+China
+xiaoyong.z@taobao.com
+Bo Zheng∗
+Alibaba Group
+China
+bozheng@alibaba-inc.com
+Abstract
+Recent advancements in large language models (LLMs) and multi-
+modal LLMs have been remarkable. However, these models still
+rely solely on their parametric knowledge, which limits their ability
+to generate up-to-date information and increases the risk of pro-
+ducing erroneous content. Retrieval-Augmented Generation (RAG)
+partially mitigates these challenges by incorporating external data
+sources, yet the reliance on databases and retrieval systems can
+introduce irrelevant or inaccurate documents, ultimately under-
+mining both performance and reasoning quality. In this paper, we
+propose Multi-Modal Knowledge-Based Retrieval-Augmented Gen-
+eration (MMKB-RAG), a novel multi-modal RAG framework that
+leverages the inherent knowledge boundaries of models to dynami-
+cally generate semantic tags for the retrieval process. This strategy
+enables the joint filtering of retrieved documents, retaining only
+the most relevant and accurate references. Extensive experiments
+on knowledge-based visual question-answering tasks demonstrate
+the efficacy of our approach: on the E-VQA dataset, our method im-
+proves performance by +4.2% on the Single-Hop subset and +0.4%
+on the full dataset, while on the InfoSeek dataset, it achieves gains
+of +7.8% on the Unseen-Q subset, +8.2% on the Unseen-E subset,
+and +8.1% on the full dataset. These results highlight significant
+enhancements in both accuracy and robustness over the current
+state-of-the-art MLLM and RAG frameworks.
+1
+Introduction
+The rapid evolution of large language models (LLMs) and multi-
+modal large language models (MLLMs) has revolutionized both
+natural language processing and visual reasoning tasks. Trained
+on extensive datasets, these models excel at leveraging intrinsic
+parametric knowledge to generate coherent and contextually ap-
+propriate responses. However, a fundamental challenge remains:
+The reliance on static parametric knowledge (i.e., the knowledge
+acquired during pre-training) often leads to errors or hallucinations
+1∗Corresponding author
+2† Project leader
+RET
+SRT
+CST
+optimize
+inherent 
+knowledge 
+boundaries
+Query
+(Img+text)
+correct
+correct
+irrelevant
+redundant
+rag. doc.
+Wrong Results
+correct
+correct
+filtered doc.
+Correct Results
+MLLM
+Figure 1: Examples illustrate that RAG may retrieve ir-
+relevant and redundant documents, resulting in incorrect
+outcomes. Our approach leverages the MLLM’s knowledge
+boundaries to filter references, retaining essential evidence
+for accurate answers.
+[23], particularly when addressing complex queries that demand
+precise, domain-specific, or real-time information[14]. For example,
+in knowledge-based visual question-answering (VQA) tasks such
+as Encyclopedic-VQA (E-VQA) [21] and InfoSeek [5], even state-
+of-the-art MLLMs struggle to generate accurate responses because
+of lacking the ability to retrieve and integrate external knowledge
+effectively. This deficiency underscores a critical gap in current
+MLLM architectures: the need for mechanisms that enable dynamic
+and reliable access to external knowledge sources.
+To overcome the limitations of static parametric knowledge, re-
+searchers have developed Retrieval-Augmented Generation (RAG)
+frameworks that enables models to incorporate the latest and most
+relevant information during inference. These frameworks can be
+broadly divided into retrieval-side mechanisms and generation-side
+mechanisms. On the retrieval side, existing methods primarily focus
+on aligning visual and textual modali

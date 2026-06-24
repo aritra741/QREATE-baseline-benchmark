@@ -1,0 +1,89 @@
+MBA-RAG: a Bandit Approach for Adaptive Retrieval-Augmented
+Generation through Question Complexity
+Xiaqiang Tang *1,2, Qiang Gao *2,3, Jian Li *2, Nan Du2,
+Qi Li4, Sihong Xie †1,
+1The Hong Kong University of Science and Technology (Guangzhou),
+2Tencent Hunyuan, 3Wuhan University, 4Iowa State University,
+Correspondence: sihongxie@hkust-gz.edu.cn
+Abstract
+Retrieval Augmented Generation (RAG) has
+proven to be highly effective in boosting the
+generative performance of language model in
+knowledge-intensive tasks.
+However, exist-
+ing RAG frameworks either indiscriminately
+perform retrieval or rely on rigid single-class
+classifiers to select retrieval methods, leading
+to inefficiencies and suboptimal performance
+across queries of varying complexity. To ad-
+dress these challenges, we propose a reinforce-
+ment learning-based framework that dynami-
+cally selects the most suitable retrieval strategy
+based on query complexity. Our approach lever-
+ages a multi-armed bandit algorithm, which
+treats each retrieval method as a distinct “arm”
+and adapts the selection process by balanc-
+ing exploration and exploitation. Additionally,
+we introduce a dynamic reward function that
+balances accuracy and efficiency, penalizing
+methods that require more retrieval steps, even
+if they lead to a correct result. Our method
+achieves new state-of-the-art results on mul-
+tiple single-hop and multi-hop datasets while
+reducing retrieval costs. Our code is available
+at https://github.com/FUTUREEEEEE/MBA
+1
+Introduction and Related Work
+Retrieval Augmented Generation (Lewis et al.,
+2020) has shown significant promise in addressing
+knowledge-intensive natural language processing
+(NLP) tasks by integrating an updated knowledge
+base with a language model. This combination
+allows language model to access up-to-date knowl-
+edge, improving their faithfulness and reducing
+hallucinations.
+Most existing RAG frameworks employ a
+retrieve-and-generate setup that indiscriminately
+performs retrieval based on the input. However,
+this approach may hinder the versatility of lan-
+guage models or introduce unnecessary or off-topic
+*Equally contributed authors
+†Corresponding author
+passages. To address this issue, methods such as
+SEAKR (Yao et al., 2024) and FLARE (Jiang et al.,
+2023) have been designed to perform active re-
+trieval only when necessary.
+Furthermore, AdaptiveRAG (Jeong et al., 2024)
+argues that real-world queries often vary in dif-
+ficulty, such as the number of reasoning steps re-
+quired or the depth of information needed to answer
+a query. Thus, applying a single retrieval method
+across all queries can be ineffective. Simple queries
+may incur unnecessary computational overhead
+when complex retrieval strategies are used, while
+complex, multi-step queries may not be adequately
+addressed. To tackle this issue, AdaptiveRAG in-
+troduces an adaptive router that selects the retrieval
+method based on the complexity of the query. How-
+ever, AdaptiveRAG simplifies the retrieval strategy
+into a single-choice task by using heuristic supervi-
+sion that favors only one process with the least re-
+trieval cost. This supervision is inaccurate for two
+main reasons. First, it assumes only one strategy is
+optimal for one query. For example, while multi-
+ple strategies (such as directly answering without
+retrieval, retrieving once, or performing iterative
+retrieval) might all provide correct answers depend-
+ing on the query, only the direct answer method
+will be marked as correct. This strict supervision
+ignores scenarios where more complex strategies
+might offer better context or more comprehensive
+answers. Second, this heuristic approach is am-
+biguous because retrieval costs vary according to
+the query’s difficulty, what constitutes the least cost
+can differ significantly between queries of different
+complexities.
+To overcome these limitations, we propose a
+Multi-arm Bandit-based framework for Adaptive
+Retrieval-Augmented Generation (MBA-RAG)
+Fig. 1, that introduces both flexibility

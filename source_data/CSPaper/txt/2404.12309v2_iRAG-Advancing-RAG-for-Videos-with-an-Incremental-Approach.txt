@@ -1,0 +1,78 @@
+iRAG: Advancing RAG for Videos with an Incremental Approach
+Md Adnan Arefeen∗
+University Of Missouri-Kansas City
+Kansas City, Missouri, USA
+aa4cy@mail.umkc.edu
+Biplob Debnath
+NEC Laboratories America
+Princeton, New Jersey, USA
+biplob@nec-labs.com
+Md Yusuf Sarwar Uddin
+University Of Missouri-Kansas City
+Kansas City, Missouri, USA
+muddin@umkc.edu
+Srimat Chakradhar
+NEC Laboratories America
+Princeton, New Jersey, USA
+chak@nec-labs.com
+ABSTRACT
+Retrieval-augmented generation (RAG) systems combine the
+strengths of language generation and information retrieval to power
+many real-world applications like chatbots. Use of RAG for under-
+standing of videos is appealing but there are two critical limitations.
+One-time, upfront conversion of all content in large corpus of videos
+into text descriptions entails high processing times. Also, not all
+information in the rich video data is typically captured in the text
+descriptions. Since user queries are not known apriori, developing
+a system for video to text conversion and interactive querying of
+video data is challenging.
+To address these limitations, we propose an incremental RAG
+system called iRAG, which augments RAG with a novel incremental
+workflow to enable interactive querying of a large corpus of videos.
+Unlike traditional RAG, iRAG quickly indexes large repositories
+of videos, and in the incremental workflow, it uses the index to
+opportunistically extract more details from select portions of the
+videos to retrieve context relevant to an interactive user query.
+Such an incremental workflow avoids long video to text conversion
+times, and overcomes information loss issues due to conversion
+of video to text, by doing on-demand query-specific extraction
+of details in video data. This ensures high quality of responses to
+interactive user queries that are often not known apriori. To the best
+of our knowledge, iRAG is the first system to augment RAG with
+an incremental workflow to support efficient interactive querying
+of a large corpus of videos. Experimental results on real-world
+datasets demonstrate 23x to 25x faster video to text ingestion, while
+ensuring that latency and quality of responses to interactive user
+queries is comparable to responses from a traditional RAG where
+all video data is converted to text upfront before any user querying.
+∗Work was done while working as a research intern at NEC Laboratories America.
+Permission to make digital or hard copies of all or part of this work for personal or
+classroom use is granted without fee provided that copies are not made or distributed
+for profit or commercial advantage and that copies bear this notice and the full citation
+on the first page. Copyrights for components of this work owned by others than the
+author(s) must be honored. Abstracting with credit is permitted. To copy otherwise, or
+republish, to post on servers or to redistribute to lists, requires prior specific permission
+and/or a fee. Request permissions from permissions@acm.org.
+CIKM ’24, October 21–25, 2024, Boise, ID, USA
+© 2024 Copyright held by the owner/author(s). Publication rights licensed to ACM.
+ACM ISBN 979-8-4007-0436-9/24/10
+https://doi.org/10.1145/3627673.3680088
+CCS CONCEPTS
+• Information systems →Information retrieval; • Computing
+methodologies →Natural language processing.
+KEYWORDS
+Generative AI, Retrieval Augmented Generation (RAG), Video An-
+alytics, Large Language Models (LLMs), Vision Language Models
+(VLMs)
+ACM Reference Format:
+Md Adnan Arefeen, Biplob Debnath, Md Yusuf Sarwar Uddin, and Sri-
+mat Chakradhar. 2024. iRAG: Advancing RAG for Videos with an In-
+cremental Approach. In Proceedings of the 33rd ACM International Con-
+ference on Information and Knowledge Management (CIKM ’24), October
+21–25, 2024, Boise, ID, USA. ACM, New York, NY, USA, 8 pages. https:
+//doi.org/10.1145/3627673.3680088
+1
+INTRODUCTION
+Many applications routinely collect and store videos for offline
+analysis. For example, surveillance systems ensure public safety by
+monitoring p

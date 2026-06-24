@@ -1,0 +1,58 @@
+BEYOND SCORES: A MODULAR RAG-BASED SYSTEM FOR
+AUTOMATIC SHORT ANSWER SCORING WITH FEEDBACK
+A PREPRINT
+Menna Fateen
+Graduate School of Information Science and Electrical Engineering
+Kyushu University
+Fukuoka, 8190395, Japan
+menna.fateen@m.ait.kyushu-u.ac.jp
+Bo Wang
+Graduate School of Information Science and Electrical Engineering
+Kyushu University
+Fukuoka, 8190395, Japan
+wangbo.rw@gmail.com
+Tsunenori Mine
+Faculty of Information Science and Electrical Engineering
+Kyushu University
+Fukuoka, 8190395, Japan
+mine@ait.kyushu-u.ac.jp
+October 11, 2024
+ABSTRACT
+Automatic short answer scoring (ASAS) helps reduce the grading burden on educators but often
+lacks detailed, explainable feedback. Existing methods in ASAS with feedback (ASAS-F) rely
+on fine-tuning language models with limited datasets, which is resource-intensive and struggles to
+generalize across contexts. Recent approaches using large language models (LLMs) have focused on
+scoring without extensive fine-tuning. However, they often rely heavily on prompt engineering and
+either fail to generate elaborated feedback or do not adequately evaluate it. In this paper, we propose
+a modular retrieval augmented generation based ASAS-F system that scores answers and generates
+feedback in strict zero-shot and few-shot learning scenarios. We design our system to be adaptable to
+various educational tasks without extensive prompt engineering using an automatic prompt generation
+framework. Results show an improvement in scoring accuracy by 9% on unseen questions compared
+to fine-tuning, offering a scalable and cost-effective solution.
+Keywords automatic short answer scoring · large language models · retrieval-augmented generation
+1
+Introduction
+Feedback plays a critical role in student learning. Extensive research demonstrates that detailed and timely feedback
+significantly improves student performance by guiding learning and correcting misunderstandings Shute [2008], Hattie
+and Timperley [2007]. However, providing such elaborated feedback, especially for short answer questions, is a
+time-consuming and labor-intensive task for educators, particularly when managing large numbers of students. To
+address this, automatic short answer scoring (ASAS) systems have been developed to quickly assess student responses
+Riordan et al. [2017], Ramachandran et al. [2015]. Despite their utility, ASAS systems primarily focus on scoring
+arXiv:2409.20042v2  [cs.CL]  10 Oct 2024
+arXiv Template
+A PREPRINT
+correctness, offering holistic scores without the detailed feedback students need to understand their mistakes Burrows
+et al. [2015].
+Current ASAS systems are typically trained on classification or regression tasks, where the objective is to assign a score
+to a student’s answer. While effective in evaluating answers, these systems lack the explainability needed for two key
+purposes: (1) helping students understand the reasoning behind their errors and the feedback given and (2) fostering
+trust in the scoring system Winstone et al. [2017], Liu et al. [2018], Khosravi et al. [2022]. Without this granularity,
+students miss opportunities to improve, and educators may be reluctant to adopt automated grading systems.
+In response to these limitations, recent research has focused on developing ASAS systems with feedback (ASAS-F) that
+not only score student answers but also generate detailed feedback Li et al. [2023], Schneider et al. [2023], Filighera
+et al. [2022a]. These systems aim to provide students with actionable feedback that explains the reasoning behind
+their scores, helping them identify and correct their mistakes. Existing ASAS-F systems rely on resource-intensive
+fine-tuning with limited datasets, specific tasks Dzikovska et al. [2014], Keuning et al. [2018] or complex prompt
+engineering, all of which may not generalize well across contexts. Moreover, evaluating the quality of the textual
+feedback is usually only done using traditional statistical metrics, which do not capture the main aspects of quality,
+s

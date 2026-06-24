@@ -45,6 +45,10 @@ def _corpus_dir(dataset_name: str) -> Path:
         art_flat = root / "source_data" / "Art"
         if art_flat.is_dir():
             return art_flat
+    if ds_key == "CSPaper":
+        cspaper = root / "source_data" / "CSPaper" / "txt"
+        if cspaper.is_dir():
+            return cspaper
     data_dir = root / "Data" / dataset_name
     if data_dir.is_dir():
         return data_dir
@@ -79,6 +83,7 @@ def load_corpus(dataset_name: str) -> list[dict]:
 
     from data.dataset_registry import (
         ART_DATASET, ART_SQL_TABLE,
+        CSPAPER_DATASET, CSPAPER_SQL_TABLE,
         FINAN_DATASET, FINAN_SQL_TABLE,
     )
 
@@ -93,6 +98,8 @@ def load_corpus(dataset_name: str) -> list[dict]:
             table_hint = FINAN_SQL_TABLE
         elif mapped in ("unknown", folder) and dataset_key == ART_DATASET:
             table_hint = ART_SQL_TABLE
+        elif dataset_key == CSPAPER_DATASET:
+            table_hint = CSPAPER_SQL_TABLE
         else:
             table_hint = mapped
         docs.append(

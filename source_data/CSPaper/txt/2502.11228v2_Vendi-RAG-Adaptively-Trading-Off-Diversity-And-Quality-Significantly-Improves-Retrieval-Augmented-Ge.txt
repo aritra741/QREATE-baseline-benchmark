@@ -1,0 +1,77 @@
+Vendi-RAG: Adaptively Trading-Off Diversity And
+Quality Significantly Improves Retrieval
+Augmented Generation With LLMs
+Mohammad R. Rezaei1, 3 and Adji Bousso Dieng2, 3
+1Institute of Biomedical Engineering, University of Toronto
+2Department of Computer Science, Princeton University
+3Vertaix
+May 26, 2025
+Abstract
+Retrieval-augmented generation (RAG) enhances large language models (LLMs)
+for domain-specific question-answering (QA) tasks by leveraging external
+knowledge sources. However, traditional RAG systems primarily focus on
+relevance-based retrieval and often struggle with redundancy, especially when
+reasoning requires connecting information from multiple sources. This paper
+introduces Vendi-RAG, a framework based on an iterative process that jointly
+optimizes retrieval diversity and answer quality. This joint optimization leads
+to significantly higher accuracy for multi-hop QA tasks. Vendi-RAG leverages
+the Vendi Score (VS), a flexible similarity-based diversity metric, to promote
+semantic diversity in document retrieval. It then uses an LLM judge that eval-
+uates candidate answers, generated after a reasoning step, and outputs a
+score that the retriever uses to balance relevance and diversity among the
+retrieved documents during each iteration. Experiments on three challenging
+datasets—HotpotQA, MuSiQue, and 2WikiMultiHopQA—demonstrate Vendi-
+RAG’s effectiveness in multi-hop reasoning tasks. The framework achieves sig-
+nificant accuracy improvements over traditional single-step or multi-step RAG
+approaches, with accuracy increases reaching +4.2% on HotpotQA, +4.1% on
+2WikiMultiHopQA, and +1.3% on MuSiQue compared to Adaptive-RAG, the
+current best baseline. The benefits of Vendi-RAG are even more pronounced as
+the number of retrieved documents increases. Finally, we evaluated Vendi-RAG
+across different LLM backbones, including GPT-3.5, GPT-4, and GPT-4o-mini,
+and observed consistent improvements, demonstrating that the framework’s
+advantages are model-agnostic.
+Keywords: RAG, LLMs, Question Answering, NLP, Diversity, Vendi Scoring
+1
+Introduction
+Retrieval-augmented generation (RAG) has emerged as a transformative framework
+for enhancing the performance of large language models (LLMs) in domain-specific
+tasks such as question-answering (QA). By retrieving relevant information from
+external sources beyond the training set, RAG enables LLMs to answer specialized
+1
+arXiv:2502.11228v2  [cs.CL]  22 May 2025
+Retrieval
+Query
+Answer
+LLM Judge 
+Quality Check
+Rewritten  
+Query
+Final 
+Answer
+Vendi Score
+Vendi Score
+Diversity  
+weight s
+Decision Block 
+s > threshold Thr 
+Iteration < N
+…
+Reasoning
+Figure 1: The process begins with an initial retrieval step, where a diverse set of
+documents is retrieved using the Vendi Score, ensuring broad semantic coverage.
+Next, leveraging a reasoning step to construct a coherent path to the final answer,
+the LLM generates an answer, which then undergoes quality assessment by an LLM
+judge. Based on the answer quality, the retriever is adjusted to balance diversity and
+relevance: high-quality answers limit the emphasis on diversity, while low-quality
+answers prompt the retriever to prioritize diversity more heavily. This adjustment
+is controlled by an adaptive parameter, s, which is updated over iterations. The
+process continues until the answer quality reaches an optimal threshold, denoted
+by Thr. Finally, the highest-quality responses and documents are selected, ensuring
+both diversity and accuracy.
+queries more effectively Achiam et al. (2023); Team et al. (2023); Jiang et al. (2024).
+This approach has been particularly successful in single-hop QA, where a question
+can be answered using information from a single document Raiaan et al. (2024);
+Kwiatkowski et al. (2019). For instance, answering a question such as "Who wrote
+the novel Frankenstein?" only requires retrieving relevant information from a single
+document containing this fact.
+However, multi-hop QA introduces significantly greater complexit

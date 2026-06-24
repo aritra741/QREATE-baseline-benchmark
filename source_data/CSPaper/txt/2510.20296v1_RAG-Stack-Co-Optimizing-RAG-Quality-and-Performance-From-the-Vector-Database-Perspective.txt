@@ -1,0 +1,85 @@
+RAG-Stack: Co-Optimizing RAG Quality and Performance
+From the Vector Database Perspective
+Wenqi Jiang
+Systems Group, ETH Zurich
+wenqi.jiang@inf.ethz.ch
+Abstract
+Retrieval-augmented generation (RAG) has emerged as one of the
+most prominent applications of vector databases. By integrating
+documents retrieved from a database into the prompt of a large
+language model (LLM), RAG enables more reliable and informative
+content generation. While there has been extensive research on
+vector databases, many open research problems remain once they
+are considered in the wider context of end-to-end RAG pipelines.
+One practical yet challenging problem is how to jointly optimize
+both system performance and generation quality in RAG, which is
+significantly more complex than it appears due to the numerous
+knobs on both the algorithmic side (spanning models and databases)
+and the systems side (from software to hardware). In this paper, we
+present RAG-Stack, a three-pillar blueprint for quality–performance
+co-optimization in RAG systems. RAG-Stack comprises: (1) RAG-IR,
+an intermediate representation that serves as an abstraction layer
+to decouple quality and performance aspects; (2) RAG-CM, a
+cost model for estimating system performance given an RAG-IR;
+and (3) RAG-PE, a plan exploration algorithm that searches for
+high-quality, high-performance RAG configurations. We believe
+this three-pillar blueprint will become the de facto paradigm for
+RAG quality–performance co-optimization in the years to come.
+1
+Introduction
+Vector database has become a hot topic in recent years due to the
+rapid advancement of machine learning and generative AI. Among
+its many applications, Retrieval-Augmented Generation (RAG) has
+emerged as one of the most prominent use cases in the LLM era. By
+incorporating relevant documents retrieved from databases into
+the LLM prompt as shown in Figure 1, RAG improves the reliability,
+timeliness, and comprehensiveness of generated responses [3, 5, 16].
+As a result, RAG has become the industry standard for knowledge-
+intensive natural language processing tasks [3, 15, 16, 18, 19].
+Well-Tuned Vector Databases Alone Are Not Enough for
+RAG Serving. We have witnessed extensive research on optimizing
+query processing in vector databases (referred to as retrievals
+throughout this paper for brevity), particularly in terms of quality
+(e.g., recall) and performance (e.g., QPS, latency), often on standard
+benchmarks with a predefined dataset including a fixed number of
+encoded vectors, a specified Top-𝐾, and a target recall requirement.
+While research on retrieval itself is undoubtedly fundamental,
+many open problems remain when integrating vector databases
+into end-to-end RAG pipelines, because the previous assumptions
+(optimizing retrievals in isolation on well-defined benchmarks) no
+longer hold. On the other hand, there is a vast number of configurable
+knobs in RAG spanning both algorithmic and system aspects, all of
+which influence end-to-end RAG system performance (e.g., latency,
+What are Thomas Edison's 
+most notable inventions?
+These inventions, including the 
+phonograph, the motion picture 
+camera, and the electric …
+User question:
+Thomas invented 
+phonograph, motion 
+picture camera, …
+LLM
+Vector database
+texts
+vectors
+2
+1
+4
+Retrieved passages:
+Generated answer:
+3
+Rerank
+Query Rewrite
+3
+Figure 1: A simple RAG pipeline with models and a database.
+throughput) and generation quality (e.g., accuracy, reliability), making
+it essential to move beyond tuning vector databases in isolation.
+Algorithm Configuration Space. There are numerous algorith-
+mic factors that influence the generation quality of a RAG pipeline.
+Forexample,howisthedatabaseconfigured?Thisincludesdecisions
+such as document chunking strategies, choice of embedding models,
+index configurations, and retrieval quality requirements such as
+recall. In addition to the database, should auxiliary models be used
+before and after retrieval? These may include a query rewriter
+that rephra

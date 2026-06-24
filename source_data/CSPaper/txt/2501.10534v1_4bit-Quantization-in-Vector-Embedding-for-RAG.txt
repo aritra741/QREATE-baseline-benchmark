@@ -1,0 +1,72 @@
+4bit-Quantization in Vector-Embedding for RAG
+Taehee Jeong
+San Jose State University
+taehee.jeong@sjsu.edu
+Abstract—Retrieval-augmented generation (RAG) is a promis-
+ing technique that has shown great potential in addressing some
+of the limitations of large language models (LLMs). LLMs have
+two major limitations: they can contain outdated information
+due to their training data, and they can generate factually
+inaccurate responses, a phenomenon known as hallucinations.
+RAG aims to mitigate these issues by leveraging a database
+of relevant documents, which are stored as embedding vectors
+in a high-dimensional space. However, one of the challenges
+of using high-dimensional embeddings is that they require a
+significant amount of memory to store. This can be a major
+issue, especially when dealing with large databases of docu-
+ments. To alleviate this problem, we propose the use of 4-
+bit quantization to store the embedding vectors. This involves
+reducing the precision of the vectors from 32-bit floating-point
+numbers to 4-bit integers, which can significantly reduce the
+memory requirements. Our approach has several benefits. Firstly,
+it significantly reduces the memory storage requirements of
+the high-dimensional vector database, making it more feasible
+to deploy RAG systems in resource-constrained environments.
+Secondly, it speeds up the searching process, as the reduced
+precision of the vectors allows for faster computation. Our
+code is available at https://github.com/taeheej/4bit-Quantization-
+in-Vector-Embedding-for-RAG.
+Index Terms—Retrieval-augmented generation, Large lan-
+guage models, Vector search, Embedding vectors, Quantization,
+High-dimensional vectors, Memory storage, Vector database
+I. INTRODUCTION
+Large Language Models (LLMs) have achieved state-of-the-
+art performance on many Natural Language Processing (NLP)
+tasks [1]–[3], demonstrating their ability to store a vast amount
+of knowledge as implicit parameters. The responses generated
+by LLMs, given a query, are often useful and informative,
+as they are based on a wide variety of information learned
+during the training process. However, despite their impressive
+performance, LLMs still suffer from several limitations.
+One major issue is that the number of model parameters
+required to achieve good performance is growing exponen-
+tially. This means that as the model is trained on more data,
+the number of model parameters required to store the learned
+knowledge increases rapidly, making it challenging to deploy
+and maintain these models. Another limitation is that LLMs
+are fundamentally limited in their ability to incorporate time-
+sensitive or not-publicly available information. This is because
+the data used to train LLMs is typically based on a snapshot
+of the internet at a particular point in time, and may not reflect
+the latest developments or updates.
+23rd International Conference on Machine Learning and Applications
+(ICMLA), IEEE Copyright 2024
+As a result, LLMs are prone to producing fact halluci-
+nations, where the model generates responses that are not
+grounded in reality. This can be particularly problematic in
+applications where accuracy and reliability are critical.
+Recently, a new paradigm has emerged to address these
+limitations: Retrieval-Augmented Generation (RAG). RAG
+combines pre-trained language models with external knowl-
+edge retrieval, allowing the model to access and incorporate
+time-sensitive and not-publicly available information [4], [5].
+The RAG system works as follows: for a given input query,
+a neural retriever performs a search to find the most relevant
+documents from an external knowledge database. The retrieved
+documents, along with the query, are then used to prompt the
+language model, which generates its output by augmenting the
+retrieved documents with the given query. The work flow of
+the RAG system is illustrated in Fig. 1.
+Fig. 1: RAG system
+Compared to generative-only models, RAG explicitly ex-
+ploits time-sensitive information and/

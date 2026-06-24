@@ -1,0 +1,75 @@
+A Socratic RAG Approach to Connect Natural Language Queries on Research
+Topics with Knowledge Organization Systems
+Lew Lefton1, Kexin Rong1, Chinar Dankhara1, Lila Ghemri2, Firdous Kausar3, A. Hannibal
+Hamdallahi3
+1Georgia Institute of Technology
+2Texas Southern University
+3Fisk University
+lew.lefton@gatech.edu, krong@gatech.edu, chinardankhara@gatech.edu, lila.ghemri@tsu.edu, fkausar@fisk.edu,
+aleach@fisk.edu
+Abstract
+In this paper, we propose a Retrieval Augmented Generation
+(RAG) agent that maps natural language queries about re-
+search topics to precise, machine-interpretable semantic en-
+tities. Our approach combines RAG with Socratic dialogue
+to align users’ intuitive understanding of research topics
+with established Knowledge Organization Systems (KOSs).
+The proposed approach will effectively bridge ”little seman-
+tics” (domain-specific KOS structures) with ”big semantics”
+(broad bibliometric repositories), making complex academic
+taxonomies more accessible. Such agents have the potential
+for broad use. We illustrate with a sample application called
+CollabNext, which is a person-centric knowledge graph con-
+necting people, organizations, and research topics. We fur-
+ther describe how the application design has an intentional
+focus on HBCUs and emerging researchers to raise visibility
+of people historically rendered invisible in the current science
+system.
+Introduction
+What is a research topic? Research is carried out on almost
+everything, so the concept space is wide and deep. It is un-
+surprising that there is no universal resource that covers all
+research concepts. Instead, many domain-specific Knowl-
+edge Organization Systems (KOS) have emerged provid-
+ing ontologies, taxonomies, lists, and thesauri of their ar-
+eas (Salatino et al. 2024). These KOSs are good sources of
+expert-curated ground truth. Unfortunately, in a KOS, topic
+data typically consists only of strings and not semantic enti-
+ties, which makes research topics a weak link in knowledge
+axiomatization and research classification.
+A knee-jerk reaction to this challenge is to leverage a
+Large Language Model (LLM) to generate research topics,
+based on a corpus of research papers, datasets, etc. In fact,
+there are many tools in the area of topic classification that
+do precisely that. Unfortunately, LLM generated topics do
+not align well with how human beings talk and think about
+research.
+Alignment of natural language research topics with struc-
+tured KOSs is needed for CollabNext (CollabNext 2024),
+an application currently under development as part of the
+Copyright © 2025, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+National Science Foundation’s Prototype Open Knowledge
+Network (NSF 2023). CollabNext allows users to explore
+who is working in what research area and where they are.
+While this seems simple and straightforward to answer, it
+turns out to be quite nuanced and challenging. Name colli-
+sions make it difficult to identify the ”who”, especially for
+common names or Asian names (Kim, Kim, and Kim 2023).
+Organizations, the ”where”, can also have multiple names,
+campuses, etc. Fortunately, for both individuals and organi-
+zations, there are established and open semantic structures,
+for example in schema.org (W3C 2014) or Wikidata.org
+(Wikidata contributors 2024), and available persistent iden-
+tifiers, e.g. ORCID (ORCID Inc. 2024) and ROR (Research
+Organization Registry 2024). Research topics, the ”what”,
+turn out to be more complicated. There is no universal list of
+research concepts, and certainly nothing that compares to a
+persistent identifier.
+This paper begins with a brief overview of related work on
+the challenge of organizing research topics. We then provide
+a short description of CollabNext, including its intentional
+design to increase the visibility of emerging researchers. We
+share an example that highlights the challenge and impor-
+tance of aligning natural language research topic queries
+wit

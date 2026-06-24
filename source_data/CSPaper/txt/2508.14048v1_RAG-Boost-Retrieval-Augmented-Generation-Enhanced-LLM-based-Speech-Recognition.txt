@@ -1,0 +1,79 @@
+RAG-Boost: Retrieval-Augmented Generation Enhanced LLM-based Speech
+Recognition
+Pengcheng Wang1, Sheng Li1, Takahiro Shinozaki1
+1School of Engineering, Institute of Science Tokyo, Japan
+wang.p.6102@m.isct.ac.jp, sheng.li@ieee.org, shinot@ict.e.titech.ac.jp
+Abstract
+In this paper, we propose RAG-Boost (ST-ShinozakiLab Task I
+system), which enhances the baseline LLM-based ASR system
+of the MLC-SLM Challenge (task I) with a retrieval-augmented
+generation (RAG) module on the fly. Each partial ASR hypoth-
+esis queries a vector store of audio–text pairs and domain terms,
+and the retrieved results are fused with the live ASR hypotheses
+to fix recognition errors. The fused hypotheses are passed to the
+LLM, yielding improved responses.
+Index Terms:
+Large language model, Speech recognition,
+Retrieval-augmented generation
+1. Introduction
+Large Language Models (LLMs) have significantly advanced
+the development of Automatic Speech Recognition (ASR),
+achieving excellent performance in general domains. However,
+their progress is hindered by numerous real-world problems
+with the models, training methods, and data. To promote this
+research, the MLC-SLM Challenge and Workshop introduce a
+new multilingual conversational speech dataset1, 2 to support
+research in multilingual speech language modeling.
+The challenge consists of two tracks, each designed to eval-
+uate distinct aspects of speech language modeling. Task I fo-
+cuses on multilingual ASR, where systems are provided with
+oracle speaker labels and segmentation boundaries and are eval-
+uated using Word Error Rate (WER) or Character Error Rate
+(CER). Task II, in contrast, addresses joint speaker diarization
+and recognition without oracle information and is evaluated us-
+ing Diarization Error Rate (DER) and tcpWER/tcpCER.
+In this paper, we focus on Task I. Experiments show that
+keyword spotting is severely disturbed in noisy environments.
+Inspired by the End-to-End contextual biasing approach [1], we
+deploy an ASR system designed for keyword correction.
+2. Proposed Method
+As shown in Figure 1, our system consists of four key com-
+ponents: Speech Encoder, LLM, Projector, and Keywords Re-
+triever.
+2.1. Basic Architecture
+Our ASR system skeleton adopts the basic SLAM-ASR [2] ar-
+chitecture, which consists of an audio encoder, a projector, and
+an LLM decoder. The projector is based on convolution layers
+and MLP to achieve alignment of speech embedding to LLM
+embedding.
+1https://www.nexdata.ai/competition/mlc-slm
+2https://github.com/mubingshen/MLC-SLM-Baseline
+(a) Structure overview of our model.
+(b) Keyword retrieval via cross-modal similarity.
+Figure 1: Structural overview of the proposed ASR pipeline and
+the design of the keyword retriever, which incorporates Atten-
+tion Pooling as the pooling module.
+2.2. Keywords Retriever
+We trained the keyword retriever using a CLAP-style [3] con-
+trastive learning approach to identify possible keywords directly
+from speech. As a cross-modal keyword retriever, we adopted
+the classic dual-tower model, as shown in Figure 1b. We reused
+existing model components to simplify the system architecture.
+Specifically, the speech processing tower utilized the Whisper
+[4] model and its supporting Projector in the SLAM architec-
+ture, whereas the text processing tower directly employed the
+LLM itself. Then, through a pooling layer, we projected the
+features of these two modalities into a unified shared embedding
+space. To implement the LLM generation process to optimize
+the information from keywords, we fine-tune an LLM Adapter
+using LoRA [5] technique.
+2.3. Result Aggregation
+We use a weighted fusion module to integrate three intermedi-
+ate recognition outputs into the final transcription, namely the
+output from the whisper decoder, the output from the original
+LLM, and the RAG-based output. Note that the output based
+on RAG is given a higher weight.
+arXiv:2508.14048v1  [eess.AS]  5 Aug 2025
+3. Experiments
+3.1. Datasets and Metrics
+We use the English (American) dataset

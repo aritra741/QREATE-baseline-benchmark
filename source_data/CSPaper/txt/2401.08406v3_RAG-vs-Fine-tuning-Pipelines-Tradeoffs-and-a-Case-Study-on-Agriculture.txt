@@ -1,0 +1,46 @@
+RAG VS FINE-TUNING: PIPELINES, TRADEOFFS, AND A CASE
+STUDY ON AGRICULTURE
+Microsoft
+Angels Balaguer, Vinamra Benara, Renato Cunha, Roberto Estevão, Todd Hendry, Daniel Holstein,
+Jennifer Marsman, Nick Mecklenburg, Sara Malvar, Leonardo O. Nunes, Rafael Padilha, Morris Sharp,
+Bruno Silva, Swati Sharma, Vijay Aski, Ranveer Chandra
+ABSTRACT
+There are two common ways in which developers are incorporating proprietary and domain-specific
+data when building applications of Large Language Models (LLMs): Retrieval-Augmented Genera-
+tion (RAG) and Fine-Tuning. RAG augments the prompt with the external data, while fine-Tuning
+incorporates the additional knowledge into the model itself. However, the pros and cons of both
+approaches are not well understood. In this paper, we propose a pipeline for fine-tuning and RAG, and
+present the tradeoffs of both for multiple popular LLMs, including Llama2-13B, GPT-3.5, and GPT-4.
+Our pipeline consists of multiple stages, including extracting information from PDFs, generating
+questions and answers, using them for fine-tuning, and leveraging GPT-4 for evaluating the results.
+We propose metrics to assess the performance of different stages of the RAG and fine-Tuning pipeline.
+We conduct an in-depth study on an agricultural dataset. Agriculture as an industry has not seen
+much penetration of AI, and we study a potentially disruptive application - what if we could provide
+location-specific insights to a farmer? Our results show the effectiveness of our dataset generation
+pipeline in capturing geographic-specific knowledge, and the quantitative and qualitative benefits of
+RAG and fine-tuning. We see an accuracy increase of over 6 p.p. when fine-tuning the model and this
+is cumulative with RAG, which increases accuracy by 5 p.p. further. In one particular experiment,
+we also demonstrate that the fine-tuned model leverages information from across geographies to
+answer specific questions, increasing answer similarity from 47% to 72%. Overall, the results point
+to how systems built using LLMs can be adapted to respond and incorporate knowledge across a
+dimension that is critical for a specific industry, paving the way for further applications of LLMs in
+other industrial domains.
+Keywords GPT-4 · Agriculture · Retrieval Augmented Generation · Fine-tuning
+1
+Introduction
+Over the past few years, artificial intelligence and natural language processing have seen significant advancements,
+leading to the development of powerful large language models (LLMs) such as the Generative Pre-trained Transformer
+(GPT). The technology driving LLMs, including advanced deep learning techniques, large-scale transformers, and
+vast amounts of data, have propelled their rapid evolution. Models like GPT-4 (OpenAI, 2023) and Llama 2 (Touvron
+et al., 2023b) have demonstrated exceptional performance across numerous tasks and domains, often without specific
+prompts. These models surpass their predecessors and hold immense potential in various fields like coding, medicine,
+law, agriculture, and psychology, closely approaching human-level expertise (Bubeck et al., 2023; Nori et al., 2023;
+Demszky et al., 2023). As LLM research continues, it is critical to identify their limitations and address the challenges
+of developing more comprehensive artificial general intelligence (AGI) systems. Moreover, the machine learning
+community must move beyond traditional benchmarking datasets and evaluate LLMs in ways that closely resemble
+human cognitive ability assessments.
+The adoption of Artificial Intelligence (AI) copilots across various industries is revolutionizing the way businesses
+operate and interact with their environment. These AI copilots, powered by LLMs, provide invaluable assistance in
+arXiv:2401.08406v3  [cs.CL]  30 Jan 2024
+data processing and decision-making processes. In healthcare, for example, AI copilots are being leveraged to predict
+patient risks and improve diagnostic accuracy (Kim et al., 2023; Thirunavukarasu et al., 2023; Alo

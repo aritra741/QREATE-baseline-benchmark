@@ -1,0 +1,78 @@
+Don’t Lag, RAG: Training-Free Adversarial Detection Using RAG
+Roie Kazoom 1 Raz Lapid 2 Moshe Sipper 3 Ofer Hadar 1
+Abstract
+Adversarial patch attacks pose a major threat to
+vision systems by embedding localized pertur-
+bations that mislead deep models. Traditional
+defense methods often require retraining or fine-
+tuning, making them impractical for real-world
+deployment.
+We propose a training-free Vi-
+sual Retrieval-Augmented Generation (VRAG)
+framework that integrates Vision-Language Mod-
+els (VLMs) for adversarial patch detection. By
+retrieving visually similar patches and images
+that resemble stored attacks in a continuously
+expanding database, VRAG performs genera-
+tive reasoning to identify diverse attack types-
+all without additional training or fine-tuning.
+We extensively evaluate open-source large-scale
+VLMs-including Qwen-VL-Plus, Qwen2.5-VL-
+72B, and UI-TARS-72B-DPO-alongside Gemini-
+2.0, a closed-source model. Notably, the open-
+source UI-TARS-72B-DPO model achieves up to
+95% classification accuracy, setting a new state-
+of-the-art for open-source adversarial patch de-
+tection. Gemini-2.0 attains the highest overall
+accuracy, 98%, but remains closed-source. Ex-
+perimental results demonstrate VRAG’s effective-
+ness in identifying a variety of adversarial patches
+with minimal human annotation, paving the way
+for robust, practical defenses against evolving ad-
+versarial patch attacks.
+1. Introduction
+Deep learning models, particularly convolutional neural net-
+works (CNNs) (Krizhevsky et al., 2012; He et al., 2016; Si-
+monyan & Zisserman, 2014) and vision transformers (ViTs)
+(Dosovitskiy et al., 2020), have demonstrated remarkable
+1Electrical and Computer Engineering, Ben Gurion University,
+Beer Sheba 84105, Israel 2DeepKeep, Tel-Aviv, Israel 3Computer
+Science, Ben Gurion University, Beer Sheba 84105, Israel. Corre-
+spondence to: Roie Kazoom <roieka@post.bgu.ac.il>.
+Proceedings of the 42 nd International Conference on Machine
+Learning, Vancouver, Canada. PMLR 267, 2025. Copyright 2025
+by the author(s).
+success in computer vision tasks such as object detection
+(Girshick, 2015; Ren et al., 2016; Redmon et al., 2016), im-
+age classification (Krizhevsky et al., 2012; Dosovitskiy et al.,
+2020), and segmentation (Long et al., 2015; Ronneberger
+et al., 2015). However, despite advances, these models
+remain highly vulnerable to adversarial attacks (Szegedy,
+2013; Lapid & Sipper, 2023; Lapid et al., 2022; Alter et al.,
+2025; Goodfellow et al., 2014; Madry et al., 2017; Tamam
+et al., 2023; Lapid et al., 2024b), where small perturbations
+or carefully crafted patches manipulate predictions.
+Adversarial patch attacks (Brown et al., 2017; Lapid et al.,
+2024c; Liu et al., 2018; Wei et al., 2023) introduce local-
+ized perturbations that persist across different transforma-
+tions, making them significantly more challenging to mit-
+igate using conventional defense mechanisms (Wei et al.,
+2022). Unlike traditional adversarial perturbations that in-
+troduce subtle noise across an image, adversarial patches are
+structured, high-magnitude perturbations, which are often
+physically realizable (Lee & Kolter, 2019; Hu et al., 2021).
+These patches can be printed, placed in real-world environ-
+ments, and still cause misclassification or mislocalization
+in deployed deep learning models. Their adversarial effect
+remains robust under different lighting conditions, transfor-
+mations, and occlusions, allowing them to be successfully
+deployed in real world scenarios (Liu et al., 2024; Deng
+et al., 2023). Furthermore, retraining-based defenses re-
+quire extensive, labeled adversarial data, which is expensive
+to obtain and generalizes poorly to novel attack strategies
+(Wei et al., 2022).
+Traditional adversarial detection methods typically fall into
+one of three categories, (1) supervised learning-based de-
+fenses, (2) unsupervised defenses and (3) adversarial train-
+ing. Supervised learning-based defenses (Pinhasov et al.,
+2024; Papernot et al., 2016) us

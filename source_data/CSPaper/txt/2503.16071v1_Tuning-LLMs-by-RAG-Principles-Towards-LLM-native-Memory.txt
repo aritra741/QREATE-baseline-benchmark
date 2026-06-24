@@ -1,0 +1,94 @@
+Tuning LLMs by RAG Principles: Towards LLM-native Memory
+Jiale Wei
+Shuchi Wu
+Ruochen Liu
+Xiang Ying
+Jingbo Shang*
+Fangbo Tao
+{yingxiang, tao}@mindverse.ai
+Mindverse.ai
+Abstract
+Memory, additional information beyond the
+training of large language models (LLMs), is
+crucial to various real-world applications, such
+as personal assistant. The two mainstream solu-
+tions to incorporate memory into the generation
+process are long-context LLMs and retrieval-
+augmented generation (RAG). In this paper, we
+first systematically compare these two types of
+solutions on three renovated/new datasets and
+show that (1) long-context solutions, although
+more expensive, shall be easier to capture the
+big picture and better answer queries which re-
+quire considering the memory as a whole; and
+(2) when the queries concern specific informa-
+tion, RAG solutions shall be more competitive
+especially when the keywords can be explic-
+itly matched. Therefore, we propose a novel
+method RAG-Tuned-LLM which fine-tunes a
+relative small (e.g., 7B) LLM using the data
+generated following the RAG principles, so
+it can combine the advantages of both solu-
+tions. Extensive experiments on three datasets
+demonstrate that RAG-Tuned-LLM can beat
+long-context LLMs and RAG methods across a
+wide range of query types.
+1
+Introduction
+Memory, additional information beyond the train-
+ing of large language models (LLMs), is crucial to
+various real-world applications, such as personal
+assistant (Mai et al., 2023). The most intuitive
+solution to enable long memory into the genera-
+tion process is long-context LLM, for example,
+128K-token GPT-4o (Achiam et al., 2023), 1M-or
+10M-token Gemini 1.5 (Reid et al., 2024), or an
+LLM with “unlimited” context lengths by length
+extrapolation (Peng et al., 2023; Xiao et al., 2023;
+Han et al., 2023; Zhang et al., 2024a) and posi-
+tion bias (Liu et al., 2024; Peysakhovich and Lerer,
+2023; An et al., 2024). Retrieval-augmented gen-
+eration (RAG) (Lewis et al., 2020; Koˇcisk`y et al.,
+* Corresponding author.
+2018; Pang et al., 2022; Trivedi et al., 2022; Edge
+et al., 2024) is another popular approach to incorpo-
+rate memory in a plug-in manner: a retriever identi-
+fies a small number of query-relevant contexts from
+a large corpus, and then feeds them into an LLM
+to answer the query. Compared with long-context
+LLMs, RAG’s serving cost is more affordable, and
+therefore, RAG is potentially more popular than
+long-context LLMs in real-world applications.
+In this paper, we first systematically compare
+these two types of methods on three renovated/new
+datasets. We start with two public datasets, namely
+news articles (Tang and Yang, 2024) and podcast
+transcripts (Scott, 2024), following the general
+ideas mentioned in Edge et al. (2024) to gener-
+ate queries and references. On these two datasets,
+we use the entire corpus as the memory. We cate-
+gorize the queries into two types, local and global.
+Specifically, local queries target specific informa-
+tion and concrete answers from small chunks of
+memory. Global queries, on the other hand, re-
+quire considering memory as a whole to generate
+high-level answers. We further introduce a new
+proprietary dataset containing journaling articles
+and user-provided local/global queries and their
+expected answers from our journaling app1.
+Intuitively, (1) long-context solutions, although
+more expensive, shall be easier to capture the
+big picture and better answer global queries; and
+(2) when the queries concern local information,
+RAG solutions shall be more competitive espe-
+cially when the keywords can be explicitly matched.
+Based on these three datasets, we run competitions
+between a vanilla RAG (Lewis et al., 2020) and
+Gemini 1.5 (Reid et al., 2024), with the win rate
+results shown in Table 2, confirming our intuitions.
+It is worth mentioning that RAG surpasses long-
+context LLMs when handling local queries, yet
+underperforms in addressing global ones.
+1Me.bot: https://app.me.bot/
+1
+arXiv:2503.16071v1  [cs.CL]  20 Mar

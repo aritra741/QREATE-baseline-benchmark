@@ -1,0 +1,94 @@
+MME-RAG: Multi-Manager-Expert Retrieval-Augmented Generation for
+Fine-Grained Entity Recognition in Task-Oriented Dialogues
+Liang Xue1,2*, Haoyu Liu1∗, Yajun Tian1, Xinyu Zhong2
+Yang Liu1†
+1Harbin Institute of Technology, 2Byering Technology
+xueliang.xl@byering.com, liuhaoyu@stu.hit.edu.cn
+zzzzzxy@byering.com, liuyang@hit.edu.cn
+Abstract
+Fine-grained entity recognition is crucial for
+reasoning and decision-making in task-oriented
+dialogues, yet current large language models
+(LLMs) continue to face challenges in domain
+adaptation and retrieval controllability. We in-
+troduce MME-RAG, a Multi-Manager-Expert
+Retrieval-Augmented Generation framework
+that decomposes entity recognition into two
+coordinated stages: type-level judgment by
+lightweight managers and span-level extrac-
+tion by specialized experts.
+Each expert is
+supported by a KeyInfo retriever that injects
+semantically aligned, few-shot exemplars dur-
+ing inference, enabling precise and domain-
+adaptive extraction without additional training.
+Experiments on CrossNER, MIT-Movie, MIT-
+Restaurant, and our newly constructed multi-
+domain customer-service dataset demonstrate
+that MME-RAG performs better than recent
+baselines in most domains. Ablation studies
+further show that both the hierarchical decom-
+position and KeyInfo-guided retrieval are key
+drivers of robustness and cross-domain general-
+ization, establishing MME-RAG as a scalable
+and interpretable solution for adaptive dialogue
+understanding.
+1
+Introduction
+Task-oriented dialogue systems are essential in do-
+mains such as e-commerce, healthcare, and cus-
+tomer support[ZHANG et al., 2020], where extract-
+ing key information from user utterances directly
+impacts task success. For instance, understanding
+user preferences enables personalized product rec-
+ommendations, while accurately capturing symp-
+toms facilitates reliable medical diagnoses. In these
+contexts, Named Entity Recognition (NER) plays a
+pivotal role[Chinchor and Robinson, 1998], as even
+minor extraction errors can cascade into suboptimal
+dialogue strategies and failed task completion.
+*Equal Contribution
+†Corresponding Author
+Despite the impressive capabilities of large lan-
+guage models (LLMs) [DeepSeek-AI et al., 2025,
+OpenAI et al., 2024, Yang et al., 2025b], apply-
+ing them to fine-grained entity recognition in com-
+plex dialogues remains challenging. Specifically:
+(i) domain-specific performance gaps, as general-
+purpose LLMs often underperform compared to
+fine-tuned models and may hallucinate entities
+[Yang et al., 2025a] ; (ii) high adaptation costs, be-
+cause domain transfer typically requires expensive
+fine-tuning and large-scale annotations; and (iii)
+limited retrieval relevance, since existing Retrieval-
+Augmented Generation (RAG) methods often re-
+turn coarse-grained or noisy examples [Lewis et al.,
+2020].
+To address these challenges,
+we propose
+MME-RAG (Multi-Manager-Expert Retrieval-
+Augmented Generation), a framework that decom-
+poses the NER task into lightweight type-level
+“judges” (managers) and expert boundary “solvers”
+(experts). Each expert leverages a KeyInfo re-
+triever, which dynamically injects entity-centric,
+few-shot examples at inference time. This design
+enhances extraction accuracy, improves retrieval
+relevance, and ensures modularity and scalability
+without requiring costly model retraining.
+In summary, our contributions are threefold:
+1. We introduce a Multi-Manager-Expert archi-
+tecture that decomposes entity extraction into
+judge-solve subtasks, improving controllabil-
+ity and scalability.
+2. We propose a KeyInfo-driven retrieval method
+for few-shot RAG, which enhances retrieval
+relevance and boosts extraction accuracy.
+3. We provide extensive empirical validation on
+public benchmarks and our newly introduced
+customer-service dataset, demonstrating that
+MME-RAG outperforms strong baselines in
+most cases.
+1
+arXiv:2511.12213v1  [cs.CL]  15 Nov 2025
+Figure 1: MME-RAG overview. The Orchestrator first routes user input to the

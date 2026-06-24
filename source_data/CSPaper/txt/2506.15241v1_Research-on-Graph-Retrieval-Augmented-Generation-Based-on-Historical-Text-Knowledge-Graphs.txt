@@ -1,0 +1,55 @@
+Research on Graph-Retrieval Augmented Generation Based on Historical Text Knowledge 
+Graphs 
+ 
+Yang Fan1, Zhang Qi2, Xing Wenqian1, Liu Chang1 and Liu Liu1,* 
+ 
+1College of Information Management, Nanjing Agricultural University, Nanjing 210095, People’s 
+Republic of China 
+2School of Economics and Management, Shanxi University, Taiyuan 030006, People’s Republic of 
+China 
+*Correspondence author. E-mail: liuliu@njau.edu.cn 
+ 
+ 
+Abstract 
+This article addresses domain knowledge gaps in general large language models for historical text 
+analysis in the context of computational humanities and AIGC technology. We propose the Graph RAG 
+framework, combining chain-of-thought prompting, self-instruction generation, and process supervision 
+to create a “The First Four Histories” character relationship dataset with minimal manual annotation. 
+This dataset supports automated historical knowledge extraction, reducing labor costs. In the graph-
+augmented generation phase, we introduce a collaborative mechanism between knowledge graphs and 
+retrieval-augmented generation, improving the alignment of general models with historical knowledge. 
+Experiments show that the domain-specific model Xunzi-Qwen1.5-14B, with Simplified Chinese input 
+and chain-of-thought prompting, achieves optimal performance in relation extraction (F1 = 0.68). The 
+DeepSeek model integrated with GraphRAG improves F1 by 11% (0.08 → 0.19) on the open-domain C-
+CLUE relation extraction dataset, surpassing the F1 value of Xunzi-Qwen1.5-14B (0.12), effectively 
+alleviating “hallucinations” phenomenon, and improving interpretability. This framework offers a low-
+resource solution for classical text knowledge extraction, advancing historical knowledge services and 
+humanities research. 
+Keywords: GraphRAG; Knowledge graph; Knowledge extraction; Process supervision; Large language 
+model 
+ 
+ 
+ 
+1. Introduction 
+In recent years, the deep integration of Digital Humanities (DH) and Artificial Intelligence Generated 
+Content (AIGC) technologies has revolutionized traditional paradigms in ancient text research. As an 
+interdisciplinary field, DH leverages data mining, corpus construction, and visualization techniques to 
+transcend the subjective limitations of conventional humanities studies, providing objective data support 
+for humanistic research. Within the DH technological framework, Large Language Models (LLMs) like 
+ChatGPT, with their strengths in natural language processing, have opened new avenues for the 
+intelligent processing of ancient texts. 
+Historical texts, as significant ancient documents, profoundly reflect the social development of the 
+Chinese nation. The core of historical characters knowledge graphs lies in structuring and linking 
+historical figures and their complex relationships, addressing the “information silo” problem caused by 
+fragmented information dispersed across various sources. By employing entity recognition, relationship 
+extraction, and visualization techniques, fragmented data on individuals' biographies, social connections, 
+and historical events can be integrated into a unified network, constructing a multidimensional 
+associative network that reveals latent connections often overlooked in traditional research (Zhang et al. 
+2024). Simultaneously, LLMs, trained on extensive datasets, can learn from unlabeled data, covering 
+diverse knowledge topics and handling complex tasks (Huang et al. 2025). However, due to the intricate 
+relationships among historical figures, general-purpose LLMs, lacking specialized training, may struggle 
+to accurately identify low-frequency entities and complex semantic associations in ancient texts, leading 
+to historical “hallucinations” and limiting their application in high-precision tasks like historical 
+characters relationship mining (Tonmoy et al. 2024). 
+As the demand for knowledge extraction from ancient texts deepens, corresponding technologies 
+have evolved through three stages: rule-based matching, m

@@ -1,0 +1,65 @@
+Enhancing Retrieval and Managing Retrieval:
+A Four-Module Synergy for Improved Quality and
+Efficiency in RAG Systems
+Yunxiao Shia, Xing Zia, Zijing Shia, Haimin Zhanga, Qiang Wua and Min Xua,*
+aUniversity of Technology Sydney, Broadway, Sydney, 2007, NSW, Australia.
+Abstract. Retrieval-augmented generation (RAG) techniques lever-
+age the in-context learning capabilities of large language models
+(LLMs) to produce more accurate and relevant responses. Originat-
+ing from the simple ’retrieve-then-read’ approach, the RAG frame-
+work has evolved into a highly flexible and modular paradigm. A
+critical component, the Query Rewriter module, enhances knowl-
+edge retrieval by generating a search-friendly query. This method
+aligns input questions more closely with the knowledge base. Our
+research identifies opportunities to enhance the Query Rewriter mod-
+ule to Query Rewriter+ by generating multiple queries to over-
+come the Information Plateaus associated with a single query and
+by rewriting questions to eliminate Ambiguity, thereby clarifying
+the underlying intent. We also find that current RAG systems ex-
+hibit issues with Irrelevant Knowledge; to overcome this, we pro-
+pose the Knowledge Filter. These two modules are both based on
+the instructional-tuned Gemma-2B model, which together enhance
+response quality. The final identified issue is Redundant Retrieval;
+we introduce the Memory Knowledge Reservoir and the Retriever
+Trigger to solve this. The former supports the dynamic expansion
+of the RAG system’s knowledge base in a parameter-free manner,
+while the latter optimizes the cost for accessing external knowl-
+edge, thereby improving resource utilization and response efficiency.
+These four RAG modules synergistically improve the response qual-
+ity and efficiency of the RAG system. The effectiveness of these
+modules has been validated through experiments and ablation studies
+across six common QA datasets. The source code can be accessed at
+https://github.com/Ancientshi/ERM4.
+1
+Introduction
+Large Language Models (LLMs) represent a significant leap in ar-
+tificial intelligence, with breakthroughs in generalization and adapt-
+ability across diverse tasks [4, 6]. However, challenges such as hal-
+lucinations [32], temporal misalignments [27], context processing
+issues [1], and fine-tuning inefficiencies [8] have raised significant
+concerns about their reliability. In response, recent research has fo-
+cused on enhancing LLMs’ capabilities by integrating them with ex-
+ternal knowledge sources through Retrieval-Augmented Generation
+(RAG) [2, 20, 13, 15]. This approach significantly improves LLMs’
+ability to answer questions more accurately and contextually.
+The basic RAG system comprises a knowledge retrieval mod-
+ule and a read module, forming the retrieve-then-read pipeline
+∗Corresponding author with email: Min.Xu@uts.edu.au.
+[20, 15, 13]. However, this vanilla pipeline has low retrieval qual-
+ity and produces unreliable answers. To transcend this, more ad-
+vanced RAG modules have been developed and integrated into the
+basic pipeline. For example, the Query Rewriter module acts as a
+bridge between the input question and the retrieval module. Instead
+of directly using the original question as the query text, it gener-
+ates a new query that better facilitates the retrieval of relevant infor-
+mation. This enhancement forms the Rewrite-Retrieve-Read pipeline
+[23, 22]. Furthermore, models like RETA-LLM [22] and RARR [10]
+integrate a post-reading and fact-checking component to further so-
+lidify the reliability of responses. Additional auxiliary modules such
+as the query router [21] and the resource ranker 1 [14] have also been
+proposed to be integrated into the RAG’s framework to improve the
+practicality in complex application scenario. This integration of var-
+ious modules into the RAG pipeline leading to the emergence of a
+modular RAG paradigm [11], transforming the RAG framework into
+a highly flexible system.
+Despite significant advancement

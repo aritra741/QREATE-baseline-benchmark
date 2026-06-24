@@ -1,0 +1,103 @@
+[
+  {
+    "query_id": "agg_queries_CSPaper_2",
+    "sql_query": "SELECT uses_knowledge_graph, COUNT(topic) AS count_topic FROM cspaper GROUP BY uses_knowledge_graph;",
+    "nl_query": null,
+    "category": "Agg",
+    "metadata": {
+      "source_file": "/Users/aritramazumder/Documents/UDA-Bench-main/Query/CSPaper/Agg/agg_queries_CSPaper.sql",
+      "query_index": 2,
+      "subcategory": "aggregation",
+      "tables": [
+        "cspaper"
+      ],
+      "split": "test",
+      "aggregation_slice": "agg_only",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_only_cspaper_gen_7",
+    "sql_query": "SELECT use_agent, COUNT(paper_name) AS count_papers FROM cspaper GROUP BY use_agent;",
+    "category": "Agg",
+    "slice": "agg_only",
+    "metadata": {
+      "generated": true,
+      "split": "test",
+      "aggregation_slice": "agg_only",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_only_cspaper_gen_1",
+    "sql_query": "SELECT uses_knowledge_graph, COUNT(paper_name) AS count_papers FROM cspaper GROUP BY uses_knowledge_graph;",
+    "category": "Agg",
+    "slice": "agg_only",
+    "metadata": {
+      "generated": true,
+      "split": "test",
+      "aggregation_slice": "agg_only",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_filter_cspaper_gen_53",
+    "sql_query": "SELECT reasoning_depth, COUNT(paper_name) AS count_papers FROM cspaper WHERE use_agent = 'Yes' GROUP BY reasoning_depth;",
+    "category": "Agg",
+    "slice": "agg_filter",
+    "metadata": {
+      "generated": true,
+      "split": "test",
+      "aggregation_slice": "agg_filter",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_filter_cspaper_gen_38",
+    "sql_query": "SELECT uses_knowledge_graph, COUNT(paper_name) AS count_papers FROM cspaper WHERE application_domain = 'General' GROUP BY uses_knowledge_graph;",
+    "category": "Agg",
+    "slice": "agg_filter",
+    "metadata": {
+      "generated": true,
+      "split": "test",
+      "aggregation_slice": "agg_filter",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_filter_cspaper_gen_167",
+    "sql_query": "SELECT multi_turn_retrieval, COUNT(paper_name) AS count_papers FROM cspaper WHERE use_agent = 'Yes' GROUP BY multi_turn_retrieval;",
+    "category": "Agg",
+    "slice": "agg_filter",
+    "metadata": {
+      "generated": true,
+      "split": "test",
+      "aggregation_slice": "agg_filter",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_filter_cspaper_gen_55",
+    "sql_query": "SELECT reasoning_depth, COUNT(paper_name) AS count_papers FROM cspaper WHERE multi_turn_retrieval = 'Yes' GROUP BY reasoning_depth;",
+    "category": "Agg",
+    "slice": "agg_filter",
+    "metadata": {
+      "generated": true,
+      "split": "test",
+      "aggregation_slice": "agg_filter",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_filter_cspaper_gen_19",
+    "sql_query": "SELECT topic, COUNT(paper_name) AS count_papers FROM cspaper WHERE application_domain = 'General' GROUP BY topic;",
+    "category": "Agg",
+    "slice": "agg_filter",
+    "metadata": {
+      "generated": true,
+      "split": "test",
+      "aggregation_slice": "agg_filter",
+      "held_out": true
+    }
+  }
+]

@@ -1,0 +1,91 @@
+arXiv:2506.16037v1  [cs.CL]  19 Jun 2025
+Enhancing Document-Level Question Answering
+via Multi-Hop Retrieval-Augmented Generation
+with LLaMA 3
+Xinyue Huang*
+Independent Researcher
+New York, USA
+huangxinyue8616@gmail.com
+Ziqi Lin
+Cornell University
+New Jersey, USA
+zl825@cornell.edu
+Fang Sun
+University of Southern California
+Los Angeles, USA
+fangsun@usc.edu
+Wenchao Zhang
+Independent Researcher
+New Jersey, USA
+wenchao.zhang@rutgers.edu
+Kejian Tong
+Independent Researcher
+Mukilteo, USA
+tongcs2021@gmail.com
+Yunbo Liu
+Independent Researcher
+New York, USA
+chrisliu38387@gmail.com
+Abstract—This paper presents a novel Retrieval-Augmented
+Generation (RAG) framework tailored for complex question
+answering tasks, addressing challenges in multi-hop reasoning
+and contextual understanding across lengthy documents. Built
+upon LLaMA 3, the framework integrates a dense retrieval
+module with advanced context fusion and multi-hop reasoning
+mechanisms, enabling more accurate and coherent response
+generation. A joint optimization strategy combining retrieval
+likelihood and generation cross-entropy improves the model’s
+robustness and adaptability. Experimental results show that the
+proposed system outperforms existing retrieval-augmented and
+generative baselines, confirming its effectiveness in delivering
+precise, contextually grounded answers.
+Kerwords—retrieval-augmented
+generation,
+financial
+QA,
+multi-hop reasoning, LLaMA 3, context fusion
+I. INTRODUCTION
+Understanding complex question answering (QA) tasks re-
+quires deep comprehension of documents containing numbers,
+legal texts, and intricate language. Large language models
+(LLMs) often struggle to effectively retrieve and reason
+over dispersed pieces of information. Retrieval-Augmented
+Generation (RAG), which integrates retrieval and generation,
+has shown promising results. However, many existing RAG
+models still face limitations in multi-hop reasoning and context
+fusion, which are crucial for tasks involving linked reports,
+statements, and structured content. Recent advances have
+addressed these challenges in part—for instance, Dai et al.
+[1] employed contrastive augmentation to strengthen retrieval,
+Wang et al. [2] introduced an attention-based architecture for
+improved context comprehension.
+In this study, we propose a multi-module RAG framework
+built on LLaMA 3 with enhanced retrieval and reasoning
+capabilities. The system incorporates a query-document em-
+bedding module that generates high-dimensional representa-
+tions and retrieves relevant content from a vector database.
+To overcome single-hop limitations, we introduce a multi-hop
+reasoning module that incrementally aggregates context across
+documents via attention mechanisms. A joint optimization
+strategy combining retrieval likelihood and generation cross-
+entropy further improves both retrieval precision and genera-
+tion quality. Overall, the framework demonstrates improved
+performance in answering complex queries requiring deep
+contextual understanding.
+Beyond improving general document QA, our methodology
+also supports high-stakes domains—fraud investigation, reg-
+ulatory compliance and risk analysis—by enabling accurate
+multi-document retrieval and reasoning over lengthy, cross-
+referenced records (e.g., suspicious activity reports, customer
+disclosures and transaction logs). This capability facilitates au-
+tomated early fraud detection, streamlined compliance work-
+flows and enhanced transparency in financial operations—key
+priorities for institutions and regulators. Building on these
+findings, FinLLaMA-RAG holds significant potential in tax
+compliance and strategy through two key applications. First,
+it can empower individual taxpayers and small businesses by
+serving as a virtual tax assistant. Leveraging its multi-hop
+retrieval and reasoning, the system can dynamically retrieve
+relevant sections of tax code and official publications and
+fuse context (e.g. income type, filing status) to provide per-
+sonalized, legally accurate gui

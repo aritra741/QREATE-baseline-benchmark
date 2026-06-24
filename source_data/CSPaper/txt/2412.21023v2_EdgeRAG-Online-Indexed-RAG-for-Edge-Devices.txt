@@ -1,0 +1,77 @@
+EdgeRAG: Online-Indexed RAG for Edge Devices
+Korakit Seemakhupt1, Sihang Liu2, and Samira Khan1,3
+1 University of Virginia, 2 University of Waterloo, 3 Google
+Abstract
+Deploying Retrieval Augmented Generation
+(RAG) on resource-constrained edge devices is
+challenging due to limited memory and process-
+ing power. In this work, we propose EdgeRAG
+which addresses the memory constraint by prun-
+ing embeddings within clusters and generating
+embeddings on-demand during retrieval. To avoid
+the latency of generating embeddings for large
+tail clusters, EdgeRAG pre-computes and stores
+embeddings for these clusters, while adaptively
+caching remaining embeddings to minimize re-
+dundant computations and further optimize la-
+tency. The result from BEIR suite shows that
+EdgeRAG offers significant latency reduction
+over the baseline IVF index, but with similar gen-
+eration quality while allowing all of our evaluated
+datasets to fit into the memory.
+1. Introduction
+Large Language Models (LLMs) enable new applications
+such as smart assistants (Google, 2024; Microsoft). The
+processing of these powerful LLMs is usually offloaded to
+the datacenter due to the enormous resources required. How-
+ever, the latest mobile platforms enable smaller LLM to run
+locally. These lightweight models cannot directly compare
+with the state-of-the-art hundred-billion parameter LLMs.
+To enhance these models to process users’ custom data and
+applications, a promising solution is to build a compounding
+system. By integrating LLMs with Retrieval Augmented
+Generation (RAG), these smaller models can leverage local
+personal data to generate high-quality responses.
+Even though RAG removes the requirement for a heavy-
+weight LLM for generation, retrieval still has a high over-
+head. The core of a RAG system is a vector database that
+enables vector similarity search. Different from LLMs,
+the overhead of RAG mainly comes from its memory foot-
+print. For example, a Flat Index stores and sequentially
+searches every vector representation of the data chunks to
+identify the closest match to the query. For example, in
+fever(Thorne et al., 2018) dataset, a vector database that
+holds 5.23 million records has an index size of 18.5 GB.
+In comparison, mobile devices tend to have 4-12 GB of
+main memory (Wiens, 2024; Sam, 2024). Thus even using
+the whole memory on a mobile platform is not sufficient
+to run a large vector database. On the other hand, storing
+the vector database on disk introduces substantial access
+latency, impacting performance.
+Our research focused on the challenges of implement-
+ing Retrieval Augmented Generation (RAG) on edge sys-
+tems—mainly the overhead of the vector similarity search.
+We find that naively keeping the entire index in the main
+memory would not fit into the memory of mobile platforms.
+A Flat index which performs sequential search of all embed-
+dings not only expensive in term of computation, but also
+trash memory leading to poor performance. On the other
+hand, Two-level Inverted File (IVF) index clusters embed-
+dings of data chunks into centroids. The retrieval process
+first searches for the closest centroid and then performs a
+second search within the cluster. Thus, avoid expensive
+sequential search of all embeddings. However, keeping
+all embeddings in memory still leads to excessive memory
+thrashing and increased latency. Thus, keeping the first-
+level centroid in memory and generating the second level
+online can be a promising solution. Through further profil-
+ing the RAG on mobile platforms using widely-used RAG
+benchmarks (Thakur et al., 2021), we find that both the data
+access pattern and the access latency are highly skewed.
+First, most of the embedding vectors are not searched dur-
+ing the retrieval process. Second, the cost of generating the
+embedding vector is not the same for all clusters and has an
+extreme tail distribution. These skewness leave space for
+further optimizations.
+In this work, we develop a mobile RAG system, EdgeRAG
+that enable

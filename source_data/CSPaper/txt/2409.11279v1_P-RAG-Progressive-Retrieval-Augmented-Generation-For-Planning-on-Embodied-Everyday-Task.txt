@@ -1,0 +1,83 @@
+P-RAG: Progressive Retrieval Augmented Generation For
+Planning on Embodied Everyday Task
+Weiye Xu
+ustcxwy0271@mail.ustc.edu.cn
+University of Science and
+Technology of China, China
+Hefei, China
+Min Wang∗
+wangmin@iai.ustc.edu.cn
+Institute of Artificial
+Intelligence, Hefei
+Comprehensive National
+Science Center
+Hefei, China
+Wengang Zhou∗
+zhwg@ustc.edu.cn
+University of Science and
+Technology of China
+Hefei, China
+Houqiang Li
+lihq@ustc.edu.cn
+University of Science and
+Technology of China
+Hefei, China
+Abstract
+Embodied Everyday Task is a popular task in the embodied AI com-
+munity, requiring agents to make a sequence of actions based on
+natural language instructions and visual observations. Traditional
+learning-based approaches face two challenges. Firstly, natural lan-
+guage instructions often lack explicit task planning. Secondly, ex-
+tensive training is required to equip models with knowledge of the
+task environment. Previous works based on Large Language Model
+(LLM) either suffer from poor performance due to the lack of task-
+specific knowledge or rely on ground truth as few-shot samples. To
+address the above limitations, we propose a novel approach called
+Progressive Retrieval Augmented Generation (P-RAG), which not
+only effectively leverages the powerful language processing capa-
+bilities of LLMs but also progressively accumulates task-specific
+knowledge without ground-truth. Compared to the conventional
+RAG methods, which retrieve relevant information from the data-
+base in a one-shot manner to assist generation, P-RAG introduces
+an iterative approach to progressively update the database. In each
+iteration, P-RAG retrieves the latest database and obtains historical
+information from the previous interaction as experiential references
+for the current interaction. Moreover, we also introduce a more
+granular retrieval scheme that not only retrieves similar tasks but
+also incorporates retrieval of similar situations to provide more
+valuable reference experiences. Extensive experiments reveal that
+P-RAG achieves competitive results without utilizing ground truth
+and can even further improve performance through self-iterations.
+CCS Concepts
+• Computing methodologies →Robotic planning.
+Keywords
+Embodied AI, Large Language Model, Progressive Method, Retrieval
+Augmented Generation
+∗Corresponding author.
+Permission to make digital or hard copies of all or part of this work for personal or
+classroom use is granted without fee provided that copies are not made or distributed
+for profit or commercial advantage and that copies bear this notice and the full citation
+on the first page. Copyrights for components of this work owned by others than the
+author(s) must be honored. Abstracting with credit is permitted. To copy otherwise, or
+republish, to post on servers or to redistribute to lists, requires prior specific permission
+and/or a fee. Request permissions from permissions@acm.org.
+MM ’24, October 28-November 1, 2024, Melbourne, VIC, Australia
+© 2024 Copyright held by the owner/author(s). Publication rights licensed to ACM.
+ACM ISBN 979-8-4007-0686-8/24/10
+https://doi.org/10.1145/3664647.3680661
+ACM Reference Format:
+Weiye Xu, Min Wang, Wengang Zhou, and Houqiang Li. 2024. P-RAG:
+Progressive Retrieval Augmented Generation For Planning on Embodied
+Everyday Task. In Proceedings of the 32nd ACM International Conference on
+Multimedia (MM ’24), October 28-November 1, 2024, Melbourne, VIC, Australia.
+ACM, New York, NY, USA, 10 pages. https://doi.org/10.1145/3664647.3680661
+1
+Introduction
+Recent years have witnessed the rapid development of Embodied
+AI (EAI) which aims to endow AI agents with the ability to inter-
+act with the physical world. Two famous robots in this field from
+Figure AI and Voxposer [11] are both concentrated on Embodied
+Everyday Task. Due to the risks and instability inherent in con-
+ducting experiments in real environments, researchers often opt to
+train and test algorithms in simulation platforms. Many simulators
+abstract and

@@ -1,0 +1,86 @@
+FS-RAG: A Frame Semantics Based Approach for Improved Factual
+Accuracy in Large Language Models
+Harish Tayyar Madabushi
+The University of Bath, Bath, UK
+htm43@bath.ac.uk
+Abstract
+We present a novel extension to Retrieval Aug-
+mented Generation with the goal of mitigating
+factual inaccuracies in the output of large lan-
+guage models. Specifically, our method draws
+on the cognitive linguistic theory of frame se-
+mantics for the indexing and retrieval of factual
+information relevant to helping large language
+models answer queries. We conduct experi-
+ments to demonstrate the effectiveness of this
+method both in terms of retrieval effectiveness
+and in terms of the relevance of the frames
+and frame relations automatically generated.
+Our results show that this novel mechanism
+of Frame Semantic-based retrieval, designed
+to improve Retrieval Augmented Generation
+(FS-RAG), is effective and offers potential for
+providing data-driven insights into frame se-
+mantics theory. We provide open access to our
+program code and prompts1.
+1
+Introduction, Motivation and Context
+Large language models (LLMs), despite their sig-
+nificant capabilities and widespread adoption have
+the inherent tendency to generate plausible sound-
+ing, yet inaccurate, output. This phenomenon, re-
+ferred to as “hallucinations,” has been a significant
+stumbling block in the widespread deployment of
+these solutions (Ji et al., 2023). Hallucinations
+themselves are not limited to factual inaccuracies,
+and include other modes of failure, including the
+incorrect interpretation of input prompts and errors
+in logical inference. However, factual hallucina-
+tions are particularly important to address as the
+retrieval of incorrect facts is particularly hard to re-
+cover from and can neutralise and make irrelevant
+all other improvements.
+The capabilities of LLMs typically improve with
+an increase in their “size,” which is a combination
+1https://github.com/H-TayyarMadabushi/A-Frame-
+Semantics-based-approach-for-Improved-Factual-Accuracy-
+in-Large-Language-Models
+of a model’s parameters and the size of the pre-
+training corpus. Until recently, this was seen by
+some as being evidence that further scaling would
+eventually address the shortcomings of LLMs, in-
+cluding hallucinations. For example, LLMs were
+claimed to develop “emergent abilities”: specifi-
+cally, it was believed that LLMs, when scaled to
+several billion parameters developed capabilities in-
+cluding those required to solve tasks requiring rea-
+soning in humans, thus indicative that they were de-
+veloping reasoning skills (Wei et al., 2022b). More
+recent work, however, has shown that this is not the
+case and that LLMs instead develop a single capa-
+bility, which they leverage to solve tasks (Lu et al.,
+2023). This capability, called “in-context learning,”
+is, roughly put, the ability of models to solve a par-
+ticular task based on a few examples provided in
+the prompt (Brown et al., 2020; Chowdhery et al.,
+2023). (Lu et al., 2023) further suggest that the
+process of instructional fine-tuning LLMs to un-
+derstand instructions (Wei et al., 2022a), enables
+models to leverage the same “in-context” abilities
+even in the absence of examples. This finding indi-
+cates that further scaling, while providing improved
+instruction following abilities, will not grant modes
+the broader capacity to for general reasoning.
+The fact that LLMs are not likely to develop the
+ability to reason has profound implications to work
+on improving them, including to mitigating halluci-
+nations. It implies that we must explore alternative
+approaches. This is especially the case when it
+comes to factual hallucinations as the ‘parametric
+memory’ in LLMs is orders of magnitude smaller
+than the pre-training data (Ji et al., 2023). As such,
+they must necessarily use some method of com-
+pressing their pre-training data. Without the ability
+to distinguish between the information that is rele-
+vant and what is not relevant in their pre-training
+data, their method

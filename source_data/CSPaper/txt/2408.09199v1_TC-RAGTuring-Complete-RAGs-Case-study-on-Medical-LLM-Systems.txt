@@ -1,0 +1,73 @@
+TC–RAG: Turing–Complete RAG’s Case study on Medical LLM Systems
+Xinke Jiang♠*, Yue Fang♠*, Rihong Qiu♠*, Haoyu Zhang♣, Yongxin Xu♠,
+Hao Chen♡, Wentao Zhang♡Ruizhe Zhang♠, Yuchen Fang♢,
+Xu Chu♠†, Junfeng Zhao♠†‡, Yasha Wang♠†
+♠Key Laboratory of High Confidence Software Technologies,
+Ministry of Education; School of Computer Science, Peking University, Beijing, China
+♣School of Statistics and Mathematics, Zhongnan University of Economics and Law, Wuhan, China
+♡University of Chinese Academy of Science, Beijing, China
+♢School of Computer Science, University of Electronic Science and Technology of China, Chengdu, China
+{XinkeJiang,YueFang,RihongQiu}@pku.stu.edu.com
+https://https://github.com/Artessay/SAMA.git
+Abstract
+In the pursuit of enhancing domain-specific Large Language
+Models (LLMs), Retrieval-Augmented Generation (RAG)
+emerges as a promising solution to mitigate issues such as
+hallucinations, outdated knowledge, and limited expertise in
+highly specialized queries. However, existing approaches to
+RAG fall short by neglecting system state variables, which
+are crucial for ensuring adaptive control, retrieval halting, and
+system convergence. In this paper, we introduce the Turing–
+Complete–RAG (TC–RAG) through rigorous proof, a novel
+framework that addresses these challenges by incorporating a
+Turing Complete System to manage state variables, thereby
+enabling more efficient and accurate knowledge retrieval. By
+leveraging a memory stack system with adaptive retrieval,
+reasoning, and planning capabilities, TC–RAG not only en-
+sures the controlled halting of retrieval processes but also mit-
+igates the accumulation of erroneous knowledge via Push
+and Pop actions. In the case study of the medical domain,
+our extensive experiments on real-world healthcare datasets
+demonstrate the superiority of TC–RAG over existing meth-
+ods in accuracy by over 7.20%. Our dataset and code have
+been available at https://https://github.com/Artessay/SAMA.
+git.
+1
+Introduction
+Large Language Models (LLMs), such as ChatGPT (Ope-
+nAI 2022) and GPT-4 (OpenAI 2023), have achieved re-
+markable strides in pivotal areas, demonstrated exceptional
+performance across a variety of downstream tasks (Ka-
+plan et al. 2020; Vu et al. 2024). In the medical do-
+main—those medical LLMs (Wang et al. 2023a; Zhang et al.
+2023; Yang et al. 2023; Zhu et al. 2023; Pal and Sankara-
+subbu 2023)—exhibit great promise in the healthcare field,
+where accountability and trustworthiness are paramount (Ji
+*These authors contributed equally.
+†Corresponding authors.
+‡Junfeng Zhao is also at the Big Data Technology Research
+Center, Nanhu Laboratory, 314002, Jiaxing.
+et al. 2023a; Song et al. 2024). By incorporating com-
+prehensive medical knowledge through pre-training (Ka-
+plan et al. 2020), they can support physicians in making
+accurate diagnoses and formulating treatment plans (Jiang
+et al. 2023a), as well as enhance medical resource alloca-
+tion (Wang et al.; Xu et al.; Liu et al. 2024). Despite med-
+ical LLMs’ advancements, significant conundrums still re-
+main, including the difficulty in avoiding factual inaccura-
+cies (i.e., hallucinations) (Ji et al. 2023a; Cao et al. 2020; Ji
+et al. 2023b; Jiang et al. 2024), outdated knowledge (He,
+Zhang, and Roth 2022), and a lack of highly specialized
+expertise (Kandpal et al. 2023). Consequently, Retrieval-
+Augmented Generation (RAG) (Edge et al. 2024; Asai et al.
+2024; Yang et al. 2024b), which uses the external knowledge
+base to provide medical knowledge as contextual informa-
+tion to enhance content generation, combined with medical-
+LLMs with their massive parameterized knowledge can be
+likened to the expertise of doctors, is deemed as a promising
+and necessary solution to the aforementioned difficulties.
+However, while current approaches in enhancing LLMs
+with external knowledge through RAG show promise (Su
+et al. 2024; Asai et al. 2024; Jiang et al. 2023c), they have
+consistently overlooked the introduction of system state
+variables—an

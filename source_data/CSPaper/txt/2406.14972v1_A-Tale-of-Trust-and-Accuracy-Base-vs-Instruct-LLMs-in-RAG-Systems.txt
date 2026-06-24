@@ -1,0 +1,94 @@
+A Tale of Trust and Accuracy: Base vs. Instruct LLMs in RAG Systems
+Florin Cuconasu1*, Giovanni Trappolini1, Nicola Tonellotto2, Fabrizio Silvestri1
+1Sapienza University of Rome, 2University of Pisa
+Abstract
+Retrieval Augmented Generation (RAG) rep-
+resents a significant advancement in artificial
+intelligence combining a retrieval phase with
+a generative phase, with the latter typically be-
+ing powered by large language models (LLMs).
+The current common practices in RAG involve
+using “instructed” LLMs, which are fine-tuned
+with supervised training to enhance their abil-
+ity to follow instructions and are aligned with
+human preferences using state-of-the-art tech-
+niques. Contrary to popular belief, our study
+demonstrates that base models outperform their
+instructed counterparts in RAG tasks by 20%
+on average under our experimental settings.
+This finding challenges the prevailing assump-
+tions about the superiority of instructed LLMs
+in RAG applications. Further investigations re-
+veal a more nuanced situation, questioning fun-
+damental aspects of RAG and suggesting the
+need for broader discussions on the topic; or, as
+Fromm would have it, “Seldom is a glance at
+the statistics enough to understand the meaning
+of the figures”. 1 2
+1
+Introduction
+Retrieval Augmented Generation (RAG) (Lewis
+et al., 2020) is an innovative approach that enhances
+the capabilities of Large Language Models (LLMs)
+by integrating retrieval mechanisms into the gen-
+erative process. At its core, RAG operates by re-
+trieving relevant information from a vast corpus of
+data and then generating coherent and contextually
+enriched responses based on this retrieved infor-
+mation. This dual process not only improves the
+accuracy and relevance of the generated content
+but also addresses some of the inherent limitations
+of standalone generative models, such as hallucina-
+tions (Huang et al., 2023) and context drift (Wang
+*Correspondence to cuconasu@diag.uniroma1.it
+1Translated from I cosiddetti Sani.
+2The
+code
+and
+data
+will
+be
+made
+available
+at
+github.com/florin-git/Base-vs-Instruct-LLMs-in-RAG-
+Systems
+et al., 2022). The significance of RAG in natural
+language processing and artificial intelligence can-
+not be overstated. As the demand for more sophis-
+ticated and context-aware AI systems grows, the
+ability to generate information that is both accurate
+and contextually relevant becomes crucial (Gao
+et al., 2024). RAG achieves this by leveraging the
+vast amount of information available, ensuring that
+the outputs of the models are informed by up-to-
+date and contextually appropriate data. This has
+profound implications for various applications, in-
+cluding conversational AI, information retrieval,
+and automated content generation (Shuster et al.,
+2021; Wang et al., 2024). Furthermore, RAG rep-
+resents a paradigm shift in how we think about and
+utilize LLMs. Instead of relying solely on the gen-
+erative power of these models, RAG harnesses the
+complementary strengths of retrieval systems. This
+synergy enables the creation of AI systems that are
+not only more knowledgeable but also more reli-
+able and versatile in their applications (Izacard and
+Grave, 2021; Zhu et al., 2024).
+LLMs are the key component in RAG systems.
+They are initially pre-trained on the task of next
+token prediction (Radford et al., 2018), where the
+LLM learns to predict the next word in a sequence
+based on the context provided by the preceding
+words. This extensive pre-training phase involves
+processing vast amounts of text data, enabling the
+model to acquire a broad understanding of lan-
+guage, syntax, semantics, and general knowledge.
+We call this the “base” version. Following this
+pre-training phase, LLMs typically undergo two
+stages of refinement to enhance their performance
+and usability, whose output we call the “instruct”.
+The first stage is that of supervised instruction fine-
+tuning (SFT), where the goal is to teach the model
+to follow instructions passed through the prompt.
+This is carrie

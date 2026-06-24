@@ -1,0 +1,57 @@
+Published as a conference paper at ICLR 2021
+EVALUATION OF SIMILARITY-BASED EXPLANATIONS
+Kazuaki Hanawa1,2, Sho Yokoi2,1, Satoshi Hara3, Kentaro Inui2,1
+RIKEN Center for Advanced Intelligence Project1, Tohoku University2, Osaka University3
+kazuaki.hanawa@riken.jp, yokoi@ecei.tohoku.ac.jp,
+satohara@ar.sanken.osaka-u.ac.jp, inui@ecei.tohoku.ac.jp
+ABSTRACT
+Explaining the predictions made by complex machine learning models helps users
+to understand and accept the predicted outputs with conﬁdence. One promising way
+is to use similarity-based explanation that provides similar instances as evidence
+to support model predictions. Several relevance metrics are used for this purpose.
+In this study, we investigated relevance metrics that can provide reasonable ex-
+planations to users. Speciﬁcally, we adopted three tests to evaluate whether the
+relevance metrics satisfy the minimal requirements for similarity-based explanation.
+Our experiments revealed that the cosine similarity of the gradients of the loss
+performs best, which would be a recommended choice in practice. In addition, we
+showed that some metrics perform poorly in our tests and analyzed the reasons of
+their failure. We expect our insights to help practitioners in selecting appropriate
+relevance metrics and also aid further researches for designing better relevance
+metrics for explanations.
+1
+INTRODUCTION
+Explaining the predictions made by complex machine learning models helps users understand
+and accept the predicted outputs with conﬁdence (Ribeiro et al., 2016; Lundberg & Lee, 2017;
+Guidotti et al., 2018; Adadi & Berrada, 2018; Molnar, 2020). Instance-based explanations are a
+popular type of explanation that achieve this goal by presenting one or several training instances
+that support the predictions of a model. Several types of instance-based explanations have been
+proposed, such as explaining with instances similar to the instance of interest (i.e., the test instance in
+question) (Charpiat et al., 2019; Barshan et al., 2020); harmful instances that degrade the performance
+of models (Koh & Liang, 2017; Khanna et al., 2019); counter-examples that contrast how a prediction
+can be changed (Wachter et al., 2018); and irregular instances (Kim et al., 2016).
+Among these, we focus on the ﬁrst one, the type of explanation that gives one or several training
+instances that are similar to the test instance in question and corresponding model predictions. We
+refer to this type of instance-based explanation as similarity-based explanation. A similarity-based
+explanation is of the form “I (the model) think this image is cat because similar images I saw in the
+past were also cat.” This type of explanation is analogous to the way humans make decisions by
+referring to their prior experiences (Klein & Calderwood, 1988; Klein, 1989; Read & Cesa, 1991).
+Hence, it tends to be easy to understand even to users with little expertise about machine learning.
+A report stated that with this type of explanation, users tend to have higher conﬁdence in model
+predictions compared to explanations that presents contributing features (Cunningham et al., 2003).
+In the instance-based explanation paradigm, including similarity-based explanation, a relevance
+metric R(z, z′) ∈R is typically used to quantify the relationship between two instances, z = (x, y)
+and z′ = (x′, y′).
+Deﬁnition 1 (Instance-based Explanation Using Relevance Metric). Let D
+=
+{z(i)
+train
+=
+(x(i)
+train, y(i)
+train)}N
+i=1 be a set of training instances and xtest be a test input of interest whose pre-
+dicted output is given by bytest = f(xtest) with a predictive model f. An instance-based explanation
+method gives the most relevant training instance ¯z ∈D to the test instance ztest = (xtest, bytest) by
+¯z = arg maxztrain∈D R(ztest, ztrain) using a relevance metric R(ztest, ztrain).
+Previously proposed relevance metrics include similarity (Caruana et al., 1999), kernel functions (Kim
+et al., 2016; Khanna et al., 2019), and inﬂuence function (Koh

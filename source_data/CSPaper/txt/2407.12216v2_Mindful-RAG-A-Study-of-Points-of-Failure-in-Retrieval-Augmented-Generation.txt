@@ -1,0 +1,70 @@
+Mindful-RAG: A Study of Points of Failure in
+Retrieval Augmented Generation
+Garima Agrawal, Tharindu Kumarage, Zeyad Alghamdi, and Huan Liu
+School of Computing and Augmented Intelligence, Arizona State University, Tempe, USA
+Email: {garima.agrawal, kskumara, zalgham1, huanliu}@asu.edu
+Abstract—Large Language Models (LLMs) excel at generat-
+ing coherent text but often struggle with knowledge-intensive
+queries, particularly in domain-specific and factual question-
+answering tasks. Retrieval-augmented generation (RAG) systems
+have emerged as a promising solution by integrating exter-
+nal knowledge sources, such as structured knowledge graphs
+(KGs). While KG-based RAG approaches have demonstrated
+value, current state-of-the-art solutions frequently fall short,
+failing to deliver accurate and reliable answers even when the
+necessary factual knowledge is available. In this paper, we
+present a critical analysis of failure points in existing KG-
+based RAG methods, identifying eight key areas of concern,
+including misinterpretation of question context, incorrect relation
+mapping, and ineffective ambiguity resolution. We argue that
+these failures primarily stem from design limitations in current
+KG-RAG systems, such as inadequate attention to discerning user
+intent and insufficient alignment of retrieved knowledge with the
+contextual demands of the query. Based on this analysis, we
+propose a new approach for KG-RAG systems, termed Mindful-
+RAG, which re-engineers the retrieval process to be more
+intent-driven and contextually aware. By enhancing reasoning
+capabilities, improving constraint identification, and addressing
+the structural limitations of knowledge graphs, we aim to improve
+the reliability and effectiveness of KG-RAG systems. To validate
+this approach, we developed a proof-of-concept by integrating the
+principles of Mindful-RAG into an existing KG-RAG system. The
+Mindful-RAG approach seeks to deliver more robust, accurate,
+and contextually aligned AI-driven knowledge retrieval systems,
+with potential applications in critical domains such as healthcare,
+legal, research, and scientific discovery, where precision and
+reliability are paramount.
+Index Terms—LLMs, Knowledge Graphs (KG), Retrieval Aug-
+mented Generation (RAG), Hallucinations, Points of Failure
+I. INTRODUCTION
+Large Language Models (LLMs) have revolutionized natural
+language processing, excelling in various tasks. However,
+they frequently generate hallucinated responses when dealing
+with domain-specific or knowledge-intensive queries [1]. This
+limitation has led to the development of Retrieval-augmented
+Generation (RAG) methods, which enable LLMs to access
+and incorporate external knowledge sources, such as structured
+knowledge graphs (KGs) [2], [3].
+Despite the promise of RAG methods, particularly those in-
+tegrating KGs, significant challenges persist. Even with access
+to relevant information, these systems often fail to provide
+accurate answers, especially as query complexity increases
+[4]–[6]. To better understand these limitations, We conducted
+a study to critically analyze the failure points in existing KG-
+based RAG methods. Our investigation identified eight critical
+failure points in these systems, which we categorized into two
+primary areas:
+1) Reasoning Failures: LLMs struggle to accurately inter-
+pret user queries and leverage contextual information,
+resulting in a misalignment between retrieved knowledge
+and query intent.
+2) Structural Limitations: These failures primarily arise
+from insufficient attention to the structure of knowledge
+sources, such as knowledge graphs, and the use of
+inappropriate evaluation metrics.
+Given these persistent issues, there is a pressing need to look
+beyond conventional approaches and critically reassess how
+KG-RAG systems are designed. To address these challenges,
+we propose Mindful-RAG, an approach that re-engineers the
+retrieval process to be more intent-driven and contextually
+aware. Mindful-RAG is not merely an alterna

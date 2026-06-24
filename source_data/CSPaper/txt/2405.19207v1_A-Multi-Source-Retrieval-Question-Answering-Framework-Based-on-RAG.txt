@@ -1,0 +1,108 @@
+A Multi-Source Retrieval Question Answering
+Framework Based on RAG
+First Author: Ridong Wu
+Affiliation: School of Computer Science and Network
+Engineering, Guangzhou University, Guangzhou, China
+Email:32106200097@e.gzhu.edu.cn
+Third Author: Xiangbiao Su
+Affiliation: School of Computer Science and Network
+Engineering, Guangzhou University, Guangzhou, China
+Email:32106500006@e.gzhu.edu.cn
+Second Author:Shuhong Chen*
+Affiliation: School of Computer Science and Network
+Engineering, Guangzhou University, Guangzhou, China
+* Corresponding author:shuhongchen@gzhu.edu.cn
+Fourth Author: Yuankai Zhu
+Affiliation: School of Computer Science and Network
+Engineering, Guangzhou University, Guangzhou, China
+Email:32106200107@e.gzhu.edu.cn
+Fifth Author: Yifei Liao
+Affiliation: School of Computer Science and Network
+Engineering, Guangzhou University, Guangzhou, China
+Email:32106200102@e.gzhu.edu.cn
+Sixth Author:Jianming Wu
+Affiliation: School of Computer Science and Network
+Engineering, Guangzhou University, Guangzhou, China
+Email:jianmingwu@e.gzhu.edu.cn
+Abstract—With the rapid development of large-scale language
+models, Retrieval-Augmented Generation (RAG) has been widely
+adopted. However, existing RAG paradigms are inevitably influenced
+by erroneous retrieval information, thereby reducing the reliability
+and correctness of generated results. Therefore, to improve the
+relevance of retrieval information, this study proposes a method that
+replaces traditional retrievers with GPT-3.5, leveraging its vast
+corpus knowledge to generate retrieval information. We also propose
+a web retrieval based method to implement fine-grained knowledge
+retrieval, Utilizing the powerful reasoning capability of GPT-3.5 to
+realize semantic partitioning of problem.In order to mitigate the
+illusion of GPT retrieval and reduce noise in Web retrieval,we
+proposes a multi-source retrieval framework, named MSRAG, which
+combines GPT retrieval with web retrieval. Experiments on multiple
+knowledge-intensive QA datasets demonstrate that the proposed
+framework in
+this study performs better than existing
+RAG
+framework in enhancing the overall efficiency and accuracy of QA
+systems.
+Keywords-Large
+Language
+Models;
+Retrieval-Augmented
+Generation; Web Retrieval; GPT Retrieval; Question-Answering
+(QA)
+I. INTRODUCTION
+Due to their extensive knowledge base, Large Language
+Models (LLMs) have become indispensable tools for everyday
+information retrieval[1] . However, LLMs are limited to the
+knowledge acquired during the pre-training phase and lack
+real-time updates. To address this challenge, the RAG
+(Retrieval-Augmented Generation) technique has emerged.
+LLMs by integrating information from external knowledge
+repositories
+with
+the
+generative
+model's
+capabilities
+to
+improve the accuracy and relevance of question answering.In
+2020, Kelvin et al. introduced REALM[2] , which leverages an
+indexed
+corpus
+of
+paragraphs
+to
+support
+conditional
+generation. Subsequently, Michael et al. proposed Re2G[3],
+which integrates neural initial retrieval and re-ranking into
+RAG, thereby enhancing information relevance. Reiichiro et al.
+presented WebGPT [4], which fine-tunes GPT-3 and utilizes
+Web search functionality to acquire knowledge information.
+However, traditional Retrieval-Augmented Generation (RAG)
+has
+certain
+limitations.
+Firstly,
+the
+retrieved
+document
+passages may not be fully relevant to the query, leading to
+misinformation or incoherence. Secondly, if relevant passages
+are not retrieved, the model may fabricate answers due to
+insufficient
+context
+or
+generate
+responses
+that
+fail
+to
+accurately address the query. Overall, relying solely on the
+initial input from a Large Language Model (LLM) to retrieve
+relevant information from external corpora is often inadequate
+for complex multi-step and long-form generation tasks.
+To address that problem, Linhao Ye et al.[5] proposed a
+dialogue-level RAG method, which integrates fine-grained
+retrieval augmentation and conversational question-answering
+(CQA) se

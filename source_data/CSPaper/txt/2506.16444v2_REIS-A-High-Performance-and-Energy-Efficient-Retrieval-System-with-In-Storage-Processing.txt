@@ -1,0 +1,78 @@
+REIS: A High-Performance and Energy-Efficient Retrieval System
+with In-Storage Processing
+Kangqi Chen1
+Andreas Kosmas Kakolyris1
+Rakesh Nadig1
+Manos Frouzakis1
+Nika Mansouri Ghiasi1
+Yu Liang1
+Haiyu Mao1,2
+Jisung Park3
+Mohammad Sadrosadati1
+Onur Mutlu1
+ETH Zürich1
+King’s College London2
+POSTECH3
+Large Language Models (LLMs) face an inherent challenge:
+their knowledge is confined to the data that they have been
+trained on. This limitation, combined with the significant cost
+of retraining renders them incapable of providing up-to-date
+responses. To overcome these issues, Retrieval-Augmented Gener-
+ation (RAG) complements the static training-derived knowledge
+of LLMs with an external knowledge repository. RAG consists of
+three stages: (i) indexing, which creates a database that facili-
+tates similarity search on text embeddings, (ii) retrieval, which,
+given a user query, searches and retrieves relevant data from the
+database and (iii) generation, which uses the user query and the
+retrieved data to generate a response.
+The retrieval stage of RAG in particular becomes a significant
+performance bottleneck in inference pipelines. In this stage, (i)
+a given user query is mapped to an embedding vector and (ii)
+an Approximate Nearest Neighbor Search (ANNS) algorithm
+searches for the most semantically similar embedding vectors in
+the database to identify relevant items. Due to the large database
+sizes, ANNS incurs significant data movement overheads between
+the host and the storage system. To alleviate these overheads,
+prior works propose In-Storage Processing (ISP) techniques that
+accelerate ANNS workloads by performing computations inside
+the storage system. However, existing works that leverage ISP for
+ANNS (i) employ algorithms that are not tailored to ISP systems,
+(ii) do not accelerate data retrieval operations for data selected
+by ANNS, and (iii) introduce significant hardware modifications
+to the storage system, limiting performance and hindering their
+adoption.
+We propose REIS, the first Retrieval system tailored for RAG
+with In-Storage processing that addresses the limitations of ex-
+isting implementations with three key mechanisms. First, REIS
+employs a database layout that links database embedding vec-
+tors to their associated documents, enabling efficient retrieval.
+Second, it enables efficient ANNS by introducing an ISP-tailored
+algorithm and data placement technique that: (i) distributes
+embeddings across all planes of the storage system to exploit par-
+allelism, and (ii) employs a lightweight Flash Translation Layer
+(FTL) to improve performance. Third, REIS leverages an ANNS
+engine that uses the existing computational resources inside the
+storage system, without requiring hardware modifications. The
+three key mechanisms form a cohesive framework that largely
+enhances both the performance and energy efficiency of RAG
+pipelines. Compared to a high-end server-grade system, REIS im-
+proves the performance (energy efficiency) of the retrieval stage
+by an average of 13× (55×). REIS offers improved performance
+against existing ISP-based ANNS accelerators, without introduc-
+ing any hardware modifications, enabling easier adoption for
+RAG pipelines.
+1. Introduction
+The rapid development of Large Language Models (LLMs) [72,
+181, 272, 122, 73, 331] during the past decade has led to
+their widespread adoption, as witnessed by the popularity
+of chatbots such as ChatGPT [222], Gemini [271, 272] and
+DeepSeek [181]. Despite this progress, modern LLMs remain
+limited in generating responses only from data present in
+their training sets. The significant cost and hardware require-
+ments [72, 181, 285] of training further compound this problem,
+making frequent retraining on new data impractical, thus lim-
+iting the effectiveness of LLMs in especially domain-specific
+and real-time scenarios [119, 120, 200].
+Retrieval-Augmented Generation (RAG) [326, 233, 124, 301,
+169, 166, 83, 111, 82, 123, 76, 145, 313, 324, 40, 45, 24, 232, 253]
+presents a co

@@ -1,0 +1,70 @@
+ENWAR: A RAG-empowered Multi-Modal LLM
+Framework for Wireless Environment Perception
+Ahmad M. Nazar, Abdulkadir Celik, Mohamed Y. Selim, Asmaa Abdallah, Daji Qiao, Ahmed M. Eltawil
+Abstract—Large language models (LLMs) hold significant
+promise in advancing network management and orchestration
+in 6G and beyond networks. However, existing LLMs are limited
+in domain-specific knowledge and their ability to handle multi-
+modal sensory data, which is critical for real-time situational
+awareness in dynamic wireless environments. This paper ad-
+dresses this gap by introducing ENWAR1, an ENvironment-
+aWARe retrieval augmented generation-empowered multi-modal
+LLM framework. ENWAR seamlessly integrates multi-modal
+sensory inputs to perceive, interpret, and cognitively process
+complex wireless environments to provide human-interpretable
+situational awareness. ENWAR is evaluated on the GPS, LiDAR,
+and camera modality combinations of DeepSense6G dataset with
+state-of-the-art LLMs such as Mistral-7b/8x7b and LLaMa3.1-
+8/70/405b. Compared to general and often superficial environ-
+mental descriptions of these vanilla LLMs, ENWAR delivers
+richer spatial analysis, accurately identifies positions, analyzes
+obstacles, and assesses line-of-sight between vehicles. Results
+show that ENWAR achieves key performance indicators of up to
+70% relevancy, 55% context recall, 80% correctness, and 86%
+faithfulness, demonstrating its efficacy in multi-modal perception
+and interpretation.
+INTRODUCTION
+G
+ENERATIVE artificial intelligence (AI), with its un-
+paralleled capability to generate, synthesize, and adapt
+data, is poised to play a pivotal role in the evolution of 6G
+and beyond networks [1]. Among various generative models,
+LLMs have proven to be the most revolutionary, fundamen-
+tally changing how machines understand and produce human
+language. Built on sophisticated generative transformers and
+driven by attention mechanisms, LLMs leverage vast pre-
+training on diverse datasets to excel in tasks such as natural
+language processing, decision support, and beyond [2]. LLMs’
+adaptability and scalability are particularly well-suited for
+complex systems operating in dynamic environments, making
+them valuable assets for advancing AI-native wireless systems
+and enhancing the cognitive capabilities of next-generation
+networks. Hence, they have the potential to revolutionize
+decision-making, resource management, and intelligent opti-
+mization of 6G networks, eventually paving the way for zero-
+touch network and service management (ZSM).
+However, the technical demands of next-generation net-
+works differ greatly from legacy generations. Future net-
+works are expected to operate with massive antenna arrays
+at significantly higher frequencies, wherein wireless channels
+become less probabilistic and more deterministic and exhibits
+geometric propagation characteristics. This shift introduces
+daunting mobility challenges such as tracking narrow beams,
+1Enwar is a common name in Turkic and Arabic cultures, meaning more
+enlightened, insightful, and intellectual; herein referring to a multi-modal
+LLM providing deep situational and contextual insights into the environment.
+blockage mitigation through timely handover management,
+and seamless service migration. Sensing functionalities and
+environmental awareness are essential for ZSM to effectively
+navigate this new terrain.
+In this context, multi-modal integrated sensing and com-
+munication (ISAC) represent coherent fusion of disparate
+data streams from various sensors (e.g., LiDARs, radars,
+cameras, GPS, etc.), unlocking critical capabilities such as
+environment mapping, object/human detection and classifica-
+tion, urban planning, localization, and tracking. These sensing
+functionalities collectively lay the foundations of digital twins
+(DTs); a dynamic and near real-time virtual replica of 6G
+networks, providing contextual and site-specific insights into
+the spatio-temporal characteristics of wireless environment [3].
+DTs ar

@@ -1,0 +1,68 @@
+Toward Optimal Search and Retrieval for RAG
+Alexandria Leto
+Department of Computer Science
+University of Colorado Boulder
+alex.leto@colorado.edu
+Cecilia Aguerrebere
+Intel Labs
+cecilia.aguerrebere@intel.com
+Ishwar Bhati
+Intel Labs
+ishwar.s.bhati@intel.com
+Ted Willke
+Intel Labs
+ted.willke@intel.com
+Mariano Tepper
+Intel Labs
+mariano.tepper@intel.com
+Vy Ai Vo
+Intel Labs
+vy.vo@intel.com
+Abstract
+Retrieval-augmented generation (RAG) is a promising method for addressing some
+of the memory-related challenges associated with Large Language Models (LLMs).
+Two separate systems form the RAG pipeline, the retriever and the reader, and
+the impact of each on downstream task performance is not well-understood. Here,
+we work towards the goal of understanding how retrievers can be optimized for
+RAG pipelines for common tasks such as Question Answering (QA). We conduct
+experiments focused on the relationship between retrieval and RAG performance
+on QA and attributed QA and unveil a number of insights useful to practitioners
+developing high-performance RAG pipelines. For example, lowering search ac-
+curacy has minor implications for RAG performance while potentially increasing
+retrieval speed and memory efficiency.
+1
+Introduction
+Retrieval-augmented generation (RAG) (1) is gaining popularity due to its ability to address some of
+the challenges with using Large Language Models (LLMs), including hallucinations (2) and outdated
+training data (1; 3). RAG pipelines are made up of two disparate components: a retriever, which
+identifies documents relevant to a query from a given corpus, and a reader, which is typically an LLM
+prompted with a query, the text of the retrieved documents, and instructions to use this context to
+generate its response. However, it is unclear how a RAG pipeline’s performance on downstream tasks
+can be attributed to each of these components (1; 2).
+In this work, we study the contributions of retrieval to downstream performance.1. For this purpose,
+we evaluate pipelines with separately trained retriever and LLM components, as training retrieval-
+augmented models end-to-end is both more resource-intensive and obfuscates the contribution of the
+retriever itself. We aim to address questions that will enable practitioners to design retrieval systems
+tailored for use in RAG pipelines. For example, what are the weaknesses of the typical search and
+retrieval setup in RAG systems? Which search hyperparameters matter for RAG task performance?
+We choose to evaluate RAG pipeline performance on both standard QA and attributed QA. In
+attributed QA, the model is instructed to cite supporting documents provided in the prompt when
+1https://www.github.com/intellabs/rag-retrieval-study
+Preprint.
+arXiv:2411.07396v1  [cs.CL]  11 Nov 2024
+making factual claims (4; 5). This task is interesting for its potential to boost the trustworthiness and
+verifiability of generated text (6).
+We make four contributions: (1) We show how both QA performance and citation metrics vary with
+more retrieved documents, adding new data to a small literature on attributed QA with RAG. (2)
+We describe how RAG task performance is affected when fewer gold documents are included in
+the context. (3) We show that saving retrieval time by decreasing approximate nearest neighbor
+(ANN) search accuracy in the retriever has only a minor effect on task performance. (4) We show that
+injecting noise into retrieval results in performance degradation. We find no setting that improves
+above the gold ceiling, contrary to a prior report (7).
+2
+Background
+A RAG pipeline is made up of two components: a retriever and a reader. The retriever component
+identifies relevant information from an exterior knowledge base which is included alongside a query
+in a prompt for the reader model (8). This process has been used as an effective alternative to
+expensive fine-tuning (2; 9) and is shown to reduce LLM hallucinations (10).
+Retrieval models. Dense vector embedding models have become the norm due to t

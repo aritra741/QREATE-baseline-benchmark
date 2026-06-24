@@ -1,0 +1,71 @@
+Telco-RAG: Navigating the Challenges of Retrieval
+Augmented Language Models for Telecommunications
+Andrei-Laurentiu Bornea∗, Fadhel Ayed∗, Antonio De Domenico∗, Nicola Piovesan∗, Ali Maatouk+
+∗Paris Research Center, Huawei Technologies, Boulogne-Billancourt, France
++Yale University, New Haven, Connecticut, USA
+Abstract—The application of Large Language Models (LLMs)
+and Retrieval-Augmented Generation (RAG) systems in the
+telecommunication domain presents unique challenges, primarily
+due to the complex nature of telecom standard documents and
+the rapid evolution of the field. The paper introduces Telco-
+RAG,1 an open-source RAG framework designed to handle
+the specific needs of telecommunications standards, particularly
+3rd Generation Partnership Project (3GPP) documents. Telco-
+RAG addresses the critical challenges of implementing a RAG
+pipeline on highly technical content, paving the way for applying
+LLMs in telecommunications and offering guidelines for RAG
+implementation in other technical domains.
+I. INTRODUCTION
+Large language models (LLMs) are designed to understand,
+generate, and process text by leveraging extensive training
+data. These models, built upon architectures such as Trans-
+formers, employ deep learning techniques to analyze and
+predict language patterns [1]. Their capabilities are largely
+attributed to the vast amount of text they process during
+training, allowing LLMs to develop a nuanced understanding
+of language, context, and even idiomatic expressions. The
+utility of LLMs extends across various domains, among which
+telecommunications, where models can improve operational
+efficiency and enhance customer satisfaction [2].
+Standalone language models rely solely on their inter-
+nal representations and learned parameters to generate text,
+which showcases modest knowledge in technical domains such
+as telecommunication standard documents [3]. Two primary
+methodologies have emerged to address this challenge: fine-
+tuning and retrieval-augmented generation (RAG). Fine-tuning
+enables language model specialization via further training of
+a fraction of the parameters using a domain-specific dataset.
+However, fine-tuning can incur a high computational cost
+[4] and is not suited for rapidly evolving domains where
+new knowledge needs to be incorporated on a regular basis.
+RAG stands out as an appealing alternative due to its cost-
+effectiveness, adaptability, and scalability [5]. In the RAG
+paradigm, knowledge from external sources is fetched in
+real-time when a query is addressed to the system. This is
+particularly tailored for quickly evolving fields [6].
+In the telecommunication industry, a retrieval-augmented
+language model that masters complex industry-specific knowl-
+edge, such as the content of technical standards, would hold
+significant practical value [7]. For instance, it would allow
+the development of an advanced chatbot for professionals.
+1https://github.com/netop-team/telco-rag
+Such a tool would increase the accuracy and speed with
+which telecommunications professionals access and comply
+with international standards, fostering quicker development
+cycles and improved regulatory adherence.
+In this work, we concentrated our efforts on telecommuni-
+cation standards, and specifically 3rd Generation Partnership
+Project (3GPP) documents. This focus was motivated by
+the aforementioned practical utility of a chatbot specialized
+in 3GPP and by the observation that even state-of-the-art
+language models, such as GPT-4, exhibit scarce knowledge
+of this content [3].
+We have identified that the conventional RAG setup, which
+typically extracts three to five data segments of 512 tokens
+each [8], does not adequately meet the intricate demands of
+telecommunications standards. Consequently, we have devel-
+oped a specialized RAG pipeline named Telco-RAG specifi-
+cally optimized for 3GPP documents.
+Besides, through our design and methodology, we aim to
+provide generally applicable guidelines to overcome the com-
+mon challenges f

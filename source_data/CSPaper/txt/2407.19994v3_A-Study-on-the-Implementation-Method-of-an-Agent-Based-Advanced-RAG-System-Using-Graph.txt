@@ -1,0 +1,78 @@
+* Corresponding Author: Cheonsu Jeong; paripal@korea.ac.kr 
+ 
+ 
+1  
+ 
+A Study on the Implementation Method 
+of an Agent-Based Advanced RAG  
+System Using Graph 
+Cheonsu Jeong1 
+ 
+ 
+ 
+1 Dr. Jeong is Principal Consultant & the Technical Leader for AI Automation at SAMSUNG SDS; 
+ 
+Abstract  
+This study aims to improve knowledge-based question-answering (QA) systems by overcoming the limitations of 
+existing Retrieval-Augmented Generation (RAG) models and implementing an advanced RAG system based on 
+Graph technology to develop high-quality generative AI services. While existing RAG models demonstrate high ac-
+curacy and fluency by utilizing retrieved information, they may suffer from accuracy degradation as they generate 
+responses using pre-loaded knowledge without reprocessing. Additionally, they cannot incorporate real-time data 
+after the RAG configuration stage, leading to issues with contextual understanding and biased information. 
+To address these limitations, this study implemented an enhanced RAG system utilizing Graph technology. This system 
+is designed to efficiently search and utilize information. Specifically, it employs LangGraph to evaluate the reliability 
+of retrieved information and synthesizes diverse data to generate more accurate and enhanced responses. Furthermore, 
+the study provides a detailed explanation of the system's operation, key implementation steps, and examples through 
+implementation code and validation results, thereby enhancing the understanding of advanced RAG technology. This 
+approach offers practical guidelines for implementing advanced RAG systems in corporate services, making it a valu-
+able resource for practical application. 
+ 
+Keywords 
+Advance RAG; Agent RAG; LLM; Generative AI; LangGraph 
+ 
+ 
+I. Introduction 
+Recent advancements in AI technology have brought sig-
+nificant attention to Generative AI. Generative AI, a form 
+of artificial intelligence that can create new content such 
+as text, images, audio, and video based on vast amounts 
+of trained data models (Jeong, 2023d), is being applied in 
+various fields, including daily conversations, finance, 
+healthcare, education, and entertainment (Ahn & Park, 
+2023). As generative AI services become more accessible 
+to the general public, the role of generative AI-based chat-
+bots is becoming increasingly important (Adam et al., 
+2021; Przegalinska et al., 2019; Park, 2024). A chatbot is 
+an intelligent agent that allows users to have conversa-
+tions typically through text or voice (Sánchez-Díaz et al., 
+2018; Jeong & Jeong, 2020). Recently, generative AI 
+chatbots have advanced to the level of analyzing human 
+emotions and intentions to provide responses (Jeong, 
+2023a). With the advent of large language models 
+(LLMs), these chatbots can now be utilized for automatic 
+ 
+Cheonsu Jeong 
+ 
+2  
+ 
+dialogue generation and translation (Jeong, 2023b). How-
+ever, they may generate responses that conflict with the 
+latest information and have a low understanding of new 
+problems or domains as they rely on previously trained 
+data (Jeong, 2023c). While 2023 was marked by the re-
+lease of foundational large language models (LLMs) like 
+ChatGPT and Llama-2, experts predict that 2024 will be 
+the year of Retrieval Augmented Generation (RAG) and 
+AI Agents (Skelter Labs, 2024). 
+However, there are several considerations for companies 
+looking to adopt generative AI services. Companies must 
+address concerns such as whether the AI can provide ac-
+curate responses based on internal data, the potential risk 
+of internal data leakage, and how to integrate generative 
+AI with corporate systems. Solutions include using do-
+main-specific fine-tuned LLMs and enhancing reliability 
+with RAG that utilizes internal information (Jung, 2024). 
+When domain-specific information is fine-tuned on GPT-
+4 LLM, accuracy improves from 75% to 81%, and adding 
+RAG can further increase accuracy to 86% (Angels et al., 
+2024). RAG models are known for effectively combinin

@@ -1,0 +1,115 @@
+Logic-RAG: Augmenting Large Multimodal Models with Visual-Spatial
+Knowledge for Road Scene Understanding
+Imran Kabir1, Md Alimoor Reza2, and Syed Billah1
+Abstract— Large multimodal models (LMMs) are increasingly
+integrated into autonomous driving systems for user interaction.
+However, their limitations in fine-grained spatial reasoning
+pose challenges for system interpretability and user trust. We
+introduce Logic-RAG, a novel Retrieval-Augmented Generation
+(RAG) framework that improves LMMs’ spatial understanding
+in driving scenarios. Logic-RAG constructs a dynamic knowledge
+base (KB) about object-object relationships in first-order logic
+(FOL) using a perception module, a query-to-logic embedder,
+and a logical inference engine. We evaluated Logic-RAG on
+visual-spatial queries using both synthetic and real-world driving
+videos. When using popular LMMs (GPT-4V, Claude 3.5) as
+proxies for an autonomous driving system, these models achieved
+only 55% accuracy on synthetic driving scenes and under 75%
+on real-world driving scenes. Augmenting them with Logic-RAG
+increased their accuracies to over 80% and 90%, respectively.
+An ablation study showed that even without logical inference, the
+fact-based context constructed by Logic-RAG alone improved
+accuracy by 15%. Logic-RAG is extensible: it allows seamless
+replacement of individual components with improved versions
+and enables domain experts to compose new knowledge in
+both FOL and natural language. In sum, Logic-RAG addresses
+critical spatial reasoning deficiencies in LMMs for autonomous
+driving applications. Code and data are available at: https:
+//github.com/Imran2205/LogicRAG.
+I. INTRODUCTION
+End-to-end AI systems such as autonomous vehicles are
+becoming mainstream, yet their black-box nature makes their
+decisions difficult to interpret [1]. These systems typically
+communicate through either visualization interfaces or natural
+language interactions powered by large multimodal models
+(LMMs) [2], [3], [4]. While visualizations show system
+state, they offer limited user interaction. LMM interfaces, in
+contrast, enable users to converse about and reason through
+system decisions, potentially improving interpretability [5].
+However,
+LMMs
+struggle
+with
+fine-grained
+visual-
+spatial reasoning (VSR) – they fail to accurately rep-
+resent
+relationships
+between
+objects
+(e.g.,
+in front of,
+behind) [6], [7], confuse nuanced action relationships
+(e.g., distinguishing between vehicle01 chased vehicle02 vs.
+vehicle02 chased vehicle01) [8], and exhibit weak logical
+reasoning [9]. Moreover, LMMs can generate content that
+they do not fully understand [10] and are prone to hallucina-
+tion [11]. Fig.2 demonstrates these limitations, showing how
+popular LMMs (GPT-4V [12] and Claude 3.5 [13]) struggle
+with even simple VSR questions like “Does the white car
+1College
+of
+Information
+Sciences
+and
+Technology,
+Pennsylva-
+nia State University, State College, PA 16801, USA {ibk5106,
+skb5969}@psu.edu
+2Department of Mathematics and Computer Science, Drake University,
+Des Moines, IA 50311, USA md.reza@drake.edu
+(b)
+Blackbox LMM
+Question : Does the
+white car at the center
+move at a constant
+speed?
+{Retrieved
+Context}
+Logic-RAG
+Answer : Yes,
+the white
+car
+at the center
+moves at a
+constant
+speed
+Perception
+Module
+Knowledge
+Base (KB)
+Query-to-Logic
+Embedder
+Inference
+Engine
+Question : Does the
+white car at the center
+move at a constant
+speed?
+(TypeOf(x)=Car)^(ColorOf(x)=White)
+^AtCenter(x)^ConstantSpeed(x)
+Logic-RAG
+YES
+Domain Knowledge (LogicPad)
+(a)
+LangChain
+Pipeline
+Frames
+Fig. 1.
+(a) Components of the Logic-RAG framework. It takes N frames
+and visual-spatial reasoning questions as inputs. The perception module
+analyzes the frames to generate facts about properties and visual-spatial
+relationships of objects in the scene and constructs a knowledge base (KB)
+in the form of First-Order Logic (FOL). The Query-to-Logic embedder
+parses the natural language question into an FOL query predicate, which is
+then passed to th

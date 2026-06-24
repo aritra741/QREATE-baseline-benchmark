@@ -1,0 +1,75 @@
+Advanced Real-Time Fraud Detection Using RAG-Based LLMs
+Gurjot Singh
+University of Waterloo, Canada
+Prabhjot Singh
+University of Waterloo, Canada
+Maninder Singh
+Thapar Institute of Engineering and Technology, India
+Abstract
+Artificial Intelligence (AI) has become a double-edged sword
+in modern society, being both a boon and a bane. While it
+empowers individuals, it also enables malicious actors to per-
+petrate scams such as fraudulent phone calls and user imper-
+sonations. This growing threat necessitates a robust system to
+protect individuals. In this paper, we introduce a novel real-
+time fraud detection mechanism using Retrieval Augmented
+Generation (RAG) technology to address this challenge on
+two fronts. First, our system incorporates a continuously up-
+dating policy-checking feature that transcribes phone calls
+in real-time and uses RAG-based models to verify that the
+caller is not soliciting private information, thus ensuring trans-
+parency and the authenticity of the conversation. Second,
+we implement a real-time user impersonation check with a
+two-step verification process to confirm the caller’s identity,
+ensuring accountability. A key innovation of our system is
+the ability to update policies without retraining the entire
+model, enhancing its adaptability. We validated our RAG-
+based approach using synthetic call recordings, achieving an
+accuracy of 97.98% and an F1-score of 97.44% with 100
+calls, outperforming state-of-the-art methods. This robust and
+flexible fraud detection system is well-suited for real-world
+deployment.
+1
+Introduction
+The issue of fraudulent activities through phone calls has
+grown in importance and has caused large financial losses for
+both individuals and organizations globally. According to a
+study done in 2021 by the Communications Fraud Control
+Association (CFCA-2021) [2], fraud in the telecom industry
+costs billions of dollars every year. In comparison to 2019
+there has been a 28% increase in fraud, or roughly USD 11.6
+billion. These losses impact not only the economy as a whole
+but also personal security since they undermine confidence
+in reliable channels of communication. One of the primary
+reasons for these scams’ success is a lack of public awareness.
+Many people are unaware of the sophisticated techniques used
+by fraudsters and the kinds of questions they may pose. This
+lack of awareness makes it easier for attackers to exploit their
+victims. Impersonating bank representatives, government offi-
+cials, or technical support agents [17] is often used technique
+for obtaining sensitive information. Fraudsters frequently ask
+victims to verify their account number and PIN for security
+reasons, or they claim that suspicious activity has been de-
+tected on their account, prompting them to provide their most
+recent transaction information [20]. Another common tactic is
+to request the victim’s social security number and date of birth
+in the name of updating records. These tactics take advantage
+of human psychology by instilling a sense of urgency and
+leveraging perceived authority, making it difficult for people
+to identify fraudulent phone calls [12]. Such fraud has far-
+reaching consequences, causing not only financial losses but
+also emotional distress and a significant violation of personal
+privacy.
+Traditional fraud detection methods have primarily relied
+on rule-based systems and manual monitoring, both of which
+have limitations in terms of scaling and adaptability to evolv-
+ing fraud techniques. The introduction of machine learning
+(ML) and deep learning (DL) has transformed this field, pro-
+viding dynamic analysis and pattern recognition capabilities
+that far exceed traditional methods. Neural networks, partic-
+ularly those based on transformer architectures, have shown
+remarkable success in detecting anomalies and fraudulent
+activities by learning from massive datasets of legitimate and
+fraudulent interactions.
+Large Language Models (LLMs) improve these capabili-
+ties by understanding

@@ -1,0 +1,80 @@
+arXiv:2505.09945v1  [cs.CL]  15 May 2025
+This is an authors’ copy of the paper to appear in Companion Proceedings of the ACM Web Conference 2025 (WWW Companion ’25).
+Personalizing Large Language Models using Retrieval
+Augmented Generation and Knowledge Graph
+Deeksha Prahlad
+Arizona State University
+Tempe, AZ, United States
+dprahlad@asu.edu
+Chanhee Lee
+Arizona State University
+Tempe, AZ, United States
+chanheel@asu.edu
+Dongha Kim
+Arizona State University
+Tempe, AZ, United States
+dongha@asu.edu
+Hokeun Kim
+Arizona State University
+Tempe, AZ, United States
+hokeun@asu.edu
+Abstract
+The advent of large language models (LLMs) has allowed numerous
+applications, including the generation of queried responses, to be
+leveraged in chatbots and other conversational assistants. Being
+trained on a plethora of data, LLMs often undergo high levels of
+over-fitting, resulting in the generation of extra and incorrect data,
+thus causing hallucinations in output generation. One of the root
+causes of such problems is the lack of timely, factual, and person-
+alized information fed to the LLM. In this paper, we propose an
+approach to address these problems by introducing retrieval aug-
+mented generation (RAG) using knowledge graphs (KGs) to assist
+the LLM in personalized response generation tailored to the users.
+KGs have the advantage of storing continuously updated factual
+information in a structured way. While our KGs can be used for
+a variety of frequently updated personal data, such as calendar,
+contact, and location data, we focus on calendar data in this paper.
+Our experimental results show that our approach works signifi-
+cantly better in understanding personal information and generating
+accurate responses compared to the baseline LLMs using personal
+data as text inputs, with a moderate reduction in response time.
+CCS Concepts
+• Computing methodologies →Natural language generation;
+Discourse, dialogue and pragmatics; Information extraction.
+Keywords
+Personalization, Large language model, Knowledge graph, Retrieval
+augmented generation
+ACM Reference Format:
+Deeksha Prahlad, Chanhee Lee, Dongha Kim, and Hokeun Kim. 2025. Person-
+alizing Large Language Models using Retrieval Augmented Generation and
+Knowledge Graph. In Companion Proceedings of the ACM Web Conference
+2025 (WWW Companion ’25), April 28-May 2, 2025, Sydney, NSW, Australia.
+ACM, New York, NY, USA, 5 pages. https://doi.org/10.1145/3701716.3715473
+1
+Introduction
+Large language models (LLMs) are gaining popularity in various
+applications for text classification, text summarization, question an-
+swering, and sentiment analysis. Large models like GPT-4 [1] have
+demonstrated their prowess in analyzing and generating code over
+This work is licensed under a Creative Commons Attribution 4.0 International License.
+WWW Companion ’25, Sydney, NSW, Australia
+© 2025 Copyright held by the owner/author(s).
+ACM ISBN 979-8-4007-1331-6/25/04
+https://doi.org/10.1145/3701716.3715473
+standard tasks. However, because these models lack new domain-
+specific knowledge, they suffer from hallucinations [10, 14, 21].
+Leveraging retrieval augmented generation (RAG) to minimize
+hallucinations has set a standard benchmark for domain-specific
+question-answer applications [17]. RAG increases the reliability of
+LLM results [6, 13] by introducing accurate data sources, which
+also eliminates factual errors.
+Knowledge graphs (KGs) [12], by definition, are based on graph
+databases, where the nodes represent entities of interest, and the
+edges represent the relations between the nodes. Prominent open-
+source KGs include Wikidata [26], Freebase [5], and DBpedia [3].
+The structure of the knowledge graph is designed to evolve, which
+makes it possible to have the latest information. KGs can be created
+using databases and graph databases [7] such as neo4j, ArangoDB,
+OrientDB, and Infinite Graph. Query languages that are used to
+query KGs [2] include SPARQL, CYPHER, and Gremlin.
+Various studies have integrated KGs with LLMs to enha

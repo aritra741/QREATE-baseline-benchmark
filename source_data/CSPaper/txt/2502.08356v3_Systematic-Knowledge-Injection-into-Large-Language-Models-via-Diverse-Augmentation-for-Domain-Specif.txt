@@ -1,0 +1,90 @@
+Systematic Knowledge Injection into Large Language Models via Diverse
+Augmentation for Domain-Specific RAG
+Kushagra Bhushan*†1, Yatin Nandwani*2, Dinesh Khandelwal2, Sonam Gupta2,
+Gaurav Pandey2, Dinesh Raghu2, and Sachindra Joshi2
+20je0506@mc.iitism.ac.in, {yatin.nandwani@, dikhand1@in., sonam.gupta7@,
+gpandey1@in.,diraghu1@in., jsachind@in.}ibm.com
+1IIT(ISM) Dhanbad
+2IBM Research
+Abstract
+Retrieval-Augmented Generation (RAG) has
+emerged as a prominent method for incorporat-
+ing domain knowledge into Large Language
+Models (LLMs).
+While RAG enhances re-
+sponse relevance by incorporating retrieved do-
+main knowledge in the context, retrieval errors
+can still lead to hallucinations and incorrect
+answers. To recover from retriever failures, do-
+main knowledge is injected by fine-tuning the
+model to generate the correct response, even in
+the case of retrieval errors. However, we ob-
+serve that without systematic knowledge aug-
+mentation, fine-tuned LLMs may memorize
+new information but still fail to extract rele-
+vant domain knowledge, leading to poor per-
+formance. In this work, we present a novel
+framework that significantly enhances the fine-
+tuning process by augmenting the training data
+in two ways – context augmentation and knowl-
+edge paraphrasing. In context augmentation,
+we create multiple training samples for a given
+QA pair by varying the relevance of the re-
+trieved information, teaching the model when
+to ignore and when to rely on retrieved con-
+tent. In knowledge paraphrasing, we fine-tune
+with multiple answers to the same question, en-
+abling LLMs to better internalize specialized
+knowledge. To mitigate catastrophic forgetting
+due to fine-tuning, we add a domain-specific
+identifier to a question and also utilize a replay
+buffer containing general QA pairs. Experi-
+mental results demonstrate the efficacy of our
+method over existing techniques, achieving up
+to 10% relative gain in token-level recall while
+preserving the LLM’s generalization capabili-
+ties.
+1
+Introduction
+Large Language Models (LLMs) have transformed
+natural language processing, excelling across vari-
+ous tasks (Brown et al., 2020). To tailor LLMs
+*Equal contribution.
+†This work was conducted while Kushagra Bhushan was
+an intern at IBM Research.
+for domain-specific applications, such as ques-
+tion answering over specialized corpora, Retrieval-
+Augmented Generation (RAG) has emerged as a
+popular approach (Lewis et al., 2020; Karpukhin
+et al., 2020). Although RAG enhances the rele-
+vance of generated answers, it is prone to hallu-
+cinations (Ji et al., 2023; Nandwani et al., 2023),
+especially when the retriever fails to fetch relevant
+documents from the corpus.
+To address this issue, knowledge injection tech-
+niques (Zhang et al., 2024a; Yoran et al., 2024)
+have been proposed. Knowledge injection has two
+main objectives: (1) when the retriever succeeds in
+fetching correct documents, then the LLM should
+be able to leverage that information to generate an
+appropriate response, and (2) when the retriever
+fails, the LLM should recall the domain specific in-
+formation from the infused parametric knowledge
+to generate the response. To achieve them, existing
+techniques fine-tune LLMs with domain-specific
+data, embedding the knowledge directly into the
+LLM’s parameters. Specifically, these techniques
+fine-tune LLMs to generate the correct response
+to a question irrespective of the relevance of the
+retrieved documents. However, existing knowledge
+injection techniques suffer from two main issues:
+1) Conditional Memorization Bias: In the train-
+ing data, each question is assigned to either a
+retrieval success or a retrieval failure scenario.
+I.e., the relevant information to answer the ques-
+tion is either present or absent in the given con-
+text for a question. This static assignment de-
+termines how the LLM learns the knowledge.
+For example, consider a scenario where all train-
+ing questions from a particular document are
+assigned to the ‘retrieval success’ bucke

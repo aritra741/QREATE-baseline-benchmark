@@ -1,0 +1,86 @@
+arXiv:2506.02503v1  [cs.CL]  3 Jun 2025
+KARE-RAG: Knowledge-Aware Refinement and Enhancement for RAG
+Yongjian Li1*, HaoCheng Chu2*, Yukun Yan3†, Zhenghao Liu4, Shi Yu3, Zheni Zeng3,
+Ruobing Wang5, Sen Song1†, Zhiyuan Liu3, Maosong Sun3
+1School of Biomedical Engineering, Tsinghua, China,
+3School of Informatics, Xiamen University, China,
+2Department of Computer Science and Technology, Institute for AI, Tsinghua University, China,
+4Dept. of Computer Science and Technology, Northeastern University, Shenyang, China,
+5Institute of Information Engineering, Chinese Academy of Sciences, Beijing, China
+yj-li23@mails.tsinghua.edu.cn
+Abstract
+Retrieval-Augmented Generation (RAG) en-
+ables large language models (LLMs) to access
+broader knowledge sources, yet factual incon-
+sistencies persist due to noise in retrieved docu-
+ments—even with advanced retrieval methods.
+We demonstrate that enhancing generative mod-
+els’ capacity to process noisy content is equally
+critical for robust performance. In this paper,
+we present KARE-RAG (Knowledge-Aware
+Refinement and Enhancement for RAG), which
+improves knowledge utilization through three
+key innovations: (1) structured knowledge rep-
+resentations that facilitate error detection dur-
+ing training, (2) Dense Direct Preference Opti-
+mization (DDPO)—a refined training objective
+that prioritizes correction of critical errors, and
+(3) a contrastive data generation pipeline that
+maintains semantic consistency while rectify-
+ing factual inaccuracies. Experiments show
+our method significantly enhances standard
+RAG pipelines across model scales, improving
+both in-domain and out-of-domain task perfor-
+mance without compromising general capabil-
+ities. Notably, these gains are achieved with
+modest training data, suggesting data-efficient
+optimization is possible through targeted learn-
+ing strategies. Our findings establish a new
+direction for RAG improvement: by improving
+how models learn to process retrieved content,
+we can enhance performance across diverse in-
+ference paradigms. All data and code will be
+publicly available on Github.
+1
+Introduction
+Retrieval-Augmented Generation (RAG) (Lewis
+et al., 2020; Shi et al., 2023) has emerged as a
+useful approach for knowledge-intensive tasks, en-
+abling large language models (LLMs) to retrieve
+relevant information and generate informed re-
+sponses. However, retrieval often brings noisy,
+*Indicates equal contribution.
+†Corresponding authors.
+irrelevant, or conflicting information(Gao et al.,
+2023; Yoran et al., 2023; Wu et al., 2024; Xu et al.,
+2024a,b; Longpre et al., 2022; Liu et al., 2024a),
+causing factual inconsistencies. While existing
+work primarily addresses this through improved
+retrieval methods(Jiang et al., 2023; Gao et al.,
+2023; Trivedi et al., 2022a; Mao et al., 2024; Ma
+et al., 2023; Jeong et al., 2024) or post-processing
+pipelines(Yu et al., 2023; Xu et al., 2023; Fang
+et al., 2024), recent studies reveal an equally criti-
+cal challenge: optimizing generation models to re-
+liably process retrieval contexts(Singh et al., 2021;
+Lin et al., 2023; Asai et al., 2023; Li et al., 2024a)
+To optimize the generation model, a natural
+approach involves constructing instruction-tuning
+datasets from final answers and applying super-
+vised fine-tuning (SFT) to the generation module
+(Lin et al., 2023; Asai et al., 2023). However, the
+inherent complexity of RAG tasks makes models
+prone to overfitting training signals while suffer-
+ing from catastrophic forgetting. The demonstrated
+effectiveness of Reinforcement Learning from Hu-
+man Feedback (RLHF) (Ouyang et al., 2022) and
+Direct Preference Optimization (DPO) (Rafailov
+et al., 2024) in aligning large language models
+has consequently spurred interest in adapting these
+preference-based methods for RAG’s generation
+module. Recent studies further validate DPO’s ad-
+vantages in RAG scenarios (Li et al., 2024a), show-
+ing its ability to provide stable fine-tuning through
+pairwise preference learning.
+Nevertheless,
+sig

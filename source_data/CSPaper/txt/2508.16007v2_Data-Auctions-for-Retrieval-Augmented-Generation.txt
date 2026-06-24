@@ -1,0 +1,48 @@
+Data Auctions for Retrieval Augmented Generation
+Minbiao Han1*, Seyed A. Esmaeili1*, Michael Albert2 , Haifeng Xu1
+1 University of Chicago
+2 University of Virginia
+Abstract
+We study the problem of data selling for Retrieval Augmented Generation (RAG) tasks in Generative
+AI applications. We model each buyer’s valuation of a dataset with a natural coverage-based valuation
+function that increases with the inclusion of more relevant data points that would enhance responses to
+anticipated queries. Motivated by issues such as data control and prior-free revenue maximization, we
+focus on the scenario where each data point can be allocated to only one buyer. We show that the problem
+of welfare maximization in this setting is NP-hard even with two bidders, but design a polynomial-time
+(1 −1/e) approximation algorithm for any number of bidders. Unfortunately, however, this efficient
+allocation algorithm fails to be incentive compatible. The crux of our approach is a carefully tailored
+post-processing step called data burning which retains the (1 −1/e) approximation factor but achieves
+incentive compatibility. Our thorough experiments on synthetic and real-world image and text datasets
+demonstrate the practical effectiveness of our algorithm compared to popular baseline algorithms for
+combinatorial auctions.
+1
+Introduction
+Generative AI (GenAI) has shown impressive performance in various domains such as text, code, image, and
+even video generation [28, 29, 53, 1, 34]. The impressive performance of GenAI has had profound impacts
+on numerous applications. Perhaps the most important and salient application of GenAI is its usage as a
+replacement for search engines and question-answer websites. In particular, it has become widespread to
+look up information using GenAI platforms such as ChatGPT, Perplexity, and Claude; traditional websites
+such as the Google and Bing have also developed similar “AI Overview” functionality. The answers provided
+by GenAI models are rich, detailed, and summarize information across various webpages and sources.
+Although GenAI models have shown promise as a tool for acquiring knowledge, they are known to
+hallucinate, i.e., output invalid or even fully nonfactual answers [31]. Retrieval Augmented Generation
+(RAG) [40, 5, 22] has emerged as a very useful method that not only gives the user confidence in the GenAI
+answer but also enables the user to look up the exact source of a specific piece of information in the answer.
+In particular, by using RAG the output of the GenAI includes references to the sources of the information.
+Another important usage of RAG is to incorporate information into a response that was not present during
+training. For example, common GenAI chatbots can converse intelligently about current events even though
+the events occurred after the training data cutoff date. This is due to news articles being incorporated into
+the context window through RAG. Many news organizations (The Associated Press, News Corp, and The
+Financial Times to give a few examples) have entered into licensing agreements with GenAI providers to
+allow for their news articles to be used in this way.
+*These authors contributed equally to this work.
+1
+arXiv:2508.16007v2  [cs.GT]  28 Oct 2025
+In this paper, we consider a setting where a collection of GenAI platforms are interested in buying
+information from a seller who possesses a large database of information for RAG based usage. These GenAI
+platforms anticipate queries about certain topics, are interested in augmenting their generated answers with
+the information from the database coupled with references. The seller looks to auctions off the database
+and can allocate a dataset from the database (i.e., a subset of data points) to each buyer and assign a price
+for each dataset. We focus on the more challenging setting where the seller does exclusive allocation (i.e.,
+each data point can be allocated to at most one buyer). Such exclusive data selling could arise from multiple
+re

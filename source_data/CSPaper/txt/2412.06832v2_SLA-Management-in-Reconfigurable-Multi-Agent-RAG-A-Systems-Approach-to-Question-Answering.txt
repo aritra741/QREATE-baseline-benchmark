@@ -1,0 +1,80 @@
+SLA Management in Reconfigurable Multi-Agent RAG: A Systems
+Approach to Question Answering
+Michael Iannelli
+Yext, Inc.
+New York, New York, USA
+miannelli@yext.com
+Sneha Kuchipudi
+Yext, Inc.
+New York, New York, USA
+skuchipudi@yext.com
+Vera Dvorak
+Yext, Inc.
+New York, New York, USA
+vdvorakova@yext.com
+Abstract
+Retrieval Augmented Generation (RAG) enables Large Language
+Models (LLMs) to generalize to new information by decoupling
+reasoning capabilities from static knowledge bases. Traditional RAG
+enhancements have explored vertical scaling—assigning subtasks
+to specialized modules—and horizontal scaling—replicating tasks
+across multiple agents—to improve performance. However, real-
+world applications impose diverse Service Level Agreements (SLAs)
+and Quality of Service (QoS) requirements, involving trade-offs
+among objectives such as reducing cost, ensuring answer quality,
+and adhering to specific operational constraints.
+In this work, we present a systems-oriented approach to multi-
+agent RAG tailored for real-world Question Answering (QA) appli-
+cations. By integrating task-specific non-functional requirements
+— such as answer quality, cost, and latency — into the system, we
+enable dynamic reconfiguration to meet diverse SLAs. Our method
+maps these Service Level Objectives (SLOs) to system-level param-
+eters, allowing the generation of optimal results within specified
+resource constraints.
+We conduct a case study in the QA domain, demonstrating how
+dynamic re-orchestration of a multi-agent RAG system can effec-
+tively manage the trade-off between answer quality and cost. By
+adjusting the system based on query intent and operational con-
+ditions, we systematically balance performance and resource uti-
+lization. This approach allows the system to meet SLOs for various
+query types, showcasing its practicality for real-world applications.
+CCS Concepts
+• Information systems →Information retrieval; • Applied
+computing →Service-oriented architectures; • Computing
+methodologies →Distributed artificial intelligence.
+Keywords
+Retrieval Augmented Generation, Multi-Agent Systems, Service
+Level Agreement
+1
+Introduction
+Question Answering (QA) has been a pivotal area of research since
+the 1960s, aiming to provide precise answers to natural language
+questions. Unlike traditional search engines that return a list of
+hyperlinks to relevant pages, QA systems deliver direct answers to
+user queries [30].
+The advent of generative Large Language Models (LLMs) has
+led search engines to integrate abstractive QA into their offer-
+ings—systems that generate answers which may not exist verbatim
+in source documents [4]. Additionally, new platforms specializing
+in abstractive QA, such as Perplexity [20] and ChatGPT Search [19],
+have emerged.
+However, LLM-based abstractive QA exhibits notable limitations,
+including a lack of generalization to unseen data and a propensity
+for hallucination, i.e. the generation of false assertions [10]. Re-
+trieval Augmented Generation (RAG) [8] addresses these shortcom-
+ings by combining LLMs with external knowledge sources, enabling
+the LLM to function as a reasoning layer rather than a static repos-
+itory of facts. RAG retrieves context from external sources such
+as search engines, traditional databases, vector databases [11], or
+knowledge graphs [17, 28], and utilizes the LLM for reasoning and
+response generation.
+Enhancements to RAG-based QA have primarily focused on de-
+composing the task into smaller subtasks and distributing respon-
+sibilities among specialized components. While these techniques
+have improved answer quality, they often introduce additional costs
+in terms of computation or increased response times.
+Real-world QA systems must navigate trade-offs between an-
+swer quality and the costs associated with providing those answers.
+Moreover, they must be dynamically reconfigurable to handle di-
+verse Service Level Agreements (SLAs) and Quality of Service (QoS)
+requirements arising from various query intents and

@@ -1,0 +1,86 @@
+Enhancing Rhetorical Figure Annotation: An Ontology-Based Web
+Application with RAG Integration
+Ramona Kühn1, Jelena Mitrovi´c1,2, Michael Granitzer1
+1University of Passau 2Institute for AI Research and Development of Serbia
+Correspondence: {ramona.kuehn, jelena.mitrovic, michael.granitzer}@uni-passau.de
+Abstract
+Rhetorical figures play an important role in our
+communication. They are used to convey sub-
+tle, implicit meaning, or to emphasize state-
+ments. We notice them in hate speech, fake
+news, and propaganda. By improving the sys-
+tems for computational detection of rhetorical
+figures, we can also improve tasks such as hate
+speech and fake news detection, sentiment anal-
+ysis, opinion mining, or argument mining. Un-
+fortunately, there is a lack of annotated data,
+as well as qualified annotators that would help
+us build large corpora to train machine learn-
+ing models for the detection of rhetorical fig-
+ures. The situation is particularly difficult in
+languages other than English, and for rhetorical
+figures other than metaphor, sarcasm, and irony.
+To overcome this issue, we develop a web ap-
+plication called “Find your Figure” that facili-
+tates the identification and annotation of Ger-
+man rhetorical figures. The application is based
+on the German Rhetorical ontology GRhOOT
+which we have specially adapted for this pur-
+pose. In addition, we improve the user expe-
+rience with Retrieval Augmented Generation
+(RAG). In this paper, we present the restruc-
+turing of the ontology, the development of the
+web application, and the built-in RAG pipeline.
+We also identify the optimal RAG settings for
+our application. Our approach is one of the
+first to practically use rhetorical ontologies in
+combination with RAG and shows promising
+results.
+1
+Introduction
+The consideration of rhetorical figures from a com-
+putational perspective is important, as they can
+convey subtle, implicit meanings (e.g., metaphors),
+make texts more memorable, or add emphasis to
+the message (e.g., through the repetition of words).
+Their detection in text regularly leads to improved
+performance of various NLP applications, such as
+hate speech (Lemmens et al., 2021) or fake news de-
+tection (Dwivedi and Wankhade, 2021; Fang et al.,
+2019; Rubin et al., 2016; Troiano et al., 2018),
+sentiment analysis (Ranganath et al., 2018), or per-
+suasive communication in general (Anzilotti, 1982;
+Gass and Seiter, 2022; Ranganath et al., 2018).
+Unfortunately, most computational approaches
+for the detection of rhetorical figures struggle
+with lower performance than they could actually
+achieve, e.g., Bhattasali et al. (2015); Dubremetz
+and Nivre (2015); Zhu et al. (2022). Kühn and
+Mitrovi´c (2024a) identify the major challenges for
+researchers in this domain and point out why their
+approaches often suffer from lower performance.
+One of the main reasons is the lack of data or un-
+balanced datasets. In these datasets, the number
+of instances without rhetorical figures is higher
+than those containing them, as shown in Adewumi
+et al. (2021); Bhattasali et al. (2015); Dubremetz
+and Nivre (2017); Kühn et al. (2023); Kühn et al.
+(2024b); Ranganath et al. (2018).
+Another major problem is that most detection
+approaches focus on English. This means that (an-
+notated) data in other languages are even scarcer.
+In addition, annotators qualified in this research
+field are not easy to find, and the quality of their
+annotations varies greatly due to the ambiguous na-
+ture of rhetorical figures (Strommer, 2011; Gavidia
+et al., 2022).
+We overcome those two major challenges in the
+domain of rhetorical figure detection by develop-
+ing an interactive web application for the collec-
+tion of rhetorical figures in German. Users with-
+out linguistic knowledge are guided through an
+interactive process in which they can determine
+the name of a rhetorical figure in a text and anno-
+tate it. In addition to the guided input, we offer a
+chat-like feature, so users can interact with a large
+language model (LLM).

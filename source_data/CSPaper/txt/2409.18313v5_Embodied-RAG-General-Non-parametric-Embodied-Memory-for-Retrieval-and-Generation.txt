@@ -1,0 +1,120 @@
+1
+Embodied-RAG: General Non-parametric Embodied
+Memory for Retrieval and Generation
+Quanting Xie1, So Yeon Min1, Pengliang Ji1, Yue Yang2, Tianyi Zhang1, Kedi Xu1, Aarav Bajaj1, Ruslan
+Salakhutdinov1, Matthew Johnson-Roberson1, and Yonatan Bisk1
+Abstract—There is no limit to how much a robot might explore
+and learn, but all of that knowledge needs to be searchable
+and actionable. Within language research, retrieval augmented
+generation (RAG) has become the workhouse of large-scale
+non-parametric knowledge, however existing techniques do not
+directly transfer to the embodied domain, which is multimodal,
+data is highly correlated, and perception requires abstraction.
+To address these challenges, we introduce Embodied-RAG,
+a framework that enhances the foundational model of an em-
+bodied agent with a non-parametric memory system capable
+of autonomously constructing hierarchical knowledge for both
+navigation and language generation. Embodied-RAG handles a
+full range of spatial and semantic resolutions across diverse
+environments and query types, whether for a specific object or a
+holistic description of ambiance. At its core, Embodied-RAG’s
+memory is structured as a semantic forest, storing language
+descriptions at varying levels of detail. This hierarchical organi-
+zation allows the system to efficiently generate context-sensitive
+outputs across different robotic platforms. We demonstrate that
+Embodied-RAG effectively bridges RAG to the robotics domain,
+successfully handling over 250 explanation and navigation queries
+across kimometer-level environments, highlighting its promise for
+general-purpose non-parametric system for embodied agents.
+Index Terms—Autonomous Agents, RAG, Embodied memory,
+Language-guided Robotics
+I. INTRODUCTION
+It is difficult for the human mind to determine what in-
+formation should be remembered from our perceptually rich
+lived experiences. Where details are necessary, we revisit an
+experience or build explicit external representations like maps
+to capture the intricacies. This process begs questions of what
+the right semantic level and context should be indexed. Robots
+are now in the same but opposite position. While dense SLAM
+and metric maps can be constructed, they become intractable
+to scale, and they do not track with larger semantic categories
+we find most useful in human memory – we discard almost
+all low-level information as redundant and easy to rediscover.
+Within Natural Language Processing (NLP), Retrieval-
+Augmented
+Generation
+(RAG)
+[1]–[3]
+integrates
+non-
+parametric memory into Large Language Models (LLMs),
+This material is based upon work supported by the Defense Advanced
+Research Projects Agency (DARPA) under Agreement No. HR00112490375
+and partially supported by funding from Lockheed Martin Corporation.
+1Quanting Xie, So Yeon Min, Pengliang Ji, Tianyi Zhang, Kedi Xu,
+Aarav Bajaj, Ruslan Salakhutdinov, Matthew Johnson-Roberson, and Yonatan
+Bisk are with Carnegie Mellon University, Pittsburgh, PA 15213, USA
+2Yue Yang with Apochs, Inc, CA 94560, USA
+Corresponding author: quantinx@andrew.cmu.edu
+https://quanting-xie.github.io/Embodied-RAG-web/
+Category
+Metrics Maps
+Semantic
+Metric Maps
+RAG
+Embodied-
+RAG
+Retrieval
+P(A|Q)
+×
+✓
+✓
+✓
+P(A|L)
+✓
+✓
+×
+✓
+P(A|L, Q)
+×
+✓
+×
+✓
+P(A|S, Q)
+×
+×
+✓
+✓
+P(A|S, L, Q)
+×
+×
+×
+✓
+Generation
+Text
+×
+×
+✓
+✓
+Waypoint
+✓
+✓
+×
+✓
+Path
+✓
+✓
+×
+✓
+TABLE I: Comprehensive comparison of Metrics Maps, Se-
+mantic Metric Maps, RAG, and Embodied-RAG frameworks
+in terms of retrieval and generation capabilities. Here, Q
+represents the query, L denotes the embodied agent’s position,
+and S refers to other sensor data.
+enabling the use of large text corpora as private knowledge
+bases to enhance a model’s memory, relevance, and factual
+grounding of model outputs, particularly in scenarios requiring
+access to up-to-date or domain-specific knowledge. We ask if
+such insights can be leveraged to endow robots with better
+scaling semantic memory, and what new technologies need to
+be invented to handle embodi

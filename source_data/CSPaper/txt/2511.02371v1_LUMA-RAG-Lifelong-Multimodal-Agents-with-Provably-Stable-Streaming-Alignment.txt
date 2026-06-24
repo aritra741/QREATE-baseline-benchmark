@@ -1,0 +1,112 @@
+LUMA-RAG: Lifelong Multimodal Agents with
+Provably Stable Streaming Alignment
+Rohan Wandre
+Dept. of Computer Engineering
+SIES Graduate School of Technology
+Navi Mumbai, India
+rohanwandre24@gmail.com
+Vivek Dhalkari
+Dept. of Computer Engineering
+SIES Graduate School of Technology
+Navi Mumbai, India
+vivekdhalkari@gmail.com
+Yash Gajewar
+Dept. of Computer Engineering
+Bharatiya Vidya Bhavan’s Sardar Patel
+Institute of Technology
+Mumbai, India
+yashgajewar06@gmail.com
+Dr. Namrata Patel
+Dept. of Computer Engineering
+SIES Graduate School of Technology
+Navi Mumbai, India
+namratap@sies.edu.in
+Abstract—Retrieval-Augmented
+Generation
+(RAG)
+has
+emerged
+as
+the
+dominant
+paradigm
+for
+grounding
+large
+language model outputs in verifiable evidence. However, as
+modern AI agents transition from static knowledge bases
+to continuous multimodal streams encompassing text, images,
+video, and audio, two critical challenges arise: maintaining index
+freshness without prohibitive re-indexing costs, and preserving
+cross-modal
+semantic
+consistency
+across
+heterogeneous
+embedding
+spaces.
+We
+present
+LUMA-RAG,
+a
+lifelong
+multimodal agent architecture featuring three key innovations:
+(i) a streaming, multi-tier memory system that dynamically
+spills embeddings from a hot HNSW tier to a compressed
+IVFPQ tier under strict memory budgets; (ii) a streaming
+CLAP→CLIP alignment bridge that maintains cross-modal
+consistency through incremental orthogonal Procrustes updates;
+and (iii) stability-aware retrieval telemetry providing Safe@k
+guarantees by jointly bounding alignment drift and quantization
+error. Experiments demonstrate robust text-to-image retrieval
+(Recall@10 = 0.94), graceful performance degradation under
+product quantization offloading, and provably stable audio-to-
+image rankings (Safe@1 = 1.0), establishing LUMA-RAG as a
+practical framework for production multimodal RAG systems.
+Index Terms—Multimodal RAG, Streaming Systems, Life-
+long Learning, Vector Databases, Cross-Modal Retrieval, CLIP,
+CLAP, Semantic Alignment
+I. INTRODUCTION
+The evolution of Large Language Models (LLMs) from
+static repositories to continuously learning agents requires
+systems that ingest heterogeneous multimodal streams while
+sustaining latency, accuracy, and semantic coherence. RAG [1]
+grounds outputs in external evidence, yet conventional designs
+face two bottlenecks: (i) freshness vs. latency—periodic re-
+indexing creates windows where new content is not retrievable;
+and (ii) cross-modal drift—independently trained embedding
+spaces (e.g., CLIP [2] and CLAP [3]) are not directly com-
+parable.
+We introduce LUMA-RAG, a unified, lifelong architecture
+that integrates low-latency ingestion, tiered memory, a stream-
+ing CLAP→CLIP bridge, and stability-aware retrieval.
+Our main contributions are:
+• A multi-tier memory with dynamic promotion/demotion
+between HNSW (hot) and IVFPQ (warm) under strict bud-
+gets, preserving latency and cost.
+• A streaming
+subspace
+alignment module learning a
+CLAP→CLIP bridge via incremental orthogonal Procrustes
+on co-occurrence pairs.
+• A stability guarantee (Safe@k) that upper-bounds top-k
+ranking perturbations via alignment drift ε and quantization
+error ζ.
+II. RELATED WORK
+A. Multimodal Retrieval-Augmented Generation
+Text-only RAG [1] is effective, but modern applications
+require multimodal grounding [5]–[7]. Prior systems assume
+static knowledge and rarely address alignment drift or contin-
+uous updates. We integrate audio via CLAP [3] and maintain
+a streaming bridge to CLIP [2].
+B. Vector Databases and Tiered Memory
+HNSW and IVFPQ underpin scalable ANN search [4], [10].
+Hot–warm architectures [8], [9] balance speed and capacity.
+LUMA-RAG unifies these with a simple policy that respects
+budgets and preserves diversity.
+C. Cross-Modal Alignment
+CLIP aligns image–text; CLAP aligns audio–text. Prior
+work explores static linear/nonlinear mappings [11]–[15]. We
+target streaming alignment with provable stability in produc-
+tion settings.
+III. PROBLEM SETUP AND N

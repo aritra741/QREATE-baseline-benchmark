@@ -1,0 +1,102 @@
+The Good and The Bad: Exploring Privacy Issues
+in Retrieval-Augmented Generation (RAG)
+Shenglai Zeng1*† , Jiankun Zhang∗3,4,5, Pengfei He1, Yue Xing1, Yiding Liu2, Han Xu1
+Jie Ren1, Shuaiqiang Wang2, Dawei Yin2, Yi Chang3,4,5, Jiliang Tang1
+1Michigan State University
+2Baidu, Inc.
+3 School of Artificial Intelligence, Jilin University
+4 International Center of Future Science, Jilin University
+5 Engineering Research Center of Knowledge-Driven Human-Machine Intelligence, MOE, China
+Abstract
+Retrieval-augmented generation (RAG) is a
+powerful technique to facilitate language model
+with proprietary and private data, where data
+privacy is a pivotal concern. Whereas extensive
+research has demonstrated the privacy risks of
+large language models (LLMs), the RAG tech-
+nique could potentially reshape the inherent
+behaviors of LLM generation, posing new pri-
+vacy issues that are currently under-explored.
+In this work, we conduct extensive empiri-
+cal studies with novel attack methods, which
+demonstrate the vulnerability of RAG systems
+on leaking the private retrieval database. De-
+spite the new risk brought by RAG on the re-
+trieval data, we further reveal that RAG can
+mitigate the leakage of the LLMs’ training
+data.
+Overall, we provide new insights in
+this paper for privacy protection of retrieval-
+augmented LLMs, which benefit both LLMs
+and RAG systems builders. Our code is avail-
+able at https://github.com/phycholosogy/RAG-
+privacy.
+1
+Introduction
+Retrieval-augmented generation (RAG) (Liu, 2022;
+Chase, 2022; Van Veen et al., 2023; Ram et al.,
+2023; Shi et al., 2023) is an advanced natural lan-
+guage processing technique that enhances text gen-
+eration by integrating information retrieved from
+a large corpus of documents. These techniques
+enable RAG to produce accurate and contextually
+relevant outputs with augmented external knowl-
+edge and have been widely used in various scenar-
+ios such as domain-specific chatbots (Siriwardhana
+et al., 2023) and email/code completion (Parvez
+et al., 2021). RAG systems typically work in two
+phases, as shown in Fig 1 - retrieval and generation.
+When a user query is entered, relevant knowledge
+is first retrieved from an external database. The
+retrieved data is then combined with the original
+*Equal contribution.
+†Corresponding to zengshe1@msu.edu
+Query
+Retrieval
+DB
+Relevant
+Docs
+Response
+Training
+Data
+Attacker
+Embedding
+Model
+E
+LLMs
+Leakage
+Q
+Query
+Retrieval Augmented Generation
+Figure 1: The RAG system and potential risks.
+query to form the input to a large language model
+(LLM). The LLM then uses its pre-trained knowl-
+edge and the retrieved data to generate a response.
+In this paper, we focus on studying the risk of
+privacy leakage in the RAG system, and we argue
+that the information from both retrieval dataset and
+the pre-training/fine-tuning dataset (of the LLM)
+are potential to be released by RAG usage. On
+one hand, the retrieval dataset can contain sensi-
+tive, valuable domain-specific information (Parvez
+et al., 2021; Kulkarni et al., 2024), such as patients
+prescriptions can be used for RAG-based medical
+chatbots (Yunxiang et al., 2023). On the other
+hand, the retrieval process in RAG could also influ-
+ence the behavior of the LLMs for text-generation,
+and this could possibly cause the LLMs to output
+private information from its training/fine-tuning
+dataset. Notably, there are existing works (Car-
+lini et al., 2021; Kandpal et al., 2022; Lee et al.,
+2021; Carlini et al., 2022; Zeng et al., 2023) ob-
+serving that LLMs can remember and leak private
+information from their pre-training and fine-tuning
+data. However, how the integration of external re-
+trieval data can affect the memorization behavior
+of LLMs in RAG is still unclear and worth further
+exploration. Therefore, these concerns motivate us
+to answer the research questions:
+• (RQ1) Can we extract private data from the
+external retrieval database in RAG?
+arXiv:2402.16893v1  [cs.CR]  23 Feb 2024
+• (RQ2) Can retrieval data affect the memoriza-

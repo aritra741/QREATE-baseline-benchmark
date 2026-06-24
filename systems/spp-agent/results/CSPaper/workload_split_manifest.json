@@ -1,0 +1,355 @@
+{
+  "dataset": "CSPaper",
+  "split_targets_per_slice": {
+    "train": 20,
+    "dev": 5,
+    "test": 5
+  },
+  "counts_per_slice": {
+    "agg_only": {
+      "train": 11,
+      "dev": 3,
+      "test": 3
+    },
+    "agg_filter": {
+      "train": 20,
+      "dev": 5,
+      "test": 5
+    }
+  },
+  "totals": {
+    "train": 31,
+    "dev": 8,
+    "test": 8
+  },
+  "train_met_minimum": false,
+  "min_train_total": 60,
+  "removed_infeasible_count": 6,
+  "removed_duplicates_count": 98,
+  "removed_infeasible_sample": [
+    {
+      "query_id": "filter_queries_CSPaper_18",
+      "reason": "missing_where_literals:['Text; Image; Audio', 'AUROC; AUPRC; min(+P, Se); F1']",
+      "sql": "SELECT uses_reranker, multi_turn_retrieval, data_modality FROM cspaper WHERE data_modality = 'Text; Image; Audio' AND evaluation_metric != 'AUROC; AUPRC; min(+P, Se); F1';"
+    },
+    {
+      "query_id": "filter_queries_CSPaper_39",
+      "reason": "missing_where_literals:['AUROC; AUPRC; min(+P, Se); F1', 'FAQ dataset', 'AUROC; AUPRC; min(+P, Se); F1']",
+      "sql": "SELECT baseline, data_modality, evaluation_metric FROM cspaper WHERE evaluation_metric = 'AUROC; AUPRC; min(+P, Se); F1' AND agent_framework != 'ToT' AND evaluation_dataset = 'FAQ dataset' AND evaluation_metric != 'AUROC; AUPRC; min(+P, Se); F1';"
+    },
+    {
+      "query_id": "mixed_queries_2",
+      "reason": "missing_where_literals:['Web Search; Dense Retrieval']",
+      "sql": "SELECT reasoning_depth, SUM(baseline_amount) AS sum_baseline_amount FROM cspaper WHERE retrieval_method = 'Web Search; Dense Retrieval' AND use_agent = 'No' GROUP BY reasoning_depth;"
+    },
+    {
+      "query_id": "mixed_queries_4",
+      "reason": "missing_where_literals:['Web Search; Dense Retrieval', 'Table; Text']",
+      "sql": "SELECT data_modality, AVG(baseline_amount) AS avg_baseline_amount FROM cspaper WHERE use_agent = 'Yes' AND retrieval_method != 'Web Search; Dense Retrieval' AND data_modality != 'Table; Text' GROUP BY data_modality;"
+    },
+    {
+      "query_id": "mixed_queries_5",
+      "reason": "missing_where_literals:['KILT-EM: 27.3 (T5-Base); KILT-EM: 31.1 (T5-XL)']",
+      "sql": "SELECT retrieval_method, SUM(baseline_amount) AS sum_baseline_amount FROM cspaper WHERE uses_reranker = 'No' OR performance_on_hotpotqa = 'KILT-EM: 27.3 (T5-Base); KILT-EM: 31.1 (T5-XL)' OR baseline = 'Traditional RAG' GROUP BY retrieval_method;"
+    },
+    {
+      "query_id": "mixed_queries_6",
+      "reason": "missing_where_literals:['e5-base-v2; gpt-2', 'Image; Table; Text']",
+      "sql": "SELECT uses_knowledge_graph, COUNT(reasoning_depth) AS count_reasoning_depth FROM cspaper WHERE (baseline = 'e5-base-v2; gpt-2' AND topic = 'SFT') OR (data_modality = 'Image; Table; Text' AND topic != 'SFT') GROUP BY uses_knowledge_graph;"
+    }
+  ],
+  "removed_duplicates_sample": [
+    {
+      "query_id": "agg_queries_CSPaper_6",
+      "reason": "duplicate_sql",
+      "sql": "SELECT use_agent, MIN(baseline_amount) AS min_baseline_amount FROM cspaper GROUP BY use_agent;"
+    },
+    {
+      "query_id": "agg_queries_CSPaper_7",
+      "reason": "duplicate_sql",
+      "sql": "SELECT topic, MAX(baseline_amount) AS max_baseline_amount FROM cspaper GROUP BY topic;"
+    },
+    {
+      "query_id": "agg_filter_cspaper_gen_10",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT topic, COUNT(paper_name) AS count_papers FROM cspaper WHERE uses_knowledge_graph = 'No' GROUP BY topic;"
+    },
+    {
+      "query_id": "agg_filter_cspaper_gen_12",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT topic, COUNT(paper_name) AS count_papers FROM cspaper WHERE reasoning_depth = 'multi-hop' GROUP BY topic;"
+    },
+    {
+      "query_id": "agg_filter_cspaper_gen_14",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT topic, COUNT(paper_name) AS count_papers FROM cspaper WHERE uses_reranker = 'No' GROUP BY topic;"
+    },
+    {
+      "query_id": "agg_filter_cspaper_gen_16",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT topic, COUNT(paper_name) AS count_papers FROM cspaper WHERE use_agent = 'No' GROUP BY topic;"
+    },
+    {
+      "query_id": "agg_filter_cspaper_gen_18",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT topic, COUNT(paper_name) AS count_papers FROM cspaper WHERE multi_turn_retrieval = 'No' GROUP BY topic;"
+    },
+    {
+      "query_id": "agg_filter_cspaper_gen_20",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT topic, COUNT(paper_name) AS count_papers FROM cspaper WHERE application_domain = 'Healthcare' GROUP BY topic;"
+    },
+    {
+      "query_id": "agg_filter_cspaper_gen_21",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT topic, COUNT(paper_name) AS count_papers FROM cspaper WHERE application_domain = 'Finance' GROUP BY topic;"
+    },
+    {
+      "query_id": "agg_filter_cspaper_gen_22",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT topic, COUNT(paper_name) AS count_papers FROM cspaper WHERE application_domain = 'Education' GROUP BY topic;"
+    },
+    {
+      "query_id": "agg_filter_cspaper_gen_25",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT topic, COUNT(paper_name) AS count_papers FROM cspaper WHERE retrieval_method = 'Sparse Retrieval' GROUP BY topic;"
+    },
+    {
+      "query_id": "agg_filter_cspaper_gen_26",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT topic, COUNT(paper_name) AS count_papers FROM cspaper WHERE retrieval_method = 'Hybrid Retrieval' GROUP BY topic;"
+    },
+    {
+      "query_id": "agg_filter_cspaper_gen_28",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT uses_knowledge_graph, COUNT(paper_name) AS count_papers FROM cspaper WHERE topic = 'Question Answering' GROUP BY uses_knowledge_graph;"
+    },
+    {
+      "query_id": "agg_filter_cspaper_gen_29",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT uses_knowledge_graph, COUNT(paper_name) AS count_papers FROM cspaper WHERE topic = 'Information Retrieval' GROUP BY uses_knowledge_graph;"
+    },
+    {
+      "query_id": "agg_filter_cspaper_gen_31",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT uses_knowledge_graph, COUNT(paper_name) AS count_papers FROM cspaper WHERE reasoning_depth = 'multi-hop' GROUP BY uses_knowledge_graph;"
+    },
+    {
+      "query_id": "agg_filter_cspaper_gen_33",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT uses_knowledge_graph, COUNT(paper_name) AS count_papers FROM cspaper WHERE uses_reranker = 'No' GROUP BY uses_knowledge_graph;"
+    },
+    {
+      "query_id": "agg_filter_cspaper_gen_35",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT uses_knowledge_graph, COUNT(paper_name) AS count_papers FROM cspaper WHERE use_agent = 'No' GROUP BY uses_knowledge_graph;"
+    },
+    {
+      "query_id": "agg_filter_cspaper_gen_37",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT uses_knowledge_graph, COUNT(paper_name) AS count_papers FROM cspaper WHERE multi_turn_retrieval = 'No' GROUP BY uses_knowledge_graph;"
+    },
+    {
+      "query_id": "agg_filter_cspaper_gen_39",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT uses_knowledge_graph, COUNT(paper_name) AS count_papers FROM cspaper WHERE application_domain = 'Healthcare' GROUP BY uses_knowledge_graph;"
+    },
+    {
+      "query_id": "agg_filter_cspaper_gen_40",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT uses_knowledge_graph, COUNT(paper_name) AS count_papers FROM cspaper WHERE application_domain = 'Finance' GROUP BY uses_knowledge_graph;"
+    },
+    {
+      "query_id": "agg_filter_cspaper_gen_41",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT uses_knowledge_graph, COUNT(paper_name) AS count_papers FROM cspaper WHERE application_domain = 'Education' GROUP BY uses_knowledge_graph;"
+    },
+    {
+      "query_id": "agg_filter_cspaper_gen_44",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT uses_knowledge_graph, COUNT(paper_name) AS count_papers FROM cspaper WHERE retrieval_method = 'Sparse Retrieval' GROUP BY uses_knowledge_graph;"
+    },
+    {
+      "query_id": "agg_filter_cspaper_gen_45",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT uses_knowledge_graph, COUNT(paper_name) AS count_papers FROM cspaper WHERE retrieval_method = 'Hybrid Retrieval' GROUP BY uses_knowledge_graph;"
+    },
+    {
+      "query_id": "agg_filter_cspaper_gen_47",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT reasoning_depth, COUNT(paper_name) AS count_papers FROM cspaper WHERE topic = 'Question Answering' GROUP BY reasoning_depth;"
+    },
+    {
+      "query_id": "agg_filter_cspaper_gen_48",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT reasoning_depth, COUNT(paper_name) AS count_papers FROM cspaper WHERE topic = 'Information Retrieval' GROUP BY reasoning_depth;"
+    },
+    {
+      "query_id": "agg_filter_cspaper_gen_50",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT reasoning_depth, COUNT(paper_name) AS count_papers FROM cspaper WHERE uses_knowledge_graph = 'No' GROUP BY reasoning_depth;"
+    },
+    {
+      "query_id": "agg_filter_cspaper_gen_52",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT reasoning_depth, COUNT(paper_name) AS count_papers FROM cspaper WHERE uses_reranker = 'No' GROUP BY reasoning_depth;"
+    },
+    {
+      "query_id": "agg_filter_cspaper_gen_54",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT reasoning_depth, COUNT(paper_name) AS count_papers FROM cspaper WHERE use_agent = 'No' GROUP BY reasoning_depth;"
+    },
+    {
+      "query_id": "agg_filter_cspaper_gen_56",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT reasoning_depth, COUNT(paper_name) AS count_papers FROM cspaper WHERE multi_turn_retrieval = 'No' GROUP BY reasoning_depth;"
+    },
+    {
+      "query_id": "agg_filter_cspaper_gen_58",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT reasoning_depth, COUNT(paper_name) AS count_papers FROM cspaper WHERE application_domain = 'Healthcare' GROUP BY reasoning_depth;"
+    },
+    {
+      "query_id": "agg_filter_cspaper_gen_59",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT reasoning_depth, COUNT(paper_name) AS count_papers FROM cspaper WHERE application_domain = 'Finance' GROUP BY reasoning_depth;"
+    },
+    {
+      "query_id": "agg_filter_cspaper_gen_60",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT reasoning_depth, COUNT(paper_name) AS count_papers FROM cspaper WHERE application_domain = 'Education' GROUP BY reasoning_depth;"
+    },
+    {
+      "query_id": "agg_filter_cspaper_gen_63",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT reasoning_depth, COUNT(paper_name) AS count_papers FROM cspaper WHERE retrieval_method = 'Sparse Retrieval' GROUP BY reasoning_depth;"
+    },
+    {
+      "query_id": "agg_filter_cspaper_gen_64",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT reasoning_depth, COUNT(paper_name) AS count_papers FROM cspaper WHERE retrieval_method = 'Hybrid Retrieval' GROUP BY reasoning_depth;"
+    },
+    {
+      "query_id": "agg_filter_cspaper_gen_66",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT retrieval_method, COUNT(paper_name) AS count_papers FROM cspaper WHERE topic = 'Question Answering' GROUP BY retrieval_method;"
+    },
+    {
+      "query_id": "agg_filter_cspaper_gen_67",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT retrieval_method, COUNT(paper_name) AS count_papers FROM cspaper WHERE topic = 'Information Retrieval' GROUP BY retrieval_method;"
+    },
+    {
+      "query_id": "agg_filter_cspaper_gen_69",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT retrieval_method, COUNT(paper_name) AS count_papers FROM cspaper WHERE uses_knowledge_graph = 'No' GROUP BY retrieval_method;"
+    },
+    {
+      "query_id": "agg_filter_cspaper_gen_71",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT retrieval_method, COUNT(paper_name) AS count_papers FROM cspaper WHERE reasoning_depth = 'multi-hop' GROUP BY retrieval_method;"
+    },
+    {
+      "query_id": "agg_filter_cspaper_gen_73",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT retrieval_method, COUNT(paper_name) AS count_papers FROM cspaper WHERE uses_reranker = 'No' GROUP BY retrieval_method;"
+    },
+    {
+      "query_id": "agg_filter_cspaper_gen_75",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT retrieval_method, COUNT(paper_name) AS count_papers FROM cspaper WHERE use_agent = 'No' GROUP BY retrieval_method;"
+    }
+  ],
+  "generated_candidate_count": 177,
+  "holdout_policy": "The test split is assigned first from a shuffled per-slice pool and is never included in train or dev. Use train for agent design, prompt tuning, threshold optimization, and algorithm selection. Use dev only for validation during development. The test split must not be used for any tuning or selection.",
+  "test_held_out": true,
+  "slice_reports": [
+    {
+      "slice": "agg_only",
+      "targets": {
+        "train": 11,
+        "dev": 3,
+        "test": 3
+      },
+      "counts": {
+        "train": 11,
+        "dev": 3,
+        "test": 3
+      },
+      "max_feasible": 17,
+      "reached_target": false,
+      "shortfall_reason": "insufficient unique corpus-feasible queries after deduplication"
+    },
+    {
+      "slice": "agg_filter",
+      "targets": {
+        "train": 20,
+        "dev": 5,
+        "test": 5
+      },
+      "counts": {
+        "train": 20,
+        "dev": 5,
+        "test": 5
+      },
+      "max_feasible": 74,
+      "reached_target": true,
+      "shortfall_reason": null
+    }
+  ],
+  "query_ids": {
+    "train": [
+      "agg_queries_CSPaper_4",
+      "agg_queries_CSPaper_8",
+      "agg_queries_CSPaper_5",
+      "agg_only_cspaper_gen_5",
+      "agg_only_cspaper_gen_8",
+      "agg_only_cspaper_gen_4",
+      "agg_only_cspaper_gen_0",
+      "agg_only_cspaper_gen_2",
+      "agg_queries_CSPaper_3",
+      "agg_queries_CSPaper_1",
+      "agg_queries_CSPaper_9",
+      "agg_filter_cspaper_gen_83",
+      "agg_filter_cspaper_gen_46",
+      "agg_filter_cspaper_gen_57",
+      "agg_filter_cspaper_gen_27",
+      "agg_filter_cspaper_gen_82",
+      "agg_filter_cspaper_gen_86",
+      "agg_filter_cspaper_gen_148",
+      "agg_filter_cspaper_gen_105",
+      "agg_filter_cspaper_gen_15",
+      "agg_filter_cspaper_gen_146",
+      "agg_filter_cspaper_gen_51",
+      "agg_filter_cspaper_gen_107",
+      "agg_filter_cspaper_gen_23",
+      "agg_filter_cspaper_gen_72",
+      "agg_filter_cspaper_gen_102",
+      "agg_filter_cspaper_gen_42",
+      "agg_filter_cspaper_gen_144",
+      "agg_filter_cspaper_gen_109",
+      "agg_filter_cspaper_gen_142",
+      "agg_filter_cspaper_gen_88"
+    ],
+    "dev": [
+      "agg_only_cspaper_gen_6",
+      "agg_queries_CSPaper_10",
+      "agg_only_cspaper_gen_3",
+      "agg_filter_cspaper_gen_98",
+      "agg_filter_cspaper_gen_127",
+      "agg_filter_cspaper_gen_90",
+      "mixed_queries_3",
+      "agg_filter_cspaper_gen_150"
+    ],
+    "test": [
+      "agg_queries_CSPaper_2",
+      "agg_only_cspaper_gen_7",
+      "agg_only_cspaper_gen_1",
+      "agg_filter_cspaper_gen_53",
+      "agg_filter_cspaper_gen_38",
+      "agg_filter_cspaper_gen_167",
+      "agg_filter_cspaper_gen_55",
+      "agg_filter_cspaper_gen_19"
+    ]
+  }
+}

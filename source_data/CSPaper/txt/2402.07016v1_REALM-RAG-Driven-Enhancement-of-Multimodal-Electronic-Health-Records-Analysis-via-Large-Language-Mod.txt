@@ -1,0 +1,78 @@
+REALM: RAG-Driven Enhancement of Multimodal Electronic Health Records
+Analysis via Large Language Models
+Yinghao Zhu1 ∗, Changyu Ren2 ∗, Shiyun Xie1 , Shukai Liu2 , Hangyuan Ji2 ,
+Zixiang Wang3 , Tao Sun2 , Long He1 , Zhoujun Li2 , Xi Zhu4 , Chengwei Pan1 †
+1Institute of Artificial Intelligence, Beihang University, Beijing, China
+2School of Computer Science and Engineering, Beihang University, Beijing, China
+3School of Software, Beihang University, Beijing, China
+4China Mobile Research Institute, Beijing, China
+zhuyinghao@buaa.edu.cn, pancw@buaa.edu.cn
+Abstract
+The integration of multimodal Electronic Health
+Records (EHR) data has significantly improved
+clinical predictive capabilities.
+Leveraging clini-
+cal notes and multivariate time-series EHR, exist-
+ing models often lack the medical context relevent
+to clinical tasks, prompting the incorporation of
+external knowledge, particularly from the knowl-
+edge graph (KG). Previous approaches with KG
+knowledge have primarily focused on structured
+knowledge extraction, neglecting unstructured data
+modalities and semantic high dimensional medi-
+cal knowledge. In response, we propose REALM,
+a Retrieval-Augmented Generation (RAG) driven
+framework to enhance multimodal EHR represen-
+tations that address these limitations. Firstly, we
+apply Large Language Model (LLM) to encode
+long context clinical notes and GRU model to en-
+code time-series EHR data. Secondly, we prompt
+LLM to extract task-relevant medical entities and
+match entities in professionally labeled external
+knowledge graph (PrimeKG) with corresponding
+medical knowledge.
+By matching and aligning
+with clinical standards, our framework eliminates
+hallucinations and ensures consistency. Lastly, we
+propose an adaptive multimodal fusion network
+to integrate extracted knowledge with multimodal
+EHR data. Our extensive experiments on MIMIC-
+III mortality and readmission tasks showcase the
+superior performance of our REALM framework
+over baselines, emphasizing the effectiveness of
+each module. REALM framework contributes to
+refining the use of multimodal EHR data in health-
+care and bridging the gap with nuanced medical
+context essential for informed clinical predictions.
+∗Equal contribution, † Corresponding author.
+1
+Introduction
+The advent of Electronic Health Records (EHR) marks a piv-
+otal advancement in the way patient data is gathered and an-
+alyzed, contributing to a more effective and informed health-
+care delivery system for clinical prediction Ma et al. [2023];
+Gao et al. [2024]; Zhu et al. [2024c]; Zhang et al. [2024];
+Liao et al. [2024]. This advancement is largely attributed
+to the utilization of multimodal EHR data, which primar-
+ily includes clinical notes and multivariate time-series data
+from patient records Zhang et al. [2022]; Wang et al. [2024];
+Zhang et al. [2023a]. Such data types are integral to health-
+care prediction tasks, mirroring the holistic approach practi-
+tioners adopt by leveraging various patient data points to in-
+form their clinical decisions and treatment strategies, rather
+than depending on a single data source Xu et al. [2023].
+Deep learning-based methods have become the mainstream
+approach, processing multimodal data to learn a mapping
+from heterogeneous inputs to output labels Choi et al. [2017];
+Ma et al. [2018]; Zhang et al. [2022]. However, in contrast
+to healthcare professionals, who have a deep understanding
+of medical contexts through extensive experience and knowl-
+edge, neural networks trained from scratch lack these insights
+into medical concepts Miotto et al. [2018]. Without deliber-
+ate integration of external knowledge, these networks often
+lack the ability or sensitivity to recognize crucial disease enti-
+ties or laboratory test results within the EHR, essential for ac-
+curate prediction tasks Zhu et al. [2024b]. In response, some
+recent studies have begun incorporating knowledge graphs to
+infuse additional medical insights into their analyses Ye et al.
+[2021]; Gao et al. [2022]. T

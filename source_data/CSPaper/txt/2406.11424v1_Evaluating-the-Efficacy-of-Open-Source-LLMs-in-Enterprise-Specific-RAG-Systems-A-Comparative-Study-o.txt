@@ -1,0 +1,72 @@
+Evaluating the Efficacy of Open-Source LLMs in
+Enterprise-Specific RAG Systems: A Comparative Study of
+Performance and Scalability
+Gautam B∗
+gautamb1a2b@gmail.com
+Indian Institute of Technology Madras
+Chennai, Tamil Nadu, India
+Anupam Purwar∗†
+anupam.aiml@gmail.com
+Independent
+Delhi, India
+ABSTRACT
+This paper presents an analysis of open-source large language mod-
+els (LLMs) and their application in Retrieval-Augmented Generation
+(RAG) tasks, specific for enterprise-specific data sets scraped from
+their websites. With the increasing reliance on LLMs in natural
+language processing, it is crucial to evaluate their performance, ac-
+cessibility, and integration within specific organizational contexts.
+This study examines various open-source LLMs, explores their in-
+tegration into RAG frameworks using enterprise-specific data, and
+assesses the performance of different open-source embeddings in
+enhancing the retrieval and generation process. Our findings indi-
+cate that open-source LLMs, combined with effective embedding
+techniques, can significantly improve the accuracy and efficiency of
+RAG systems, offering a viable alternative to proprietary solutions
+for enterprises.
+CCS CONCEPTS
+• Computing methodologies →Natural language generation.
+KEYWORDS
+Large language models(LLMs), Retrieval Augmented Generation
+(RAG), Natural language processing(NLP),information retriever,
+ROUGE score, cosine similarity, top-k, Llama3, Mistral,Generative
+Pre-Trained Transformers(GPT),Generative AI(Gen AI),Cosine Sim-
+ilarity with Groundtruth Answer(CSGA)
+,
+1
+INTRODUCTION
+The rapid advancements in natural language processing (NLP) have led
+to the development of sophisticated large language models (LLMs) that
+excel in tasks such as text generation, summarization, and question answer-
+ing. Among these advancements, Retrieval-Augmented Generation (RAG)
+has emerged as a promising approach for the retrieval-based systems with
+generative models to produce highly accurate and contextually relevant out-
+puts.The concept of Retrieval-Augmented Generation (RAG) was introduced
+∗Both authors contributed equally to this research.
+†Corresponding author: anupam.aiml@gmail.com
+Permission to make digital or hard copies of all or part of this work for personal or
+classroom use is granted without fee provided that copies are not made or distributed
+for profit or commercial advantage and that copies bear this notice and the full citation
+on the first page. Copyrights for components of this work owned by others than the
+author(s) must be honored. Abstracting with credit is permitted. To copy otherwise, or
+republish, to post on servers or to redistribute to lists, requires prior specific permission
+and/or a fee.
+, ,
+© 2024 Copyright held by the owner/author(s). .
+by Lewis et al. In their seminar 2020 paper titled "Retrieval-Augmented Gen-
+eration for Knowledge- Intensive NLP Tasks."[20].In their research, Lewis et
+al. present a method that combines retrieval-based and generative models
+to enhance the performance of knowledge-intensive tasks. By integrating
+non-parametric memory (retrieved documents) with parametric memory
+(the generative model’s internal parameters), RAG models achieve superior
+accuracy and flexibility in tasks such as open-domain question answering
+and abstract question answering. Karpukhin et al. (2020) developed dense
+passage retrieval for open-domain question answering, which significantly
+boosts retrieval accuracy by using dense vector representations and a neural
+retriever [18].More recent work further advances the field by introducing
+novel methodologies for fine-tuning LLMs specifically for RAG tasks in
+knowledge-intensive environments [24]. There has been efficient ways to
+improve the retrieval process such as the Keyword Augmented Retrieval
+(KAR), which integrates keyword generation using transformer models with
+document metadata to identify the right context quickly and cost-effectively
+[23]. Also, approach to handle sparse information where classi

@@ -1,0 +1,77 @@
+Transforming Questions and Documents for Semantically Aligned
+Retrieval-Augmented Generation
+Seokgi Lee
+seokilee@snu.ac.kr
+Abstract
+We introduce a novel retrieval-augmented generation (RAG)
+framework tailored for multihop question answering. First,
+our system uses large language model (LLM) to decompose
+complex multihop questions into a sequence of single-hop
+subquestions that guide document retrieval. This decomposi-
+tion mitigates the ambiguity inherent in multihop queries by
+clearly targeting distinct knowledge facets. Second, instead
+of embedding raw or chunked documents directly, we gen-
+erate answerable questions from each document chunk us-
+ing Qwen3-8B, embed these generated questions, and retrieve
+relevant chunks via question–question embedding similarity.
+During inference, the retrieved chunks are then fed along
+with the original question into the RAG pipeline. We evaluate
+on three multihop question datasets (MuSiQue, 2WikiMulti-
+HopQa, HotpotQA) from LongBench. Our method improves
+RAG performacne compared to baseline systems. Our con-
+tributions highlight the benefits of using answerable-question
+embeddings for RAG, and the effectiveness of LLM-based
+query decomposition for multihop scenarios.
+1
+Introduction
+Large language models (LLMs) are impressive in what they
+can do, but they’re not perfect—especially when it comes
+to answering questions that require external facts. Retrieval-
+Augmented Generation (RAG) tries to close this gap by
+bringing in relevant documents during inference. Since it
+was first introduced by (Lewis et al. 2020), RAG has been
+used in all sorts of tasks like open-domain question answer-
+ing, fact-checking, and summarization, where grounding re-
+sponses in real-world information really matters.
+But there’s a catch: most RAG systems still rely on em-
+bedding the entire user question into a single dense vector
+and using that to retrieve documents. This approach works
+reasonably well for straightforward questions. But when it
+comes to multi-hop questions—those that involve piecing
+together facts from multiple sources—it often falls short.
+The model may retrieve something vaguely related but miss
+key steps along the way.
+In response to this challenge, various studies have ex-
+plored structured strategies for improving retrieval. For ex-
+ample, some methods use graphs to represent how pieces
+of information are connected across documents—such as G-
+RAG (Dong et al. 2024), CUE-RAG (Su et al. 2025), and
+HLG (Ghassel et al. 2025). Others, such as HiRAG and
+DeepRAG (Zhang et al. 2024; Ji et al. 2025), use multi-
+layered retrieval pipelines that narrow down the search space
+in stages.
+These systems bring real gains, but they also bring com-
+plexity. We were interested in whether a simpler approach
+could work just as well. One promising idea is to break down
+a complex question into smaller, more focused subquestions.
+This makes it easier to retrieve relevant information for each
+step and gives the model a clearer path to the answer.
+That’s where our method comes in. Instead of trying to
+handle the full complexity of a multi-hop question all at
+once, we decompose it into single-hop subquestions, retrieve
+evidence for each, and then use a reranking model to choose
+the passages that best match the original question. It’s a way
+to stay focused on what matters, without over-engineering
+the pipeline.
+Still, even with decomposition and reranking, there’s an
+important issue we had to address: the format mismatch
+between user queries and document content. Questions are
+usually short, focused, and interrogative. Documents, on
+the other hand, are longer, narrative, and descriptive(Furnas
+et al. 1987). Even if the content is semantically aligned,
+the structural differences often confuse embedding-based re-
+trieval systems (Zhao and Callan 2010; Zahhar, Mellouli,
+and Rodrigues 2024).
+To address this mismatch, we take a different approach:
+instead of forcing a direct match between question and doc-
+ument as-is, we reshap

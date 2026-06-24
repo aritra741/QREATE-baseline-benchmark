@@ -1,0 +1,86 @@
+OPEN-RAG: Enhanced Retrieval-Augmented Reasoning with Open-Source
+Large Language Models
+Shayekh Bin Islam*,1,6,7, Md Asib Rahman*,1, K S M Tozammel Hossain2
+Enamul Hoque3, Shafiq Joty4, Md Rizwan Parvez5
+1Bangladesh University of Engineering and Technology, 2University of North Texas
+3York University, Canada, 4Salesforce Research, 5Qatar Computing Research Institute (QCRI)
+6Fatima Al-Fihri Predoctoral Fellowship, 7Cohere For AI Community
+shayekh.bin.islam@gmail.com, mparvez@hbku.edu.qa
+Abstract
+Retrieval-Augmented Generation (RAG) has
+been shown to enhance the factual accuracy of
+Large Language Models (LLMs), but existing
+methods often suffer from limited reasoning
+capabilities in effectively using the retrieved
+evidence, particularly when using open-source
+LLMs. To mitigate this gap, we introduce a
+novel framework, OPEN-RAG, designed to en-
+hance reasoning capabilities in RAG with open-
+source LLMs. Our framework transforms an
+arbitrary dense LLM into a parameter-efficient
+sparse mixture of experts (MoE) model capable
+of handling complex reasoning tasks, includ-
+ing both single- and multi-hop queries. OPEN-
+RAG uniquely trains the model to navigate
+challenging distractors that appear relevant but
+are misleading. As a result, OPEN-RAG lever-
+ages latent learning, dynamically selecting rele-
+vant experts and integrating external knowledge
+effectively for more accurate and contextually
+relevant responses. In addition, we propose a
+hybrid adaptive retrieval method to determine
+retrieval necessity and balance the trade-off be-
+tween performance gain and inference speed.
+Experimental results show that the Llama2-7B-
+based OPEN-RAG outperforms state-of-the-art
+LLMs and RAG models such as ChatGPT, Self-
+RAG, and Command R+ in various knowledge-
+intensive tasks. We open-source our code and
+models at https://openragmoe.github.io/
+1
+Introduction
+The rapid advancement of Large Language Models
+(LLMs) has significantly improved various NLP
+tasks (Beeching et al., 2023). However, these mod-
+els often suffer from factual inaccuracies (Min
+et al., 2023a; Mallen et al., 2022).
+Retrieval-
+Augmented Generation (RAG) has emerged as a
+promising approach to integrate LLMs with ex-
+ternal knowledge, thereby improving generation
+accuracy (Asai et al., 2023; Lewis et al., 2020).
+* Equal contribution.
+Despite this, existing RAG methods demonstrate
+limited reasoning capabilities, particularly when
+employing open-source LLMs and addressing high-
+complexity queries such as multi-hop retrieval aug-
+mented tasks (Jeong et al., 2024b; Zhang et al.,
+2024b). Thus, building an effective RAG model us-
+ing open-source LLMs remains an open challenge.
+To address this gap, we present OPEN-RAG, a
+novel framework aimed at improving reasoning
+capabilities in RAG with open-source LLMs.
+Reasoning over retrieved documents is particu-
+larly difficult. In general, retrievers are imperfect
+and can return noisy passages (Shi et al., 2023).
+The generated outputs can also be inconsistent with
+retrieved passages (Gao et al., 2023a) or can even
+override the LLM’s accurate parametric knowledge
+(Parvez, 2024). Approaches like re-ranking or filter-
+ing retrieved documents (Xu et al., 2023; Nogueira
+and Cho, 2020; Wang et al., 2018) and active re-
+trieval methods (i.e., retrieve only when needed)
+(Mallen et al., 2023; Jiang et al., 2023a; Trivedi
+et al., 2023a) have shown promising success in
+tackling these, but they require substantial human
+annotations, can filter out useful information, of-
+ten perform sequential and repetitive calls (hence
+slow), and can still suffer from distracting content,
+even in relevant passages (Wang et al., 2023).
+To address and control these behaviors such as
+retrieval frequency of the RAG model and guide
+the generation to be contextually consistent, Self-
+RAG and its variants (Asai et al., 2024; Yan et al.,
+2024; Jeong et al., 2024a) adopt a self-reflection-
+based method. During training, these models learn
+to generate both task output and intermittent

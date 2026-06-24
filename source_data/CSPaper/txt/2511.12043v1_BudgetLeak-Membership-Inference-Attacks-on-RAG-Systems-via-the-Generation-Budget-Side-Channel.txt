@@ -1,0 +1,100 @@
+BudgetLeak: Membership Inference Attacks on RAG Systems
+via the Generation Budget Side Channel
+Hao Li1, Jiajun He1, Guangshuo Wang1, Dengguo Feng1, Zheng Li2,†, and Min Zhang1,†
+1Institute of Software, Chinese Academy of Sciences
+2Shandong University
+Abstract
+Retrieval-Augmented Generation (RAG) enhances large lan-
+guage models by integrating external knowledge, but re-
+liance on proprietary or sensitive corpora poses various data
+risks, including privacy leakage and unauthorized data usage.
+Membership inference attacks (MIAs) are a common tech-
+nique to assess such risks, yet existing approaches underper-
+form in RAG due to black-box constraints and the absence of
+strong membership signals.
+In this paper, we identify a previously unexplored side
+channel in RAG systems: the generation budget, which con-
+trols the maximum number of tokens allowed in a generated
+response. Varying this budget reveals observable behavioral
+patterns between member and non-member queries, as mem-
+bers gain quality more rapidly with larger budgets. Building
+on this insight, we propose BudgetLeak, a novel membership
+inference attack that probes responses under different bud-
+gets and analyzes metric evolution via sequence modeling or
+clustering. Extensive experiments across four datasets, three
+LLM generators, and two retrievers demonstrate that Bud-
+getLeak consistently outperforms existing baselines, while
+maintaining high efficiency and practical viability. Our find-
+ings reveal a previously overlooked data risk in RAG systems
+and highlight the need for new defenses.
+1
+Introduction
+With the rapid expansion of training corpora and model
+sizes, large language models (LLMs) such as GPT-4 [4],
+LLaMA [52], Mistral [24], and ChatGLM [67] have demon-
+strated remarkable generative capabilities, significantly im-
+pacting both professional domains and everyday interactions.
+Despite these advances, LLMs continue to face fundamen-
+tal challenges, including hallucinations [49,63] and outdated
+knowledge [15,26], which raise serious concerns about their
+reliability in real-world applications. A widely adopted ap-
+proach to address these issues is Retrieval-Augmented Gen-
+eration (RAG) [14,15,28], which improves response quality
+by incorporating up-to-date and contextually relevant exter-
+nal information into the generation process.
+†Corresponding authors.
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+0
+50
+100
+150
+200
+Frequency
+Member
+Non-member
+(a) Similarity Scores
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+0
+20
+40
+60
+Frequency
+Member
+Non-member
+(b) Response Accuracy
+Figure 1: Distribution of similarity scores and response accu-
+racy on RAG with LLaMA over HealthCareMagic-100k.
+At the same time, the dependence of RAG systems on ex-
+ternal databases, particularly those containing sensitive in-
+formation, introduces significant privacy and security risks.
+In the healthcare domain, systems such as MedPlan may en-
+rich with patient-specific information retrieved from external
+sources, enhancing the quality of clinical assessments and
+personalized recommendations. Such integration, however,
+raises concerns about unauthorized access to highly sensi-
+tive patient data [21]. A similar issue arises in the finan-
+cial sector, where RAG systems employed for financial in-
+tent detection like BAI-Fintent often rely on key transaction
+records, which—if improperly secured—could expose con-
+fidential financial information [51, 55]. In the cryptography
+domain, tools like CRYPTOSCOPE search for vulnerability
+cases stored in an external database to support cryptographic
+logic vulnerability detection. This practice increases the like-
+lihood of security preferences being exposed [34]. These
+examples underscore the importance of carefully examining
+how sensitive data is ingested and protected in RAG-based
+applications.
+To address this challenge, we investigate membership in-
+ference attacks (MIAs), a well-established class of tech-
+niques for evaluating privacy risks and unauthorized data ex-
+posure. MIAs assess whether a

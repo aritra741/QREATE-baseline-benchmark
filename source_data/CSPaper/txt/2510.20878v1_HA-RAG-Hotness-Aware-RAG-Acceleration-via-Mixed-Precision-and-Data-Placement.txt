@@ -1,0 +1,71 @@
+2026 IEEE International Symposium on High-Performance Computer Architecture (HPCA)
+HA-RAG: Hotness-Aware RAG Acceleration via
+Mixed Precision and Data Placement
+Danying Ge, Jianhua Gao, Yixue Yang, and Weixing Ji
+Beijing Normal University, China
+gdanying@163.com, gaojh@bnu.edu.cn, yyxmaeve@gmail.com, jwx@bnu.edu.cn
+Abstract—Retrieval-Augmented Generation (RAG) improves
+model output accuracy by leveraging external knowledge bases,
+serving as an effective solution to address hallucination issues and
+knowledge-update delays in Large Language Models (LLMs).
+However, the introduction of external knowledge bases presents
+RAG with challenges in long-context processing, significantly
+increasing memory consumption and inference latency. Existing
+research accelerates inference by precomputing Key and Value
+(KV) of the knowledge base and loading them on-demand during
+inference. Based on the access frequency of different KV chunks
+within the external knowledge base, this paper proposes a
+hotness-aware RAG (HA-RAG) inference optimization system.
+First, leveraging the numerical distribution of KV chunks,
+we introduce a hotness-aware mixed-precision compressing and
+loading method to reduce disk I/O and memory access overhead.
+Second, we design a hotness-aware data placement strategy that
+prioritizes storing frequently accessed KV chunks in high-speed
+memory to improve data access efficiency. Experimental results
+demonstrate that, compared with TurboRAG, the proposed HA-
+RAG achieves an average speedup of 2.10× and maximum
+speedup of 10.49x in Time-To-First-Token (TTFT) with negligible
+accuracy loss.
+I. INTRODUCTION
+With the advancement of artificial intelligence technologies,
+Large Language Models (LLMs) have demonstrated strong
+capabilities in tasks such as text generation, translation, and
+more, leading to widespread applications across a variety of
+fields [61], [63]–[66]. However, LLMs have been observed to
+suffer from the hallucination problem in real-world scenar-
+ios, where the generated responses may contain information
+that deviates from factual truth [62], [69]–[71]. The issue
+primarily arises from two key factors: firstly, the inherent
+representational limitations of LLMs make it challenging to
+comprehensively and accurately capture complex semantic
+information; secondly, the time lag in updating training data
+hinders the timely integration of the latest knowledge into the
+models [74].
+Retrieval-Augmented Generation (RAG) [45] has emerged
+as an effective approach to mitigate this problem. By inject-
+ing task-specific contextual knowledge into the input, RAG
+significantly enhances the quality of generated text and the
+factual reliability of the output, thereby reducing hallucinations
+in LLMs [54]. As illustrated in Figure 1, the typical workflow
+of RAG begins by embedding documents closely related to
+tasks into vector representations to form a knowledge base.
+Then, for each user input, a similarity measure such as cosine
+similarity is used to retrieve the most relevant documents
+from the knowledge base. These retrieved documents are
+appended to the input as additional context, resulting in an
+augmented input prompt, which is then fed into the LLM
+for inference. By incorporating context that is specific to
+downstream tasks, RAG provides more targeted and relevant
+information to the model. Even when the training data lacks
+examples related to a particular task, RAG enables the model
+to access key information via retrieval, thereby facilitating
+high-quality generation.
+Fig. 1: Workflow of RAG.
+However, RAG significantly extends the input length, which
+in turn leads to substantial computational overhead during the
+prefill stage of inference. Specifically, in the prefill phase,
+LLM must encode the entire input sequence and compute
+attention interactions between every pair of tokens to gen-
+erate the first output token. This results in a computational
+complexity that grows quadratically with respect to the input
+length [46], severely limi

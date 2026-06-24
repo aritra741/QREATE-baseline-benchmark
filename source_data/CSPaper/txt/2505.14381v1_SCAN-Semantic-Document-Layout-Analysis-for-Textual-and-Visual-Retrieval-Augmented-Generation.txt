@@ -1,0 +1,92 @@
+arXiv:2505.14381v1  [cs.AI]  20 May 2025
+SCAN: Semantic Document Layout Analysis for Textual and Visual
+Retrieval-Augmented Generation
+Yuyang Dong*, Nobuhiro Ueda*, Krisztián Boros, Daiki Ito, Takuya Sera, Masafumi Oyamada
+NEC Corporation
+{dongyuyang, nobuhiro-ueda, krisztian-boros, ito-daiki, takuya-sera, oyamada}@nec.com
+Abstract
+With the increasing adoption of Large Lan-
+guage Models (LLMs) and Vision-Language
+Models (VLMs),
+rich document analysis
+technologies for applications like Retrieval-
+Augmented Generation (RAG) and visual RAG
+are gaining significant attention. Recent re-
+search indicates that using VLMs can achieve
+better RAG performance, but processing rich
+documents still remains a challenge since a sin-
+gle page contains large amounts of information.
+In this paper, we present SCAN (SemantiC
+Document Layout ANalysis), a novel approach
+enhancing both textual and visual Retrieval-
+Augmented Generation (RAG) systems work-
+ing with visually rich documents. It is a VLM-
+friendly approach that identifies document com-
+ponents with appropriate semantic granularity,
+balancing context preservation with processing
+efficiency. SCAN uses a coarse-grained seman-
+tic approach that divides documents into coher-
+ent regions covering continuous components.
+We trained the SCAN model by fine-tuning ob-
+ject detection models with sophisticated anno-
+tation datasets. Our experimental results across
+English and Japanese datasets demonstrate that
+applying SCAN improves end-to-end textual
+RAG performance by up to 9.0% and visual
+RAG performance by up to 6.4%, outperform-
+ing conventional approaches and even commer-
+cial document processing solutions.
+1
+Introduction
+Retrieval-Augmented Generation (RAG) (Lewis
+et al., 2021; Gao et al., 2024; Fan et al., 2024) tech-
+nology enables Large Language Models (LLMs)
+to provide more accurate responses to user queries
+by retrieving and leveraging relevant knowledge
+and documents. These knowledge sources such as
+company financial reports, web pages, insurance
+manuals, and academic papers often contain com-
+plex charts, tables, diagrams, and other non-textual
+*Equal contribution
+elements, collectively referred to as rich documents.
+Enabling RAG to accurately support these rich doc-
+uments is an important research problem.
+RAG frameworks are generally categorized into
+textual RAG and visual RAG. For textual RAG
+with rich documents, we need to convert documents
+(PDFs, images, etc.) into text, use a text retrieval,
+and then generate responses by LLMs. In contrast,
+visual RAG can directly process rich documents as
+images using multimodal embedding and retrieval,
+and then uses Vision Language Models (VLMs) to
+generate responses.
+1.1
+Challenges
+The key part for textual RAG with rich documents
+is to convert documents into textual formats such
+as markdown. Recent research (Zhang et al., 2025;
+Fu et al., 2024) indicates that using VLMs for doc-
+ument conversion yields better results than tradi-
+tional OCR methods. However, it is still a chal-
+lenge to have a VLM perform text conversion on
+rich document pages, since a whole page can con-
+tain a large amount of complicated content, which
+can lead to incomplete results and conversion er-
+rors.
+On the other hand, visual RAG directly retrieves
+the images of rich document pages, but faces a
+similar challenge when using a VLM to process
+visual question answering (VQA) on those rich
+document pages. This is because user queries
+often target only specific portions of a document
+page, meaning that other parts of this page are
+noise, leading to low accuracy.
+Therefore, the common challenge is to use a
+VLM to process (text conversion or VQA) an
+entire rich document page containing abundant
+information at once. One potential solution is
+to further divide a document page into small re-
+gions. Traditional document layout analysis tech-
+nologies such as DocLayout-YOLO (Zhao et al.,
+2024b) can achieve this objective, but they focus
+Figure 1: Conventional fine-grained layout ana

@@ -1,0 +1,73 @@
+KG2QA: KNOWLEDGE GRAPH-ENHANCED RETRIEVAL-AUGMENTED GENERATION
+FOR COMMUNICATION STANDARDS QUESTION ANSWERING
+Zhongze Luo1, Weixuan Wan2, Tianya Zhang1, Dan Wang2, Xiaoying Tang1∗
+1School of Science and Engineering, The Chinese University of Hong Kong, Shenzhen, China
+2School of Microelectronics, Xi’an Jiaotong University, China
+ABSTRACT
+The rapid evolution of communication technologies has led
+to an explosion of standards, rendering traditional expert-
+dependent consultation methods inefficient and slow.
+To
+address this challenge, we propose KG2QA, a question an-
+swering (QA) framework for communication standards that
+integrates fine-tuned large language models (LLMs) with
+a domain-specific knowledge graph (KG) via a retrieval-
+augmented generation (RAG) pipeline. We construct a high-
+quality dataset of 6,587 QA pairs from ITU-T recommen-
+dations and fine-tune Qwen2.5-7B-Instruct, achieving sig-
+nificant performance gains: BLEU-4 increases from 18.86
+to 66.90, outperforming both the base model and Llama-3-
+8B-Instruct. A structured KG containing 13,906 entities and
+13,524 relations is built using LLM-assisted triple extraction
+based on a custom ontology. In our KG-RAG pipeline, the
+fine-tuned LLMs first retrieves relevant knowledge from KG,
+enabling more accurate and factually grounded responses.
+Evaluated by DeepSeek-V3 as a judge, the KG-enhanced
+system improves performance across five dimensions, with
+an average score increase of 2.26%, demonstrating superior
+factual accuracy and relevance. Integrated with Web platform
+and API, KG2QA delivers an efficient and interactive user
+experience. Our code and data have been open-sourced 1.
+Index Terms— Large Language Models, Domain-Specific
+Knowledge Graph, Retrieval-Augmented Generation, Com-
+munication Standards Question Answering
+1. INTRODUCTION
+The rapid advancement of technology in the communication
+sector has led to an exponential increase in communication
+standards [1]. Traditionally, consulting these standards re-
+quires significant expertise and manual intervention, often in-
+volving extensive periods for information retrieval and inter-
+pretation. Such conventional methods are inefficient and un-
+able to keep pace with rapid technological developments, ne-
+cessitating smarter, more automated approaches for consult-
+ing and knowledge management [2].
+∗Corresponding author: Xiaoying Tang.
+1https://github.com/luozhongze/KG2QA
+Recent developments in artificial intelligence, particularly
+large language models (LLMs), have demonstrated remark-
+able capabilities in understanding and generating human-like
+text across general domains [3]. However, their performance
+in specialized fields, like communication standards, remains
+limited due to the sparse representation of specialized ter-
+minologies and domain-specific knowledge in pretraining
+datasets [4,5]. To address this limitation, fine-tuning method-
+ologies such as Low-Rank Adaptation (LoRA) have been
+employed, significantly enhancing the semantic comprehen-
+sion and contextual accuracy of LLMs in niche areas [6–8].
+Complementing LLMs, knowledge graph (KG) offers
+a structured approach to represent complex, interconnected
+domain-specific knowledge [9–11]. Particularly in narrowly
+defined domains, such as communication standards, domain-
+specific KG facilitates efficient and precise information re-
+trieval [12–14]. By constructing a carefully designed ontol-
+ogy structure and leveraging LLMs for entity and relationship
+extraction, high-accuracy KG can be established, markedly
+improving retrieval performance [15–21].
+We propose an integration KG2QA framework, which
+combines domain-specific KG and fine-tuned LLMs using
+retrieval-augmented generation (RAG) methodologies, and
+we apply it to the field of communication standards question
+answering (QA). Our approach enhances intelligent consult-
+ing services by achieving precise and swift query responses,
+enriched by structured domain-specific knowledge. Experi-
+mental results demonstra

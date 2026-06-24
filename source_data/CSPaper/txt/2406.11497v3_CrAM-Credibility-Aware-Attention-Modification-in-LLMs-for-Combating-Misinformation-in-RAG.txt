@@ -1,0 +1,98 @@
+CrAM: Credibility-Aware Attention Modification in LLMs for
+Combating Misinformation in RAG
+Boyi Deng1, Wenjie Wang2*, Fengbin Zhu2*, Qifan Wang3, Fuli Feng1
+1University of Science and Technology of China, 2National University of Singapore, 3Meta AI
+dengboyi@mail.ustc.edu.cn, wqfcr@fb.com,
+{wenjiewang96, zhfengbin, fulifeng93}@gmail.com
+Abstract
+Retrieval-Augmented Generation (RAG) can alleviate hallu-
+cinations of Large Language Models (LLMs) by referenc-
+ing external documents. However, the misinformation in ex-
+ternal documents may mislead LLMs’ generation. To ad-
+dress this issue, we explore the task of “credibility-aware
+RAG”, in which LLMs automatically adjust the influence
+of retrieved documents based on their credibility scores
+to counteract misinformation. To this end, we introduce a
+plug-and-play method named Credibility-aware Attention
+Modification (CrAM). CrAM identifies influential attention
+heads in LLMs and adjusts their attention weights based on
+the credibility of the documents, thereby reducing the im-
+pact of low-credibility documents. Experiments on Natual
+Questions and TriviaQA using Llama2-13B, Llama3-8B, and
+Qwen1.5-7B show that CrAM improves the RAG perfor-
+mance of LLMs against misinformation pollution by over
+20%, even surpassing supervised fine-tuning methods.
+1
+Introduction
+Retrieval-Augmented Generation (RAG) (Gao et al. 2024;
+Zhu et al. 2021) is a representative approach to mitigate hal-
+lucination issues of Large Language Models (LLMs) (Zhang
+et al. 2023) by retrieving and referencing relevant docu-
+ments from an external corpus. Despite its effectiveness,
+most RAG works overlook a crucial issue: misinformation
+pollution in the external corpus (Pan et al. 2023b; Dufour
+et al. 2024). The maliciously generated misinformation may
+mislead LLMs to produce unfaithful responses. For instance,
+Microsoft’s Bing can be misled by misinformation on the in-
+ternet to generate incorrect information for Bing users (Vin-
+cent 2023). Besides, Pan et al. (2023b) and Pan et al. (2023a)
+demonstrated that inserting LLM-generated misinformation
+into the RAG corpus can significantly degrade LLMs’ per-
+formance. Therefore, addressing the misinformation pollu-
+tion for RAG is essential.
+A straightforward and common idea to address this mis-
+information pollution issue is misinformation detection and
+filtering. Extensive misinformation detection works focus on
+measuring the credibility of documents, i.e., the probability
+of the document not containing misinformation. And these
+*Corresponding author.
+Copyright © 2025, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+Question (Q):
+Who won the first Nobel Prize 
+in Physics？
+Document 2 (D2): 
+Actually, it is Albert Einstein
+who won the first Nobel Prize 
+in Physics.
+Credibility score (S2): 0.1
+Document 1 (D1): 
+The first Nobel Prize in Physics 
+was awarded to physicist 
+Wilhelm Röntgen.
+Credibility score (S1): 0.8
+Answer: 
+Albert 
+Einstein. 
+Answer: 
+Wilhelm 
+Röntgen. 
+LLM
+LLM
+RAG
+credibility-aware RAG
+Q
+D1
+D2
+Q
+D1
+D2
+S1
+S2
+Figure 1: A comparison between RAG and credibility-aware
+RAG. Credibility-aware RAG considers credibility to reduce
+the impact of low-credibility documents.
+works have achieve significant results (Kaliyar, Goswami,
+and Narang 2021; Pelrine et al. 2023; Quelle and Bovet
+2024; Li et al. 2024). Once we obtain the credibility of each
+retrieved document, we can exclude those with credibility
+below a certain threshold before using them in RAG. How-
+ever, directly discarding certain documents may result in the
+loss of relevant and important information, leading to per-
+formance degradation (Yoran et al. 2024)1. Therefore, given
+the remarkable advancements in the measurement of credi-
+bility scores and the relatively underdeveloped mechanisms
+for utilizing these scores, it is essential to explore how these
+scores can be effectively utilized by LLMs, assuming that
+high-quality credibility scores are accessible.
+To achie

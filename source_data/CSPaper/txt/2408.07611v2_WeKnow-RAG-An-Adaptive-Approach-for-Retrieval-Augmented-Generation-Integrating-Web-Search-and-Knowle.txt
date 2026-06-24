@@ -1,0 +1,84 @@
+WeKnow-RAG: An Adaptive Approach for Retrieval-Augmented
+Generation Integrating Web Search and Knowledge Graphs
+Weijian Xie
+Ping An Bank Co., Ltd.
+Shenzhen, Guangdong, China
+tsewkviko@gmail.com
+Xuefeng Liang
+Tsinghua University
+Haidian, Beijing, China
+liang1xuefeng@gmail.com
+Yuhui Liu
+Central South University
+Changsha, Hunan, China
+liuyuhui@csu.edu.cn
+Kaihua Ni
+Shanghai Yiwo Information
+Technology Co., Ltd.
+Changning, Shanghai, China
+nikaihua008@gmail.com
+Hong Cheng
+Kwangwoon University, Department
+of Computer Engineering
+Nowon Gu, Seoul, South Korea
+kwchenghong@gmail.com
+Zetian Hu
+Tsinghua University
+Haidian, Beijing, China
+huzt22@mails.tsinghua.edu.cn
+Abstract
+Large Language Models (LLMs) have greatly contributed to the
+development of adaptive intelligent agents and are positioned as
+an important way to achieve Artificial General Intelligence (AGI).
+However, LLMs are prone to produce factually incorrect informa-
+tion and often produce "phantom" content that undermines their
+reliability, which poses a serious challenge for their deployment
+in real-world scenarios. Enhancing LLMs by combining external
+databases and information retrieval mechanisms is an effective path.
+To address the above challenges, we propose a new approach called
+WeKnow-RAG, which integrates Web search and Knowledge
+Graphs into a "Retrieval-Augmented Generation (RAG)" system.
+First, the accuracy and reliability of LLM responses are improved
+by combining the structured representation of Knowledge Graphs
+with the flexibility of dense vector retrieval. WeKnow-RAG then
+utilizes domain-specific knowledge graphs to satisfy a variety of
+queries and domains, thereby improving performance on factual
+information and complex reasoning tasks by employing multi-stage
+web page retrieval techniques using both sparse and dense retrieval
+methods. Our approach effectively balances the efficiency and accu-
+racy of information retrieval, thus improving the overall retrieval
+process. Finally, we also integrate a self-assessment mechanism for
+the LLM to evaluate the trustworthiness of the answers it generates.
+Our approach proves its outstanding effectiveness in a wide range
+of offline experiments and online submissions.
+CCS Concepts
+• Computing methodologies →Artificial intelligence; Machine
+learning.
+Permission to make digital or hard copies of all or part of this work for personal or
+classroom use is granted without fee provided that copies are not made or distributed
+for profit or commercial advantage and that copies bear this notice and the full citation
+on the first page. Copyrights for components of this work owned by others than the
+author(s) must be honored. Abstracting with credit is permitted. To copy otherwise, or
+republish, to post on servers or to redistribute to lists, requires prior specific permission
+and/or a fee. Request permissions from permissions@acm.org.
+KDD Cup CRAG Workshop ’24, August 25–29, 2024, Barcelona, Spain
+© 2024 Copyright held by the owner/author(s). Publication rights licensed to ACM.
+ACM ISBN 978-1-4503-XXXX-X/18/06
+Keywords
+Retrieval-Augmented Generation, Large Language Model, Knowl-
+edge Graphs, Domain adaptation fine-tuning
+ACM Reference Format:
+Weijian Xie, Xuefeng Liang, Yuhui Liu, Kaihua Ni, Hong Cheng, and Zetian
+Hu. 2024. WeKnow-RAG: An Adaptive Approach for Retrieval-Augmented
+Generation Integrating Web Search and Knowledge Graphs. In Proceedings
+of 2024 KDD Cup Workshop for Retrieval Augmented Generation (KDD Cup
+CRAG Workshop ’24). ACM, New York, NY, USA, 8 pages.
+1
+Introduction
+Large language models (LLMs) [26] have significantly propelled the
+development of adaptable intelligent agents, positioning themselves
+as a promising pathway towards achieving artificial general intelli-
+gence (AGI). Despite these advancements, the inherent nature of
+LLMs introduces critical challenges that obstruct their deployment
+in real-world production scenarios [12]. One of main key issues
+is the tendency of LLMs to produce factually incorrect inform

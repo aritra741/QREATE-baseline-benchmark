@@ -1,0 +1,70 @@
+RQ-RAG: LEARNING TO REFINE QUERIES FOR
+RETRIEVAL AUGMENTED GENERATION
+Chi-Min Chan1, Chunpu Xu2, Ruibin Yuan1, Hongyin Luo3, Wei Xue1, Yike Guo1 †, Jie Fu1 †
+1 Hong Kong University of Science and Technology
+2 Hong Kong Polytechnic University
+3 Massachusetts Institute of Technology
+zorowin123@gmail.com
+ABSTRACT
+Large Language Models (LLMs) exhibit remarkable capabilities but are prone to
+generating inaccurate or hallucinatory responses. This limitation stems from their
+reliance on vast pretraining datasets, making them susceptible to errors in unseen
+scenarios. To tackle these challenges, Retrieval-Augmented Generation (RAG)
+addresses this by incorporating external, relevant documents into the response
+generation process, thus leveraging non-parametric knowledge alongside LLMs’
+in-context learning abilities. However, existing RAG implementations primarily
+focus on initial input for context retrieval, overlooking the nuances of ambiguous
+or complex queries that necessitate further clarification or decomposition for ac-
+curate responses. To this end, we propose learning to Refine Query for Retrieval
+Augmented Generation (RQ-RAG) in this paper, endeavoring to enhance the model
+by equipping it with capabilities for explicit rewriting, decomposition, and disam-
+biguation. Our experimental results indicate that our method, when applied to a
+7B Llama2 model, surpasses the previous state-of-the-art (SOTA) by an average
+of 1.9% across three single-hop QA datasets, and also demonstrates enhanced per-
+formance in handling complex, multi-hop QA datasets. Our code is available at
+https://github.com/chanchimin/RQ-RAG.
+1
+Introduction
+Recent advancements in Large Language Models (LLMs) (OpenAI, 2023; Ouyang et al., 2022;
+Touvron et al., 2023) have demonstrated significant capabilities in understanding various concepts
+and solving downstream tasks (Brown et al., 2020; Raffel et al., 2020). Despite the vast amounts of
+data leveraged during their initial training or subsequent fine-tuning phases, these models inherently
+remain static. Once built and updated to a specific point in time, their knowledge base ceases to
+evolve, precluding the incorporation of new, real-time information. This limitation confines them
+to rely solely on their pre-encoded parametric knowledge (Mallen et al., 2022) during inference.
+Lacking access to up-to-date information, LLMs are prone to generating hallucinations (Ji et al.,
+2023) and may struggle to provide accurate and timely responses to queries that demand the latest
+information (Vu et al., 2023).
+To overcome these challenges, integrating retrieval functionalities into generative models presents a
+promising solution (Lewis et al., 2020; Luo et al., 2023). This approach enriches standard parametric
+language models with non-parametric retrieval elements capable of accessing relevant informa-
+tion from external databases. These databases range from comprehensive document repositories,
+† Corresponding Authors.
+arXiv:2404.00610v1  [cs.CL]  31 Mar 2024
+1. Model Only Search When Needed
+Hello, today is a good day!
+Hello! I'm glad to hear that. Is there anything 
+specific that's making it a good day?
+2. Model Decomposes the Query for Better Answering
+What kind of university is the school where Rey Ramsey was educated an 
+instance of?
+Where was Rey Ramsey educated at?
+Rutgers University
+What university is Rutgers University 
+an instance of? 
+Land-grant University
+Land-grant University
+3. Model Disambiguates the Query for Full Clarity
+The most goals scored in a Premier League season by a team is 106, achieved by Manchester City in the 2017-18 season. The most total goals in a 
+Premier League season by a player is 34.
+Most total goals in a premier league season by a team?
+Most total goals in a premier league season by a player?
+34
+When do the 2024 NBA playoffs start?
+The 2024 NBA playoffs start on April 20
+Most total goals in a premier league season?
+When are the 2024 NBA playoffs scheduled to begin?
+April 20
+106
+Users
+Our Mo

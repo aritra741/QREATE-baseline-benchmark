@@ -1,0 +1,43 @@
+Invar-RAG: Invariant LLM-aligned Retrieval for Better
+Generation
+ZIWEI LIU∗, City University of Hong Kong, China
+LIANG ZHANG∗, Shenzhen Research Institute of Big Data, China
+QIAN LI, Shenzhen Research Institute of Big Data, China
+JIANGHUA WU, Shenzhen Research Institute of Big Data, China
+GUANGXU ZHU, Shenzhen Research Institute of Big Data, China
+Retrieval-augmented generation (RAG) has stood out as a highly promising technique in numerous domains
+due to its impressive capability of giving reliable answer predictions and addressing the severe hallucination
+problem. Current RAG systems employ powerful retrieval models to extract external information and leverage
+large language models (LLMs) as the generation model. Nevertheless, the differences in the architecture between
+the retriever and generation model have often resulted in notable ineffectiveness, posing a significant obstacle
+to retrieving and predicting the answers. Recently, LLM-based retrieval has demonstrated its exceptional
+effectiveness in information retrieval (IR), delivering substantial improvements via LLMs’ powerful semantic
+understanding capability. However, directly applying LLM to RAG systems poses certain challenges. Its massive
+parametric knowledge impedes the ability to leverage the global information of all the corpus, leading to a scene
+that current LLM-based retriever usually inputs the summary of documents instead of the whole documents,
+which causes the feature locality problem. Moreover, various tasks pre-trained in LLMs induce severe variance,
+which further weakens its performance as the retriever. To address these issues, we propose a novel two-stage
+fine-tuning architecture called Invar-RAG. In the retrieval stage, by introducing representation learning
+leveraging the LoRA structure, we construct a LLM-based retriever to address the feature locality problem.
+Moreover, to consolidate our designed retrieval’s performance, we define two patterns (invariant pattern
+and variant pattern) and propose the invariance loss to eliminate the variance in LLM to some extent. Then,
+for the generation stage, we devise another fine-tuning method to allow our LLM to better leverage the
+retrieved information to generate an accurate answer. Experimental results demonstrate that Invar-RAG
+significantly outperforms existing baselines across three Open-domain Question Answering (ODQA) datasets.
+Our implementation code is available in Supplementary Material to ease reproducibility.
+Additional Key Words and Phrases: LLM, Information Retrieval
+ACM Reference Format:
+Ziwei Liu, Liang Zhang, Qian Li, Jianghua Wu, and Guangxu Zhu. 2018. Invar-RAG: Invariant LLM-aligned
+Retrieval for Better Generation. In Proceedings of Make sure to enter the correct conference title from your rights
+confirmation emai (Conference acronym ’XX). ACM, New York, NY, USA, 16 pages. https://doi.org/XXXXXXX.
+XXXXXXX
+∗Both authors contributed equally to this research.
+Authors’ Contact Information: Ziwei Liu, ziwliu8-c@my.cityu.edu.hk, City University of Hong Kong, Hong Kong, China;
+Liang Zhang, zhangliang@sribd.cn, Shenzhen Research Institute of Big Data, Shenzhen, China; Qian Li, liqian1@cuhk.edu.cn,
+Shenzhen Research Institute of Big Data, Shenzhen, China; Jianghua Wu, wujianghua@sribd.cn, Shenzhen Research Institute
+of Big Data, Shenzhen, China; Guangxu Zhu, gxzhu@sribd.cn, Shenzhen Research Institute of Big Data, Shenzhen, China.
+Permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee
+provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the
+full citation on the first page. Copyrights for components of this work owned by others than the author(s) must be honored.
+Abstracting with credit is permitted. To copy otherwise, or republish, to post on servers or to redistribute to lists, requires
+prior specific permission and/or a fee. Request permissions from permissions

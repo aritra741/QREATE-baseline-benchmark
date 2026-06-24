@@ -1,0 +1,57 @@
+SBI-RAG: Enhancing Math Word Problem Solving for
+Students through Schema-Based Instruction and
+Retrieval-Augmented Generation
+Prakhar Dixit
+Department of Computer Science
+University of Maryland Baltimore County
+pdixit1@umbc.edu
+Tim Oates
+Department of Computer Science
+University of Maryland Baltimore County
+oates@cs.umbc.edu
+Abstract
+Many students struggle with math word problems (MWPs), often finding it difficult
+to identify key information and select the appropriate mathematical operations.
+Schema-based instruction (SBI) is an evidence-based strategy that helps students
+categorize problems based on their structure, improving problem-solving accuracy.
+Building on this, we propose a Schema-Based Instruction Retrieval-Augmented
+Generation (SBI-RAG) framework that incorporates a large language model (LLM).
+Our approach emphasizes step-by-step reasoning by leveraging schemas to guide
+solution generation. We evaluate its performance on the GSM8K dataset, compar-
+ing it with GPT-4 and GPT-3.5 Turbo, and introduce a "reasoning score" metric
+to assess solution quality. Our findings suggest that SBI-RAG enhances reason-
+ing clarity and facilitates a more structured problem-solving process potentially
+providing educational benefits for students.
+1
+Introduction
+Proficiency in solving math word problems (MWPs) is not only measured by students’ ability to
+arrive at the correct solution but also by their capacity to follow a structured, step-by-step reasoning
+process [8]. This approach is vital for developing critical thinking and mathematical reasoning
+abilities, which are essential for tackling complex word problems effectively [18]. Unfortunately,
+many students struggle with word problems, often failing to identify key information or select the
+appropriate operations despite understanding the underlying mathematical concepts. This difficulty
+is a significant barrier to academic success, as highlighted by a survey from the EdWeek Research
+Center, which reported that nearly 50% of students can read a word problem’s text but fail to grasp
+the mathematical question being asked [24]. Consequently, poor problem-solving skills in MWPs
+can lead to academic challenges and even failure in school.
+Word problems, as a core component of the mathematics curriculum, serve an important function
+by fostering logical analysis, mental abilities, and creative thinking. Educators and researchers have
+explored various methods to improve students’ proficiency in solving these problems. One such
+method is Schema-Based Instruction (SBI) [27, 7], an evidence-based approach widely used in the
+field of Mathematics that helps students classify word problems based on their underlying structure or
+schema. SBI has been shown to enhance students’ ability to identify relevant information and apply
+the appropriate mathematical operations for problem-solving. In addition to educational approaches
+like SBI, Intelligent Tutoring Systems (ITSs) have emerged as valuable tools in addressing challenges
+associated with MWPs. ITSs leverage artificial intelligence (AI) and interactive interfaces to provide
+personalized, step-by-step guidance. Examples of ITSs designed for word problem-solving include
+AnimalWatch [2], MathCAL [4], PAT (Pump Algebra Tutor) [15] and HINTS [35]. These systems
+have proven effective in supporting learners by offering feedback, hints, and individualized learning
+paths. However, many ITSs rely on rule-based algorithms and lack the transformative potential
+of more recent AI advancements, like those in Natural Language Processing (NLP) [19] and the
+38th Conference on Neural Information Processing Systems (NeurIPS 2024).
+arXiv:2410.13293v2  [cs.LG]  10 Nov 2024
+development of Large Language Models (LLMs), such as ChatGPT [3], LLaMA 2 [28] and Gemini
+[26].
+LLMs exhibit emergent abilities, such as understanding linguistic nuances, making logical inferences,
+and decomposing tasks into simpler steps, which can be harnessed to scaffold students’ learning
+in math-

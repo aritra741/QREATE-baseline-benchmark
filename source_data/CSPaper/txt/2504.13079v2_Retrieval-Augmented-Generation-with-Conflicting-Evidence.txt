@@ -1,0 +1,73 @@
+Published as a conference paper at COLM 2025
+Retrieval-Augmented Generation with Conflicting Evidence
+Han Wang
+Archiki Prasad
+Elias Stengel-Eskin
+Mohit Bansal
+University of North Carolina at Chapel Hill
+{hwang, archiki, esteng, mbansal}@cs.unc.edu
+Abstract
+Large language model (LLM) agents are increasingly employing retrieval-
+augmented generation (RAG) to improve the factuality of their responses.
+However, in practice, these systems often need to handle ambiguous user
+queries and potentially conflicting information from multiple sources while
+also suppressing inaccurate information from noisy or irrelevant docu-
+ments. Prior work has generally studied and addressed these challenges in
+isolation, considering only one aspect at a time, such as handling ambiguity
+or robustness to noise and misinformation. We instead consider multiple
+factors simultaneously, proposing (i) RAMDocs (Retrieval with Ambiguity
+and Misinformation in Documents), a new dataset that simulates complex
+and realistic scenarios for conflicting evidence for a user query, including
+ambiguity, misinformation, and noise; and (ii) MADAM-RAG, a multi-agent
+approach in which LLM agents debate over the merits of an answer over
+multiple rounds, allowing an aggregator to collate responses correspond-
+ing to disambiguated entities while discarding misinformation and noise,
+thereby handling diverse sources of conflict jointly. We demonstrate the
+effectiveness of MADAM-RAG using both closed and open-source models
+on AmbigDocs – which requires presenting all valid answers for ambigu-
+ous queries – improving over strong RAG baselines by up to 11.40%, and
+on FaithEval – which requires suppressing misinformation – where we
+improve by up to 15.80% (absolute) with Llama3.3-70B-Instruct. Further-
+more, we find that our proposed RAMDocs dataset poses a challenge for
+existing RAG baselines (the most performant Llama3.3-70B-Instruct only
+yields up to a 32.60 exact match score), as it requires handling conflicting
+information due to ambiguity, noise, and misinformation simultaneously.
+While MADAM-RAG begins to address these conflicting factors, our analy-
+sis indicates that a substantial gap remains, especially when increasing the
+level of imbalance in supporting evidence and misinformation.1
+1
+Introduction
+Retrieval-augmented generation (RAG) enables large language models (LLMs) to generate
+more accurate and reliable responses by incorporating retrieved external information (Lewis
+et al., 2020; Guu et al., 2020; Wang et al., 2021), mitigating issues such as hallucination (Zhang
+et al., 2023) and outdated parametric knowledge (Kasai et al., 2023). Indeed, recent LLM
+interfaces and AI-powered search engines, such as ChatGPT (OpenAI, 2024), Claude (An-
+thropic, 2025), Google Search with AI Overviews (Google, 2024b), and Microsoft Bing Chat
+(Microsoft, 2024), have integrated retrieval capabilities that enable them to access vast
+amounts of information from the internet, allowing them to summarize search results and
+provide more accurate and up-to-date answers. This kind of RAG also features promi-
+nently in “deep research” techniques that frame search as an agent-driven process in which
+a research agent collects and summarizes online sources (Google, 2024a; OpenAI, 2025).
+However, a core challenge faced by all of these approaches is that information retrieved
+from the internet can be conflicting, noisy, and unreliable – retrieved documents might contain
+1Our data and code is publicly available at: https://github.com/HanNight/RAMDocs.
+1
+arXiv:2504.13079v2  [cs.CL]  12 Aug 2025
+Published as a conference paper at COLM 2025
+Retrieved Documents
+ Document 3  states 
+Jordan was born in 
+1998. But it 
+conflicts with 
+Agent 1 and 4 …
+ Document 4  does 
+not contain this 
+information.So, I 
+accept Agent 1’s 
+response …
+…  Document 2 , the 
+answer is 1956. But 
+Agent 1 is talking about 
+a basketball player..
+Michael Jeffrey Jordan (born February 17, 1963), also 
+known by his initials MJ, is an Ame

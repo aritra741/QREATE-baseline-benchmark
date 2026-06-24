@@ -1,0 +1,62 @@
+URAG: Implementing a Unified Hybrid RAG for
+Precise Answers in University Admission
+Chatbots – A Case Study at HCMUT
+Long Nguyen[0009−0008−7488−4714] and Tho Quan[0000−0003−0467−6254]
+1 URA Research Group, Faculty of Computer Science and Engineering, Ho Chi Minh
+City University of Technology (HCMUT), Ho Chi Minh City, Vietnam
+2 Vietnam National University Ho Chi Minh City, Ho Chi Minh City, Vietnam
+{long.nguyencse2023,qttho}@hcmut.edu.vn
+Abstract. With the rapid advancement of Artificial Intelligence, partic-
+ularly in Natural Language Processing, Large Language Models (LLMs)
+have become pivotal in educational question-answering systems, espe-
+cially university admission chatbots. Concepts such as Retrieval-Augmented
+Generation (RAG) and other advanced techniques have been developed
+to enhance these systems by integrating specific university data, enabling
+LLMs to provide informed responses on admissions and academic coun-
+seling. However, these enhanced RAG techniques often involve high op-
+erational costs and require the training of complex, specialized mod-
+ules, which poses challenges for practical deployment. Additionally, in
+the educational context, it is crucial to provide accurate answers to pre-
+vent misinformation, a task that LLM-based systems find challenging
+without appropriate strategies and methods. In this paper, we intro-
+duce the Unified RAG (URAG) Framework, a hybrid approach that
+significantly improves the accuracy of responses, particularly for criti-
+cal queries. Experimental results demonstrate that URAG enhances our
+in-house, lightweight model to perform comparably to state-of-the-art
+commercial models. Moreover, to validate its practical applicability, we
+conducted a case study at our educational institution, which received
+positive feedback and acclaim. This study not only proves the effective-
+ness of URAG but also highlights its feasibility for real-world implemen-
+tation in educational settings.
+Keywords: Question-Answering Systems · Retrieval-Augmented Gen-
+eration · University Admission Chatbots.
+1
+Introduction
+Artificial Intelligence (AI) has become a fundamental component of modern
+technological advancements, transforming industries across the board, including
+education [1]. Among AI’s various applications, Natural Language Processing
+(NLP) has proven particularly valuable in the development of chatbots aimed at
+assisting with university admissions and providing comprehensive institutional
+arXiv:2501.16276v1  [cs.CL]  27 Jan 2025
+2
+Long Nguyen et al.
+information [2]. These chatbots play an essential role in enhancing communica-
+tion between universities and prospective students, ensuring that inquiries are
+met with timely and accurate responses.
+Recent breakthroughs in AI, such as the introduction of the Attention Mech-
+anism [3] and the rise of Large Language Models (LLMs), have significantly
+improved the performance of these educational chatbots [4]. LLMs, with their
+ability to generate human-like text and perform complex tasks [5], offer users
+a more interactive and dynamic experience. However, despite these advance-
+ments, a critical challenge remains as LLM-based chatbots are prone to generat-
+ing inaccurate or misleading responses, especially when handling specialized or
+context-specific queries. This issue, commonly referred to as hallucination [6],
+poses significant risks, particularly in high-stakes contexts like university ad-
+missions, where the accuracy of information regarding application deadlines or
+program details is paramount.
+To mitigate these risks, the Retrieval-Augmented Generation (RAG) ap-
+proach has emerged as a potential solution [7]. RAG combines retrieval-based
+mechanisms with generative models, enabling chatbots to consult external sources
+of information before generating responses. While this approach helps reduce
+hallucinations and improves accuracy, early implementations of RAG have faced
+limitations, such as noise in retrieval results, a disconnect between retrie

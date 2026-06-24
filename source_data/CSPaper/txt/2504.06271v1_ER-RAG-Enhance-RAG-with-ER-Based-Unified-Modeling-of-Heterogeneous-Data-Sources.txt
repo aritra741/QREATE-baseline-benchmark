@@ -1,0 +1,89 @@
+ER-RAG: Enhance RAG with ER-Based Unified Modeling of
+Heterogeneous Data Sources
+Yikuan Xia∗1, Jiazun Chen∗1, Yirui Zhan1, Suifeng Zhao1, Weipeng Jiang2,
+Chaorui Zhang2, Wei Han2, Bo Bai†2, Jun Gao†1
+1Key Laboratory of High Confidence Software Technologies, CS, Peking University, Beijing, China
+2Theory Lab, Central Research Institute, 2012 Labs, Huawei Technologies Co., Ltd, Huawei Research, China
+wfl00014@pku.edu.cn,{chenjiazun,zhanyirui}@stu.pku.edu.cn,zsf030826@163.com
+{jiangweipeng,zhang.chaorui,harvey.hanwei,baibo8}@huawei.com,gaojun@pku.edu.cn
+ABSTRACT
+Large language models (LLMs) have demonstrated significant po-
+tential in performing question-answering (QA) tasks. Retrieval-
+augmented generation (RAG) enhances the reliability and precision
+of LLMs through the integration of external evidence beyond their
+training data. The supporting evidence is retrieved from external
+sources, including web pages, databases, and knowledge graphs,
+among other structured and unstructured data sources. While ef-
+fective in many scenarios, current RAG methods require dedicated
+retrieval agents for individual data sources to optimize retrieval
+quality. Such an agent-specific strategy presents significant chal-
+lenges in low-resource or black-box environments and complicates
+operations when evidence is fragmented across sources.
+To address the above limitations, we propose ER-RAG, a frame-
+work designed to enable RAG systems to integrate information
+from multiple heterogeneous data sources. ER-RAG adopts the
+generalized Entity-Relationship (ER) model to represent evidence
+across diverse physical data forms, inspired by the observation
+of restrictive access patterns in the RAG context. The framework
+encapsulates different data sources with ER-based unified applica-
+tion programming interfaces (APIs), allowing entity retrieval and
+relationship querying through standardized 𝐺𝐸𝑇and 𝐽𝑂𝐼𝑁opera-
+tions. Moreover, ER-RAG employs a two-stage generation process
+for API chain construction: in the first stage, a direct preference
+optimization-tuned module identifies optimal sources, and in the
+second stage, a dedicated module generates API chains based on the
+schema of the selected sources. This unified access pattern enables
+ER-RAG to accumulate extensive training samples for module fine-
+tuning while facilitating seamless integration across diverse data
+sources. A previous version of ER-RAG, tailored exclusively to the
+MockAPI and the provided web pages, won first place in all three
+tracks of the 2024 KDDCup CRAG Challenge. Experimental results
+demonstrate that ER-RAG, utilizing an 8B LLM backbone, achieves
+performance comparable to commercial RAG pipelines built on
+state-of-the-art LLM backbones. ER-RAG also surpasses other hy-
+brid source competitors by 3.1% in LLM score and accelerates the
+retrieval process by 5.5X.
+1
+INTRODUCTION
+Large language models (LLMs), typically pre-trained on extensive
+data, have led to significant advancements in various natural lan-
+guage processing tasks, particularly in question-answering (QA)
+systems [5]. Retrieval-augmented generation (RAG) has emerged as
+∗Equal Contribution. †Corresponding Authors.
+Query
+Web Page
+Knowledge 
+Graph
+Database
+Query
+ER Agent
+Retrieve 
+separately
+All Input 
+to LLM
+Web 
+Page
+Knowledge 
+Graph
+Database
+Retrieve from different 
+sources in a uniform way
+Existing
+RAGs
+ER-RAG
+Entity-Relationship (ER) model
+Web Agent
+KG Agent
+SQL Agent
+LLM
+LLM
+Figure 1: Existing RAGs vs. ER-RAG: Traditional RAG creates
+separate agents per source, while ER-RAG uses ER modeling
+to unify integration via ER API.
+an effective approach, requiring minimal to no additional training.
+RAG is particularly valuable when the desired knowledge lies out-
+side the LLMs’ training corpus [18, 45]. Specifically, RAG employs
+a retriever component to search for and extract relevant evidence
+from external data sources. The evidence is then integrated into
+the LLM’s context window to enhance its generation capabilities.
+Real-world RAG

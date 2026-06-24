@@ -1,0 +1,54 @@
+Composing Open-domain Vision with RAG for Ocean
+Monitoring and Conservation
+Sepand Dyanatkar∗, Angran Li, Alexander Dungate
+OnDeck Fisheries AI
+Abstract
+Climate change’s destruction of marine biodiversity is threatening communities and
+economies around the world which rely on healthy oceans for their livelihoods. The
+challenge of applying computer vision to niche, real-world domains such as ocean
+conservation lies in the dynamic and diverse environments where traditional top-
+down learning struggle with long-tailed distributions, generalization, and domain
+transfer. Scalable species identification for ocean monitoring is particularly difficult
+due to the need to adapt models to new environments and identify rare or unseen
+species. To overcome these limitations, we propose leveraging bottom-up, open-
+domain learning frameworks as a resilient, scalable solution for image and video
+analysis in marine applications. Our preliminary demonstration uses pretrained
+vision-language models (VLMs) combined with retrieval-augmented generation
+(RAG) as grounding, leaving the door open for numerous architectural, training
+and engineering optimizations. We validate this approach through a preliminary
+application in classifying fish from video onboard fishing vessels, demonstrating
+impressive emergent retrieval and prediction capabilities without domain-specific
+training or knowledge of the task itself.
+1
+Introduction
+Reliable and timely data is critical for addressing climate challenges driving global biodiversity
+collapse, and threatening 3 billion livelihoods that depend on healthy oceans [5]. Thousands of
+cameras are deployed around the world underwater, on drones, on fishing vessels, and via satellite
+to monitor marine life and inform critical management tasks. The scale of the data they produce is
+already impossible for humans to handle. In fisheries monitoring alone, thousands of hours of video
+are generated per boat, making its manual review crushingly slow, not scalable, and unaffordable. [29].
+Automated processing of visual data brings key insights about marine activity at an unprecedented
+scale. Traditional vision approaches, such as CNNs and basic vision transformers [13, 3], require
+extensive retraining for new environments and perform poorly when faced with rare or unseen
+species. These top-down methods struggle with generalization, domain transfer, and handling
+long-tailed distributions, and are infeasible for scalable ocean applications. Generalizable species
+identification stands to revolutionize marine management by providing comprehensive data on marine
+life distribution and their responses to climate change - vital for management of sustainable fisheries,
+invasive species, carbon sequestration, and ecosystem health.
+To overcome these challenges, we propose leveraging bottom-up, open-domain learning frameworks
+as a scalable and resilient solution, where knowledge about tuna species or oil spills are connected in
+a modular way, even after deployment. In this proposal, we show one accessible method for grounded,
+open-domain vision and highlight the promise of vision-language models (VLMs) combined with
+retrieval-augmented generation (RAG) [2, 26, 4, 17, 30]. This approach enhances generalization
+∗Corresponding author: sepand@ondeck-ai.com. Website: https://ondeck.fish
+Tackling Climate Change with Machine Learning: workshop at NeurIPS 2024.
+arXiv:2412.02262v1  [cs.CV]  3 Dec 2024
+across diverse environments and enables accurate identification of unseen species by integrating
+external knowledge during inference.
+2
+Related Work
+Traditional vision methods such as convolutional neural networks (CNNs), single-stage detectors,
+and vision transformers [7, 24, 3] have been the cornerstone of visual recognition. These top-down
+methods have shown reliable performance in closed-set, uni-domain climate applications, including
+environmental monitoring [21, 20, 1]. However, their effectiveness diminishes in generalized climate
+applications w

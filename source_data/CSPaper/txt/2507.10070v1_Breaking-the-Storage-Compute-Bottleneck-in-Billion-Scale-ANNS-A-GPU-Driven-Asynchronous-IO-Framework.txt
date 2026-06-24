@@ -1,0 +1,78 @@
+Breaking the Storage-Compute Bottleneck in Billion-Scale ANNS:
+A GPU-Driven Asynchronous I/O Framework
+Yang Xiao, Mo Sun, Ziyu Song
+Zhejiang University
+Hangzhou, China
+12221061,sunmo,songziyu@zju.edu.cn
+Bing Tian
+Huazhong University of Science and
+Technology
+Wuhan, China
+tbing@hust.edu.cn
+Jie Zhang, Jie Sun, Zeke Wang
+Zhejiang University
+Hangzhou, China
+carlzhang4,jiesun,wangzeke@zju.edu.cn
+ABSTRACT
+With the advancement of information retrieval, recommendation
+systems, and Retrieval-Augmented Generation (RAG), Approximate
+Nearest Neighbor Search (ANNS) gains widespread applications due
+to its higher performance and accuracy. While several disk-based
+ANNS systems have emerged to handle exponentially growing vec-
+tor datasets, they suffer from suboptimal performance due to two
+inherent limitations: 1) failing to overlap SSD accesses with dis-
+tance computation processes and 2) extended I/O latency caused
+by suboptimal I/O Stack. To address these challenges, we present
+FlashANNS, a GPU-accelerated out-of-core graph-based ANNS sys-
+tem through I/O-compute overlapping. Our core insight lies in the
+synchronized orchestration of I/O and computation through three
+key innovations: 1) Dependency-Relaxed asynchronous pipeline:
+FlashANNS decouples I/O-computation dependencies to fully over-
+lap between GPU distance calculations and SSD data transfers.
+2) Warp-Level concurrent SSD access: FlashANNS implement a
+lock-free I/O stack with warp-level concurrency control, to reduce
+the latency-induced time overhead. 3) Computation-I/O balanced
+graph degree Selection: FlashANNS selects graph degrees via light-
+weight compute-to-I/O ratio sampling, ensuring optimal balance
+between computational load and storage access latency across dif-
+ferent I/O bandwidth configurations. We implement FlashANNS
+and compare it with state-of-the-art out-of-core ANNS systems
+(SPANN, DiskANN) and a GPU-accelerated out-of-core ANNS sys-
+tem (FusionANNS). Experimental results demonstrate that at ≥95%
+recall@10 accuracy, our method achieves 2.3–5.9× higher through-
+put compared to existing SOTA methods with a single SSD, and
+further attains 2.7–12.2× throughput improvement in multi-SSD
+configurations.
+PVLDB Reference Format:
+Yang Xiao, Mo Sun, Ziyu Song, Bing Tian, and Jie Zhang, Jie Sun, Zeke
+Wang. Breaking the Storage-Compute Bottleneck in Billion-Scale ANNS: A
+GPU-Driven Asynchronous I/O Framework. PVLDB, 14(1): XXX-XXX,
+2020.
+doi:XX.XX/XXX.XX
+PVLDB Artifact Availability:
+This work is licensed under the Creative Commons BY-NC-ND 4.0 International
+License. Visit https://creativecommons.org/licenses/by-nc-nd/4.0/ to view a copy of
+this license. For any use beyond those covered by this license, obtain permission by
+emailing info@vldb.org. Copyright is held by the owner/author(s). Publication rights
+licensed to the VLDB Endowment.
+Proceedings of the VLDB Endowment, Vol. 14, No. 1 ISSN 2150-8097.
+doi:XX.XX/XXX.XX
+The source code, data, and/or other artifacts have been made available at
+https://github.com/Tinkerver/ann_search.
+1
+INTRODUCTION
+Approximate Nearest Neighbor Search (ANNS) refers to a set of
+methods for finding the top-k vectors most similar to a given query
+vector in a high-dimensional vector dataset. ANNS is widely applied
+in various domains, including information retrieval [11, 24, 26, 37,
+56], recommendation systems [14, 45, 52] and large language mod-
+els [15, 28, 31, 35, 54]. Its primary goal is to address the challenge
+of slow exact search when performing on large-scale datasets or
+high-dimensional vectors, by sacrificing some search precision in
+exchange for faster retrieval times.
+Various ANNS implementations utilize the indexing techniques
+such as trees [10, 46, 48], Locality-Sensitive Hashing (LSH) [4, 27,
+59], graphs [19, 40, 43], and Inverted File (IVF) [6, 13, 33] indices
+for vector search. To handle the datasets at the scale of billions
+of vectors, previous implementations use inverted file indexing to
+minimize memory footprint, and thus store th

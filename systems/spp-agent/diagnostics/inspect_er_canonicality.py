@@ -34,6 +34,9 @@ DATASET_GT = {
     "Art": {
         "art": ("Data/Art/Art.csv", "Name"),
     },
+    "CSPaper": {
+        "cspaper": ("Data/CSPaper/CSPaper.csv", "paper_name"),
+    },
 }
 
 

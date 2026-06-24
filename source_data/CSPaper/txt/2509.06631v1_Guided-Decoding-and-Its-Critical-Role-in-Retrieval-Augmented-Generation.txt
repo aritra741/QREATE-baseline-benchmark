@@ -1,0 +1,73 @@
+Guided Decoding and Its Critical Role in
+Retrieval-Augmented Generation
+Özgür U˘gur, Musa Yılmaz, Esra ¸Savirdi,
+Özay Ezerceli, Mahmut El Huseyni, Selva Ta¸s, Reyhan Bayraktar
+Newmind AI
+Istanbul, Türkiye
+{ougur, myilmaz, esavirdi, oezerceli, mehussieni, stas, rbayraktar}@newmind.ai
+Abstract—The integration of Large Language Models (LLMs)
+into various applications has driven the need for structured
+and reliable responses. A key challenge in Retrieval-Augmented
+Generation (RAG) systems is ensuring that outputs align with
+expected formats while minimizing hallucinations. This study
+examines the role of guided decoding in RAG systems, comparing
+three methods, Outlines, XGrammar, and LM Format Enforcer,
+across different multi-turn prompting setups (0-turn, 1-turn, and
+2-turn). By evaluating success rates, hallucination rates, and
+output quality, we provide insights into their performance and
+applicability. Our findings reveal how multi-turn interactions
+influence guided decoding, uncovering unexpected performance
+variations that can inform method selection for specific use cases.
+This work advances the understanding of structured output
+generation in RAG systems, offering both theoretical insights and
+practical guidance for LLM deployment.
+Keywords—retrieval-augmented generation, guided decoding,
+large language models, structured output, outlines, xgrammar,
+lm format enforcer, finite-state machines, context-free grammar,
+hallucination reduction
+I. INTRODUCTION
+The rapid rise of Large Language Models (LLMs) has
+transformed natural language processing, enabling applications
+across diverse domains such as question-answering, content
+generation, and conversational systems. However, a persis-
+tent challenge lies in ensuring that LLM outputs adhere to
+specific structural formats, a critical requirement for practical
+applications like data integration, API compatibility, and au-
+tomated workflows. Retrieval-Augmented Generation (RAG),
+introduced by [1], enhances LLMs by incorporating external
+knowledge retrieval, thereby improving factual accuracy and
+contextual relevance. Although RAG addresses some limita-
+tions of standalone LLMs, it does not inherently guarantee
+structured output, which remain essential to meet user-defined
+constraints in real-world scenarios. Recent research under-
+scores this gap; authors in [2] highlight the industry’s growing
+demand for user-centered, restricted LLM outputs.
+To bridge this gap, guided decoding backends have
+emerged as a promising solution, restricting LLM output to
+predefined formats or grammars. These methods leverage tech-
+niques such as finite-state machines, pushdown automata, or
+character-level enforcement to ensure compliance with struc-
+tural requirements. For example, authors introduces Outlines
+[3], a method that employs finite-state machines for efficient
+and structured text generation. Similarly, other approaches such
+as XGrammar [4] and LM Format Enforcer [5] offer flexible
+mechanisms to enforce complex formats like JSON or domain-
+specific schemas, enhancing LLM utility in structured contexts.
+II. RELATED WORK
+The development of RAG and guided decoding methods
+builds on a rich foundation of research aimed at enhancing
+the capabilities of LLMs. This section reviews prior studies
+relevant to our investigation, focusing on RAG, the challenge
+of structured outputs, and the guided decoding techniques
+evaluated in this study.
+Structured Outputs in LLMs. The importance of struc-
+tured outputs has gained increasing attention as LLMs are de-
+ployed in practical settings requiring specific formats, such as
+JSON, YAML, or domain-specific schemas. Industry insights
+[2] highlight that unconstrained outputs often fall short in tasks
+like data processing and API integration. Therefore, enforcing
+structural constraints is essential, making guided decoding a
+critical area of study.
+Guided Decoding Methods. Guided decoding backends
+constrain LLM outputs to predefined formats, addressing the
+limitation

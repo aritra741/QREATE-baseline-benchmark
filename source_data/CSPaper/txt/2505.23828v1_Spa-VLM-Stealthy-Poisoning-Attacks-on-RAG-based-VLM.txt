@@ -1,0 +1,99 @@
+Spa-VLM: Stealthy Poisoning Attacks on
+RAG-based VLM
+Lei Yu1, Yechao Zhang1, Ziqi Zhou1, Yang Wu1, Wei Wan1, Minghui Li1, Shengshan Hu1, Pei Xiaobing1, Jing Wang1
+1Huazhong University of Science and Technology, Wuhan, China
+{yulei, ycz, zhouziqi, yungwu, wanwei_0303, minghuili, hushengshan, xiaobingp, cswjing}@hust.edu.cn
+Abstract—With the rapid development of the Vision-Language
+Model (VLM), significant progress has been made in Visual
+Question Answering (VQA) tasks. However, existing VLM of-
+ten generate inaccurate answers due to a lack of up-to-date
+knowledge. To address this issue, recent research has introduced
+Retrieval-Augmented Generation (RAG) techniques, commonly
+used in Large Language Models (LLM), into VLM, incorporating
+external multi-modal knowledge to enhance the accuracy and
+practicality of VLM systems. Nevertheless, the RAG in LLM
+may be susceptible to data poisoning attacks. RAG-based VLM
+may also face the threat of this attack. This paper first reveals
+the vulnerabilities of the RAG-based large model under poisoning
+attack, showing that existing single-modal RAG poisoning attacks
+have a 100% failure rate in multi-modal RAG scenarios. To
+address this gap, we propose Spa-VLM (Stealthy Poisoning
+Attack on RAG-based VLM), a new paradigm for poisoning
+attacks on large models. We carefully craft malicious multi-modal
+knowledge entries, including adversarial images and misleading
+text, which are then injected into the RAG’s knowledge base.
+When users access the VLM service, the system may generate
+misleading outputs. We evaluate Spa-VLM on two Wikipedia
+datasets and across two different RAGs. Results demonstrate that
+our method achieves highly stealthy poisoning, with the attack
+success rate exceeding 0.8 after injecting just 5 malicious entries
+into knowledge bases with 100K and 2M entries, outperforming
+state-of-the-art poisoning attacks designed for RAG-based LLMs.
+Additionally, we evaluated several defense mechanisms, all of
+which ultimately proved ineffective against Spa-VLM, underscor-
+ing the effectiveness and robustness of our attack.
+Index
+Terms—Vision-Language
+Model
+(VLM),
+Retrieval-
+Augmented Generation (RAG), Data Poisoning Attack, Knowl-
+edge Base Security.
+I. INTRODUCTION
+With the advancement of VLM, VQA technology has made
+significant progress, enabling machines to understand and
+answer questions. However, these VLM lack up-to-date knowl-
+edge since they are pre-trained on past data and often exhibit
+hallucination behavior [1], generating inaccurate answers. In
+specific domains such as politics, history, culture, healthcare
+[2], [3], law [4], [5], and scientific research [6]–[8], these
+limitations pose significant challenges for practical applica-
+tions. Consequently, recent studies in VQA tend to incorporate
+external, up-to-date multi-modal knowledge databases, such as
+political historical facts, detailed object attributes, or specific
+contextual information not apparent in visual content. Some
+researchers [9] have developed RAG-based VLM systems to
+enhance the performance by retrieving external knowledge
+databases. Such methods not only improve the accuracy of
+Input
+Retrieve
+Knowledge Base
+...
+Qp:
+Qt :  Is it legal to kill and eat this animal?
+Retrieved Topk wiki 
+sections
+Reranked 
+sections
+Context: ...Eating chicken is not against 
+the law...
+Question: Is it legal to kill and eat this 
+animal? 
+Please answer the question based on the 
+context.
+Answer: Yes, chicken is a common food , 
+you can eat it.
+Output
+Vision 
+Retriever
+Text 
+Reranker
+User
+Input
+LLM
+Poisonous Picture
+Poisonous 
+Text
+①
+②
+③
+④
+Fig. 1: Workflow of RAG-based VLM.
+VLM on complex background and detail-oriented questions
+but also maintain higher practicality in dynamically changing
+fields.
+In a RAG-based VLM system [9], the interaction pro-
+cess between users and service providers consists of four
+main components: a knowledge database, a visual retriever,
+a reranker, and a LLM, as shown in Figure 1. Users provide
+images and questions

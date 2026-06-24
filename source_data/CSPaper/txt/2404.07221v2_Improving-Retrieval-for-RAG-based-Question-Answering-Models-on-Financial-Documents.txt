@@ -1,0 +1,61 @@
+Improving Retrieval for RAG based Question
+Answering Models on Financial Documents
+Spurthi Setty, Harsh Thakkar, Alyssa Lee, Eden Chung, Natan Vidra
+Abstract
+The effectiveness of Large Language Models (LLMs) in generating ac-
+curate responses relies heavily on the quality of input provided, particu-
+larly when employing Retrieval Augmented Generation (RAG) techniques.
+RAG enhances LLMs by sourcing the most relevant text chunk(s) to base
+queries upon. Despite the significant advancements in LLMs’ response
+quality in recent years, users may still encounter inaccuracies or irrelevant
+answers; these issues often stem from suboptimal text chunk retrieval by
+RAG rather than the inherent capabilities of LLMs. To augment the effi-
+cacy of LLMs, it is crucial to refine the RAG process. This paper explores
+the existing constraints of RAG pipelines and introduces methodologies
+for enhancing text retrieval. It delves into strategies such as sophisticated
+chunking techniques, query expansion, the incorporation of metadata an-
+notations, the application of re-ranking algorithms, and the fine-tuning of
+embedding algorithms. Implementing these approaches can substantially
+improve the retrieval quality, thereby elevating the overall performance
+and reliability of LLMs in processing and responding to queries.
+1
+Introduction
+In recent years, the emergence of Large Language Models (LLMs) represent a
+critical turning point in Generative AI and its ability to expedite productivity
+across a variety domains. However, the capabilities of these models, while im-
+pressive, are limited in a number of ways that have hindered certain industries
+from being able to take full advantage of the potential of this technology. A key
+disadvantage is the tendency for LLMs to hallucinate information and its lack
+of knowledge in domain specific areas. The knowledge of LLMs are limited by
+their training data, and without the use of additional techniques, these models
+have very poor performance of very domain specific tasks.
+In order to develop a large language model, the first step is the pre-training
+process where a transformer is trained on a very large corpus of text data. This
+data is very general and not specific to a certain domain or field, as well as un-
+changing with time. This is a reason why LLMs like ChatGPT might perform
+well for general queries but fail on questions on more specific and higher-level
+1
+arXiv:2404.07221v2  [cs.IR]  1 Aug 2024
+topics. Additionally, a model’s performance about a certain topic is highly de-
+pendent on how often that information appears in the training data, meaning
+that LLMs struggle with information that does not appear frequently. 1 This is
+the case for most domain-specific information, such as financial information and
+expertise, which is why standard LLMs have poor performance with domain-
+specific questions.
+The concept of knowledge injection refers to the ability to give the model access
+to information beyond its original training data, and the main way we can
+improve the performance of large language models on domain-specific tasks.
+The two primary techniques of knowledge injection are additional training of
+the model or fine-tuning, or in-context learning, the most popular version of
+which is Retrieval Augmented Generation (RAG).
+1.1
+Fine-tuning
+Fine-tuning is the process of updating model parameters for specific tasks and
+domains. Through fine-tuning one can further train a LLM on a domain-specific
+dataset so that it has access to additional information not present in the original
+training data. Fine-tuning also enables us to train the model to get consistent
+outputs via instruction fine-tuning. The three main methods of fine-tuning are
+unsupervised fine-tuning, supervised fine-tuning, and reinforcement learning. In
+our previous work, we examined the method of using supervised fine-tuning to
+improve several different models on finance-specific questions. Supervised fine-
+tuning, particularly instruction fine-tuning is

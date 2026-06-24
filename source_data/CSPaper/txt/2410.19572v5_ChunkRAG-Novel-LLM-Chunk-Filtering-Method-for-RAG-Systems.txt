@@ -1,0 +1,107 @@
+ChunkRAG: A Novel LLM-Chunk Filtering Method for RAG Systems
+Ishneet Sukhvinder Singh
+Ritvik Aggarwal
+Ibrahim Allahverdiyev
+Muhammad Taha
+Aslihan Akalin
+Kevin Zhu
+Sean O’Brien
+Algoverse AI Research
+kevin@algoverse.us, seobrien@ucsd.edu
+Abstract
+Retrieval-Augmented
+Generation
+(RAG)
+frameworks leveraging large language models
+(LLMs) frequently retrieve extraneous or
+weakly
+relevant
+information,
+leading
+to
+factual inaccuracies and hallucinations in
+generated responses.
+Existing document-
+level retrieval approaches lack sufficient
+granularity to effectively filter non-essential
+content. This paper introduces ChunkRAG, a
+retrieval framework that refines information
+selection through semantic chunking and
+chunk-level evaluation. ChunkRAG applies
+a dynamic greedy aggregation strategy to
+segment documents into semantically coherent,
+variable-length sections based on cosine sim-
+ilarity. Empirical evaluations on the PopQA,
+PubHealth and Biography dataset indicate
+that ChunkRAG improves response accuracy
+over state-of-the-art RAG methods.
+The
+analysis further demonstrates that chunk-level
+filtering reduces redundant and weakly related
+information, enhancing the factual consistency
+of responses. By incorporating fine-grained
+retrieval mechanisms, ChunkRAG provides
+a scalable and domain-agnostic approach to
+mitigate hallucinations in knowledge-intensive
+tasks such as fact-checking and multi-hop
+reasoning.
+1
+Introduction
+LLMs combined with retrieval-augmented genera-
+tion (RAG) have improved AI systems’ ability to
+generate informed responses using external knowl-
+edge. While promising for knowledge-intensive
+tasks, RAG systems often struggle with retrieving
+irrelevant or weakly relevant content. Despite using
+techniques like re-ranking and query rewriting, this
+limitation leads to factual errors and hallucinations
+in the generated outputs.
+Current RAG systems often retrieve large doc-
+ument segments, assuming more content means
+better coverage. However, this overlooks the need
+Figure 1: Comparison of Response Generation With
+and Without Chunk Filtering
+to evaluate smaller sections independently, leading
+to the inclusion of irrelevant information. LLMs’
+inability to verify factual accuracy compounds this
+issue, reducing RAG reliability in applications like
+question answering and decision-making (Ji et al.,
+2022).
+Figure 1 illustrates the impact of chunk filtering
+on response generation. Without chunk filtering
+(top), irrelevant information, such as references
+to other French cities, is incorporated into the re-
+sponse. In contrast, LLM-driven chunk filtering
+(bottom) removes unnecessary content, yielding a
+precise response: "The capital of France is Paris."
+Recent approaches like CRAG and Self-RAG (Yan
+et al., 2024; Asai et al., 2023) have tried to improve
+retrieval accuracy through corrective retrieval and
+self-reflection mechanisms. However, these meth-
+ods still operate at the document level, failing to
+adequately filter individual text chunks. This granu-
+larity issue (Jimeno-Yepes et al., 2024) leaves RAG
+systems susceptible to misleading information.
+We propose ChunkRAG, a novel approach of
+arXiv:2410.19572v5  [cs.CL]  23 Apr 2025
+LLM-driven chunk filtering. This framework oper-
+ates at a finer level of granularity than traditional
+systems by supporting chunk-level filtering of re-
+trieved information. Rather than determining the
+relevance of entire documents, our framework eval-
+uates both the user query and the individual chunks
+within the retrieved chunks. The large language
+model assesses the semantic relevance of each
+chunk in relation to the user’s query, thereby en-
+abling the system to filter out irrelevant or weakly
+related chunks before they reach the generation
+stage.This approach shows particular promise for
+knowledge-intensive tasks, such as multi-hop rea-
+soning (Liu et al., 2025) and fact-checking (Zhong
+et al., 2024; Zhang and Gao, 2024).
+2
+Related Works
+2.1
+Addressing Hallucinations in Large
+Language Models
+Large lang

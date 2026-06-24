@@ -1,0 +1,92 @@
+Unveiling Knowledge Utilization Mechanisms in LLM-based
+Retrieval-Augmented Generation
+Yuhao Wang∗†
+yh.wang500@outlook.com
+GSAI, Renmin University of
+China
+Beijing, China
+Ruiyang Ren∗
+reyon_ren@outlook.com
+GSAI, Renmin University of
+China
+Beijing, China
+Yucheng Wang
+wangyucheng01@baidu.com
+Baidu Inc.
+Beijing, China
+Wayne Xin Zhao‡
+batmanfly@gmail.com
+GSAI, Renmin University of
+China
+Beijing, China
+Jing Liu‡
+liujing46@baidu.com
+Baidu Inc.
+Beijing, China
+Hua Wu
+wu_hua@baidu.com
+Baidu Inc.
+Beijing, China
+Haifeng Wang
+wanghaifeng@baidu.com
+Baidu Inc.
+Beijing, China
+Abstract
+Considering the inherent limitations of parametric knowledge
+in large language models (LLMs), retrieval-augmented generation
+(RAG) is widely employed to expand their knowledge scope. Since
+RAG has shown promise in knowledge-intensive tasks like open-
+domain question answering, its broader application to complex
+tasks and intelligent assistants has further advanced its utility. De-
+spite this progress, the underlying knowledge utilization mecha-
+nisms of LLM-based RAG remain underexplored. In this paper, we
+present a systematic investigation of the intrinsic mechanisms by
+which LLMs integrate internal (parametric) and external (retrieved)
+knowledge in RAG scenarios. Specially, we employ knowledge
+stream analysis at the macroscopic level, and investigate the func-
+tion of individual modules at the microscopic level. Drawing on
+knowledge streaming analyses, we decompose the knowledge uti-
+lization process into four distinct stages within LLM layers: knowl-
+edge refinement, knowledge elicitation, knowledge expression, and
+knowledge contestation. We further demonstrate that the relevance
+of passages guides the streaming of knowledge through these stages.
+At the module level, we introduce a new method, knowledge activa-
+tion probability entropy (KAPE) for neuron identification associated
+with either internal or external knowledge. By selectively deactivat-
+ing these neurons, we achieve targeted shifts in the LLM’s reliance
+on one knowledge source over the other. Moreover, we discern
+complementary roles for multi-head attention and multi-layer per-
+ceptron layers during knowledge formation. These insights offer a
+∗Equal Contributions.
+†The work was done during the internship at Baidu.
+‡Corresponding Authors.
+Permission to make digital or hard copies of all or part of this work for personal or
+classroom use is granted without fee provided that copies are not made or distributed
+for profit or commercial advantage and that copies bear this notice and the full citation
+on the first page. Copyrights for components of this work owned by others than the
+author(s) must be honored. Abstracting with credit is permitted. To copy otherwise, or
+republish, to post on servers or to redistribute to lists, requires prior specific permission
+and/or a fee. Request permissions from permissions@acm.org.
+SIGIR ’25, July 13–18, 2025, Padua, Italy
+© 2025 Copyright held by the owner/author(s). Publication rights licensed to ACM.
+ACM ISBN 979-8-4007-1592-1/2025/07
+https://doi.org/10.1145/3726302.3730112
+foundation for improving interpretability and reliability in retrieval-
+augmented LLMs, paving the way for more robust and transparent
+generative solutions in knowledge-intensive domains.
+CCS Concepts
+• Computing methodologies →Natural language processing.
+Keywords
+Retrieval-Augmented Generation, Knowledge Utilization, Large
+Language Models
+ACM Reference Format:
+Yuhao Wang, Ruiyang Ren, Yucheng Wang, Wayne Xin Zhao, Jing Liu, Hua
+Wu, and Haifeng Wang. 2025. Unveiling Knowledge Utilization Mechanisms
+in LLM-based Retrieval-Augmented Generation. In Proceedings of the 48th
+International ACM SIGIR Conference on Research and Development in Infor-
+mation Retrieval (SIGIR ’25), July 13–18, 2025, Padua, Italy. ACM, New York,
+NY, USA, 10 pages. https://doi.org/10.1145/3726302.3730112
+1
+Introduction
+Despite advanced capabilities, large language models (LLMs) [2,
+42] often struggle with knowledge-intensiv

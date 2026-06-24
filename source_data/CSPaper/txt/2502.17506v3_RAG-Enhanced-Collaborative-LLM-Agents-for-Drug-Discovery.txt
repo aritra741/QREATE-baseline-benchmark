@@ -1,0 +1,72 @@
+RAG-Enhanced Collaborative LLM Agents for Drug Discovery
+Namkyeong Lee1 2 *, Edward De Brouwer2, Ehsan Hajiramezanali2,
+Tommaso Biancalani2, Chanyoung Park1 †, Gabriele Scalia2 †
+1 KAIST, {namkyeong96, cy.park}@kaist.ac.kr
+2 Genentech, {debroue1, hajiramm, biancalt, scaliag}@gene.com
+Abstract
+Recent advances in large language models (LLMs) have
+shown great potential to accelerate drug discovery. How-
+ever, the specialized nature of biochemical data often ne-
+cessitates costly domain-specific fine-tuning, posing major
+challenges. First, it hinders the application of more flex-
+ible general-purpose LLMs for cutting-edge drug discov-
+ery tasks. More importantly, it limits the rapid integration
+of the vast amounts of scientific data continuously gener-
+ated through experiments and research. Compounding these
+challenges is the fact that real-world scientific questions
+are typically complex and open-ended, requiring reasoning
+beyond pattern matching or static knowledge retrieval. To
+address these challenges, we propose CLADD, a retrieval-
+augmented generation (RAG)-empowered agentic system tai-
+lored to drug discovery tasks. Through the collaboration
+of multiple LLM agents, CLADD dynamically retrieves in-
+formation from biomedical knowledge bases, contextualizes
+query molecules, and integrates relevant evidence to generate
+responses — all without the need for domain-specific fine-
+tuning. Crucially, we tackle key obstacles in applying RAG
+workflows to biochemical data, including data heterogene-
+ity, ambiguity, and multi-source integration. We demonstrate
+the flexibility and effectiveness of this framework across a
+variety of drug discovery tasks, showing that it outperforms
+general-purpose and domain-specific LLMs as well as tradi-
+tional deep learning approaches. Our code is publicly avail-
+able at https://github.com/Genentech/CLADD.
+1
+Introduction
+Large language models (LLM) have revolutionized the land-
+scape of natural language processing, emerging as general-
+purpose foundation models with remarkable abilities across
+multiple domains (Achiam et al. 2023; Touvron et al. 2023).
+In particular, their application in biomolecular studies has
+recently gained significant interest, motivated by the poten-
+tial to profoundly accelerate scientific innovation and drug
+discovery applications (Zhang et al. 2024; Pei et al. 2024).
+LLMs provide novel ways to understand and reason about
+molecular data, building on the wealth of available scien-
+tific literature. Additionally, their reasoning and zero-shot
+*Work done while the author was an intern at Genentech.
+†Corresponing Author
+Copyright © 2026, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+abilities help overcome the limitations of task-specific deep
+learning models, streamlining data needs and improving
+human-AI collaboration (Fang et al. 2023).
+However, given the inherent complexity and specialized
+nature of the field, recent works emphasize the importance
+of domain-specific fine-tuning to boost tasks such as molec-
+ular captioning, property prediction, or binding affinity pre-
+diction (Fang et al. 2023; Chaves et al. 2024; Yu et al. 2024;
+Edwards et al. 2024). Consequently, rather than employ-
+ing readily available general-purpose LLMs, most efforts in
+drug discovery have focused on fine-tuning LLMs using bio-
+chemical annotations or instruction-tuning datasets.
+While promising, solely relying on these approaches
+poses significant challenges that can limit applications. On
+one hand, the rapid emergence of new LLM architectures
+and techniques (Minaee et al. 2024) complicates maintain-
+ing domain-specific models through expensive fine-tuning.
+More importantly, drug discovery applications often require
+promptly incorporating new insights as they become avail-
+able, for example, through new experiments or the scientific
+literature. In addition to being impractical, regular rounds
+of fine-tuning also introduce challenges such as catastrophic

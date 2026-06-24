@@ -1,0 +1,64 @@
+Prompt-RAG: Pioneering Vector Embedding-Free Retrieval-Augmented 
+Generation in Niche Domains, Exemplified by Korean Medicine 
+ 
+Bongsu Kang1, Jundong Kim1, Tae-Rim Yun1, Chang-Eop Kim1, 2, * 
+ 
+1Department of Physiology, College of Korean Medicine, Gachon University, Seongnam, Gyeonggi, 
+Republic of Korea 
+2Department of Neurobiology, Stanford University School of Medicine, Stanford, California, USA 
+ 
+* Corresponding Author: Chang-Eop Kim 
+Email: eopchang@gachon.ac.kr 
+ 
+ 
+ 
+ 
+ 
+ABSTRACT 
+ 
+We propose a natural language prompt-based retrieval augmented generation (Prompt-RAG), a novel 
+approach to enhance the performance of generative large language models (LLMs) in niche domains. 
+Conventional RAG methods mostly require vector embeddings, yet the suitability of generic LLM-
+based embedding representations for specialized domains remains uncertain. To explore and exemplify 
+this point, we compared vector embeddings from Korean Medicine (KM) and Conventional Medicine 
+(CM) documents, finding that KM document embeddings correlated more with token overlaps and less 
+with human-assessed document relatedness, in contrast to CM embeddings. Prompt-RAG, distinct from 
+conventional RAG models, operates without the need for embedding vectors. Its performance was 
+assessed through a Question-Answering (QA) chatbot application, where responses were evaluated for 
+relevance, readability, and informativeness. The results showed that Prompt-RAG outperformed 
+existing models, including ChatGPT and conventional vector embedding-based RAGs, in terms of 
+relevance and informativeness. Despite challenges like content structuring and response latency, the 
+advancements in LLMs are expected to encourage the use of Prompt-RAG, making it a promising tool 
+for other domains in need of RAG methods. 
+ 
+Keywords: Retrieval augmented generation, Natural language process, Korean medicine, 
+Conversational AI, Question-answering, GPT 
+ 
+ 
+ 
+ 
+ 
+2 
+1. Introduction 
+Retrieval-Augmented Generation (RAG) models combine a generative model with an information 
+retrieval function, designed to overcome the inherent constraints of generative models.(1) They 
+integrate the robustness of a large language model (LLM) with the relevance and up-to-dateness of 
+external information sources, resulting in responses that are not only natural and human-like but also 
+the latest, accurate, and contextually relevant to the query.(1-4) The interaction of the two modules 
+(retrieval and generation) enables responses that would not be achievable with either module alone, 
+making RAG more than just the sum of its components. This approach represents a significant milestone 
+in the field of generative models by enabling the induction of high-quality responses in less-explored 
+domains at a low expense.(5, 6)  
+In the conventional RAG operation, the initial step involves converting input queries into vector 
+embeddings, which are then used to retrieve relevant data from the vectorized database. Following this, 
+the generative part of RAG utilizes the retrieved external data for producing contextually rich 
+responses.(7) Thus, both the embedding and generative models are considered crucial factors in the 
+performance of RAG, directly affecting the retrieval process.(8) However, in niche domains, the 
+performance of generic LLM-based embedding models appears suboptimal compared to their 
+effectiveness in more general fields. The lack of specialized training data in these domains results in 
+embeddings that do not adequately capture the nuances and specificity of the domain(9), leading to less 
+accurate and contextually relevant information retrieval. Despite the evident presence of these 
+functional limitations, they have not been much identified through experiments, therefore the optimality 
+of the conventional LLM-based vector embedding RAG methods for niche domains has remained in 
+obscurity. Researchers have been aware of these shortcomings of LLMs and have explored 
+supplementary

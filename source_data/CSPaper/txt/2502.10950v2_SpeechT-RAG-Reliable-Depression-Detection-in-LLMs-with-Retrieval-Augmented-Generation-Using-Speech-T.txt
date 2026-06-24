@@ -1,0 +1,83 @@
+SpeechT-RAG: Reliable Depression Detection in LLMs with
+Retrieval-Augmented Generation Using Speech Timing Information
+Xiangyu Zhang1, Hexin Liu2∗, Qiquan Zhang1, Beena Ahmed1, Julien Epps1
+The University of New South Wales1, Nanyang Technological University2
+Abstract
+Large Language Models (LLMs) have been in-
+creasingly adopted for health-related tasks, yet
+their performance in depression detection re-
+mains limited when relying solely on text input.
+While Retrieval-Augmented Generation (RAG)
+typically enhances LLM capabilities, our ex-
+periments indicate that traditional text-based
+RAG systems struggle to significantly improve
+depression detection accuracy. This challenge
+stems partly from the rich depression-relevant
+information encoded in acoustic speech pat-
+terns — information that current text-only ap-
+proaches fail to capture effectively. To address
+this limitation, we conduct a systematic anal-
+ysis of temporal speech patterns, comparing
+healthy individuals with those experiencing de-
+pression. Based on our findings, we introduce
+Speech Timing-based Retrieval-Augmented
+Generation, SpeechT-RAG, a novel system that
+leverages speech timing features for both ac-
+curate depression detection and reliable confi-
+dence estimation. This integrated approach not
+only outperforms traditional text-based RAG
+systems in detection accuracy but also enhances
+uncertainty quantification through a confidence
+scoring mechanism that naturally extends from
+the same temporal features. Our unified frame-
+work achieves comparable results to fine-tuned
+LLMs without additional training while simul-
+taneously addressing the fundamental require-
+ments for both accuracy and trustworthiness in
+mental health assessment.
+1
+Introduction
+Large Language Models (LLMs)(Brown et al.,
+2020; Achiam et al., 2023) have been extensively
+utilized in health-related applications, achieving
+notable success in tasks such as medical evi-
+dence summarization(Tang et al., 2023), support-
+ing decision-making in general surgery (Oh et al.,
+2023), and assisting in gastroenterological diag-
+noses (Lahat et al., 2023). These models have
+∗Corresponding author.
+Figure 1: Motivation for Speech Timing-based RAG.
+While visual RAG systems can leverage distinct entities
+as retrieval keys (left), identifying analogous "key enti-
+ties" in speech for depression detection is challenging.
+demonstrated exceptional capabilities in transform-
+ing traditional healthcare workflows by efficiently
+processing complex medical data and enhancing
+decision-making processes. However, in special-
+ized domains like depression detection, LLMs
+based solely on text have shown limited effec-
+tiveness (Ohse et al., 2024; Zhang et al., 2024d;
+Wu et al., 2023b), often requiring extensive task-
+specific fine-tuning and large annotated datasets to
+achieve satisfactory results. This reliance on sig-
+nificant training resources makes their application
+to depression detection both time-consuming and
+costly.
+When the performance of LLMs is restricted,
+Retrieval-Augmented Generation (RAG) is often
+employed as an alternative. By allowing LLMs
+to retrieve task-specific information from external
+sources during inference, RAG has shown promise
+in mitigating the need for extensive fine-tuning
+arXiv:2502.10950v2  [eess.AS]  23 May 2025
+Figure 2: Overview of method: (1) extract acoustic landmarks and encode temporal information using durations
+between consecutive bigram pairs; (2) identify statistically significant landmark pairs that differentiate depression
+from health based on duration features; and (3) utilize timing keys and text-based representations for RAG.
+across many tasks (Guu et al., 2020; Lewis et al.,
+2020). However, in the context of depression de-
+tection, the limited performance of RAG high-
+lights the inherent constraints of text-based ap-
+proaches shown in our experiment. These limi-
+tations stem from text’s inability to capture critical
+non-verbal cues, such as tone, prosody, and tim-
+ing, which play a

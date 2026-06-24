@@ -1,0 +1,87 @@
+1
+RAG-based Explainable Prediction of Road Users
+Behaviors for Automated Driving using Knowledge
+Graphs and Large Language Models
+Mohamed Manzour Hussien, Angie Nataly Melo, Augusto Luis Ballardini, Carlota Salinas Maldonado, Rub´en
+Izquierdo and Miguel ´Angel Sotelo Fellow, IEEE
+Abstract—Prediction of road users’ behaviors in the context
+of autonomous driving has gained considerable attention by the
+scientific community in the last years. Most works focus on
+predicting behaviors based on kinematic information alone, a
+simplification of the reality since road users are humans, and as
+such they are highly influenced by their surrounding context. In
+addition, a large plethora of research works rely on powerful
+Deep Learning techniques, which exhibit high performance
+metrics in prediction tasks but may lack the ability to fully
+understand and exploit the contextual semantic information
+contained in the road scene, not to mention their inability
+to provide explainable predictions that can be understood by
+humans. In this work, we propose an explainable road users’
+behavior prediction system that integrates the reasoning abilities
+of Knowledge Graphs (KG) and the expressiveness capabilities of
+Large Language Models (LLM) by using Retrieval Augmented
+Generation (RAG) techniques. For that purpose, Knowledge
+Graph Embeddings (KGE) and Bayesian inference are combined
+to allow the deployment of a fully inductive reasoning system that
+enables the issuing of predictions that rely on legacy information
+contained in the graph as well as on current evidence gathered
+in real time by onboard sensors. Two use cases have been
+implemented following the proposed approach: 1) Prediction
+of pedestrians’ crossing actions; 2) Prediction of lane change
+maneuvers. In both cases, the performance attained surpasses
+the current state of the art in terms of anticipation and F1-
+score, showing a promising avenue for future research in this
+field.
+Index Terms—Road users’ behaviors, explainable predictions,
+pedestrian crossing actions, lane change maneuvers, autonomous
+driving.
+I. INTRODUCTION AND RELATED WORK
+D
+ESPITE the significant progress that the world has
+experienced in the last years in terms of road safety,
+road traffic deaths continue to represent a global health crisis,
+according to the World Organization report on road safety
+[1], especially for Vulnerable Road Users (VRUs), which
+are involved in 53% of all road traffic fatalities. The same
+report highlights the fact that 23% of fatal accidents involve
+pedestrians. As a matter of act, pedestrians are the most
+vulnerable road user group also on European Union roads,
+being involved in 20% of road traffic fatalities [2]. Similarly,
+the statistics published in 2023 by the National Highway
+Traffic Safety Administration (NHTSA) reveal an increase in
+All
+authors
+are
+with
+the
+Computer
+Engineering
+Department,
+University
+of
+Alcal´a,
+Alcal´a
+de
+Henares,
+Madrid,
+Spain.
+Email:
+ahmed.manzour@uah.es,
+nataly.melo@uah.es,
+augusto.ballardini@uah.es,
+carlota.salinasmaldo@uah.es, ruben.izquierdo@uah.es, miguel.sotelo@uah.es
+the number of deaths in motor vehicle traffic crashes in the
+United States of America in 2021 as compared to 2020, and
+a 17.3% increase compared to 2019 [3], being lane-changing
+maneuvers one of the main causes for vehicle crashes, as the
+same report indicates that 33% of all road crashes take place
+during a lane change maneuver. These figures advocate for the
+need to develop technologies aiming at enhancing road safety
+by endowing automated vehicles with the capacity to anticipate
+pedestrians’ and drivers’ behaviors and motion patterns, such
+as road crossing actions (for pedestrians) and lane change
+maneuvers (for drivers). The ability to characterize and predict
+the behavior and motion patterns of road users, namely drivers
+and vulnerable road users (pedestrians and cyclists), as well
+as the explanation and understanding of the factors that rule
+the interactions among them, is essential for incre

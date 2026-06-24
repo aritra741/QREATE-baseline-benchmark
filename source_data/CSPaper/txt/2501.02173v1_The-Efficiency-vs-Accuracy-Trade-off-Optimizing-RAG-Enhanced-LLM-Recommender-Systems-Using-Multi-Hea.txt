@@ -1,0 +1,86 @@
+The Efficiency vs. Accuracy Trade-off: Optimizing RAG-Enhanced LLM
+Recommender Systems Using Multi-Head Early Exit
+Huixue Zhou 1,2, Hengrui Gu 3, Xi Liu 1, Kaixiong Zhou 3, Mingfu Liang 1, Yongkang Xiao 2,
+Srinivas Govindan 1, Piyush Chawla 1, Jiyan Yang 1, Xiangfei Meng 1, Huayu Li 1, Buyun Zhang 1,
+Liang Luo 1, Wen-Yen Chen 1, Yiping Han 1, Bo Long 1, Rui Zhang 2, Tianlong Chen 4
+Meta Platforms1, University of Minnesota2, NCSU3, UNC at Chapel Hill4
+zhou1742@umn.edu, xliu1@meta.com, tianlong@cs.unc.edu
+Abstract
+The deployment of Large Language Models
+(LLMs) in recommender systems for predict-
+ing Click-Through Rates (CTR) necessitates
+a delicate balance between computational ef-
+ficiency and predictive accuracy. This paper
+presents an optimization framework that com-
+bines Retrieval-Augmented Generation (RAG)
+with an innovative multi-head early exit archi-
+tecture to concurrently enhance both aspects.
+By integrating Graph Convolutional Networks
+(GCNs) as efficient retrieval mechanisms, we
+are able to significantly reduce data retrieval
+times while maintaining high model perfor-
+mance. The early exit strategy employed al-
+lows for dynamic termination of model infer-
+ence, utilizing real-time predictive confidence
+assessments across multiple heads. This not
+only quickens the responsiveness of LLMs but
+also upholds or improves their accuracy, mak-
+ing it ideal for real-time application scenarios.
+Our experiments demonstrate how this archi-
+tecture effectively decreases computation time
+without sacrificing the accuracy needed for re-
+liable recommendation delivery, establishing
+a new standard for efficient, real-time LLM
+deployment in commercial systems.
+1
+Introduction
+Due to their remarkable capabilities in semantic
+understanding and knowledge retention, Large Lan-
+guage Models (LLMs) have demonstrated impres-
+sive performance across various domains, becom-
+ing essential components of various text-based rec-
+ommendation systems, such as sequential recom-
+mendation (Wang et al., 2023; Harte et al., 2023; Li
+et al., 2023; Zheng et al., 2024) and raking (Zhao
+et al., 2024; Acharya et al., 2023). In light of
+this, numerous researchers have sought to adapt
+LLMs for Click-Through Rate (CTR) prediction
+problem (Wang and Lim, 2023; Bao et al., 2023a;
+Lin et al., 2024a), leveraging their text-mining ca-
+pabilities to analyze textual user behaviors for more
+accurate preference modeling.
+The performance of LLM-based CTR predictors
+is enhanced by Retrieval-Augmented Generation
+(RAG) modules (Lin et al., 2024b; Hajiaghayi et al.,
+2024), which integrate diverse and user-relevant
+texts into the input contexts. This enrichment al-
+lows LLMs to extract more accurate user features
+for preference prediction. However, the integra-
+tion of RAG introduces significant efficiency chal-
+lenges: By reasoning conditioned on the contextual
+input information, LLMs can extract more precise
+user features for preference prediction. However,
+while we benefit from the improved accuracy pro-
+vided by RAG, it also introduces two critical effi-
+ciency bottlenecks: ❶Inference Delay: The se-
+quential execution of retrieval and inference leads
+to significant delays in starting the inference pro-
+cess due to the additional time required for retrieval.
+❷Inference Slowdown: The extended inputs in-
+troduce extra computational overhead, drastically
+slowing down model inference as LLMs suffer
+from quadratic time complexity w.r.t. input length.
+These bottlenecks significantly undermine the real-
+time responsiveness of these predictors, hindering
+their broader application in real-world recommen-
+dation scenarios.
+To address these challenges, we propose two in-
+novative acceleration techniques tailored to these
+bottlenecks, aiming to enhance the efficiency of
+LLM-based CTR predictors without overly com-
+promising recommendation quality.
+Regarding
+the retrieval strategies (Bottleneck ❶), we intro-
+duce a lightweight yet effective retrieval scheme
+called GCN-Retriever.
+Leveragin

@@ -1,0 +1,131 @@
+arXiv:2502.11175v4  [cs.CL]  1 Jun 2025
+Investigating Language Preference of Multilingual RAG Systems
+Jeonghyun Park and Hwanhee Lee†
+Department of Artificial Intelligence, Chung-Ang University, Seoul, Korea
+{tom0365, hwanheelee}@cau.ac.kr
+Abstract
+Multilingual Retrieval-Augmented Generation
+(mRAG) systems enhance language models by
+integrating external multilingual information
+to produce context-aware responses. However,
+mRAG systems struggle with retrieving rele-
+vant information due to linguistic variations
+between queries and documents, generating
+inconsistent
+responses
+when
+multilingual
+sources conflict. In this work, we systemati-
+cally investigate language preferences in both
+retrieval and generation of mRAG through a
+series of experiments. Our analysis indicates
+that retrievers tend to prefer high-resource and
+query languages, yet this preference does not
+consistently improve generation performance.
+Moreover, we observe that generators prefer
+the query language or Latin scripts, leading to
+inconsistent outputs. To overcome these issues,
+we propose Dual Knowledge Multilingual
+RAG (DKM-RAG), a simple yet effective
+framework that fuses translated multilingual
+passages with complementary model knowl-
+edge. Empirical results demonstrate that
+DKM-RAG mitigates language preference in
+generation and enhances performance across
+diverse linguistic settings. Code is available at
+https://github.com/jeonghyunpark2002/
+LanguagePreference.git
+1
+Introduction
+Multilingual Retrieval-Augmented Generation
+(mRAG) extends traditional Retrieval-Augmented
+Generation (RAG) (Lewis et al., 2020) by lever-
+aging multilingual external sources to generate
+accurate, contextually and linguistically aware re-
+sponses. However, mRAG systems face challenges
+in retrieving relevant information due to linguistic
+discrepancies between queries and documents (Wu
+et al., 2024a). Moreover, conflicts among multi-
+lingual sources can lead to inconsistencies in the
+generated responses (Chataigner et al., 2024).
+†Corresponding author.
+(                            )
+. . .
+KO
+. . .
+2nd
+3rd
+4th
+5th
+1st
+EN
+EN
+EN
+ZH
+ES
+Gold Answer: Iris Mittenaere
+quien ganó el título de miss universe en 2016
+(who won the miss universe title in 2016)
+Query in español
+#Case 1
+#Case 2
+LLM
+Retrieve
+Datastore
+Miss France 2016 was hosted by Jean-
+Pierre Foucault (...) Iris Mittenaere
+was crowned Miss Universe 2016.
+Not retrieved 
+but Relevant
+2nd
+3rd
+4th
+5th
+1st
+EN
+EN
+EN
+KO
+ES
+Retrieve
+Datastore
+𝒅𝒐𝒄𝒓𝒆𝒍
+𝒅𝒐𝒄𝒓𝒆𝒍
+Generator only uses documents in the preferred 
+languages to produce the final answer
+Catriona 
+Gray
+Generate 
+Incorrect Answer
+( X )
+미스 프랑스 2016은 Jean-Pierre Foucault가 
+진행했으며 (…) Iris Mittenaere는 2016년 미스 
+유니버스로 선발되었습니다.
+51th
+Figure 1: Failure cases of multilingual RAG system
+showing degraded generation ability because of lan-
+guage preference of retriever and generator in mRAG
+pipeline. docrel in the Korean (KO) document repre-
+sents the relevant document to the given query that can
+be utilized to generate a final answer.
+Beyond retrieval challenges and source conflicts,
+language preference is another critical issue in
+mRAG systems, often leading to inaccurate outputs.
+As illustrated in Case 1 of Figure 1, the retriever
+may prioritize particular languages—especially
+high-resource or query-language documents—at
+the expense of truly relevant information in low-
+resource languages. Consequently, the Large Lan-
+guage Model (LLM) either produces an incorrect
+answer or deems the query unanswerable due to
+irrelevant content in the documents. Likewise, in
+Case 2, even if relevant documents are retrieved,
+the generator might favor passages in the query lan-
+guage or Latin scripts, ignoring essential evidence
+1
+in lower-resource languages and resulting in inac-
+curate outputs. These preferences ultimately limit
+the effectiveness of mRAG, yielding biased rank-
+ings, reduced answer quality, and inconsistencies
+across languages (Sharma et al., 2024).
+Prior studies (Yang et al., 2024a; Telemala and

@@ -1,0 +1,72 @@
+Accepted at AAAI 2024 Workshop on Synergy of Reinforcement Learning and Large Language Models
+Reinforcement Learning for Optimizing RAG for Domain Chatbots
+Mandar Kulkarni, Praveen Tangarajan, Kyung Kim, Anusua Trivedi
+Flipkart Data Science
+Seattle, Washington, USA
+Abstract
+With the advent of Large Language Models (LLM), conversa-
+tional assistants have become prevalent for domain use cases.
+LLMs acquire the ability to contextual question answering
+through extensive training, and Retrieval Augmented Genera-
+tion (RAG) further enables the bot to answer domain-specific
+questions. This paper describes a RAG-based approach for
+building a chatbot that answers user’s queries using Fre-
+quently Asked Questions (FAQ) data. We train an in-house
+retrieval embedding model using infoNCE loss, and exper-
+imental results demonstrate that the in-house model works
+significantly better than the well-known general-purpose pub-
+lic embedding model, both in terms of retrieval accuracy and
+Out-of-Domain (OOD) query detection. As an LLM, we use
+an open API-based paid ChatGPT (gpt-35-turbo-16k-0613)
+model. We noticed that a previously retrieved-context could
+be used to generate an answer for specific patterns/sequences
+of queries (e.g., follow-up queries). Hence, there is a scope
+to optimize the number of LLM tokens and cost. Assuming a
+fixed retrieval model and an LLM, we optimize the number
+of LLM tokens using Reinforcement Learning (RL). Specifi-
+cally, we propose a policy-based model external to the RAG,
+which interacts with the RAG pipeline through policy actions
+and updates the policy to optimize the cost. The policy model
+can perform two actions: to fetch FAQ context or skip re-
+trieval. We use the open API-based GPT-4 as the evaluation
+model, which rates the quality of the bot answer. Using an
+appropriate reward shaping, GPT-4 ratings are converted to
+a numeric reward. We then train a policy model using pol-
+icy gradient on multiple training chat sessions. As a pol-
+icy model, we experimented with a public gpt-2 model and
+an in-house BERT model. With the proposed RL-based op-
+timization combined with similarity threshold, we are able
+to achieve significant (~31%) cost savings while getting a
+slightly improved accuracy. Though we demonstrate results
+for the FAQ chatbot, the proposed RL approach is generic
+and can be experimented with any existing RAG pipeline.
+Introduction
+With the advent of Large Language Models (LLM), we ob-
+serve an increased use of conversational assistants even for
+the domain use cases. Trained on a large web-scale text cor-
+pus with approaches such as instruction tuning and Rein-
+forcement Learning with Human Feedback (RLHF), LLMs
+Copyright © 2024, Association for the Advancement of Artificial
+Intelligence (www.aaai.org). All rights reserved.
+have become good at contextual question-answering tasks,
+i.e., given a relevant text as a context, LLMs can generate
+answers to questions using that information. Retrieval Aug-
+mented Generation (RAG) is one of the key techniques used
+to build chatbots for answering questions on domain data.
+RAG consists of two components: a retrieval model and
+an answer generation model based on LLM. The retrieval
+model fetches context relevant to the user’s query. The query
+and the retrieved context are then inputted to the LLM with
+the appropriate prompt to generate the answer. Though in-
+tuitive to understand, RAG-based chatbots have a few chal-
+lenges from a practical standpoint.
+1. If a retrieval model fails to fetch relevant context, the gen-
+erated answer would be incorrect and uninformative. The
+retrieval is more challenging for non-English queries,
+e.g., code-mix Hinglish.
+2. For paid API-based LLMs (e.g., ChatGPT), the cost per
+call is calculated based on the number of input and out-
+put tokens. A large number of tokens passed in a context
+leads to a higher cost per API call. With a high volume
+of user queries, the cost can become significant.
+3. To enable multi-turn conversations with R

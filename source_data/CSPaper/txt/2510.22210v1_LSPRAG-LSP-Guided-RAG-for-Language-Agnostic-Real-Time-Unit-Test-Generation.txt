@@ -1,0 +1,85 @@
+LSPRAG: LSP-Guided RAG for Language-Agnostic Real-Time
+Unit Test Generation
+Gwihwan Go
+Tsinghua University
+Beijing, China
+iejw1914@gmail.com
+Quan Zhang∗
+East China Normal University
+Shanghai, China
+quanzh98@gmail.com
+Chijin Zhou∗
+East China Normal University
+Shanghai, China
+tlock.chijin@gmail.com
+Zhao Wei
+Tencent
+Beijing, China
+zachwei@tencent.com
+Yu Jiang
+Tsinghua University
+Beijing, China
+jiangyu198964@126.com
+Abstract
+Automated unit test generation is essential for robust software de-
+velopment, yet existing approaches struggle to generalize across
+multiple programming languages and operate within real-time de-
+velopment. While Large Language Models (LLMs) offer a promising
+solution, their ability to generate high coverage test code depends
+on prompting a concise context of the focal method. Current solu-
+tions, such as Retrieval-Augmented Generation, either rely on im-
+precise similarity-based searches or demand the creation of costly,
+language-specific static analysis pipelines. To address this gap, we
+present LspRag, a framework for concise-context retrieval tailored
+for real-time, language-agnostic unit test generation. LspRag lever-
+ages off-the-shelf Language Server Protocol (LSP) back-ends to
+supply LLMs with precise symbol definitions and references in real
+time. By reusing mature LSP servers, LspRag provides an LLM with
+language-aware context retrieval, requiring minimal per-language
+engineering effort. We evaluated LspRag on open-source projects
+spanning Java, Go, and Python. Compared to the best performance
+of baselines, LspRag increased line coverage by up to 174.55% for
+Golang, 213.31% for Java, and 31.57% for Python.
+CCS Concepts
+• Software and its engineering →Software testing and de-
+bugging; • Computing methodologies →Neural networks;
+Natural language processing.
+Keywords
+Unit Testing, Language Server Protocol, Retrieval Augmented Gen-
+eration, Large Language Model
+ACM Reference Format:
+Gwihwan Go, Quan Zhang, Chijin Zhou, Zhao Wei, and Yu Jiang. 2026.
+LSPRAG: LSP-Guided RAG for Language-Agnostic Real-Time Unit Test
+Generation. In 2026 IEEE/ACM 48th International Conference on Software
+∗Quan Zhang and Chijin Zhou are corresponding authors.
+This work is licensed under a Creative Commons Attribution 4.0 International License.
+ICSE ’26, April 12–18, 2026, Rio de Janeiro, Brazil
+© 2026 Copyright held by the owner/author(s).
+ACM ISBN 979-8-4007-2025-3/26/04
+https://doi.org/10.1145/3744916.3773189
+Engineering (ICSE ’26), April 12–18, 2026, Rio de Janeiro, Brazil. ACM, New
+York, NY, USA, 13 pages. https://doi.org/10.1145/3744916.3773189
+1
+Introduction
+Unit testing for modern software systems is crucial yet labor-
+intensive [4, 68]. To ensure reliability, test suites must achieve
+high coverage to expose subtle bugs and edge cases. It requires
+developers to have a deep understanding of the internal logic and
+dependencies of the codebase, including how the functions under
+test interact with their surrounding implementation. This challenge
+is even greater in today’s software development, where enterprise
+codebases frequently span multiple programming languages, and de-
+velopers expect real-time test generation as they code [1, 32, 41, 62].
+Recent advances in Large Language Models (LLMs) have invig-
+orated research on real-time multi-language unit-test generation.
+Commercial systems such as GitHub Copilot [54] already offer
+one-click test generation, boosting test quality with simple heuris-
+tics—for example, giving higher weight to files a developer has
+recently opened [24]. At the same time, Repository-level Retrieval-
+Augmented Generation (RAG) techniques supply LLMs with addi-
+tional code context obtained via textual similarity [38, 63], graph-
+based relationships [36, 37], or even web search [60, 66].
+Problem. Although existing methods enhanced code genera-
+tion practice, they are still limited in generating high coverage
+unit tests, because they fail to retrieve relevant context precisely.
+For example, in Figure

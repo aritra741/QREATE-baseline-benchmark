@@ -1,0 +1,86 @@
+Injecting External Knowledge into the Reasoning Process
+Enhances Retrieval-Augmented Generation
+Minghao Tang
+State Key Laboratory of AI Safety,
+Institute of Computing Technology,
+Chinese Academy of Sciences
+University of Chinese Academy of Sciences
+Beijing, China
+tangminghao25@mails.ucas.ac.cn
+Shiyu Ni
+State Key Laboratory of AI Safety,
+Institute of Computing Technology,
+Chinese Academy of Sciences
+University of Chinese Academy of Sciences
+Beijing, China
+nishiyu23z@ict.ac.cn
+Jiafeng Guo
+State Key Laboratory of AI Safety,
+Institute of Computing Technology,
+Chinese Academy of Sciences
+University of Chinese Academy of Sciences
+Beijing, China
+guojiafeng@ict.ac.cn
+Keping Bi∗
+State Key Laboratory of AI Safety,
+Institute of Computing Technology,
+Chinese Academy of Sciences
+University of Chinese Academy of Sciences
+Beijing, China
+bikeping@ict.ac.cn
+Abstract
+Retrieval-augmented generation (RAG) has been widely adopted to
+augment large language models (LLMs) with external knowledge
+for knowledge-intensive tasks. However, its effectiveness is often
+undermined by the presence of noisy (i.e., low-quality) retrieved
+passages. Enhancing LLMs’ robustness to such noise is critical for
+improving the reliability of RAG systems. Recent advances have
+equipped LLMs with strong reasoning and self-reflection capabili-
+ties, allowing them to identify and correct errors in their reasoning
+process. Inspired by this ability, we propose Passage Injection—a
+simple yet effective method that explicitly incorporates retrieved
+passages into LLMs’ reasoning process, aiming to enhance the
+model’s ability to recognize and resist noisy passages. We validate
+Passage Injection under general RAG settings using BM25 as the re-
+triever. Experiments on four reasoning-enhanced LLMs across four
+factual QA datasets demonstrate that Passage Injection significantly
+improves overall RAG performance. Further analysis on two noisy
+retrieval settings-random noise, where the model is provided irrel-
+evant passages, and counterfactual noise, where it is given mislead-
+ing passages-shows that Passage Injection consistently improves
+robustness. Controlled experiments confirm that Passage Injection
+can also effectively leverage helpful passages. These findings sug-
+gest that incorporating passages in LLMs’ reasoning process is a
+promising direction for building more robust RAG systems. 1
+∗Keping Bi is the corresponding author.
+1The code and data can be found at: https://github.com/Trustworthy-Information-
+Access/Passage-Injection
+This work is licensed under a Creative Commons Attribution 4.0 International License.
+SIGIR-AP 2025, Xi’an, China
+© 2025 Copyright held by the owner/author(s).
+ACM ISBN 979-8-4007-2218-9/2025/12
+https://doi.org/10.1145/3767695.3769515
+CCS Concepts
+• Information systems →Question answering; • Computing
+methodologies →Information extraction; Natural language
+generation.
+Keywords
+Robustness; Reasoning Models; Retrieval-augmented Generation
+ACM Reference Format:
+Minghao Tang, Shiyu Ni, Jiafeng Guo, and Keping Bi. 2025. Injecting External
+Knowledge into the Reasoning Process Enhances Retrieval-Augmented
+Generation. In Proceedings of the 2025 Annual International ACM SIGIR
+Conference on Research and Development in Information Retrieval in the Asia
+Pacific Region (SIGIR-AP 2025), December 7–10, 2025, Xi’an, China. ACM,
+New York, NY, USA, 6 pages. https://doi.org/10.1145/3767695.3769515
+1
+Introduction
+Retrieval-augmented generation (RAG) has emerged as an effective
+approach to improving the performance of large language mod-
+els (LLMs) on knowledge-intensive tasks [11, 16, 29]. However,
+the quality of retrieved documents cannot be guaranteed where
+low-quality documents may mislead the model, resulting in incor-
+rect answers [14, 19]. Enhancing LLMs’ robustness to such noisy
+passages is crucial for improving the reliability of RAG systems.
+Recent advances have endowed LLMs with strong reasoning and
+self-reflection capabilities (i.e., reasoning-enhanced LLMs) [6, 10,

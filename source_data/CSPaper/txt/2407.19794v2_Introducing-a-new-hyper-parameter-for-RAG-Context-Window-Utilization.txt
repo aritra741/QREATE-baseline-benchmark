@@ -1,0 +1,66 @@
+Introducing a new hyper-parameter for RAG: Context Window
+Utilization
+KUSH JUVEKAR, Independent, India
+ANUPAM PURWAR, Independent, India
+This paper introduces a new hyper-parameter for Retrieval-Augmented Gen-
+eration (RAG) systems called Context Window Utilization. RAG systems
+enhance generative models by incorporating relevant information retrieved
+from external knowledge bases, improving the factual accuracy and contex-
+tual relevance of generated responses. The size of the text chunks retrieved
+and processed is a critical factor influencing RAG performance. This study
+aims to identify the optimal chunk size that maximizes answer generation
+quality. Through systematic experimentation, we analyze the effects of vary-
+ing chunk sizes on the efficiency and effectiveness of RAG frameworks. Our
+findings reveal that an optimal chunk size balances the trade-off between
+providing sufficient context and minimizing irrelevant information. These
+insights are crucial for enhancing the design and implementation of RAG
+systems, underscoring the importance of selecting an appropriate chunk
+size to achieve superior performance.
+CCS Concepts: • Information systems →Information extraction; •
+Computing methodologies →Natural language generation.
+Additional Key Words and Phrases: Retrieval Augmented Generation, Large
+Language Models, Context Window, Chunk size, Optimization
+ACM Reference Format:
+Kush Juvekar and Anupam Purwar. 2024. Introducing a new hyper-parameter
+for RAG: Context Window Utilization. 1, 1 (August 2024), 13 pages. https:
+//doi.org/10.1145/nnnnnnn.nnnnnnn
+1
+Introduction
+Retrieval-Augmented Generation (RAG)[Lewis et al. 2021] is the
+process of optimizing the output of a large language model, so it
+references an authoritative knowledge base outside of its training
+data sources before generating a response. Large Language Mod-
+els (LLMs) are trained on vast volumes of data and use billions of
+parameters to generate original output for tasks like answering
+questions, translating languages, and completing sentences. RAG
+extends the already powerful capabilities of LLMs to specific do-
+mains or an organization’s internal knowledge base, all without the
+need to retrain the model. Implementing RAG is an efficient way to
+enhance the output of LLM, ensuring its relevance, accuracy, and
+usefulness in diverse applications like as chat-bots for enterprise
+data [Juvekar and Purwar 2024], conversational learning interfaces
+[Harbola and Purwar 2024], and seamless integration with voice
+interfaces [Purwar and Sundar 2023].
+Authors’ Contact Information: Kush Juvekar, kushjuveka0610@gmail.com, Independent,
+Ahmedabad, Gujarat, India; Anupam Purwar, anupam.aiml@gmail.com, Independent,
+Delhi, India.
+Permission to make digital or hard copies of all or part of this work for personal or
+classroom use is granted without fee provided that copies are not made or distributed
+for profit or commercial advantage and that copies bear this notice and the full citation
+on the first page. Copyrights for components of this work owned by others than the
+author(s) must be honored. Abstracting with credit is permitted. To copy otherwise, or
+republish, to post on servers or to redistribute to lists, requires prior specific permission
+and/or a fee. Request permissions from permissions@acm.org.
+© 2024 Copyright held by the owner/author(s). Publication rights licensed to ACM.
+ACM XXXX-XXXX/2024/8-ART
+https://doi.org/10.1145/nnnnnnn.nnnnnnn
+Currently, most RAG systems follow the Dual-Encoder Architec-
+ture paradigm[Dong et al. 2022], in which the reference documents
+are divided into small snippets, encoded by specific encoders, and
+then stored in the vector database as embeddings. The DEA para-
+digm shows great potential for empowering LLMs with any existing
+knowledge database.
+Present day advancements in RAG have answered various ques-
+tions like "what should be retrieved" , "when retrieval should not
+occur", "how to utilize the retrieved information" and more.[Asai
+et

@@ -1,0 +1,113 @@
+Probing-RAG: Self-Probing to Guide Language Models in Selective
+Document Retrieval
+Ingeol Baek, Hwan Chang, Byeongjeong Kim, Jimin Lee, Hwanhee Lee†
+Department of Artificial Intelligence, Chung-Ang University, Seoul, Korea
+{ingeolbaek, hwanchang, michael97k, ljm1690, hwanheelee}@cau.ac.kr
+Abstract
+Retrieval-Augmented Generation (RAG) en-
+hances language models by retrieving and
+incorporating relevant external knowledge.
+However, traditional retrieve-and-generate pro-
+cesses may not be optimized for real-world sce-
+narios, where queries might require multiple
+retrieval steps or none at all. In this paper, we
+propose a Probing-RAG, which utilizes the hid-
+den state representations from the intermediate
+layers of language models to adaptively deter-
+mine the necessity of additional retrievals for a
+given query. By employing a pre-trained prober,
+Probing-RAG effectively captures the model’s
+internal cognition, enabling reliable decision-
+making about retrieving external documents.
+Experimental results across five open-domain
+QA datasets demonstrate that Probing-RAG
+outperforms previous methods while reducing
+the number of redundant retrieval steps.
+1
+Introduction
+Large Language Models (LLMs) have demon-
+strated remarkable performance across a variety
+of tasks (Brown, 2020; Ouyang et al., 2022; Tou-
+vron et al., 2023; Zhao et al., 2023). However, they
+still face challenges such as hallucinations (Ji et al.,
+2023; Zhang et al., 2023b; Huang et al., 2023) and
+factual errors (Min et al., 2023; Manakul et al.,
+2023; Wang et al., 2023a). Retrieval-Augmented
+Generation (RAG) leverages external knowledge
+related to the query through information retrieval
+steps to mitigate these issues.
+Typically, the RAG pipeline follows a retrieve-
+and-generate process (Guu et al., 2020; Izacard and
+Grave, 2020; Singh et al., 2021; Izacard et al., 2023;
+Lazaridou et al., 2022; Shi et al., 2023), fetching
+relevant documents based on the user’s input before
+generating a response. While this approach works
+well for simple single-hop QA (Ram et al., 2023),
+certain problems cannot be resolved in a single step
+†Corresponding author.
+LLM
+LLM
+Prober
+Answer:
+Cyndi  Lauper
+Hidden states
+Complexity
+Classifier
+Iteration 1:
+"Retrieval Call is Needed!"
+Iteration 2:
+”Model Can Answer,
+no Further Retrieval 
+Needed!"
+Retreiver
+Cyndi?
+Cyndi Lauper!
+Multi-step Retriever 
+is Needed!
+Retreiver
+Doc – "True Colors"
+was the title track
+from Cyndi Lauper’s
+second studio album
+Doc – "True Colors"
+new version of the
+track with Kesha
+Iteration K
+Iteration 1
+Iteration K Times
+Answer:
+Kesha
+Question: Who sang the original version of "True Colors"? 
+Adaptive-RAG
+Probing-RAG
+Doc – "True Colors"
+was the title track
+from Cyndi Lauper’s
+second studio album
+Iteration 1
+     Iteration 2
+Figure 1: The left example illustrates how redundant
+retrieval steps, guided by an external query complex-
+ity classifier that does not reflect the LLM’s internal
+knowledge, can lead to wrong answers. In contrast, the
+right example shows that the model uses the prober to
+recognize that no further retrieval is needed, allowing it
+to generate the correct answer.
+and require multiple retrieval steps (Zhang et al.,
+2023a; Shao et al., 2023; Cheng et al., 2024). On
+the other hand, some examples can be addressed
+using the LLM’s internal parametric knowledge
+without requiring any retrieval steps.
+To optimize the RAG pipeline, recent research
+has introduced methods to adaptively adjust the
+number of retrievals. (Su et al., 2024; Mallen et al.,
+2022; Wang et al., 2023c). A notable example is
+Adaptive-RAG (Jeong et al., 2024), which clas-
+sifies queries into three categories based on their
+complexity: no retrieval, single-step retrieval, or
+multi-step retrievals. However, as shown in Fig-
+ure 1, external classifiers in Adaptive-RAG often
+fail to fully leverage the internal decision-making
+capabilities of the language model. This leads
+to unnecessary additional retrieval steps, result-
+ing in knowledge conflicts betwee

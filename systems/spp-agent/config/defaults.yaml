@@ -71,6 +71,27 @@ pipeline:
 datasets:
   pilot: ["Player", "Med", "Finan"]
 
+  CSPaper:
+    corpus_path: source_data/CSPaper/txt
+    table_filter: ["cspaper"]
+    workload_slices:
+      - agg_only
+      - agg_filter
+    num_docs: 20
+    num_probe_configs: 8
+    num_judge_pairs: 14
+    num_eval_queries: 3
+    min_queries_per_slice: 2
+    budget_levels: [1, 2]
+    workload_split:
+      train_per_slice: 20
+      dev_per_slice: 5
+      test_per_slice: 5
+      min_train_total: 60
+    source_phase0: phase0_reward_table_CSPaper.json
+    output_file: phase1_comparison_CSPaper_agg_only.json
+    probe_context_cache: phase1_CSPaper_agg_only_probe_context.json
+
   Art:
     corpus_path: source_data/Art/wikiart
     table_filter: ["art"]
@@ -142,6 +163,7 @@ preprocessing:
   Finan: "whole_doc"
   Finance: "whole_doc"
   Art: "whole_doc"
+  CSPaper: "whole_doc"
 
 probing:
   num_probe_configs: 12

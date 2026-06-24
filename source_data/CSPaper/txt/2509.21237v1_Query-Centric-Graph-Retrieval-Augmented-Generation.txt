@@ -1,0 +1,52 @@
+QUERY-CENTRIC GRAPH RETRIEVAL AUGMENTED
+GENERATION
+Yaxiong Wu, Jianyuan Bo, Yongyue Zhang, Sheng Liang, Yong Liu
+Huawei Technologies Co., Ltd
+wu.yaxiong@huawei.com
+ABSTRACT
+Graph-based retrieval-augmented generation (RAG) enriches large language mod-
+els (LLMs) with external knowledge for long-context understanding and multi-hop
+reasoning, but existing methods face a granularity dilemma: fine-grained entity-
+level graphs incur high token costs and lose context, while coarse document-level
+graphs fail to capture nuanced relations. We introduce QCG-RAG, a query-centric
+graph RAG framework that enables query-granular indexing and multi-hop chunk
+retrieval. Our query-centric approach leverages Doc2Query and Doc2Query--
+to construct query-centric graphs with controllable granularity, improving graph
+quality and interpretability. A tailored multi-hop retrieval mechanism then se-
+lects relevant chunks via the generated queries. Experiments on LiHuaWorld and
+MultiHop-RAG show that QCG-RAG consistently outperforms prior chunk-based
+and graph-based RAG methods in question answering accuracy, establishing a new
+paradigm for multi-hop reasoning.
+1
+INTRODUCTION
+Retrieval-augmented generation (RAG) has become a standard approach for improving the factuality
+of large language models (LLMs) by grounding them in external knowledge (Gao et al., 2023). By
+retrieving supporting chunk-based evidence, RAG not only enhances accuracy but also mitigates
+hallucinations common in LLM generation (Yu et al., 2024). However, existing chunk-based RAG
+pipelines often fail when queries are underspecified or require multi-hop reasoning, due to a mis-
+match between query intent and the fragmented distribution of supporting chunk-level evidence in
+retrieval (Tang & Yang, 2024).
+Graph-based RAG provides a more effective strategy for capturing relational knowledge and asso-
+ciating dispersed evidence across documents (Peng et al., 2024; Han et al., 2024; Yu et al., 2025)
+compared to chunk-based RAG. In particular, GraphRAG (Edge et al., 2024a) constructs a fine-
+grained entity-centric knowledge graph (KG) with community summaries, allowing retrieval to
+exploit both text similarity and entity-level connections. This fine-grained KG strengthens semantic
+coherence across dispersed entity-level evidence, thereby enabling deeper contextual understanding.
+GraphRAG is especially effective for multi-hop reasoning and long context understanding, enabling
+applications in question answering over massive documents (Ghassel et al., 2025; Chen et al., 2024)
+and long dialogues (Fan et al., 2025; Zhang et al., 2025b).
+However, existing graph-based RAG methods face a fundamental trade-off: fine-grained entity-
+level graphs incur prohibitive token costs and often lose semantic coherence, while coarse-grained
+document-level graphs sacrifice nuanced relations. For instance, GraphRAG imposes considerable
+computational overhead: constructing fine-grained entity-level graphs and producing community
+summaries inflate token budgets and inference cost, and can erode contextual coherence (Min et al.,
+2025; Zhang et al., 2025a). Recent work simplifies graph construction by skipping community detec-
+tion and summarization, and instead using lightweight information extractors (e.g., SpaCy (Honnibal
+et al., 2020)) or fine-tuned small LLMs (e.g., Phi-3-3.8B (Abdin et al., 2024), but at the cost of lower
+graph quality. Other efforts adopt hierarchical index graphs with document-level links (Chen et al.,
+2024), which are efficient but too coarse to support nuanced reasoning. These limitations highlight
+the need for strategies that balance granularity and effectiveness in graph-based RAG.
+Document expansion techniques, such as Doc2Query (Nogueira et al., 2019) for generating queries
+from documents and Doc2Query-- (Gospodinov et al., 2023) for filtering irrelevant queries, pro-
+arXiv:2509.21237v1  [cs.CL]  25 Sep 2025
+Figure 1: Illustration of (a) coarse-grained document-level graphs, (b) fine-grain

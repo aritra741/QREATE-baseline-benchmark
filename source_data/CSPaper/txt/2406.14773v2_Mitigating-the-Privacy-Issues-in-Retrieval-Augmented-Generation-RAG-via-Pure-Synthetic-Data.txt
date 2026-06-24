@@ -1,0 +1,94 @@
+Mitigating the Privacy Issues in Retrieval-Augmented Generation (RAG)
+via Pure Synthetic Data
+Shenglai Zeng1, Jiankun Zhang3, Pengfei He1, Jie Ren1, Tianqi Zheng2, Hanqing Lu2
+Han Xu1, Hui Liu1, Yue Xing1, Jiliang Tang1
+1Michigan State University
+2 Amazon.com
+1Jilin University
+{zengshe1, hepengf1,renjie3, xuhan1,xingyue1, tangjili}@msu.edu,
+{tqzheng, luhanqin}@amazon.com, zhangjk9920@mails.jlu.edu.cn
+Abstract
+Retrieval-augmented generation (RAG) en-
+hances the outputs of language models by in-
+tegrating relevant information retrieved from
+external knowledge sources. However, when
+the retrieval process involves private data, RAG
+systems may face severe privacy risks, poten-
+tially leading to the leakage of sensitive infor-
+mation. To address this issue, we propose us-
+ing synthetic data as a privacy-preserving al-
+ternative for the retrieval data. We propose
+SAGE, a novel two-stage synthetic data gen-
+eration paradigm. In the stage-1, we employ
+an attribute-based extraction and generation
+approach to preserve key contextual informa-
+tion from the original data. In the stage-2, we
+further enhance the privacy properties of the
+synthetic data through an agent-based itera-
+tive refinement process. Extensive experiments
+demonstrate that using our synthetic data as the
+retrieval context achieves comparable perfor-
+mance to using the original data while substan-
+tially reducing privacy risks. Our work takes
+the first step towards investigating the possi-
+bility of generating high-utility and privacy-
+preserving synthetic data for RAG, opening up
+new opportunities for the safe application of
+RAG systems in various domains1.
+1
+Introduction
+Retrieval-augmented generation (RAG) aims to im-
+prove language model outputs by incorporating
+relevant information retrieved from external knowl-
+edge sources. It has been effectively applied in
+various scenarios, such as domain-specific chatbots
+(Siriwardhana et al., 2023) and email/code comple-
+tion (Parvez et al., 2021). A typical RAG system
+often operates in two stages: retrieval and genera-
+tion. First, the system retrieves relevant knowledge
+from an external database based on the user query.
+Then, the retrieved information is integrated with
+the query to form an input for a large language
+1Our code is available at this link
+Query
+Original DB
+Original Data
+Synthetic DB
+Synthetic Data
+Query
+Input
+Answer
+LLMs
+Figure 1: An illustration for RAG with synthetic data.
+model (LLM). The LLM uses its pre-trained knowl-
+edge and the retrieval data to generate a response,
+enhancing the overall quality of the output.
+However, according to existing literature (Zeng
+et al., 2024; Huang et al., 2023; Ding et al., 2024;
+Qi et al., 2024; Ren et al., 2024), RAG may face
+severe privacy issues when the retrieval process in-
+volves private data. For example, Zeng et al. (2024)
+observe that carefully designed user prompts are
+able to extract original sentences in the retrieval
+data (untargeted attack), and can also extract spe-
+cific pieces of private information (targeted attack),
+potentially leading to the leakage of considerable
+amount of the retrieval data. The potential risk of
+information leakage can significantly limit the ap-
+plications of RAG systems. For instance, a medical
+chatbot (Yunxiang et al., 2023) using patients’ his-
+torical diagnosis cases as a knowledge source may
+improve response quality but raises concerns about
+exposing sensitive patient information. Therefore,
+enhancing the privacy properties of RAG systems
+and protecting the retrieval data from leakage is of
+high importance to prevent unauthorized access or
+misuse and enable safe and widespread adoption,
+particularly in sensitive domains like healthcare.
+Some adaptations (Zeng et al., 2024) have been
+proposed to protect the privacy of RAG by incorpo-
+rating additional components in the RAG pipeline.
+These adaptations include pre-retrieval techniques
+(such as setting similarity distance thresholds in
+arXiv:2406.14773v2  [cs.CR]  19 Feb 2025
+re

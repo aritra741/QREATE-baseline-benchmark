@@ -1,0 +1,77 @@
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021
+1
+RAG-based Crowdsourcing Task Decomposition via
+Masked Contrastive Learning with Prompts
+Jing Yang, Xiao Wang, Senior Member, IEEE, Yu Zhao, Yuhang Liu, Fei-Yue Wang, Fellow, IEEE
+Abstract—Crowdsourcing is a critical technology in social man-
+ufacturing, which leverages an extensive and boundless reservoir
+of human resources to handle a wide array of complex tasks. The
+successful execution of these complex tasks relies on task decom-
+position (TD) and allocation, with the former being a prerequisite
+for the latter. Recently, pre-trained language models (PLMs)-
+based methods have garnered significant attention. However, they
+are constrained to handling straightforward common-sense tasks
+due to their inherent restrictions involving limited and difficult-
+to-update knowledge as well as the presence of “hallucinations”.
+To address these issues, we propose a retrieval-augmented
+generation-based crowdsourcing framework that reimagines TD
+as event detection from the perspective of natural language
+understanding. However, the existing detection methods fail to
+distinguish differences between event types and always depend on
+heuristic rules and external semantic analyzing tools. Therefore,
+we present a Prompt-Based Contrastive learning framework for
+TD (PBCT), which incorporates a prompt-based trigger detector
+to overcome dependence. Additionally, trigger-attentive sentinel
+and masked contrastive learning are introduced to provide
+varying attention to trigger and contextual features according
+to different event types. Experiment results demonstrate the
+competitiveness of our method in both supervised and zero-shot
+detection. A case study on printed circuit board manufacturing
+is showcased to validate its adaptability to unknown professional
+domains.
+Index Terms—Crowdsourcing, Retrieval-augmented Genera-
+tion, Task Decomposition, Event Detection, Pre-trained Language
+Models
+I. INTRODUCTION
+Against the backdrop of increasingly diverse and person-
+alized consumer demands, customized production is gaining
+significant attention and adoption as a pivotal production mode
+among numerous enterprises [1], [2]. It not only caters to spe-
+cific consumer needs and amplifies product differentiation for a
+competitive edge, but also curtails inventory wastage, enhances
+production flexibility, and fortifies customer loyalty [3], [4].
+Jing Yang and Yuhang Liu is with The State Key Laboratory for Man-
+agement and Control of Complex Systems, Institute of Automation, Chinese
+Academy of Sciences, Beijing 100190, China, and also with the School of
+Artificial Intelligence, University of Chinese Academy of Sciences, Beijing
+100049, China (E-mail: yangjing2020@ia.ac.cn, liuyuhang2021@ia.ac.cn).
+Xiao Wang is with the School of Artificial Intelligence, Anhui University,
+Hefei 266114, China and also with Qingdao Academy of Intelligent Industries,
+Qingdao 230031, China (E-mail: xiao.wang@ahu.edu.cn).
+Yu
+Zhao
+is
+with
+National
+Key
+Laboratory
+of
+Information
+Sys-
+tems Engineering, National University of Defense Technology (E-mail:
+yuzhao@nudt.edu.cn).
+Fei-Yue Wang is with Macau University of Science and Technology, Macao
+999078, China, with Beijing Engineering Research Center of Intelligent
+Systems and Technology, Chinese Academy of Sciences, Beijing 100098,
+China and also with State Key Laboratory for Management and Control of
+Complex Systems, Chinese Academy of Sciences, Beijing 100190, China (e-
+mail: feiyue.wang@ia.ac.cn).
+Crowdsourcing, epitomizing collective intelligence, as shown
+in Fig. 1, empowers businesses to gain profound insights into
+consumers’ needs and preferences. Moreover, it even allows
+consumers to participate in the production process, leveraging
+an extensive, boundless reservoir of human resources to handle
+a wide array of tasks with varying levels of complexity
+[5]. Therefore, it is crucial and essential to effectively apply
+crowdsourcing technology to customized production and thus
+promo

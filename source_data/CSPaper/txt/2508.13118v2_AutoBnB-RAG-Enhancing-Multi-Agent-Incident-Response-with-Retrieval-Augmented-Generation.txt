@@ -1,0 +1,84 @@
+AutoBnB-RAG: Enhancing Multi-Agent Incident
+Response with Retrieval-Augmented Generation
+Zefang Liu∗†, Arman Anwar†
+∗Capital One, San Jose, USA
+†Georgia Institute of Technology, Atlanta, USA
+liuzefang@gatech.edu
+Abstract—Incident response (IR) requires fast, coordinated,
+and well-informed decision-making to contain and mitigate cy-
+ber threats. While large language models (LLMs) have shown
+promise as autonomous agents in simulated IR settings, their
+reasoning is often limited by a lack of access to external knowl-
+edge. In this work, we present AutoBnB-RAG, an extension of
+the AutoBnB framework that incorporates retrieval-augmented
+generation (RAG) into multi-agent incident response simulations.
+Built on the Backdoors & Breaches (B&B) tabletop game
+environment, AutoBnB-RAG enables agents to issue retrieval
+queries and incorporate external evidence during collaborative
+investigations. We introduce two retrieval settings: one grounded
+in curated technical documentation (RAG-Wiki), and another
+using narrative-style incident reports (RAG-News). We evalu-
+ate performance across eight team structures, including newly
+introduced argumentative configurations designed to promote
+critical reasoning. To validate practical utility, we also simulate
+real-world cyber incidents based on public breach reports,
+demonstrating AutoBnB-RAG’s ability to reconstruct complex
+multi-stage attacks. Our results show that retrieval augmentation
+improves decision quality and success rates across diverse organi-
+zational models. This work demonstrates the value of integrating
+retrieval mechanisms into LLM-based multi-agent systems for
+cybersecurity decision-making.
+Index Terms—incident response, large language models, multi-
+agent systems, retrieval-augmented generation, cybersecurity
+I. INTRODUCTION
+As cyber threats become more frequent, sophisticated, and
+multi-phased, effective incident response (IR) [1]–[5] has
+become a critical capability for organizational resilience. Inci-
+dent response demands timely decision-making, coordination
+across specialized roles, and the ability to adapt to incomplete
+and evolving information. Traditional approaches rely heavily
+on human teams, structured protocols, and expert judgment,
+which can be slow or inconsistent under operational stress.
+To address these limitations, recent research has explored the
+use of large language models (LLMs) as autonomous agents
+capable of supporting or simulating incident response teams.
+LLMs have demonstrated strong performance in multi-
+agent collaboration tasks [6], [7] due to their capabilities in
+natural language understanding, planning, and communication.
+These capabilities have enabled progress in domains such
+as scientific reasoning [8], healthcare decision-making [9],
+economic retrieval [10], supply chain management [11], and
+customer relationship [12]. In cybersecurity, LLMs have been
+evaluated on benchmarks [13]–[16] and deployed in simulation
+environments to emulate defenders or analysts [17]–[20]. One
+Homogeneous
+Centralized
+Heterogeneous
+Centralized
+Homogeneous
+Decentralized
+Heterogeneous
+Decentralized
+Homogeneous
+Hierarchical
+Heterogeneous
+Hierarchical
+Homogeneous
+Argumentative
+Heterogeneous
+Argumentative
+Fig. 1: Team structures evaluated in LLM-driven incident
+response simulations using the Backdoors & Breaches frame-
+work.
+prominent framework for such simulations is Backdoors &
+Breaches (B&B) [21]–[23], a structured tabletop game de-
+signed to model realistic IR scenarios. AutoBnB [24], [25]
+extended this framework by enabling LLM-based agents to
+collaborate through structured dialogue in uncovering attack
+sequences under various team structures.
+This paper introduces AutoBnB-RAG1, an extension of the
+AutoBnB framework [24], [25] that equips LLM agents with
+retrieval capabilities during simulated incident response. Al-
+though LLMs are effective in reasoning and dialogue, they can
+suffer from hallucinations or gaps in factual knowledge, espe-
+cially when faced with domain

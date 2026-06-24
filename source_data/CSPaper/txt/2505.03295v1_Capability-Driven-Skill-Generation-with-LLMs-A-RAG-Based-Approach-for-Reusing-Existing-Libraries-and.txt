@@ -1,0 +1,71 @@
+Capability-Driven Skill Generation with LLMs:
+A RAG-Based Approach for Reusing Existing
+Libraries and Interfaces
+Luis Miguel Vieira da Silva∗, Aljosha K¨ocher∗, Nicolas K¨onig∗, Felix Gehlhoff∗, Alexander Fay†
+∗Institute of Automation Technology
+Helmut Schmidt University, Hamburg, Germany
+Email: {miguel.vieira, aljosha.koecher, felix.gehlhoff}@hsu-hh.de
+† Chair of Automation
+Ruhr University, Bochum, Germany
+Email: alexander.fay@rub.de
+Abstract—Modern automation systems increasingly rely on
+modular architectures, with capabilities and skills as one solution
+approach. Capabilities define the functions of resources in a
+machine-readable form and skills provide the concrete implemen-
+tations that realize those capabilities. However, the development
+of a skill implementation conforming to a corresponding capa-
+bility remains a time-consuming and challenging task. In this
+paper, we present a method that treats capabilities as contracts
+for skill implementations and leverages large language models to
+generate executable code based on natural language user input. A
+key feature of our approach is the integration of existing software
+libraries and interface technologies, enabling the generation
+of skill implementations across different target languages. We
+introduce a framework that allows users to incorporate their
+own libraries and resource interfaces into the code generation
+process through a retrieval-augmented generation architecture.
+The proposed method is evaluated using an autonomous mobile
+robot controlled via Python and ROS 2, demonstrating the
+feasibility and flexibility of the approach.
+Index Terms—Capabilities, Skills, Large Language Models,
+LLMs, Ontologies, Semantic Web, Code-Generation, Retrieval-
+Augmented Generation, RAG
+I. INTRODUCTION
+Modern industrial automation systems increasingly require
+modularity and reconfigurability to flexibly adapt to changing
+tasks, environments and system configurations [1]. Whether in
+manufacturing or multi-robot scenarios, such systems typically
+consist of heterogeneous resources and components from var-
+ious vendors, leading to considerable integration complexity.
+Each resource often exposes proprietary interfaces, protocols,
+and data formats, which must be harmonized to ensure reliable
+coordination and control. A key requirement for seamless inte-
+gration is the availability of machine-interpretable descriptions
+of each resource’s functionality [2].
+A common concept to realize this functionality description
+and implementation is the use of capabilities and skills. A
+capability provides an abstract, technology-independent de-
+scription of a function a resource can offer (e.g., grasping
+an object), while a skill represents its concrete, executable
+implementation, exposed via a skill interface [3]. This dis-
+tinction enables automated planning and orchestration based
+on abstract capabilities, while the execution is delegated to
+specific skills provided by the resources [4].
+Despite the potential of capabilities and skills, two ma-
+jor challenges remain for practical adoption. First, creating
+machine-interpretable capability models is complex and error-
+prone. Prior work has already demonstrated that structured
+engineering methods support the modeling of capabilities and
+mitigate these challenges (e.g., [5]). The second open chal-
+lenge is that manually developing skills is time-consuming,
+error-prone, and requires deep technical knowledge about
+the target resource, its control interfaces and libraries. Even
+when a capability model is available, identifying appropriate
+control interfaces and implementing robust behaviors involves
+significant engineering effort. This lack of automation slows
+down deployment and limits scalability in dynamic or modular
+environments where new functions must frequently be added
+or reconfigured.
+Addressing this challenge requires methods for automati-
+cally generating skill implementations from formal capabil-
+ity models. Recently, Large Language Models (LLMs)

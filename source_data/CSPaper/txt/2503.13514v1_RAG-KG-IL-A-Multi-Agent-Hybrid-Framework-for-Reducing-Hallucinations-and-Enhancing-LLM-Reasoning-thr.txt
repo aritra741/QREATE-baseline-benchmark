@@ -1,0 +1,73 @@
+1
+RAG-KG-IL: A Multi-Agent Hybrid Framework for
+Reducing Hallucinations and Enhancing LLM
+Reasoning through RAG and Incremental
+Knowledge Graph Learning Integration
+Hong Qing Yu, University of Derby and Frank McQuade, Bloc Digital
+Abstract—This paper presents RAG-KG-IL, a novel multi-
+agent hybrid framework designed to enhance the reasoning
+capabilities of Large Language Models (LLMs) by integrating
+Retrieval-Augmented Generation (RAG) and Knowledge Graphs
+(KGs) with an Incremental Learning (IL) approach. Despite
+recent advancements, LLMs still face significant challenges in
+reasoning with structured data, handling dynamic knowledge
+evolution, and mitigating hallucinations, particularly in mission-
+critical domains. Our proposed RAG-KG-IL framework ad-
+dresses these limitations by employing a multi-agent architecture
+that enables continuous knowledge updates, integrates structured
+knowledge, and incorporates autonomous agents for enhanced
+explainability and reasoning. The framework utilizes RAG to
+ensure the generated responses are grounded in verifiable infor-
+mation, while KGs provide structured domain knowledge for im-
+proved consistency and depth of understanding. The Incremental
+Learning approach allows for dynamic updates to the knowledge
+base without full retraining, significantly reducing computational
+overhead and improving the model’s adaptability. We evaluate
+the framework using real-world case studies involving health-
+related queries, comparing it to state-of-the-art models like GPT-
+4o and a RAG-only baseline. Experimental results demonstrate
+that our approach significantly reduces hallucination rates and
+improves answer completeness and reasoning accuracy. The
+results underscore the potential of combining RAG, KGs, and
+multi-agent systems to create intelligent, adaptable systems capa-
+ble of real-time knowledge integration and reasoning in complex
+domains.
+Index Terms—Artificial Intelligent, Large Language Model,
+Agent System, Knowledge Engineering.
+I. INTRODUCTION
+T
+He rapid advancement of Large Language Models
+(LLMs), such as GPT-4o, has brought significant break-
+throughs in natural language understanding and generation.
+These models have become invaluable tools across various do-
+mains, including text summarization [1], conversational agents
+[2], and complex question-answering systems. However, de-
+spite their capabilities, current LLM frameworks face substan-
+tial challenges when it comes to reasoning with structured
+knowledge, maintaining dynamic knowledge evolution [3],
+and ensuring accuracy during interactions [4], [5]. Addressing
+these issues is critical for expanding the applicability of
+LLM-based agent systems, especially in mission-critical areas
+such as healthcare, finance, and law, where factual accuracy,
+reasoning capability [6] and explainability [7] are crucial.
+A major limitation of LLMs lies in their reliance on
+unstructured text data. These models excel at generating
+coherent, human-like responses from large volumes of unstruc-
+tured information but often fail to utilize structured knowl-
+edge effectively, such as that found in Knowledge Graphs
+(KGs). This shortcoming frequently results in hallucinated an-
+swers—responses that, while plausible-sounding, are factually
+incorrect or misleading [8]. Moreover, LLMs generally lack
+the ability to perform contextual reasoning across multiple do-
+mains when tasks require a deep understanding of structured,
+interconnected data [9].
+Another critical issue is the static nature of LLM knowledge.
+Once trained, these models cannot easily incorporate new
+information or autonomously update their knowledge base.
+Any effort to include additional knowledge typically requires
+retraining or fine-tuning, which is computationally expensive
+and impractical for many real-world scenarios.
+In light of these limitations, we aim to address the following
+key research questions:
+• How to retrieve high quality and relevant data with
+knowledge integrated RAG-LLM framework to

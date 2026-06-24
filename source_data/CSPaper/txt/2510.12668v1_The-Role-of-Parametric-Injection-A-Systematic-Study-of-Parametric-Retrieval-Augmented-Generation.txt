@@ -1,0 +1,79 @@
+The Role of Parametric Injection-A Systematic Study of
+Parametric Retrieval-Augmented Generation
+Minghao Tang
+State Key Laboratory of AI Safety,
+ICT, Chinese Academy of Sciences
+University of Chinese Academy of Sciences
+Beijing, China
+tangminghao25@mails.ucas.ac.cn
+Shiyu Ni
+State Key Laboratory of AI Safety,
+ICT, Chinese Academy of Sciences
+University of Chinese Academy of Sciences
+Beijing, China
+nishiyu23z@ict.ac.cn
+Jingtong Wu, Zengxin Han
+wangzhenlingwu@163.com
+zengxin.hanzx@gmail.com
+Keping Bi
+State Key Laboratory of AI Safety,
+ICT, Chinese Academy of Sciences
+University of Chinese Academy of Sciences
+Beijing, China
+bikeping@ict.ac.cn
+Abstract
+Retrieval-augmented generation (RAG) enhances large language
+models (LLMs) by retrieving external documents. As an emerging
+form of RAG, parametric retrieval-augmented generation (PRAG)
+encodes documents as model parameters (i.e., LoRA modules) and
+injects these representations into the model during inference, en-
+abling interaction between the LLM and documents at parametric
+level. Compared with directly placing documents in the input con-
+text, PRAG is more efficient and has the potential to offer deeper
+model–document interaction. Despite its growing attention, the
+mechanism underlying parametric injection remains poorly un-
+derstood. In this work, we present a systematic study of PRAG to
+clarify the role of parametric injection, showing that parameterized
+documents capture only partial semantic information of documents,
+and relying on them alone yields inferior performance compared
+to interaction at text level. However, these parametric representa-
+tions encode high-level document information that can enhance
+the model’s understanding of documents within the input context.
+When combined parameterized documents with textual documents,
+the model can leverage relevant information more effectively and
+become more robust to noisy inputs, achieving better performance
+than either source alone. We recommend jointly using parameter-
+ized and textual documents and advocate for increasing the infor-
+mation content of parametric representations to advance PRAG.
+CCS Concepts
+• Information systems →Novelty in information retrieval.
+Permission to make digital or hard copies of all or part of this work for personal or
+classroom use is granted without fee provided that copies are not made or distributed
+for profit or commercial advantage and that copies bear this notice and the full citation
+on the first page. Copyrights for components of this work owned by others than the
+author(s) must be honored. Abstracting with credit is permitted. To copy otherwise, or
+republish, to post on servers or to redistribute to lists, requires prior specific permission
+and/or a fee. Request permissions from permissions@acm.org.
+Conference acronym ’XX, June 03–05, 2018, Woodstock, NY
+© 2018 Copyright held by the owner/author(s). Publication rights licensed to ACM.
+ACM ISBN 978-1-4503-XXXX-X/18/06
+https://doi.org/XXXXXXX.XXXXXXX
+Keywords
+Retrieval-Augmented Generation; Parametric RAG; LoRA
+ACM Reference Format:
+Minghao Tang, Shiyu Ni, Jingtong Wu, Zengxin Han, and Keping Bi. 2018.
+The Role of Parametric Injection-A Systematic Study of Parametric Retrieval-
+Augmented Generation. In Proceedings of Make sure to enter the correct
+conference title from your rights confirmation emai (Conference acronym ’XX).
+ACM, New York, NY, USA, 12 pages. https://doi.org/XXXXXXX.XXXXXXX
+1
+Introduction
+Despite the remarkable capabilities of large language models (LLMs)
+across a wide range of tasks [5, 6, 29], their knowledge is limited by
+the training data. When confronted with questions that fall outside
+their knowledge boundary, LLMs often hallucinate—generating flu-
+ent yet factually incorrect responses [13, 17, 18]. Retrieval-augmented
+generation (RAG) addresses this limitation by retrieving relevant
+external documents to supplement the model’s internal knowl-
+edge [11, 15], and has become an effective approach for knowledge-
+intensi

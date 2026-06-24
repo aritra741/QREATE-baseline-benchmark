@@ -1,0 +1,62 @@
+A RAG-Based Question-Answering Solution for
+Cyber-Attack Investigation and Attribution
+Sampath Rajapaksha⋆[0000−0001−7772−3774], Ruby Rani⋆[0000−0003−1257−8478],
+and Erisa Karafili[0000−0002−8250−4389]
+University of Southampton
+University Road, Southampton SO17 1BJ, UK
+{srwg1m24, r.rani, e.karafili}@soton.ac.uk
+Abstract. In the constantly evolving field of cybersecurity, it is imper-
+ative for analysts to stay abreast of the latest attack trends and perti-
+nent information that aids in the investigation and attribution of cyber-
+attacks. In this work, we introduce the first question-answering (QA)
+model and its application that provides information to the cybersecu-
+rity experts about cyber-attacks investigations and attribution. Our QA
+model is based on Retrieval Augmented Generation (RAG) techniques
+together with a Large Language Model (LLM) and provides answers to
+the users’ queries based on either our knowledge base (KB) that contains
+curated information about cyber-attacks investigations and attribution
+or on outside resources provided by the users. We have tested and evalu-
+ated our QA model with various types of questions, including KB-based,
+metadata-based, specific documents from the KB, and external sources-
+based questions. We compared the answers for KB-based questions with
+those from OpenAI’s GPT-3.5 and the latest GPT-4o LLMs. Our pro-
+posed QA model outperforms OpenAI’s GPT models by providing the
+source of the answers and overcoming the hallucination limitations of the
+GPT models, which is critical for cyber-attack investigation and attribu-
+tion. Additionally, our analysis showed that when the RAG QA model
+is given few-shot examples rather than zero-shot instructions, it gener-
+ates better answers compared to cases where no examples are supplied
+in addition to the query.
+Keywords: cyber-attack attribution · LLMs · RAG · QA
+1
+Introduction
+Investigating and attributing cyber-attacks are crucial processes, as they allow
+the implementation of efficient countermeasures. Cyber-attack attribution, which
+involves identifying the attacker responsible for a cyber-attack, is an essential
+process that enables experts to implement attacker-oriented countermeasures
+and pursue legal actions. There are three levels of attribution. The first level
+⋆These authors contributed equally to this work. Thus, the alphabetical order is
+applied.
+arXiv:2408.06272v1  [cs.CR]  12 Aug 2024
+2
+Rajapaksha, Rani, and Karafili
+involves understanding the tools, tactics, techniques, and procedures (TTPs)
+used by the attacker. The second level identifies the geographical location of
+the attack. The third and most critical level determines the individual or or-
+ganization behind the attack [10]. Details about cyber-attacks are published in
+various formats, such as text and PDF. Cybersecurity professionals often need
+to sift through vast amounts of these textual data to stay ahead of evolving
+threats [11,7]. The lack of a standard format for these reports makes extract-
+ing meaningful information from cyber-threat intelligence (CTI) challenging [10].
+Consequently, cyber-attack attribution is complex and resource-intensive [12,13],
+often requiring manual effort from cybersecurity experts [17]. Despite its com-
+plexity, this process is essential for responding to incidents, formulating cyberse-
+curity policies, and mitigating future threats. LLMs have revolutionised Natural
+Language Processing (NLP), significantly enhancing automated text generation
+and enabling human-like interactions. Consequently, LLMs such as GPT-3.5,
+GPT-4 are increasingly utilised in various domains, including cyber threat intel-
+ligence [21]. Recent studies have demonstrated the feasibility of using LLMs to
+extract cybersecurity knowledge from large unstructured datasets [21,25,6,15].
+However, a major drawback of LLMs is their tendency to hallucinate, producing
+responses that are misleading or entirely fabricated. Another significant issue
+is the outdated knowledge of LLMs [8].

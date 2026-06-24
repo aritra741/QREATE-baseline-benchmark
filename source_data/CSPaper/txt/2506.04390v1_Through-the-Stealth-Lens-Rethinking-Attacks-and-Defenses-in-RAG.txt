@@ -1,0 +1,57 @@
+arXiv:2506.04390v1  [cs.CR]  4 Jun 2025
+THROUGH THE STEALTH LENS: RETHINKING
+ATTACKS AND DEFENSES IN RAG
+Sarthak Choudhary1
+Nils Palumbo1
+Ashish Hooda1
+Krishnamurthy Dj Dvijotham2
+Somesh Jha1
+1University of Wisconsin-Madison
+2ServiceNow Research
+June 12, 2025
+ABSTRACT
+Retrieval-augmented generation (RAG) systems are vulnerable to attacks that inject
+poisoned passages into the retrieved set, even at low corruption rates. We show
+that existing attacks are not designed to be stealthy, allowing reliable detection and
+mitigation. We formalize stealth using a distinguishability-based security game.
+If a few poisoned passages are designed to control the response, they must dif-
+ferentiate themselves from benign ones, inherently compromising stealth. This
+motivates the need for attackers to rigorously analyze intermediate signals involved
+in generation—such as attention patterns or next-token probability distributions—to
+avoid easily detectable traces of manipulation. Leveraging attention patterns, we
+propose a passage-level score—the Normalized Passage Attention Score—used by
+our Attention-Variance Filter algorithm to identify and filter potentially poisoned
+passages. This method mitigates existing attacks, improving accuracy by up to
+∼20% over baseline defenses. To probe the limits of attention-based defenses, we
+craft stealthier adaptive attacks that obscure such traces, achieving up to 35% attack
+success rate, and highlight the challenges in improving stealth1.
+1
+Introduction
+Large Language Models (LLMs) have revolutionized various applications with their remarkable
+generative abilities. However, their reliance on internal knowledge can lead to inaccuracies due to
+outdated information or hallucinations [1, 2, 3]. Retrieval-Augmented Generation (RAG) [4, 5]
+has emerged as a leading technique to address these limitations by integrating LLMs with external
+(non-parametric) knowledge retrieved from databases [6, 7]. It retrieves a set of relevant passages
+from a knowledge database, denoted as retrieved set, and incorporates them into the model’s input.
+1Our implementation is available at https://github.com/sarthak-choudhary/Stealthy_Attacks_
+Against_RAG.
+This powerful approach underpins critical real-world systems, including Google Search with AI
+overviews [8], WikiChat [9], Bing Search [10], Perplexity AI [11], and LLM agents [12, 13, 14, 15].
+The reliance of RAG systems on the retrieved set, however, introduces a significant new security
+vulnerability: the knowledge database becomes an additional attack surface. Malicious actors can
+inject harmful content—for example, by manipulating Wikipedia pages, spreading fake news on
+social media, or hosting malicious websites— to corrupt the information retrieved by the RAG
+system [16]. Consequently, the retrieval of malicious passages by a RAG system, followed by
+their incorporation into response generation, constitutes a retrieval corruption attack [17]. Recent
+instances, such as the PoisonedRAG attack [18], demonstrate easily exploitable vulnerabilities: the
+attacker simply prompts GPT-4 to create the malicious context and inject it into the retrieved set,
+successfully manipulating the answer by corrupting only a small fraction of the retrieved set (e.g.,
+one or two out of ten) [19, 18, 17].
+Although existing attacks on RAG systems often achieve high success with low corruption rates,
+they are typically not designed with stealth in mind, leaving them susceptible to detection and miti-
+gation. Ideally, a robust aggregation mechanism within the RAG system can identify inconsistencies
+between the model’s output and the dominant (benign) signal in the retrieved set. A significant di-
+vergence suggests undue influence from a small, potentially malicious subset of passages. Crucially,
+to override the benign context, adversarial passages must disproportionately influence the model’s
+response, which may necessitate detectable differences from benign passages—leaving behind a
+malicious trace. The pr

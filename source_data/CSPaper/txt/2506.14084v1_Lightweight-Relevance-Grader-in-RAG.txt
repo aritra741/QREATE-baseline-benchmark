@@ -1,0 +1,74 @@
+arXiv:2506.14084v1  [cs.AI]  17 Jun 2025
+Lightweight Relevance Grader in RAG
+Taehee Jeong
+San Jose State University
+taehee.jeong@sjsu.edu
+Abstract—Retrieval-Augmented Generation (RAG) addresses
+limitations of large language models (LLMs) by leveraging
+a vector database to provide more accurate and up-to-date
+information. When a user submits a query, RAG executes a
+vector search to find relevant documents, which are then used to
+generate a response. However, ensuring the relevance of retrieved
+documents with a query would be a big challenge. To address this,
+a secondary model, known as a relevant grader, can be served to
+verify its relevance. To reduce computational requirements of a
+relevant grader, a lightweight small language model is preferred.
+In this work, we finetuned llama-3.2-1b as a relevant grader and
+achieved a significant increase in precision from 0.1301 to 0.7750.
+Its precision is comparable to that of llama-3.1-70b. Our code
+is available at https://github.com/taeheej/Lightweight-Relevance-
+Grader-in-RAG.
+Index Terms—Retrieval-augmented generation, Large lan-
+guage models, Relevance grader, Fine-tuning, Vector search,
+Vector database
+I. INTRODUCTION
+Large Language Models (LLMs) have achieved exceptional
+capabilities in various Natural Language Processing (NLP)
+tasks [1]–[3], demonstrating their ability to absorb and retain
+vast amounts of knowledge. When responding to specific
+queries, LLMs often provide informative answers, leveraging
+the extensive range of information they acquired during their
+training. However, while their capabilities are impressive,
+LLMs still have several limitations that hinder their overall
+applications.
+A major limitation of LLMs is the rapid growth in the num-
+ber of parameters required to achieve extensive capabilities.
+As the training dataset expands, the model needs to capture
+increasingly complex patterns, which in turn demands a sub-
+stantial increase in parameters. This exponential growth not
+only adds complexity to the model but also creates significant
+deployment challenges, making it difficult to implement the
+model in real-world applications.
+Another limitation of LLMs is their inability to incorporate
+time-sensitive or non-public information. This limitation arises
+from the fact that LLMs are trained on static datasets that
+represent a snapshot of the internet at a particular point in
+time. As a result, these models often lack access to the
+recently developed or updated information. This can lead to
+a critical issue: LLMs may generate ”hallucinations,” where
+they produce responses that are not grounded in actual or
+2025 The 8th International Conference on Information and Computer
+Technologies (ICICT), IEEE Copyright 2025
+current information. This problem is particularly alarming in
+applications where accuracy and reliability are crucial, as it
+can erode trust in the model’s outputs.
+A novel approach has recently emerged to tackle these
+limitations: Retrieval-Augmented Generation (RAG) [4], [5].
+The RAG enhances its capabilities by integrating LLMs with
+external knowledge retrieval. This integration allows the RAG
+to access and incorporate not only publicly available infor-
+mation but also time-sensitive data or information that is not
+publicly accessible, thereby expanding its knowledge base.
+When a query is given, RAG system uses a retriever to
+search an external knowledge database and retrieve the most
+relevant documents related to the query. Next, these documents
+are combined with the original query to create a prompt for
+a language model. The language model then generates its
+output based on the information from the retrieved documents,
+resulting in a comprehensive response to the query. The work
+flow of the RAG system is illustrated in Fig. 1.
+Fig. 1: RAG system
+The RAG system differs from generative-only models in
+its ability to utilize time-sensitive information or non-public
+documents, such as internal company documents, to reduce
+the risk of hallucinations. A key co

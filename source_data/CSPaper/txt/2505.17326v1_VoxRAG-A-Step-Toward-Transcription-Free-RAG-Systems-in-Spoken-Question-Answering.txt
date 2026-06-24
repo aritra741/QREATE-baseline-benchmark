@@ -1,0 +1,92 @@
+VoxRAG: A Step Toward Transcription-Free RAG Systems in Spoken
+Question Answering
+Zackary Rackauckas1, Julia Hirschberg1,
+1Columbia University,
+zcr2105@columbia.edu, julia@cs.columbia.edu
+Abstract
+We introduce VoxRAG, a modular speech-to-
+speech retrieval-augmented generation system
+that bypasses transcription to retrieve semanti-
+cally relevant audio segments directly from spo-
+ken queries. VoxRAG employs silence-aware
+segmentation, speaker diarization, CLAP au-
+dio embeddings, and FAISS retrieval using L2-
+normalized cosine similarity. We construct a
+50-query test set recorded as spoken input by
+a native English speaker. Retrieval quality was
+evaluated using LLM-as-a-judge annotations.
+For very relevant segments, cosine similarity
+achieved a Recall@10 of 0.34. For somewhat
+relevant segments, Recall@10 rose to 0.60 and
+nDCG@10 to 0.27, highlighting strong topi-
+cal alignment. Answer quality was judged on
+a 0–2 scale across relevance, accuracy, com-
+pleteness, and precision, with mean scores of
+0.84, 0.58, 0.56, and 0.46 respectively. While
+precision and retrieval quality remain key limi-
+tations, VoxRAG shows that transcription-free
+speech-to-speech retrieval is feasible in RAG
+systems.
+1
+Introduction
+Traditional question-answering (QA) retrieval-
+augmented generation (RAG) systems retrieve text
+documents from a vector database by performing
+semantic similarity search from a user’s query.
+A large language model (LLM) then generates
+context-aware answers based on the retrieved con-
+tent (Rackauckas, 2024). This architecture, how-
+ever, can be extended to operate directly on spoken
+audio instead of text. Retrieving spoken audio doc-
+uments without relying on intermediate transcrip-
+tions is an emerging area of RAG research (Min
+et al., 2025).
+We present VoxRAG: a modular, open-source re-
+trieval pipeline for RAG with full speech-to-speech
+retrieval. Unlike hybrid text and audio systems,
+VoxRAG keeps both the user query and retriev-
+able documents in audio form up to the genera-
+tion stage, using Contrastive Language-Audio Pre-
+training (CLAP) embeddings (Elizalde et al., 2022)
+to retrieve semantically relevant segments directly
+from podcast audio (see Appendix D for sample
+QA pairs).
+Using podcasts as a retrieval target presents chal-
+lenges such as informal language, overlapping
+speakers, non-speech audio (e.g., music, laugh-
+ter), and generally poor automatic speech recog-
+nition (ASR) transcription output quality (Jones
+et al., 2021). VoxRAG mitigates these issues with
+silence-aware segmentation, speaker diarization,
+and CLAP embedding retrieval, avoiding early
+commitment to potentially faulty transcripts and en-
+abling semantically grounded retrieval in the acous-
+tic domain. We evaluate both retrieval and answer
+quality using RAGElo’s LLM-as-a-judge methods,
+which have shown positive alignment with human
+judgments in QA evaluation, to assess how well
+retrieved audio supports answer generation (Rack-
+auckas et al., 2024).
+Related work has explored RAG systems for au-
+dio in both text and hybrid modalities. The TREC
+2020–21 Podcasts Track saw systems using ASR
+text retrieval and summarization (Clifton et al.,
+2020), including fine-tuned BART (Lewis et al.,
+2019) and Whisper spoken term detection. Hybrid
+systems like Schwertzer’s combination of COLA
+(Saeed et al., 2020) and RoBERTa (Liu et al., 2019)
+show promise in mixed-modal retrieval (Schwerter,
+2022).
+More recent models embed audio and text into
+shared or comparable vector spaces. SpeechDPR
+distills from ASR and dense passage retrieval
+(DPR) systems to embed spoken passages directly
+(Lin et al., 2024), while SEAL uses separate en-
+coders for speech and text to enable cross-modal
+retrieval without transcription (Sun et al., 2025).
+Spectron processes spectrograms for QA entirely
+within an LLM framework (Nachmani et al., 2024),
+and SpeechRAG integrates speech retrieval with
+arXiv:2505.17326v1  [cs.IR]  22 May 2025
+an LLM for answering text queries from raw au-
+dio (Min et a

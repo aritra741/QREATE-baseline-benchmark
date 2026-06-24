@@ -1,0 +1,96 @@
+GETALP@AutoMin 2025: Leveraging RAG to Answer Questions based on
+Meeting Transcripts
+Jeongwoo Kang, Markarit Vartampetian, Felix Herron, Yongxin Zhou,
+Diandra Fabre, Gabriela Gonzalez-Saez
+Univ. Grenoble Alpes, CNRS, Grenoble INP*, LIG, 38000 Grenoble, France
+Correspondence: firstname.lastname@univ-grenoble-alpes.fr
+Abstract
+This paper documents GETALP’s submission
+to the Third Run of the Automatic Minuting
+Shared Task at SIGDial 2025. We participated
+in Task B: question-answering based on meet-
+ing transcripts. Our method is based on a re-
+trieval augmented generation (RAG) system
+and Abstract Meaning representations (AMR).
+We propose three systems combining these two
+approaches. Our results show that incorporat-
+ing AMR leads to high-quality responses for ap-
+proximately 35% of the questions and provides
+notable improvements in answering questions
+that involve distinguishing between different
+participants (e.g., who questions).
+1
+Introduction
+The 2025 edition of the Automatic Minuting (Au-
+toMin) Shared Task introduces, for the first time, a
+question-answering challenge based on extensive
+meeting transcripts. This task (task B) involves
+generating accurate answers grounded in long con-
+versational data.
+To address this challenge, we propose a retrieval-
+augmented generation (RAG) approach enriched
+with Abstract Meaning Representation (AMR).
+Specifically, we leverage Information Retrieval (IR)
+techniques to identify and extract relevant passages
+from large transcripts based on a given question.
+Relevant passages are identified using both dense
+sentence embeddings and synthetic queries gener-
+ated via the Doc2Query model (Nogueira et al.,
+2019). To represent the relationships described
+in the meeting, we include a Knowledge graph
+from an AMR of the retrieved sentences. These
+graphs are then translated into natural language de-
+scriptions. Finally, we utilize the capabilities of
+large language models (LLMs) to generate accu-
+rate responses using both the user question and the
+retrieved context. Our approach thus consists of
+*Institute of Engineering Univ. Grenoble Alpes
+two main stages: (1) context construction, and (2)
+answer generation.
+To analyze the impact of AMR-based context,
+we develop and evaluate three system variants:
+1. IR-only: Using only the retrieved sentences
+(from sentence and Doc2Query representa-
+tions).
+2. IR+AMR: Using both the retrieved sentences
+and their AMR natural language descriptions.
+3. AMR-only: Using only the AMR natural lan-
+guage descriptions of the retrieved sentences.
+Finally, we evaluate each variant using the LLM-
+as-Judge metric (Kim et al., 2023), and we further
+conduct a manual evaluation to qualitatively assess
+the performance of the systems using the same
+scale.
+2
+Related Work
+2.1
+QA based on Meeting Transcripts
+Previous work on question answering from meet-
+ing transcripts has explored both extractive and
+generative approaches. Apel et al. (2023) address
+real questions in meeting dialogues using an ex-
+tractive model that jointly predicts answers and
+detects when no answer is present; the authors re-
+port moderate performance and note the difficulty
+of handling ambiguous or unanswered questions.
+Prasad et al. (2023) use models like Longformer
+and RoBERTa to extract multi-span answers from
+full or partial transcripts, but highlight that per-
+formance remains well below human level due to
+the complexity of long, dispersed dialogues. Pan
+et al. (2024) propose a two-step approach that first
+compresses transcripts using summarization, then
+applies QA models to the shortened text; results
+improve with compression, though performance
+depends heavily on the quality of the summaries.
+Golany et al. (2024) introduce a RAG pipeline
+1
+arXiv:2508.00476v1  [cs.CL]  1 Aug 2025
+where relevant segments are retrieved and used
+to generate answers; this approach improves han-
+dling of dispersed information but can be sensitive
+to retrieval errors.
+2.2
+RAG
+Retrieval-Augmented Generation (RAG) (Lewis
+et al.,

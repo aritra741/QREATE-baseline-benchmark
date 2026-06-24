@@ -1,0 +1,85 @@
+LLMQuoter: Enhancing RAG Capabilities Through Efficient Quote
+Extraction From Large Contexts
+Yuri Fac¸anha Bezerra1, Li Weigang1
+1TransLab, University of Brasilia, Brasilia, Federal District, Brazil
+yurifacanha1994@gmail.com, weigang@unb.br
+Keywords:
+Knowledge Distillation, Large Language Models, LLM Reasoning, Low-Rank Adaptation, Retrieval-
+Augmented Generation
+Abstract:
+We introduce LLMQuoter, a lightweight, distillation-based model designed to enhance Retrieval-Augmented
+Generation (RAG) by extracting the most relevant textual evidence for downstream reasoning tasks. Built on
+the LLaMA-3B architecture and fine-tuned with Low-Rank Adaptation (LoRA) on a 15,000-sample subset of
+HotpotQA, LLMQuoter adopts a “quote-first-then-answer” strategy, efficiently identifying key quotes before
+passing curated snippets to reasoning models. This workflow reduces cognitive overhead and outperforms full-
+context approaches like Retrieval-Augmented Fine-Tuning (RAFT), achieving over 20-point accuracy gains
+across both small and large language models. By leveraging knowledge distillation from a high-performing
+teacher model, LLMQuoter achieves competitive results in a resource-efficient fine-tuning setup. It democra-
+tizes advanced RAG capabilities, delivering significant performance improvements without requiring extensive
+model retraining. Our results highlight the potential of distilled quote-based reasoning to streamline complex
+workflows, offering a scalable and practical solution for researchers and practitioners alike.
+1
+INTRODUCTION
+Large Language Models (LLMs) have revolutionized
+natural language processing by enabling robust per-
+formance across diverse tasks such as open-domain
+question answering, summarization, and conversa-
+tional AI. However, as these models grow in size and
+capability, their computational demands and ineffi-
+ciencies in handling large contexts have become an
+active area of research, driving efforts to develop in-
+novative strategies for improvement (Lin et al., 2024;
+Jin et al., 2024; An et al., 2024). This challenge is par-
+ticularly pronounced in scenarios requiring complex
+reasoning and retrieval of specific information from
+extensive textual data.
+Retrieval-Augmented Generation (RAG) has be-
+come a powerful paradigm for improving model per-
+formance by seamlessly integrating retrieval mech-
+anisms with generative capabilities. By integrating
+external knowledge sources, RAG enables models to
+access and utilize relevant information dynamically,
+enhancing their domain-specific performance with-
+out necessitating extensive retraining.
+Despite its
+potential, RAG still faces limitations, especially in
+smaller models, which often struggle to reason effec-
+tively when confronted with large or noisy contexts
+(Mirzadeh et al., 2024; Hu et al., 2024a).
+To
+address
+these
+limitations,
+we
+propose
+LLMQuoter,
+a
+lightweight
+model
+designed
+to
+enhance RAG workflows by adopting a “quote-
+first-then-answer” strategy.
+Instead of reasoning
+over an entire context, LLMQuoter extracts relevant
+textual snippets that directly support downstream
+reasoning tasks.
+This approach reduces cognitive
+load on reasoning models, enabling both small and
+large models to achieve superior accuracy with lower
+computational overhead.
+Our methodology builds on recent advances in
+knowledge distillation, where compact models are
+trained to emulate the capabilities of high-performing
+teacher models. By leveraging distillation techniques
+and fine-tuning a LLaMA-3B model with Low-Rank
+Adaptation (LoRA) (Hu et al., 2021), we demon-
+strate that LLMQuoter can effectively identify and ex-
+tract key quotes from large contexts. These extracted
+quotes are then passed to reasoning models, enabling
+a “quote-first-then-answer” strategy. This approach
+departs from traditional full-context techniques and
+frameworks like Retrieval-Augmented Fine-Tuning
+(RAFT) (Zhang et al., 2024a), where the model
+quotes, thinks, and answers in a single step. By de-
+coupling these stage

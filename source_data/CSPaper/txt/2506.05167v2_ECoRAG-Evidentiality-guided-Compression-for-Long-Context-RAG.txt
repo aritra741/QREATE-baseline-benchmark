@@ -1,0 +1,111 @@
+arXiv:2506.05167v2  [cs.CL]  6 Jun 2025
+ECoRAG: Evidentiality-guided Compression for Long Context RAG
+Yeonseok Jeong1, Jinsu Kim2, Dohyeon Lee3, Seung-won Hwang3*
+IPAI, Seoul National University1, Korea University2, Seoul National University3
+{jys3136, waylight3, seungwonh}@snu.ac.kr
+tonmmy222@korea.ac.kr
+Abstract
+Large Language Models (LLMs) have shown
+remarkable performance in Open-Domain
+Question Answering (ODQA) by leverag-
+ing external documents through Retrieval-
+Augmented Generation (RAG). To reduce RAG
+overhead, from longer context, context com-
+pression is necessary. However, prior com-
+pression methods do not focus on filtering out
+non-evidential information, which limit the
+performance in LLM-based RAG. We thus
+propose Evidentiality-guided RAG, or EC-
+oRAG framework. ECoRAG improves LLM
+performance by compressing retrieved docu-
+ments based on evidentiality, ensuring whether
+answer generation is supported by the cor-
+rect evidence.
+As an additional step, EC-
+oRAG reflects whether the compressed con-
+tent provides sufficient evidence, and if not,
+retrieves more until sufficient. Experiments
+show that ECoRAG improves LLM perfor-
+mance on ODQA tasks, outperforming existing
+compression methods. Furthermore, ECoRAG
+is highly cost-efficient, as it not only reduces
+latency but also minimizes token usage by re-
+taining only the necessary information to gen-
+erate the correct answer. Code is available at
+https://github.com/ldilab/ECoRAG.
+1
+Introduction
+LLMs (OpenAI, 2023; Touvron et al., 2023) have
+excelled in tasks such as ODQA by leveraging ex-
+ternal knowledge through RAG (Lewis et al., 2020;
+Ram et al., 2023). However, RAG inevitably in-
+creases context length, which incurs higher com-
+putational cost and also hinders generation qual-
+ity (Liu et al., 2024; Hsieh et al., 2024; Li et al.,
+2024).
+While adopting existing context compression (Li
+et al., 2023) may look promising, such a baseline
+presents two main challenges. First, LLMs are
+known to be vulnerable to irrelevant contents that
+*Corresponding Author
+36.0
+37.0
+38.0
+39.0
+40.0
+41.0
+42.0
+43.0
+44.0
+3
+6
+9
+12
+Exact Match (EM)
+the number of documents
+Raw Prepend
+RECOMP
+ECoRAG (ours)
+41.0
+42.0
+43.0
+44.0
+45.0
+Figure 1: Comparison of performance between prepend-
+ing retrieved documents (standard RAG) (Karpukhin
+et al., 2020), applying RECOMP (Xu et al., 2024),
+and applying ECoRAG on the Natural Questions
+(Kwiatkowski et al., 2019) test set. Experiments were
+conducted using Flan-UL2 (Tay et al., 2023).
+cannot provide evidence for answer generation (Shi
+et al., 2023; Qian et al., 2024; Wu et al., 2024), and
+existing compression methods (Xu et al., 2024;
+Jiang et al., 2024; Yoon et al., 2024) do not effec-
+tively filter them out. As a result, a naive baseline
+simply prepending retrieved documents, ‘standard
+RAG’ in Figure 1, outperforms a baseline compres-
+sor RECOMP (Xu et al., 2024). As the number of
+documents increases, a baseline compressor fails
+to filter out increasing irrelevant contents, causing
+performance to decline.
+Second, it is challenging to determine the desir-
+able compression ratio for each question. Failure
+to do so may lead to compressing too much, which
+results in losing crucial information, or compress-
+ing too little, which produces overly long contexts
+that degrade generation quality (Liu et al., 2024;
+1
+Hsieh et al., 2024; Li et al., 2024) and increase com-
+putational costs. Thus, it is necessary to find the
+desirable compression ratio that enables the LLM
+to generate the correct answer for each question.
+Our distinction is using evidentiality to ad-
+dress both challenges and proposing Evidentiality-
+guided Compression and Retrieval-Augmented
+Generation (ECoRAG) framework: Ours com-
+presses retrieved documents to retain only the in-
+formation necessary to support the answer. To
+overcome the first challenge, evidentiality (Lee
+et al., 2021; Asai et al., 2022) is used to determine
+whether each sentence in the retrieved documents
+supports the correct answe

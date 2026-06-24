@@ -1,0 +1,86 @@
+More Documents, Same Length:
+Isolating the Challenge of Multiple Documents in RAG
+Shahar Levy*
+Nir Mazor*
+Lihi Shalmon*
+Michael Hassid
+Gabriel Stanovsky
+School of Computer Science and Engineering
+The Hebrew University of Jerusalem, Jerusalem, Israel
+{shahar.levy2, nir.mazor, lihi.shalmon, michael.hassid, gabriel.stanovsky}@mail.huji.ac.il
+Abstract
+Retrieval-Augmented Generation (RAG) en-
+hances the accuracy of Large Language Model
+(LLM) responses by leveraging relevant exter-
+nal documents during generation. Although
+previous studies noted that retrieving many
+documents can degrade performance, they did
+not isolate how the quantity of documents af-
+fects performance while controlling for context
+length. We evaluate various language models
+on custom datasets derived from a multi-hop
+QA task. We keep the context length and po-
+sition of relevant information constant while
+varying the number of documents, and find
+that increasing the document count in RAG
+settings poses significant challenges for most
+LLMs, reducing performance by up to 20%.
+However, Qwen2.5 maintained consistent re-
+sults across increasing document counts, indi-
+cating better multi-document handling capabil-
+ity. Finally, our results indicate that process-
+ing multiple documents is a separate challenge
+from handling long contexts. We also make the
+datasets and code available1 to facilitate further
+research in multi-document retrieval.
+1
+Introduction
+The RAG approach enriches prompts with rele-
+vant documents, retrieved according to an input
+query (Karpukhin et al., 2020). For example, given
+a question about a certain historical period, RAG
+techniques can retrieve documents related to the
+time from a large historical corpus.
+Recent work has noted a drop in RAG perfor-
+mance when retrieving many documents. For ex-
+ample, in multi-hop QA, LLMs struggle when the
+number of retrieved documents grows, even when
+presented with all the needed information (Press
+et al., 2022; Liu et al., 2023; Levy et al., 2024;
+Wang et al., 2024). Such deficiencies were ob-
+served without controlling for the number of tokens
+*Equal contribution.
+1https://github.com/shaharl6000/MoreDocsSameLen
+Figure 1: More Documents, Same Length. We create
+various sets containing the same questions but differ-
+ing in the number of distractor documents. Each set
+includes a multi-hop question, all of the supporting doc-
+uments that contain the information to answer the ques-
+tion (pink), and varying distractor documents (blue).We
+begin with either 10 or 20 documents (depending on the
+dataset) as our full-doc version (left) and then reduce
+the number of documents while maintaining a fixed
+context size. When fewer documents are used, the re-
+maining documents are extended (blue without text) so
+that concatenating them yields the same total length.
+in which the information is conveyed, i.e., when
+the number of documents grew, so did the num-
+ber of overall tokens, thus conflating between the
+challenge of long context and multi document.
+In this work, we address the following question:
+Assuming a fixed input length, how is LLM per-
+arXiv:2503.04388v2  [cs.CL]  23 Oct 2025
+(a) MusiQue
+(b) 2WikiMultihopQA
+Figure 2: Increasing the number of retrieved documents can hurt performance. In retrieval setups with fixed
+context windows, adding more documents could reduce performance by up to 10 percent. Two models (Llama-3.3
+and Gemma-2) showed worse performance, while Qwen-2.5 remained unaffected. The smaller versions of the
+LLMs (7–9B) show a similar trend as their larger counterparts but the effect is weaker. The hues of the bars
+represent the amount of retrieved documents.
+formance affected by the number of retrieved doc-
+uments? This disentangles the challenge of long
+context from the challenge in processing collec-
+tions of related documents – which often contain
+redundancies, conflicting information, and implicit
+inter-document relations (Hirsch et al., 2023; Lior
+et al., 2024). From a practical perspective, answ

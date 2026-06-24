@@ -1,0 +1,94 @@
+HtmlRAG: HTML is Better Than Plain Text for Modeling
+Retrieved Knowledge in RAG Systems
+Jiejun Tan∗
+Zhicheng Dou†
+zstanjj@ruc.edu.cn
+dou@ruc.edu.cn
+Gaoling School of Artificial
+Intelligence
+Renmin University of China
+Beijing, China
+Wen Wang
+Mang Wang
+Weipeng Chen
+Baichuan Intelligent Technology
+Beijing, China
+Ji-Rong Wen
+Gaoling School of Artificial
+Intelligence
+Renmin University of China
+Beijing, China
+jrwen@ruc.edu.cn
+Abstract
+Retrieval-Augmented Generation (RAG) has been shown to im-
+prove knowledge capabilities and alleviate the hallucination prob-
+lem of LLMs. The Web is a major source of external knowledge
+used in RAG systems, and many commercial RAG systems have
+used Web search engines as their major retrieval systems. Typi-
+cally, such RAG systems retrieve search results, download HTML
+sources of the results, and then extract plain texts from the HTML
+sources. Plain text documents or chunks are fed into the LLMs
+to augment the generation. However, much of the structural and
+semantic information inherent in HTML, such as headings and
+table structures, is lost during this plain-text-based RAG process.
+To alleviate this problem, we propose HtmlRAG, which uses HTML
+instead of plain text as the format of retrieved knowledge in RAG.
+We believe HTML is better than plain text in modeling knowledge
+in external documents, and most LLMs possess robust capacities to
+understand HTML. However, utilizing HTML presents new chal-
+lenges. HTML contains additional content such as tags, JavaScript,
+and CSS specifications, which bring extra input tokens and noise to
+the RAG system. To address this issue, we propose HTML cleaning,
+compression, and a two-step block-tree-based pruning strategy,
+to shorten the HTML while minimizing the loss of information.
+Experiments on six QA datasets confirm the superiority of using
+HTML in RAG systems. Our code and datasets are available at
+https://github.com/plageon/HtmlRAG.
+CCS Concepts
+• Information systems →Web search engines.
+Keywords
+HTML, Retrieval-Augmented Generation, Large Language Model
+∗This work was done when Jiejun Tan was doing an internship at Baichuan.
+†Corresponding author.
+Permission to make digital or hard copies of all or part of this work for personal or
+classroom use is granted without fee provided that copies are not made or distributed
+for profit or commercial advantage and that copies bear this notice and the full citation
+on the first page. Copyrights for components of this work owned by others than the
+author(s) must be honored. Abstracting with credit is permitted. To copy otherwise, or
+republish, to post on servers or to redistribute to lists, requires prior specific permission
+and/or a fee. Request permissions from permissions@acm.org.
+WWW ’25, April 28–May 2, 2025, Sydney, NSW, Australia.
+© 2025 Copyright held by the owner/author(s). Publication rights licensed to ACM.
+ACM ISBN 979-8-4007-1274-6/25/04
+https://doi.org/10.1145/3696410.3714546
+is_tensor
+Returns True if obj is a PyTorch tensor.
+is_storage
+Returns True if obj is a PyTorch storage object.
+is_complex
+Returns True if the data type of input is a complex data 
+type i.e., one of torch.complex64, and torch.complex128.
+<tr class="row-even"><td> 
+<p><a href="generated/ 
+torch.is_complex.html"><c
+ode><span class="pre">is_ 
+complex</span> </code> 
+</a></p></td>
+<td><p>Returns True if the data type 
+of<code><span>input</span></code
+> is a complex data type i.e., one of 
+<code><span> torch.complex64 
+</span></code>, and<code><span> 
+torch.complex128</span></code> 
+.</p></td>
+Semantic Information
+<table class="autosummary 
+longtable docutils colwidths 
+-auto align-default"> 
+<tbody><tr class="row- 
+odd"><td><p></p>...
+Plain Text 
+(Loses Structural and Semantic Information)
+Learn Ecosystem Edge Become a Member…is_storage Returns True if obj is a PyTorch storage 
+object. is_complex Returns True if the data type of input is a complex data type i.e., one of 
+torch.complex64, and torch.complex128. is_conj Returns True if the input

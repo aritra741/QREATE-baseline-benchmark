@@ -1,0 +1,89 @@
+Causal-Counterfactual RAG: The Integration of Causal-Counterfactual
+Reasoning into RAG
+1Harshad Khadilkar, 2Abhay Gupta
+1Indian Institute of Technology Bombay
+2Indian Institute of Technology Patna
+1harshadkhadilkar, 2abhaygupta
+Abstract
+Large language models (LLMs) have trans-
+formed natural language processing (NLP), en-
+abling diverse applications by integrating large-
+scale pre-trained knowledge. However, their
+static knowledge limits dynamic reasoning over
+external information, especially in knowledge-
+intensive domains. Retrieval-Augmented Gen-
+eration (RAG) addresses this challenge by com-
+bining retrieval mechanisms with generative
+modeling to improve contextual understand-
+ing. Traditional RAG systems suffer from dis-
+rupted contextual integrity due to text chunk-
+ing and over-reliance on semantic similarity
+for retrieval, often resulting in shallow and
+less accurate responses. We propose Causal-
+Counterfactual RAG, a novel framework that
+integrates explicit causal graphs representing
+cause-effect relationships into the retrieval pro-
+cess and incorporates counterfactual reasoning
+grounded on the causal structure. Unlike con-
+ventional methods, our framework evaluates
+not only direct causal evidence but also the
+counterfactuality of associated causes, combin-
+ing results from both to generate more robust,
+accurate, and interpretable answers. By lever-
+aging causal pathways and associated hypo-
+thetical scenarios, Causal-Counterfactual RAG
+preserves contextual coherence, reduces hallu-
+cination, and enhances reasoning fidelity.
+1
+Introduction
+Large language models (LLMs) have revolution-
+ized the field of natural language processing (NLP),
+enabling numerous applications across various do-
+mains. However, their dependence on static, pre-
+trained knowledge constrains their capacity to in-
+corporate and reason over dynamically updated
+external information, especially in knowledge-
+intensive areas. Retrieval-Augmented Generation
+(RAG) addresses this by integrating external knowl-
+edge retrieval with generative modeling, improv-
+ing contextual understanding and enhancing output
+quality (Lewis et al., 2020). Recent research ad-
+vances in RAG have focused on two main areas:
+first, boosting retrieval efficiency through adaptive
+and modular designs; and second, better organizing
+external knowledge, with graph-based RAG meth-
+ods emerging as a leading approach (Gao et al.,
+2023).
+Despite these improvements, current RAG sys-
+tems still face significant challenges that hinder re-
+trieval fidelity and answer accuracy (Barnett et al.,
+2024). Such challenges include disrupted contex-
+tual coherence due to fragmented text chunking,
+an over-reliance on semantic similarity instead of
+causal relevance in retrieval, and insufficient preci-
+sion in selecting truly pertinent documents. More-
+over, the lack of counterfactual information within
+retrieval databases limits robust reasoning and re-
+duces confidence in generated answers (Pearl and
+Mackenzie, 2018). Our theoretical and empirical
+analyses reveal that many existing RAG systems
+frequently fail to retrieve causally grounded content
+appropriately aligned with user queries, often re-
+sulting in answers that appear relevant superficially
+but lack deep grounding.
+To address these limitations, we propose Causal-
+Counterfactual RAG, a novel framework that inte-
+grates explicit causal graphs encoding cause-effect
+relationships directly into the retrieval mechanism,
+further enriched by counterfactual reasoning based
+on these causal structures (Pearl, 2009). Unlike
+previous models, our approach evaluates not only
+direct causal evidence but also its counterfactual
+alternatives, allowing the system to consider hy-
+pothetical scenarios alongside actual causes. This
+dual reasoning process enables the generation of
+responses that are more causally coherent, robust,
+and interpretable.
+We validate our framework through extensive
+experimentation on diverse datasets with varying
+context lengths and comp

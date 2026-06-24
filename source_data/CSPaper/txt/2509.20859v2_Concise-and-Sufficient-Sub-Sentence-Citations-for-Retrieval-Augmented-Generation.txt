@@ -1,0 +1,68 @@
+Concise and Sufficient Sub-Sentence Citations for Retrieval-Augmented
+Generation
+Guo Chen1,2, Qiuyuan Li1,2, Qiuxian Li1,2, Hongliang Dai1,2*, Xiang Chen3, Piji Li1,2
+1College of Artificial Intelligence, Nanjing University of Aeronautics and Astronautics, Nanjing, China
+2The Key Laboratory of Brain-Machine Intelligence Technology, Ministry of Education, Nanjing, China.
+3MIIT Key Laboratory of Pattern Analysis and Machine Intelligence, College of Computer Science and Technology,
+Nanjing University of Aeronautics and Astronautics, Nanjing, China
+{162110125, lqy123, 162350227, hongldai,xiang chen, pjli}@nuaa.edu.cn
+Abstract
+In retrieval-augmented generation (RAG) question answer-
+ing systems, generating citations for large language model
+(LLM) outputs enhances verifiability and helps users iden-
+tify potential hallucinations. However, we observe two prob-
+lems in the citations produced by existing attribution meth-
+ods. First, the citations are typically provided at the sentence
+or even paragraph level. Long sentences or paragraphs may
+include a substantial amount of irrelevant content. Second,
+sentence-level citations may omit information that is essential
+for verifying the output, forcing users to read the surrounding
+context. In this paper, we propose generating sub-sentence
+citations that are both concise and sufficient, thereby reduc-
+ing the effort required by users to confirm the correctness of
+the generated output. To this end, we first develop annota-
+tion guidelines for such citations and construct a correspond-
+ing dataset. Then, we propose an attribution framework for
+generating citations that adhere to our standards. This frame-
+work leverages LLMs to automatically generate fine-tuning
+data for our task and employs a credit model to filter out
+low-quality examples. Our experiments on the constructed
+dataset demonstrate that the propose approach can generate
+high-quality and more readable citations.
+Introduction
+Despite the rapid advancements and widespread adoption
+of large language models (LLMs) in recent years, halluci-
+nation continues to be a major challenge (Azamfirei, Kud-
+chadkar, and Fackler 2023; Ye et al. 2023). Although various
+techniques have been proposed for detecting and mitigating
+hallucinations, fully eliminating them from LLM generated
+content remains unachievable. As a result, enabling users to
+efficiently verify the correctness of model outputs has be-
+come a critical concern in the deployment of LLM-based
+applications.
+In retrieval augmented generation (RAG) (Lewis et al.
+2020), which supplements LLMs with relevant external con-
+text to improve response accuracy, the retrieved content nat-
+urally serves as a source for verifying truthfulness (Gao et al.
+2023; Shen et al. 2025). However, since the retrieved con-
+text can be lengthy, it is often impractical for users to read
+through all of it.And to some extent, essential verification
+*Corresponding author
+information may be overlooked. Therefore, recent studies
+have investigated methods for highlighting or attaching the
+key portions of the context that support the generated output,
+thereby reducing the user’s verification burden.
+One strategy for extracting such key content is to adopt
+perturbation or gradient-based attribution methods (Sudhi
+et al. 2024) These methods are able to highlight the key
+words or phrases in the context to “explain” the model’s
+output. However, because the highlighted elements are of-
+ten scattered, the resulting explanations can be difficult for
+users to interpret efficiently. An alternative approach is to
+generate citations for the model’s responses directly using
+the LLM. Existing studies (Gao et al. 2023; Zhang et al.
+2024) adopting this approach typically produce citations at
+the paragraph or sentence level. We observe two main limi-
+tations with this strategy. First, a cited paragraph or sentence
+may contain substantial irrelevant information, increasing
+the user’s reading time. Second, the generated citations may

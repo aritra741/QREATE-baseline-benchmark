@@ -1,0 +1,89 @@
+PICOs-RAG: PICO-supported Query Rewriting for
+Retrieval-Augmented Generation in Evidence-Based
+Medicine
+1stMengzhou Sun
+Faculty of Computing
+Harbin Institute of Technology
+Harbin, China
+mzsun@ir.hit.edu.cn
+2nd Sendong Zhao
+Faculty of Computing
+Harbin Institute of Technology
+Harbin, China
+sdzhao@ir.hit.edu.cn
+3rdJianyu Chen
+Faculty of Computing
+Harbin Institute of Technology
+Harbin, China
+hcwang@ir.hit.edu.cn
+4thBing Qin
+Faculty of Computing
+Harbin Institute of Technology
+Harbin, China
+qinb@ir.hit.edu.cn
+Abstract—Evidence-based medicine (EBM) research has al-
+ways been of paramount importance. It is important to find
+appropriate medical theoretical support for the needs from physi-
+cians or patients to reduce the occurrence of medical accidents.
+This process is often carried out by human querying relevant
+literature databases, which lacks objectivity and efficiency. There-
+fore, researchers utilize retrieval-augmented generation (RAG)
+to search for evidence and generate responses automatically.
+However, current RAG methods struggle to handle complex
+queries in real-world clinical scenarios. For example, when
+queries lack certain information or use imprecise language, the
+model may retrieve irrelevant evidence and generate unhelpful
+answers. To address this issue, we present the PICOs-RAG to
+expand the user queries into a better format. Our method can
+expand and normalize the queries into professional ones and
+use the PICO format, a search strategy tool present in EBM, to
+extract the most important information used for retrieval. This
+approach significantly enhances retrieval efficiency and relevance,
+resulting in up to an 8.8% improvement compared to the baseline
+evaluated by our method. Thereby the PICOs-RAG improves the
+performance of the large language models into a helpful and
+reliable medical assistant in EBM.
+Index
+Terms—LLMs,
+Evidence-Based
+Medicine,
+Query
+Rewriting, RAG, PICO
+I. INTRODUCTION
+As evidence-based medicine (EBM) becomes increasingly
+widespread, physicians recognize that clinical diagnoses sup-
+ported by substantial medical evidence tend to have lower mis-
+diagnosis rates. With the growing amount of medical literature,
+each diagnosis now requires extensive supporting evidence.
+Consequently, medical professionals are turning to AI as an
+auxiliary tool to implement EBM effectively. However, AI
+must be capable of integrating all patient information and the
+available supporting evidence [4]. Traditional models, due to
+memory limitations and other constraints, have struggled to
+manage and synthesize this large amount of evidence com-
+prehensively [7, 16]. This situation persists until the advent
+of large language models (LLMs). With the enhancement
+of various medical LLMs and continuous optimization of
+training methods, many of these models have now reached
+the capability to effectively perform this critical clinical task
+[6].
+Fig. 1. The architecture of current RAG methods compared with our PICOs
+method. The PICOs enhance the relevance of the evidence retrieval process
+and improve the accuracy of responses, enabling the LLM to provide precise
+and targeted assistance.
+Recently, LLMs have undergone multiple rounds of rein-
+forcement and improvement [1]. They can utilize the retrieval-
+augmented generation (RAG) method to significantly reduce
+the hallucination to the levels accepted by many professional
+researchers
+[27, 10]. However, the LLMs still have many
+limitations for their application in medicine. Current LLMs
+still can not answer clearly in the domain such as clinical
+medicine for the complicated queries. From real medical
+question-and-answer Platforms [8], we find that due to the
+lack of professional knowledge, users such as patients may
+arXiv:2510.23998v1  [cs.CL]  28 Oct 2025
+use non-professional words and omit crucial information when
+they query doctors. In this situation, RAG frequently fails to
+retrieve the most critical evidence and gets a noisy index. As
+shown in Figure 1, the current RAG retrieves t

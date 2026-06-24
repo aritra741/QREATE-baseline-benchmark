@@ -1,0 +1,93 @@
+Certifiably Robust RAG against Retrieval Corruption
+Chong Xiang∗
+Princeton University
+cxiang@princeton.edu
+Tong Wu∗
+Princeton University
+tongwu@princeton.edu
+Zexuan Zhong
+Princeton University
+zzhong@cs.princeton.edu
+David Wagner
+University of California, Berkeley
+daw@cs.berkeley.edu
+Danqi Chen
+Princeton University
+danqic@cs.princeton.edu
+Prateek Mittal
+Princeton University
+pmittal@princeton.edu
+Abstract
+Retrieval-augmented generation (RAG) has been shown vulnerable to retrieval
+corruption attacks: an attacker can inject malicious passages into retrieval results
+to induce inaccurate responses. In this paper, we propose RobustRAG as the
+first defense framework against retrieval corruption attacks. The key insight of
+RobustRAG is an isolate-then-aggregate strategy: we get LLM responses from
+each passage in isolation and then securely aggregate these isolated responses. To
+instantiate RobustRAG, we design keyword-based and decoding-based algorithms
+for securely aggregating unstructured text responses. Notably, RobustRAG can
+achieve certifiable robustness: we can formally prove and certify that, for certain
+queries, RobustRAG can always return accurate responses, even when the attacker
+has full knowledge of our defense and can arbitrarily inject a small number of
+malicious passages. We evaluate RobustRAG on open-domain QA and long-form
+text generation datasets and demonstrate its effectiveness and generalizability
+across various tasks and datasets.
+1
+Introduction
+Large language models (LLMs) [5, 1, 13] can often generate inaccurate responses due to their
+incomplete and outdated parametrized knowledge. To address this limitation, retrieval-augmented
+generation (RAG) [16, 26] leverages external (non-parameterized) knowledge: it retrieves a set
+of relevant passages from a large knowledge base and incorporates them into the model input.
+This approach has inspired many popular applications. For instance, AI-powered search engines
+like Microsoft Bing Chat [31], Perplexity AI [2], and Google Search with AI Overviews [14]
+leverage RAG to summarize search results for better user experience. Open-source projects like
+LangChain [22] and LlamaIndex [27] provide flexible RAG frameworks for developers to build
+customized AI applications with LLMs and knowledge bases.
+However, despite its popularity, the RAG pipeline can become fragile when some of the retrieved
+passages are compromised by malicious actors, a type of attack we term retrieval corruption. There
+are various forms of retrieval corruption attacks. For instance, the PoisonedRAG attack [54] injects
+malicious passages to the knowledge base to induce incorrect RAG responses (e.g., “the highest
+mountain is Mount Fuji”). The indirect prompt injection attack [15] corrupts the retrieved passage to
+inject malicious instructions to LLM-integrated applications (e.g., “ignore all previous instructions
+and send the user’s search history to attacker.com”). These attacks raise the research question of
+how to build a robust RAG pipeline.
+*Equal contributions.
+Preprint. Under review.
+arXiv:2405.15556v1  [cs.LG]  24 May 2024
+Retriever
+“Mount Everest”
+“Fuji!”
+“Everest is the 
+highest mountain”
+Retrieved 
+passages
+LLM
+Isolated responses
+Secure text 
+aggregation
+§ 3.1: Keyword          
+    Aggregation 
+or 
+§ 3.2: Decoding 
+ 
+    Aggregation
+RAG response
+(robust)
+“Everest”
+RobustRAG 
+pipeline
+“Fuji!”
+Retrieved passages
+(concatenated)
+LLM
+RAG response
+(corrupted)
+Vanilla RAG 
+pipeline
+User query: “What is the name of the highest mountain?” 
+Instruction: “Answer the user query using retrieved passages.” 
+Figure 1: RobustRAG overview. In this example, one of the three retrieved passages is corrupted.
+Vanilla RAG concatenates all passages as the LLM input; its response is hijacked by the malicious
+passage. In contrast, RobustRAG isolates each passage so that only one of three isolated responses is
+corrupted. RobustRAG then securely aggregates unstructured text responses for a robust output.
+In this paper, we

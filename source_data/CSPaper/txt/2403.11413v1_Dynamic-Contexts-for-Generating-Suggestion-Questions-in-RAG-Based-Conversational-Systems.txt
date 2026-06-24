@@ -1,0 +1,73 @@
+Dynamic Contexts for Generating Suggestion Questions in RAG
+Based Conversational Systems
+Anuja Tayal∗
+University of Illinois, Chicago
+Department of Computer Science
+Chicago, IL, USA
+atayal4@uic.edu
+Aman Tyagi
+The Procter and Gamble Company
+Mason, Ohio, USA
+tyagi.a.3@pg.com
+ABSTRACT
+When interacting with Retrieval-Augmented Generation (RAG)-
+based conversational agents, the users must carefully craft their
+queries to be understood correctly. Yet, understanding the system’s
+capabilities can be challenging for the users, leading to ambiguous
+questions that necessitate further clarification. This work aims
+to bridge the gap by developing a suggestion question generator.
+To generate suggestion questions, our approach involves utilizing
+dynamic context, which includes both dynamic few-shot examples
+and dynamically retrieved contexts. Through experiments, we show
+that the dynamic contexts approach can generate better suggestion
+questions as compared to other prompting approaches.
+CCS CONCEPTS
+• Computing methodologies →Natural language generation.
+KEYWORDS
+RAG, Conversational Systems, Question Generation, Prompting,
+Few-Shot
+ACM Reference Format:
+Anuja Tayal and Aman Tyagi. 2024. Dynamic Contexts for Generating
+Suggestion Questions in RAG Based Conversational Systems. In Companion
+Proceedings of the ACM Web Conference 2024 (WWW ’24 Companion), May
+13–17, 2024, Singapore, Singapore. ACM, New York, NY, USA, 4 pages. https:
+//doi.org/10.1145/3589335.3651905
+1
+INTRODUCTION
+Current conversational systems encounter numerous problems.
+Firstly, they depend heavily on user inputs, with the agent merely
+responding to queries [1, 2]. This method is fundamentally flawed
+as it fails to actively prompt users to clarify ambiguous or poorly
+defined questions. As a result, the systems frequently return incor-
+rect responses or resort to apologetic statements when dealing with
+such inquiries. Secondly, even when the system does provide a cor-
+rect answer, the user must again formulate an effective follow-up
+∗work done as part of internship at the Procter and Gamble Company.
+Permission to make digital or hard copies of all or part of this work for personal or
+classroom use is granted without fee provided that copies are not made or distributed
+for profit or commercial advantage and that copies bear this notice and the full citation
+on the first page. Copyrights for components of this work owned by others than the
+author(s) must be honored. Abstracting with credit is permitted. To copy otherwise, or
+republish, to post on servers or to redistribute to lists, requires prior specific permission
+and/or a fee. Request permissions from permissions@acm.org.
+WWW ’24 Companion, May 13–17, 2024, Singapore, Singapore
+© 2024 Copyright held by the owner/author(s). Publication rights licensed to ACM.
+ACM ISBN 979-8-4007-0172-6/24/05
+https://doi.org/10.1145/3589335.3651905
+question. This task can be challenging, as users often find it difficult
+to understand the full scope of the system’s capabilities [3]. This
+cycle of inadequate responses forces users to constantly refine their
+queries, often resulting in more apologies than useful information.
+Through this paper, we want to address this change and fill the
+gap by proposing a suggestion question generator. The generator
+is designed to generate suggestion questions that the agent can
+answer, guided by the user’s initial query. Our framework encom-
+passes several key steps. First, it involves identifying pertinent
+passages (dynamically retrieved contexts) based on the user’s ini-
+tial query, as the answer to the query hinges on these passages.
+Secondly, we take the help of relevant triple of (questions, answer,
+suggestion questions) (dynamic few-shot). Finally, we generate
+suggestion questions by constituting a dynamic context prompt
+consisting of the dynamically retrieved contexts, and dynamic few-
+shot examples. By providing suggestion questions, users are alle-
+viated from the task of question formulation, ensuring

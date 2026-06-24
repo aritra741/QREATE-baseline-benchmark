@@ -1,0 +1,80 @@
+GRAD-MATCH: Gradient Matching based Data Subset Selection for Efﬁcient
+Deep Model Training
+Krishnateja Killamsetty 1 Durga Sivasubramanian 2 Ganesh Ramakrishnan 2 Abir De 2 Rishabh Iyer 1
+Abstract
+The great success of modern machine learning
+models on large datasets is contingent on exten-
+sive computational resources with high ﬁnancial
+and environmental costs. One way to address this
+is by extracting subsets that generalize on par with
+the full data. In this work, we propose a general
+framework, GRAD-MATCH, which ﬁnds subsets
+that closely match the gradient of the training
+or validation set. We ﬁnd such subsets effec-
+tively using an orthogonal matching pursuit algo-
+rithm. We show rigorous theoretical and conver-
+gence guarantees of the proposed algorithm and,
+through our extensive experiments on real-world
+datasets, show the effectiveness of our proposed
+framework. We show that GRAD-MATCH signiﬁ-
+cantly and consistently outperforms several recent
+data-selection algorithms and achieves the best
+accuracy-efﬁciency trade-off. GRAD-MATCH is
+available as a part of the CORDS toolkit: https:
+//github.com/decile-team/cords.
+1. Introduction
+Modern machine learning systems, especially deep learning
+frameworks, have become very computationally expensive
+and data-hungry. Massive training datasets have signiﬁ-
+cantly increased end-to-end training times, computational
+and resource costs (Sharir et al., 2020), energy require-
+ments (Strubell et al., 2019), and carbon footprint (Schwartz
+et al., 2019). Moreover, most machine learning models
+require extensive hyper-parameter tuning, further increas-
+ing the cost and time, especially on massive datasets. In
+this paper, we study efﬁcient machine learning through the
+paradigm of subset selection, which seeks to answer the
+following question: Can we train a machine learning model
+on much smaller subsets of a large dataset, with negligible
+1Department of Computer Science, University of Texas
+at Dallas, Dallas, USA
+2Department of Computer Science
+and Engineering, Indian Institute of Technology, Bombay, In-
+dia.
+Correspondence to:
+Krishnateja Killamsetty <krish-
+nateja.killamsetty@utdallas.edu>.
+Proceedings of the 38 th International Conference on Machine
+Learning, PMLR 139, 2021. Copyright 2021 by the author(s).
+loss in test accuracy?
+Data subset selection enables efﬁcient learning at multiple
+levels. First, by using a subset of a large dataset, we can
+enable learning on relatively low resource computational
+environments without requiring a large number of GPU and
+CPU servers. Second, since we are training on a subset
+of the training dataset, we can signiﬁcantly improve the
+end-to-end turnaround time, which often requires multiple
+training runs for hyper-parameter tuning. Finally, this also
+enables signiﬁcant reduction in the energy consumption and
+CO2 emissions of deep learning (Strubell et al., 2019), par-
+ticularly since a large number of deep learning experiments
+need to be run in practice. Recently, there have been sev-
+eral efforts to make machine learning models more efﬁcient
+via data subset selection (Wei et al., 2014a; Kaushal et al.,
+2019; Coleman et al., 2020; Har-Peled & Mazumdar, 2004;
+Clarkson, 2010; Mirzasoleiman et al., 2020a; Killamsetty
+et al., 2021). Existing approaches either use proxy functions
+to select data points, or are speciﬁc to particular machine
+learning models, or use approximations of quantities such
+as gradient error or generalization errors. In this work, we
+propose a data selection framework called GRAD-MATCH,
+which exactly minimizes a residual error term obtained by
+analyzing adaptive data subset selection algorithms, there-
+fore admitting theoretical guarantees on convergence.
+1.1. Contributions of this work
+Analyses of convergence bounds of adaptive data subset
+selection algorithms.
+A growing number of recent
+approaches (Mirzasoleiman et al., 2020a; Killamsetty et al.,
+2021) can be cast within the framework of adaptive data
+subset selection, where the data sub

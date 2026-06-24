@@ -1,0 +1,84 @@
+A Visual RAG Pipeline for Few-Shot Fine-Grained Product Classification
+Bianca Lamm
+Markant Services International GmbH
+Bianca.Lamm@de.markant.com
+Janis Keuper
+IMLA, Offenburg University and
+University of Mannheim
+keuper@imla.ai
+Abstract
+Despite the rapid evolution of learning and computer vi-
+sion algorithms, Fine-Grained Classification (FGC) still
+poses an open problem in many practically relevant appli-
+cations. In the retail domain, for example, the identification
+of fast changing and visually highly similar products and
+their properties are key to automated price-monitoring and
+product recommendation.
+This paper presents a novel Visual RAG pipeline that com-
+bines the Retrieval Augmented Generation (RAG) approach
+and Vision Language Models (VLMs) for few-shot FGC.
+This Visual RAG pipeline extracts product and promotion
+data in advertisement leaflets from various retailers and si-
+multaneously predicts fine-grained product ids along with
+price and discount information. Compared to previous ap-
+proaches, the key characteristic of the Visual RAG pipeline
+is that it allows the prediction of novel products without re-
+training, simply by adding a few class samples to the RAG
+database.
+Comparing several VLM back-ends like GPT-4o [23], GPT-
+4o-mini [24], and Gemini 2.0 Flash [10], our approach
+achieves 86.8% accuracy on a diverse dataset.
+1. Introduction
+The task of Fine-Grained Classification (FGC) enables
+a detailed analysis and more precise categorization of
+items that are highly similar in nature. The differentiation
+of items arises in several areas, such as animals, plants,
+cars, and retail products [29]. In the retail domain, traded
+products are continuously changing, while thousands of
+products are sold in a single supermarket. Identical prod-
+ucts are identified by the standardized and unique Global
+Trade Item Number (GTIN) [2].
+Hence, the prediction
+of GTINs is defined as a fine-grained classification task.
+Products differ in a fine-grained manner, e.g., due to similar
+content but different packaging size. The previous methods
+used for FGC are mostly based on Convolutional Neural
+Networks or Vision Transformers [7], which provide a
+reasonable accuracy but have to be retrained very often
+in practice in order to keep up with the fast changing
+product portfolios.
+In recent years, Vision Language
+Models (VLMs) have significantly advanced the integration
+of visual and textual data, enabling more sophisticated
+multi-modal understanding [33]. These models have the
+capability for solving complex reasoning tasks, including
+image captioning and visual question answering [28, 33].
+So far, VLMs have mainly a knowledge about public
+available data [33], which typically does not include
+detailed information about retail products. The Retrieval
+Augmented Generation (RAG) approach shows promising
+outcomes by incorporating external knowledge sources [9].
+Recently, the emergence of multi-modal inputs for RAG is
+an ongoing research topic [1]. The creation of a custom
+database which is required for the RAG method offers
+the ability to provide the necessary context to VLMs for
+specific tasks.
+In this paper, we investigate the combination of multi-modal
+RAG with VMLs for a few-shot fine-grained classification
+of retail products and their properties from advertisement
+leaflets.
+Our approach allows to add novel products to
+the FGC pipeline, simply by adding a few samples to the
+RAG database.
+This re-training free approach achieves
+state-of-the-art accuracies on a multi-modal benchmark.
+Our introduced Visual RAG pipeline is a novel approach to
+RAG using VLMs. The creation of a context, which is part
+of the VLM prompt, is essential for facilitating the VLMs
+comprehension of the task. In addition, the investigation of
+the RAG approach on visual data from the retail domain
+constitutes a novel methodology toward FGC.
+2. Related Work
+An overview of the topics FGC, image datasets in retail, and
+RAG is presented in the Sections 2.1 to 2.3.
+2.1. Fine-Gra

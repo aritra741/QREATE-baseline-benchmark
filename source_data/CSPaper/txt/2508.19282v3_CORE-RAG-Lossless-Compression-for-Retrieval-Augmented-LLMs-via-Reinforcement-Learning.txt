@@ -1,0 +1,65 @@
+Preprint
+CORE: LOSSLESS COMPRESSION FOR RETRIEVAL-
+AUGMENTED LLMS VIA REINFORCEMENT LEARNING
+Ziqiang Cui1
+Yunpeng Weng2
+Xing Tang3
+Peiyang Liu4
+Shiwei Li5
+Bowei He1
+Jiamin Chen1
+Yansen Zhang1
+Xiuqiang He3
+Chen Ma1
+1City University of Hong Kong
+2Tencent
+3Shenzhen Technology University
+4Peking University
+5Huazhong University of Science and Technology
+ABSTRACT
+Retrieval-Augmented Generation (RAG) has emerged as a promising approach
+to enhance the timeliness of knowledge updates and the factual accuracy of re-
+sponses in large language models. However, incorporating a large number of
+retrieved documents significantly increases input length, leading to higher com-
+putational costs. Existing approaches to document compression tailored for RAG
+often degrade task performance, as they typically rely on predefined heuristics in
+the absence of clear compression guidelines. These heuristics fail to ensure that
+the compressed content effectively supports downstream tasks. To address these
+limitations, we propose CORE, a novel method for lossless context compression in
+RAG. CORE is optimized end-to-end and does not depend on predefined compres-
+sion labels, which are often impractical to obtain. Instead, it leverages downstream
+task performance as a feedback signal, iteratively refining the compression policy
+to enhance task effectiveness. Extensive experiments across four datasets demon-
+strate the effectiveness of CORE. With a high compression ratio of 3%, CORE
+not only prevents performance degradation compared to including full documents
+(i.e., without compression) but also improves the average Exact Match (EM) score
+by 3.3 points. The code for CORE will be released soon.
+1
+INTRODUCTION
+Large language models (LLMs) have undergone rapid development in recent years, significantly
+enhancing performance across various language tasks due to their emergent capabilities in semantic
+understanding and reasoning. Nevertheless, LLMs still face challenges in updating knowledge and
+providing factual responses (Fan et al., 2024). To address these issues, Retrieval-Augmented Gener-
+ation (RAG) has emerged as a promising approach. By retrieving the most relevant documents from
+external knowledge bases and prepending them as contextual information to the original input, RAG
+substantially improves LLM performance on knowledge-intensive tasks (Ram et al., 2023).
+While RAG enhances performance, its effectiveness is closely tied to the number of retrieved doc-
+uments used, since a broader context increases the probability of encompassing critical evidence.
+As illustrated in Figure 1, performance was weakest without any retrieved documents (i.e., without
+RAG). Accuracy improved consistently as more documents were added to the context, ultimately
+exceeding the no-RAG baseline by over 10 Exact Match (EM) points. However, this performance
+gain came with two significant limitations: (1) a substantial increase in computational cost from
+processing a larger number of context tokens (Xu et al., 2024), and (2) the model’s difficulty in
+effectively leveraging all provided documents, often resulting in the omission of key information
+located in the middle of the context (Liu et al., 2023).
+These limitations have motivated recent research efforts aimed at compressing the retrieved context
+(Jin et al., 2024b; Wu et al., 2025; Jin et al., 2024a; Zhang et al., 2024a). Prominent approaches
+include document summarization (Xu et al., 2024), key information extraction (Cao et al., 2024; Xu
+et al., 2024), the construction of key supporting evidence (Jin et al., 2024b), and noise filtering based
+on information theory (Zhu et al., 2024). Despite recent progress, these methods have several notable
+shortcomings. First, compression often results in a performance trade-off. For instance, RECOMP
+1
+arXiv:2508.19282v3  [cs.CL]  28 Sep 2025
+Preprint
+Figure 1: Performance evolution with an increasing number of retrieved documents on two datasets.
+Traditional RAG requires more documents fo

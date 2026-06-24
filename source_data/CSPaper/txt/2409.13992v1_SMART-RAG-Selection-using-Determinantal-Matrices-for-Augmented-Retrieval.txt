@@ -1,0 +1,92 @@
+SMART-RAG: Selection using Determinantal Matrices for Augmented
+Retrieval
+Jiatao Li1,2, Xinyu Hu1, Xiaojun Wan1,
+1Wangxuan Institute of Computer Technology, Peking University ,
+2Information Management Department, Peking University
+leejames@stu.pku.edu.cn, {huxinyu,wanxiaojun}@pku.edu.cn
+Abstract
+Retrieval-Augmented Generation (RAG) has
+greatly improved large language models
+(LLMs) by enabling them to generate accurate,
+contextually grounded responses through the
+integration of external information. However,
+conventional RAG approaches, which prioritize
+top-ranked documents based solely on query-
+context relevance, often introduce redundancy
+and conflicting information. This issue is partic-
+ularly evident in unsupervised retrieval settings,
+where there are no mechanisms to effectively
+mitigate these problems, leading to subopti-
+mal context selection. To address this, we pro-
+pose Selection using Matrices for Augmented
+ReTrieval (SMART) in question answering
+tasks , a fully unsupervised and training-free
+framework designed to optimize context selec-
+tion in RAG. SMART leverages Determinan-
+tal Point Processes (DPPs) to simultaneously
+model relevance, diversity and conflict, ensur-
+ing the selection of potentially high-quality
+contexts. Experimental results across multiple
+datasets demonstrate that SMART significantly
+enhances QA performance and surpasses pre-
+vious unsupervised context selection methods,
+showing a promising strategy for RAG.
+1
+Introduction
+Recent advancements in large language models
+(LLMs) have significantly boosted performance in
+various natural language processing (NLP) tasks,
+especially in question answering (QA) (Brown
+et al., 2020). Despite their fluent and coherent
+generation, LLMs often face issues of hallucina-
+tion and lack of factual grounding (Maynez et al.,
+2020; Zhou et al., 2021), resulting in inconsistent
+or unreliable responses—particularly problematic
+in domains where factual accuracy is crucial, such
+as law, medicine, and education.
+To address these issues, Retrieval-Augmented
+Generation (RAG) have emerged as a powerful so-
+lution. By integrating external sources of factual
+evidence, RAG enhance the reliability and consis-
+tency of QA models (Khattab et al., 2023; Izac-
+ard et al., 2022). However, selecting relevant, di-
+verse, and non-conflicting contexts remains a major
+challenge. Supervised RAG methods require large
+amounts of labeled data, which is impractical in
+low-resource domains (Wang et al., 2023b; Dong
+et al., 2024). Even unsupervised methods often
+rely on pre-training or fine-tuning, which incurs
+significant computational costs.
+One of the key challenges in RAG is selecting
+contexts that are not only relevant but also diverse
+and free of contradictions. While retrieved con-
+texts are typically aligned with the query, they can
+introduce redundancy or conflicting information,
+especially when drawn from large datasets. For
+instance, one context might claim that “Treatment
+X has been shown to reduce symptoms by 50%
+in trials,” while another might state, “Treatment
+X is ineffective and provides no significant bene-
+fits.” Such contradictions can confuse the QA sys-
+tem, leading to unreliable or incoherent responses,
+which is particularly problematic in high-stakes
+domains like education and healthcare, where mis-
+information can have serious consequences.
+This problem occurs because retrieval methods
+tend to prioritize relevance at the expense of diver-
+sity, leading to the over-selection of similar con-
+texts. Furthermore, when multiple contexts present
+conflicting perspectives on the same information,
+the coherence of the generated answers suffers. A
+crucial factor for producing accurate, coherent an-
+swers lies in striking a balance between relevance
+and diversity while minimizing contradictions.
+Therefore,
+we
+introduce
+Selection
+using
+Matrices for Augmented ReTrieval in Question
+Answering (SMART), a fully unsupervised, train-
+free framework that directly tackles the challenges
+of

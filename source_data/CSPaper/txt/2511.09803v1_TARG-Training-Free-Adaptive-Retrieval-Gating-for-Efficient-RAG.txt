@@ -1,0 +1,61 @@
+TARG: Training-Free Adaptive Retrieval Gating for
+Efficient RAG
+Yufeng Wang†
+Computer Science Department
+Stony Brook University
+Lu Wei†
+Computer Science Department
+Stony Brook University
+Haibin Ling∗
+Computer Science Department
+Stony Brook University
+Abstract
+Retrieval-Augmented Generation (RAG) improves factuality but retrieving for ev-
+ery query often hurts quality while inflating tokens and latency.
+We propose
+Training-free Adaptive Retrieval Gating (TARG), a single-shot policy that decides
+when to retrieve using only a short, no-context draft from the base model. From
+the draft’s prefix logits, TARG computes lightweight uncertainty scores—mean
+token entropy, a margin signal derived from the top-1/top-2 logit gap via a mono-
+tone link, or small-N variance across a handful of stochastic prefixes—and trig-
+gers retrieval only when the score exceeds a threshold. The gate is model-agnostic,
+adds only tens to hundreds of draft tokens, and requires no additional training or
+auxiliary heads. On NQ-Open, TriviaQA, and PopQA, TARG consistently shifts
+the accuracy-efficiency frontier: compared with Always-RAG1 , TARG matches
+or improves EM/F1 while reducing retrieval by 70-90% and cutting end-to-end
+latency, and it remains close to Never-RAG in overhead. A central empirical find-
+ing is that under modern instruction-tuned LLMs the margin signal is a robust
+default (entropy compresses as backbones sharpen), with small-N variance offer-
+ing a conservative, budget-first alternative. We provide ablations over gate type
+and prefix length and use a ∆-latency view to make budget trade-offs explicit.
+1
+Introduction
+Large language models (LLMs) demonstrate strong performance on knowledge-intensive generation
+yet remain susceptible to hallucination, producing fluent but unfounded content when parametric
+memory lacks the necessary facts [Huang et al., 2025, Farquhar et al., 2024]. Retrieval-Augmented
+Generation (RAG) addresses this by consulting an external corpus at inference time, coupling a gen-
+erator with nonparametric memory to improve factuality and transparency [Lewis et al., 2020, Guu
+et al., 2020, Wang et al., 2023, Izacard and Grave, 2020, Yu et al., 2024, Lin et al., 2023]. How-
+ever, invoking retrieval for every input increases latency and token usage and can reduce accuracy
+when retrieved evidence is noisy or tangential. Longer prompts also impose nontrivial computa-
+tional costs due to the quadratic scaling of self-attention [Vaswani et al., 2017, Dao et al., 2022], and
+evidence placed in the middle of long contexts is often under-utilized by current models [Liu et al.,
+2023]. These considerations motivate selective retrieval: deciding when retrieval is unnecessary is
+as important as deciding what to retrieve.
+1ALWAYS-RAG: retrieve for every query; NEVER-RAG: never retrieve
+2∗Corresponding author
+3† These authors contributed equally to this work
+Preprint. Under review.
+arXiv:2511.09803v1  [cs.CL]  12 Nov 2025
+Recent work explores conditional retrieval, including forward-looking active retrieval (FLARE) that
+anticipates upcoming content and re-queries when confidence appears low [Jiang et al., 2023],
+instruction-tuned regulation with reflection tokens (Self-RAG) [Asai et al., 2024], and corrective
+actions triggered by evidence quality scoring (CRAG) [Yan et al., 2024]. Unlike methods that train
+control heads or run multi-stage tool loops, our method (i.e., TARG) aims to make a single, training-
+free decision from prefix logits.
+We revisit selective retrieval from a simpler angle: a training-free, single-shot decision of when to
+retrieve that any off-the-shelf language model (LM) can make before full decoding. Our approach,
+Training-free Adaptive Retrieval Gating (TARG), uses a short, no-context draft to read the model’s
+own prefix logits and compute a lightweight uncertainty score. We instantiate three signals that
+require no training or auxiliary heads: (1) mean token entropy, (2) a margin-based score derived
+from the top-1 versu

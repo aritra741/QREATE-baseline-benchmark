@@ -1,0 +1,75 @@
+arXiv:2506.10844v1  [cs.CL]  12 Jun 2025
+CIIR@LiveRAG 2025: Optimizing Multi-Agent Retrieval
+Augmented Generation through Self-Training
+Alireza Salemi
+University of Massachusetts Amherst
+United States
+asalemi@cs.umass.edu
+Mukta Maddipatla
+University of Massachusetts Amherst
+United States
+mmaddipatla@umass.edu
+Hamed Zamani
+University of Massachusetts Amherst
+United States
+zamani@cs.umass.edu
+ABSTRACT
+This paper presents mRAG, a multi-agent retrieval-augmented gen-
+eration (RAG) framework composed of specialized agents for sub-
+tasks such as planning, searching, reasoning, and coordination. Our
+system uses a self-training paradigm with reward-guided trajec-
+tory sampling to optimize inter-agent collaboration and enhance
+response generation. Evaluated on DataMorgana-derived datasets
+during the SIGIR 2025 LiveRAG competition, mRAG outperforms
+conventional RAG baselines. We further analyze competition out-
+comes and showcase the framework’s strengths with case studies,
+demonstrating its efficacy for complex, real-world RAG tasks.
+1
+INTRODUCTION
+RAG enhances large language models (LLMs) by integrating exter-
+nal retrieval mechanisms, addressing limitations like static knowl-
+edge and lack of grounding in current, verifiable sources [1, 9, 13].
+Unlike traditional LLMs limited by fixed training data, RAG enables
+real-time access to relevant documents from sources such as search
+engines or databases [14, 15], improving accuracy and relevance
+without retraining. Recently, autonomous agents have emerged as
+a powerful extension of RAG [8, 17], capable of complex reasoning,
+tool use, and multi-step decision-making. Their modular design
+supports dynamic, goal-directed information synthesis, making
+them effective for real-world tasks requiring flexibility and depth.
+While single-agent RAG systems are useful, they struggle with
+scalability, specialization, and effective context management. A sin-
+gle agent juggling multiple tasks—like query formulation, retrieval,
+synthesis, and validation—can suffer from context overlap, leading
+to inefficiencies and degraded performance. Multi-agent RAG sys-
+tems address these issues through modular design. By assigning
+distinct roles (e.g., searcher, planner, summarizer, validator) to sep-
+arate agents, each operates within a focused context, improving
+efficiency and task alignment. Inter-agent communication further
+enables better task decomposition and parallel execution, enhanc-
+ing robustness and adaptability in complex reasoning workflows.
+We introduce mRAG, a framework for building and optimizing
+multi-agent RAG systems. It consists of a set of task-specialized
+agents—such as a planner, searcher, and reasoner–each handling
+a distinct subtask. A central coordinator agent orchestrates the
+workflow by dynamically invoking agents, routing information,
+and monitoring progress toward a final response. The coordinator
+has control over the decision process and terminates the workflow
+once a satisfactory output is produced. To train agents, we adopt
+a self-training approach inspired by Singh et al. [16], generating
+diverse agent interaction trajectories for each input. These are
+evaluated with a reward model, and high-reward trajectories are
+used as supervision. Agents are trained to reproduce these high-
+rewarded behaviors, promoting effective generation in future runs.
+We present our experimental results from the LiveRAG1 com-
+petition, demonstrating that the proposed multi-agent framework
+outperforms the traditional retrieve-then-read RAG paradigm on
+a dataset derived from DataMorgana [3], the competition’s data
+generation tool. Additionally, we analyze our performance on the
+competition test day and offer insights into the evaluation pro-
+cess. Finally, we include case studies highlighting examples where
+our multi-agent system achieves notably strong performance. We
+release our code to facilitate further research on this topic.2
+2
+DATA CREATION WITH DATAMORGANA
+To construct training and validation data for

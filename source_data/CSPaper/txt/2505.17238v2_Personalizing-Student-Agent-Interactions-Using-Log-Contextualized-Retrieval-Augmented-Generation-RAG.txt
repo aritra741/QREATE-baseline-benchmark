@@ -1,0 +1,62 @@
+arXiv:2505.17238v2  [cs.CL]  17 Jun 2025
+Personalizing Student-Agent Interactions Using
+Log-Contextualized Retrieval-Augmented
+Generation (RAG)
+Clayton Cohn1[0000−0003−0856−9587], Surya Rayala1[0009−0005−8192−8138], Caitlin
+Snyder2[0000−0002−3341−0490], Joyce Horn Fonteles1[0000−0001−9862−8960], Shruti
+Jain1[0009−0000−7853−0560], Naveeduddin Mohammed1[0000−0002−3706−2884],
+Umesh Timalsina1[0000−0002−5430−3993], Sarah K. Burriss1[0000−0002−5598−0363],
+Ashwin T S1[0000−0002−1690−1626], Namrata Srivastava1[0000−0003−4194−318X],
+Menton Deweese3[0000−0001−7361−3826], Angela Eeds3, and Gautam
+Biswas1[0000−0002−2752−3878]
+1Department of Computer Science, Vanderbilt University, Nashville, USA
+2College of Engineering & Science, University of Detroit Mercy, Detroit, USA
+3The School for Science and Math, Vanderbilt University, Nashville, USA
+clayton.a.cohn@vanderbilt.edu
+Abstract. Collaborative dialogue offers rich insights into students’ lear-
+ning and critical thinking, which is essential for personalizing pedagogi-
+cal agent interactions in STEM+C settings. While large language models
+(LLMs) facilitate dynamic pedagogical interactions, hallucinations un-
+dermine confidence, trust, and instructional value. Retrieval-augmented
+generation (RAG) grounds LLM outputs in curated knowledge but re-
+quires a clear semantic link between user input and a knowledge base,
+which is often weak in student dialogue. We propose log-contextualized
+RAG (LC-RAG), which enhances RAG retrieval by using environment
+logs to contextualize collaborative discourse. Our findings show that LC-
+RAG improves retrieval over a discourse-only baseline and allows our
+collaborative peer agent, Copa, to deliver relevant, personalized guidance
+that supports students’ critical thinking and epistemic decision-making
+in a collaborative computational modeling environment, C2STEM.
+Keywords: NLP · LLMs · RAG · Agents
+1
+Introduction
+The integration of generative AI (GenAI) into collaborative learning environ-
+ments raises important questions about how this technology can best help stu-
+dents construct knowledge, make decisions, and engage in shared problem-solving
+activities. Collaborative computational modeling — where students use code to
+construct models that simulate and analyze scientific processes [22] — enhances
+science, technology, engineering, mathematics, and computing (STEM+C) learn-
+ing [12]. However, these complex environments can also create problem-solving
+2
+C. Cohn et al.
+challenges [9], highlighting the need for adaptive supports that align with stu-
+dents’ evolving understanding and promote epistemic agency.
+Vygotsky’s zone of proximal development (ZPD) [27] emphasizes guided sup-
+port as paramount in helping learners accomplish tasks they cannot yet complete
+independently [5]. Pedagogical agents help bridge this gap by guiding individual
+learners and facilitating collaboration [5,25]. However, developing agents to sup-
+port collaborative STEM+C problem-solving is non-trivial, as agents must adapt
+to both individual learners and groups while guiding learning and collaboration
+across multiple domains simultaneously (e.g., physics and computing).
+Collaborative dialogue provides insights into students’ learning and critical
+thinking, helping identify knowledge gaps and problem-solving approaches [22].
+This information can improve pedagogical agents, which struggle to (1) ground
+their interactions in ongoing problem-solving discussions; and (2) offer dynamic
+and personalized adaptive scaffolding beyond rigid, rule-based approaches. How-
+ever, dialogue alone is insufficient for effectively guiding students through chal-
+lenges, as many students struggle with help-seeking and often fail to recognize
+when they need assistance [21].
+Jurenka et al. (2024) [13] emphasize that pedagogical agents should “see what
+the student sees,” highlighting the need for agents that are aware of students’
+actions inside the learning environment. Previous research has shown that in-
+tegrat

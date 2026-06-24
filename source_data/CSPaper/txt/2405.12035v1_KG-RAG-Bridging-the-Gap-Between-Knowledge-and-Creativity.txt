@@ -1,0 +1,54 @@
+KG-RAG: Bridging the Gap Between Knowledge
+and Creativity
+Diego Sanmartín
+IE University, Spain
+dsanmartin.ieu2020@student.ie.edu
+Abstract
+Ensuring factual accuracy while maintaining the creative capabilities of Large Language
+Model Agents (LMAs) poses significant challenges in the development of intelligent agent sys-
+tems. LMAs face prevalent issues such as information hallucinations, catastrophic forgetting,
+and limitations in processing long contexts when dealing with knowledge-intensive tasks. This
+paper introduces a KG-RAG (Knowledge Graph-Retrieval Augmented Generation) pipeline, a
+novel framework designed to enhance the knowledge capabilities of LMAs by integrating struc-
+tured Knowledge Graphs (KGs) with the functionalities of LLMs, thereby significantly reducing
+the reliance on the latent knowledge of LLMs. The KG-RAG pipeline constructs a KG from
+unstructured text and then performs information retrieval over the newly created graph to per-
+form KGQA (Knowledge Graph Question Answering). The retrieval methodology leverages a
+novel algorithm called Chain of Explorations (CoE) which benefits from LLMs reasoning to
+explore nodes and relationships within the KG sequentially. Preliminary experiments on the
+ComplexWebQuestions dataset demonstrate notable improvements in the reduction of hallu-
+cinated content and suggest a promising path toward developing intelligent systems adept at
+handling knowledge-intensive tasks. 1
+1
+Introduction
+Large Language Models (LLMs) [44] have enabled researchers to achieve significant progress in the
+development of versatile intelligent agents, emerging as a potential solution for bridging the gap
+toward achieving Artificial General Intelligence (AGI) [59]. Notable efforts, such as Langchain [13]
+and LlamaIndex [30] exemplify the community’s endeavor to create intelligent LLM-based Agents
+(LMAs). These LMAs are already being implemented in various real-world applications, such as
+medicine [53], and finance [28].
+Despite these advancements, the inherent nature of LLMs poses critical challenges that hin-
+der the deployment of LMAs in production environments. One major issue is the disposition of
+LLMs to generate factually incorrect information, often producing "hallucinated" content, which
+compromises their reliability [22, 65]. Additionally, these models struggle with processing extended
+contexts, potentially leading to the loss of relevant information in longer dialogues or documents
+[31]. Furthermore, another significant limitation is catastrophic forgetting, where an LLM forgets
+previously learned knowledge as it is trained with new information [35].
+As depicted in Figure 1, an AI agent comprises three core components: perception, brain, and
+action [59]. These agents are designed to perceive their environments, make decisions, and execute
+actions, embodying the autonomous operation cycle of Sense-Plan-Act. The diagram illustrates how
+the brain of an AI agent is the decision-making core that is responsible for reasoning, planning, and
+storing the agent’s knowledge and memories.
+1The project website is available at https://dsanmart.github.io/KG-RAG/
+1
+arXiv:2405.12035v1  [cs.AI]  20 May 2024
+Figure 1: shows the three core components of an AI agent: perception, brain, and action. The
+brain component integrates LLMs for dynamic reasoning and decision-making, alongside KGs for
+structured knowledge and memory storage.
+From a perspective of human cognition, the analogy of the "extended mind" [14], becomes
+particularly relevant. Just as humans extend their cognitive reach using tools such as smartphones
+and notebooks to offload memory and manage complex tasks, LMAs can similarly benefit from
+external cognitive extensions to enhance their cognitive capacities.
+Advancements in multimodal LLMs, which combine inputs from various data types like text,
+voice, and images [64, 27], have significantly enhanced LMAs’ perception capabilities, while re-
+search enabling interaction with external tools has impro

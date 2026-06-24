@@ -1,0 +1,74 @@
+Published as a conference paper at ICLR 2025
+RAG-DDR:
+OPTIMIZING
+RETRIEVAL-AUGMENTED
+GENERATION
+USING
+DIFFERENTIABLE
+DATA
+RE-
+WARDS
+Xinze Li1∗Sen Mei1∗
+Zhenghao Liu1†
+Yukun Yan2†
+Shuo Wang2
+Shi Yu2
+Zheni Zeng2
+Hao Chen2
+Ge Yu1
+Zhiyuan Liu2
+Maosong Sun2
+Chenyan Xiong3
+1Northeastern University
+2Tsinghua University
+3Carnegie Mellon University
+ABSTRACT
+Retrieval-Augmented Generation (RAG) has proven its effectiveness in mitigating
+hallucinations in Large Language Models (LLMs) by retrieving knowledge from
+external resources. To adapt LLMs for the RAG systems, current approaches use
+instruction tuning to optimize LLMs, improving their ability to utilize retrieved
+knowledge. This supervised fine-tuning (SFT) approach focuses on equipping
+LLMs to handle diverse RAG tasks using different instructions. However, it trains
+RAG modules to overfit training signals and overlooks the varying data prefer-
+ences among agents within the RAG system. In this paper, we propose a Dif-
+ferentiable Data Rewards (DDR) method, which end-to-end trains RAG systems
+by aligning data preferences between different RAG modules. DDR works by
+collecting the rewards to optimize each agent in the RAG system with the roll-
+out method, which prompts agents to sample some potential responses as pertur-
+bations, evaluates the impact of these perturbations on the whole RAG system,
+and subsequently optimizes the agent to produce outputs that improve the perfor-
+mance of the RAG system. Our experiments on various knowledge-intensive tasks
+demonstrate that DDR significantly outperforms the SFT method, particularly for
+LLMs with smaller-scale parameters that depend more on the retrieved knowl-
+edge. Additionally, DDR exhibits a stronger capability to align the data preference
+between RAG modules. The DDR method makes the generation module more
+effective in extracting key information from documents and mitigating conflicts
+between parametric memory and external knowledge. All codes are available at
+https://github.com/OpenMatch/RAG-DDR.
+1
+INTRODUCTION
+Large Language Models (LLMs) have demonstrated impressive capabilities in language under-
+standing, reasoning, and planning across a wide range of natural language processing (NLP)
+tasks (Achiam et al., 2023; Touvron et al., 2023; Hu et al., 2024). However, LLMs usually gen-
+erate incorrect responses due to hallucination (Ji et al., 2023; Xu et al., 2024c). To alleviate this
+problem, existing studies employ Retrieval-Augmented Generation (RAG) (Lewis et al., 2020; Shi
+et al., 2023; Peng et al., 2023) to enhance the ability of LLMs and help LLMs access long-tailed
+knowledge and up-to-date knowledge from different data sources (Trivedi et al., 2023; He et al.,
+2021; Cai et al., 2019; Parvez et al., 2021). However, the conflict between retrieved knowledge and
+parametric memory usually misleads LLMs, challenging the effectiveness of the RAG system (Li
+et al., 2022; Chen et al., 2023; Asai et al., 2024).
+To ensure the effectiveness of RAG systems, existing research has focused on developing various
+agents to obtain high-quality external knowledge (Gao et al., 2024; Xu et al., 2024a; Jiang et al.,
+2023; Xu et al., 2024b), which can refine retrieval documents through query reformulation, reranking
+candidate documents, summarizing the retrieved documents, or performing additional actions to
+obtain more relevant information for LLMs (Yan et al., 2024; Trivedi et al., 2023; Asai et al., 2023;
+∗Equal Contribution.
+† Corresponding Authors.
+1
+arXiv:2410.13509v2  [cs.CL]  4 Mar 2025
+Published as a conference paper at ICLR 2025
+Yu et al., 2023a). To further optimize the RAG system, some methods independently optimize
+different RAG modules by using the EM method (Singh et al., 2021; Sachan et al., 2021) or build the
+instruction tuning dataset for Supervised Fine-Tuning (SFT) these LLMs-based RAG modules (Lin
+et al., 2023; Asai et al., 2023). However, these SFT-based methods usually make LLMs overfit the
+training signals and face the catastrop

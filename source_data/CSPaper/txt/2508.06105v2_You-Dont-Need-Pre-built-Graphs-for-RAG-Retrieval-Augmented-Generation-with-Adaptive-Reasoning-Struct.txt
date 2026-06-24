@@ -1,0 +1,89 @@
+You Don’t Need Pre-built Graphs for RAG:
+Retrieval Augmented Generation with Adaptive Reasoning Structures
+Shengyuan Chen*, Chuang Zhou∗, Zheng Yuan, Qinggang Zhang†, Zeyang Cui, Hao Chen, Yilin
+Xiao, Jiannong Cao, Xiao Huang
+The Hong Kong Polytechnic University
+{sheng-yuan.chen, qinggang.zhang, jiannong.cao, xiao.huang}@polyu.edu.hk,
+{chuang-qgzj, yzheng.yuan, ze-yang.cui, yilin.xiao}@connect.polyu.hk, sundaychenhao@gmail.com
+Abstract
+Large language models (LLMs) often suffer from halluci-
+nation, generating factually incorrect statements when han-
+dling questions beyond their knowledge and perception.
+Retrieval-augmented generation (RAG) addresses this by
+retrieving query-relevant contexts from knowledge bases
+to support LLM reasoning. Recent advances leverage pre-
+constructed graphs to capture the relational connections
+among distributed documents, showing remarkable perfor-
+mance in complex tasks. However, existing Graph-based
+RAG (GraphRAG) methods rely on a costly process to trans-
+form the corpus into a graph, introducing overwhelming to-
+ken cost and update latency. Moreover, real-world queries
+vary in type and complexity, requiring different logic struc-
+tures for accurate reasoning. The pre-built graph may not
+align with these required structures, resulting in ineffective
+knowledge retrieval. To this end, we propose a Logic-aware
+Retrieval-Augmented Generation framework (LogicRAG)
+that dynamically extracts reasoning structures at inference
+time to guide adaptive retrieval without any pre-built graph.
+LogicRAG begins by decomposing the input query into a set
+of subproblems and constructing a directed acyclic graph to
+model the logical dependencies among them. To support co-
+herent multi-step reasoning, LogicRAG then lin- earizes the
+graph using topological sort, so that subproblems can be ad-
+dressed in a logically consistent order. Besides, LogicRAG
+applies graph pruning to reduce redundant retrieval and uses
+context pruning to filter irrelevant context, significantly re-
+ducing the overall token cost. Extensive experiments demon-
+strate that LogicRAG achieves both superior performance and
+efficiency compared to state-of-the-art baselines.
+Code — https://github.com/chensyCN/LogicRAG
+Extended version — https://arxiv.org/abs/2508.06105
+Introduction
+Large language models (LLMs), like Claude (Anthropic
+2024) and ChatGPT (OpenAI 2023), have shown remark-
+able ability in a wide range of tasks like complex reason-
+ing (Chen et al. 2024c; Zhou et al. 2025c,b; Hong et al.
+2024, 2025), question answering (Khashabi et al. 2020), and
+social analysis (Lu et al. 2021). However, these foundation
+models frequently struggle with domain-specific tasks, of-
+ten producing hallucinations or inaccurate responses when
+*Equal contribution. †Corresponding author.
+HippoRAG
+RAPTOR
+LightRAG
+GraphRAG
+1
+2
+3
+4
+Token Count
+×10
+7
+Prompt Tokens
+Completion Tokens
+Runtime
+10
+1
+10
+2
+Runtime (min)
+Figure 1: Token and runtime cost of the graph construction
+process of graph-based RAG methods on 2WikiMQA.
+handling knowledge-intensive queries (Huang et al. 2023;
+Fang et al. 2025, 2024). To mitigate these issues, retrieval-
+augmented generation (RAG) (Gao et al. 2023; Lewis et al.
+2020; Zhang et al. 2025a) emerges as a promising frame-
+work that enhances LLMs by retrieving query-relevant con-
+texts from external knowledge bases.
+Real-world RAG systems often face significant chal-
+lenges when handling large-scale, unstructured domain cor-
+pora (Peng et al. 2024; Zhang et al. 2025b). Documents
+sourced from research papers, textbooks, or technical reports
+vary widely in reliability and completeness (Guo et al. 2025;
+Zhong et al. 2024; Wu et al. 2025), and the retrieved infor-
+mation is often complex and disorganized, as domain knowl-
+edge is typically scattered across multiple sources without
+clear dependencies (Sun et al. 2024; Ma et al. 2024). To
+manage this complexity, RAG systems commonly segment
+documents into smaller chunks for indexing (Borgeaud et al.
+20

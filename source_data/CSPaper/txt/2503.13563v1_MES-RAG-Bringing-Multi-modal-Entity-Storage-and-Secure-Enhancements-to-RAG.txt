@@ -1,0 +1,91 @@
+MES-RAG: Bringing Multi-modal, Entity-Storage, and Secure
+Enhancements to RAG
+Pingyu Wu1,2, Daiheng Gao1,3, Jing Tang4, Huimin Chen5,
+Wenbo Zhou1, Weiming Zhang1, Nenghai Yu1,
+1USTC 2Hefei ZhikeShuzi 3Eliza Labs 4HUST 5Independent Researcher
+Correspondence: Wenbo Zhou
+Abstract
+Retrieval-Augmented Generation (RAG) im-
+proves Large Language Models (LLMs) by us-
+ing external knowledge, but it struggles with
+precise entity information retrieval.
+In this
+paper, we proposed MES-RAG framework,
+which enhances entity-specific query handling
+and provides accurate, secure, and consis-
+tent responses. MES-RAG introduces proac-
+tive security measures that ensure system in-
+tegrity by applying protections prior to data
+access. Additionally, the system supports real-
+time multi-modal outputs, including text, im-
+ages, audio, and video, seamlessly integrat-
+ing into existing RAG architectures. Exper-
+imental results demonstrate that MES-RAG
+significantly improves both accuracy and re-
+call, highlighting its effectiveness in advancing
+the security and utility of question-answering,
+increasing accuracy to 0.83 (+0.25) on tar-
+geted task. Our code and data are available
+at https://github.com/wpydcr/MES-RAG.
+1
+Introduction
+Retrieval-Augmented Generation (RAG) is an
+emerging approach (Kaddour et al., 2023; Hadi
+et al., 2023) that significantly enhances the capabil-
+ity of LLMs (Touvron et al., 2023; OpenAI et al.,
+2024). By leveraging external knowledge from re-
+trieved passages, RAG can alleviate issues such
+as hallucination (Lewis et al., 2020; Zhang et al.,
+2023) and inconsistency (Saxena et al., 2023; Fan
+et al., 2024) in LLM outputs.
+However, traditional RAG systems (Lewis et al.,
+2020; Ram et al., 2023) often focus on document-
+level retrieval, which lacks the fine-grained under-
+standing needed to accurately capture entity-related
+details scattered across multiple sources. This lim-
+itation is further exacerbated by the intermingled
+storage (Ren et al., 2023; Liu et al., 2024) of infor-
+mation from different entities, leading to retrieval
+noise and compromising the relevance and factual
+accuracy of generated content.
+For example, when answering questions about a
+specific product, RAG systems may inadvertently
+retrieve information about similar products, thus
+introducing irrelevant or misleading results (Ebner
+et al., 2020). In terms of multi-modal data output
+capabilities, limitations in multi-modal generative
+models (Liu et al., 2023) are further exacerbated
+by inaccuracies in data descriptions and a lack of
+sufficient, relevant training data, ultimately leading
+to suboptimal user experiences(Qian et al., 2024).
+Furthermore, RAG systems are vulnerable to secu-
+rity threats such as malicious queries and document
+extraction attacks (Cohen et al., 2024), which jeop-
+ardize both data integrity and user privacy.
+To address those limitations, we propose MES-
+RAG (Multi-modal, Entity-storage, Secure RAG),
+a framework designed to enhance entity-specific
+query handling and multi-modal data processing.
+MES-RAG introduces a novel entity-centric data
+representation, isolating information by entity to
+reduce noise and improve retrieval precision. It
+also integrates a unified multi-modal approach, sup-
+porting text, visuals, and audio, and incorporates
+a proactive security strategy, applying protective
+measures before data access.
+The main contributions of MES-RAG are sum-
+marized as below:
+1. Entity-Storage Accuracy. With a structured
+and isolated entity storage system, MES-RAG
+achieves highly accurate and contextually
+consistent responses by focusing on entity-
+specific data, effectively minimizing noise.
+2. Enhanced Security. MES-RAG employs a
+front-loaded security strategy with malicious
+identification and an out of knowledge detec-
+tion, reducing hallucinations and ensuring sys-
+tem integrity.
+3. Multi-modal Support. MES-RAG allows
+diverse data types, ranging from text, images,
+audio, and video, ensuring more contextually
+arXiv:2503.13563v1  [cs.CL

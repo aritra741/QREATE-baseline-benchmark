@@ -1,0 +1,60 @@
+G-RAG: Knowledge Expansion in Material Science
+Radeen Mostafa1∗
+radeensust@gmail.com
+Mirza Nihal Baig2∗
+nihalmd1@gmail.com
+Mashaekh Tausif Ehsan3∗
+mashaekh.tausif@gmail.com
+Jakir Hasan4∗
+jakir57@student.sust.edu
+1magicmind.me, USA
+2Intelsense AI Limited, Dhaka, Bangladesh
+3Department of Mechanical Engineering, Bangladesh University of Engineering and Technology
+4Department of Computer Science and Engineering, Shahjalal University of Science and Technology
+Abstract
+In the field of Material Science, effective information retrieval systems are essen-
+tial for facilitating research. Traditional Retrieval-Augmented Generation (RAG)
+approaches in Large Language Models (LLMs) often encounter challenges such
+as outdated information, hallucinations, limited interpretability due to context
+constraints, and inaccurate retrieval. To address these issues, Graph RAG inte-
+grates graph databases to enhance the retrieval process. Our proposed method
+processes Material Science documents by extracting key entities (referred to as
+MatIDs) from sentences, which are then utilized to query external Wikipedia
+knowledge bases (KBs) for additional relevant information. We implement an
+agent-based parsing technique to achieve a more detailed representation of the
+documents. Our improved version of Graph RAG called G-RAG further lever-
+ages a graph database to capture relationships between these entities, improving
+both retrieval accuracy and contextual understanding. This enhanced approach
+demonstrates significant improvements in performance for domains that require
+precise information retrieval, such as Material Science. The code is available at
+https://github.com/RadeenXALNW/G-RAG_1.0.
+1
+Introduction
+LLMs exhibit impressive capabilities but encounter challenges such as hallucinations, outdated
+information, and untraceable, opaque reasoning. The RAG approach addresses these issues by
+combining the strengths of LLMs with the vast, continuously updated resources of external databases
+[1]. Graph-enhanced RAG methods build on this by leveraging rich semantic interconnections and
+relational data, enabling more precise entity linking, enhanced semantic context, and improved
+knowledge extraction [2, 3]. Additionally, researchers have introduced innovative graph-based
+context adaptation techniques that refine word embeddings to better capture semantic relationships,
+consistently outperforming traditional methods in various Natural Language Processing (NLP) tasks
+[4, 5]. Graph-based RAG provides a more nuanced and accurate representation of complex domains,
+enabling LLMs to generate responses with enhanced factual precision and contextual relevance [6].
+This capability is especially valuable for domain-specific applications in fields such as material
+∗Equal contribution.
+38th Conference on Neural Information Processing Systems (NeurIPS 2024).
+arXiv:2411.14592v2  [cs.IR]  1 Dec 2024
+science and biomedicine, where accurate and detailed information is crucial [7, ?, 9]. Serving as
+a domain-specific knowledge server, the Semantic Context Enhancer extracts and delivers detailed
+descriptions of relevant concepts and entities, including their interrelationships, thereby equipping the
+LLM with a deeper semantic understanding [9]. Additionally, leveraging graph structures to improve
+knowledge retrieval and response generation, as exemplified by methods like AriGraph, has shown
+significant enhancements in decision-making and planning capabilities [10]. This study explores the
+improvement of information retrieval and knowledge generation in complex, specialized domains
+through the integration of the G-RAG pipeline, addressing limitations of existing approaches and
+advancing performance in targeted fields.
+2
+Methodology
+The retrieval process of Naive RAG includes a diverse range of MatIDs, which ensures variety but can
+also introduce less relevant information. This issue can be mitigated through prompt engineering in
+the RAG configuration, allowing the LLM to continue gen

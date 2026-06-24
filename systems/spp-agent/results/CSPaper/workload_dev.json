@@ -1,0 +1,108 @@
+[
+  {
+    "query_id": "agg_only_cspaper_gen_6",
+    "sql_query": "SELECT application_domain, COUNT(paper_name) AS count_papers FROM cspaper GROUP BY application_domain;",
+    "category": "Agg",
+    "slice": "agg_only",
+    "metadata": {
+      "generated": true,
+      "split": "dev",
+      "aggregation_slice": "agg_only",
+      "held_out": false
+    }
+  },
+  {
+    "query_id": "agg_queries_CSPaper_10",
+    "sql_query": "SELECT topic, COUNT(evaluation_metric) AS count_evaluation_metric FROM cspaper GROUP BY topic;",
+    "nl_query": null,
+    "category": "Agg",
+    "metadata": {
+      "source_file": "/Users/aritramazumder/Documents/UDA-Bench-main/Query/CSPaper/Agg/agg_queries_CSPaper.sql",
+      "query_index": 10,
+      "subcategory": "aggregation",
+      "tables": [
+        "cspaper"
+      ],
+      "split": "dev",
+      "aggregation_slice": "agg_only",
+      "held_out": false
+    }
+  },
+  {
+    "query_id": "agg_only_cspaper_gen_3",
+    "sql_query": "SELECT retrieval_method, COUNT(paper_name) AS count_papers FROM cspaper GROUP BY retrieval_method;",
+    "category": "Agg",
+    "slice": "agg_only",
+    "metadata": {
+      "generated": true,
+      "split": "dev",
+      "aggregation_slice": "agg_only",
+      "held_out": false
+    }
+  },
+  {
+    "query_id": "agg_filter_cspaper_gen_98",
+    "sql_query": "SELECT uses_reranker, COUNT(paper_name) AS count_papers FROM cspaper WHERE data_modality = 'Text' GROUP BY uses_reranker;",
+    "category": "Agg",
+    "slice": "agg_filter",
+    "metadata": {
+      "generated": true,
+      "split": "dev",
+      "aggregation_slice": "agg_filter",
+      "held_out": false
+    }
+  },
+  {
+    "query_id": "agg_filter_cspaper_gen_127",
+    "sql_query": "SELECT application_domain, COUNT(paper_name) AS count_papers FROM cspaper WHERE reasoning_depth = 'single-hop' GROUP BY application_domain;",
+    "category": "Agg",
+    "slice": "agg_filter",
+    "metadata": {
+      "generated": true,
+      "split": "dev",
+      "aggregation_slice": "agg_filter",
+      "held_out": false
+    }
+  },
+  {
+    "query_id": "agg_filter_cspaper_gen_90",
+    "sql_query": "SELECT uses_reranker, COUNT(paper_name) AS count_papers FROM cspaper WHERE use_agent = 'Yes' GROUP BY uses_reranker;",
+    "category": "Agg",
+    "slice": "agg_filter",
+    "metadata": {
+      "generated": true,
+      "split": "dev",
+      "aggregation_slice": "agg_filter",
+      "held_out": false
+    }
+  },
+  {
+    "query_id": "mixed_queries_3",
+    "sql_query": "SELECT data_modality, AVG(baseline_amount) AS avg_baseline_amount FROM cspaper WHERE application_domain != 'Education' OR use_agent = 'Yes' GROUP BY data_modality;",
+    "nl_query": null,
+    "category": "Mixed",
+    "metadata": {
+      "source_file": "/Users/aritramazumder/Documents/UDA-Bench-main/Query/CSPaper/Mixed/mixed_queries.sql",
+      "query_index": 3,
+      "subcategory": "filter3_agg1",
+      "tables": [
+        "cspaper"
+      ],
+      "split": "dev",
+      "aggregation_slice": "agg_filter",
+      "held_out": false
+    }
+  },
+  {
+    "query_id": "agg_filter_cspaper_gen_150",
+    "sql_query": "SELECT use_agent, COUNT(paper_name) AS count_papers FROM cspaper WHERE application_domain = 'General' GROUP BY use_agent;",
+    "category": "Agg",
+    "slice": "agg_filter",
+    "metadata": {
+      "generated": true,
+      "split": "dev",
+      "aggregation_slice": "agg_filter",
+      "held_out": false
+    }
+  }
+]

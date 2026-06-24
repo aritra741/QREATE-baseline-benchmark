@@ -1,0 +1,72 @@
+A Few Words Can Distort Graphs: Knowledge Poisoning Attacks on Graph-based
+Retrieval-Augmented Generation of Large Language Models
+Jiayi Wen1, Tianxin Chen1, Zhirun Zheng2, Cheng Huang1
+1College of Computer Science and Artificial Intelligence, Fudan University
+2Department of Artificial Intelligence, Ajou University
+Abstract
+Graph-based Retrieval-Augmented Generation (GraphRAG)
+has recently emerged as a promising paradigm for enhancing
+large language models (LLMs) by converting raw text into
+structured knowledge graphs, improving both accuracy and
+explainability. However, GraphRAG relies on LLMs to ex-
+tract knowledge from raw text during graph construction, and
+this process can be maliciously manipulated to implant mis-
+leading information. Targeting this attack surface, we propose
+two knowledge poisoning attacks (KPAs) and demonstrate
+that modifying only a few words in the source text can signif-
+icantly change the constructed graph, poison the GraphRAG,
+and severely mislead downstream reasoning. The first attack,
+named Targeted KPA (TKPA), utilizes graph-theoretic anal-
+ysis to locate vulnerable nodes in the generated graphs and
+rewrites the corresponding narratives with LLMs, achieving
+precise control over specific question-answering (QA) out-
+comes with a success rate of 93.1%, while keeping the poi-
+soned text fluent and natural. The second attack, named Uni-
+versal KPA (UKPA), exploits linguistic cues such as pro-
+nouns and dependency relations to disrupt the structural in-
+tegrity of the generated graph by altering globally influential
+words. With fewer than 0.05% of full text modified, the QA
+accuracy collapses from 95% to 50%. Furthermore, experi-
+ments show that state-of-the-art defense methods fail to detect
+these attacks, highlighting that securing GraphRAG pipelines
+against knowledge poisoning remains largely unexplored.
+1
+Introduction
+Large language models (LLMs) have revolutionized the way
+we process and generate information. Despite their impres-
+sive abilities, they hallucinate facts and rely on outdated in-
+ternal knowledge, which limits their use in tasks that require
+strict factual accuracy (Ji et al. 2023; OpenAI 2023; Bian
+et al. 2024). Retrieval-Augmented Generation (RAG) miti-
+gates these weaknesses by grounding model outputs in an
+external knowledge base (Borgeaud et al. 2022; Thoppilan
+et al. 2022; Lewis et al. 2020). Traditional RAG stores ex-
+ternal knowledge as isolated text chunks, which restricts re-
+trieval to shallow matching and limits multi-step reasoning
+(Asai et al. 2024). Graph-based RAG (GraphRAG) (Edge
+et al. 2024) addresses this limitation by organizing the cor-
+pus into a knowledge graph through LLM-driven extrac-
+tion of entities and their relations. This structure explic-
+itly links the extracted entities and relations and enables
+LLMs to reason over connected facts, achieving higher ac-
+curacy on complex queries
+(Guo et al. 2024; Han et al.
+2025). Because the reasoning process in GraphRAG de-
+pends entirely on this constructed graph, it underpins a range
+of knowledge-intensive tasks, including question answering
+(QA) (Yasunaga et al. 2021; Karpukhin et al. 2020)and dia-
+logue (Chen et al. 2017).
+However, the reliance on external corpora has also made
+RAG systems attractive targets for security attacks (Tao et al.
+2024; Zeng et al. 2024). Prior works have identified three
+main attack categories. First, malicious documents injected
+into the corpus can bias retrieval results and distort LLM’s
+answers (Zou et al. 2024; Deng et al. 2024; Cheng et al.
+2024). Second, adversarial instructions can be hidden in re-
+trievable chunks so that the LLM executes them when the
+chunks are retrieved (Hines et al. 2024; Suo 2024). Third, the
+retriever itself can be attacked with crafted queries that cause
+it to miss relevant evidence (Wallace et al. 2019; Shafran,
+Schuster, and Shmatikov 2024). GraphRAG inherits these
+risks but also exposes a qualitatively different vulnerabil-
+ity. Unlike traditional

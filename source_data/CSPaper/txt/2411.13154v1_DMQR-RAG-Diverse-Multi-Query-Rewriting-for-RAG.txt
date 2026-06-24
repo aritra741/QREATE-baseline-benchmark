@@ -1,0 +1,77 @@
+DMQR-RAG: DIVERSE MULTI-QUERY REWRITING
+FOR RETRIEVAL-AUGMENTED GENERATION
+Zhicong Li†‡
+Renmin University of China
+Beijing, China
+Jiahao Wang†‡
+Southeast University
+Nanjing, China
+Zhishu Jiang†‡
+Beijing Jiaotong University
+Beijing, China
+Hangyu Mao†B
+Kuaishou Technology
+Beijing, China
+Zhongxia Chen
+Kuaishou Technology
+Beijing, China
+Jiazhen Du
+Kuaishou Technology
+Beijing, China
+Yuanxing Zhang
+Kuaishou Technology
+Beijing, China
+Fuzheng Zhang
+Kuaishou Technology
+Beijing, China
+Di Zhang
+Kuaishou Technology
+Beijing, China
+Yong LiuB
+Renmin University of China
+Beijing, China
+ABSTRACT
+Large language models often encounter challenges with static knowledge and hal-
+lucinations, which undermine their reliability. Retrieval-augmented generation
+(RAG) mitigates these issues by incorporating external information. However,
+user queries frequently contain noise and intent deviations, necessitating query
+rewriting to improve the relevance of retrieved documents. In this paper, we in-
+troduce DMQR-RAG, a Diverse Multi-Query Rewriting framework designed to
+improve the performance of both document retrieval and final responses in RAG.
+Specifically, we investigate how queries with varying information quantities can
+retrieve a diverse array of documents, presenting four rewriting strategies that op-
+erate at different levels of information to enhance the performance of baseline
+approaches. Additionally, we propose an adaptive strategy selection method that
+minimizes the number of rewrites while optimizing overall performance. Our
+methods have been rigorously validated through extensive experiments conducted
+in both academic and industry settings.
+1
+INTRODUCTION
+Large language models (LLMs) possess powerful comprehension and generation abilities (Touvron
+et al., 2023a;b), demonstrating remarkable performance across various downstream tasks (Jiang
+et al., 2023; Su et al., 2024; Ruan et al., 2023; Kong et al., 2024; Zhang et al., 2024a;b; Li et al.,
+2024). However, the parametric knowledge within LLMs is inherently static, making it challenging
+for them to provide up-to-data information in real-time scenarios (Yao et al., 2023). Additionally,
+LLMs are prone to hallucinations when addressing factual questions (Guan et al., 2024; Hoshi et al.,
+2023), undermining the reliability of generated answers.
+To address these issues, retrieval-augmented generation (RAG) (Gao et al., 2023b; Chen et al., 2024)
+has emerged as a method to enhance LLMs by retrieving and incorporating external knowledge.
+However, due to noise and intent bias in the original queries, direct retrieval often fails to yield
+†These authors contribute equally to this work.
+‡These authors work as research interns at Kuaishou Technology.
+BThe corresponding author: hy.mao@pku.edu.cn and liuyonggsai@ruc.edu.cn.
+1
+arXiv:2411.13154v1  [cs.IR]  20 Nov 2024
+sufficiently relevant documents (Ma et al., 2023; Chan et al., 2024). Therefore, query rewriting is
+critical for retrieving the pertinent documents as shown in Figure 1(b).
+Substantial research has explored improved methods for query rewriting (Chan et al., 2024; Wang
+et al., 2024a; Mao et al., 2024; Wang et al., 2023a; Zheng et al., 2024; Ma et al., 2023), which can be
+broadly categorized into two families: training-based and prompt-based approaches. Training-based
+methods (Wang et al., 2024a; Mao et al., 2024; Ma et al., 2023) involve supervised fine-tuning of
+models using annotated data or reinforcement learning, leveraging downstream retrieval metrics as
+rewards. In contrast, prompt-based methods (Zheng et al., 2024; Chan et al., 2024; Wang et al.,
+2023a) utilize prompt engineering to guide LLMs in specific rewriting strategies. However, most
+methods generate a single rewritten query, which often leads to a lack of diversity in the retrieved
+documents. This results in a low recall of genuinely relevant documents, as demonstrated by our
+experiments. Furthermore, some methods focus on specific query types, such as complex multi-hop
+or multi-in

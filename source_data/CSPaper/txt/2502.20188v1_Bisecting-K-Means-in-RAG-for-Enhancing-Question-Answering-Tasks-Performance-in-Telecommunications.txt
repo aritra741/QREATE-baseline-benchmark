@@ -1,0 +1,69 @@
+Bisecting K-Means in RAG for Enhancing
+Question-Answering Tasks Performance in
+Telecommunications
+Pedro Sousa∗, Cláudio Klautau Mello∗, Frank B. Morte∗, and Luis F. Solis Navarro†
+∗Federal University of Pará, Institute of Technology, Belém, Brazil
+†State University of Campinas, Institute of Computing, Campinas, Brazil
+∗{pedro.sousa, claudio.mello, frank.morte}@itec.ufpa.br, †L214616@dac.unicamp.br
+Abstract—Question-answering tasks in the telecom domain are
+still reasonably unexplored in the literature, primarily due to the
+field’s rapid changes and evolving standards. This work presents
+a novel Retrieval-Augmented Generation framework explicitly
+designed for the telecommunication domain, focusing on datasets
+composed of 3GPP documents. The framework introduces the
+use of the Bisecting K-Means clustering technique to organize
+the embedding vectors by contents, facilitating more efficient
+information retrieval. By leveraging this clustering technique,
+the system pre-selects a subset of clusters that are most similar
+to the user’s query, enhancing the relevance of the retrieved
+information. Aiming for models with lower computational cost
+for inference, the framework was tested using Small Language
+Models, demonstrating improved performance with an accuracy
+of 66.12% on phi-2 and 72.13% on phi-3 fine-tuned models, and
+reduced training time.
+Index Terms—Retrieval-Augmented Generation, 3GPP docu-
+ments, Bisecting K-Means, Small Language Models
+I. INTRODUCTION
+Large-scale language models (LLMs) have revolutionized
+many industries by providing better text understanding and
+generation capabilities. These models, such as Microsoft’s phi-
+2 [1], are trained on vast datasets with billions of parameters,
+allowing them to capture linguistic nuances and general knowl-
+edge in depth. LLMs applicability ranges from automating
+administrative tasks to personalized assistance, demonstrating
+their immense potential for innovation in many areas [2].
+Despite their versatility, LLM models often need more
+knowledge in highly technical domains [3], such as telecom-
+munications, due to the need for more specific data during
+their initial training. This can lead to inaccurate or inadequate
+answers when faced with questions that require deep, special-
+ized understanding. To overcome these limitations, specializa-
+tion techniques such as fine-tuning and Retrieval-Augmented
+Generation (RAG) are needed.
+Fine-tuning involves retraining an existing LLM on a spe-
+cialized dataset. This process adjusts the model’s weights to
+better align its predictions with domain-specific knowledge
+and terminology [4]. During fine-tuning, the model is repeat-
+edly exposed to specialized data, allowing it to capture relevant
+patterns and nuances not present in the initial training. This
+method improves the model’s ability to provide accurate and
+appropriate answers to queries related to a specific domain.
+RAG is another powerful technique used to increase the
+accuracy of LLMs. RAG combines text generation with in-
+formation retrieval by integrating external data relevant to
+the query’s context [2]. This is accomplished through two
+main components: a retrieval model that searches for relevant
+documents in an external database and a generative model
+that uses these documents to produce contextualized answers
+[5]. This approach expands the model’s knowledge base and
+ensures that the answers are more accurate and informed by
+the latest, domain-specific context.
+In the telecommunications sector, the application of special-
+ized LLMs is particularly relevant [6]. This sector is character-
+ized by its complexity and the need for specific terminology. A
+specialized LLM in this field can significantly reduce the time
+required to access crucial information, increase the accuracy of
+answers, and ensure compliance with international standards.
+This results in more efficient operations and the ability to
+quickly meet the technical demands of the sector.
+This paper presents an alternative ap

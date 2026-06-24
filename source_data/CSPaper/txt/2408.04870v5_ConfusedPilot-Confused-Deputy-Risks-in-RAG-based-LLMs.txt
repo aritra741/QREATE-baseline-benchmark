@@ -1,0 +1,70 @@
+ConfusedPilot: Confused Deputy Risks in
+RAG-based LLMs
+Ayush RoyChowdhury†, Mulong Luo†1, Prateek Sahu†2, Sarbartha Banerjee†2, and Mohit Tiwari†‡1
+† The University of Texas at Austin
+‡ Symmetry Systems
+https://confusedpilot.info
+Abstract—Retrieval augmented generation (RAG) is a process
+where a large language model (LLM) retrieves useful information
+from a database and then generates the responses. It is becoming
+popular in enterprise settings for daily business operations. For
+example, Copilot for Microsoft 365 has accumulated millions of
+businesses. However, the security implications of adopting such
+RAG-based systems are unclear.
+In this paper, we introduce ConfusedPilot, a class of security
+vulnerabilities of RAG systems that confuse Copilot and cause
+integrity and confidentiality violations in its responses. First,
+we investigate a vulnerability that embeds malicious text in the
+modified prompt in RAG, corrupting the responses generated
+by the LLM. Second, we demonstrate a vulnerability that leaks
+secret data, which leverages the caching mechanism during
+retrieval. Third, we investigate how both vulnerabilities can be
+exploited to propagate misinformation within the enterprise and
+ultimately impact its operations, such as sales and manufacturing.
+We also discuss the root cause of these attacks by investigating
+the architecture of a RAG-based system. This study highlights
+the security vulnerabilities in today’s RAG-based systems and
+proposes design guidelines to secure future RAG-based systems.
+I. INTRODUCTION
+Artificial intelligence (AI) has emerged as a cornerstone of
+enterprise innovations. Among the various AI technologies,
+large language models (LLMs) [23], [26], [67], [68] and
+retrieval-augmented generation (RAG)-based systems [35],
+[40], [46]–[48], [51], [52], [61], [65], [84] have transformed
+data interaction and decision-making within large enterprises
+[1]–[5]. Among various commercial adoptions of RAG in
+enterprises, Copilot for Microsoft 365 [6] is a notable product
+that many businesses have widely integrated. Copilot is used
+across organizational hierarchy, with contributions to everyday
+tasks like code-generation [22], to business-critical decision
+making [7], like summarizing and consolidation of enterprise
+data [8], or with analysis and prediction mechanisms [9].
+RAG systems drive efficiency and improve decision quality by
+providing more accurate, context-aware information. However,
+integrating such sophisticated systems into everyday business
+operations introduces complex vulnerabilities [24], [31], [32],
+[82], [86], particularly in large enterprise where much of the
+data is shared among users with varying level of permissions.
+1Corresponding authors, email should be sent to mulong@utexas.edu, and
+tiwari@austin.utexas.edu.
+2Equal contributions.
+Employees create, edit, and maintain documents and pre-
+sentations containing critical and confidential business data.
+Organizations often utilize shared network drives, such as
+Microsoft SharePoint [10], [36] to store and share these
+documents across different departments securely. Products like
+Google Workspace [11] and Meta Workplace [12] also enable
+role-based access control mechanisms across the enterprise
+with active directory login to enforce the integrity and confi-
+dentiality of shared resources. However, incorporating artificial
+intelligence tools like RAGs in enterprise settings complicates
+access control. A RAG-based system needs read permissions
+user data [13] for information retrieval. Simultaneously, for
+these machine learning-based systems to automate business
+operations (e.g., summarise monthly reports or spell-check
+external documentation), they require write permissions to
+take action within the enterprise’s existing document corpus.
+Simply granting read and write permissions of all data to the
+the machine learning models opens up a new attack surface.
+Previous work has made a detailed analysis of information
+flow control in machine learning model

@@ -1,0 +1,80 @@
+OpenRAG: Optimizing RAG End-to-End via In-Context Retrieval Learning
+Jiawei Zhou 1 Lei Chen 1
+1Hong Kong University of Science and Technology
+Abstract
+In this paper, we analyze and empirically show
+that the learned relevance for conventional in-
+formation retrieval (IR) scenarios may be incon-
+sistent in retrieval-augmented generation (RAG)
+scenarios.
+To bridge this gap, we introduce
+Open-Rag, a RAG framework that is OPtimized
+ENd-to-end by tuning the retriever to capture in-
+context relevance, enabling adaptation to the di-
+verse and evolving needs. Extensive experiments
+across a wide range of tasks demonstrate that
+Open-Rag, by tuning a retriever end-to-end, leads
+to a consistent improvement of 4.0% over the orig-
+inal retriever, consistently outperforming exist-
+ing state-of-the-art retrievers by 2.1%. Addition-
+ally, our results indicate that for some tasks, an
+end-to-end tuned 0.2B retriever can achieve im-
+provements that surpass those of RAG-oriented
+or instruction-tuned 8B large language models
+(LLMs), highlighting the cost-effectiveness of
+our approach in enhancing RAG systems.
+1. Introduction
+As large language models (LLMs) (Zhao et al., 2023; Mi-
+naee et al., 2024) scale, they face a data bottleneck where the
+high-quality internet data unable to meet growing training
+demands. Meanwhile, the volume of downstream data is ex-
+panding rapidly but often remains unusable for pre-training
+due to their real-time availability (Wang et al., 2024b; Liu
+et al., 2023), privacy concerns (Arora et al., 2023), licensing
+restrictions (Min et al., 2024), and ethical concern (Serouis
+& Sèdes, 2024; Ayyamperumal & Ge, 2024).
+Retrieval-augmented generation (RAG) (Lewis et al., 2020;
+Guu et al., 2020; Gao et al., 2023) emerges as a promis-
+ing solution to this challenge. Rather than relying solely
+on well-curated internet data, RAG leverages information
+retrieval (IR) to fetch relevant data from external sources
+and incorporates it as context to enhance generation qual-
+ity. This is valuable as RAG enables the use of rapidly
+expanding yet often inaccessible downstream data, which
+are more scalable and up-to-date than the heavily processed
+and regulated internet data used in pre-training.
+Figure 1. Comparison of query-document relevance in IR scenario
+and RAG scenario.
+Despite their success, existing RAG frameworks typically
+rely onoff-the-shelf retrieverstrained onQAdatasets, which
+can lead to inconsistencies between the learned retrieval
+relevance and the needs of downstream tasks. This dis-
+crepancy highlights key relevance gaps between IR and
+RAG scenarios.
+We explore these gaps in detail below,
+drawing on insights from prior research. First, there is the
+broadening of tasks: traditional IR datasets (Kwiatkowski
+et al., 2019; Bajaj et al., 2016) are designed mainly for
+open-domain question-answering (OpenQA), while RAG
+framework are applied to a wider range of tasks, such as
+recommendation (Manzoor & Jannach, 2022), dialog sys-
+tems (Liu et al., 2024), and role-playing (Wang et al., 2023),
+where task requirements can be flexibly written as instruc-
+tions.
+We refer to relevance in these two cases as QA
+relevance and in-context relevance, respectively, as shown
+in Figure 1. Second, the role of retrieved documents has
+shifted: in IR, retrieved documents are the final output pro-
+vided to users, whereas in RAG, they are fed into the LLM
+to generate a response. Recent studies (Cuconasu et al.,
+2024a;b; Wu et al., 2024) have shown that including more
+answer-containing documents, which align with QA rele-
+vance in IR scenarios, can harm RAG performance, while
+documents without direct answers may actually help. These
+findings challenge traditional IR assumptions in the RAG
+setting. Finally, the complexity of queries has increased:
+unlike traditional IR, where queries are typically simple
+questions, RAG queries tend to be more diverse and noisy,
+reflecting varying levels of task complexity. Several stud-
+1
+arXiv:2503.08398v1  [cs.CL]  11 Mar 2

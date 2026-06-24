@@ -1,0 +1,78 @@
+arXiv:2506.20821v1  [cs.CL]  25 Jun 2025
+MultiFinRAG: An Optimized Multimodal Retrieval-Augmented
+Generation (RAG) Framework for Financial Question Answering
+Preprint Copy
+Chinmay Gondhalekar
+S&P Global Ratings
+New York, USA
+chinmay.gondhalekar@spglobal.com
+Urjitkumar Patel
+S&P Global Ratings
+New York, USA
+urjitkumar.patel@spglobal.com
+Fang-Chun Yeh
+S&P Global Ratings
+New York, USA
+jessie.yeh@spglobal.com
+Abstract
+Financial documents—such as 10-Ks, 10-Qs, and investor presenta-
+tions—span hundreds of pages and combine diverse modalities, in-
+cluding dense narrative text, structured tables, and complex figures.
+Answering questions over such content often requires joint reason-
+ing across modalities, which strains traditional large language mod-
+els (LLMs) and retrieval-augmented generation (RAG)[10] pipelines
+due to token limitations, layout loss, and fragmented cross-modal
+context. We introduce MultiFinRAG, a retrieval-augmented genera-
+tion framework purpose-built for financial QA. MultiFinRAG first
+performs multimodal extraction by grouping table and figure images
+into batches and sending them to a lightweight, quantized open-
+source multimodal LLM, which produces both structured JSON
+outputs and concise textual summaries. These outputs, along with
+narrative text, are embedded and indexed with modality-aware
+similarity thresholds for precise retrieval. A tiered fallback strat-
+egy then dynamically escalates from text-only to text+table+image
+contexts when necessary, enabling cross-modal reasoning while
+reducing irrelevant context. Despite running on commodity hard-
+ware, MultiFinRAG achieves 19 percentage points higher accuracy
+than ChatGPT-4o[15] (free-tier) on complex financial QA tasks
+involving text, tables, images, and combined multimodal reasoning.
+Keywords
+Retrieval-Augmented Generation (RAG), Multimodal Inference,
+Large Language Models, Natural Language Processing, Financial
+QA, PDF Document Understanding, Deep Learning
+1
+Introduction
+Modern financial filings often span over a hundred pages and inte-
+grate dense narrative text, structured tables, and complex graphical
+elements. For instance, a recent Morgan Stanley 10-Q contains
+approximately 120 pages, more than 275 tables, and nearly 200
+figures. Accurate question answering (QA) on such filings is criti-
+cal for analysts, auditors, and automated financial agents involved
+in risk monitoring, compliance, and investment decision-making.
+However, addressing queries over these documents poses signifi-
+cant challenges for LLMs and conventional retrieval-augmented
+generation (RAG) pipelines, with two core issues:
+Length and cost: Document length far exceeds LLM token limits,
+driving up API costs and making end-to-end processing infeasible.
+Mixed formats: Structured tables and visual figures lose their
+inherent relationships when naively flattened into plain text, ob-
+scuring the numerical context crucial for financial QA. Retrieval-
+augmented generation (RAG) mitigates the length issue by retriev-
+ing only relevant passages, but standard RAG pipelines typically:
+• Use fixed-size, non-overlapping text chunks, often fragmenting
+coherent explanations or splitting numeric context across bound-
+aries.
+• Treat tables and charts as unstructured text, sacrificing tabular
+relationships and visual insights.
+• Employ static top-𝑘retrieval, which can return redundant or
+marginally relevant snippets and dilute answer quality.
+We introduce MultiFinRAG, a RAG framework tailored for financial
+QA with three key advances:
+• Batch multimodal extraction : Small groups of table and chart
+images are fed to a lightweight multimodal LLM, which returns
+structured JSON plus concise summaries, preserving numerical
+relationships and visual insights for indexing.
+• Semantic chunk merging & thresholded retrieval : Over-
+segmented text chunks are recombined based on embedding sim-
+ilarity and indexed in FAISS[4] with modality-specific thresholds
+(e.g. 80% for text, 65% for images) to filter marginal co

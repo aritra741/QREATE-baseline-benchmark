@@ -1,0 +1,49 @@
+MODE: Mixture of Document Experts for RAG
+Rahul Anand
+rahulanand1103@gmail.com
+Abstract
+Retrieval-Augmented Generation (RAG) augments language models by integrating retrieval of ex-
+ternal knowledge. However, traditional RAG pipelines depend heavily on large vector databases and
+complex retrieval mechanisms, making them inefficient for small to medium-sized datasets. We propose
+MODE (Mixture of Document Experts), a lightweight and efficient alternative framework for RAG.
+MODE reimagines the retrieval process by replacing fine-grained vector search with a cluster-and-route
+mechanism. It organizes documents into semantically coherent clusters—our ”document experts”—and
+uses fast centroid-based matching to route a query to the most relevant cluster for context retrieval.
+This design eliminates the need for dedicated vector databases and re-rankers, drastically reducing in-
+frastructure complexity and query latency. Experiments on HotpotQA and SQuAD demonstrate that
+MODE not only provides significant efficiency gains but also matches or exceeds the generation quality
+of traditional RAG systems, largely by improving the topical relevance of retrieved context.
+Corpus sizes. We categorize datasets by the number of retrieval chunks: small = 100 chunks, medium =
+200 chunks, and large = 500 chunks. A “chunk” is a contiguous text segment used for retrieval (typically
+400–1,000 tokens with metadata). These thresholds reflect common domain-specific deployments: small
+(e.g., a single handbook or wiki), medium (a team’s mixed documents), and large (a multi-project
+knowledge base). For intuition, assuming ∼800–1,000 tokens per chunk, these categories correspond to
+roughly 80k–100k tokens (small), 160k–200k tokens (medium), and 400k–500k tokens (large).
+Keywords: Retrieval-Augmented Generation, RAG, Document Clustering, Expert Models, Centroid-
+Based Retrieval, Language Models
+1
+Introduction
+Retrieval-Augmented Generation (RAG) has become a cornerstone for building factually grounded and
+knowledgeable language model applications [8]. The dominant paradigm involves an ”index-retrieve-rerank”
+pipeline: a corpus is chunked, embedded, and indexed into a specialized vector database.
+At inference
+time, a query is used to retrieve a set of candidate passages, which are often re-ranked by a more powerful
+cross-encoder model before being fed to the LLM [7, 12]. While powerful, this architecture is optimized for
+web-scale corpora and can be a poor fit for the thousands of smaller, domain-specific applications common
+in enterprise settings. In these regimes, the operational burden of maintaining a vector database, the added
+latency from re-ranking, and the potential for web-trained dense retrievers to underperform on specialized
+content present significant practical barriers.
+In this work, we ask: can we design a more resource-efficient RAG architecture for this small-to-medium
+data regime without sacrificing quality? We introduce MODE (Mixture of Document Experts), a
+framework that shifts the retrieval paradigm from searching over individual items to routing between thematic
+topics.
+Instead of indexing every document chunk, MODE first partitions the corpus into semantically
+coherent clusters. Retrieval then becomes a two-stage process: first, a fast comparison of the query embedding
+against pre-computed cluster centroids identifies the most relevant topic; second, context is drawn exclusively
+arXiv:2509.00100v1  [cs.AI]  27 Aug 2025
+from the documents within that cluster. In our framework, an ”expert” is therefore not a complex neural
+model, but a specialized, static collection of documents that collectively covers a distinct topic.
+This cluster-and-route approach is motivated by the long-standing ”Cluster Hypothesis” in information
+retrieval: documents that cluster together tend to be relevant to the same information needs [17]. By treating
+clusters as the primary retrieval unit, MODE makes a deliberate trade-off. It sacrifices the ability to find
+an e

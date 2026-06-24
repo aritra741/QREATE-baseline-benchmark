@@ -1,0 +1,92 @@
+Enhancing RAG with Active Learning on Conversation Records:
+Reject Incapables and Answer Capables
+Xuzhao Geng 1 Haozhao Wang 1 Jun Wang 2 Wei Liu 1 Ruixuan Li 1
+Abstract
+Retrieval-augmented generation (RAG) is a key
+technique for leveraging external knowledge and
+reducing hallucinations in large language mod-
+els (LLMs). However, RAG still struggles to
+fully prevent hallucinated responses. To address
+this, it is essential to identify samples prone to
+hallucination or guide LLMs toward correct re-
+sponses, which experts then annotate to develop
+high-quality datasets for refining LLMs. However,
+the growing scarcity of such datasets makes their
+creation challenging. This paper proposes using
+the vast amount of conversations from widespread
+LLM usage to build these datasets, training LLMs
+to avoid hallucination-prone questions while ac-
+curately responding to manageable ones. Given
+the impracticality of expert-annotating all con-
+versation records, the paper introduces AL4RAG,
+which uses active learning to select the most suit-
+able conversation samples for annotation, opti-
+mizing performance within an annotation budget.
+Additionally, recognizing that traditional active
+learning methods are not fully compatible with
+RAG due to unsuitable distance metrics, we de-
+velop a novel sample distance measurement for
+RAG active learning. Extensive experiments show
+that our method consistently outperforms base-
+lines across multiple metrics.
+1. Introduction
+In recent years, large language models (LLMs) have demon-
+strated remarkable performance in diverse natural language
+processing (NLP) tasks, such as text classification (Ab-
+buri et al., 2023), summarization (Jin et al., 2024), and
+1School of Computer Science and Technology, Huazhong
+University
+of
+Science
+and
+Technology,
+Wuhan,
+China
+2iWudao
+Tech,
+Hangzhou,
+China.
+Correspondence
+to:
+Xuzhao
+Geng
+<geng xz@hust.edu.cn>,
+Haozhao
+Wang
+<hz wang@hust.edu.cn>.
+question answering (Zhuang et al., 2023). However, they
+frequently encounter the issue of hallucinations (Huang
+et al., 2023), which undermines the reliability of their re-
+sponses. Retrieval-Augmented Generation (RAG) (Lewis
+et al., 2020), integrated into leading models like GPT-4
+(Achiam et al., 2023), Gemini-1.5 (Team et al., 2024), and
+Claude-3.5 (Anthropic, 2024), aims to tackle this problem.
+RAG combines a retriever to fetch relevant documents and a
+generator to formulate answers, enhancing the model’s relia-
+bility by leveraging external knowledge. Nevertheless, RAG
+cannot completely eliminate hallucinations (Chen et al.,
+2024; Wood & Forbes, 2024), posing a persistent challenge
+in ensuring the quality of model-generated content.
+The challenge of addressing hallucinations highlights the
+need for systems that can effectively identify and manage
+situations prone to hallucination. Our research aims to train
+models to reject hallucination-prone queries while ensuring
+stable and accurate responses to queries within their capabil-
+ity, as illustrated in Figure 1(a). Achieving this goal requires
+high-quality model conversation datasets specifically de-
+signed to teach the model when to refuse to answer, while
+also including queries that the model can answer correctly in
+order to maintain its capabilities. However, relevant datasets
+are exceedingly scarce, and the creation of such datasets is
+highly challenging due to the need for extensive manual an-
+notation, while the majority of existing model conversation
+data remains unlabeled. To address this, we propose lever-
+aging active learning (AL) (Settles, 1995) to screen model
+conversation records. AL selects the most informative data
+from large pools of unlabeled data, enabling the creation of
+a small but high-quality human-annotated dataset through
+focused manual annotation.
+Unfortunately, existing AL methods perform poorly in the
+RAG scenario. These methods can be categorized into
+uncertainty-based and diversity-based approaches. Tradi-
+tional uncertainty-based methods demonstrate instabi

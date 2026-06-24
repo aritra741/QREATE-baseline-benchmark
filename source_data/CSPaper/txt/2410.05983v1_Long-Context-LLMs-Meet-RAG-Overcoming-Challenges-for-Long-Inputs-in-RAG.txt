@@ -1,0 +1,46 @@
+Long-Context LLMs Meet RAG: Overcoming
+Challenges for Long Inputs in RAG
+Bowen Jin1 2 *, Jinsung Yoon1, Jiawei Han2 and Sercan Ö. Arık1
+1Google Cloud AI Research, 2University of Illinois at Urbana-Champaign
+Retrieval-augmented generation (RAG) empowers large language models (LLMs) to utilize external
+knowledge sources. The increasing capacity of LLMs to process longer input sequences opens up avenues
+for providing more retrieved information, to potentially enhance the quality of generated outputs. It
+is plausible to assume that a larger retrieval set would contain more relevant information (higher
+recall), that might result in improved performance. However, our empirical findings demonstrate that for
+many long-context LLMs, the quality of generated output initially improves first, but then subsequently
+declines as the number of retrieved passages increases. This paper investigates this phenomenon,
+identifying the detrimental impact of retrieved "hard negatives" as a key contributor. To mitigate this
+and enhance the robustness of long-context LLM-based RAG, we propose both training-free and training-
+based approaches. We first showcase the effectiveness of retrieval reordering as a simple yet powerful
+training-free optimization. Furthermore, we explore training-based methods, specifically RAG-specific
+implicit LLM fine-tuning and RAG-oriented fine-tuning with intermediate reasoning, demonstrating their
+capacity for substantial performance gains. Finally, we conduct a systematic analysis of design choices
+for these training-based methods, including data distribution, retriever selection, and training context
+length.
+1. Introduction
+Retrieval-augmented generation (RAG) (Gao et al., 2023) empowers large language models (LLMs)
+to utilize external information sources by selecting the most relevant pieces from a large corpus
+(Zhao et al., 2023), thereby enhancing their effectiveness, customizability and efficiency in complex
+problem-solving. RAG can also mitigate issues such as factual inaccuracies (Augenstein et al., 2023)
+and hallucinations (Huang et al., 2023), which LLMs often exhibit when confronted with knowledge-
+intensive tasks. RAG systems typically employ a retriever to identify relevant information from a
+corpus, which is then presented in the context of an LLM as the generator.
+Recent advances in computational resources and methodological innovations have enabled the
+development of LLMs that support increasingly longer context (Dubey et al., 2024; Reid et al., 2024).
+This has even opened up new avenues for directly inputting entire corpora or knowledge bases into
+the LLMs. Yet, it would still not be feasible for large corpora (e.g., Wikipedia) and can incur higher
+computational costs. Despite extensive research on RAG (Lee et al., 2024; Li et al., 2024; Xu et al.,
+2023), the interplay with long-context LLMs, particularly how to optimally design RAG systems using
+them effectively, remains under-explored. Existing works (Asai et al., 2024; Lin et al., 2024; Yoran
+et al., 2024) propose tuning LLMs for RAG, but predominantly focus on a limited number of retrieved
+passages (fewer than 10). Intuitively, longer context would allow for the inclusion of more retrieved
+passages, leading to higher recall and potentially improved performance. However, our findings reveal
+that this does not always hold true and highlight the need for a careful re-evaluation of standard RAG
+designs when utilizing long-context LLMs. We demonstrate that achieving optimal performance in
+such systems and to fully utilize the opportunities provided by the LLMs require a holistic rethinking
+and effective novel approaches to the unique challenges.
+Corresponding author(s): bowenj4@illinois.edu
+* This work was done while Bowen was a student researcher at Google Cloud AI Research.
+arXiv:2410.05983v1  [cs.CL]  8 Oct 2024
+Long-Context LLMs Meet RAG: Overcoming Challenges for Long Inputs in RAG
+This paper presents comprehensive analyses on long-context LLMs in RAG

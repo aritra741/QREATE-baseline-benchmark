@@ -1,0 +1,87 @@
+CROSS-MODAL RAG: SUB-DIMENSIONAL TEXT-TO-
+IMAGE RETRIEVAL-AUGMENTED GENERATION
+Mengdan Zhu1, Senhao Cheng2, Guangji Bai1, Yifei Zhang1, Liang Zhao1
+1Emory University
+2University of Michigan, Ann Arbor
+{mengdan.zhu, guangji.bai, yifei.zhang2, liang.zhao}@emory.edu
+senhaoc@umich.edu
+ABSTRACT
+Text-to-image generation increasingly demands access to domain-specific, fine-
+grained, and rapidly evolving knowledge that pretrained models cannot fully
+capture, necessitating the integration of retrieval methods. Existing Retrieval-
+Augmented Generation (RAG) methods attempt to address this by retrieving glob-
+ally relevant images, but they fail when no single image contains all desired
+elements from a complex user query. We propose Cross-modal RAG, a novel
+framework that decomposes both queries and images into sub-dimensional compo-
+nents, enabling subquery-aware retrieval and generation. Our method introduces
+a hybrid retrieval strategy—combining a sub-dimensional sparse retriever with
+a dense retriever—to identify a Pareto-optimal set of images, each contributing
+complementary aspects of the query. During generation, a multimodal large lan-
+guage model is guided to selectively condition on relevant visual features aligned
+to specific subqueries, ensuring subquery-aware image synthesis. Extensive experi-
+ments on MS-COCO, Flickr30K, WikiArt, CUB, and ImageNet-LT demonstrate
+that Cross-modal RAG significantly outperforms existing baselines in the retrieval
+and further contributes to generation quality, while maintaining high efficiency.
+1
+INTRODUCTION
+User query: A Cybertruck with a third-generation Labubu
+on the roof is parked in front of a Tesla store on Venus ground.
+Previous RAG
+Ours (Cross-modal RAG)
+Retrieved
+Images
+Top-k Global Retrieval
+Multi-objective Joint Retrieval
+Generation
+query + retrieved images
+query + retrieved images
+with sub-dimensional
+satisfied information
+Cybertruck,
+Tesla store
+Cybertruck,
+Tesla store
+Cybertruck,
+Tesla store
+Cybertruck,
+Tesla store
+Venus
+ground
+Venus
+ground
+third-generation 
+Labubu
+Figure 1: Visualization of retrieval and gen-
+eration in Cross-modal RAG (ours) versus
+previous RAG.
+Text-to-Image Generation (T2I-G) has witnessed
+rapid progress in recent years, driven by advances
+in diffusion models (Rombach et al., 2022; Saharia
+et al., 2022; Nichol et al., 2021) and multimodal large
+language models (MLLMs) (OpenAI, 2025; Google,
+2025; Jin et al., 2023), enabling the synthesis of in-
+creasingly realistic and diverse images from natural
+language descriptions. However, in many real-world
+applications, domain-specific image generation re-
+quires knowledge that is not readily encoded within
+pre-trained image generators, especially when such
+information is highly long-tailed, fast-updated, and
+proprietary. To address this limitation, Retrieval-
+Augmented Generation (RAG) has emerged as a
+promising paradigm by incorporating an external im-
+age database to supply factual reference during gener-
+ation (Zheng et al., 2025; Zhao et al., 2024). Notable
+RAG-based image generation approaches such as Re-
+Imagen (Chen et al., 2022), RDM (Blattmann et al.,
+2022), and KNN-Diffusion (Sheynin et al., 2022)
+integrate retrieved images with diffusion models to
+improve output fidelity. However, these existing RAG methods typically rely on off-the-shelf retriev-
+ers (e.g., those based on CLIP (Radford et al., 2021)) which compute global image-text similarities
+and retrieve whole images based on the full user query. This coarse-grained retrieval strategy often
+fails in complex scenarios where the query involves multiple fine-grained entities or attributes (Varma
+et al., 2023) – especially when no single image contains all required components in the query. In
+1
+arXiv:2505.21956v3  [cs.CV]  26 Sep 2025
+practice, it is extremely common that single images in the retrieval database only satisfy a subset of
+the query. As in Fig. 1, no single image in the retrieval database perfectly covers all four aspects in
+the query; instead,

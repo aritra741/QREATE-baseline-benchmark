@@ -1,0 +1,90 @@
+arXiv:2503.01713v3  [cs.LG]  6 Jun 2025
+SAGE: A Framework of Precise Retrieval for RAG
+Jintao Zhang
+Department of Computer Science
+Tsinghua University
+zhang-jt24@mails.tsinghua.edu.cn
+Guoliang Li*
+Department of Computer Science
+Tsinghua University
+liguoliang@tsinghua.edu.cn
+Jinyang Su
+Department of Computer Science
+Tsinghua University
+sujinyanslip@gmail.com
+Abstract—Retrieval-augmented generation (RAG) has demon-
+strated significant proficiency in conducting question-answering
+(QA) tasks within a specified corpus. Nonetheless, numerous
+failure instances of RAG in QA still exist. These failures are not
+solely attributable to the limitations of Large Language Models
+(LLMs); instead, they predominantly arise from the retrieval
+of inaccurate information for LLMs due to two limitations: (1)
+Current RAG methods segment the corpus without considering
+semantics, making it difficult to find relevant context due to
+impaired correlation between questions and the segments. (2)
+There’s a trade-off between missing essential context with fewer
+context retrieved and getting irrelevant context with more context
+retrieved. It is hard to make an ideal balance.
+In this paper, we introduce a RAG framework, named SAGE,
+designed to overcome these limitations. First, to address the issue
+of segmentation without considering semantics, we propose to
+train a semantic segmentation model. This model is trained to
+segment the corpus into semantically complete chunks. Second,
+to ensure that only the most relevant chunks are retrieved while
+the irrelevant ones are ignored, we design a chunk selection
+algorithm to dynamically select chunks based on the decreasing
+speed of the relevance score of chunks, leading to a more relevant
+selection. Third, to further ensure the precision of the retrieved
+chunks, we propose letting LLMs assess whether retrieved chunks
+are excessive or lacking and then adjust the amount of context
+accordingly. Experimental results show that SAGE outperforms
+baselines by 61.25% in the quality of QA on average. Moreover,
+by avoiding retrieving noisy context, SAGE lowers the cost of
+the tokens consumed in LLM inference and achieves a 49.41%
+enhancement in cost efficiency on average. Additionally, our work
+offers valuable insights for boosting RAG, contributing to the
+development of more effective RAG systems.
+I. INTRODUCTION
+Retrieval-augmented generation (RAG) is a technique that
+enhances a generation model’s ability to answer questions
+for a given corpus by retrieving information related to the
+question. With the rise and advancement of large language
+models, RAG has demonstrated remarkable proficiency in QA
+tasks across both commercial applications and open-source
+communities [11], [28], [41].
+Limitations. Typically, a RAG system operates in three dis-
+tinct phases. First, the given corpus will be segmented into
+many chunks. Second, in response to a specific question, a
+retriever identifies and selects the top K most related chunks to
+use as context. Third, the question, alongside the context, will
+Guoliang Li is the corresponding author. This paper was supported by
+National Key R&D Program of China (2023YFB4503600), NSF of China
+(61925205, 62232009, 62102215), Huawei, TAL education, and Beijing
+National Research Center for Information Science and Technology (BNRist).
+A. Ineffective Corpus Segmentaion
+B. Noisy Retrieval
+C. Missing Retrieval
+      "I have a cat."
+      "He has bright green eyes."
+Chunk 1
+Chunk 2
+Retrieved
+      "I have a cat. He has bright green eyes."
+Chunk 1
+Chunk 2      "I hope my cat has orange eyes."
+"I have a cat. He has bright green eyes."
+LLM Response: Orange (with 30% probability); Green (with 70% probability)
+Segment
+Retrieved
+      "Normally, the color of cats’s eyes is blue."
+Chunk 1
+      "I have a cat. He has bright green eyes."
+Chunk 3
+      "I saw a small cat with yellow eyes."
+Chunk 2
+Question: What color of my cat’s eyes?
+Correct Answer: Green.
+(Noisy Chunk)
+(Target Chunk)
+(Target Chunk)
+LLM Response: Bl

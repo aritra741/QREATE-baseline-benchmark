@@ -1,0 +1,63 @@
+PCA-RAG: Principal Component Analysis for
+Efficient Retrieval-Augmented Generation
+Arman Khaledian∗
+Amirreza Ghadiridehkordi†
+Nariman Khaledian‡
+April 14, 2025
+Abstract
+Retrieval-Augmented Generation (RAG) has emerged as a powerful paradigm
+for grounding large language models in external knowledge sources, improving the
+precision of agents responses. However, high-dimensional language model embed-
+dings—often in the range of hundreds to thousands of dimensions—can present
+scalability challenges in terms of storage and latency, especially when processing
+massive financial text corpora. This paper investigates the use of Principal Com-
+ponent Analysis (PCA) to reduce embedding dimensionality, thereby mitigating
+computational bottlenecks without incurring large accuracy losses. We experiment
+with a real-world dataset and compare different similarity and distance metrics
+under both full-dimensional and PCA-compressed embeddings. Our results show
+that reducing vectors from 3,072 to 110 dimensions provides a sizeable (up to 60×)
+speedup in retrieval operations and a ∼28.6× reduction in index size, with only
+moderate declines in correlation metrics relative to human-annotated similarity
+scores. These findings demonstrate that PCA-based compression offers a viable
+balance between retrieval fidelity and resource efficiency, essential for real-time
+systems such as Zanista AI’s Newswitch platform. Ultimately, our study under-
+scores the practicality of leveraging classical dimensionality reduction techniques to
+scale RAG architectures for knowledge-intensive applications in finance and trading,
+where speed, memory efficiency, and accuracy must jointly be optimized.
+1
+Introduction
+Recent advances in large language models (LLMs) and retrieval-based systems have
+paved the way for new applications in finance and trading, where swift access to ac-
+curate, domain-specific information is critical [7, 19]. At Zanista AI, we have developed
+∗Zanista AI
+arman.khaledian@zanista.ai
+†Zanista AI
+amir.dehkordi@zanista.ai
+‡Zanista AI
+nariman.khaledian@zanista.ai
+1
+arXiv:2504.08386v1  [cs.LG]  11 Apr 2025
+Newswitch, a platform designed to serve real-time news retrieval and sentiment analysis
+in the financial sector. Newswitch leverages Retrieval-Augmented Generation (RAG) to
+ground AI Investment Agent responses on up-to-date market data, enabling more precise
+and context-aware answers to financial queries [21, 15].
+Yet, a well-known challenge in RAG pipelines is the high-dimensional nature of the em-
+bedding vectors used for retrieval. Models like BERT and other Transformer-based en-
+coders often produce 768- to 3,000-dimensional vectors [11, 27], creating large storage
+requirements and incurring significant computational costs—both of which are amplified
+when dealing with massive financial text corpora such as news articles and regulatory
+filings [14].
+To address this challenge, researchers have turned to dimensionality reduction techniques,
+with Principal Component Analysis (PCA) emerging as a simple yet powerful tool [25, 35].
+By projecting high-dimensional embeddings onto a lower-dimensional subspace, PCA
+significantly reduces index size and query latency, often with minimal impact on retrieval
+accuracy [23]. In finance-focused applications such as Newswitch, where speed and scale
+are paramount, PCA thus presents an attractive trade-off between retaining semantic
+fidelity in embeddings and managing practical constraints like memory and throughput.
+In this paper, we examine how PCA-based compression can improve the efficiency of
+RAG pipelines for retrieval and question answering. We draw on prior work indicating
+that most variance in dense embeddings can be preserved with a modest fraction of di-
+mensions [25]. By assessing the trade-off between retrieval accuracy and computational
+performance—both in terms of latency and memory footprint—we show that PCA main-
+tains robust alignment with human judgments of semantic similarity while dramatically
+cuttin

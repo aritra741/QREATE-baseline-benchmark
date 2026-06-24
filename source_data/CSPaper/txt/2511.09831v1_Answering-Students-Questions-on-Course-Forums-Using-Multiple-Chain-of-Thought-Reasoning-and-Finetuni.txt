@@ -1,0 +1,70 @@
+Answering Students’ Questions on Course Forums
+Using Multiple Chain-of-Thought Reasoning and
+Finetuning RAG-Enabled LLM
+Neo Wang1 and Sonit Singh1
+1School of Computer Science and Engineering, University of New South Wales, Sydney, Australia
+Email: sonit.singh@unsw.edu.au
+Abstract—The course forums are increasingly significant and
+play vital role in facilitating student discussions and answering
+their questions related to the course. It provides a platform
+for students to post their questions related to the content and
+admin issues related to the course. However, there are several
+challenges due to the increase in the number of students enrolled
+in the course. The primary challenge is that students’ queries
+cannot be responded immediately and the instructors have to
+face lots of repetitive questions. To mitigate these issues, we
+propose a question answering system based on large language
+model with retrieval augmented generation (RAG) method. This
+work focuses on designing a question answering system with open
+source Large Language Model (LLM) and fine-tuning it on the
+relevant course dataset. To further improve the performance, we
+use a local knowledge base and applied RAG method to retrieve
+relevant documents relevant to students’ queries, where the local
+knowledge base contains all the course content. To mitigate the
+hallucination of LLMs, We also integrate it with multi chain-
+of-thought reasoning to overcome the challenge of hallucination
+in LLMs. In this work, we experiment fine-tuned LLM with
+RAG method on the HotpotQA dataset. The experimental results
+demonstrate that the fine-tuned LLM with RAG method has a
+strong performance on question answering task.
+Index Terms—Online Course forum, Retrieval-Augmented
+Generation, Chain-of-thought reasoning, Large Language Model
+I. INTRODUCTION
+In large university courses, online student forums (such
+as Moodle and Ed forum) play a crucial role in facilitat-
+ing student discussions and resolving academic queries. In
+the beginning, it is possible for course staff to respond to
+queries in a timely manner. However, with a high volume of
+posts, many questions become repetitive, leading to delays
+in response times and an increased burden on instructors.
+Students often struggle to find existing answers, and teaching
+staff must repeatedly address similar concerns. Therefore, a
+related question recommendation system can help mitigate
+these challenges by efficiently suggesting previously answered
+relevant questions, improving student learning experiences,
+and reducing instructor workload.
+In this paper, we developed a question answering system
+based on large language model (LLM) and retrieval augmented
+generation (RAG), and also fine-tuned on the relevant course
+dataset. The system contributes to the development of AI
+applications in the education domain. By introducing a related
+question answering system, it promotes a reduction in course
+staff workload. Teaching staff could focus on more complex
+or new questions rather than answering repetitive or simple
+questions. In addition, the developed system could provide an
+immediate response to student queries anytime (available 24/7)
+and reduce the need to find similar posts. The proposed system
+could also improve self-learning in students as they can always
+find help related to the course whenever they need. Addition-
+ally, leveraging LLMs for related question recommendation
+system could increase search precision, contributing to AI-
+driven educational support and broader applications such as
+knowledge-sharing platforms.
+This research aims to improve the efficiency of online
+course forums by developing a question-answering system
+based on Retrieval-Augmented Generation (RAG), which
+leverages an external knowledge base to enhance the ability
+of LLM to generate more accurate and contextually relevant
+responses. Our system could identify whether a newly posted
+student question has already been answered in the course
+forum. If a similar question exis

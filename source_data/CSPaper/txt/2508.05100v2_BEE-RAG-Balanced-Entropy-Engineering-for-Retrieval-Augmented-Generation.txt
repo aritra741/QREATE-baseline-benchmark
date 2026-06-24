@@ -1,0 +1,101 @@
+BEE-RAG: Balanced Entropy Engineering for Retrieval-Augmented Generation
+Yuhao Wang1,3*†
+Ruiyang Ren1*
+Yucheng Wang2
+Jing Liu2‡
+Wayne Xin Zhao1,3‡
+Hua Wu2
+Haifeng Wang2
+1Gaoling School of Artificial Intelligence, Renmin University of China
+2Baidu Inc.
+3Beijing Key Laboratory of Research on Large Models and Intelligent Governance
+{yh.wang500, reyon ren}@outlook.com, batmanfly@gmail.com
+Abstract
+With the rapid advancement of large language mod-
+els (LLMs), retrieval-augmented generation (RAG) has
+emerged as a critical approach to supplement the inherent
+knowledge limitations of LLMs. However, due to the typi-
+cally large volume of retrieved information, RAG tends to
+operate with extremely long context lengths. From the per-
+spective of entropy engineering, we identify unconstrained
+entropy growth and attention dilution due to long retrieval
+context as significant factors affecting RAG performance.
+In this paper, we propose the balanced entropy-engineered
+RAG (BEE-RAG) framework, which improves the adaptabil-
+ity of RAG systems to varying context lengths through the
+principle of entropy invariance. By leveraging balanced con-
+text entropy to reformulate attention dynamics, BEE-RAG
+separates attention sensitivity from context length, ensuring a
+stable entropy level. Building upon this, we introduce a zero-
+shot inference strategy for multi-importance estimation and a
+parameter-efficient adaptive fine-tuning mechanism to obtain
+the optimal balancing factor for different settings. Extensive
+experiments across multiple RAG tasks demonstrate the ef-
+fectiveness of BEE-RAG.
+Introduction
+Retrieval-augmented generation (RAG) has emerged as
+a transformative paradigm for augmenting large language
+models (LLMs) with dynamically integrated external knowl-
+edge (Wang et al. 2025b; Lewis et al. 2020). While con-
+ventional RAG systems demonstrate remarkable capabili-
+ties in knowledge-intensive tasks, their performance exhibits
+critical fragility when processing extended contextual in-
+puts (Ren et al. 2023). This vulnerability arises from the in-
+herent requirement of RAG frameworks to incorporate exter-
+nal retrieved documents, which typically results in substan-
+tially longer input sequences compared to standard genera-
+tion tasks (Zhang et al. 2024a; Li et al. 2025). This limitation
+manifests acutely in scenarios demanding long-context com-
+prehension, such as scientific literature analysis, multi-hop
+reasoning, and cross-document synthesis, where the grow-
+ing complexity of modern knowledge systems necessitates
+robust processing of extended text spans (Liu et al. 2023).
+* Equal contributions.
+† The work was done during the internship at Baidu.
+‡ Corresponding authors.
+3
+6
+9
+15
+18
+30
+Number of Retrieved Document
+2.6
+2.8
+3.0
+3.2
+3.4
+Information Entropy (H)
+Vanilla RAG
+BEE-RAG
+Vanilla RAG
+BEE-RAG
+0.0
+0.5
+1.0
+1.5
+2.0
+2.5
+3.0
+ Attention Score (1e- 4)
+Noisy Segment
+Important Segment
+Figure 1: In vanilla RAG, increasing input context length
+raises the information entropy of attention scores (left), po-
+tentially harming performance, while the LLM is less fo-
+cused on important segments (right). This paper proposes a
+balanced entropy engineering strategy, which maintains en-
+tropy stability for longer contexts and guide the LLM to fo-
+cus on critical segments.
+Typically, existing efforts to mitigate this challenge fo-
+cus predominantly on heuristic document filtering, extrap-
+olative training, or architectural modifications, introducing
+worth noting trade-offs. Threshold-based retrieval document
+truncation or selection reduces context length at the cost
+of discarding potentially relevant information (Jeong et al.
+2024; Wang et al. 2024). While extended context training
+may enhance RAG performance (Lin et al. 2024; Tang et al.
+2025), it substantially increases computational demands and
+risks compromising model generalization (Zhan et al. 2024).
+The introduction of auxiliary modules, such as specialized
+encoders (Yen, Gao, and Chen 2024), further es

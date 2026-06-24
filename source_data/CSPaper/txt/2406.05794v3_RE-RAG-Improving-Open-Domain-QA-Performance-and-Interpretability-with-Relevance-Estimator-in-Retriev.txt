@@ -1,0 +1,89 @@
+RE-RAG: Improving Open-Domain QA Performance and Interpretability
+with Relevance Estimator in Retrieval-Augmented Generation
+Kiseung Kim
+Jay-Yoon Lee*
+Graduate School of Data Science, Seoul National University
+{kkskp, lee.jayyoon}@snu.ac.kr
+Abstract
+The Retrieval Augmented Generation (RAG)
+framework utilizes a combination of parametric
+knowledge and external knowledge to demon-
+strate state-of-the-art performance on open-
+domain question answering tasks. However,
+the RAG framework suffers from performance
+degradation when the query is accompanied by
+irrelevant contexts. In this work, we propose
+the RE-RAG framework, which introduces a
+relevance estimator (RE) that not only provides
+relative relevance between contexts as previ-
+ous rerankers did, but also provides confidence,
+which can be used to classify whether given
+context is useful for answering the given ques-
+tion. We propose a weakly supervised method
+for training the RE simply utilizing question-
+answer data without any labels for correct con-
+texts. We show that RE trained with a small
+generator (sLM) can not only improve the sLM
+fine-tuned together with RE but also improve
+previously unreferenced large language mod-
+els (LLMs). Furthermore, we investigate new
+decoding strategies that utilize the proposed
+confidence measured by RE such as choosing
+to let the user know that it is “unanswerable”
+to answer the question given the retrieved con-
+texts or choosing to rely on LLM’s parametric
+knowledge rather than unrelated contexts. 1
+1
+Introduction
+In recent years, the retrieval augmented generation
+framework has shown promising progress in natu-
+ral language generation, specifically on knowledge-
+intensive tasks. This approach has been studied in
+many forms, from traditional RAG (Lewis et al.,
+2020b), which aggregates answers from multi-
+ple contexts using document relevance scores as
+weights, to approaches like RALM (Ram et al.,
+2023), which simply utilizes concatenated con-
+text as an in-context learning approach for large-
+language models (LLMs). Retrieval augmented
+*Corresponding author
+1Code is available at here
+generation enhances the model’s faithfulness and
+reliability by leveraging nonparametric knowledge
+on top of parametric knowledge (Luo et al., 2023).
+In particular, the RAG framework has the advan-
+tage of being easily adaptable to modern LLMs
+(Brown et al., 2020; Touvron et al., 2023). These
+advantages have sparked a significant amount of
+new research (Asai et al., 2023; Lin et al., 2023;
+Shi et al., 2023) focused on the RAG framework.
+Despite the great potential of the retrieval aug-
+mented generation framework, if the language
+model is provided with contexts that are not rel-
+evant to the query, it will be distracted by these
+inappropriate contexts, negatively affecting the ac-
+curacy of the answers (Yoran et al., 2023). While
+retrievers or re-rankers in existing research have
+been effective at measuring the relative ranking
+across contexts to a query, these modules often fail
+to determine whether top-ranked contexts are actu-
+ally relevant to the query or not. Furthermore, if a
+precise relevance score is not used in the traditional
+RAG framework, it can cause problems such as
+directing attention to documents that are less likely
+to answer the query.
+In this work, we propose the RE-RAG framework,
+which extends traditional RAG by incorporating a
+relevance estimator (RE) to simultaneously measure
+the precise relative relevance between retrieved con-
+texts and evaluate their confidence, which can be
+used to classify whether given context is useful
+for answering the given question. By more accu-
+rately measuring the relative relevance between
+contexts, RE computes precise relevance scores
+suitable for weighted aggregated answers in the
+traditional RAG framework and also acts as an ef-
+ficient reranker. RE trained on a small generator
+(sLM) not only benefits sLM fine-tuned together
+with RE but can also be separated and applied to
+LLMs as well, benefiting both.

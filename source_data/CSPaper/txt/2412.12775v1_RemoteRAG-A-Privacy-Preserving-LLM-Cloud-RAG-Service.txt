@@ -1,0 +1,89 @@
+RemoteRAG: A Privacy-Preserving LLM Cloud RAG Service
+Yihang Cheng1, Lan Zhang1, Junyang Wang1, Mu Yuan2, Yunhao Yao1
+1University of Science and Technology of China
+2The Chinese University of Hong Kong
+yihangcheng@mail.ustc.edu.cn, zhanglan@ustc.edu.cn, iswangjy@mail.ustc.edu.cn
+muyuan@cuhk.edu.hk, yaoyunhao@mail.ustc.edu.cn
+Abstract
+Retrieval-augmented generation (RAG) im-
+proves the service quality of large language
+models by retrieving relevant documents from
+credible literature and integrating them into the
+context of the user query. Recently, the rise of
+the cloud RAG service has made it possible for
+users to query relevant documents conveniently.
+However, directly sending queries to the cloud
+brings potential privacy leakage. In this paper,
+we are the first to formally define the privacy-
+preserving cloud RAG service to protect the
+user query and propose RemoteRAG as a solu-
+tion regarding privacy, efficiency, and accuracy.
+For privacy, we introduce (𝑛, 𝜖)-DistanceDP to
+characterize privacy leakage of the user query
+and the leakage inferred from relevant docu-
+ments. For efficiency, we limit the search range
+from the total documents to a small number
+of selected documents related to a perturbed
+embedding generated from (𝑛, 𝜖)-DistanceDP,
+so that computation and communication costs
+required for privacy protection significantly
+decrease.
+For accuracy, we ensure that the
+small range includes target documents related
+to the user query with detailed theoretical anal-
+ysis. Experimental results also demonstrate
+that RemoteRAG can resist existing embedding
+inversion attack methods while achieving no
+loss in retrieval under various settings. More-
+over, RemoteRAG is efficient, incurring only
+0.67 seconds and 46.66KB of data transmis-
+sion (2.72 hours and 1.43 GB with the non-
+optimized privacy-preserving scheme) when
+retrieving from a total of 106 documents.
+1
+Introduction
+Large language models (LLMs) have attracted
+widespread attention since the release of ChatGPT
+(OpenAI, 2022a). However, LLM is not without its
+flaws. One major issue is its tendency to generate
+factually incorrect or purely fictional responses, a
+phenomenon known as hallucination (Leiser et al.,
+2024; Yao et al., 2023).
+To mitigate this problem, retrieval-augmented
+generation (RAG) (Lewis et al., 2020) has been
+proposed to offer credible external knowledge, pro-
+viding significant convenience for numerous tasks.
+RAG aims to understand the input query, extract
+relevant information from external data sources,
+and enhance the quality of the generated answers
+(Borgeaud et al., 2022; Lewis et al., 2020; Li et al.,
+2023). Specifically, RAG allows the retrieval of
+relevant documents which can help understand
+or answer the input query and inserts them into
+the context of prompts to improve the output of
+LLM (Izacard and Grave, 2021).
+Its ability to
+enable LLM to provide answers with credible lit-
+erature makes RAG an important technique in the
+application of LLM, leading to the development
+of many excellent and user-friendly open-source
+RAG projects (LangGenius, 2023; QuivrHQ, 2023;
+Chatchat-Space, 2023).
+To leverage the power of RAG, a new concept
+RAG-as-a-Service (RaaS) has been proposed, gath-
+ering significant attention (Geniusee, 2024; Nuclia,
+2024). In RaaS, the RAG service is entirely hosted
+online in the cloud. The user submits requests to
+the cloud with input queries to receive responses
+from RaaS. In this scenario, the cloud serves as the
+maintainer of the RAG service. While the current
+solution facilitates the wide adoption of RaaS, it
+raises serious privacy concerns. The input query
+may contain sensitive information, such as health
+conditions and financial status. Unfortunately, this
+data is not protected and must be uploaded in plain-
+text to the cloud in order to retrieve relevant docu-
+ments. In this study, we aim to tackle a challenging
+question: How can we minimize privacy leakage
+in queries for RaaS while ensuring the accuracy of
+the responses, all w

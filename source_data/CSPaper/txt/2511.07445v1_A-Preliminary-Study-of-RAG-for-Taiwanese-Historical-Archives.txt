@@ -1,0 +1,91 @@
+A Preliminary Study of RAG for Taiwanese Historical Archives
+Claire Lin1*, Bo-Han Feng2*, Xuanjun Chen3*, Te-Lun Yang4
+Hung-yi Lee3, Jyh-Shing Roger Jang2,4
+1Department of Information Management, National Taiwan University
+2Department of Computer Science and Information Engineering, National Taiwan University
+3Graduate Institute of Communication Engineering, National Taiwan University
+4Graduate Institute of Networking and Multimedia, National Taiwan University
+{b10705004, b10902031, d12942018, d12944007}@ntu.edu.tw
+hungyilee@ntu.edu.tw, jang@mirlab.org
+Abstract
+Retrieval-Augmented
+Generation
+(RAG)
+has emerged as a promising approach for
+knowledge-intensive tasks.
+However, few
+studies have examined RAG for Taiwanese
+Historical Archives. In this paper, we present
+an initial study of a RAG pipeline applied to
+two historical Traditional Chinese datasets,
+Fort Zeelandia and the Taiwan Provincial
+Council Gazette, along with their correspond-
+ing open-ended query sets. We systematically
+investigate the effects of query characteris-
+tics and metadata integration strategies on
+retrieval quality, answer generation, and the
+performance of the overall system. The results
+show that early-stage metadata integration
+enhances both retrieval and answer accuracy
+while also revealing persistent challenges
+for RAG systems, including hallucinations
+during generation and difficulties in handling
+temporal or multi-hop historical queries.
+Keywords:
+Retrieval-Augmented Generation,
+Humanities Data, Large Language Model
+1
+Introduction
+Recent advances in large language models have
+substantially improved open-domain question an-
+swering and knowledge-intensive tasks. Retrieval-
+Augmented Generation (RAG) (Lewis et al., 2020),
+which combines document retrieval with text gen-
+eration, has shown promise in mitigating halluci-
+nation and improving factuality. Prior research has
+primarily focused on English (Bajaj et al., 2018;
+Kwiatkowski et al., 2019; Yang et al., 2024) or
+Simplified Chinese datasets (Lyu et al., 2024; Li
+et al., 2024a) and general-purpose domains such as
+Wikipedia or web-collected questions.
+However, much less attention has been given to
+RAG performance on underrepresented languages
+*Equal contribution.
+and culturally specific corpora, particularly in the
+humanities. Historical contexts in Traditional Chi-
+nese pose unique challenges, including unstruc-
+tured documents, time-sensitive content, and lin-
+guistic differences between queries and archival
+sources. These factors complicate both retrieval
+and generation, making it unclear how well current
+RAG systems handle such materials.
+To address this gap, we propose two Tai-
+wanese historical datasets, Fort Zeelandia and Tai-
+wan Provincial Council Gazette (TPCG), along
+with their associated query sets, as case stud-
+ies for historical open-ended question answering.
+The datasets are annotated with query-level and
+document-level metadata, enabling fine-grained ex-
+periments on how query types and metadata integra-
+tion strategies affect RAG performance. Through
+systematic evaluation across multiple retrieval
+methods and query characteristics, we demonstrate
+that early-stage metadata integration substantially
+improves system effectiveness. Furthermore, our
+findings reveal persistent challenges: hallucina-
+tions remain a recurring issue during generation,
+and questions involving temporal reasoning exhibit
+notable difficulty. Furthermore, our analysis of re-
+trieval performance reveals that multi-hop and time-
+sensitive queries tend to yield lower recall, whereas
+early-stage metadata integration consistently deliv-
+ers the strongest overall retrieval effectiveness.
+2
+Related Work
+RAG Lewis et al. (2020) improves language model
+performance on knowledge-intensive tasks by in-
+corporating relevant external information during
+generation. By grounding outputs in retrieved evi-
+dence, RAG reduces hallucinations when models
+encounter unfamiliar topics and alleviates the sub-
+stantial cost of continuousl

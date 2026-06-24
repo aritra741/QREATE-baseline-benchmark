@@ -1,0 +1,53 @@
+Compressing Long Context for Enhancing RAG with
+AMR-based Concept Distillation
+Kaize Shi ♡, Xueyao Sun♡,♣, Qing Li ♣, Guandong Xu♡,♢
+♡University of Technology Sydney
+♣The Hong Kong Polytechnic University
+♢The Education University of Hong Kong
+Abstract
+Large Language Models (LLMs) have made significant strides in information
+acquisition. However, their overreliance on potentially flawed parametric knowl-
+edge leads to hallucinations and inaccuracies, particularly when handling long-tail,
+domain-specific queries. Retrieval Augmented Generation (RAG) addresses this
+limitation by incorporating external, non-parametric knowledge. Nevertheless,
+the retrieved long-context documents often contain noisy, irrelevant information
+alongside vital knowledge, negatively diluting LLMs’ attention. Inspired by the
+supportive role of essential concepts in individuals’ reading comprehension, we
+propose a novel concept-based RAG framework with the Abstract Meaning Rep-
+resentation (AMR)-based concept distillation algorithm. The proposed algorithm
+compresses the cluttered raw retrieved documents into a compact set of crucial
+concepts distilled from the informative nodes of AMR by referring to reliable
+linguistic features. The concepts explicitly constrain LLMs to focus solely on vital
+information in the inference process. We conduct extensive experiments on open-
+domain question-answering datasets to empirically evaluate the proposed method’s
+effectiveness. The results indicate that the concept-based RAG framework outper-
+forms other baseline methods, particularly as the number of supporting documents
+increases, while also exhibiting robustness across various backbone LLMs. This
+emphasizes the distilled concepts are informative for augmenting the RAG process
+by filtering out interference information. To the best of our knowledge, this is the
+first work introducing AMR to enhance the RAG, presenting a potential solution to
+augment inference performance with semantic-based context compression.
+1
+Introduction
+Large Language Models (LLMs) have emerged as indispensable tools for daily information acquisi-
+tion, owing to their extensive knowledge base and ability to fulfil diverse user instructions [6, 47, 1].
+By leveraging large-scale pre-training on massive datasets, LLMs memorize vast amounts of knowl-
+edge within their parameters as internal memory, known as parametric knowledge [33]. However, the
+presence of outdated or incorrect knowledge within internal memory can lead to hallucinations, hin-
+dering the performance of LLMs’ inferencing process [46]. This limitation is particularly pronounced
+when handling long-tail knowledge for domain-specific or highly specialized queries, as the inherent
+difficulty in memorizing rare entities persists even in the most robust models. Consequently, the
+overreliance on potentially flawed parametric knowledge can significantly interfere with the reliability
+of LLMs’ outputs, especially in scenarios with fine-grained knowledge requirements [58, 36].
+Retrieval Augmented Generation (RAG) employs additional retrievers to augment LLMs with external,
+non-parametric knowledge, effectively expanding their internal knowledge boundaries [27, 14]. This
+Preprint. Under review.
+arXiv:2405.03085v1  [cs.CL]  6 May 2024
+allows LLMs to access up-to-date, query-focused information that may not be adequately memorized
+within their parametric memory to alleviate the aforementioned limitations [24]. In contrast to fine-
+tuning by updating the model parameters, RAG preserves pre-trained knowledge while dynamically
+incorporating relevant external context. This paradigm offers greater flexibility and scalability, as the
+retrievers can be easily plug-and-play without modifying the underlying language model’s parameters,
+thus circumventing complex computational hurdles [17, 16]. However, RAG is easily confused when
+dealing with long contextual retrieved support documents, which often consist of multiple shreds of
+evidence for providing vita

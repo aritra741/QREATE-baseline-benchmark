@@ -1,0 +1,71 @@
+GEM-RAG: Graphical Eigen Memories For
+Retrieval Augmented Generation
+Brendan Hogan Rappazzo, Yingheng Wang, Aaron Ferber, Carla Gomes
+Department of Computer Science
+Cornell University
+Ithaca, New York 14850
+Email: {bhr54, yw2349, amf272, cpg5}@cornell.edu
+Abstract—The ability to form, retrieve, and reason about mem-
+ories in response to stimuli serves as the cornerstone for general
+intelligence - shaping entities capable of learning, adaptation, and
+intuitive insight. Large Language Models (LLMs) have proven
+their ability, given the proper memories or context, to reason
+and respond meaningfully to stimuli. However, they are still
+unable to optimally encode, store, and retrieve memories - the
+ability to do this would unlock their full ability to operate as AI
+agents, and to specialize to niche domains. To remedy this, one
+promising area of research is Retrieval Augmented Generation
+(RAG), which aims to augment LLMs by providing them with
+rich in-context examples and information. In question-answering
+(QA) applications, RAG methods embed the text of interest in
+chunks, and retrieve the most relevant chunks for a prompt
+using text embeddings. Motivated by human memory encoding
+and retrieval, we aim to improve over standard RAG methods
+by generating and encoding higher-level information and tagging
+the chunks by their utility to answer questions. We introduce
+Graphical Eigen Memories For Retrieval Augmented Generation
+(GEM-RAG). GEM-RAG works by tagging each chunk of text
+in a given text corpus with LLM generated “utility” questions,
+connecting chunks in a graph based on the similarity of both their
+text and utility questions, and then using the eigendecomposition
+of the memory graph to build higher level summary nodes that
+capture the main themes of the text. As a result, GEM-RAG not
+only provides a more principled method for RAG tasks, but also
+synthesizes graphical eigen memory (GEM) which can be useful
+for both exploring text and understanding which components are
+relevant to a given question. We evaluate GEM-RAG, using both
+UnifiedQA and GPT-3.5 Turbo as the LLMs, with SBERT, and
+OpenAI’s text encoders on two standard QA tasks, showing that
+GEM-RAG outperforms other state-of-the-art RAG methods on
+these tasks. We also discuss the implications of having a robust
+RAG system and future directions.
+I. INTRODUCTION
+The ability to create intelligent machines has long occu-
+pied the fascination of humankind, from the automata of the
+medieval error, formalization of logic in the 17th century and
+evolving with the emergence of computing theory and artificial
+intelligence concepts in the 19th century. Now in the modern
+era, the possibility of generating Artificial General Intelligence
+(AGI) [1] seems as close as ever, in particular just within the
+past three years with the advent of massive scale machine
+learning systems, especially Large Language Models (LLMs),
+and Large Multimodal Models (LMMs).
+LLMs have emerged as remarkably powerful general knowl-
+edge stores, with the ability to perform impressively on a large
+variety of tasks [2], [3], [4]. Further, given their large context
+lengths, its has been shown that they have a powerful ability
+to perform in-context learning, whether it be for chat-like
+applications where it can reference parts of the conversation
+dynamically, adapting to classification tasks [5], or reasoning
+tasks through chain-of-thought prompting [6]. LLMs appear
+to have solved one part of the general intelligence equation,
+given the proper context, much like a human mind given the
+proper working memory stream, they can reason and respond
+to questions reasonably. But without a way to encode, store
+and retrieve information that extends outside of their context,
+LLMs are missing an extremely important part of general
+intelligence, they are unable to form long-term, and ongoing
+memories as AI agents, and are unable to adapt to new niche
+domains.
+If LLMs were able to perfectly encode, store and retrieve
+memories it would

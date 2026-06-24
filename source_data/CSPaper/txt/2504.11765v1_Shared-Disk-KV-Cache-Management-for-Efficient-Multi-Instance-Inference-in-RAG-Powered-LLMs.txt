@@ -1,0 +1,69 @@
+Shared Disk KV Cache Management for Efficient
+Multi-Instance Inference in RAG-Powered LLMs
+Hyungwoo Lee1, Kihyun Kim1, Jinwoo Kim1, Jungmin So1, Myung-Hoon Cha2
+Hong-Yeon Kim2, James J. Kim3, Youngjae Kim1,†
+1Dept. of Computer Science and Engineering, Sogang University, Seoul, Republic of Korea
+2ETRI, Daejeon, Republic of Korea, 3Soteria Inc.
+Abstract—Recent large language models (LLMs) face increasing
+inference latency as input context length and model size continue
+to grow. In particular, the retrieval-augmented generation (RAG)
+technique, which enhances LLM responses by incorporating exter-
+nal knowledge, exacerbates this issue by significantly increasing
+the number of input tokens. This expansion in token length
+leads to a substantial rise in computational overhead, particularly
+during the prefill stage, resulting in prolonged time-to-first-token
+(TTFT). To address this issue, this paper proposes a method to
+reduce TTFT by leveraging a disk-based key-value (KV) cache to
+lessen the computational burden during the prefill stage. We also
+introduce a disk-based shared KV cache management system,
+called Shared RAG-DCache, for multi-instance LLM RAG service
+environments. This system, together with an optimal system
+configuration, improves both throughput and latency under given
+resource constraints. Shared RAG-DCache exploits the locality
+of documents related to user queries in RAG, as well as the
+queueing delay in LLM inference services. It proactively generates
+and stores disk KV caches for query-related documents and
+shares them across multiple LLM instances to enhance inference
+performance. In experiments on a single host equipped with
+2 GPUs and 1 CPU, Shared RAG-DCache achieved a 15–71%
+increase in throughput and up to a 12–65% reduction in latency,
+depending on the resource configuration.
+Index Terms—LLM, KV-Cache, RAG, Vector DB, TTFT
+I. INTRODUCTION
+Large Language Models (LLMs) have demonstrated excep-
+tional performance across various tasks, and their increasing
+scale continues to deliver progressively more powerful capabil-
+ities. Models with billions or even trillions of parameters have
+significantly advanced the state-of-the-art in natural language
+processing, enabling remarkable abilities in understanding
+context, generating coherent text, and generalizing across
+diverse linguistic scenarios. Nevertheless, despite their extensive
+capacity, LLMs frequently encounter difficulties when tasked
+with providing accurate responses involving the most recent or
+specialized internal corporate data, as such information typically
+falls outside the scope of their static pre-training datasets. This
+limitation arises because these models do not inherently possess
+mechanisms to dynamically integrate or update knowledge
+post-training, which significantly restricts their applicability in
+scenarios requiring up-to-date or confidential domain-specific
+insights.
+To address this limitation, Retrieval-Augmented Generation
+(RAG) [1] has gained attention. RAG improves LLM prompts
+†Y. Kim is the corresponding author.
+by retrieving external documents related to the user query,
+thereby increasing the accuracy of responses regarding up-
+to-date information or domain-specific knowledge [1]–[3].
+However, incorporating external context documents into the
+prompt significantly increases its length, leading to longer
+Time-To-First-Token (TTFT) [4] and reduced throughput. This
+phenomenon arises primarily from the increased computational
+complexity during the prefill phase of LLM inference, where the
+model computes attention scores and generates the correspond-
+ing key-value (KV) matrices for all tokens in the expanded
+prompt. Specifically, the complexity of KV cache generation
+scales approximately as (O(L · N 2 · D)) [5], [6], where L
+represents the number of Transformer layers, N denotes the
+total token length of the input (including both original prompts
+and added contexts), and D corresponds to the dimensionality
+of the hidden representations.
+Duri

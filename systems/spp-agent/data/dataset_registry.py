@@ -12,6 +12,7 @@ MED_DATASET = "Med"
 PLAYER_DATASET = "Player"
 FINAN_DATASET = "Finan"
 ART_DATASET = "Art"
+CSPAPER_DATASET = "CSPaper"
 
 # Healthcare corpus folders -> SQL / ground-truth table names.
 MED_CORPUS_FOLDER_TO_TABLE: dict[str, str] = {
@@ -51,6 +52,18 @@ ART_TABLE_TO_CORPUS_FOLDER: dict[str, str] = {
 ART_SQL_TABLE = "art"
 ART_GT_TABLE = "Art"
 
+# CSPaper: single-table dataset. GT CSV = CSPaper.csv → table "cspaper".
+# Corpus docs are in source_data/CSPaper/txt/ (PDF stems as filenames).
+CSPAPER_CORPUS_FOLDER_TO_TABLE: dict[str, str] = {
+    "txt": "cspaper",
+    "cspaper": "cspaper",
+}
+CSPAPER_TABLE_TO_CORPUS_FOLDER: dict[str, str] = {
+    "cspaper": "txt",
+}
+CSPAPER_SQL_TABLE = "cspaper"
+CSPAPER_GT_TABLE = "CSPaper"
+
 
 def normalize_dataset_name(name: str) -> str:
     aliases = {
@@ -63,6 +76,9 @@ def normalize_dataset_name(name: str) -> str:
         "financial": FINAN_DATASET,
         "art": ART_DATASET,
         "wikiart": ART_DATASET,
+        "cspaper": CSPAPER_DATASET,
+        "cs_paper": CSPAPER_DATASET,
+        "cspapers": CSPAPER_DATASET,
     }
     key = (name or PLAYER_DATASET).strip()
     return aliases.get(key.lower(), key)
@@ -76,6 +92,8 @@ def corpus_folder_to_table(dataset: str, folder: str) -> str:
         return FINAN_CORPUS_FOLDER_TO_TABLE.get(folder.lower(), folder.lower())
     if ds == ART_DATASET:
         return ART_CORPUS_FOLDER_TO_TABLE.get(folder.lower(), folder.lower())
+    if ds == CSPAPER_DATASET:
+        return CSPAPER_CORPUS_FOLDER_TO_TABLE.get(folder.lower(), folder.lower())
     return folder.lower()
 
 
@@ -87,6 +105,8 @@ def table_to_corpus_folder(dataset: str, table: str) -> str:
         return FINAN_TABLE_TO_CORPUS_FOLDER.get(table.lower(), table.lower())
     if ds == ART_DATASET:
         return ART_TABLE_TO_CORPUS_FOLDER.get(table.lower(), table.lower())
+    if ds == CSPAPER_DATASET:
+        return CSPAPER_TABLE_TO_CORPUS_FOLDER.get(table.lower(), table.lower())
     return table.lower()
 
 
@@ -117,6 +137,8 @@ def default_table_filter(dataset: str) -> set[str]:
         return {"finance"}
     if dataset == ART_DATASET:
         return {"art"}
+    if dataset == CSPAPER_DATASET:
+        return {"cspaper"}
     return set(phase0.get("table_filter", ["player"]))
 
 

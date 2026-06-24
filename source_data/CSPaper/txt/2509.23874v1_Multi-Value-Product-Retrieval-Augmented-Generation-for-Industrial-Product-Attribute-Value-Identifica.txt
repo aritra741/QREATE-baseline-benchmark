@@ -1,0 +1,116 @@
+Multi-Value-Product Retrieval-Augmented Generation
+for Industrial Product Attribute Value Identification
+Huike Zou1, Haiyang Yang1, Yindu Su2, Liyu Chen1,
+Chengbao Lian1, Qingheng Zhang1 Shuguang Han1,†, Jufeng Chen1
+1Xianyu of Alibaba
+2Xiaohongshu Inc.
+{zouhuike.zhk,qingheng.zqh,shuguang.sh}@alibaba-inc.com
+Abstract
+Identifying attribute values from product pro-
+files is a key task for improving product search,
+recommendation, and business analytics on e-
+commerce platforms, which we called Product
+Attribute Value Identification (PAVI) . However,
+existing PAVI methods face critical challenges,
+such as cascading errors, inability to handle out-
+of-distribution (OOD) attribute values, and lack
+of generalization capability. To address these
+limitations, we introduce Multi-Value-Product
+Retrieval-Augmented Generation (MVP-RAG),
+combining the strengths of retrieval, generation,
+and classification paradigms. MVP-RAG de-
+fines PAVI as a retrieval-generation task, where
+the product title description serves as the query,
+and products and attribute values act as the cor-
+pus. It first retrieves similar products of the
+same category and candidate attribute values,
+and then generates the standardized attribute
+values. The key advantages of this work are: (1)
+the proposal of a multi-level retrieval scheme,
+with products and attribute values as distinct
+hierarchical levels in PAVI domain (2) attribute
+value generation of large language model to
+significantly alleviate the OOD problem and
+(3) its successful deployment in a real-world in-
+dustrial environment. Extensive experimental
+results demonstrate that MVP-RAG performs
+better than the state-of-the-art baselines.
+1
+Introduction
+Product attribute values are fundamental compo-
+nents in the e-commerce sector, serving as crit-
+ical elements within the online retail ecosystem.
+From the perspective of a seller’s business strategy,
+meticulously curated product attribute values can
+significantly enhance traffic acquisition, increase
+product visibility, and ultimately drive transaction
+conversion. From the operational standpoint of
+e-commerce platforms, these attribute values pro-
+vide fundamental data support for core function-
+†Corresponding author.
+Item
+Retrieve Item
+LLM
+attribute-
+value pairs
+Item-c
+Retrieve Same
+Category Item
+Retrieve Value
+LLM
+Multi-Value
+-Product
+RAG
+(a) Previous Studies
+(b) Our Framework
+attribute-
+value pairs
+Figure 1: (a) shows the previous LLM and RAG meth-
+ods, which either retrieve products from the product
+pool or directly generate attribute values. In contrast,
+(b) depicts our approach, which retrieves from both
+product and attribute value perspectives. This not only
+reduces the hallucination error caused by retrieving ir-
+relevant products, but also ensures the stability of the
+results. Compared to previous studies, the core of our
+approach lies in the change in Retrieval.
+alities, such as optimizing product display algo-
+rithms(Chen et al., 2024), constructing personal-
+ized recommendation systems(Truong et al., 2022),
+and enabling intelligent question-answering ser-
+vices(Gao et al., 2019), which are essential for im-
+proving user experience(Vashishth et al., 2024) and
+platform operational efficiency.
+Professional sellers are usually able to stan-
+dardize the selection of product attribute values.
+However, on second-hand trading platforms like
+Xianyu*, individual sellers often struggle to pro-
+vide complete and accurate product attributes,
+which severely impacts the circulation efficiency
+of products.
+Therefore, achieving automated
+and precise product attribute value identification
+(PAVI)(Shinzato et al., 2023) is of great signifi-
+cance. Currently, PAVI models can be broadly
+*Xianyu is a C2C e-commerce platform in Alibaba
+arXiv:2509.23874v1  [cs.IR]  28 Sep 2025
+Serie
+Size
+Brand
+attributes
+Channel
+Dior
+LV
+values
+22Bag
+19Bag
+WOC
+L
+M
+S
+Bag
+Shoe
+Shirt
+categories
+Figure 2: An illustration of a portion of the attribute
+taxonomy. Each category, such as Bag, is linked

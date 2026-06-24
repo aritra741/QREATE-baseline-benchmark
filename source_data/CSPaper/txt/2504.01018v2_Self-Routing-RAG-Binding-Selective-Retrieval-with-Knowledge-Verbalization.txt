@@ -1,0 +1,94 @@
+Self-Routing RAG: Binding Selective Retrieval with
+Knowledge Verbalization
+Di Wu*, Jia-Chen Gu*, Kai-Wei Chang, Nanyun Peng
+University of California, Los Angeles
+{diwu,kwchang,violetpeng}@cs.ucla.edu, gujc@ucla.edu
+Abstract
+Selective retrieval improves the accuracy and
+efficiency of retrieval-augmented generation
+(RAG) by reducing distractions from low-
+quality retrievals.
+However, existing ap-
+proaches underutilize the inherent knowledge
+of large language models (LLMs), leading to
+suboptimal retrieval decisions and degraded
+generation performance. To bridge this gap,
+we propose Self-Routing RAG (SR-RAG), a
+novel framework that binds selective retrieval
+with knowledge verbalization. SR-RAG en-
+ables an LLM to dynamically decide whether
+to retrieve external knowledge or verbalize its
+own parametric knowledge. To this end, we
+design a multi-task objective that jointly opti-
+mizes an LLM for knowledge source selection,
+knowledge verbalization, and response gener-
+ation. SR-RAG further incorporates a nearest
+neighbor search mechanism at inference time to
+improve the accuracy of knowledge source de-
+cisions under domain shifts. Fine-tuning three
+LLMs with SR-RAG significantly improves
+both their response accuracy and reduces the
+inference latency. Compared to the strongest se-
+lective retrieval baseline, SR-RAG reduces the
+number of retrievals by 29% while improving
+performance by 5.1%.
+1
+Introduction
+Retrieval-augmented generation (RAG) equips
+large language models (LLMs) with external
+knowledge sources at inference time, enabling
+stronger performance on tasks requiring up-to-date
+or domain-specific information (Khandelwal et al.,
+2020; Lewis et al., 2020; Borgeaud et al., 2022;
+Ram et al., 2023; Shi et al., 2024). Recently, se-
+lective retrieval—an inference strategy that avoids
+unnecessary retrieval augmentations—has shown
+promising results in reducing distractions from low-
+quality retrievals and improving the efficiency of
+*Equal Contribution
+RAG (He et al., 2021; Mallen et al., 2023; Xu et al.,
+2024; Wu et al., 2024a).
+However, a core question has been overlooked
+by current selective retrieval research:
+Does selective retrieval fully honor the knowledge
+embedded in the LLM itself?
+When retrieval is skipped, existing methods use a
+standard yet simplistic fallback: letting the LLM
+directly generate the response (Mallen et al., 2023;
+Jeong et al., 2024; Asai et al., 2024; Wu et al.,
+2024a). This design prevents the LLM from explic-
+itly articulating its parametric knowledge before
+generating a response. We argue that the ability to
+verbalize knowledge, while subtle, has a critical
+impact on the success of selective retrieval. First,
+verbalizing internal knowledge expands the LLM’s
+capacity to answer without retrieval. Prior work
+demonstrates the ability of LLMs to directly gen-
+erate high-quality knowledge (Yu et al., 2023) as
+well as intermediate reasoning paths (Wei et al.,
+2022; Allen-Zhu and Li, 2025) to benefit the sys-
+tem’s performance. This is especially valuable for
+complex queries, where naive retrieval methods
+return irrelevant results and compute-intensive re-
+trieval can return noisy contexts. Second, knowl-
+edge verbalization enables more accurate selective
+retrieval decisions. Existing works train retrieval
+policies by comparing RAG with direct LLM re-
+sponses (Wang et al., 2023; Wu et al., 2024a) or
+resorting to likelihood-based preferences (He et al.,
+2021; Xu et al., 2024). By contrast, through ex-
+plicit knowledge elicitation, knowledge verbaliza-
+tion helps characterize the LLM’s capabilities more
+precisely. Therefore, we argue that knowledge ver-
+balization is a core component of selective retrieval
+to embrace.
+We propose Self-Routing RAG (SR-RAG), a se-
+lective retrieval framework that tightly integrates
+knowledge verbalization. By reformulating selec-
+tive retrieval as a knowledge source selection prob-
+1
+arXiv:2504.01018v2  [cs.CL]  7 Oct 2025
+Who succeeded the 
+first President of 
+Namibia?
+Henry Master F

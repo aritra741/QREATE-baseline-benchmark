@@ -1,0 +1,46 @@
+Efficient Test-Time Retrieval Augmented Generation
+HAILONG YIN, Fudan University, China
+BIN ZHU, Singapore Management University, Singapore
+JINGJING CHEN, Fudan University, China
+CHONG-WAH NGO, Singapore Management University, Singapore
+Although Large Language Models (LLMs) demonstrate significant capabilities, their reliance on parametric
+knowledge often leads to inaccuracies. Retrieval Augmented Generation (RAG) mitigates this by incorporating
+external knowledge, but these methods may introduce irrelevant retrieved documents, leading to inaccurate
+responses. While the integration methods filter out incorrect answers from multiple responses, but lack
+external knowledge like RAG methods, and their high costs require balancing overhead with performance
+gains. To address these issues, we propose an Efficient Test-Time Retrieval-Augmented Generation Framework
+named ET2RAG to improve the performance of LLMs while maintaining efficiency. Specifically, ET2RAG is a
+training-free method, that first retrieves the most relevant documents and augments the LLMs to efficiently
+generate diverse candidate responses by managing response length. Then we compute the similarity of
+candidate responses and employ a majority voting mechanism to select the most suitable response as the
+final output. In particular, we discover that partial generation is sufficient to capture the key information
+necessary for consensus calculation, allowing us to effectively perform majority voting without the need for
+fully generated responses. Thus, we can reach a balance between computational cost and performance by
+managing the response length for the number of retrieved documents for majority voting. Experimental results
+demonstrate that ET2RAG significantly enhances performance across three tasks, including open-domain
+question answering, recipe generation and image captioning.
+CCS Concepts: • Computing methodologies →Computer vision tasks; Natural language processing;
+Search methodologies.
+Additional Key Words and Phrases: Retrieval augmentation generation, Large language models, Efficiency
+1
+Introduction
+Large Language Models (LLMs) have significantly advanced in recent years, demonstrating re-
+markable performance across a variety of natural language generation tasks [30, 49]. Despite these
+advancements, LLMs continue to struggle with factual inaccuracies, primarily due to their reliance
+on parametric knowledge embedded during training, which may become outdated or insufficient
+for precise and factual responses [26, 28]. To tackle this problem, retrieval-augmented generation
+(RAG) methods [1, 33] have been introduced to enhance model outputs by incorporating external
+knowledge retrieved from relevant databases, as shown in Figure 1 (a). However, traditional RAG
+methods face two notable limitations. First, the retrieval process frequently includes irrelevant or
+misleading documents, degrading the accuracy and reliability of the generated responses [12, 39].
+Second, only increasing the number of retrieved documents may not improve model performance,
+and may even lead to worse performance for the LLMs [22].
+Recent studies have explored alternative integration strategies, such as multi-agent collaborative
+frameworks and self-consistency mechanisms, to refine outputs by leveraging consensus across
+multiple generated responses [10, 43, 44, 47], as shown in Figure 1 (b). These methods are capable of
+selecting the correct answer from multiple candidates by majority voting. For example, LLM-Debate
+[47] engages multiple agents in structured discussions to improve reasoning accuracy while CoT-SC
+[44] generates multiple reasoning paths to select the most consistent and correct response [46].
+Nevertheless, these methods lack external knowledge integration like RAG, limiting performance
+Authors’ Contact Information: Hailong Yin, Fudan University, China; Bin Zhu, Singapore Management University, Singapore;
+Jingjing Chen, Fudan University, China; Chong-Wah Ngo, Singapore Man

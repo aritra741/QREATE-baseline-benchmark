@@ -1,0 +1,78 @@
+Machine Against the RAG:
+Jamming Retrieval-Augmented Generation with Blocker Documents
+Avital Shafran
+The Hebrew University
+Roei Schuster
+Wild Moose
+Vitaly Shmatikov
+Cornell Tech
+Abstract
+Retrieval-augmented generation (RAG) systems respond to
+queries by retrieving relevant documents from a knowledge
+database and applying an LLM to the retrieved documents. We
+demonstrate that RAG systems that operate on databases with
+untrusted content are vulnerable to denial-of-service attacks
+we call jamming. An adversary can add a single “blocker”
+document to the database that will be retrieved in response to
+a specific query and result in the RAG system not answering
+this query, ostensibly because it lacks relevant information or
+because the answer is unsafe.
+We describe and measure the efficacy of several methods
+for generating blocker documents, including a new method
+based on black-box optimization. Our method (1) does not
+rely on instruction injection, (2) does not require the adversary
+to know the embedding or LLM used by the target RAG
+system, and (3) does not employ an auxiliary LLM.
+We evaluate jamming attacks on several embeddings and
+LLMs and demonstrate that the existing safety metrics for
+LLMs do not capture their vulnerability to jamming. We then
+discuss defenses against blocker documents.1
+1
+Introduction
+Retrieval-augmented generation (RAG) is a key applica-
+tion [15] of large language models (LLMs). RAG systems
+combine LLMs with knowledge databases. When the user
+submits a query, the system retrieves relevant documents from
+the database based on their semantic proximity to the query,
+typically measured via embedding similarity (see Section 3).
+The LLM then uses the retrieved documents as its context to
+generate a response. Figure 1 shows a schematic overview of
+RAG systems and our jamming attack (introduced below).
+RAG systems are vulnerable to adversarial content in their
+databases. In many real-world applications of RAG, adver-
+saries have an opportunity to add their documents to the un-
+1Our code is publicly available at https://github.com/avitalsh/
+jamming_attack
+derlying database, whether internal (e.g., customer feedback
+or enterprise-network logs) or external (e.g., webpages, re-
+views, or social media). Security of RAG systems is one of
+the top ten security risks for LLM-based applications [43].
+Our contributions. We demonstrate and evaluate a new class
+of denial-of-service vulnerabilities in RAG systems. We show
+how an adversary with query-only access to the RAG system
+(but no knowledge of the embedding or LLM that it uses) and
+insert-and-edit access to its knowledge database can create
+query-specific “blocker” documents. After a single blocker
+is added to the database, (a) it is retrieved along with other,
+clean documents relevant to the query, and (b) causes the
+RAG system to generate a response that fails to answer the
+query, ostensibly because it lacks information or because the
+answer is unsafe. We call this a jamming attack.
+Jamming is an attractive objective for any adversary who
+wishes to suppress specific answers, e.g., prevent bad re-
+views from influencing AI-generated summaries, hide nega-
+tive customer feedback, conceal facts from legal document
+review [13] or regulatory compliance [16], etc. In contrast
+to jailbreaking or indirect prompt injection, which steer the
+system into producing unsafe or incorrect answers, refusing to
+answer is a common LLM behavior. Unlike incorrect answers,
+refusals are both plausible and not amenable to fact-checking.
+Furthermore, unlike jailbreaking, which produces obviously
+toxic or unsafe answers, jamming attacks are stealthy.
+We investigate three methods for generating blocker docu-
+ments: an explicit instruction to ignore context (i.e., a variant
+of indirect prompt injection), prompting an auxiliary oracle
+LLM to generate the blocker document, and a new method
+based on black-box optimization.
+The latter method is our key technical contribution. It (1)
+works with black-

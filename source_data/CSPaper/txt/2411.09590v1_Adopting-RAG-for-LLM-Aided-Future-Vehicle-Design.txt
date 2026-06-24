@@ -1,0 +1,78 @@
+Adopting RAG for LLM-Aided Future Vehicle 
+Design 
+Vahid Zolfaghari∗, Nenad Petrovic∗, Fengjunjie Pan∗, Krzysztof Lebioda∗, Alois Knoll∗ 
+∗Technical University of Munich, Robotics, Artificial Intelligence and Embedded Systems, Munich, Germany 
+Email: v.zolfaghari@tum.de, nenad.petrovic@tum.de, f.pan@tum.de,  krzysztof.lebioda@tum.de, k@tum.de  
+Abstract— In this paper, we explore the integration of Large 
+Language 
+Models 
+(LLMs) 
+with 
+Retrieval-Augmented 
+Generation (RAG) to enhance automated design and software 
+development in the automotive industry. We present two case 
+studies: a standardization compliance chatbot and a design 
+copilot, both utilizing RAG to provide accurate, context-aware 
+responses. We evaluate four LLMs—GPT-4o, LLAMA3, 
+Mistral, and Mixtral—comparing their answering accuracy and 
+execution time. Our results demonstrate that while GPT-4 offers 
+superior performance, LLAMA3 and Mistral also show 
+promising capabilities for local deployment, addressing data 
+privacy concerns in automotive applications. This study 
+highlights the potential of RAG-augmented LLMs in improving 
+design workflows and compliance in automotive engineering. 
+Keywords—automotive software development, ChatGPT, 
+Large Language Model (LLM), Retrieval Augmented Generation 
+(RAG) 
+I. INTRODUCTION 
+Large Language Models (LLMs) are currently trending 
+topic in area of Artificial Intelligence (AI) and their adoption 
+in practice is becoming more and more relevant every day. 
+Despite that their question answering power enriches the end-
+user experience for many applications and services, they also 
+aim to provide enhancements to creative processes, such as 
+design and engineering decisions.  
+However, the adoption of such LLM-based approach in 
+some engineering domains would assume availability of 
+sensitive information, such as trade secrets, customer's 
+private/personnel data and technical details which should be 
+only available internally to employees and never exposed 
+outside the boundaries of the underlying organizations. 
+Therefore, the real potential of leveraging LLMs for many 
+innovative usage scenarios is reduced due to these reasons. 
+It is already shown that LLMs can bring many benefits 
+when it comes to software development, such as providing 
+suggestions, analysis source code or even generating 
+executable code [1], [2], [3]. However, in areas such as 
+automotive, both hardware and software requirements can be 
+also covered by non-disclosure policies and other mechanisms 
+making the utilization of the necessary information as input to 
+LLM quite concerning for the companies [2]. Initially, most 
+of the LLM-driven services were based on models including 
+billions of parameters, which requires enormously powerful 
+cloud infrastructure and were not aimed to be run locally. In 
+almost all cases, they were run on large provider's 
+infrastructure, such as Amazon and Google. Therefore, 
+providing 
+documents 
+and 
+other 
+specification-related 
+information in automotive was considered quite problematic - 
+as it involved practically sending the secret information to 
+online services and  other parties involved. For that reason, the 
+adoption of LLM-aided tools in automotive was considered 
+quite problematic and has not been the main focus of 
+researchers exploring the usage of LLMs. 
+In order to overcome the mentioned issue of giving out the 
+secret information to other parties while using LLM-based 
+services, there are two potential solutions. The first one is to 
+entirely deploy the LLM-based service within the boundaries 
+of the organization, relying on local infrastructure (such as 
+high-performance computing clusters). However, this 
+approach would involve additional costs for both the hardware 
+needed (such as high-performance GPUs) and efforts for 
+setting up the clusters and their proper configuration. 
+Moreover, the LLM model itself would need to be trained or 
+fine-tuned using the company's non-disclosed (secret) data, 
+whic

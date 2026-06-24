@@ -1,0 +1,89 @@
+CLI-RAG: A Retrieval-Augmented Framework for Clinically Structured
+and Context Aware Text Generation with LLMs
+Garapati Keerthana1, Manik Gupta1
+1Birla Institute of Technology and Science, Pilani, Hyderabad, India
+{p20240505,manik}@hyderabad.bits-pilani.ac.in
+Abstract
+Large language models (LLMs), including
+zero-shot and few-shot paradigms, have shown
+promising capabilities in clinical text genera-
+tion. However, real-world applications face two
+key challenges: (1) patient data is highly un-
+structured, heterogeneous, and scattered across
+multiple note types; and (2) clinical notes
+are often long and semantically dense, mak-
+ing naive prompting infeasible due to context
+length constraints and the risk of omitting clin-
+ically relevant information.
+We introduce CLI-RAG (Clinically Informed
+Retrieval-Augmented Generation), a domain-
+specific framework for structured and clinically
+grounded text generation using LLMs. It incor-
+porates a novel hierarchical chunking strategy
+that respects clinical document structure and
+introduces a task-specific dual-stage retrieval
+mechanism. The global stage identifies rele-
+vant note types using evidence-based queries,
+while the local stage extracts high-value con-
+tent within those notes creating relevance at
+both document and section levels.
+We apply the system to generate structured
+progress notes for individual hospital visits us-
+ing 15 clinical note types from the MIMIC-III
+dataset. Experiments show that it preserves
+temporal and semantic alignment across vis-
+its, achieving an average alignment score of
+87.7%, surpassing the 80.7% baseline from real
+clinician-authored notes. The generated out-
+puts also demonstrate high consistency across
+LLMs, reinforcing deterministic behavior es-
+sential for reproducibility, reliability, and clini-
+cal trust.
+1
+Introduction
+Large language models (LLMs) have shown re-
+markable success in natural language processing
+(OpenAI, 2023; Yang et al., 2024), including clini-
+cal applications such as summarization (Agrawal
+et al., 2022; Wang et al., 2024), medical Q&A
+(Singhal et al., 2023), and decision support (Fang
+et al., 2023). However, deploying LLMs in real-
+world clinical settings remains challenging due
+to the unstructured, fragmented, and semantically
+dense nature of electronic health records (EHRs)
+(Rule et al., 2021; Kuhn et al., 2015; Meystre et al.,
+2008; Wang et al., 2017). Clinical documenta-
+tion spans multiple heterogeneous note types, e.g.
+nursing, radiology, consultations, each with varied
+structure and granularity, often containing redun-
+dant or incomplete content (Percha, 2021; Markel,
+2010; Apathy et al., 2022).
+Progress notes, typically structured in the SOAP
+format (Subjective, Objective, Assessment, Plan),
+are essential for ongoing care but are frequently
+missing in real-world datasets appearing in only
+8.56% of visits in MIMIC-III (Johnson et al.,
+2016). Reconstructing such notes from fragmented
+sources requires reasoning over multiple docu-
+ments, temporal alignment, and adherence to clin-
+ical structure. Off-the-shelf retrieval-augmented
+generation (RAG) approaches (Lewis et al., 2020;
+Izacard et al., 2022) are ill-suited for this task, as
+they operate on flat corpora and ignore clinical
+semantics, note provenance, or task-specific rele-
+vance.
+We introduce CLI-RAG (Clinically Informed
+Retrieval-Augmented Generation), a structured
+generation framework designed to synthesize
+SOAP-format progress notes by composing evi-
+dence from diverse EHR notes. Our method ad-
+dresses two key research questions: 1. What infor-
+mation is most relevant to progress note generation,
+regardless of its source? 2. Which note types con-
+sistently contribute towards this information?
+To answer these, our system proposes a dual-
+stage retrieval strategy. A global retrieval step
+leverages task-specific clinical queries to extract
+relevant content across all note types, followed by a
+local retrieval phase that drills down into note-type-
+specific content usi

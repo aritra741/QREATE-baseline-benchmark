@@ -1,0 +1,94 @@
+Pirates of the RAG: Adaptively Attacking LLMs to
+Leak Knowledge Bases
+Christian Di Maio
+University of Pisa, Italy
+christian.dimaio@phd.unipi.it
+Cristian Cosci
+University of Pisa, Italy
+cristian.cosci@phd.unipi.it
+Marco Maggini
+University of Siena, Italy
+marco.maggini@unisi.it
+Valentina Poggioni
+University of Perugia, Italy
+valentina.poggioni@unipg.it
+Stefano Melacci
+University of Siena, Italy
+stefano.melacci@unisi.it
+Abstract
+The growing ubiquity of Retrieval-Augmented
+Generation (RAG) systems in several real-
+world services triggers severe concerns about
+their security. A RAG system improves the
+generative capabilities of a Large Language
+Models (LLM) by a retrieval mechanism which
+operates on a private knowledge base, whose
+unintended exposure could lead to severe conse-
+quences, including breaches of private and sen-
+sitive information. This paper presents a black-
+box attack to force a RAG system to leak its
+private knowledge base which, differently from
+existing approaches, is adaptive and automatic.
+A relevance-based mechanism and an attacker-
+side open-source LLM favor the generation of
+effective queries to leak most of the (hidden)
+knowledge base. Extensive experimentation
+proves the quality of the proposed algorithm
+in different RAG pipelines and domains, com-
+paring to very recent related approaches, which
+turn out to be either not fully black-box, not
+adaptive, or not based on open-source models.
+The findings from our study remark the urgent
+need for more robust privacy safeguards in the
+design and deployment of RAG systems.
+1
+Introduction
+Retrieval-Augmented Generation (RAG) (Lewis
+et al., 2020; Guu et al., 2020) allows Large Lan-
+guage Models (LLMs) to be able to output more ac-
+curate, grounded, up-to-date information, without
+relying on cumbersome retrainings or fine-tuning
+procedures. RAG can be applied whenever an LLM
+is paired with an external knowledge base, which
+collects precious and sometimes private informa-
+tion for the task at hand. Information retrieval
+technologies are used to get pieces of knowledge
+which are highly correlated to the current input,
+and then used to augment and improve the quality
+of the generated language.1 In-Context Learning
+1The concept of RAG is general, and not only restricted to
+the case of language, which is indeed what we consider in the
+(ICL) (Brown, 2020) offers a simple and effective
+way to provide the retrieved knowledge to the LLM,
+by augmenting the input prompt (Ram et al., 2023).
+While the format and content of the knowledge
+base can differ between different applications, it
+often encompasses sensitive information that must
+be kept confidential to ensure privacy and security.
+For instance, RAG systems can be deployed as cus-
+tomer support assistants (Bhat et al., 2024), used
+by employees within an organization to streamline
+workflows (RoyChowdhury et al., 2024), or inte-
+grated into medical support chatbots (Park, 2024;
+Wang et al., 2024; Raja et al., 2024), where previ-
+ous medical records help in the initial screening
+of new cases. The large ubiquity of RAG systems
+raises significant and often overlooked concerns
+about privacy and data security (Zhou et al., 2024).
+In particular, very recent works (Zeng et al., 2024;
+Qi et al., 2024; Cohen et al., 2024) highlighted
+that RAG systems turn out to be vulnerable to spe-
+cific prompt augmentations, that can “convince”
+the LLM to return (portions of) its input context (to
+a certain extent), containing the retrieved pieces of
+private knowledge.
+We further dive into this direction, showing that
+it is indeed possible to attack RAG systems by
+means of an automated routine, powered by an
+easily accessible open-source LLM and sentence
+encoder. We propose a relevance-based procedure
+to promote the exploration of the (hidden) private
+knowledge base, in order to discourage leaking in-
+formation that is always about the same sub-portion
+of the private knowledge base. The goal of our at-
+tack routine is to maximize the estimated cove

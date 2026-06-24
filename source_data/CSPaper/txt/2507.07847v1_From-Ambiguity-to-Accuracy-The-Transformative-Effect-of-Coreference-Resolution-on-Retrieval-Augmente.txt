@@ -1,0 +1,85 @@
+From Ambiguity to Accuracy: The Transformative Effect of Coreference
+Resolution on Retrieval-Augmented Generation systems
+Youngjoon Jang∗,1, Seongtae Hong∗,1, Junyoung Son1
+Sungjin Park2, Chanjun Park†,1, Heuiseok Lim†,1
+1Korea University
+{dew1701, ghdchlwls123, s0ny, bcj1210, limhseok}@korea.ac.kr
+2Naver Corp
+sungjin.park@navercorp.com
+Abstract
+Retrieval-Augmented Generation (RAG) has
+emerged as a crucial framework in natural lan-
+guage processing (NLP), improving factual
+consistency and reducing hallucinations by in-
+tegrating external document retrieval with large
+language models (LLMs). However, the effec-
+tiveness of RAG is often hindered by corefer-
+ential complexity in retrieved documents, in-
+troducing ambiguity that disrupts in-context
+learning. In this study, we systematically in-
+vestigate how entity coreference affects both
+document retrieval and generative performance
+in RAG-based systems, focusing on retrieval
+relevance, contextual understanding, and over-
+all response quality. We demonstrate that coref-
+erence resolution enhances retrieval effective-
+ness and improves question-answering (QA)
+performance. Through comparative analysis of
+different pooling strategies in retrieval tasks,
+we find that mean pooling demonstrates su-
+perior context capturing ability after applying
+coreference resolution. In QA tasks, we dis-
+cover that smaller models benefit more from
+the disambiguation process, likely due to their
+limited inherent capacity for handling referen-
+tial ambiguity. With these findings, this study
+aims to provide a deeper understanding of the
+challenges posed by coreferential complexity
+in RAG, providing guidance for improving re-
+trieval and generation in knowledge-intensive
+AI applications.
+1
+Introduction
+With the rapid advancement of large language
+models (LLMs) and information retrieval tech-
+nologies, Retrieval-Augmented Generation (RAG)
+has emerged as a fundamental technique widely
+adopted across various tasks, including knowledge-
+intensive applications such as question-answering
+and dialogue systems (Gan et al., 2023; Yang et al.,
+∗Equal contribution.
+† Corresponding Author
+a basketball thrown 
+from the ground
+ballistic trajectory
+Q. What space-time path is seen as a curved line in space?
+[1] Since then, and so far, general relativity has been acknowledged as the 
+theory that best explains gravity. [2] In GR, … [5] Thus, the straight line 
+path in space-time is seen as a curved line in space, and it is called the 
+ballistic trajectory of the object. [6] For example, a basketball thrown from 
+the ground moves in a parabola, as it is in a uniform gravitational field. [7] 
+Its space-time trajectory (when the extra ct dimension is added) is almost a 
+straight line, slightly curved (with the radius of curvature of the order of 
+few light-years). 
+Original (0.49)
+[1] Since then, and so far, general relativity has been acknowledged as the
+theory that best explains gravity. [2] In general relativity, … [5] Thus, the
+straight line path in space-time is seen as a curved line in space, and it is
+called the ballistic trajectory of the object. [6] For example, a basketball
+thrown from the ground moves in a parabola, as the basketball is in a
+uniform gravitational field. [7] The basketball's space-time trajectory
+(when the extra ct dimension is added) is almost a straight line, slightly
+curved (with the radius of curvature of the order of few light-years).
+Resolved (0.55)
+Figure 1: Example of changes in similarity and re-
+sponses resulting from coreference resolution. Similar-
+ity scores are indicated in parentheses using NV-Embed-
+v2, and responses are generated with the Llama-3.2-1B-
+Instruct model.
+2023). By integrating retrieval mechanisms with
+generative language models, RAG enhances fac-
+tual consistency, improves knowledge recall, and
+mitigates issues related to hallucination.
+Two key challenges in RAG lie in the retrieval
+of relevant documents from a large corpus and the
+subsequent in-context learning proc

@@ -1,0 +1,75 @@
+THE 2ND FUTUREDIAL CHALLENGE: DIALOG SYSTEMS WITH RETRIEVAL
+AUGMENTED GENERATION (FUTUREDIAL-RAG)
+Yucheng Cai1, Si Chen2, Yuxuan Wu1, Yi Huang2, Junlan Feng∗,2, Zhijian Ou∗,1
+1Speech Processing and Machine Intelligence (SPMI) Lab, Tsinghua University, Beijing, China
+2China Mobile Research Institute, Beijing, China
+fengjunlan@chinamobile.com, ozj@tsinghua.edu.cn
+ABSTRACT
+Recently, increasing research interests have focused on
+retrieval augmented generation (RAG) to mitigate hallucina-
+tion for large language models (LLMs). Following this trend,
+we launch the FutureDial-RAG challenge at SLT 2024, which
+aims at promoting the study of RAG for dialog systems. The
+challenge builds upon the MobileCS2 dataset, a real-life cus-
+tomer service datasets with nearly 3000 high-quality dialogs
+containing annotations for knowledge base query and corre-
+sponding results. Over the dataset, we define two tasks, track
+1 for knowledge retrieval and track 2 for response genera-
+tion, which are core research questions in dialog systems with
+RAG. We build baseline systems for the two tracks and design
+metrics to measure whether the systems can perform accu-
+rate retrieval and generate informative and coherent response.
+The baseline results show that it is very challenging to per-
+form well on the two tasks, which encourages the participat-
+ing teams and the community to study how to make better use
+of RAG for real-life dialog systems.
+Index Terms— Dialog systems, Retrieval augmented
+generation
+1. INTRODUCTION
+Developing intelligent dialog systems has been one of the
+longest running goals in AI. In recent years, significant
+progress has been made in building dialog systems with the
+breakthrough of deep learning methods and the large amount
+of conversational data being made available for system devel-
+opment [1, 2, 3, 4].
+There are still many challenges toward building future
+dialog systems. The first FutureDial challenge focused on
+building semi-supervised and reinforced task-oriented dialog
+systems (FutureDial-SereTOD) [2, 5], which was success-
+fully held at EMNLP 2022 SereTOD workshop1. ChatGPT
+[3], a newly emerged generative dialog system in the end of
+2022, has marked another amazing progress in engaging users
+∗Corresponding author.
+The code is released at https://
+github.com/futuredialchallenge/2024-RAG/.
+This work is
+partly supported by the National Science and Technology Major Project
+(2023ZD0121401)
+1http://seretod.org/
+in open-domain dialogs. However, problems like hallucina-
+tion and fabrication [6] still hinder the usage of such systems
+in real-life applications like customer service systems, which
+requires pin-point accuracy. Retrieval augmented generation
+(RAG) [7, 8] has been introduced to enhance dialog systems
+with retrieved information from external knowledge bases and
+has attracted increasing interests. RAG has been shown to be
+able to help the question-answering and dialog systems to re-
+ply with higher accuracy and factuality, providing more infor-
+mative and grounded responses [9, 10, 11, 12, 13, 14, 15, 16].
+However, there remain challenges for dialog systems with
+RAG such as designing retrievers that can retrieve knowledge
+from multiple knowledge sources, building dialog systems
+with RAG that can effectively utilize available tools and API-
+calls for retrieval [17, 18], and etc. These problems remain
+under-studied, mainly due to the lack of appropriate dialog
+datasets to study them.
+To further promote the study of how to empower dia-
+log systems with RAG, we release a new dataset, called Mo-
+bileCS2 (Mobile Customer Service) that aims to benchmark
+and stimulate related researches in this area. The dataset is
+annotated from the real-life customer-service logs instead of
+the Wizard-of-Oz methods [1]. Relevant knowledge bases
+and ground truth retrieved results are annotated so that dialog
+systems with RAG can be trained over such data. Note that
+successful fulfilling of customer-service usually needs to call
+specialized domain kno

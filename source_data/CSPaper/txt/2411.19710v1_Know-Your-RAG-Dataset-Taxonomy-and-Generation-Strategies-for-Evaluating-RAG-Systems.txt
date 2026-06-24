@@ -1,0 +1,88 @@
+Know Your RAG:
+Dataset Taxonomy and Generation Strategies for Evaluating RAG Systems
+Rafael Teixeira de Lima1*, Shubham Gupta1,
+Cesar Berrospi2, Lokesh Mishra2, Michele Dolfi2, Peter Staar2, Panagiotis Vagenas2
+1IBM Research Paris-Saclay, 2 Rue d’Arsonval, Orsay, France;
+2IBM Research Zurich, Säumerstrasse 4, Rüschlikon, Switzerland;
+*Correspondence: rtdl@ibm.com
+Abstract
+Retrieval Augmented Generation (RAG) sys-
+tems are a widespread application of Large Lan-
+guage Models (LLMs) in the industry. While
+many tools exist empowering developers to
+build their own systems, measuring their per-
+formance locally, with datasets reflective of
+the system’s use cases, is a technological chal-
+lenge. Solutions to this problem range from
+non-specific and cheap (most public datasets)
+to specific and costly (generating data from
+local documents).
+In this paper, we show
+that using public question and answer (Q&A)
+datasets to assess retrieval performance can
+lead to non-optimal systems design, and that
+common tools for RAG dataset generation can
+lead to unbalanced data. We propose solutions
+to these issues based on the characterization of
+RAG datasets through labels and through label-
+targeted data generation. Finally, we show that
+fine-tuned small LLMs can efficiently generate
+Q&A datasets. We believe that these observa-
+tions are invaluable to the know-your-data step
+of RAG systems development.
+1
+Introduction
+A Retrieval Augmented Generation (RAG) system
+pairs a Large Language Model (LLM) with an ex-
+ternal knowledge source (Lewis et al., 2020; Guu
+et al., 2020). Given a user’s query, a retriever adds
+relevant information from the knowledge source
+(context) to the LLM’s context window, augment-
+ing the LLM’s internal knowledge, and helping it
+generate a grounded answer with fewer hallucina-
+tions (Petroni et al., 2020). This setup allows LLMs
+to use information like current news and private en-
+terprise data that was not part of their training data
+(IBM, 2023), which has prompted rapid adoption
+across the community (Nakano et al., 2021; Shuster
+et al., 2022; Semnani et al., 2023; Nvidia, 2023).
+This adoption has been accompanied by a grow-
+ing interest in strategies for evaluating RAG sys-
+tems. Recent works focus on evaluating the en-
+tire system on a downstream task like question-
+answering (Chen et al., 2017). Others separately
+measure the retriever’s ability to fetch correct in-
+formation (Karpukhin et al., 2020; Salemi and Za-
+mani, 2024) and the generator’s ability to incorpo-
+rate it in the output (Liu et al., 2023; Chen et al.,
+2024). Tools like Ragas (Es et al., 2024), ARES
+(Saad-Falcon et al., 2024), and LlamaIndex (Liu,
+2022) have been developed for automated LLM-
+assisted evaluation of RAG systems. While these
+approaches focus on evaluation methods, we take a
+step back in this paper and instead focus on the data
+used for evaluation (i.e., a set of (context, query,
+answer) triplets).
+Our first contribution is a taxonomy for question-
+context pairs. We propose labels that identify differ-
+ent ways a user might interface with a RAG system
+on a given dataset. We show that popular public
+Q&A datasets can be heavily unbalanced with re-
+spect to these labels, and that the performance of
+popular retrieval strategies can differ significantly
+across these classes. This can lead to performance
+measurements that do not reflect how users would
+interact with a given system, depending on what
+types of labels are expected in practice.
+Our second contribution is a demonstration
+of different strategies to produce diverse Q&A
+datasets from a collection of contexts. First, by em-
+ploying prompt engineering and multi-step LLM
+querying, then by fine-tuning small LLMs. We
+compare these strategies to common alternatives
+based on single prompts to big LLMs. This model
+can provide an easy-to-use tool to the community
+for generating diverse RAG Q&A datasets without
+expensive queries to big LLMs1.
+We believe our proposals contribute a crucial
+know-your-data

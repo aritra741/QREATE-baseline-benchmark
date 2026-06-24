@@ -1,0 +1,72 @@
+First Token Probability Guided RAG for Telecom
+Question Answering
+Tingwei Chen∗, Jiayi Chen∗, Zijian Zhao∗‡, Haolong Chen∗†, Liang Zhang∗, Guangxu Zhu∗
+∗Shenzhen Research Institute of Big Data, Shenzhen, China
+† School of Science and Engineering, The Chinese University of Hong Kong (Shenzhen), Shenzhen, China
+‡ School of Computer Science and Engineering, Sun Yat-sen University, Guangzhou, China
+Abstract—Large Language Models (LLMs) have garnered
+significant attention for their impressive general-purpose capa-
+bilities. For applications requiring intricate domain knowledge,
+Retrieval-Augmented Generation (RAG) has shown a distinct
+advantage in incorporating domain-specific information into
+LLMs. However, existing RAG research has not fully addressed
+the challenges of Multiple Choice Question Answering (MCQA)
+in telecommunications, particularly in terms of retrieval quality
+and mitigating hallucinations. To tackle these challenges, we
+propose a novel first token probability guided RAG framework.
+This framework leverages confidence scores to optimize key
+hyperparameters, such as chunk number and chunk window
+size, while dynamically adjusting the context. Our method starts
+by retrieving the most relevant chunks and generates a single
+token as the potential answer. The probabilities of all options are
+then normalized to serve as confidence scores, which guide the
+dynamic adjustment of the context. By iteratively optimizing the
+hyperparameters based on these confidence scores, we can con-
+tinuously improve RAG performance. We conducted experiments
+to validate the effectiveness of our framework, demonstrating its
+potential to enhance accuracy in domain-specific MCQA tasks.
+Index
+Terms—Retrieval-Augmented
+Generation;
+Multiple
+Choice Question Answering.
+I. INTRODUCTION
+Large Language Models (LLMs) have garnered significant
+attention due to their impressive general-purpose capabili-
+ties [1]–[3]. These generative language models can understand
+and process user inputs, comprehend complex knowledge,
+and generate high-quality answers, demonstrating extensive
+understanding of general human knowledge. As LLMs have
+shown excellent general capabilities, they have been applied
+not only in natural language, but also in fields like code [4],
+mathematics [5], and music [6].
+For specific applications with intricate domain knowledge,
+LLMs have a potential shortfall in the precision and depth
+of knowledge and thus limit their ability to fully meet the
+nuanced demands. To inject domain-specific knowledge into
+LLMs, Retrieval-Augmented Generation (RAG) shows a sig-
+nificant advantage in that it does not require the huge computa-
+tional resources and can efficiently extract useful information
+from a large external knowledge base, which can even be
+updated at any time without incurring additional costs [7].
+RAG enhances the capability of LLMs to address specific
+industry challenges by leveraging external knowledge bases
+during the generation process. This method involves two main
+Corresponding author: Guangxu Zhu
+components: a retriever and a generator. The retriever com-
+ponent searches a large corpus of domain-specific chunks to
+find relevant information, while the generator component uses
+this information to produce contextually appropriate responses.
+The core of RAG is retrieving the most relevant information
+efficiently and accurately and transferring it as an efficient
+prompt to make it understandable by LLMs, all of which have
+been the subject of extensive research [8]–[10].
+In the field of telecommunications, the rapid advancement
+and complexity of technologies necessitate a deep understand-
+ing of communication protocols. Professionals in this domain
+need to meticulously retrieve and study these protocols to
+grasp the intricate logical mechanisms and technical details
+that govern the entire communication process. With the con-
+tinuous evolution of 5G, 6G, and forthcoming generations of
+communication protocols, the corpus of knowledge in this
+dom

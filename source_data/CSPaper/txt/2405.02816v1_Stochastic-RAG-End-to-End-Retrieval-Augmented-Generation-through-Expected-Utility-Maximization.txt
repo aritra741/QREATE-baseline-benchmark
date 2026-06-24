@@ -1,0 +1,74 @@
+Stochastic RAG: End-to-End Retrieval-Augmented Generation
+through Expected Utility Maximization
+Hamed Zamani
+University of Massachusetts Amherst
+Amherst, MA, United States
+zamani@cs.umass.edu
+Michael Bendersky
+Google
+Mountain View, CA, United States
+bemike@google.com
+ABSTRACT
+This paper introduces Stochastic RAG–a novel approach for end-
+to-end optimization of retrieval-augmented generation (RAG) mod-
+els that relaxes the simplifying assumptions of marginalization and
+document independence, made in most prior work. Stochastic
+RAG casts the retrieval process in RAG as a stochastic sampling
+without replacement process. Through this formulation, we em-
+ploy straight-through Gumbel-top-k that provides a differentiable
+approximation for sampling without replacement and enables ef-
+fective end-to-end optimization for RAG. We conduct extensive
+experiments on seven diverse datasets on a wide range of tasks,
+from open-domain question answering to fact verification to slot-
+filling for relation extraction and to dialogue systems. By applying
+this optimization method to a recent and effective RAG model, we
+advance state-of-the-art results on six out of seven datasets.
+CCS CONCEPTS
+• Computing methodologies →Natural language generation;
+• Information systems →Retrieval models and ranking.
+KEYWORDS
+Retrieval augmentation; retrieval-enhanced machine learning; rank-
+ing optimization
+ACM Reference Format:
+Hamed Zamani and Michael Bendersky. 2024. Stochastic RAG: End-to-
+End Retrieval-Augmented Generation through Expected Utility Maximiza-
+tion. In Proceedings of the 47th International ACM SIGIR Conference on Re-
+search and Development in Information Retrieval (SIGIR ’24), July 14–18,
+2024, Washington, DC, USA. ACM, New York, NY, USA, 6 pages. https:
+//doi.org/10.1145/3626772.3657923
+1
+INTRODUCTION
+Most machine learning systems, including large generative models,
+are self-contained systems, with both knowledge and reasoning
+encoded in model parameters. However, these models do not work
+effectively for tasks that require knowledge grounding [46], es-
+pecially in case of non-stationary data where new information is
+actively being produced [47, 52]. As suggested by Zamani et al.
+[52], this issue can be addressed when machine learning systems
+Permission to make digital or hard copies of part or all of this work for personal or
+classroom use is granted without fee provided that copies are not made or distributed
+for profit or commercial advantage and that copies bear this notice and the full citation
+on the first page. Copyrights for third-party components of this work must be honored.
+For all other uses, contact the owner/author(s).
+SIGIR ’24, July 14–18, 2024, Washington, DC, USA
+© 2024 Copyright held by the owner/author(s).
+ACM ISBN 979-8-4007-0431-4/24/07.
+https://doi.org/10.1145/3626772.3657923
+are being enhanced with the capability of retrieving stored content.
+For example, in retrieval-augmented generation (RAG), as a special
+case of retrieval-enhanced machine learning (REML) [52], systems
+consume the responses provided by one or more retrieval models
+for the purpose of (text) generation [21, 22]. RAG models demon-
+strate substantial promise across various applications, including
+open-domain question answering [16, 21, 53], fact verification [44],
+dialogue systems [5, 42, 48], and personalized generation [36, 37].
+Many prior studies on RAG use off-the-shelf retrieval models.
+For instance, Nakano et al. [25] used APIs from a commercial search
+engine for text generation. Glass et al. [9], on the other hand, used
+a term matching retrieval model. Neural ranking models trained
+based on human annotated data have also been used in the lit-
+erature [12, 21]. There also exist methods that only optimize the
+retrieval model and keep the language model parameters frozen
+[40]. A research direction in this area argues that optimizing re-
+trieval models in RAG should depend on the downstream language
+model that consumes the retrieval results. This is also

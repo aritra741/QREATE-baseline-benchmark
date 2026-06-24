@@ -1,0 +1,75 @@
+Don’t Forget to Connect!
+Improving RAG with Graph-based Reranking
+Jialin Dong
+UCLA
+Bahare Fatemi
+Google Research
+Bryan Perozzi
+Google Research
+Lin F. Yang
+UCLA
+Anton Tsitsulin
+Google Research
+Abstract
+Retrieval Augmented Generation (RAG) has greatly improved the performance of
+Large Language Model (LLM) responses by grounding generation with context
+from existing documents. These systems work well when documents are clearly
+relevant to a question context. But what about when a document has partial
+information, or less obvious connections to the context? And how should we reason
+about connections between documents? In this work, we seek to answer these two
+core questions about RAG generation. We introduce G-RAG, a reranker based
+on graph neural networks (GNNs) between the retriever and reader in RAG. Our
+method combines both connections between documents and semantic information
+(via Abstract Meaning Representation graphs) to provide a context-informed ranker
+for RAG. G-RAG outperforms state-of-the-art approaches while having smaller
+computational footprint. Additionally, we assess the performance of PaLM 2 as a
+reranker and find it to significantly underperform G-RAG. This result emphasizes
+the importance of reranking for RAG even when using Large Language Models.
+1
+Introduction
+Retrieval Augmented Generation (RAG) [35] has brought improvements to many problems in text
+generation. One example is Open-Domain Question Answering (ODQA) [40] which involves
+answering natural language questions without limiting the domain of the answers. RAG merges
+the retrieval and answering processes, which improves the ability to effectively collect knowledge,
+extract useful information, and generate answers. Even though it is successful in fetching relevant
+documents, RAG is not able to utilize connections between documents. In the ODQA setting, this
+leads to the model disregarding documents containing answers, a.k.a. positive documents, with less
+apparent connections to the question context. We can identify these documents if we connect them
+with positive documents whose context is strongly relevant to the question context.
+To find connections between documents and select highly relevant ones, the reranking process plays
+a vital role in further effectively filtering retrieved documents. A robust reranker also benefits the
+reading process by effectively identifying positive documents and elevating them to prominent ranking
+positions. When the reader’s output perfectly matches one of the gold standard answers, it leads
+to an increase in exact-match performance metrics. Given our paper’s emphasis on the reranking
+aspect, our performance metrics primarily focus on ranking tasks, specifically Mean Tied Reciprocal
+Ranking and MHits@10. Thus, our paper focuses on using reranking to improve RAG – as it is a
+fundamental bridge between the retrieval and reading processes.
+Pre-trained langauge models (LMs) like BERT [6], RoBERTa [23], and BART [19] have been widely
+used to enhance reranking performance by estimating the relevant score between questions and
+documents. Recently, the Abstract Meaning Representation (AMR) graph has been integrated with
+a LM to enhance the system’s ability to comprehend complex semantics [42]. While the current
+rerankers exhibit admirable performance, certain limitations persist.
+Preprint. Under review.
+arXiv:2405.18414v1  [cs.CL]  28 May 2024
+…
+…
+…
+…
+…
+…
+…
+…
+Q & P
+AMRs
+find connections
+establish GNN
+Document Graph
+Reranker
+…
+Figure 1: G-RAG uses two graphs for re-ranking documents: The Abstract Meaning Representation
+(AMR) graph is used as features for the document-level graph. Document graph is then used for
+document reranking.
+Firstly, as mentioned above, most of the current works fail to capture important connections between
+different retrieved documents. Some recent work [46] tries to incorporate external knowledge graphs
+to improve the performance of the reading process in RAG but at the cost of significant memory
+usage
