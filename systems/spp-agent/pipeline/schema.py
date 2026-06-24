@@ -85,11 +85,20 @@ def load_fixed_schema(dataset_name: str) -> Schema:
             attr_map.setdefault(table_name, {}).update(cols)
 
     for table_name, df in tables.items():
-        cols = [c for c in df.columns if c.lower() != "unnamed: 0"]
+        # Normalize column names to lowercase so they match SQL query identifiers,
+        # which are always lowercase (e.g. "birth_continent" not "Birth_continent").
+        df.columns = [c.lower() for c in df.columns]
+        cols = [c for c in df.columns if c != "unnamed: 0"]
         table_columns[table_name] = cols
         column_types[table_name] = {col: _dtype_to_str(df[col]) for col in cols}
         for col in cols:
-            desc = attr_map.get(table_name, {}).get(col, {}).get("description", "")
+            desc = attr_map.get(table_name, {}).get(col.lower(), {}).get("description", "")
+            if not desc:
+                # also try original-case key from attr_map
+                for orig_key in attr_map.get(table_name, {}):
+                    if orig_key.lower() == col:
+                        desc = attr_map[table_name][orig_key].get("description", "")
+                        break
             if desc:
                 descriptions.append(f"{table_name}.{col}: {desc}")
 

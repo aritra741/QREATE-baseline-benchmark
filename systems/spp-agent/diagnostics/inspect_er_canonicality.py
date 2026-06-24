@@ -31,6 +31,9 @@ DATASET_GT = {
     "Finan": {
         "finance":     ("Data/Finan/Finan.csv",     "company_name"),
     },
+    "Art": {
+        "art": ("Data/Art/Art.csv", "Name"),
+    },
 }
 
 

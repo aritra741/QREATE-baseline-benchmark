@@ -59,9 +59,38 @@ inference:
 extraction:
   # Prompt from SQL workload demand only — never ground-truth schema.
   workload_aware: true
+  # Parallel LLM calls for document extraction (I/O-bound). 1 = sequential.
+  max_workers: 8
+
+pipeline:
+  # Parallel config materialization + evaluation workers.
+  # Materialization is CPU-bound (embedding inference); set to 1 for sequential.
+  # Only increase if running on a multi-core server or if er=none (no embedding).
+  max_workers: 1
 
 datasets:
   pilot: ["Player", "Med", "Finan"]
+
+  Art:
+    corpus_path: source_data/Art/wikiart
+    table_filter: ["art"]
+    workload_slices:
+      - agg_only
+      - agg_filter
+    num_docs: 20
+    num_probe_configs: 8
+    num_judge_pairs: 14
+    num_eval_queries: 3
+    min_queries_per_slice: 2
+    budget_levels: [1, 2]
+    workload_split:
+      train_per_slice: 20
+      dev_per_slice: 5
+      test_per_slice: 5
+      min_train_total: 60
+    source_phase0: phase0_reward_table_Art.json
+    output_file: phase1_comparison_Art_agg_only.json
+    probe_context_cache: phase1_Art_agg_only_probe_context.json
 
   Finan:
     corpus_path: source_data/Finance/finance
@@ -112,6 +141,7 @@ preprocessing:
   Legal: "whole_doc"
   Finan: "whole_doc"
   Finance: "whole_doc"
+  Art: "whole_doc"
 
 probing:
   num_probe_configs: 12

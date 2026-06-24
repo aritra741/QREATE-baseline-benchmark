@@ -15,8 +15,10 @@ import argparse
 import hashlib
 import json
 import sys
+import threading
 import time
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict, replace
 from pathlib import Path
 from typing import Any
@@ -681,17 +683,27 @@ def run_config_grid(
     settings, parser, attributes, _ = _eval_context(instance)
     databases_dir = _databases_dir(output_dir)
 
+    pipeline_max_workers = max(1, int(cfg.get("pipeline", {}).get("max_workers", 1)))
     logger.info(
-        "Config grid: %d configs, %d test queries, corpus=%d docs (%s), slices=%s, save_databases=%s",
+        "Config grid: %d configs, %d test queries, corpus=%d docs (%s), slices=%s, "
+        "save_databases=%s, pipeline_workers=%d",
         len(all_configs),
         len(test_queries),
         len(instance.corpus),
         instance.metadata.get("corpus_mode", "?"),
         slice_counts,
         save_databases,
+        pipeline_max_workers,
     )
 
-    for idx, config in enumerate(all_configs, start=1):
+    checkpoint_lock = threading.Lock()
+    n_total = len(all_configs)
+
+    def _process_config(
+        idx_config: tuple[int, Any],
+    ) -> tuple[str, dict[str, Any]] | None:
+        """Materialize + evaluate one config. Returns (cid, entry) or None if cached."""
+        idx, config = idx_config
         cid = config.config_id
         db_path = database_path(databases_dir, cid)
         entry = per_config.get(cid)
@@ -700,12 +712,12 @@ def run_config_grid(
         if cid in completed and entry is not None and (has_db_on_disk or not save_databases):
             needs_eval = not materialize_only and not entry.get("per_query")
             if not needs_eval:
-                logger.info("[%d/%d] skip cached %s", idx, len(all_configs), cid)
-                continue
+                logger.info("[%d/%d] skip cached %s", idx, n_total, cid)
+                return None
             logger.info(
                 "[%d/%d] re-evaluating cached %s (missing per_query results)",
                 idx,
-                len(all_configs),
+                n_total,
                 cid,
             )
             if has_db_on_disk:
@@ -715,56 +727,35 @@ def run_config_grid(
             else:
                 config_t0 = time.perf_counter()
                 db, diagnostics = materialize_database(
-                    extraction,
-                    config,
-                    instance.schema,
-                    extraction_model=extraction_model,
+                    extraction, config, instance.schema, extraction_model=extraction_model,
                 )
                 materialize_sec = time.perf_counter() - config_t0
                 entry["population_diagnostics"] = _diagnostics_to_dict(diagnostics)
                 entry["materialize_seconds"] = round(materialize_sec, 3)
-
             eval_t0 = time.perf_counter()
             per_query = evaluate_queries_on_db(
-                instance,
-                db,
-                test_queries,
-                settings=settings,
-                parser=parser,
-                attributes=attributes,
+                instance, db, test_queries, settings=settings, parser=parser, attributes=attributes,
             )
             evaluate_sec = time.perf_counter() - eval_t0
             entry["evaluate_seconds"] = round(evaluate_sec, 3)
             entry["per_query"] = per_query
             entry.update(_summarize_per_config(per_query))
             entry["total_seconds"] = round(time.perf_counter() - config_t0, 3)
-            per_config[cid] = entry
-            checkpoint["per_config"] = per_config
-            _save_checkpoint(checkpoint_path, checkpoint)
             logger.info(
                 "[%d/%d] %s eval=%.1fs mean_f1=%.3f",
-                idx,
-                len(all_configs),
-                cid,
-                evaluate_sec,
-                entry.get("mean_macro_f1", 0),
+                idx, n_total, cid, evaluate_sec, entry.get("mean_macro_f1", 0),
             )
-            continue
+            return cid, entry
 
         if cid in completed and entry is not None and save_databases and not has_db_on_disk:
             logger.warning(
                 "[%d/%d] checkpoint hit for %s but database file missing; rematerializing",
-                idx,
-                len(all_configs),
-                cid,
+                idx, n_total, cid,
             )
 
         config_t0 = time.perf_counter()
         db, diagnostics = materialize_database(
-            extraction,
-            config,
-            instance.schema,
-            extraction_model=extraction_model,
+            extraction, config, instance.schema, extraction_model=extraction_model,
         )
         materialize_sec = time.perf_counter() - config_t0
 
@@ -782,43 +773,57 @@ def run_config_grid(
         if saved_db_path is not None:
             entry["database_path"] = saved_db_path
 
-        evaluate_sec: float | None = None
+        evaluate_sec_val: float | None = None
         if not materialize_only:
             eval_t0 = time.perf_counter()
             per_query = evaluate_queries_on_db(
-                instance,
-                db,
-                test_queries,
-                settings=settings,
-                parser=parser,
-                attributes=attributes,
+                instance, db, test_queries, settings=settings, parser=parser, attributes=attributes,
             )
-            evaluate_sec = time.perf_counter() - eval_t0
-            entry["evaluate_seconds"] = round(evaluate_sec, 3)
+            evaluate_sec_val = time.perf_counter() - eval_t0
+            entry["evaluate_seconds"] = round(evaluate_sec_val, 3)
             entry["per_query"] = per_query
             entry.update(_summarize_per_config(per_query))
 
         total_sec = time.perf_counter() - config_t0
         entry["total_seconds"] = round(total_sec, 3)
 
-        per_config[cid] = entry
-        completed.add(cid)
-        checkpoint["completed_configs"] = sorted(completed)
-        checkpoint["per_config"] = per_config
-        _save_checkpoint(checkpoint_path, checkpoint)
         timing_parts = [f"total={total_sec:.1f}s", f"materialize={materialize_sec:.1f}s"]
-        if evaluate_sec is not None:
-            timing_parts.append(f"eval={evaluate_sec:.1f}s")
+        if evaluate_sec_val is not None:
+            timing_parts.append(f"eval={evaluate_sec_val:.1f}s")
         logger.info(
             "[%d/%d] %s %s rows=%s%s%s",
-            idx,
-            len(all_configs),
-            cid,
-            " ".join(timing_parts),
-            entry["row_counts"],
+            idx, n_total, cid, " ".join(timing_parts), entry["row_counts"],
             f" db={saved_db_path}" if saved_db_path else "",
             f" mean_f1={entry.get('mean_macro_f1', 0):.3f}" if not materialize_only else "",
         )
+        return cid, entry
+
+    indexed_configs = list(enumerate(all_configs, start=1))
+
+    if pipeline_max_workers == 1:
+        for item in indexed_configs:
+            result = _process_config(item)
+            if result is not None:
+                cid, entry = result
+                per_config[cid] = entry
+                completed.add(cid)
+                checkpoint["completed_configs"] = sorted(completed)
+                checkpoint["per_config"] = per_config
+                _save_checkpoint(checkpoint_path, checkpoint)
+    else:
+        logger.info("Parallel pipeline with %d workers", pipeline_max_workers)
+        with ThreadPoolExecutor(max_workers=pipeline_max_workers) as executor:
+            futures = {executor.submit(_process_config, item): item for item in indexed_configs}
+            for future in as_completed(futures):
+                result = future.result()
+                if result is not None:
+                    cid, entry = result
+                    with checkpoint_lock:
+                        per_config[cid] = entry
+                        completed.add(cid)
+                        checkpoint["completed_configs"] = sorted(completed)
+                        checkpoint["per_config"] = per_config
+                        _save_checkpoint(checkpoint_path, checkpoint)
 
     if save_databases:
         db_index: dict[str, str] = {}

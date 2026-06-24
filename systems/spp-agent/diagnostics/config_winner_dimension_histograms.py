@@ -23,16 +23,22 @@ from utils.config import load_config
 def _load_per_config(output_dir: Path) -> dict:
     grid_path = output_dir / "grid_results.json"
     checkpoint_path = output_dir / "checkpoint.json"
+    grid_per_config: dict = {}
+    checkpoint_per_config: dict = {}
     if grid_path.is_file():
         payload = json.loads(grid_path.read_text(encoding="utf-8"))
-        per_config = payload.get("per_config")
-        if per_config:
-            return per_config
+        grid_per_config = payload.get("per_config") or {}
     if checkpoint_path.is_file():
         payload = json.loads(checkpoint_path.read_text(encoding="utf-8"))
-        per_config = payload.get("per_config")
-        if per_config:
-            return per_config
+        checkpoint_per_config = payload.get("per_config") or {}
+    # Prefer whichever source has more completed configs.
+    if len(checkpoint_per_config) > len(grid_per_config):
+        if checkpoint_per_config:
+            return checkpoint_per_config
+    if grid_per_config:
+        return grid_per_config
+    if checkpoint_per_config:
+        return checkpoint_per_config
     raise FileNotFoundError(
         f"No per_config in {grid_path} or {checkpoint_path}. "
         "Run test_config_grid with evaluation first."
@@ -79,13 +85,27 @@ def main() -> None:
         "--output-dir",
         type=Path,
         default=None,
-        help="Config grid output directory (default: results/config_grid_test)",
+        help="Config grid output directory (default: results/<dataset>/config_grid_test_<dataset>)",
+    )
+    parser.add_argument(
+        "--dataset",
+        default=None,
+        help="Dataset name (e.g. Art, Med, Player). Used to resolve default output-dir.",
     )
     args = parser.parse_args()
 
     cfg = load_config()
     results_dir = Path(cfg["paths"]["results_dir"])
-    output_dir = args.output_dir or (results_dir / "config_grid_test")
+
+    if args.output_dir:
+        output_dir = args.output_dir
+    elif args.dataset:
+        from data.dataset_registry import normalize_dataset_name, config_grid_output_dir, results_dir_for_dataset
+        ds = normalize_dataset_name(args.dataset)
+        ds_results = results_dir_for_dataset(ds)
+        output_dir = ds_results / config_grid_output_dir(ds_results, ds)
+    else:
+        output_dir = results_dir / "config_grid_test"
     output_dir.mkdir(parents=True, exist_ok=True)
 
     leaderboard = _load_leaderboard(output_dir)

@@ -471,6 +471,9 @@ def _tuples_to_dataframe(
             frames[table] = pd.DataFrame(columns=cols)
             continue
         df = pd.DataFrame(rows)
+        # Normalize extracted column names to lowercase to match schema columns
+        # (schema is always lowercased; LLM may return any casing).
+        df.columns = [c.lower() for c in df.columns]
         for col in cols:
             if col not in df.columns:
                 df[col] = np.nan

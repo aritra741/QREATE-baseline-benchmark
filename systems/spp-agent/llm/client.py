@@ -212,6 +212,7 @@ def chat_completion(
     temperature: float = 0.0,
     max_tokens: int = 4096,
     llm_cfg: dict[str, Any] | None = None,
+    verify_model: bool = True,
 ) -> tuple[str, float]:
     llm_cfg = llm_cfg or {}
     prompt_chars = sum(len(m.get("content", "")) for m in messages)
@@ -223,7 +224,8 @@ def chat_completion(
         prompt_chars,
         max_tokens,
     )
-    ensure_model_available(model_name, base_url, llm_cfg=llm_cfg)
+    if verify_model:
+        ensure_model_available(model_name, base_url, llm_cfg=llm_cfg)
 
     from openai import OpenAI
 

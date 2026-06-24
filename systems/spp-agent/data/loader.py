@@ -38,13 +38,21 @@ def _corpus_dir(dataset_name: str) -> Path:
         finance = root / "source_data" / "Finance" / "finance"
         if finance.is_dir():
             return finance
+    if ds_key == "Art":
+        art = root / "source_data" / "Art" / "wikiart"
+        if art.is_dir():
+            return art
+        art_flat = root / "source_data" / "Art"
+        if art_flat.is_dir():
+            return art_flat
     data_dir = root / "Data" / dataset_name
     if data_dir.is_dir():
         return data_dir
     raise FileNotFoundError(
         f"Corpus directory not found for dataset {dataset_name}. "
         f"Expected {synthetic}, source_data/Healthcare/ (Med), "
-        f"source_data/Finance/finance/ (Finan), or text files under {data_dir}."
+        f"source_data/Finance/finance/ (Finan), source_data/Art/wikiart/ (Art), "
+        f"or text files under {data_dir}."
     )
 
 
@@ -69,7 +77,10 @@ def load_corpus(dataset_name: str) -> list[dict]:
 
     from data.dataset_registry import corpus_folder_to_table, normalize_dataset_name
 
-    from data.dataset_registry import FINAN_DATASET, FINAN_SQL_TABLE
+    from data.dataset_registry import (
+        ART_DATASET, ART_SQL_TABLE,
+        FINAN_DATASET, FINAN_SQL_TABLE,
+    )
 
     dataset_key = normalize_dataset_name(dataset_name)
     for path in txt_files:
@@ -77,9 +88,11 @@ def load_corpus(dataset_name: str) -> list[dict]:
         rel = path.relative_to(corpus_root)
         folder = rel.parts[0] if len(rel.parts) > 1 else path.stem
         mapped = corpus_folder_to_table(dataset_key, folder)
-        # For flat single-table corpora (e.g. Finan), all docs belong to one table
+        # For flat single-table corpora, all docs belong to one table
         if mapped in ("unknown", folder) and dataset_key == FINAN_DATASET:
             table_hint = FINAN_SQL_TABLE
+        elif mapped in ("unknown", folder) and dataset_key == ART_DATASET:
+            table_hint = ART_SQL_TABLE
         else:
             table_hint = mapped
         docs.append(

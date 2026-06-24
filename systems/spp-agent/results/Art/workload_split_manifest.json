@@ -1,0 +1,343 @@
+{
+  "dataset": "Art",
+  "split_targets_per_slice": {
+    "train": 20,
+    "dev": 5,
+    "test": 5
+  },
+  "counts_per_slice": {
+    "agg_only": {
+      "train": 20,
+      "dev": 5,
+      "test": 5
+    },
+    "agg_filter": {
+      "train": 20,
+      "dev": 5,
+      "test": 5
+    }
+  },
+  "totals": {
+    "train": 40,
+    "dev": 10,
+    "test": 10
+  },
+  "train_met_minimum": false,
+  "min_train_total": 60,
+  "removed_infeasible_count": 1,
+  "removed_duplicates_count": 895,
+  "removed_infeasible_sample": [
+    {
+      "query_id": "mixed_queries_1",
+      "reason": "missing_where_literals:['19th-20th']",
+      "sql": "SELECT field, AVG(age) AS avg_age FROM art WHERE century = '19th-20th' GROUP BY field;"
+    }
+  ],
+  "removed_duplicates_sample": [
+    {
+      "query_id": "agg_only_art_gen_1",
+      "reason": "duplicate_sql",
+      "sql": "SELECT birth_continent, MIN(age) AS min_age FROM art GROUP BY birth_continent;"
+    },
+    {
+      "query_id": "agg_only_art_gen_4",
+      "reason": "duplicate_sql",
+      "sql": "SELECT birth_continent, SUM(age) AS sum_age FROM art GROUP BY birth_continent;"
+    },
+    {
+      "query_id": "agg_only_art_gen_5",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT zodiac, COUNT(name) AS count_artists FROM art GROUP BY zodiac;"
+    },
+    {
+      "query_id": "agg_only_art_gen_21",
+      "reason": "duplicate_sql",
+      "sql": "SELECT teaching, MIN(age) AS min_age FROM art GROUP BY teaching;"
+    },
+    {
+      "query_id": "agg_only_art_gen_46",
+      "reason": "duplicate_sql",
+      "sql": "SELECT color, MIN(age) AS min_age FROM art GROUP BY color;"
+    },
+    {
+      "query_id": "agg_only_art_gen_47",
+      "reason": "duplicate_sql",
+      "sql": "SELECT color, MAX(age) AS max_age FROM art GROUP BY color;"
+    },
+    {
+      "query_id": "agg_only_art_gen_48",
+      "reason": "duplicate_sql",
+      "sql": "SELECT color, AVG(age) AS avg_age FROM art GROUP BY color;"
+    },
+    {
+      "query_id": "agg_filter_art_gen_56",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT birth_continent, MIN(age) AS min_age FROM art WHERE zodiac = 'Taurus' GROUP BY birth_continent;"
+    },
+    {
+      "query_id": "agg_filter_art_gen_57",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT birth_continent, MIN(age) AS min_age FROM art WHERE zodiac = 'Gemini' GROUP BY birth_continent;"
+    },
+    {
+      "query_id": "agg_filter_art_gen_58",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT birth_continent, MIN(age) AS min_age FROM art WHERE zodiac = 'Leo' GROUP BY birth_continent;"
+    },
+    {
+      "query_id": "agg_filter_art_gen_59",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT birth_continent, MIN(age) AS min_age FROM art WHERE zodiac = 'Virgo' GROUP BY birth_continent;"
+    },
+    {
+      "query_id": "agg_filter_art_gen_60",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT birth_continent, MIN(age) AS min_age FROM art WHERE zodiac = 'Scorpio' GROUP BY birth_continent;"
+    },
+    {
+      "query_id": "agg_filter_art_gen_62",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT birth_continent, MIN(age) AS min_age FROM art WHERE century = '19th-20th' GROUP BY birth_continent;"
+    },
+    {
+      "query_id": "agg_filter_art_gen_63",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT birth_continent, MIN(age) AS min_age FROM art WHERE century = '20th-21st' GROUP BY birth_continent;"
+    },
+    {
+      "query_id": "agg_filter_art_gen_64",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT birth_continent, MIN(age) AS min_age FROM art WHERE century = '19th' GROUP BY birth_continent;"
+    },
+    {
+      "query_id": "agg_filter_art_gen_66",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT birth_continent, MIN(age) AS min_age FROM art WHERE tone = 'Cool' GROUP BY birth_continent;"
+    },
+    {
+      "query_id": "agg_filter_art_gen_67",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT birth_continent, MIN(age) AS min_age FROM art WHERE tone = 'Neutral' GROUP BY birth_continent;"
+    },
+    {
+      "query_id": "agg_filter_art_gen_68",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT birth_continent, MIN(age) AS min_age FROM art WHERE tone = 'Dark' GROUP BY birth_continent;"
+    },
+    {
+      "query_id": "agg_filter_art_gen_69",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT birth_continent, MIN(age) AS min_age FROM art WHERE tone = 'Bright' GROUP BY birth_continent;"
+    },
+    {
+      "query_id": "agg_filter_art_gen_71",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT birth_continent, MIN(age) AS min_age FROM art WHERE teaching = 0 GROUP BY birth_continent;"
+    },
+    {
+      "query_id": "agg_filter_art_gen_73",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT birth_continent, MIN(age) AS min_age FROM art WHERE marriage = 'Unmarried' GROUP BY birth_continent;"
+    },
+    {
+      "query_id": "agg_filter_art_gen_74",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT birth_continent, MIN(age) AS min_age FROM art WHERE marriage = 'Widowed' GROUP BY birth_continent;"
+    },
+    {
+      "query_id": "agg_filter_art_gen_75",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT birth_continent, MIN(age) AS min_age FROM art WHERE marriage = 'Remarried' GROUP BY birth_continent;"
+    },
+    {
+      "query_id": "agg_filter_art_gen_77",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT birth_continent, MIN(age) AS min_age FROM art WHERE age > 50 GROUP BY birth_continent;"
+    },
+    {
+      "query_id": "agg_filter_art_gen_78",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT birth_continent, MIN(age) AS min_age FROM art WHERE age > 70 GROUP BY birth_continent;"
+    },
+    {
+      "query_id": "agg_filter_art_gen_81",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT birth_continent, MAX(age) AS max_age FROM art WHERE zodiac = 'Taurus' GROUP BY birth_continent;"
+    },
+    {
+      "query_id": "agg_filter_art_gen_82",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT birth_continent, MAX(age) AS max_age FROM art WHERE zodiac = 'Gemini' GROUP BY birth_continent;"
+    },
+    {
+      "query_id": "agg_filter_art_gen_83",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT birth_continent, MAX(age) AS max_age FROM art WHERE zodiac = 'Leo' GROUP BY birth_continent;"
+    },
+    {
+      "query_id": "agg_filter_art_gen_84",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT birth_continent, MAX(age) AS max_age FROM art WHERE zodiac = 'Virgo' GROUP BY birth_continent;"
+    },
+    {
+      "query_id": "agg_filter_art_gen_85",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT birth_continent, MAX(age) AS max_age FROM art WHERE zodiac = 'Scorpio' GROUP BY birth_continent;"
+    },
+    {
+      "query_id": "agg_filter_art_gen_87",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT birth_continent, MAX(age) AS max_age FROM art WHERE century = '19th-20th' GROUP BY birth_continent;"
+    },
+    {
+      "query_id": "agg_filter_art_gen_88",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT birth_continent, MAX(age) AS max_age FROM art WHERE century = '20th-21st' GROUP BY birth_continent;"
+    },
+    {
+      "query_id": "agg_filter_art_gen_89",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT birth_continent, MAX(age) AS max_age FROM art WHERE century = '19th' GROUP BY birth_continent;"
+    },
+    {
+      "query_id": "agg_filter_art_gen_91",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT birth_continent, MAX(age) AS max_age FROM art WHERE tone = 'Cool' GROUP BY birth_continent;"
+    },
+    {
+      "query_id": "agg_filter_art_gen_92",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT birth_continent, MAX(age) AS max_age FROM art WHERE tone = 'Neutral' GROUP BY birth_continent;"
+    },
+    {
+      "query_id": "agg_filter_art_gen_93",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT birth_continent, MAX(age) AS max_age FROM art WHERE tone = 'Dark' GROUP BY birth_continent;"
+    },
+    {
+      "query_id": "agg_filter_art_gen_94",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT birth_continent, MAX(age) AS max_age FROM art WHERE tone = 'Bright' GROUP BY birth_continent;"
+    },
+    {
+      "query_id": "agg_filter_art_gen_96",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT birth_continent, MAX(age) AS max_age FROM art WHERE teaching = 0 GROUP BY birth_continent;"
+    },
+    {
+      "query_id": "agg_filter_art_gen_98",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT birth_continent, MAX(age) AS max_age FROM art WHERE marriage = 'Unmarried' GROUP BY birth_continent;"
+    },
+    {
+      "query_id": "agg_filter_art_gen_99",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT birth_continent, MAX(age) AS max_age FROM art WHERE marriage = 'Widowed' GROUP BY birth_continent;"
+    }
+  ],
+  "generated_candidate_count": 1271,
+  "holdout_policy": "The test split is assigned first from a shuffled per-slice pool and is never included in train or dev. Use train for agent design, prompt tuning, threshold optimization, and algorithm selection. Use dev only for validation during development. The test split must not be used for any tuning or selection.",
+  "test_held_out": true,
+  "slice_reports": [
+    {
+      "slice": "agg_only",
+      "targets": {
+        "train": 20,
+        "dev": 5,
+        "test": 5
+      },
+      "counts": {
+        "train": 20,
+        "dev": 5,
+        "test": 5
+      },
+      "max_feasible": 58,
+      "reached_target": true,
+      "shortfall_reason": null
+    },
+    {
+      "slice": "agg_filter",
+      "targets": {
+        "train": 20,
+        "dev": 5,
+        "test": 5
+      },
+      "counts": {
+        "train": 20,
+        "dev": 5,
+        "test": 5
+      },
+      "max_feasible": 331,
+      "reached_target": true,
+      "shortfall_reason": null
+    }
+  ],
+  "query_ids": {
+    "train": [
+      "agg_only_art_gen_37",
+      "agg_queries_Art_10",
+      "agg_only_art_gen_53",
+      "agg_only_art_gen_10",
+      "agg_only_art_gen_50",
+      "agg_only_art_gen_35",
+      "agg_only_art_gen_49",
+      "agg_only_art_gen_44",
+      "agg_only_art_gen_13",
+      "agg_queries_Art_9",
+      "agg_only_art_gen_11",
+      "agg_only_art_gen_12",
+      "agg_only_art_gen_41",
+      "agg_only_art_gen_45",
+      "agg_only_art_gen_40",
+      "agg_only_art_gen_3",
+      "agg_only_art_gen_38",
+      "agg_queries_Art_3",
+      "agg_only_art_gen_52",
+      "agg_only_art_gen_0",
+      "agg_filter_art_gen_1152",
+      "agg_filter_art_gen_179",
+      "agg_filter_art_gen_426",
+      "mixed_queries_2",
+      "agg_filter_art_gen_479",
+      "agg_filter_art_gen_217",
+      "agg_filter_art_gen_1092",
+      "agg_filter_art_gen_1187",
+      "mixed_queries_5",
+      "mixed_queries_3",
+      "agg_filter_art_gen_510",
+      "agg_filter_art_gen_538",
+      "agg_filter_art_gen_1037",
+      "agg_filter_art_gen_799",
+      "agg_filter_art_gen_420",
+      "agg_filter_art_gen_482",
+      "agg_filter_art_gen_247",
+      "agg_filter_art_gen_475",
+      "agg_filter_art_gen_219",
+      "agg_filter_art_gen_942"
+    ],
+    "dev": [
+      "agg_only_art_gen_2",
+      "agg_only_art_gen_42",
+      "agg_queries_Art_4",
+      "agg_only_art_gen_39",
+      "agg_only_art_gen_36",
+      "agg_filter_art_gen_698",
+      "agg_filter_art_gen_1067",
+      "agg_filter_art_gen_1043",
+      "agg_filter_art_gen_623",
+      "agg_filter_art_gen_193"
+    ],
+    "test": [
+      "agg_only_art_gen_14",
+      "agg_only_art_gen_51",
+      "agg_queries_Art_8",
+      "agg_queries_Art_7",
+      "agg_only_art_gen_43",
+      "agg_filter_art_gen_199",
+      "agg_filter_art_gen_70",
+      "agg_filter_art_gen_95",
+      "agg_filter_art_gen_947",
+      "agg_filter_art_gen_919"
+    ]
+  }
+}

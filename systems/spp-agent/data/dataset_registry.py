@@ -11,6 +11,7 @@ from utils.config import load_config
 MED_DATASET = "Med"
 PLAYER_DATASET = "Player"
 FINAN_DATASET = "Finan"
+ART_DATASET = "Art"
 
 # Healthcare corpus folders -> SQL / ground-truth table names.
 MED_CORPUS_FOLDER_TO_TABLE: dict[str, str] = {
@@ -38,8 +39,17 @@ FINAN_TABLE_TO_CORPUS_FOLDER: dict[str, str] = {
 }
 # Canonical SQL table name for Finan (used in queries)
 FINAN_SQL_TABLE = "finance"
-# GT CSV stem name
 FINAN_GT_TABLE = "Finan"
+
+ART_CORPUS_FOLDER_TO_TABLE: dict[str, str] = {
+    "wikiart": "art",
+    "art": "art",
+}
+ART_TABLE_TO_CORPUS_FOLDER: dict[str, str] = {
+    "art": "wikiart",
+}
+ART_SQL_TABLE = "art"
+ART_GT_TABLE = "Art"
 
 
 def normalize_dataset_name(name: str) -> str:
@@ -51,6 +61,8 @@ def normalize_dataset_name(name: str) -> str:
         "finan": FINAN_DATASET,
         "finance": FINAN_DATASET,
         "financial": FINAN_DATASET,
+        "art": ART_DATASET,
+        "wikiart": ART_DATASET,
     }
     key = (name or PLAYER_DATASET).strip()
     return aliases.get(key.lower(), key)
@@ -62,6 +74,8 @@ def corpus_folder_to_table(dataset: str, folder: str) -> str:
         return MED_CORPUS_FOLDER_TO_TABLE.get(folder.lower(), folder.lower())
     if ds == FINAN_DATASET:
         return FINAN_CORPUS_FOLDER_TO_TABLE.get(folder.lower(), folder.lower())
+    if ds == ART_DATASET:
+        return ART_CORPUS_FOLDER_TO_TABLE.get(folder.lower(), folder.lower())
     return folder.lower()
 
 
@@ -71,6 +85,8 @@ def table_to_corpus_folder(dataset: str, table: str) -> str:
         return MED_TABLE_TO_CORPUS_FOLDER.get(table.lower(), table.lower())
     if ds == FINAN_DATASET:
         return FINAN_TABLE_TO_CORPUS_FOLDER.get(table.lower(), table.lower())
+    if ds == ART_DATASET:
+        return ART_TABLE_TO_CORPUS_FOLDER.get(table.lower(), table.lower())
     return table.lower()
 
 
@@ -99,6 +115,8 @@ def default_table_filter(dataset: str) -> set[str]:
         return set(phase0.get("med_table_filter", ["disease", "drug", "institution"]))
     if dataset == FINAN_DATASET:
         return {"finance"}
+    if dataset == ART_DATASET:
+        return {"art"}
     return set(phase0.get("table_filter", ["player"]))
 
 
