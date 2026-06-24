@@ -1,0 +1,363 @@
+{
+  "dataset": "Finan",
+  "split_targets_per_slice": {
+    "train": 20,
+    "dev": 5,
+    "test": 5
+  },
+  "counts_per_slice": {
+    "agg_only": {
+      "train": 20,
+      "dev": 5,
+      "test": 5
+    },
+    "agg_filter": {
+      "train": 20,
+      "dev": 5,
+      "test": 5
+    }
+  },
+  "totals": {
+    "train": 40,
+    "dev": 10,
+    "test": 10
+  },
+  "train_met_minimum": false,
+  "min_train_total": 60,
+  "removed_infeasible_count": 5,
+  "removed_duplicates_count": 4431,
+  "removed_infeasible_sample": [
+    {
+      "query_id": "mixed_queries_1",
+      "reason": "missing_where_literals:['Performance-based']",
+      "sql": "SELECT auditor, AVG(bussiness_profit) AS avg_bussiness_profit FROM finance WHERE remuneration_policy = 'Performance-based' GROUP BY auditor;"
+    },
+    {
+      "query_id": "mixed_queries_4",
+      "reason": "missing_where_literals:['Litigation', 'Performance-based']",
+      "sql": "SELECT auditor, MAX(earnings_per_share) AS max_earnings_per_share FROM finance WHERE major_events != 'Litigation' AND remuneration_policy != 'Performance-based' AND total_assets < 1358991000 GROUP BY auditor;"
+    },
+    {
+      "query_id": "mixed_queries_5",
+      "reason": "missing_where_literals:['Performance-based', '22 Bishopsgate, London, EC2N 4BQ, United Kingdom', '901 W Walnut Hill Lane, Irving, TX 75038']",
+      "sql": "SELECT auditor, MIN(earnings_per_share) AS min_earnings_per_share FROM finance WHERE remuneration_policy = 'Performance-based' OR registered_office != '22 Bishopsgate, London, EC2N 4BQ, United Kingdom' OR registered_office != '901 W Walnut Hill Lane, Irving, TX 75038' GROUP BY auditor;"
+    },
+    {
+      "query_id": "mixed_queries_6",
+      "reason": "missing_where_literals:['Michael A. Marks', '42984000', 'John Reizenstein']",
+      "sql": "SELECT major_equity_changes, SUM(dividend_per_share) AS sum_dividend_per_share FROM finance WHERE (executive_profiles != 'Michael A. Marks' AND net_assets != 1362019954) OR (bussiness_sales != '42984000' AND board_members = 'John Reizenstein') GROUP BY major_equity_changes;"
+    },
+    {
+      "query_id": "mixed_subsample_1",
+      "reason": "missing_where_literals:['Performance-based']",
+      "sql": "SELECT auditor, AVG(bussiness_profit) AS avg_bussiness_profit FROM finance WHERE remuneration_policy = 'Performance-based' GROUP BY auditor;"
+    }
+  ],
+  "removed_duplicates_sample": [
+    {
+      "query_id": "agg_queries_finance_7",
+      "reason": "duplicate_sql",
+      "sql": "SELECT exchange_code, MAX(revenue) AS max_revenue FROM finance GROUP BY exchange_code;"
+    },
+    {
+      "query_id": "agg_subsample_1",
+      "reason": "duplicate_sql",
+      "sql": "SELECT auditor, MIN(business_segments_num) AS min_business_segments_num FROM finance GROUP BY auditor;"
+    },
+    {
+      "query_id": "agg_subsample_2",
+      "reason": "duplicate_sql",
+      "sql": "SELECT exchange_code, COUNT(company_name) AS count_company_name FROM finance GROUP BY exchange_code;"
+    },
+    {
+      "query_id": "agg_subsample_3",
+      "reason": "duplicate_sql",
+      "sql": "SELECT remuneration_policy, AVG(business_segments_num) AS avg_business_segments_num FROM finance GROUP BY remuneration_policy;"
+    },
+    {
+      "query_id": "agg_only_finan_gen_0",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT exchange_code, COUNT(company_name) AS count_companies FROM finance GROUP BY exchange_code;"
+    },
+    {
+      "query_id": "agg_only_finan_gen_4",
+      "reason": "duplicate_sql",
+      "sql": "SELECT exchange_code, MAX(revenue) AS max_revenue FROM finance GROUP BY exchange_code;"
+    },
+    {
+      "query_id": "agg_only_finan_gen_107",
+      "reason": "duplicate_sql",
+      "sql": "SELECT major_equity_changes, SUM(revenue) AS sum_revenue FROM finance GROUP BY major_equity_changes;"
+    },
+    {
+      "query_id": "agg_only_finan_gen_315",
+      "reason": "duplicate_sql",
+      "sql": "SELECT remuneration_policy, AVG(business_segments_num) AS avg_business_segments_num FROM finance GROUP BY remuneration_policy;"
+    },
+    {
+      "query_id": "agg_only_finan_gen_321",
+      "reason": "duplicate_sql",
+      "sql": "SELECT auditor, MIN(revenue) AS min_revenue FROM finance GROUP BY auditor;"
+    },
+    {
+      "query_id": "agg_only_finan_gen_369",
+      "reason": "duplicate_sql",
+      "sql": "SELECT auditor, MIN(business_segments_num) AS min_business_segments_num FROM finance GROUP BY auditor;"
+    },
+    {
+      "query_id": "mixed_subsample_2",
+      "reason": "duplicate_sql",
+      "sql": "SELECT remuneration_policy, MIN(bussiness_profit) AS min_bussiness_profit FROM finance WHERE dividend_per_share > 0.00 AND revenue <= 12857200000 GROUP BY remuneration_policy;"
+    },
+    {
+      "query_id": "agg_filter_finan_gen_372",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT exchange_code, SUM(revenue) AS sum_revenue FROM finance WHERE major_equity_changes = 'No' GROUP BY exchange_code;"
+    },
+    {
+      "query_id": "agg_filter_finan_gen_374",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT exchange_code, SUM(revenue) AS sum_revenue FROM finance WHERE remuneration_policy = 'Performance-based' GROUP BY exchange_code;"
+    },
+    {
+      "query_id": "agg_filter_finan_gen_375",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT exchange_code, SUM(revenue) AS sum_revenue FROM finance WHERE remuneration_policy = 'Mixed' GROUP BY exchange_code;"
+    },
+    {
+      "query_id": "agg_filter_finan_gen_377",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT exchange_code, SUM(revenue) AS sum_revenue FROM finance WHERE principal_activities LIKE '%Technology%' GROUP BY exchange_code;"
+    },
+    {
+      "query_id": "agg_filter_finan_gen_378",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT exchange_code, SUM(revenue) AS sum_revenue FROM finance WHERE principal_activities LIKE '%Healthcare%' GROUP BY exchange_code;"
+    },
+    {
+      "query_id": "agg_filter_finan_gen_379",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT exchange_code, SUM(revenue) AS sum_revenue FROM finance WHERE principal_activities LIKE '%Finance%' GROUP BY exchange_code;"
+    },
+    {
+      "query_id": "agg_filter_finan_gen_380",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT exchange_code, SUM(revenue) AS sum_revenue FROM finance WHERE principal_activities LIKE '%Energy%' GROUP BY exchange_code;"
+    },
+    {
+      "query_id": "agg_filter_finan_gen_382",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT exchange_code, SUM(revenue) AS sum_revenue FROM finance WHERE major_events LIKE '%Litigation%' GROUP BY exchange_code;"
+    },
+    {
+      "query_id": "agg_filter_finan_gen_383",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT exchange_code, SUM(revenue) AS sum_revenue FROM finance WHERE major_events LIKE '%Restructuring%' GROUP BY exchange_code;"
+    },
+    {
+      "query_id": "agg_filter_finan_gen_385",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT exchange_code, SUM(revenue) AS sum_revenue FROM finance WHERE business_risks LIKE '%Credit Risk%' GROUP BY exchange_code;"
+    },
+    {
+      "query_id": "agg_filter_finan_gen_386",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT exchange_code, SUM(revenue) AS sum_revenue FROM finance WHERE business_risks LIKE '%Operational Risk%' GROUP BY exchange_code;"
+    },
+    {
+      "query_id": "agg_filter_finan_gen_393",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT exchange_code, SUM(revenue) AS sum_revenue FROM finance WHERE business_segments_num > 3 GROUP BY exchange_code;"
+    },
+    {
+      "query_id": "agg_filter_finan_gen_396",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT exchange_code, AVG(revenue) AS avg_revenue FROM finance WHERE major_equity_changes = 'No' GROUP BY exchange_code;"
+    },
+    {
+      "query_id": "agg_filter_finan_gen_398",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT exchange_code, AVG(revenue) AS avg_revenue FROM finance WHERE remuneration_policy = 'Performance-based' GROUP BY exchange_code;"
+    },
+    {
+      "query_id": "agg_filter_finan_gen_399",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT exchange_code, AVG(revenue) AS avg_revenue FROM finance WHERE remuneration_policy = 'Mixed' GROUP BY exchange_code;"
+    },
+    {
+      "query_id": "agg_filter_finan_gen_401",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT exchange_code, AVG(revenue) AS avg_revenue FROM finance WHERE principal_activities LIKE '%Technology%' GROUP BY exchange_code;"
+    },
+    {
+      "query_id": "agg_filter_finan_gen_402",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT exchange_code, AVG(revenue) AS avg_revenue FROM finance WHERE principal_activities LIKE '%Healthcare%' GROUP BY exchange_code;"
+    },
+    {
+      "query_id": "agg_filter_finan_gen_403",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT exchange_code, AVG(revenue) AS avg_revenue FROM finance WHERE principal_activities LIKE '%Finance%' GROUP BY exchange_code;"
+    },
+    {
+      "query_id": "agg_filter_finan_gen_404",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT exchange_code, AVG(revenue) AS avg_revenue FROM finance WHERE principal_activities LIKE '%Energy%' GROUP BY exchange_code;"
+    },
+    {
+      "query_id": "agg_filter_finan_gen_406",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT exchange_code, AVG(revenue) AS avg_revenue FROM finance WHERE major_events LIKE '%Litigation%' GROUP BY exchange_code;"
+    },
+    {
+      "query_id": "agg_filter_finan_gen_407",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT exchange_code, AVG(revenue) AS avg_revenue FROM finance WHERE major_events LIKE '%Restructuring%' GROUP BY exchange_code;"
+    },
+    {
+      "query_id": "agg_filter_finan_gen_409",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT exchange_code, AVG(revenue) AS avg_revenue FROM finance WHERE business_risks LIKE '%Credit Risk%' GROUP BY exchange_code;"
+    },
+    {
+      "query_id": "agg_filter_finan_gen_410",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT exchange_code, AVG(revenue) AS avg_revenue FROM finance WHERE business_risks LIKE '%Operational Risk%' GROUP BY exchange_code;"
+    },
+    {
+      "query_id": "agg_filter_finan_gen_417",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT exchange_code, AVG(revenue) AS avg_revenue FROM finance WHERE business_segments_num > 3 GROUP BY exchange_code;"
+    },
+    {
+      "query_id": "agg_filter_finan_gen_420",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT exchange_code, MIN(revenue) AS min_revenue FROM finance WHERE major_equity_changes = 'No' GROUP BY exchange_code;"
+    },
+    {
+      "query_id": "agg_filter_finan_gen_422",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT exchange_code, MIN(revenue) AS min_revenue FROM finance WHERE remuneration_policy = 'Performance-based' GROUP BY exchange_code;"
+    },
+    {
+      "query_id": "agg_filter_finan_gen_423",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT exchange_code, MIN(revenue) AS min_revenue FROM finance WHERE remuneration_policy = 'Mixed' GROUP BY exchange_code;"
+    },
+    {
+      "query_id": "agg_filter_finan_gen_425",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT exchange_code, MIN(revenue) AS min_revenue FROM finance WHERE principal_activities LIKE '%Technology%' GROUP BY exchange_code;"
+    },
+    {
+      "query_id": "agg_filter_finan_gen_426",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT exchange_code, MIN(revenue) AS min_revenue FROM finance WHERE principal_activities LIKE '%Healthcare%' GROUP BY exchange_code;"
+    }
+  ],
+  "generated_candidate_count": 9211,
+  "holdout_policy": "The test split is assigned first from a shuffled per-slice pool and is never included in train or dev. Use train for agent design, prompt tuning, threshold optimization, and algorithm selection. Use dev only for validation during development. The test split must not be used for any tuning or selection.",
+  "test_held_out": true,
+  "slice_reports": [
+    {
+      "slice": "agg_only",
+      "targets": {
+        "train": 20,
+        "dev": 5,
+        "test": 5
+      },
+      "counts": {
+        "train": 20,
+        "dev": 5,
+        "test": 5
+      },
+      "max_feasible": 375,
+      "reached_target": true,
+      "shortfall_reason": null
+    },
+    {
+      "slice": "agg_filter",
+      "targets": {
+        "train": 20,
+        "dev": 5,
+        "test": 5
+      },
+      "counts": {
+        "train": 20,
+        "dev": 5,
+        "test": 5
+      },
+      "max_feasible": 4423,
+      "reached_target": true,
+      "shortfall_reason": null
+    }
+  ],
+  "query_ids": {
+    "train": [
+      "agg_only_finan_gen_338",
+      "agg_only_finan_gen_153",
+      "agg_only_finan_gen_53",
+      "agg_queries_finance_5",
+      "agg_only_finan_gen_73",
+      "agg_only_finan_gen_318",
+      "agg_queries_finance_8",
+      "agg_only_finan_gen_164",
+      "agg_only_finan_gen_10",
+      "agg_only_finan_gen_219",
+      "agg_only_finan_gen_23",
+      "agg_only_finan_gen_40",
+      "agg_only_finan_gen_166",
+      "agg_only_finan_gen_106",
+      "agg_only_finan_gen_159",
+      "agg_only_finan_gen_218",
+      "agg_only_finan_gen_360",
+      "agg_only_finan_gen_63",
+      "agg_only_finan_gen_68",
+      "agg_only_finan_gen_212",
+      "mixed_queries_3",
+      "agg_filter_finan_gen_1139",
+      "agg_filter_finan_gen_1860",
+      "agg_filter_finan_gen_3588",
+      "agg_filter_finan_gen_4560",
+      "agg_filter_finan_gen_6569",
+      "agg_filter_finan_gen_5722",
+      "agg_filter_finan_gen_1869",
+      "mixed_variations_1",
+      "agg_filter_finan_gen_2306",
+      "agg_filter_finan_gen_5759",
+      "agg_filter_finan_gen_1588",
+      "agg_filter_finan_gen_4556",
+      "mixed_queries_2",
+      "agg_filter_finan_gen_2824",
+      "agg_filter_finan_gen_1378",
+      "agg_filter_finan_gen_2882",
+      "agg_filter_finan_gen_2062",
+      "agg_filter_finan_gen_611",
+      "agg_filter_finan_gen_923"
+    ],
+    "dev": [
+      "agg_only_finan_gen_240",
+      "agg_only_finan_gen_171",
+      "agg_only_finan_gen_140",
+      "agg_only_finan_gen_355",
+      "agg_only_finan_gen_337",
+      "agg_filter_finan_gen_6802",
+      "agg_filter_finan_gen_5799",
+      "agg_filter_finan_gen_7492",
+      "agg_filter_finan_gen_3084",
+      "agg_filter_finan_gen_9119"
+    ],
+    "test": [
+      "agg_only_finan_gen_1",
+      "agg_only_finan_gen_66",
+      "agg_only_finan_gen_213",
+      "agg_only_finan_gen_134",
+      "agg_only_finan_gen_161",
+      "agg_filter_finan_gen_8747",
+      "agg_filter_finan_gen_1982",
+      "agg_filter_finan_gen_8684",
+      "agg_filter_finan_gen_7140",
+      "agg_filter_finan_gen_3013"
+    ]
+  }
+}

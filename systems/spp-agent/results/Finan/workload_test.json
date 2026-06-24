@@ -1,0 +1,122 @@
+[
+  {
+    "query_id": "agg_only_finan_gen_1",
+    "sql_query": "SELECT exchange_code, SUM(revenue) AS sum_revenue FROM finance GROUP BY exchange_code;",
+    "category": "Agg",
+    "slice": "agg_only",
+    "metadata": {
+      "generated": true,
+      "split": "test",
+      "aggregation_slice": "agg_only",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_only_finan_gen_66",
+    "sql_query": "SELECT principal_activities, SUM(total_assets) AS sum_total_assets FROM finance GROUP BY principal_activities;",
+    "category": "Agg",
+    "slice": "agg_only",
+    "metadata": {
+      "generated": true,
+      "split": "test",
+      "aggregation_slice": "agg_only",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_only_finan_gen_213",
+    "sql_query": "SELECT business_risks, SUM(revenue) AS sum_revenue FROM finance GROUP BY business_risks;",
+    "category": "Agg",
+    "slice": "agg_only",
+    "metadata": {
+      "generated": true,
+      "split": "test",
+      "aggregation_slice": "agg_only",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_only_finan_gen_134",
+    "sql_query": "SELECT major_equity_changes, MAX(earnings_per_share) AS max_earnings_per_share FROM finance GROUP BY major_equity_changes;",
+    "category": "Agg",
+    "slice": "agg_only",
+    "metadata": {
+      "generated": true,
+      "split": "test",
+      "aggregation_slice": "agg_only",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_only_finan_gen_161",
+    "sql_query": "SELECT major_events, AVG(revenue) AS avg_revenue FROM finance GROUP BY major_events;",
+    "category": "Agg",
+    "slice": "agg_only",
+    "metadata": {
+      "generated": true,
+      "split": "test",
+      "aggregation_slice": "agg_only",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_filter_finan_gen_8747",
+    "sql_query": "SELECT auditor, MIN(the_highest_ownership_stake) AS min_the_highest_ownership_stake FROM finance WHERE total_assets > 0 GROUP BY auditor;",
+    "category": "Agg",
+    "slice": "agg_filter",
+    "metadata": {
+      "generated": true,
+      "split": "test",
+      "aggregation_slice": "agg_filter",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_filter_finan_gen_1982",
+    "sql_query": "SELECT principal_activities, SUM(cash_reserves) AS sum_cash_reserves FROM finance WHERE business_risks LIKE '%Market Risk%' GROUP BY principal_activities;",
+    "category": "Agg",
+    "slice": "agg_filter",
+    "metadata": {
+      "generated": true,
+      "split": "test",
+      "aggregation_slice": "agg_filter",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_filter_finan_gen_8684",
+    "sql_query": "SELECT auditor, SUM(the_highest_ownership_stake) AS sum_the_highest_ownership_stake FROM finance WHERE major_events LIKE '%M&A%' GROUP BY auditor;",
+    "category": "Agg",
+    "slice": "agg_filter",
+    "metadata": {
+      "generated": true,
+      "split": "test",
+      "aggregation_slice": "agg_filter",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_filter_finan_gen_7140",
+    "sql_query": "SELECT remuneration_policy, SUM(earnings_per_share) AS sum_earnings_per_share FROM finance WHERE principal_activities LIKE '%Mining%' GROUP BY remuneration_policy;",
+    "category": "Agg",
+    "slice": "agg_filter",
+    "metadata": {
+      "generated": true,
+      "split": "test",
+      "aggregation_slice": "agg_filter",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_filter_finan_gen_3013",
+    "sql_query": "SELECT major_equity_changes, MIN(total_Debt) AS min_total_Debt FROM finance WHERE exchange_code = 'ASX' GROUP BY major_equity_changes;",
+    "category": "Agg",
+    "slice": "agg_filter",
+    "metadata": {
+      "generated": true,
+      "split": "test",
+      "aggregation_slice": "agg_filter",
+      "held_out": true
+    }
+  }
+]
