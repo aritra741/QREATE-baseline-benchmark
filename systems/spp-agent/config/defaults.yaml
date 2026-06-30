@@ -61,6 +61,10 @@ extraction:
   workload_aware: true
   # Parallel LLM calls for document extraction (I/O-bound). 1 = sequential.
   max_workers: 8
+  # Split each document into chunks of this many characters before extraction.
+  # 0 = no chunking (default). Each chunk beyond the first gets the doc anchor
+  # (company name, ticker, fiscal year, etc.) injected as a context header.
+  chunk_size: 0
 
 pipeline:
   # Parallel config materialization + evaluation workers.
@@ -69,7 +73,7 @@ pipeline:
   max_workers: 1
 
 datasets:
-  pilot: ["Player", "Med", "Finan"]
+  pilot: ["Player", "Med", "Finan", "SEC"]
 
   CSPaper:
     corpus_path: source_data/CSPaper/txt
@@ -91,6 +95,30 @@ datasets:
     source_phase0: phase0_reward_table_CSPaper.json
     output_file: phase1_comparison_CSPaper_agg_only.json
     probe_context_cache: phase1_CSPaper_agg_only_probe_context.json
+
+  SEC:
+    corpus_path: source_data/SEC
+    table_filter: ["filing_metrics"]
+    workload_slices:
+      - agg_only
+      - agg_filter
+      - agg_join
+      - agg_filter_join
+      - agg_temporal
+    num_docs: 40
+    num_probe_configs: 8
+    num_judge_pairs: 14
+    num_eval_queries: 5
+    min_queries_per_slice: 5
+    budget_levels: [1, 2]
+    workload_split:
+      train_per_slice: 20
+      dev_per_slice: 5
+      test_per_slice: 5
+      min_train_total: 100
+    source_phase0: phase0_reward_table_SEC.json
+    output_file: phase1_comparison_SEC_agg_only.json
+    probe_context_cache: phase1_SEC_agg_only_probe_context.json
 
   Art:
     corpus_path: source_data/Art/wikiart
@@ -116,6 +144,8 @@ datasets:
   Finan:
     corpus_path: source_data/Finance/txt
     table_filter: ["finance"]
+    extraction_chunk_size: 4000       # Split documents into 4000-char chunks with anchor injection
+    extraction_max_doc_chars: 60000   # Only process first 60K chars (covers financial statements at ~34K)
     workload_slices:
       - agg_only
       - agg_filter
@@ -164,6 +194,7 @@ preprocessing:
   Finance: "whole_doc"
   Art: "whole_doc"
   CSPaper: "whole_doc"
+  SEC: "whole_doc"
 
 probing:
   num_probe_configs: 12

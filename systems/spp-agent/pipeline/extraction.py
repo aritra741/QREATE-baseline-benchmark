@@ -94,15 +94,103 @@ def _workload_aware_enabled(cfg: dict) -> bool:
     return True
 
 
-def _workload_aware_enabled(cfg: dict) -> bool:
-    extraction_cfg = cfg.get("extraction", {})
-    if "workload_aware" in extraction_cfg:
-        return bool(extraction_cfg["workload_aware"])
-    return True
-
-
 def _extraction_max_workers(cfg: dict) -> int:
     return max(1, int(cfg.get("extraction", {}).get("max_workers", 1)))
+
+
+def _chunk_size(cfg: dict, dataset_name: str | None = None) -> int:
+    """Return chunk size. Dataset-level config overrides global extraction.chunk_size.
+    0 means no chunking (default).
+    """
+    if dataset_name:
+        ds_cfg = cfg.get("datasets", {}).get(dataset_name, {})
+        if isinstance(ds_cfg, dict) and "extraction_chunk_size" in ds_cfg:
+            return max(0, int(ds_cfg["extraction_chunk_size"]))
+    return max(0, int(cfg.get("extraction", {}).get("chunk_size", 0)))
+
+
+def _max_doc_chars(cfg: dict, dataset_name: str | None = None) -> int:
+    """Return maximum characters to use per document before chunking.
+    0 means no cap (use full document). Dataset-level setting wins.
+    """
+    if dataset_name:
+        ds_cfg = cfg.get("datasets", {}).get(dataset_name, {})
+        if isinstance(ds_cfg, dict) and "extraction_max_doc_chars" in ds_cfg:
+            return max(0, int(ds_cfg["extraction_max_doc_chars"]))
+    return max(0, int(cfg.get("extraction", {}).get("max_doc_chars", 0)))
+
+
+def _parse_doc_anchor(text: str) -> dict[str, str]:
+    """Extract entity-level identifiers from a document's structured header.
+
+    Handles both key-value headers (e.g. Finance: 'Company Name: Apple Inc.')
+    and falls back to an empty dict when no recognisable header is found.
+    """
+    anchor: dict[str, str] = {}
+    for line in text[:1500].splitlines():
+        line = line.strip()
+        if not line or ":" not in line:
+            continue
+        key, _, val = line.partition(":")
+        key = key.strip().lower().replace(" ", "_")
+        val = val.strip()
+        if not val:
+            continue
+        # Map recognised header keys to canonical anchor field names
+        _MAP = {
+            "company_name": "company_name",
+            "company": "company_name",
+            "name": "company_name",
+            "ticker": "ticker",
+            "symbol": "ticker",
+            "form_type": "form_type",
+            "filing_date": "filing_date",
+            "report_date": "report_date",
+            "fiscal_year": "fiscal_year",
+            "document_id": "document_id",
+        }
+        canonical = _MAP.get(key)
+        if canonical and canonical not in anchor:
+            anchor[canonical] = val
+    return anchor
+
+
+def _build_anchor_header(anchor: dict[str, str]) -> str:
+    """Format anchor dict as a compact context header injected into later chunks."""
+    if not anchor:
+        return ""
+    parts = ", ".join(f"{k.replace('_', ' ').title()}={v}" for k, v in anchor.items())
+    return f"[DOCUMENT CONTEXT: {parts}]\n\n"
+
+
+def _split_into_chunks(doc: dict, chunk_size: int) -> list[dict]:
+    """Split a document into fixed-size text chunks preserving doc metadata."""
+    text = doc.get("text", "")
+    if not text or chunk_size <= 0 or len(text) <= chunk_size:
+        return [doc]
+    chunks = []
+    for i, start in enumerate(range(0, len(text), chunk_size)):
+        chunk_text = text[start : start + chunk_size]
+        chunk_doc = {
+            **doc,
+            "doc_id": f"{doc['doc_id']}_chunk{i}",
+            "text": chunk_text,
+            "_chunk_index": i,
+            "_parent_doc_id": doc["doc_id"],
+        }
+        chunks.append(chunk_doc)
+    return chunks
+
+
+def _merge_chunk_tuples(
+    chunks_results: list[dict[str, list[dict]]],
+) -> dict[str, list[dict]]:
+    """Merge extracted rows from all chunks of one document."""
+    merged: dict[str, list[dict]] = {}
+    for chunk_rows in chunks_results:
+        for table, rows in chunk_rows.items():
+            merged.setdefault(table, []).extend(rows)
+    return merged
 
 
 def _extract_one_document(
@@ -242,6 +330,7 @@ def extract_documents(
     queries: list[dict] | None = None,
     demand_profile: dict | None = None,
     schema_value_hints: dict[str, list[str]] | None = None,
+    dataset_name: str | None = None,
 ) -> ExtractionResult:
     cfg = load_config()
     llm_cfg = cfg["llm"]
@@ -281,17 +370,53 @@ def extract_documents(
 
     ensure_model_available(model_name, base_url, llm_cfg=llm_cfg)
 
+    chunk_size = _chunk_size(cfg, dataset_name)
+    max_chars = _max_doc_chars(cfg, dataset_name)
+    if chunk_size > 0:
+        logger.info(
+            "Chunked extraction: chunk_size=%d max_doc_chars=%s",
+            chunk_size,
+            max_chars if max_chars > 0 else "unlimited",
+        )
+
+    # Expand each document into chunks (or keep as-is when chunk_size=0).
+    # Each entry: (global_idx, chunk_doc, parent_doc_id)
+    all_chunks: list[tuple[int, dict, str]] = []
+    for doc in docs:
+        parent_id = str(doc["doc_id"])
+        if chunk_size > 0:
+            # Optionally cap document length before chunking to limit LLM calls.
+            if max_chars > 0 and len(doc.get("text", "")) > max_chars:
+                doc = {**doc, "text": doc["text"][:max_chars]}
+            chunks = _split_into_chunks(doc, chunk_size)
+            anchor = _parse_doc_anchor(doc.get("text", ""))
+            if anchor:
+                anchor_header = _build_anchor_header(anchor)
+                for chunk in chunks:
+                    if chunk.get("_chunk_index", 0) > 0:
+                        chunk = {**chunk, "text": anchor_header + chunk["text"]}
+                    all_chunks.append((len(all_chunks) + 1, chunk, parent_id))
+                logger.debug(
+                    "Doc %s → %d chunks, anchor=%s", parent_id, len(chunks), list(anchor.keys())
+                )
+            else:
+                for chunk in chunks:
+                    all_chunks.append((len(all_chunks) + 1, chunk, parent_id))
+        else:
+            all_chunks.append((len(all_chunks) + 1, doc, parent_id))
+
     tuples_by_table: dict[str, list[dict]] = {t: [] for t in schema.tables}
     per_doc_signals: list[dict] = []
     total_cost = 0.0
-    max_workers = min(_extraction_max_workers(cfg), max(1, len(docs)))
+    max_workers = min(_extraction_max_workers(cfg), max(1, len(all_chunks)))
+    n_total = len(all_chunks)
 
-    def _run_one(idx_doc: tuple[int, dict]) -> tuple[int, dict[str, list[dict]], dict[str, Any], float]:
-        idx, doc = idx_doc
-        return _extract_one_document(
-            doc,
+    def _run_one(item: tuple[int, dict, str]) -> tuple[int, dict[str, list[dict]], dict[str, Any], float, str]:
+        idx, chunk_doc, parent_id = item
+        result_idx, doc_tuples, signal, cost = _extract_one_document(
+            chunk_doc,
             idx=idx,
-            n_docs=len(docs),
+            n_docs=n_total,
             schema=schema,
             model_name=model_name,
             base_url=base_url,
@@ -300,20 +425,20 @@ def extract_documents(
             task_context=task_context,
             verify_model=False,
         )
+        return result_idx, doc_tuples, signal, cost, parent_id
 
-    indexed_docs = list(enumerate(docs, start=1))
     if max_workers == 1:
-        results = [_run_one(item) for item in indexed_docs]
+        results = [_run_one(item) for item in all_chunks]
     else:
-        logger.info("Parallel extraction with %d workers", max_workers)
-        results: list[tuple[int, dict[str, list[dict]], dict[str, Any], float]] = []
+        logger.info("Parallel extraction with %d workers over %d chunks", max_workers, n_total)
+        results: list[tuple[int, dict[str, list[dict]], dict[str, Any], float, str]] = []
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = {executor.submit(_run_one, item): item[0] for item in indexed_docs}
+            futures = {executor.submit(_run_one, item): item[0] for item in all_chunks}
             for future in as_completed(futures):
                 results.append(future.result())
         results.sort(key=lambda r: r[0])
 
-    for _idx, doc_tuples, signal, cost in results:
+    for _idx, doc_tuples, signal, cost, _parent_id in results:
         total_cost += cost
         per_doc_signals.append(signal)
         for table_name, rows in doc_tuples.items():
