@@ -49,6 +49,10 @@ def _corpus_dir(dataset_name: str) -> Path:
         cspaper = root / "source_data" / "CSPaper" / "txt"
         if cspaper.is_dir():
             return cspaper
+    if ds_key == "SEC":
+        sec = root / "source_data" / "SEC"
+        if sec.is_dir():
+            return sec
     data_dir = root / "Data" / dataset_name
     if data_dir.is_dir():
         return data_dir
@@ -86,6 +90,7 @@ def load_corpus(dataset_name: str) -> list[dict]:
         ART_DATASET, ART_SQL_TABLE,
         CSPAPER_DATASET, CSPAPER_SQL_TABLE,
         FINAN_DATASET, FINAN_SQL_TABLE,
+        SEC_DATASET,
     )
 
     dataset_key = normalize_dataset_name(dataset_name)
@@ -101,6 +106,8 @@ def load_corpus(dataset_name: str) -> list[dict]:
             table_hint = ART_SQL_TABLE
         elif dataset_key == CSPAPER_DATASET:
             table_hint = CSPAPER_SQL_TABLE
+        elif dataset_key == SEC_DATASET:
+            table_hint = mapped if mapped in {"company", "filing", "filing_metrics"} else "filing"
         else:
             table_hint = mapped
         docs.append(

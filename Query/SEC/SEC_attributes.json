@@ -1,0 +1,150 @@
+{
+  "company": {
+    "company_id": {
+      "value_type": "str",
+      "description": "stable SEC company identifier, equal to zero-padded CIK."
+    },
+    "ticker": {
+      "value_type": "str",
+      "description": "public ticker symbol from SEC company_tickers.json."
+    },
+    "name": {
+      "value_type": "str",
+      "description": "issuer name from SEC submissions JSON."
+    },
+    "sic": {
+      "value_type": "str",
+      "description": "SEC standard industrial classification code."
+    },
+    "sic_description": {
+      "value_type": "str",
+      "description": "SEC industry description."
+    },
+    "state_of_incorporation": {
+      "value_type": "str",
+      "description": "issuer state of incorporation."
+    },
+    "fiscal_year_end": {
+      "value_type": "str",
+      "description": "fiscal year end from SEC submissions JSON."
+    }
+  },
+  "filing": {
+    "filing_id": {
+      "value_type": "str",
+      "description": "stable filing identifier, accession number without dashes."
+    },
+    "company_id": {
+      "value_type": "str",
+      "description": "foreign key to company.company_id."
+    },
+    "accession_number": {
+      "value_type": "str",
+      "description": "original SEC accession number with dashes."
+    },
+    "form_type": {
+      "value_type": "str",
+      "description": "SEC form type, restricted here to 10-K and 10-Q."
+    },
+    "filing_date": {
+      "value_type": "str",
+      "description": "EDGAR filing date in ISO format."
+    },
+    "report_date": {
+      "value_type": "str",
+      "description": "report period end date in ISO format when available."
+    },
+    "fiscal_year": {
+      "value_type": "int",
+      "description": "fiscal year inferred from companyfacts rows linked to the filing."
+    },
+    "fiscal_period": {
+      "value_type": "str",
+      "description": "fiscal period code such as Q1, Q2, Q3, or FY."
+    },
+    "source_url": {
+      "value_type": "str",
+      "description": "direct SEC archive URL for the raw filing HTML."
+    }
+  },
+  "financial_fact": {
+    "fact_id": {
+      "value_type": "str",
+      "description": "stable synthetic fact row identifier."
+    },
+    "company_id": {
+      "value_type": "str",
+      "description": "foreign key to company.company_id."
+    },
+    "filing_id": {
+      "value_type": "str",
+      "description": "foreign key to filing.filing_id."
+    },
+    "concept_id": {
+      "value_type": "str",
+      "description": "foreign key to concept.concept_id."
+    },
+    "value": {
+      "value_type": "float",
+      "description": "numeric fact value from SEC companyfacts."
+    },
+    "unit_id": {
+      "value_type": "str",
+      "description": "foreign key to unit.unit_id; units remain explicit."
+    },
+    "period_start": {
+      "value_type": "str",
+      "description": "start date for duration facts, empty for instant facts."
+    },
+    "period_end": {
+      "value_type": "str",
+      "description": "end date for the fact context."
+    },
+    "fiscal_year": {
+      "value_type": "int",
+      "description": "fiscal year supplied by SEC companyfacts when present."
+    },
+    "fiscal_period": {
+      "value_type": "str",
+      "description": "fiscal period supplied by SEC companyfacts when present."
+    }
+  },
+  "filing_metrics": {
+    "filing_id": {
+      "value_type": "str",
+      "description": "foreign key to filing.filing_id."
+    },
+    "company_id": {
+      "value_type": "str",
+      "description": "foreign key to company.company_id."
+    },
+    "revenue_usd": {
+      "value_type": "float",
+      "description": "canonical revenue fact selected from SEC companyfacts for the filing."
+    },
+    "assets_usd": {
+      "value_type": "float",
+      "description": "canonical total assets fact for the filing."
+    },
+    "liabilities_usd": {
+      "value_type": "float",
+      "description": "canonical total liabilities fact for the filing."
+    },
+    "net_income_usd": {
+      "value_type": "float",
+      "description": "canonical net income or profit/loss fact for the filing."
+    },
+    "operating_cash_flow_usd": {
+      "value_type": "float",
+      "description": "canonical operating cash flow fact for the filing."
+    },
+    "shares_outstanding": {
+      "value_type": "float",
+      "description": "canonical shares outstanding fact for the filing."
+    },
+    "market_cap_usd": {
+      "value_type": "float",
+      "description": "reserved column; null because SEC companyfacts does not provide a reliable filing-level market cap series across issuers."
+    }
+  }
+}

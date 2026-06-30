@@ -1,0 +1,143 @@
+{
+  "built_at": "2026-06-30T17:39:31.765130Z",
+  "source_urls": [
+    "https://www.sec.gov/search-filings/edgar-application-programming-interfaces",
+    "https://www.sec.gov/files/company_tickers.json"
+  ],
+  "date_range": {
+    "start_year": 2022,
+    "end_year": 2025
+  },
+  "tickers": [
+    "AAPL",
+    "MSFT",
+    "AMZN",
+    "GOOGL",
+    "JPM",
+    "XOM",
+    "JNJ",
+    "WMT",
+    "NVDA",
+    "TSLA"
+  ],
+  "counts": {
+    "companies": 10,
+    "filings": 160,
+    "documents": 160,
+    "gold_facts": 71110,
+    "queries": {
+      "agg_only": 204,
+      "agg_filter": 2944,
+      "agg_join": 128,
+      "agg_filter_join": 1632,
+      "agg_temporal": 192
+    },
+    "rows_per_table": {
+      "company": 10,
+      "filing": 160,
+      "concept": 2389,
+      "period": 1556,
+      "unit": 13,
+      "financial_fact": 71110,
+      "filing_metrics": 160
+    },
+    "split_rows": {
+      "train": 100,
+      "dev": 25,
+      "test": 25
+    }
+  },
+  "example_queries": {
+    "agg_only": [
+      {
+        "query_id": "agg_only_sec_1",
+        "slice": "agg_only",
+        "sql": "SELECT company_name, COUNT(*) AS count_filings FROM filing_metrics GROUP BY company_name;"
+      },
+      {
+        "query_id": "agg_only_sec_2",
+        "slice": "agg_only",
+        "sql": "SELECT company_name, SUM(revenue_usd) AS sum_revenue_usd FROM filing_metrics GROUP BY company_name;"
+      },
+      {
+        "query_id": "agg_only_sec_3",
+        "slice": "agg_only",
+        "sql": "SELECT company_name, AVG(revenue_usd) AS avg_revenue_usd FROM filing_metrics GROUP BY company_name;"
+      }
+    ],
+    "agg_filter": [
+      {
+        "query_id": "agg_filter_sec_1",
+        "slice": "agg_filter",
+        "sql": "SELECT company_name, SUM(revenue_usd) AS sum_revenue_usd FROM filing_metrics WHERE form_type = '10-K' GROUP BY company_name;"
+      },
+      {
+        "query_id": "agg_filter_sec_2",
+        "slice": "agg_filter",
+        "sql": "SELECT company_name, SUM(revenue_usd) AS sum_revenue_usd FROM filing_metrics WHERE form_type = '10-Q' GROUP BY company_name;"
+      },
+      {
+        "query_id": "agg_filter_sec_3",
+        "slice": "agg_filter",
+        "sql": "SELECT company_name, SUM(revenue_usd) AS sum_revenue_usd FROM filing_metrics WHERE fiscal_period = 'FY' GROUP BY company_name;"
+      }
+    ],
+    "agg_join": [
+      {
+        "query_id": "agg_join_sec_1",
+        "slice": "agg_join",
+        "sql": "SELECT company.ticker, SUM(filing_metrics.revenue_usd) AS sum_revenue_usd FROM filing_metrics JOIN company ON filing_metrics.company_id = company.company_id JOIN filing ON filing_metrics.filing_id = filing.filing_id GROUP BY company.ticker;"
+      },
+      {
+        "query_id": "agg_join_sec_2",
+        "slice": "agg_join",
+        "sql": "SELECT company.ticker, AVG(filing_metrics.revenue_usd) AS avg_revenue_usd FROM filing_metrics JOIN company ON filing_metrics.company_id = company.company_id JOIN filing ON filing_metrics.filing_id = filing.filing_id GROUP BY company.ticker;"
+      },
+      {
+        "query_id": "agg_join_sec_3",
+        "slice": "agg_join",
+        "sql": "SELECT company.ticker, MIN(filing_metrics.revenue_usd) AS min_revenue_usd FROM filing_metrics JOIN company ON filing_metrics.company_id = company.company_id JOIN filing ON filing_metrics.filing_id = filing.filing_id GROUP BY company.ticker;"
+      }
+    ],
+    "agg_filter_join": [
+      {
+        "query_id": "agg_filter_join_sec_1",
+        "slice": "agg_filter_join",
+        "sql": "SELECT company.sic_description, SUM(filing_metrics.revenue_usd) AS sum_revenue_usd FROM filing_metrics JOIN company ON filing_metrics.company_id = company.company_id JOIN filing ON filing_metrics.filing_id = filing.filing_id WHERE company.sic_description = 'Electronic Computers' GROUP BY company.sic_description;"
+      },
+      {
+        "query_id": "agg_filter_join_sec_2",
+        "slice": "agg_filter_join",
+        "sql": "SELECT company.sic_description, SUM(filing_metrics.revenue_usd) AS sum_revenue_usd FROM filing_metrics JOIN company ON filing_metrics.company_id = company.company_id JOIN filing ON filing_metrics.filing_id = filing.filing_id WHERE company.sic_description = 'Motor Vehicles & Passenger Car Bodies' GROUP BY company.sic_description;"
+      },
+      {
+        "query_id": "agg_filter_join_sec_3",
+        "slice": "agg_filter_join",
+        "sql": "SELECT company.sic_description, SUM(filing_metrics.revenue_usd) AS sum_revenue_usd FROM filing_metrics JOIN company ON filing_metrics.company_id = company.company_id JOIN filing ON filing_metrics.filing_id = filing.filing_id WHERE company.sic_description = 'National Commercial Banks' GROUP BY company.sic_description;"
+      }
+    ],
+    "agg_temporal": [
+      {
+        "query_id": "agg_temporal_sec_1",
+        "slice": "agg_temporal",
+        "sql": "SELECT fiscal_year, SUM(revenue_usd) AS sum_revenue_usd FROM filing_metrics GROUP BY fiscal_year;"
+      },
+      {
+        "query_id": "agg_temporal_sec_2",
+        "slice": "agg_temporal",
+        "sql": "SELECT fiscal_year, fiscal_period, SUM(revenue_usd) AS sum_revenue_usd FROM filing_metrics GROUP BY fiscal_year, fiscal_period;"
+      },
+      {
+        "query_id": "agg_temporal_sec_3",
+        "slice": "agg_temporal",
+        "sql": "SELECT company.ticker, fiscal_year, SUM(filing_metrics.revenue_usd) AS sum_revenue_usd FROM filing_metrics JOIN company ON filing_metrics.company_id = company.company_id GROUP BY company.ticker, fiscal_year;"
+      }
+    ]
+  },
+  "data_quality_issues": [
+    "10-Q duration facts are typically year-to-date in SEC companyfacts; filing_metrics selects the canonical filing-linked duration fact and preserves exact period bounds.",
+    "Some filings do not expose every preferred metric concept, so filing_metrics keeps nulls instead of inferring missing values.",
+    "Market capitalization is left null because SEC companyfacts does not provide a reliable filing-level market cap series across issuers.",
+    "Corpus compatibility is achieved by exposing each raw filing text under filing-facing, company-facing, and filing_metrics-facing document views while preserving a canonical per-filing manifest."
+  ]
+}

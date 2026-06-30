@@ -347,6 +347,7 @@ def resolve_extraction(
         extraction_model,
         queries=instance.queries,
         schema_value_hints=_value_hints or None,
+        dataset_name=instance.dataset_name,
     )
     meta = {
         **expected_meta,

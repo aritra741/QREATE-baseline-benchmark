@@ -13,6 +13,7 @@ PLAYER_DATASET = "Player"
 FINAN_DATASET = "Finan"
 ART_DATASET = "Art"
 CSPAPER_DATASET = "CSPaper"
+SEC_DATASET = "SEC"
 
 # Healthcare corpus folders -> SQL / ground-truth table names.
 MED_CORPUS_FOLDER_TO_TABLE: dict[str, str] = {
@@ -64,6 +65,15 @@ CSPAPER_TABLE_TO_CORPUS_FOLDER: dict[str, str] = {
 CSPAPER_SQL_TABLE = "cspaper"
 CSPAPER_GT_TABLE = "CSPaper"
 
+SEC_CORPUS_FOLDER_TO_TABLE: dict[str, str] = {
+    "company": "company",
+    "filing": "filing",
+    "filing_metrics": "filing_metrics",
+}
+SEC_TABLE_TO_CORPUS_FOLDER: dict[str, str] = {
+    v: k for k, v in SEC_CORPUS_FOLDER_TO_TABLE.items()
+}
+
 
 def normalize_dataset_name(name: str) -> str:
     aliases = {
@@ -79,6 +89,8 @@ def normalize_dataset_name(name: str) -> str:
         "cspaper": CSPAPER_DATASET,
         "cs_paper": CSPAPER_DATASET,
         "cspapers": CSPAPER_DATASET,
+        "sec": SEC_DATASET,
+        "secbench": SEC_DATASET,
     }
     key = (name or PLAYER_DATASET).strip()
     return aliases.get(key.lower(), key)
@@ -94,6 +106,8 @@ def corpus_folder_to_table(dataset: str, folder: str) -> str:
         return ART_CORPUS_FOLDER_TO_TABLE.get(folder.lower(), folder.lower())
     if ds == CSPAPER_DATASET:
         return CSPAPER_CORPUS_FOLDER_TO_TABLE.get(folder.lower(), folder.lower())
+    if ds == SEC_DATASET:
+        return SEC_CORPUS_FOLDER_TO_TABLE.get(folder.lower(), folder.lower())
     return folder.lower()
 
 
@@ -107,6 +121,8 @@ def table_to_corpus_folder(dataset: str, table: str) -> str:
         return ART_TABLE_TO_CORPUS_FOLDER.get(table.lower(), table.lower())
     if ds == CSPAPER_DATASET:
         return CSPAPER_TABLE_TO_CORPUS_FOLDER.get(table.lower(), table.lower())
+    if ds == SEC_DATASET:
+        return SEC_TABLE_TO_CORPUS_FOLDER.get(table.lower(), table.lower())
     return table.lower()
 
 
@@ -139,6 +155,8 @@ def default_table_filter(dataset: str) -> set[str]:
         return {"art"}
     if dataset == CSPAPER_DATASET:
         return {"cspaper"}
+    if dataset == SEC_DATASET:
+        return {"filing_metrics"}
     return set(phase0.get("table_filter", ["player"]))
 
 
