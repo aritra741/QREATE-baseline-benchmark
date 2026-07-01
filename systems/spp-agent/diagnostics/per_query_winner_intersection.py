@@ -44,19 +44,47 @@ def _load_per_config(results_file: Path) -> dict:
     return per_config
 
 
-def _build_score_matrix(per_config: dict, *, metric: str) -> dict[str, dict[str, float]]:
+def _build_score_matrix(
+    per_config: dict,
+    *,
+    metric: str,
+    max_relative_error_pct: float | None = None,
+) -> dict[str, dict[str, float]]:
     """Return {query_id: {config_id: metric_value}}.
 
     metric is a key in each per_query row, e.g. 'macro_f1' (higher=better) or
     'mean_relative_error_pct' / 'query_error' (lower=better).
+
+    Rows are excluded if:
+      - pred_rows < 0 or gold_rows < 0 (evaluation raised an exception; the
+        fallback error sentinel, not a real score), or
+      - metric == 'mean_relative_error_pct' and the value exceeds
+        max_relative_error_pct (near-zero gold denominators make relative
+        error blow up to hundreds/thousands of percent, which is a metric
+        artifact, not a meaningful config comparison).
     """
     matrix: dict[str, dict[str, float]] = defaultdict(dict)
+    excluded = 0
     for cid, entry in per_config.items():
         for row in entry.get("per_query", []) or []:
             qid = str(row.get("query_id", ""))
             val = row.get(metric)
-            if qid and val is not None:
-                matrix[qid][cid] = float(val)
+            if not qid or val is None:
+                continue
+            if row.get("pred_rows", 0) < 0 or row.get("gold_rows", 0) < 0:
+                excluded += 1
+                continue
+            val = float(val)
+            if (
+                metric == "mean_relative_error_pct"
+                and max_relative_error_pct is not None
+                and val > max_relative_error_pct
+            ):
+                excluded += 1
+                continue
+            matrix[qid][cid] = val
+    if excluded:
+        print(f"[filtered {excluded} degenerate/errored (config, query) rows]")
     return matrix
 
 
@@ -133,6 +161,14 @@ def main() -> None:
                          "tie. Default: 1e-9 for macro_f1/query_error (0-1 "
                          "scale), 1.0 (percentage point) for "
                          "mean_relative_error_pct.")
+    ap.add_argument("--max-relative-error-pct", type=float, default=200.0,
+                    help="For --metric mean_relative_error_pct, exclude "
+                         "(config, query) rows whose value exceeds this cap. "
+                         "Near-zero gold denominators cause relative error to "
+                         "blow up to hundreds/thousands of percent, which is "
+                         "a metric artifact rather than a real config "
+                         "difference. Set to a large number (e.g. 1e12) to "
+                         "disable filtering. Default: 200.")
     args = ap.parse_args()
 
     results_file = args.results_file
@@ -153,8 +189,11 @@ def main() -> None:
     else:
         tolerance = 1e-9
 
+    max_rel_err = (
+        args.max_relative_error_pct if args.metric == "mean_relative_error_pct" else None
+    )
     per_config = _load_per_config(results_file)
-    matrix = _build_score_matrix(per_config, metric=args.metric)
+    matrix = _build_score_matrix(per_config, metric=args.metric, max_relative_error_pct=max_rel_err)
     n_queries = len(matrix)
     n_configs = len(per_config)
 
