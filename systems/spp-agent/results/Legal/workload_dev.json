@@ -1,0 +1,122 @@
+[
+  {
+    "query_id": "agg_only_legal_gen_93",
+    "sql_query": "SELECT evidence, MAX(judgment_year) AS max_judgment_year FROM legal GROUP BY evidence;",
+    "category": "Agg",
+    "slice": "agg_only",
+    "metadata": {
+      "generated": true,
+      "split": "dev",
+      "aggregation_slice": "agg_only",
+      "held_out": false
+    }
+  },
+  {
+    "query_id": "agg_only_legal_gen_38",
+    "sql_query": "SELECT judge_name, MAX(fine_amount) AS max_fine_amount FROM legal GROUP BY judge_name;",
+    "category": "Agg",
+    "slice": "agg_only",
+    "metadata": {
+      "generated": true,
+      "split": "dev",
+      "aggregation_slice": "agg_only",
+      "held_out": false
+    }
+  },
+  {
+    "query_id": "agg_only_legal_gen_53",
+    "sql_query": "SELECT hearing_year, AVG(fine_amount) AS avg_fine_amount FROM legal GROUP BY hearing_year;",
+    "category": "Agg",
+    "slice": "agg_only",
+    "metadata": {
+      "generated": true,
+      "split": "dev",
+      "aggregation_slice": "agg_only",
+      "held_out": false
+    }
+  },
+  {
+    "query_id": "agg_only_legal_gen_9",
+    "sql_query": "SELECT case_type, SUM(hearing_year) AS sum_hearing_year FROM legal GROUP BY case_type;",
+    "category": "Agg",
+    "slice": "agg_only",
+    "metadata": {
+      "generated": true,
+      "split": "dev",
+      "aggregation_slice": "agg_only",
+      "held_out": false
+    }
+  },
+  {
+    "query_id": "agg_only_legal_gen_3",
+    "sql_query": "SELECT case_type, MIN(fine_amount) AS min_fine_amount FROM legal GROUP BY case_type;",
+    "category": "Agg",
+    "slice": "agg_only",
+    "metadata": {
+      "generated": true,
+      "split": "dev",
+      "aggregation_slice": "agg_only",
+      "held_out": false
+    }
+  },
+  {
+    "query_id": "agg_filter_legal_gen_1263",
+    "sql_query": "SELECT evidence, SUM(fine_amount) AS sum_fine_amount FROM legal WHERE first_judge = 1 GROUP BY evidence;",
+    "category": "Agg",
+    "slice": "agg_filter",
+    "metadata": {
+      "generated": true,
+      "split": "dev",
+      "aggregation_slice": "agg_filter",
+      "held_out": false
+    }
+  },
+  {
+    "query_id": "agg_filter_legal_gen_1750",
+    "sql_query": "SELECT first_judge, MIN(judgment_year) AS min_judgment_year FROM legal WHERE judgment_year >= 2005 GROUP BY first_judge;",
+    "category": "Agg",
+    "slice": "agg_filter",
+    "metadata": {
+      "generated": true,
+      "split": "dev",
+      "aggregation_slice": "agg_filter",
+      "held_out": false
+    }
+  },
+  {
+    "query_id": "agg_filter_legal_gen_377",
+    "sql_query": "SELECT verdict, MAX(fine_amount) AS max_fine_amount FROM legal WHERE case_type = 'Commercial Case' GROUP BY verdict;",
+    "category": "Agg",
+    "slice": "agg_filter",
+    "metadata": {
+      "generated": true,
+      "split": "dev",
+      "aggregation_slice": "agg_filter",
+      "held_out": false
+    }
+  },
+  {
+    "query_id": "agg_filter_legal_gen_1493",
+    "sql_query": "SELECT evidence, MIN(judgment_year) AS min_judgment_year FROM legal WHERE hearing_year >= 2005 GROUP BY evidence;",
+    "category": "Agg",
+    "slice": "agg_filter",
+    "metadata": {
+      "generated": true,
+      "split": "dev",
+      "aggregation_slice": "agg_filter",
+      "held_out": false
+    }
+  },
+  {
+    "query_id": "agg_filter_legal_gen_1599",
+    "sql_query": "SELECT first_judge, AVG(legal_basis_num) AS avg_legal_basis_num FROM legal WHERE evidence = 1 GROUP BY first_judge;",
+    "category": "Agg",
+    "slice": "agg_filter",
+    "metadata": {
+      "generated": true,
+      "split": "dev",
+      "aggregation_slice": "agg_filter",
+      "held_out": false
+    }
+  }
+]

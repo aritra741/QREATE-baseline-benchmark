@@ -1,0 +1,337 @@
+{
+  "dataset": "Legal",
+  "split_targets_per_slice": {
+    "train": 20,
+    "dev": 5,
+    "test": 5
+  },
+  "counts_per_slice": {
+    "agg_only": {
+      "train": 20,
+      "dev": 5,
+      "test": 5
+    },
+    "agg_filter": {
+      "train": 20,
+      "dev": 5,
+      "test": 5
+    }
+  },
+  "totals": {
+    "train": 40,
+    "dev": 10,
+    "test": 10
+  },
+  "train_met_minimum": false,
+  "min_train_total": 60,
+  "removed_infeasible_count": 0,
+  "removed_duplicates_count": 915,
+  "removed_infeasible_sample": [],
+  "removed_duplicates_sample": [
+    {
+      "query_id": "agg_queries_Legal_7",
+      "reason": "duplicate_sql",
+      "sql": "SELECT nationality_for_applicant, MAX(legal_basis_num) AS max_legal_basis_num FROM legal GROUP BY nationality_for_applicant;"
+    },
+    {
+      "query_id": "agg_only_legal_gen_5",
+      "reason": "duplicate_sql",
+      "sql": "SELECT case_type, SUM(legal_basis_num) AS sum_legal_basis_num FROM legal GROUP BY case_type;"
+    },
+    {
+      "query_id": "agg_only_legal_gen_24",
+      "reason": "duplicate_sql",
+      "sql": "SELECT verdict, MIN(legal_basis_num) AS min_legal_basis_num FROM legal GROUP BY verdict;"
+    },
+    {
+      "query_id": "agg_filter_legal_gen_112",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT case_type, SUM(fine_amount) AS sum_fine_amount FROM legal WHERE verdict = 'Approved' GROUP BY case_type;"
+    },
+    {
+      "query_id": "agg_filter_legal_gen_113",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT case_type, SUM(fine_amount) AS sum_fine_amount FROM legal WHERE verdict = 'Guilty' GROUP BY case_type;"
+    },
+    {
+      "query_id": "agg_filter_legal_gen_114",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT case_type, SUM(fine_amount) AS sum_fine_amount FROM legal WHERE verdict = 'Not Guilty' GROUP BY case_type;"
+    },
+    {
+      "query_id": "agg_filter_legal_gen_116",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT case_type, SUM(fine_amount) AS sum_fine_amount FROM legal WHERE evidence = 0 GROUP BY case_type;"
+    },
+    {
+      "query_id": "agg_filter_legal_gen_118",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT case_type, SUM(fine_amount) AS sum_fine_amount FROM legal WHERE first_judge = 0 GROUP BY case_type;"
+    },
+    {
+      "query_id": "agg_filter_legal_gen_120",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT case_type, SUM(fine_amount) AS sum_fine_amount FROM legal WHERE fine_amount > 10000 GROUP BY case_type;"
+    },
+    {
+      "query_id": "agg_filter_legal_gen_122",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT case_type, SUM(fine_amount) AS sum_fine_amount FROM legal WHERE legal_basis_num > 3 GROUP BY case_type;"
+    },
+    {
+      "query_id": "agg_filter_legal_gen_126",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT case_type, AVG(fine_amount) AS avg_fine_amount FROM legal WHERE verdict = 'Approved' GROUP BY case_type;"
+    },
+    {
+      "query_id": "agg_filter_legal_gen_127",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT case_type, AVG(fine_amount) AS avg_fine_amount FROM legal WHERE verdict = 'Guilty' GROUP BY case_type;"
+    },
+    {
+      "query_id": "agg_filter_legal_gen_128",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT case_type, AVG(fine_amount) AS avg_fine_amount FROM legal WHERE verdict = 'Not Guilty' GROUP BY case_type;"
+    },
+    {
+      "query_id": "agg_filter_legal_gen_130",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT case_type, AVG(fine_amount) AS avg_fine_amount FROM legal WHERE evidence = 0 GROUP BY case_type;"
+    },
+    {
+      "query_id": "agg_filter_legal_gen_132",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT case_type, AVG(fine_amount) AS avg_fine_amount FROM legal WHERE first_judge = 0 GROUP BY case_type;"
+    },
+    {
+      "query_id": "agg_filter_legal_gen_134",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT case_type, AVG(fine_amount) AS avg_fine_amount FROM legal WHERE fine_amount > 10000 GROUP BY case_type;"
+    },
+    {
+      "query_id": "agg_filter_legal_gen_136",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT case_type, AVG(fine_amount) AS avg_fine_amount FROM legal WHERE legal_basis_num > 3 GROUP BY case_type;"
+    },
+    {
+      "query_id": "agg_filter_legal_gen_140",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT case_type, MIN(fine_amount) AS min_fine_amount FROM legal WHERE verdict = 'Approved' GROUP BY case_type;"
+    },
+    {
+      "query_id": "agg_filter_legal_gen_141",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT case_type, MIN(fine_amount) AS min_fine_amount FROM legal WHERE verdict = 'Guilty' GROUP BY case_type;"
+    },
+    {
+      "query_id": "agg_filter_legal_gen_142",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT case_type, MIN(fine_amount) AS min_fine_amount FROM legal WHERE verdict = 'Not Guilty' GROUP BY case_type;"
+    },
+    {
+      "query_id": "agg_filter_legal_gen_144",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT case_type, MIN(fine_amount) AS min_fine_amount FROM legal WHERE evidence = 0 GROUP BY case_type;"
+    },
+    {
+      "query_id": "agg_filter_legal_gen_146",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT case_type, MIN(fine_amount) AS min_fine_amount FROM legal WHERE first_judge = 0 GROUP BY case_type;"
+    },
+    {
+      "query_id": "agg_filter_legal_gen_148",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT case_type, MIN(fine_amount) AS min_fine_amount FROM legal WHERE fine_amount > 10000 GROUP BY case_type;"
+    },
+    {
+      "query_id": "agg_filter_legal_gen_150",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT case_type, MIN(fine_amount) AS min_fine_amount FROM legal WHERE legal_basis_num > 3 GROUP BY case_type;"
+    },
+    {
+      "query_id": "agg_filter_legal_gen_154",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT case_type, MAX(fine_amount) AS max_fine_amount FROM legal WHERE verdict = 'Approved' GROUP BY case_type;"
+    },
+    {
+      "query_id": "agg_filter_legal_gen_155",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT case_type, MAX(fine_amount) AS max_fine_amount FROM legal WHERE verdict = 'Guilty' GROUP BY case_type;"
+    },
+    {
+      "query_id": "agg_filter_legal_gen_156",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT case_type, MAX(fine_amount) AS max_fine_amount FROM legal WHERE verdict = 'Not Guilty' GROUP BY case_type;"
+    },
+    {
+      "query_id": "agg_filter_legal_gen_158",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT case_type, MAX(fine_amount) AS max_fine_amount FROM legal WHERE evidence = 0 GROUP BY case_type;"
+    },
+    {
+      "query_id": "agg_filter_legal_gen_160",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT case_type, MAX(fine_amount) AS max_fine_amount FROM legal WHERE first_judge = 0 GROUP BY case_type;"
+    },
+    {
+      "query_id": "agg_filter_legal_gen_162",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT case_type, MAX(fine_amount) AS max_fine_amount FROM legal WHERE fine_amount > 10000 GROUP BY case_type;"
+    },
+    {
+      "query_id": "agg_filter_legal_gen_164",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT case_type, MAX(fine_amount) AS max_fine_amount FROM legal WHERE legal_basis_num > 3 GROUP BY case_type;"
+    },
+    {
+      "query_id": "agg_filter_legal_gen_168",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT case_type, SUM(legal_basis_num) AS sum_legal_basis_num FROM legal WHERE verdict = 'Approved' GROUP BY case_type;"
+    },
+    {
+      "query_id": "agg_filter_legal_gen_169",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT case_type, SUM(legal_basis_num) AS sum_legal_basis_num FROM legal WHERE verdict = 'Guilty' GROUP BY case_type;"
+    },
+    {
+      "query_id": "agg_filter_legal_gen_170",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT case_type, SUM(legal_basis_num) AS sum_legal_basis_num FROM legal WHERE verdict = 'Not Guilty' GROUP BY case_type;"
+    },
+    {
+      "query_id": "agg_filter_legal_gen_172",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT case_type, SUM(legal_basis_num) AS sum_legal_basis_num FROM legal WHERE evidence = 0 GROUP BY case_type;"
+    },
+    {
+      "query_id": "agg_filter_legal_gen_174",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT case_type, SUM(legal_basis_num) AS sum_legal_basis_num FROM legal WHERE first_judge = 0 GROUP BY case_type;"
+    },
+    {
+      "query_id": "agg_filter_legal_gen_176",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT case_type, SUM(legal_basis_num) AS sum_legal_basis_num FROM legal WHERE fine_amount > 10000 GROUP BY case_type;"
+    },
+    {
+      "query_id": "agg_filter_legal_gen_178",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT case_type, SUM(legal_basis_num) AS sum_legal_basis_num FROM legal WHERE legal_basis_num > 3 GROUP BY case_type;"
+    },
+    {
+      "query_id": "agg_filter_legal_gen_182",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT case_type, AVG(legal_basis_num) AS avg_legal_basis_num FROM legal WHERE verdict = 'Approved' GROUP BY case_type;"
+    },
+    {
+      "query_id": "agg_filter_legal_gen_183",
+      "reason": "near_duplicate_signature",
+      "sql": "SELECT case_type, AVG(legal_basis_num) AS avg_legal_basis_num FROM legal WHERE verdict = 'Guilty' GROUP BY case_type;"
+    }
+  ],
+  "generated_candidate_count": 1767,
+  "holdout_policy": "The test split is assigned first from a shuffled per-slice pool and is never included in train or dev. Use train for agent design, prompt tuning, threshold optimization, and algorithm selection. Use dev only for validation during development. The test split must not be used for any tuning or selection.",
+  "test_held_out": true,
+  "slice_reports": [
+    {
+      "slice": "agg_only",
+      "targets": {
+        "train": 20,
+        "dev": 5,
+        "test": 5
+      },
+      "counts": {
+        "train": 20,
+        "dev": 5,
+        "test": 5
+      },
+      "max_feasible": 118,
+      "reached_target": true,
+      "shortfall_reason": null
+    },
+    {
+      "slice": "agg_filter",
+      "targets": {
+        "train": 20,
+        "dev": 5,
+        "test": 5
+      },
+      "counts": {
+        "train": 20,
+        "dev": 5,
+        "test": 5
+      },
+      "max_feasible": 750,
+      "reached_target": true,
+      "shortfall_reason": null
+    }
+  ],
+  "query_ids": {
+    "train": [
+      "agg_only_legal_gen_12",
+      "agg_only_legal_gen_62",
+      "agg_only_legal_gen_64",
+      "agg_only_legal_gen_94",
+      "agg_only_legal_gen_76",
+      "agg_queries_Legal_9",
+      "agg_only_legal_gen_60",
+      "agg_only_legal_gen_39",
+      "agg_only_legal_gen_104",
+      "agg_only_legal_gen_88",
+      "agg_only_legal_gen_105",
+      "agg_only_legal_gen_106",
+      "agg_only_legal_gen_45",
+      "agg_only_legal_gen_51",
+      "agg_only_legal_gen_34",
+      "agg_only_legal_gen_83",
+      "agg_only_legal_gen_6",
+      "agg_only_legal_gen_66",
+      "agg_only_legal_gen_67",
+      "agg_only_legal_gen_77",
+      "agg_filter_legal_gen_1208",
+      "agg_filter_legal_gen_627",
+      "agg_filter_legal_gen_1235",
+      "mixed_queries_2",
+      "agg_filter_legal_gen_623",
+      "agg_filter_legal_gen_1621",
+      "agg_filter_legal_gen_1519",
+      "agg_filter_legal_gen_1303",
+      "mixed_queries_6",
+      "mixed_queries_3",
+      "agg_filter_legal_gen_363",
+      "agg_filter_legal_gen_953",
+      "agg_filter_legal_gen_1387",
+      "agg_filter_legal_gen_1225",
+      "agg_filter_legal_gen_1220",
+      "mixed_queries_4",
+      "agg_filter_legal_gen_657",
+      "agg_filter_legal_gen_872",
+      "agg_filter_legal_gen_369",
+      "agg_filter_legal_gen_213"
+    ],
+    "dev": [
+      "agg_only_legal_gen_93",
+      "agg_only_legal_gen_38",
+      "agg_only_legal_gen_53",
+      "agg_only_legal_gen_9",
+      "agg_only_legal_gen_3",
+      "agg_filter_legal_gen_1263",
+      "agg_filter_legal_gen_1750",
+      "agg_filter_legal_gen_377",
+      "agg_filter_legal_gen_1493",
+      "agg_filter_legal_gen_1599"
+    ],
+    "test": [
+      "agg_only_legal_gen_107",
+      "agg_only_legal_gen_69",
+      "agg_only_legal_gen_86",
+      "agg_only_legal_gen_55",
+      "agg_only_legal_gen_44",
+      "agg_filter_legal_gen_1339",
+      "agg_filter_legal_gen_1727",
+      "mixed_queries_5",
+      "agg_filter_legal_gen_1135",
+      "agg_filter_legal_gen_1014"
+    ]
+  }
+}

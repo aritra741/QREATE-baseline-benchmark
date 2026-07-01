@@ -90,6 +90,7 @@ def load_corpus(dataset_name: str) -> list[dict]:
         ART_DATASET, ART_SQL_TABLE,
         CSPAPER_DATASET, CSPAPER_SQL_TABLE,
         FINAN_DATASET, FINAN_SQL_TABLE,
+        LEGAL_DATASET, LEGAL_SQL_TABLE,
         SEC_DATASET,
     )
 
@@ -104,6 +105,8 @@ def load_corpus(dataset_name: str) -> list[dict]:
             table_hint = FINAN_SQL_TABLE
         elif mapped in ("unknown", folder) and dataset_key == ART_DATASET:
             table_hint = ART_SQL_TABLE
+        elif mapped in ("unknown", folder) and dataset_key == LEGAL_DATASET:
+            table_hint = LEGAL_SQL_TABLE
         elif dataset_key == CSPAPER_DATASET:
             table_hint = CSPAPER_SQL_TABLE
         elif dataset_key == SEC_DATASET:

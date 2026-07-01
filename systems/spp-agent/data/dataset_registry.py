@@ -14,6 +14,7 @@ FINAN_DATASET = "Finan"
 ART_DATASET = "Art"
 CSPAPER_DATASET = "CSPaper"
 SEC_DATASET = "SEC"
+LEGAL_DATASET = "Legal"
 
 # Healthcare corpus folders -> SQL / ground-truth table names.
 MED_CORPUS_FOLDER_TO_TABLE: dict[str, str] = {
@@ -74,6 +75,18 @@ SEC_TABLE_TO_CORPUS_FOLDER: dict[str, str] = {
     v: k for k, v in SEC_CORPUS_FOLDER_TO_TABLE.items()
 }
 
+# Legal: single-table dataset. GT CSV = Legal.csv -> table "legal".
+# Corpus docs are in source_data/Legal/legal_case/ (numeric doc-id filenames).
+LEGAL_CORPUS_FOLDER_TO_TABLE: dict[str, str] = {
+    "legal_case": "legal",
+    "legal": "legal",
+}
+LEGAL_TABLE_TO_CORPUS_FOLDER: dict[str, str] = {
+    "legal": "legal_case",
+}
+LEGAL_SQL_TABLE = "legal"
+LEGAL_GT_TABLE = "Legal"
+
 
 def normalize_dataset_name(name: str) -> str:
     aliases = {
@@ -91,6 +104,8 @@ def normalize_dataset_name(name: str) -> str:
         "cspapers": CSPAPER_DATASET,
         "sec": SEC_DATASET,
         "secbench": SEC_DATASET,
+        "legal": LEGAL_DATASET,
+        "legal_case": LEGAL_DATASET,
     }
     key = (name or PLAYER_DATASET).strip()
     return aliases.get(key.lower(), key)
@@ -108,6 +123,8 @@ def corpus_folder_to_table(dataset: str, folder: str) -> str:
         return CSPAPER_CORPUS_FOLDER_TO_TABLE.get(folder.lower(), folder.lower())
     if ds == SEC_DATASET:
         return SEC_CORPUS_FOLDER_TO_TABLE.get(folder.lower(), folder.lower())
+    if ds == LEGAL_DATASET:
+        return LEGAL_CORPUS_FOLDER_TO_TABLE.get(folder.lower(), folder.lower())
     return folder.lower()
 
 
@@ -123,6 +140,8 @@ def table_to_corpus_folder(dataset: str, table: str) -> str:
         return CSPAPER_TABLE_TO_CORPUS_FOLDER.get(table.lower(), table.lower())
     if ds == SEC_DATASET:
         return SEC_TABLE_TO_CORPUS_FOLDER.get(table.lower(), table.lower())
+    if ds == LEGAL_DATASET:
+        return LEGAL_TABLE_TO_CORPUS_FOLDER.get(table.lower(), table.lower())
     return table.lower()
 
 

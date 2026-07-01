@@ -1,0 +1,127 @@
+[
+  {
+    "query_id": "agg_only_legal_gen_107",
+    "sql_query": "SELECT first_judge, SUM(judgment_year) AS sum_judgment_year FROM legal GROUP BY first_judge;",
+    "category": "Agg",
+    "slice": "agg_only",
+    "metadata": {
+      "generated": true,
+      "split": "test",
+      "aggregation_slice": "agg_only",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_only_legal_gen_69",
+    "sql_query": "SELECT judgment_year, SUM(legal_basis_num) AS sum_legal_basis_num FROM legal GROUP BY judgment_year;",
+    "category": "Agg",
+    "slice": "agg_only",
+    "metadata": {
+      "generated": true,
+      "split": "test",
+      "aggregation_slice": "agg_only",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_only_legal_gen_86",
+    "sql_query": "SELECT evidence, SUM(hearing_year) AS sum_hearing_year FROM legal GROUP BY evidence;",
+    "category": "Agg",
+    "slice": "agg_only",
+    "metadata": {
+      "generated": true,
+      "split": "test",
+      "aggregation_slice": "agg_only",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_only_legal_gen_55",
+    "sql_query": "SELECT hearing_year, MAX(fine_amount) AS max_fine_amount FROM legal GROUP BY hearing_year;",
+    "category": "Agg",
+    "slice": "agg_only",
+    "metadata": {
+      "generated": true,
+      "split": "test",
+      "aggregation_slice": "agg_only",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_only_legal_gen_44",
+    "sql_query": "SELECT judge_name, AVG(hearing_year) AS avg_hearing_year FROM legal GROUP BY judge_name;",
+    "category": "Agg",
+    "slice": "agg_only",
+    "metadata": {
+      "generated": true,
+      "split": "test",
+      "aggregation_slice": "agg_only",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_filter_legal_gen_1339",
+    "sql_query": "SELECT evidence, AVG(legal_basis_num) AS avg_legal_basis_num FROM legal WHERE verdict = 'Dismissed' GROUP BY evidence;",
+    "category": "Agg",
+    "slice": "agg_filter",
+    "metadata": {
+      "generated": true,
+      "split": "test",
+      "aggregation_slice": "agg_filter",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_filter_legal_gen_1727",
+    "sql_query": "SELECT first_judge, AVG(judgment_year) AS avg_judgment_year FROM legal WHERE evidence = 1 GROUP BY first_judge;",
+    "category": "Agg",
+    "slice": "agg_filter",
+    "metadata": {
+      "generated": true,
+      "split": "test",
+      "aggregation_slice": "agg_filter",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "mixed_queries_5",
+    "sql_query": "SELECT nationality_for_applicant, MAX(case_number) AS max_case_number FROM legal WHERE first_judge != 0 OR evidence < 1 OR defendant = 'Secretary, Department of Employment and Workplace Relations' GROUP BY nationality_for_applicant;",
+    "nl_query": null,
+    "category": "Mixed",
+    "metadata": {
+      "source_file": "/Users/aritramazumder/Documents/UDA-Bench-main/Query/Legal/Mixed/mixed_queries.sql",
+      "query_index": 5,
+      "subcategory": "filter5_agg1",
+      "tables": [
+        "legal"
+      ],
+      "split": "test",
+      "aggregation_slice": "agg_filter",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_filter_legal_gen_1135",
+    "sql_query": "SELECT judgment_year, SUM(legal_basis_num) AS sum_legal_basis_num FROM legal WHERE hearing_year >= 2005 GROUP BY judgment_year;",
+    "category": "Agg",
+    "slice": "agg_filter",
+    "metadata": {
+      "generated": true,
+      "split": "test",
+      "aggregation_slice": "agg_filter",
+      "held_out": true
+    }
+  },
+  {
+    "query_id": "agg_filter_legal_gen_1014",
+    "sql_query": "SELECT hearing_year, AVG(judgment_year) AS avg_judgment_year FROM legal WHERE legal_basis_num > 1 GROUP BY hearing_year;",
+    "category": "Agg",
+    "slice": "agg_filter",
+    "metadata": {
+      "generated": true,
+      "split": "test",
+      "aggregation_slice": "agg_filter",
+      "held_out": true
+    }
+  }
+]
