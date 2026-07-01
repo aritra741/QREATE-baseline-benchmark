@@ -432,13 +432,30 @@ def materialize_database(
     schema,
     *,
     extraction_model: str,
-) -> tuple[dict, PopulationDiagnostics]:
-    return apply_population(
+) -> tuple[dict, PopulationDiagnostics, float, int]:
+    """Materialize a config's database and report population-step LLM spend.
+
+    Returns (db, diagnostics, population_token_cost, population_llm_calls).
+    population_token_cost/calls capture only LLM-backed population steps
+    (norm_llm, miss_llm, coerce_llm, er_llm, ...) for this specific config;
+    non-LLM configs (dictionary/embedding/heuristic strategies) will report 0.
+    """
+    from pipeline.llm_steps import (
+        get_llm_call_count,
+        get_llm_token_accumulator,
+        reset_llm_token_accumulator,
+    )
+
+    reset_llm_token_accumulator()
+    db, diagnostics = apply_population(
         extraction,
         config,
         schema,
         extraction_model=extraction_model,
     )
+    population_token_cost = get_llm_token_accumulator()
+    population_llm_calls = get_llm_call_count()
+    return db, diagnostics, population_token_cost, population_llm_calls
 
 
 def _category_error_report_path(output_dir: Path) -> Path:
@@ -750,12 +767,14 @@ def run_config_grid(
                 materialize_sec = 0.0
             else:
                 config_t0 = time.perf_counter()
-                db, diagnostics = materialize_database(
+                db, diagnostics, pop_token_cost, pop_llm_calls = materialize_database(
                     extraction, config, instance.schema, extraction_model=extraction_model,
                 )
                 materialize_sec = time.perf_counter() - config_t0
                 entry["population_diagnostics"] = _diagnostics_to_dict(diagnostics)
                 entry["materialize_seconds"] = round(materialize_sec, 3)
+                entry["population_token_cost"] = pop_token_cost
+                entry["population_llm_calls"] = pop_llm_calls
             eval_t0 = time.perf_counter()
             per_query = evaluate_queries_on_db(
                 instance, db, test_queries, settings=settings, parser=parser, attributes=attributes,
@@ -779,7 +798,7 @@ def run_config_grid(
 
         logger.info("[%d/%d] materializing %s", idx, n_total, cid)
         config_t0 = time.perf_counter()
-        db, diagnostics = materialize_database(
+        db, diagnostics, pop_token_cost, pop_llm_calls = materialize_database(
             extraction, config, instance.schema, extraction_model=extraction_model,
         )
         materialize_sec = time.perf_counter() - config_t0
@@ -794,6 +813,8 @@ def run_config_grid(
             "row_counts": _db_row_counts(db),
             "population_diagnostics": _diagnostics_to_dict(diagnostics),
             "materialize_seconds": round(materialize_sec, 3),
+            "population_token_cost": pop_token_cost,
+            "population_llm_calls": pop_llm_calls,
         }
         if saved_db_path is not None:
             entry["database_path"] = saved_db_path
@@ -874,6 +895,7 @@ def run_config_grid(
         "slices_present": list(slice_counts.keys()),
         "extraction_source": extraction_source,
         "extraction_model": extraction_model,
+        "extraction_token_cost": extraction.token_cost,
         "extraction_fingerprint": extraction_fp,
         "run_fingerprint": run_fingerprint,
         "corpus_fingerprint": corpus_fp,
