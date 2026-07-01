@@ -144,7 +144,14 @@ def _run_fingerprint(
 def _fingerprint_matches(cached: dict[str, Any] | None, expected: dict[str, Any]) -> bool:
     if not cached:
         return False
-    return all(cached.get(key) == expected.get(key) for key in expected)
+    for key, exp_val in expected.items():
+        cached_val = cached.get(key)
+        # Optional fields absent from older caches are not treated as mismatches.
+        if cached_val is None and key in ("value_hints_fingerprint",):
+            continue
+        if cached_val != exp_val:
+            return False
+    return True
 
 
 def _extraction_to_payload(extraction: ExtractionResult) -> dict[str, Any]:
@@ -770,6 +777,7 @@ def run_config_grid(
                 idx, n_total, cid,
             )
 
+        logger.info("[%d/%d] materializing %s", idx, n_total, cid)
         config_t0 = time.perf_counter()
         db, diagnostics = materialize_database(
             extraction, config, instance.schema, extraction_model=extraction_model,
