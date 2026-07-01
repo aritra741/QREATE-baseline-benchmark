@@ -47,12 +47,29 @@ def _resolve_alignment_keys(
     return resolved if resolved else list(keys)
 
 
+def _canonical_pipe_value(v: str, pred_values: set[str]) -> str:
+    """For GT values that contain '||' (multi-value cells), return the component
+    that best matches any value in the predicted column, falling back to the
+    first component.  This lets a predicted 'asx' align with GT 'NZX||ASX'.
+    """
+    parts = [p.strip().lower() for p in v.split("||")]
+    for part in parts:
+        if part in pred_values:
+            return part
+    return parts[0]
+
+
 def _normalize_join_keys_case_insensitive(
     pred_df: pd.DataFrame,
     gold_df: pd.DataFrame,
     join_keys: list[str],
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Resolve alignment keys and lowercase string join-key values before row alignment."""
+    """Resolve alignment keys and lowercase string join-key values before row alignment.
+
+    For GT values containing '||' (multi-answer cells), canonicalize to whichever
+    component best matches the predicted values so that e.g. 'asx' aligns with
+    GT 'NZX||ASX'.
+    """
     keys = _resolve_alignment_keys(join_keys, pred_df, gold_df)
     pred = pred_df.copy()
     gold = gold_df.copy()
@@ -63,6 +80,16 @@ def _normalize_join_keys_case_insensitive(
             col = df[key]
             if pd.api.types.is_string_dtype(col) or col.dtype == object:
                 df[key] = col.map(lambda v: v.lower() if isinstance(v, str) else v)
+
+        # After lowercasing, resolve pipe-separated GT values against pred values.
+        if key in gold.columns and key in pred.columns:
+            pred_vals = set(pred[key].dropna().astype(str))
+            if gold[key].astype(str).str.contains(r"\|\|", regex=True).any():
+                gold[key] = gold[key].map(
+                    lambda v: _canonical_pipe_value(v, pred_vals)
+                    if isinstance(v, str) and "||" in v
+                    else v
+                )
     return pred, gold
 
 
