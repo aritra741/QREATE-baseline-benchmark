@@ -44,15 +44,19 @@ def _load_per_config(results_file: Path) -> dict:
     return per_config
 
 
-def _build_score_matrix(per_config: dict) -> dict[str, dict[str, float]]:
-    """Return {query_id: {config_id: macro_f1}}."""
+def _build_score_matrix(per_config: dict, *, metric: str) -> dict[str, dict[str, float]]:
+    """Return {query_id: {config_id: metric_value}}.
+
+    metric is a key in each per_query row, e.g. 'macro_f1' (higher=better) or
+    'mean_relative_error_pct' / 'query_error' (lower=better).
+    """
     matrix: dict[str, dict[str, float]] = defaultdict(dict)
     for cid, entry in per_config.items():
         for row in entry.get("per_query", []) or []:
             qid = str(row.get("query_id", ""))
-            f1 = row.get("macro_f1")
-            if qid and f1 is not None:
-                matrix[qid][cid] = float(f1)
+            val = row.get(metric)
+            if qid and val is not None:
+                matrix[qid][cid] = float(val)
     return matrix
 
 
@@ -60,14 +64,23 @@ def _tied_best_sets(
     matrix: dict[str, dict[str, float]],
     *,
     tolerance: float,
+    lower_is_better: bool,
 ) -> dict[str, set[str]]:
-    """For each query, the set of configs within `tolerance` of the max score."""
+    """For each query, the set of configs within `tolerance` of the best score.
+
+    'Best' is min(scores) if lower_is_better else max(scores). Tolerance is an
+    absolute gap on the metric's own scale (e.g. percentage points for
+    mean_relative_error_pct, or 0-1 units for macro_f1).
+    """
     best: dict[str, set[str]] = {}
     for qid, scores in matrix.items():
         if not scores:
             continue
-        top = max(scores.values())
-        best[qid] = {cid for cid, s in scores.items() if top - s <= tolerance}
+        top = min(scores.values()) if lower_is_better else max(scores.values())
+        if lower_is_better:
+            best[qid] = {cid for cid, s in scores.items() if s - top <= tolerance}
+        else:
+            best[qid] = {cid for cid, s in scores.items() if top - s <= tolerance}
     return best
 
 
@@ -95,15 +108,31 @@ def _greedy_set_cover(best_sets: dict[str, set[str]]) -> list[str]:
     return portfolio
 
 
+# Metrics known to be "lower is better" (errors). Everything else defaults to
+# "higher is better" (scores like macro_f1, query_accuracy).
+_LOWER_IS_BETTER_METRICS = {
+    "mean_relative_error_pct",
+    "query_error",
+}
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--results-file", type=Path, default=None,
                     help="Path to grid_results.json")
     ap.add_argument("--dataset", default=None,
                     help="Dataset name; used to locate default results dir")
-    ap.add_argument("--tolerance", type=float, default=1e-9,
-                    help="Score gap counted as a tie (default 1e-9 = exact). "
-                         "Try 0.01 to treat near-ties as ties.")
+    ap.add_argument("--metric", default="macro_f1",
+                    help="Per-query field to rank configs on. Common choices: "
+                         "'macro_f1' (higher=better, 0-1 scale), "
+                         "'mean_relative_error_pct' (lower=better, percentage "
+                         "points -- the right metric for aggregation-only "
+                         "workloads), 'query_error' (lower=better, 0-1 scale).")
+    ap.add_argument("--tolerance", type=float, default=None,
+                    help="Absolute gap on the metric's own scale counted as a "
+                         "tie. Default: 1e-9 for macro_f1/query_error (0-1 "
+                         "scale), 1.0 (percentage point) for "
+                         "mean_relative_error_pct.")
     args = ap.parse_args()
 
     results_file = args.results_file
@@ -116,15 +145,26 @@ def main() -> None:
     if not results_file.is_file():
         raise SystemExit(f"Results file not found: {results_file}")
 
+    lower_is_better = args.metric in _LOWER_IS_BETTER_METRICS
+    if args.tolerance is not None:
+        tolerance = args.tolerance
+    elif args.metric == "mean_relative_error_pct":
+        tolerance = 1.0  # 1 percentage point
+    else:
+        tolerance = 1e-9
+
     per_config = _load_per_config(results_file)
-    matrix = _build_score_matrix(per_config)
+    matrix = _build_score_matrix(per_config, metric=args.metric)
     n_queries = len(matrix)
     n_configs = len(per_config)
 
     if n_queries == 0:
-        raise SystemExit("No per-query scores found (per_query lists are empty).")
+        raise SystemExit(
+            f"No per-query values found for metric '{args.metric}' "
+            "(per_query lists are empty or missing this field)."
+        )
 
-    best_sets = _tied_best_sets(matrix, tolerance=args.tolerance)
+    best_sets = _tied_best_sets(matrix, tolerance=tolerance, lower_is_better=lower_is_better)
 
     # Intersection across all queries.
     intersection: set[str] | None = None
@@ -139,7 +179,9 @@ def main() -> None:
     print("=" * 72)
     print(f"Queries scored          : {n_queries}")
     print(f"Configs evaluated       : {n_configs}")
-    print(f"Tie tolerance           : {args.tolerance}")
+    print(f"Metric                  : {args.metric} "
+          f"({'lower' if lower_is_better else 'higher'}=better)")
+    print(f"Tie tolerance           : {tolerance}")
     print()
 
     sizes = sorted(len(s) for s in best_sets.values())
