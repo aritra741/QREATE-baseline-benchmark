@@ -141,22 +141,22 @@ def _eval_context(instance) -> tuple[Any, ...]:
 
 
 def _run_gold_sql(instance, sql: str) -> pd.DataFrame:
+    cfg = load_config()
+    benchu_root = Path(cfg["paths"]["benchu_root"])
+    gt = load_ground_truth(instance.dataset_name)
+
     if _should_restrict_gt_to_corpus(instance):
-        cfg = load_config()
-        benchu_root = Path(cfg["paths"]["benchu_root"])
-        gt = load_ground_truth(instance.dataset_name)
-        restricted = restrict_ground_truth_tables(gt, instance.corpus)
+        gt = restrict_ground_truth_tables(gt, instance.corpus)
         logger.debug(
             "Gold SQL on corpus-restricted GT (rows_by_table=%s)",
-            {t: len(df) for t, df in restricted.items()},
+            {t: len(df) for t, df in gt.items()},
         )
-        return _post_process_gold_df(execute_sql_on_db(restricted, sql), benchu_root)
 
-    from evaluation.gt_runner import GtRunner
-
-    _, _, attributes, gt_dir = _eval_context(instance)
-    gt_runner = GtRunner(gt_dir=gt_dir, attributes=attributes)
-    return gt_runner.run(sql)
+    # Use load_ground_truth (which canonicalizes table names to match SQL, e.g.
+    # Finan.csv -> "finance") + execute_sql_on_db, rather than GtRunner which
+    # registers tables by raw CSV stem and breaks when the GT filename differs
+    # from the SQL table name.
+    return _post_process_gold_df(execute_sql_on_db(gt, sql), benchu_root)
 
 
 def evaluate_config(
