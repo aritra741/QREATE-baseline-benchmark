@@ -193,6 +193,44 @@ def _merge_chunk_tuples(
     return merged
 
 
+def _coalesce_rows_by_doc(tuples_by_table: dict[str, list[dict]]) -> dict[str, list[dict]]:
+    """After chunked extraction, collapse all rows from the same parent document
+    into a single row per document by taking the first non-null value per column.
+
+    Rows that have a '_source_doc_id' containing '_chunk' are grouped by their
+    parent doc id. Without that marker, rows are returned unchanged.
+    """
+    result: dict[str, list[dict]] = {}
+    for table, rows in tuples_by_table.items():
+        # Separate chunked rows from normal rows
+        chunked: dict[str, list[dict]] = {}
+        normal: list[dict] = []
+        for row in rows:
+            src = str(row.get("_source_doc_id", ""))
+            if "_chunk" in src:
+                parent = src.rsplit("_chunk", 1)[0]
+                chunked.setdefault(parent, []).append(row)
+            else:
+                normal.append(row)
+
+        coalesced: list[dict] = list(normal)
+        for parent_id, chunk_rows in chunked.items():
+            # Collect all column keys across all chunks for this doc
+            all_keys = {k for r in chunk_rows for k in r if k != "_source_doc_id"}
+            merged_row: dict = {}
+            for col in all_keys:
+                for r in chunk_rows:
+                    v = r.get(col)
+                    if v is not None and v != "" and str(v).lower() != "null":
+                        merged_row[col] = v
+                        break
+            merged_row["_source_doc_id"] = parent_id
+            coalesced.append(merged_row)
+
+        result[table] = coalesced
+    return result
+
+
 def _extract_one_document(
     doc: dict,
     *,
@@ -444,6 +482,14 @@ def extract_documents(
         for table_name, rows in doc_tuples.items():
             if table_name in tuples_by_table:
                 tuples_by_table[table_name].extend(rows)
+
+    # When chunking was used, collapse all chunks of the same document into one row.
+    if chunk_size > 0:
+        tuples_by_table = _coalesce_rows_by_doc(tuples_by_table)
+        logger.info(
+            "Coalesced chunked rows: %s",
+            {t: len(rows) for t, rows in tuples_by_table.items()},
+        )
 
     table_counts = {t: len(rows) for t, rows in tuples_by_table.items()}
     logger.info(
