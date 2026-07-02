@@ -3,11 +3,22 @@
 config is "best"?
 
 Every pipeline config has a token cost:
-  cost(config) = extraction_token_cost (shared/fixed, same for all configs in
-                 a run since extraction is cached and reused) +
-                 population_token_cost (config-specific: only LLM-backed
-                 population steps -- norm_llm, miss_llm, coerce_llm, er_llm --
-                 spend tokens; dictionary/embedding/heuristic strategies cost 0)
+  cost(config) = extraction_token_cost (shared/fixed -- paid ONCE for the
+                 whole run, identical for every config, since extraction is
+                 cached and reused across the entire grid) +
+                 population_token_cost (config-specific marginal cost: only
+                 LLM-backed population steps -- norm_llm, miss_llm,
+                 coerce_llm, er_llm -- spend tokens; dictionary/embedding/
+                 heuristic strategies cost 0)
+
+The extraction cost is NOT a real budget trade-off -- it's a sunk cost paid
+regardless of which config you pick afterward. By default this script ranks
+configs by population_token_cost alone (the marginal, actually-avoidable
+cost of choosing an LLM-backed strategy over a free one), since that's what
+a budget-constrained config *selection* decision actually controls. Pass
+--include-extraction-cost to add the fixed extraction baseline back in (only
+useful for comparing total run cost across datasets/extraction strategies,
+not for picking among configs within one run).
 
 If accuracy is roughly flat across configs (as seen for several datasets),
 but LLM-backed configs cost meaningfully more tokens than non-LLM configs for
@@ -106,6 +117,13 @@ def main() -> None:
                          "(lower=better).")
     ap.add_argument("--budget-steps", type=int, default=10,
                     help="Number of simulated budget caps between min and max cost.")
+    ap.add_argument("--include-extraction-cost", action="store_true",
+                    help="Add the fixed, one-time shared extraction token cost "
+                         "into each config's total cost. Default: off -- rank "
+                         "by the marginal population_token_cost only, since "
+                         "extraction is a sunk cost paid once regardless of "
+                         "which config you pick and including it drowns out "
+                         "the actual per-config cost differences.")
     args = ap.parse_args()
 
     results_file = args.results_file
@@ -121,6 +139,7 @@ def main() -> None:
     lower_is_better = args.metric in {"mean_relative_error_pct", "query_error"}
     per_config, manifest = _load(results_file)
     extraction_token_cost = float(manifest.get("extraction_token_cost", 0.0) or 0.0)
+    fixed_cost = extraction_token_cost if args.include_extraction_cost else 0.0
 
     rows: list[tuple[str, float, float, float, int]] = []  # cid, cost, acc, pop_cost, pop_calls
     missing_acc = 0
@@ -129,7 +148,7 @@ def main() -> None:
         if acc is None:
             missing_acc += 1
             continue
-        cost, pop_cost, pop_calls = _config_cost(entry, extraction_token_cost=extraction_token_cost)
+        cost, pop_cost, pop_calls = _config_cost(entry, extraction_token_cost=fixed_cost)
         rows.append((cid, cost, float(acc), pop_cost, pop_calls))
 
     if not rows:
@@ -142,7 +161,9 @@ def main() -> None:
     print(f"Budget / cost analysis  |  {results_file}")
     print("=" * 72)
     print(f"Configs scored               : {len(rows)}  (missing metric: {missing_acc})")
-    print(f"Shared extraction token cost : {extraction_token_cost:,.0f} (fixed, all configs)")
+    print(f"Shared extraction token cost : {extraction_token_cost:,.0f} "
+          f"(fixed, one-time, paid regardless of config choice -- "
+          f"{'INCLUDED' if args.include_extraction_cost else 'EXCLUDED'} from cost below)")
     print(f"Configs with LLM population steps (extra cost > 0): {n_llm_configs}")
     print(f"Configs with zero-cost population (dictionary/embedding/heuristic): {n_free_configs}")
     print()
