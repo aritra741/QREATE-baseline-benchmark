@@ -15,17 +15,48 @@ import json
 from pathlib import Path
 
 
-def _config_metric(entry: dict, *, metric: str) -> float | None:
+def _config_metric(
+    entry: dict,
+    *,
+    metric: str,
+    max_relative_error_pct: float | None = None,
+) -> float | None:
+    """Mean of the metric across this config's per_query rows.
+
+    Excludes rows where the evaluator errored (pred_rows/gold_rows < 0 --
+    a fallback error sentinel, not a real score), rows that totally missed
+    (pred_rows=0 while gold_rows>0 -- scored as a 100%-error placeholder,
+    not a genuine numeric discrepancy), and (for mean_relative_error_pct)
+    rows whose value exceeds max_relative_error_pct (near-zero gold
+    denominators blow the metric up to an uninformative extreme). Filtering
+    happens per-row BEFORE averaging, matching per_query_winner_intersection.py
+    and config_budget_analysis.py, so one outlier query doesn't drop an
+    entire config that is otherwise fine on all its other queries.
+    """
     if metric in entry:
         return entry.get(metric)
     alt = f"mean_{metric}"
     if alt in entry:
         return entry.get(alt)
+
     rows = entry.get("per_query") or []
-    vals = [
-        r.get(metric) for r in rows
-        if r.get(metric) is not None and r.get("pred_rows", 0) >= 0 and r.get("gold_rows", 0) >= 0
-    ]
+    vals: list[float] = []
+    for r in rows:
+        val = r.get(metric)
+        if val is None:
+            continue
+        if r.get("pred_rows", 0) < 0 or r.get("gold_rows", 0) < 0:
+            continue
+        if r.get("pred_rows", 0) == 0 and r.get("gold_rows", 0) > 0:
+            continue
+        val = float(val)
+        if (
+            metric == "mean_relative_error_pct"
+            and max_relative_error_pct is not None
+            and val > max_relative_error_pct
+        ):
+            continue
+        vals.append(val)
     if not vals:
         return None
     return sum(vals) / len(vals)
@@ -57,16 +88,13 @@ def main() -> None:
     if not per_config:
         raise SystemExit("No 'per_config' block found.")
 
+    max_rel_err = (
+        args.max_relative_error_pct if args.metric == "mean_relative_error_pct" else None
+    )
     rows = []
     for cid, entry in per_config.items():
-        val = _config_metric(entry, metric=args.metric)
+        val = _config_metric(entry, metric=args.metric, max_relative_error_pct=max_rel_err)
         if val is None:
-            continue
-        if (
-            args.max_relative_error_pct is not None
-            and args.metric == "mean_relative_error_pct"
-            and val > args.max_relative_error_pct
-        ):
             continue
         rows.append((cid, val))
 

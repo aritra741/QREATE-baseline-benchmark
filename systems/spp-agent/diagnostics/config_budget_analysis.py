@@ -60,15 +60,51 @@ def _load(results_file: Path) -> tuple[dict, dict]:
     return per_config, manifest
 
 
-def _config_accuracy(entry: dict, *, metric: str) -> float | None:
+def _config_accuracy(
+    entry: dict,
+    *,
+    metric: str,
+    max_relative_error_pct: float | None = None,
+) -> float | None:
+    """Mean of the metric across this config's per_query rows.
+
+    Rows are excluded if pred_rows/gold_rows < 0 (the evaluator raised an
+    exception -- a fallback error sentinel, not a real score) or if the
+    query got 0 predicted rows while gold has rows (a total extraction/
+    alignment miss, scored as a 100%-error placeholder, not a genuine
+    numeric discrepancy). For mean_relative_error_pct, values above
+    max_relative_error_pct are also excluded (near-zero gold denominators
+    make relative error blow up to an uninformative extreme).
+
+    Precomputed aggregate fields on the entry (e.g. mean_macro_f1 from
+    _summarize_per_config) are already filtered upstream and used directly
+    when present; there is currently no precomputed mean_relative_error_pct
+    aggregate, so it always goes through this per-row path.
+    """
     if metric in entry:
         return entry.get(metric)
-    # per-query aggregate fallbacks (e.g. mean_macro_f1 computed by _summarize_per_config)
     alt = f"mean_{metric}"
     if alt in entry:
         return entry.get(alt)
+
     rows = entry.get("per_query") or []
-    vals = [r.get(metric) for r in rows if r.get(metric) is not None]
+    vals: list[float] = []
+    for r in rows:
+        val = r.get(metric)
+        if val is None:
+            continue
+        if r.get("pred_rows", 0) < 0 or r.get("gold_rows", 0) < 0:
+            continue
+        if r.get("pred_rows", 0) == 0 and r.get("gold_rows", 0) > 0:
+            continue
+        val = float(val)
+        if (
+            metric == "mean_relative_error_pct"
+            and max_relative_error_pct is not None
+            and val > max_relative_error_pct
+        ):
+            continue
+        vals.append(val)
     if not vals:
         return None
     return sum(vals) / len(vals)
@@ -117,6 +153,14 @@ def main() -> None:
                          "(lower=better).")
     ap.add_argument("--budget-steps", type=int, default=10,
                     help="Number of simulated budget caps between min and max cost.")
+    ap.add_argument("--max-relative-error-pct", type=float, default=200.0,
+                    help="For --metric mean_relative_error_pct, exclude "
+                         "(config, query) rows whose value exceeds this cap "
+                         "before averaging, and exclude rows where the "
+                         "evaluator errored (pred_rows/gold_rows < 0) or "
+                         "totally missed (pred_rows=0, gold_rows>0). Set to "
+                         "a large number (e.g. 1e12) to disable the cap "
+                         "(row-level error/miss filtering still applies).")
     ap.add_argument("--include-extraction-cost", action="store_true",
                     help="Add the fixed, one-time shared extraction token cost "
                          "into each config's total cost. Default: off -- rank "
@@ -141,10 +185,13 @@ def main() -> None:
     extraction_token_cost = float(manifest.get("extraction_token_cost", 0.0) or 0.0)
     fixed_cost = extraction_token_cost if args.include_extraction_cost else 0.0
 
+    max_rel_err = (
+        args.max_relative_error_pct if args.metric == "mean_relative_error_pct" else None
+    )
     rows: list[tuple[str, float, float, float, int]] = []  # cid, cost, acc, pop_cost, pop_calls
     missing_acc = 0
     for cid, entry in per_config.items():
-        acc = _config_accuracy(entry, metric=args.metric)
+        acc = _config_accuracy(entry, metric=args.metric, max_relative_error_pct=max_rel_err)
         if acc is None:
             missing_acc += 1
             continue
