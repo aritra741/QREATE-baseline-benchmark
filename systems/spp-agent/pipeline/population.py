@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 import re
+import threading
 from collections import Counter
 from dataclasses import dataclass
 
@@ -18,16 +19,25 @@ from utils.logging import setup_logger
 logger = setup_logger("spp.population")
 
 _EMBEDDER = None
+_EMBEDDER_LOCK = threading.Lock()
 
 
 def _get_embedder():
+    """Lazily load the shared sentence-transformer embedder exactly once.
+
+    Guarded by a lock so parallel config materialization (pipeline.max_workers
+    > 1, one worker thread per config) doesn't race on the None check and
+    each thread load its own separate copy of the model into memory.
+    """
     global _EMBEDDER
     if _EMBEDDER is None:
-        logger.info("Loading sentence-transformer embedder all-MiniLM-L6-v2")
-        from sentence_transformers import SentenceTransformer
+        with _EMBEDDER_LOCK:
+            if _EMBEDDER is None:
+                logger.info("Loading sentence-transformer embedder all-MiniLM-L6-v2")
+                from sentence_transformers import SentenceTransformer
 
-        _EMBEDDER = SentenceTransformer("all-MiniLM-L6-v2")
-        logger.info("Embedder loaded")
+                _EMBEDDER = SentenceTransformer("all-MiniLM-L6-v2")
+                logger.info("Embedder loaded")
     return _EMBEDDER
 
 
