@@ -70,9 +70,14 @@ def main() -> None:
                     help="'mean_relative_error_pct' (lower=better, aggregation "
                          "queries) or 'macro_f1' (higher=better).")
     ap.add_argument("--top", type=int, default=20)
-    ap.add_argument("--max-relative-error-pct", type=float, default=None,
-                    help="Exclude configs whose mean value exceeds this cap "
-                         "(filters degenerate near-zero-denominator blowups).")
+    ap.add_argument("--max-relative-error-pct", type=float, default=200.0,
+                    help="For --metric mean_relative_error_pct, exclude "
+                         "(config, query) rows whose value exceeds this cap "
+                         "before averaging (filters degenerate near-zero-"
+                         "denominator blowups). Set to a large number "
+                         "(e.g. 1e12) to disable. Default: 200, matching "
+                         "config_budget_analysis.py and "
+                         "per_query_winner_intersection.py.")
     args = ap.parse_args()
 
     results_file = args.results_file
