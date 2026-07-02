@@ -432,15 +432,28 @@ def materialize_database(
     schema,
     *,
     extraction_model: str,
-) -> tuple[dict, PopulationDiagnostics, float, int]:
+) -> tuple[dict, PopulationDiagnostics, float, int, int]:
     """Materialize a config's database and report population-step LLM spend.
 
-    Returns (db, diagnostics, population_token_cost, population_llm_calls).
-    population_token_cost/calls capture only LLM-backed population steps
+    Returns (db, diagnostics, population_token_cost, population_llm_calls,
+    population_cache_hit_calls).
+
+    population_token_cost/calls capture LLM-backed population steps
     (norm_llm, miss_llm, coerce_llm, er_llm, ...) for this specific config;
-    non-LLM configs (dictionary/embedding/heuristic strategies) will report 0.
+    non-LLM configs (dictionary/embedding/heuristic strategies) always report 0.
+
+    The on-disk value cache (llm_output_cache.py) is shared across ALL
+    datasets/runs, so a repeat run of the same LLM-backed config may spend 0
+    *real* tokens this run (cache hit). To keep the reported cost meaningful
+    for budget analysis ("what would this config cost from scratch"), cache
+    hits are attributed an *estimated* token cost via the same heuristic
+    tokenizer fallback used when API usage is unavailable
+    (llm.client.estimate_tokens), rather than being silently reported as free.
+    population_cache_hit_calls counts how many of population_llm_calls were
+    served from cache (estimated) vs. real API calls (measured).
     """
     from pipeline.llm_steps import (
+        get_llm_cache_hit_count,
         get_llm_call_count,
         get_llm_token_accumulator,
         reset_llm_token_accumulator,
@@ -455,7 +468,8 @@ def materialize_database(
     )
     population_token_cost = get_llm_token_accumulator()
     population_llm_calls = get_llm_call_count()
-    return db, diagnostics, population_token_cost, population_llm_calls
+    population_cache_hit_calls = get_llm_cache_hit_count()
+    return db, diagnostics, population_token_cost, population_llm_calls, population_cache_hit_calls
 
 
 def _category_error_report_path(output_dir: Path) -> Path:
@@ -767,7 +781,7 @@ def run_config_grid(
                 materialize_sec = 0.0
             else:
                 config_t0 = time.perf_counter()
-                db, diagnostics, pop_token_cost, pop_llm_calls = materialize_database(
+                db, diagnostics, pop_token_cost, pop_llm_calls, pop_cache_hits = materialize_database(
                     extraction, config, instance.schema, extraction_model=extraction_model,
                 )
                 materialize_sec = time.perf_counter() - config_t0
@@ -775,6 +789,7 @@ def run_config_grid(
                 entry["materialize_seconds"] = round(materialize_sec, 3)
                 entry["population_token_cost"] = pop_token_cost
                 entry["population_llm_calls"] = pop_llm_calls
+                entry["population_cache_hit_calls"] = pop_cache_hits
             eval_t0 = time.perf_counter()
             per_query = evaluate_queries_on_db(
                 instance, db, test_queries, settings=settings, parser=parser, attributes=attributes,
@@ -798,7 +813,7 @@ def run_config_grid(
 
         logger.info("[%d/%d] materializing %s", idx, n_total, cid)
         config_t0 = time.perf_counter()
-        db, diagnostics, pop_token_cost, pop_llm_calls = materialize_database(
+        db, diagnostics, pop_token_cost, pop_llm_calls, pop_cache_hits = materialize_database(
             extraction, config, instance.schema, extraction_model=extraction_model,
         )
         materialize_sec = time.perf_counter() - config_t0
@@ -815,6 +830,7 @@ def run_config_grid(
             "materialize_seconds": round(materialize_sec, 3),
             "population_token_cost": pop_token_cost,
             "population_llm_calls": pop_llm_calls,
+            "population_cache_hit_calls": pop_cache_hits,
         }
         if saved_db_path is not None:
             entry["database_path"] = saved_db_path

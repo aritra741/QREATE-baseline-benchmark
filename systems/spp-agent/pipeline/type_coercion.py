@@ -217,21 +217,22 @@ def _llm_parse_mapping(
     import json
 
     from pipeline.llm_output_cache import cache_key, get_cached_json, put_cached_json
-    from pipeline.llm_steps import llm_json_call
+    from pipeline.llm_steps import llm_json_call, record_cache_hit_estimate
 
     unique = sorted({v for v in values if v.strip()})
     if not unique:
         return {}
     key = cache_key(model_name, "coerce", table, col, dtype, unique)
-    cached = get_cached_json("coerce", key)
-    if isinstance(cached, dict):
-        return cached
-
     prompt = (
         f"Parse values for {table}.{col} as SQL type {dtype}. "
         "Return JSON mapping each original string to a parsed number or null.\n"
         f"Values: {json.dumps(unique[:100], ensure_ascii=False)}"
     )
+    cached = get_cached_json("coerce", key)
+    if isinstance(cached, dict):
+        record_cache_hit_estimate(prompt, model_name)
+        return cached
+
     mapping = llm_json_call(model_name, prompt) or {}
     put_cached_json("coerce", key, mapping)
     return mapping

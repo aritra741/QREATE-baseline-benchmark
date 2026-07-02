@@ -100,22 +100,24 @@ def _column_mode_value(series: pd.Series) -> object | None:
 
 
 def _llm_normalize_values(values: list[str], model_name: str) -> dict[str, str]:
-    from pipeline.llm_steps import llm_json_call
+    from pipeline.llm_steps import llm_json_call, record_cache_hit_estimate
     from pipeline.llm_output_cache import get_norm_mapping, put_norm_mapping
 
     unique = sorted({v for v in values if isinstance(v, str) and v.strip()})
     if not unique:
         return {}
 
-    cached = get_norm_mapping(model_name, unique)
-    if cached is not None:
-        return cached
-
     prompt = (
         "Normalize each string to a canonical form (lowercase, trimmed, collapsed whitespace). "
         "Return JSON mapping original -> normalized.\n"
         f"Values: {json_dumps_safe(unique[:100])}"
     )
+
+    cached = get_norm_mapping(model_name, unique)
+    if cached is not None:
+        record_cache_hit_estimate(prompt, model_name)
+        return cached
+
     mapping = llm_json_call(model_name, prompt)
     if mapping is not None:
         result = {str(k): str(v) for k, v in mapping.items()}
@@ -127,22 +129,23 @@ def _llm_normalize_values(values: list[str], model_name: str) -> dict[str, str]:
 
 
 def _llm_entity_mapping(values: list[str], model_name: str) -> dict[str, str]:
-    from pipeline.llm_steps import llm_json_call
+    from pipeline.llm_steps import llm_json_call, record_cache_hit_estimate
     from pipeline.llm_output_cache import cache_key, get_cached_json, put_cached_json
 
     unique = sorted({v for v in values if isinstance(v, str) and v.strip()})
     if not unique:
         return {}
     key = cache_key(model_name, "er", unique)
-    cached = get_cached_json("er", key)
-    if isinstance(cached, dict):
-        return {str(k): str(v) for k, v in cached.items()}
-
     prompt = (
         "Cluster synonymous entity names. Return JSON mapping each original name "
         "to a canonical form.\n"
         f"Values: {json_dumps_safe(unique[:100])}"
     )
+    cached = get_cached_json("er", key)
+    if isinstance(cached, dict):
+        record_cache_hit_estimate(prompt, model_name)
+        return {str(k): str(v) for k, v in cached.items()}
+
     mapping = llm_json_call(model_name, prompt)
     if mapping is not None:
         result = {str(k): str(v) for k, v in mapping.items()}
@@ -236,14 +239,18 @@ def _apply_llm_imputation(
 
         dtype = col_types.get(col, "str")
         key = cache_key(model_name, "miss", table, col, dtype, rows_payload)
+        prompt = (
+            f"Impute missing values for table {table}, column {col} (type {dtype}).\n"
+            f"Rows: {json_dumps_safe(rows_payload[:80])}\n"
+            f"Missing row indices: {missing_idx}\n"
+            "Return JSON mapping row index (as string) -> imputed value."
+        )
         cached = get_cached_json("miss", key)
-        if not isinstance(cached, dict):
-            prompt = (
-                f"Impute missing values for table {table}, column {col} (type {dtype}).\n"
-                f"Rows: {json_dumps_safe(rows_payload[:80])}\n"
-                f"Missing row indices: {missing_idx}\n"
-                "Return JSON mapping row index (as string) -> imputed value."
-            )
+        if isinstance(cached, dict):
+            from pipeline.llm_steps import record_cache_hit_estimate
+
+            record_cache_hit_estimate(prompt, model_name)
+        else:
             cached = llm_json_call(model_name, prompt) or {}
             put_cached_json("miss", key, cached)
 
