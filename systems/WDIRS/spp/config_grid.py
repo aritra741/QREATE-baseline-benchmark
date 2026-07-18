@@ -38,13 +38,27 @@ FUZZY_THRESHOLD = 0.85
 # ============================================================================
 
 def _build_in_memory_db(tables: Dict[str, List[Dict[str, Any]]]) -> sqlite3.Connection:
+    """Build a throwaway in-memory SQLite DB from populated/ground-truth rows.
+
+    IMPORTANT: columns are declared NUMERIC (not TEXT). SQLite's TEXT
+    affinity forces every inserted value -- including numeric-looking
+    extraction output like "37" or 91.0 -- into TEXT storage class, and
+    SQLite's cross-type ordering rule (INTEGER/REAL always < TEXT) then
+    makes ANY numeric WHERE/GROUP BY/aggregate comparison ("age > 91",
+    "MIN(olympic_gold_medals)") silently wrong, identically so across every
+    PopulationConfig (since the bug is in this diagnostic's SQL layer, not
+    in population/config choice). NUMERIC affinity instead auto-coerces
+    values that look numeric into INTEGER/REAL storage class on insert,
+    while leaving genuinely non-numeric text (names, colleges, etc.)
+    unaffected, so both kinds of comparisons behave correctly.
+    """
     conn = sqlite3.connect(":memory:")
     cursor = conn.cursor()
     for table_name, rows in tables.items():
         if not rows:
             continue
         columns = sorted({k for row in rows for k in row.keys()})
-        col_defs = ", ".join(f'"{c}" TEXT' for c in columns)
+        col_defs = ", ".join(f'"{c}" NUMERIC' for c in columns)
         cursor.execute(f'CREATE TABLE "{table_name}" ({col_defs})')
         placeholders = ", ".join("?" for _ in columns)
         for row in rows:
