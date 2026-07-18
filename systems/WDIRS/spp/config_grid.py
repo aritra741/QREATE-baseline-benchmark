@@ -177,9 +177,12 @@ def run_config_grid(
             per_query_rows.append(
                 {
                     "query_id": qid,
+                    "sql": sql,
+                    "tables_used": needed_tables,
                     "query_error": err,
                     "gold_rows": len(gt_rows),
                     "pred_rows": len(pred_rows),
+                    "populated_table_sizes": {t: len(populated_tables.get(t, [])) for t in needed_tables},
                 }
             )
 
