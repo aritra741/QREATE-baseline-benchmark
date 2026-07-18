@@ -124,6 +124,29 @@ def main() -> None:
     )
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument(
+        "--test-on-full-workload",
+        action="store_true",
+        default=True,
+        help=(
+            "Score the config grid against ALL queries (matching "
+            "evaluate_player.py's own 80%%-train/100%%-test convention), not "
+            "just the held-out test split. WDIRS's schema is discovered "
+            "entirely from the TRAIN split, so any workload column referenced "
+            "only by a held-out query is never extracted -- causing "
+            "'no such column' failures that are IDENTICAL across every "
+            "PopulationConfig and get misread as config-insensitivity. "
+            "Testing on the full workload maximizes schema coverage. "
+            "Use --no-test-on-full-workload to fall back to strict held-out "
+            "scoring (smaller, cleaner generalization test, but with schema "
+            "coverage gaps on any train-fraction < 1.0)."
+        ),
+    )
+    parser.add_argument(
+        "--no-test-on-full-workload",
+        dest="test_on_full_workload",
+        action="store_false",
+    )
+    parser.add_argument(
         "--token-budget",
         type=float,
         default=172400,
@@ -167,13 +190,30 @@ def main() -> None:
     random.seed(args.seed)
     random.shuffle(all_query_strings)
 
-    n_train = int(len(all_query_strings) * args.train_fraction)
-    train_queries = all_query_strings[:n_train]
-    test_queries = all_query_strings[n_train:]
+    if args.test_on_full_workload:
+        # This diagnostic measures config sensitivity given best-effort
+        # extraction, not extraction generalization (Phase 5's evaluation
+        # harness is where held-out generalization matters and is properly
+        # ground-truth-firewalled). So maximize schema coverage by feeding
+        # every query to preprocess() -- otherwise any column referenced
+        # only outside the train split is never extracted, producing
+        # config-INDEPENDENT "no such column" failures that get misread as
+        # config-insensitivity.
+        train_queries = all_query_strings
+    else:
+        n_train = int(len(all_query_strings) * args.train_fraction)
+        train_queries = all_query_strings[:n_train]
+    test_queries = all_query_strings if args.test_on_full_workload else all_query_strings[len(train_queries):]
     if args.max_test_queries and len(test_queries) > args.max_test_queries:
-        test_queries = test_queries[: args.max_test_queries]
+        # Sample rather than truncate so the scored set isn't biased toward
+        # whatever happened to sort first after the shuffle.
+        test_queries = random.sample(test_queries, args.max_test_queries)
 
-    print(f"  total={len(all_query_strings)} train={len(train_queries)} test(scored)={len(test_queries)}")
+    print(
+        f"  total={len(all_query_strings)} train={len(train_queries)} "
+        f"test(scored)={len(test_queries)} "
+        f"(full-workload-test={args.test_on_full_workload})"
+    )
 
     print("\n[3/5] Running WDIRS preprocessing (shared extraction; this is the expensive step)...")
     from wdirs_runner import WDIRSRunner

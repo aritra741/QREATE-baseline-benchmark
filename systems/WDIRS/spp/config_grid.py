@@ -74,7 +74,10 @@ def _execute_sql(conn: sqlite3.Connection, query: str) -> List[Dict[str, Any]]:
         cursor.execute(query)
         columns = [d[0] for d in cursor.description]
         return [dict(zip(columns, row)) for row in cursor.fetchall()]
-    except Exception:
+    except Exception as exc:
+        import logging as _logging
+
+        _logging.getLogger(__name__).warning("SQL execution failed for %r: %s", query, exc)
         return []
 
 
