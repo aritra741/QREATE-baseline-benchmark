@@ -194,7 +194,11 @@ def main() -> None:
 
     print("\n[4/5] Running config grid over Pop(T,s) space (token-budget-gated)...")
     from spp.population_config import generate_config_space
-    from spp.config_grid import run_config_grid, build_viable_config_search_space
+    from spp.config_grid import (
+        run_config_grid,
+        build_viable_config_search_space,
+        summarize_query_sensitivity,
+    )
     from spp.routing import TokenBudget, estimate_config_marginal_cost
 
     full_config_space = generate_config_space()
@@ -237,6 +241,7 @@ def main() -> None:
     print(f"  grid complete in {grid_time:.1f}s")
 
     viable = build_viable_config_search_space(grid)
+    sensitivity = summarize_query_sensitivity(grid)
 
     print("\n[5/5] Writing results...")
     grid_json = {
@@ -260,13 +265,28 @@ def main() -> None:
     viable["token_spent"] = budget.spent
     viable["unbudgeted_full_config_space_size"] = len(full_config_space)
     (out_dir / "viable_config_search_space.json").write_text(json.dumps(viable, indent=2))
+    (out_dir / "query_sensitivity.json").write_text(json.dumps(sensitivity, indent=2))
 
     print(f"\nWrote {out_dir / 'config_grid_results.json'}")
     print(f"Wrote {out_dir / 'viable_config_search_space.json'}")
+    print(f"Wrote {out_dir / 'query_sensitivity.json'}")
     print(
         f"\never_optimal={viable['n_ever_optimal']}/{viable['n_evaluated_configs']} "
         f"({viable['ever_optimal_fraction_of_evaluated']:.1%})"
     )
+    print(
+        f"config-sensitive queries: {sensitivity['n_config_sensitive']}/{sensitivity['n_queries']} "
+        f"(the rest are flat across ALL evaluated configs -- almost always an "
+        f"extraction-quality ceiling/floor, not a real config-irrelevance finding)"
+    )
+    if sensitivity["n_config_insensitive"]:
+        print("\nConfig-insensitive queries (identical error for every config):")
+        for q in sensitivity["config_insensitive_queries"][:10]:
+            print(
+                f"  {q['query_id']} err={q['min_error']:.3f} gold_rows={q['gold_rows']} "
+                f"pred_rows_range={q['pred_rows_range']} tables={q['tables_used']}"
+            )
+            print(f"    sql: {q['sql']}")
     print(
         "\nCompare against spp-agent's own report at:\n"
         f"  systems/spp-agent/results/{args.dataset}/config_grid_test_{args.dataset}/viable_config_search_space.json"

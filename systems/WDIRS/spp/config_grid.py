@@ -199,6 +199,71 @@ def run_config_grid(
 # Viable-config-search-space report (matches spp-agent's report shape)
 # ============================================================================
 
+def summarize_query_sensitivity(
+    grid: ConfigGridResult, *, tie_epsilon: float = 1e-9
+) -> Dict[str, Any]:
+    """Classify each query as config-sensitive (its error varies across the
+    evaluated config space) or config-insensitive (identical error for
+    every config -- usually a sign of an extraction-quality floor/ceiling
+    that no PopulationConfig axis can move, e.g. a WHERE-value the base
+    extraction never got right, or a JOIN whose keys never align, rather
+    than a real "config doesn't matter" finding).
+
+    This is diagnostic-only: it's what makes a flat `ever_optimal` fraction
+    (e.g. 100%) interpretable instead of mysterious.
+    """
+    per_config = grid.per_config
+    config_ids = list(per_config.keys())
+    if not config_ids:
+        return {"n_queries": 0, "n_config_sensitive": 0, "n_config_insensitive": 0, "queries": []}
+
+    by_query: Dict[str, List[Dict[str, Any]]] = {}
+    for cid in config_ids:
+        for row in per_config[cid].get("per_query", []):
+            by_query.setdefault(row["query_id"], []).append({**row, "config_id": cid})
+
+    sensitive: List[Dict[str, Any]] = []
+    insensitive: List[Dict[str, Any]] = []
+    for qid, rows in by_query.items():
+        errors = [r["query_error"] for r in rows if r["query_error"] is not None]
+        if not errors:
+            continue
+        spread = max(errors) - min(errors)
+        sample = rows[0]
+        summary = {
+            "query_id": qid,
+            "sql": sample.get("sql"),
+            "tables_used": sample.get("tables_used"),
+            "gold_rows": sample.get("gold_rows"),
+            "error_spread": spread,
+            "min_error": min(errors),
+            "max_error": max(errors),
+            "pred_rows_range": [
+                min(r["pred_rows"] for r in rows),
+                max(r["pred_rows"] for r in rows),
+            ],
+        }
+        if spread <= tie_epsilon:
+            insensitive.append(summary)
+        else:
+            sensitive.append(summary)
+
+    return {
+        "n_queries": len(by_query),
+        "n_config_sensitive": len(sensitive),
+        "n_config_insensitive": len(insensitive),
+        "config_sensitive_queries": sorted(sensitive, key=lambda s: -s["error_spread"]),
+        "config_insensitive_queries": insensitive,
+        "note": (
+            "config_insensitive_queries had IDENTICAL error across every evaluated "
+            "config -- almost always an extraction-quality ceiling/floor (wrong "
+            "extracted value, unmatched join key, etc.), not evidence that the "
+            "Pop(T,s) axes are irrelevant for that query. Only "
+            "config_sensitive_queries carry signal about which axes matter."
+        ),
+    }
+
+
 def build_viable_config_search_space(grid: ConfigGridResult, *, tie_epsilon: float = 1e-9) -> Dict[str, Any]:
     """For each query, find the tied-best (lowest query_error) config(s).
     A config is "ever_optimal" if it is tied-best for at least one query.
