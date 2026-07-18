@@ -277,7 +277,24 @@ def apply_population(
                     diag.n_unit_parse_failures += 1
 
     # --- 4. Missing-value handling ---------------------------------------------
-    fill_columns = numeric_columns or list(all_columns)
+    # Never treat bookkeeping columns as data. When no semantic-type-derived
+    # numeric_columns are available, DON'T fall back to every column
+    # indiscriminately -- a single sparse-but-optional metadata column (e.g.
+    # "fiba_world_cup", present on ~10% of players) would otherwise cause
+    # miss_strategy="drop" to listwise-delete almost every row, even ones
+    # that are complete on every column the workload actually queries. Only
+    # columns that are populated in a majority of rows are eligible for
+    # "drop"/fill; the rest are left untouched.
+    _BOOKKEEPING_COLUMNS = {"row_id", "created_at", "updated_at"}
+    candidate_columns = [c for c in all_columns if c not in _BOOKKEEPING_COLUMNS]
+    if numeric_columns:
+        fill_columns = numeric_columns
+    else:
+        n_rows = max(len(working), 1)
+        fill_columns = [
+            c for c in candidate_columns
+            if sum(1 for r in working if r.get(c) in (None, "")) / n_rows <= 0.5
+        ] or candidate_columns
     missing_before = sum(
         1 for row in working for c in fill_columns if row.get(c) in (None, "")
     )
