@@ -2466,6 +2466,40 @@ class WDIRSRunner:
     # Utility Methods
     # ========================================================================
     
+    # ========================================================================
+    # SPP Phase 1: Population config replay (non-invasive; reads existing
+    # materialized records, applies spp/population.py, returns a NEW record
+    # list. Does not mutate the canonical single-config DB, and never
+    # touches extraction/sieve/schema-stabilization.
+    # ========================================================================
+
+    def materialize_population_config(
+        self,
+        table_name: str,
+        population_config: "Any" = None,
+    ) -> "Tuple[List[Dict[str, Any]], Any]":
+        """Re-populate `table_name`'s already-extracted records under a
+        given `spp.population_config.PopulationConfig`, without touching the
+        canonical materialized table.
+
+        Returns (records, PopulationDiagnostics).
+        """
+        from spp.population_config import PopulationConfig
+        from spp.population import apply_population
+
+        config = population_config or PopulationConfig()
+
+        base_records = self.data_layer.get_all_records(table_name)
+        semantic_types = self.lattice_planner.get_table_schema(table_name)
+
+        return apply_population(
+            base_records,
+            config,
+            table_name=table_name,
+            column_semantic_types=semantic_types,
+            entity_resolver=self.entity_resolver,
+        )
+
     def get_statistics(self) -> Dict[str, Any]:
         """Get system statistics."""
         stats = {
