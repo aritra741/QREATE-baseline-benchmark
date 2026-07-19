@@ -6,13 +6,12 @@ from typing import Any
 import pyrate_limiter
 try:
     from pyrate_limiter import BucketFullException, LimiterDelayException
-except ImportError:
-    # Compatibility for pyrate-limiter versions where exceptions are not
-    # re-exported from the package root.
-    from pyrate_limiter.exceptions import (  # type: ignore
-        BucketFullException,
-        LimiterDelayException,
-    )
+except ImportError as exc:
+    raise ImportError(
+        "DocETL requires pyrate-limiter >=3.7,<4. Version 4 removed the "
+        "BucketFullException and LimiterDelayException APIs. Reinstall this "
+        "project's dependencies or run: pip install 'pyrate-limiter>=3.7,<4'"
+    ) from exc
 from rich.console import Console
 
 from docetl.console import get_console

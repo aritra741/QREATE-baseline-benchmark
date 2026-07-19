@@ -18,7 +18,9 @@ dependencies = [
   "typer>=0.16.0",
   "asteval>=1.0.4",
   "scikit-learn>=1.5.2",
-  "pyrate-limiter>=3.7.0",
+  # DocETL uses the 3.x BucketFactory/max_delay and exception APIs.
+  # pyrate-limiter 4 removed BucketFullException and LimiterDelayException.
+  "pyrate-limiter>=3.7.0,<4.0.0",
   "jsonschema>=4.23.0",
   "rapidfuzz>=3.10.0",
   "websockets>=13.1",
