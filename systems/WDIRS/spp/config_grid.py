@@ -160,6 +160,11 @@ def official_query_error(
     attributes: Mapping[str, Mapping[str, Mapping[str, Any]]],
 ) -> float:
     """Compute 1 - official UDA-Bench column macro-F1 without evaluator LLMs."""
+    # Macro-F1 is undefined on two empty frames, but query-answer correctness
+    # is not: predicting no rows for a genuinely empty gold result is exact.
+    if not gt_rows:
+        return 0.0 if not pred_rows else 1.0
+
     import pandas as pd
 
     project_root = Path(__file__).resolve().parents[3]
@@ -470,6 +475,8 @@ def build_viable_config_search_space(grid: ConfigGridResult, *, tie_epsilon: flo
 
     ever_optimal_all_queries: set = set()
     ever_optimal: set = set()
+    strictly_optimal: set = set()
+    discriminative_query_ids: List[str] = []
     n_discriminative_queries = 0
     for qid in query_ids:
         errors_by_config: Dict[str, float] = {}
@@ -491,9 +498,38 @@ def build_viable_config_search_space(grid: ConfigGridResult, *, tie_epsilon: flo
         ever_optimal_all_queries.update(best_ids)
         if max(errors_by_config.values()) - min(errors_by_config.values()) > tie_epsilon:
             n_discriminative_queries += 1
+            discriminative_query_ids.append(qid)
             ever_optimal.update(best_ids)
+            if len(best_ids) == 1:
+                strictly_optimal.update(best_ids)
 
     never_optimal = [cid for cid in config_ids if cid not in ever_optimal]
+    profile_groups: Dict[tuple, List[str]] = {}
+    for cid in config_ids:
+        rows_by_qid = {
+            row["query_id"]: row.get("query_error")
+            for row in per_config[cid].get("per_query", [])
+        }
+        profile = tuple(
+            None
+            if rows_by_qid.get(qid) is None
+            else round(float(rows_by_qid[qid]), 12)
+            for qid in discriminative_query_ids
+        )
+        profile_groups.setdefault(profile, []).append(cid)
+    equivalent_groups = [
+        sorted(group)
+        for group in profile_groups.values()
+        if len(group) > 1
+    ]
+    optimal_profile_groups = [
+        sorted(group)
+        for group in profile_groups.values()
+        if any(cid in ever_optimal for cid in group)
+    ]
+    representative_optimal_ids = sorted(
+        group[0] for group in optimal_profile_groups
+    )
 
     return {
         "report_type": "viable_config_search_space",
@@ -502,6 +538,8 @@ def build_viable_config_search_space(grid: ConfigGridResult, *, tie_epsilon: flo
         "n_queries": len(query_ids),
         "n_discriminative_queries": n_discriminative_queries,
         "n_ever_optimal": len(ever_optimal),
+        "n_strictly_optimal": len(strictly_optimal),
+        "strictly_optimal_config_ids": sorted(strictly_optimal),
         "n_never_optimal": len(never_optimal),
         "ever_optimal_fraction_of_evaluated": (
             len(ever_optimal) / len(config_ids) if config_ids else 0.0
@@ -512,6 +550,10 @@ def build_viable_config_search_space(grid: ConfigGridResult, *, tie_epsilon: flo
             ever_optimal_all_queries
         ),
         "never_optimal_config_ids": sorted(never_optimal),
+        "n_behaviorally_distinct_error_profiles": len(profile_groups),
+        "n_ever_optimal_error_profiles": len(optimal_profile_groups),
+        "representative_ever_optimal_config_ids": representative_optimal_ids,
+        "equivalent_config_groups": equivalent_groups,
         "pruning_note": (
             "Primary ever/never-optimal counts use only config-sensitive queries. "
             "Flat queries are excluded because one flat query makes every config "
@@ -519,6 +561,8 @@ def build_viable_config_search_space(grid: ConfigGridResult, *, tie_epsilon: flo
             "never_optimal_config_ids never appear in a tied-best set for any "
             "sensitive scored query on THIS WDIRS-extraction run; compare against "
             "spp-agent's own viable_config_search_space.json to see whether "
-            "extraction quality changes which configs are prunable."
+            "extraction quality changes which configs are prunable. Configs in "
+            "an equivalent_config_group have identical error vectors on every "
+            "sensitive query and can be represented by one member for this run."
         ),
     }

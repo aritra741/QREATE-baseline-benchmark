@@ -20,6 +20,7 @@ from spp.population_config import (
     generate_config_space,
     parse_config_id,
 )
+from diagnostics.run_config_grid import load_ground_truth
 
 
 def test_full_population_space_includes_type_coercion_axis():
@@ -131,6 +132,7 @@ def test_flat_queries_do_not_make_every_config_ever_optimal():
     report = build_viable_config_search_space(grid)
     assert report["ever_optimal_config_ids"] == ["a"]
     assert report["n_ever_optimal_including_flat_queries"] == 2
+    assert report["n_behaviorally_distinct_error_profiles"] == 2
 
 
 def test_official_query_error_uses_column_macro_f1():
@@ -146,3 +148,18 @@ def test_official_query_error_uses_column_macro_f1():
     assert official_query_error(
         sql, gold, [{"name": "Alice", "age": 40}], attributes
     ) > 0.0
+    assert official_query_error(sql, [], [], attributes) == 0.0
+    assert official_query_error(sql, [], gold, attributes) == 1.0
+
+
+def test_player_ground_truth_is_trimmed_and_join_aligned():
+    ground_truth = load_ground_truth("Player")
+    conn = _build_in_memory_db(ground_truth)
+    rows = _execute_sql(
+        conn,
+        "SELECT COUNT(*) AS n FROM player "
+        "JOIN team ON player.team = team.team_name "
+        "JOIN owner ON team.ownership = owner.name",
+    )
+    conn.close()
+    assert rows[0]["n"] > 0

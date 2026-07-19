@@ -70,17 +70,49 @@ def _canonical_gt_table(dataset: str, stem: str) -> str:
 
 
 def load_ground_truth(dataset: str) -> Dict[str, List[dict]]:
-    """Load every CSV under Data/<dataset>/ as one ground-truth table."""
+    """Load and relationally normalize ground-truth CSV tables.
+
+    UDA-Bench CSVs contain padding whitespace and, for Player, owner aliases
+    across the declared team-owner relationship. Executing workload SQL on the
+    raw strings makes valid semantic joins return zero rows, so normalize the
+    evaluation database before any gold query is run.
+    """
     gt_dir = DATA_DIR / dataset
     ground_truth: Dict[str, List[dict]] = {}
     for csv_file in gt_dir.glob("*.csv"):
         table_name = _canonical_gt_table(dataset, csv_file.stem)
         with open(csv_file, "r", encoding="utf-8") as f:
-            rows = list(csv.DictReader(f))
+            rows = [
+                {
+                    str(key).strip(): (
+                        value.strip() if isinstance(value, str) else value
+                    )
+                    for key, value in row.items()
+                }
+                for row in csv.DictReader(f, skipinitialspace=True)
+            ]
         ground_truth[table_name] = rows
         print(f"  loaded {len(rows)} ground-truth rows for table '{table_name}'")
     if not ground_truth:
         raise FileNotFoundError(f"No ground-truth CSVs found under {gt_dir}")
+
+    if dataset.strip().lower() == "player":
+        # owner.nba_team is the declared clean relationship to team.team_name.
+        # Use it to canonicalize team.ownership to owner.name, which is the
+        # semantic join key used by the generated workload.
+        owner_by_team = {
+            row.get("nba_team"): row.get("name")
+            for row in ground_truth.get("owner", [])
+            if row.get("nba_team") and row.get("name")
+        }
+        n_aligned = 0
+        for team_row in ground_truth.get("team", []):
+            canonical_owner = owner_by_team.get(team_row.get("team_name"))
+            if canonical_owner and team_row.get("ownership") != canonical_owner:
+                team_row["ownership"] = canonical_owner
+                n_aligned += 1
+        print(f"  aligned {n_aligned} Player team-owner ground-truth keys")
+
     return ground_truth
 
 
@@ -442,9 +474,15 @@ def main() -> None:
         f"({viable['ever_optimal_fraction_of_evaluated']:.1%})"
     )
     print(
+        f"behaviorally distinct error profiles="
+        f"{viable['n_behaviorally_distinct_error_profiles']}; "
+        f"ever-optimal profiles={viable['n_ever_optimal_error_profiles']}; "
+        f"strictly-optimal configs={viable['n_strictly_optimal']}"
+    )
+    print(
         f"config-sensitive queries: {sensitivity['n_config_sensitive']}/{sensitivity['n_queries']} "
-        f"(the rest are flat across ALL evaluated configs -- almost always an "
-        f"extraction-quality ceiling/floor, not a real config-irrelevance finding)"
+        f"(flat queries may be stably correct, extraction-limited, or genuinely "
+        f"unaffected; they do not count toward config viability)"
     )
     if sensitivity["n_config_insensitive"]:
         print("\nConfig-insensitive queries (identical error for every config):")
