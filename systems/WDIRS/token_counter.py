@@ -30,6 +30,10 @@ from typing import Dict, Optional
 
 logger = logging.getLogger(__name__)
 
+
+class TokenBudgetExceeded(RuntimeError):
+    """Raised before an LLM call that could exceed the configured budget."""
+
 # ---------------------------------------------------------------------------
 # Qwen2.5-7B-Instruct tokenizer — loaded once, shared across all threads
 # ---------------------------------------------------------------------------
@@ -164,6 +168,7 @@ class TokenCounter:
         self.call_count: int = 0
         self.by_operation: Dict[str, _OperationStats] = {}
         self._start_time: float = time.time()
+        self._budget: Optional[int] = None
 
     # ------------------------------------------------------------------
     def record(
@@ -199,6 +204,37 @@ class TokenCounter:
     @property
     def total_tokens(self) -> int:
         return self.input_tokens + self.output_tokens
+
+    @property
+    def has_budget(self) -> bool:
+        with self._lock:
+            return self._budget is not None
+
+    def set_budget(self, additional_tokens: Optional[int]) -> None:
+        """Set a hard budget relative to current usage, or clear it with None."""
+        with self._lock:
+            self._budget = (
+                None
+                if additional_tokens is None
+                else self.input_tokens + self.output_tokens + int(additional_tokens)
+            )
+
+    def ensure_can_spend(self, input_tokens: int, max_output_tokens: int) -> None:
+        """Fail before dispatch when the call's worst case exceeds the budget."""
+        with self._lock:
+            if (
+                self._budget is not None
+                and self.input_tokens
+                + self.output_tokens
+                + input_tokens
+                + max_output_tokens
+                > self._budget
+            ):
+                remaining = self._budget - self.input_tokens - self.output_tokens
+                raise TokenBudgetExceeded(
+                    f"LLM token budget exhausted: remaining={remaining}, "
+                    f"call_upper_bound={input_tokens + max_output_tokens}"
+                )
 
     # ------------------------------------------------------------------
     def summary_dict(self) -> dict:
@@ -269,6 +305,7 @@ class TokenCounter:
             self.call_count = 0
             self.by_operation.clear()
             self._start_time = time.time()
+            self._budget = None
 
 
 # ---------------------------------------------------------------------------

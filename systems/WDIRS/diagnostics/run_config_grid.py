@@ -2,7 +2,7 @@
 """
 Phase 2 driver: run the SPP config grid against WDIRS-quality extraction.
 
-Intended to run on a machine with Postgres + Ollama (e.g. HPC with
+Intended to run on a machine with SQLite + Ollama (e.g. HPC with
 qwen2.5:7b-instruct). Steps:
 
   1. Preprocess the dataset ONCE with WDIRS (expensive: extraction, sieve
@@ -24,8 +24,7 @@ Usage:
         --max-test-queries 60 \\
         --out results/spp_config_grid_Player
 
-Requires Postgres running and reachable via WDIRS's config.py DB settings,
-and Ollama serving `OLLAMA_MODEL` (default qwen2.5:7b-instruct).
+Requires Ollama serving `OLLAMA_MODEL` (default qwen2.5:7b-instruct).
 """
 
 from __future__ import annotations
@@ -44,8 +43,30 @@ WDIRS_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(WDIRS_ROOT))
 
 PROJECT_ROOT = WDIRS_ROOT.parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
 DATA_DIR = PROJECT_ROOT / "Data"
 QUERY_DIR = PROJECT_ROOT / "Query"
+
+
+def _canonical_gt_table(dataset: str, stem: str) -> str:
+    key = dataset.strip().lower()
+    aliases = {
+        "finan": "finance",
+        "finance": "finance",
+        "art": "art",
+        "cspaper": "cspaper",
+        "legal": "legal",
+    }
+    if key in aliases:
+        return aliases[key]
+    med_aliases = {
+        "disease_small": "disease",
+        "drug_small": "drug",
+        "institutes_small": "institution",
+    }
+    if key in {"med", "medical", "healthcare"}:
+        return med_aliases.get(stem.lower(), stem.lower())
+    return stem.lower()
 
 
 def load_ground_truth(dataset: str) -> Dict[str, List[dict]]:
@@ -53,7 +74,7 @@ def load_ground_truth(dataset: str) -> Dict[str, List[dict]]:
     gt_dir = DATA_DIR / dataset
     ground_truth: Dict[str, List[dict]] = {}
     for csv_file in gt_dir.glob("*.csv"):
-        table_name = csv_file.stem.lower()
+        table_name = _canonical_gt_table(dataset, csv_file.stem)
         with open(csv_file, "r", encoding="utf-8") as f:
             rows = list(csv.DictReader(f))
         ground_truth[table_name] = rows
@@ -61,6 +82,19 @@ def load_ground_truth(dataset: str) -> Dict[str, List[dict]]:
     if not ground_truth:
         raise FileNotFoundError(f"No ground-truth CSVs found under {gt_dir}")
     return ground_truth
+
+
+def load_attributes(dataset: str) -> Dict[str, dict]:
+    attributes: Dict[str, dict] = {}
+    for path in sorted((QUERY_DIR / dataset).glob("*_attributes.json")):
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        for table, columns in payload.items():
+            attributes.setdefault(table, {}).update(columns)
+    if not attributes:
+        raise FileNotFoundError(
+            f"No *_attributes.json files found under {QUERY_DIR / dataset}"
+        )
+    return attributes
 
 
 def load_queries_from_sql_file(path: Path) -> List[str]:
@@ -151,12 +185,11 @@ def main() -> None:
         type=float,
         default=172400,
         help=(
-            "Total materialization token budget (WDIRS's own units from "
-            "spp.routing.estimate_config_marginal_cost). Only LLM-backed axes "
-            "(er=llm, norm=llm, miss=llm) cost anything; embedding/dictionary/"
-            "rule-based configs are free CPU-only replays. Configs whose "
-            "marginal cost would exceed the remaining budget are skipped and "
-            "reported separately, not silently dropped."
+            "Hard token budget for grid materialization. The precise Qwen "
+            "token counter rejects an LLM call before dispatch if its prompt "
+            "plus maximum output could exceed the remaining budget. A cheap "
+            "row-based estimate is also used to avoid starting configs that "
+            "obviously cannot fit."
         ),
     )
     parser.add_argument(
@@ -167,23 +200,43 @@ def main() -> None:
     parser.add_argument(
         "--db-path",
         default=None,
-        help="Override WDIRS_DB_PATH env var (sqlite/duckdb cache path used by WDIRS's data layer)",
+        help="Override the dataset-specific SQLite path used by WDIRS",
+    )
+    parser.add_argument(
+        "--reuse-db",
+        action="store_true",
+        help=(
+            "Reuse an existing diagnostic SQLite DB. By default the diagnostic "
+            "starts with a fresh DB while retaining schema-aware extraction "
+            "caches, preventing duplicate/stale materialized rows."
+        ),
     )
     args = parser.parse_args()
 
-    if args.db_path:
-        os.environ["WDIRS_DB_PATH"] = args.db_path
-    os.environ.setdefault("OLLAMA_MODEL", "qwen2.5:7b-instruct")
-
     out_dir = Path(args.out) if args.out else PROJECT_ROOT / "results" / f"spp_config_grid_{args.dataset}"
     out_dir.mkdir(parents=True, exist_ok=True)
+    using_default_db = args.db_path is None
+    db_path = Path(args.db_path) if args.db_path else out_dir / "wdirs_grid.db"
+    db_path = db_path.expanduser().resolve()
+    if db_path.exists() and not args.reuse_db:
+        if using_default_db:
+            db_path.unlink()
+        else:
+            parser.error(
+                f"--db-path already exists: {db_path}. Pass --reuse-db to "
+                "reuse it, or provide a fresh path."
+            )
+    os.environ["WDIRS_DB_PATH"] = str(db_path)
+    os.environ.setdefault("OLLAMA_MODEL", "qwen2.5:7b-instruct")
 
     print("=" * 80)
     print(f"SPP CONFIG GRID — dataset={args.dataset} model={os.environ['OLLAMA_MODEL']}")
+    print(f"SQLite DB: {db_path} ({'reused' if args.reuse_db else 'fresh'})")
     print("=" * 80)
 
     print("\n[1/5] Loading ground truth...")
     ground_truth = load_ground_truth(args.dataset)
+    attributes = load_attributes(args.dataset)
 
     print("\n[2/5] Loading queries...")
     all_query_strings = load_dataset_queries(args.dataset, args.query_subdirs)
@@ -215,17 +268,57 @@ def main() -> None:
         f"(full-workload-test={args.test_on_full_workload})"
     )
 
+    # Fail before the expensive extraction if any workload SQL is invalid for
+    # the ground-truth SQLite representation. Previously these errors were
+    # swallowed as empty result sets after hours of preprocessing.
+    from spp.config_grid import _build_in_memory_db, _execute_sql, SQLExecutionError
+
+    gt_validation_conn = _build_in_memory_db(ground_truth)
+    invalid_queries = []
+    for sql in all_query_strings:
+        try:
+            _execute_sql(gt_validation_conn, sql)
+        except SQLExecutionError as exc:
+            invalid_queries.append(str(exc))
+    gt_validation_conn.close()
+    if invalid_queries:
+        preview = "\n".join(f"  - {error}" for error in invalid_queries[:10])
+        raise RuntimeError(
+            f"{len(invalid_queries)} workload queries failed ground-truth SQL "
+            f"validation before extraction:\n{preview}"
+        )
+    print("  all workload queries passed ground-truth SQL validation")
+
     print("\n[3/5] Running WDIRS preprocessing (shared extraction; this is the expensive step)...")
     from wdirs_runner import WDIRSRunner
 
     t0 = time.time()
     runner = WDIRSRunner(args.dataset)
-    preprocess_result = runner.preprocess(workload_queries=train_queries)
+    preprocess_result = runner.preprocess(
+        workload_queries=train_queries,
+        perform_proactive_er=False,
+    )
     preprocess_time = time.time() - t0
 
     if not preprocess_result.success:
         print(f"PREPROCESSING FAILED: {preprocess_result.error}")
         sys.exit(1)
+
+    materialized_sql_errors = []
+    for sql in all_query_strings:
+        try:
+            runner.data_layer.execute_sql(sql)
+        except RuntimeError as exc:
+            materialized_sql_errors.append(str(exc))
+    if materialized_sql_errors:
+        preview = "\n".join(
+            f"  - {error}" for error in materialized_sql_errors[:10]
+        )
+        raise RuntimeError(
+            f"{len(materialized_sql_errors)} workload queries failed against "
+            f"the freshly materialized schema; config scoring was not started:\n"
+            f"{preview}"
+        )
 
     print(
         f"  preprocessing done in {preprocess_time:.1f}s: "
@@ -237,17 +330,29 @@ def main() -> None:
     from spp.config_grid import (
         run_config_grid,
         build_viable_config_search_space,
+        official_query_error,
         summarize_query_sensitivity,
     )
     from spp.routing import TokenBudget, estimate_config_marginal_cost
+    from token_counter import GLOBAL_COUNTER
 
-    full_config_space = generate_config_space()
-    if args.configs_sample and args.configs_sample < len(full_config_space):
-        full_config_space = random.sample(full_config_space, args.configs_sample)
+    cartesian_config_space = generate_config_space()
+    full_cartesian_size = len(cartesian_config_space)
+    full_config_space = cartesian_config_space
+    if args.configs_sample and args.configs_sample < len(cartesian_config_space):
+        full_config_space = sorted(
+            random.sample(cartesian_config_space, args.configs_sample),
+            key=lambda config: config.config_id,
+        )
 
     # Estimate row volume once (shared extraction is already materialized),
     # used to price each config's marginal materialization cost.
-    n_rows_total = sum(len(rows) for rows in ground_truth.values())
+    workload_tables = set(runner.lattice_planner.lattice.tables)
+    n_rows_total = sum(
+        len(rows)
+        for table, rows in ground_truth.items()
+        if table in workload_tables
+    )
     n_rows_total = n_rows_total or 1
 
     budget = TokenBudget(total=args.token_budget)
@@ -263,8 +368,8 @@ def main() -> None:
             skipped_over_budget.append({"config_id": config.config_id, "estimated_cost": marginal})
 
     print(
-        f"  token budget={args.token_budget:.0f} spent={budget.spent:.0f} "
-        f"remaining={budget.remaining:.0f}"
+        f"  token budget={args.token_budget:.0f} row-cost estimate="
+        f"{budget.spent:.0f} estimated remaining={budget.remaining:.0f}"
     )
     print(
         f"  configs within budget: {len(config_space)}/{len(full_config_space)} "
@@ -276,9 +381,25 @@ def main() -> None:
     queries_payload = [{"query_id": f"q{i}", "sql": sql} for i, sql in enumerate(test_queries)]
 
     t0 = time.time()
-    grid = run_config_grid(runner, queries_payload, ground_truth, config_space=config_space)
+    GLOBAL_COUNTER.reset()
+    GLOBAL_COUNTER.set_budget(int(args.token_budget))
+    grid = run_config_grid(
+        runner,
+        queries_payload,
+        ground_truth,
+        config_space=config_space,
+        query_error_fn=lambda sql, gt, pred: official_query_error(
+            sql, gt, pred, attributes
+        ),
+    )
     grid_time = time.time() - t0
-    print(f"  grid complete in {grid_time:.1f}s")
+    actual_tokens = GLOBAL_COUNTER.total_tokens
+    print(
+        f"  grid complete in {grid_time:.1f}s; actual materialization "
+        f"tokens={actual_tokens:.0f}/{args.token_budget:.0f}"
+    )
+    if grid.stopped_early:
+        print(f"  grid stopped at hard token limit: {grid.stop_reason}")
 
     viable = build_viable_config_search_space(grid)
     sensitivity = summarize_query_sensitivity(grid)
@@ -289,11 +410,15 @@ def main() -> None:
         "model": os.environ["OLLAMA_MODEL"],
         "n_train_queries": len(train_queries),
         "n_test_queries": len(test_queries),
-        "full_config_space_size": len(full_config_space),
+        "full_config_space_size": full_cartesian_size,
+        "planned_config_space_size": len(full_config_space),
         "config_space_size": len(config_space),
         "token_budget": args.token_budget,
-        "token_spent": budget.spent,
-        "token_remaining": budget.remaining,
+        "token_spent_estimate": budget.spent,
+        "token_spent_actual": actual_tokens,
+        "token_remaining_actual": max(args.token_budget - actual_tokens, 0),
+        "grid_stopped_early": grid.stopped_early,
+        "grid_stop_reason": grid.stop_reason,
         "n_skipped_over_budget": len(skipped_over_budget),
         "skipped_over_budget": skipped_over_budget,
         "preprocess_seconds": preprocess_time,
@@ -302,8 +427,10 @@ def main() -> None:
     }
     (out_dir / "config_grid_results.json").write_text(json.dumps(grid_json, indent=2))
     viable["token_budget"] = args.token_budget
-    viable["token_spent"] = budget.spent
-    viable["unbudgeted_full_config_space_size"] = len(full_config_space)
+    viable["token_spent_estimate"] = budget.spent
+    viable["token_spent_actual"] = actual_tokens
+    viable["full_cartesian_config_space_size"] = full_cartesian_size
+    viable["planned_config_space_size"] = len(full_config_space)
     (out_dir / "viable_config_search_space.json").write_text(json.dumps(viable, indent=2))
     (out_dir / "query_sensitivity.json").write_text(json.dumps(sensitivity, indent=2))
 

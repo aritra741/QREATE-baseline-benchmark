@@ -5,6 +5,7 @@ Integrates all components and provides the main interface.
 
 import json
 import logging
+import os
 import time
 from typing import Dict, List, Optional, Any, Tuple
 from pathlib import Path
@@ -26,6 +27,7 @@ from config import (
     get_dataset_path,
     get_schema_path,
     get_workload_path,
+    get_db_path,
     CACHE_DIR,
     LOG_LEVEL,
     LOG_FORMAT,
@@ -235,12 +237,22 @@ class WDIRSRunner:
         )
         
         # Initialize components
-        self.data_layer = DataLayer(postgres_uri) if postgres_uri else DataLayer()
+        if postgres_uri:
+            connection_uri = postgres_uri
+        elif os.getenv("WDIRS_DB_PATH"):
+            connection_uri = f"sqlite:///{os.environ['WDIRS_DB_PATH']}"
+        else:
+            connection_uri = f"sqlite:///{get_db_path(dataset)}"
+        self.data_layer = DataLayer(connection_uri)
         self.llm_client = OllamaClient()
         self.lattice_planner = LatticePlanner(self.llm_client)
         self.sieve_synthesizer = SieveSynthesizer(self.llm_client)
-        self.extractor = ConstrainedExtractor(self.llm_client)
-        self.entity_resolver = EntityResolver(self.llm_client)
+        self.extractor = ConstrainedExtractor(
+            self.llm_client, cache_dir=self.cache_dir / "extractions"
+        )
+        self.entity_resolver = EntityResolver(
+            self.llm_client, cache_dir=self.cache_dir / "entity_resolution"
+        )
         self.delta_engine = DeltaEngine(
             self.data_layer,
             self.lattice_planner,
@@ -256,6 +268,10 @@ class WDIRSRunner:
         # spaCy NER label for each table's identity column.
         # Used by entity-first extraction to group chunks by entity without LLM.
         self.identity_ner_labels: Dict[str, Optional[str]] = {}
+        # Reuse deterministic LLM population decisions across Cartesian
+        # configs that share an axis/prefix. Without this, the grid pays for
+        # the same normalization or ER prompt dozens of times.
+        self._population_llm_cache: Dict[str, Any] = {}
         # Share live identity map with delta engine for runtime upserts.
         self.delta_engine.identity_columns = self.identity_columns
 
@@ -278,7 +294,9 @@ class WDIRSRunner:
     
     def preprocess(
         self,
-        workload_queries: Optional[List[str]] = None
+        workload_queries: Optional[List[str]] = None,
+        *,
+        perform_proactive_er: bool = True,
     ) -> PreprocessingResult:
         """
         Run complete preprocessing pipeline.
@@ -342,9 +360,17 @@ class WDIRSRunner:
             logger.info("\n[Step 6/7] Consolidating extracted records (deduplication + merging)...")
             self._consolidate_records(lattice)
 
-            # Step 6: Entity resolution on join keys
-            logger.info("\n[Step 7/7] Performing proactive entity resolution...")
-            self._proactive_entity_resolution(lattice)
+            # Step 6: Entity resolution on join keys. The SPP grid disables
+            # this one fixed baseline pass so each PopulationConfig can apply
+            # its own ER strategy to the same pre-ER extracted records.
+            if perform_proactive_er:
+                logger.info("\n[Step 7/7] Performing proactive entity resolution...")
+                self._proactive_entity_resolution(lattice)
+            else:
+                logger.info(
+                    "\n[Step 7/7] Skipping baseline proactive ER "
+                    "(deferred to SPP population configs)"
+                )
 
             # Step 7: Save preprocessing results
             logger.info("\n[Step 8/8] Saving preprocessing results...")
@@ -2491,14 +2517,104 @@ class WDIRSRunner:
 
         base_records = self.data_layer.get_all_records(table_name)
         semantic_types = self.lattice_planner.get_table_schema(table_name)
+        identity_col = self.identity_columns.get(table_name)
 
         return apply_population(
             base_records,
             config,
             table_name=table_name,
             column_semantic_types=semantic_types,
+            identity_columns=[identity_col] if identity_col else [],
             entity_resolver=self.entity_resolver,
+            llm_client=self.llm_client,
+            llm_cache=self._population_llm_cache,
         )
+
+    def materialize_population_tables(
+        self,
+        table_names: List[str],
+        population_config: "Any" = None,
+    ) -> "Dict[str, List[Dict[str, Any]]]":
+        """Materialize a config jointly so ER preserves cross-table joins."""
+        from spp.population import apply_population, _resolve_entities_for_column
+        from spp.population_config import PopulationConfig
+
+        config = population_config or PopulationConfig()
+        selected = set(table_names)
+        join_pairs = [
+            pair
+            for pair in self.lattice_planner.lattice.join_column_pairs
+            if pair[0] in selected and pair[2] in selected
+        ]
+        joined_columns = {
+            (left_table, left_col)
+            for left_table, left_col, _, _ in join_pairs
+        } | {
+            (right_table, right_col)
+            for _, _, right_table, right_col in join_pairs
+        }
+
+        populated: Dict[str, List[Dict[str, Any]]] = {}
+        for table_name in table_names:
+            semantic_types = self.lattice_planner.get_table_schema(table_name)
+            identity_col = self.identity_columns.get(table_name)
+            local_identity = (
+                [identity_col]
+                if identity_col and (table_name, identity_col) not in joined_columns
+                else []
+            )
+            records, _ = apply_population(
+                self.data_layer.get_all_records(table_name),
+                config,
+                table_name=table_name,
+                column_semantic_types=semantic_types,
+                identity_columns=local_identity,
+                entity_resolver=self.entity_resolver,
+                llm_client=self.llm_client,
+                llm_cache=self._population_llm_cache,
+            )
+            populated[table_name] = records
+
+        for left_table, left_col, right_table, right_col in join_pairs:
+            combined = [
+                {"join_value": row.get(left_col)}
+                for row in populated[left_table]
+                if row.get(left_col) not in (None, "")
+            ] + [
+                {"join_value": row.get(right_col)}
+                for row in populated[right_table]
+                if row.get(right_col) not in (None, "")
+            ]
+            semantic_type = self.lattice_planner.get_table_schema(left_table).get(
+                left_col, "OTHER"
+            )
+            canonical_map = _resolve_entities_for_column(
+                combined,
+                "join_value",
+                config,
+                self.entity_resolver,
+                semantic_type,
+                llm_client=self.llm_client,
+                llm_cache=self._population_llm_cache,
+            )
+            if not canonical_map:
+                continue
+            for table_name, column in (
+                (left_table, left_col),
+                (right_table, right_col),
+            ):
+                for row in populated[table_name]:
+                    value = row.get(column)
+                    if value in (None, ""):
+                        continue
+                    raw = str(value)
+                    canonical = canonical_map.get(raw)
+                    if canonical is None:
+                        canonical = canonical_map.get(raw.lower().strip())
+                    if canonical is not None:
+                        row[column] = canonical
+
+        return populated
 
     def get_statistics(self) -> Dict[str, Any]:
         """Get system statistics."""

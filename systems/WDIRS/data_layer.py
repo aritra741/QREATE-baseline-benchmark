@@ -4,6 +4,7 @@ Implements PostgreSQL schema, metadata registry, and provenance tracking.
 """
 
 import json
+import hashlib
 import logging
 import uuid
 from typing import Dict, List, Optional, Any, Tuple
@@ -1343,11 +1344,21 @@ class RecursiveCharacterSplitter:
         doc_id: str,
         metadata: Optional[Dict[str, Any]] = None,
     ) -> List[TextChunk]:
-        """Split text and wrap each piece in a TextChunk with a unique ID."""
+        """Split text and wrap each piece in a deterministic TextChunk ID.
+
+        Stable IDs let a fresh SQLite database reuse schema-aware extraction
+        caches. Random UUIDs made every "fresh" rerun miss the cache and repeat
+        hours of identical LLM extraction.
+        """
         splits = self.split_text(text)
         return [
             TextChunk(
-                chunk_id=str(uuid.uuid4()),
+                chunk_id=str(
+                    uuid.uuid5(
+                        uuid.NAMESPACE_URL,
+                        f"{doc_id}:{idx}:{hashlib.sha256(content.encode()).hexdigest()}",
+                    )
+                ),
                 doc_id=doc_id,
                 content=content,
                 chunk_index=idx,

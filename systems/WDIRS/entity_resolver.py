@@ -10,6 +10,7 @@ from typing import Dict, List, Set, Tuple, Optional, Any
 from dataclasses import dataclass
 from collections import defaultdict
 import numpy as np
+from pathlib import Path
 
 from sentence_transformers import SentenceTransformer, CrossEncoder
 import faiss
@@ -119,7 +120,8 @@ class EntityResolver:
         self,
         llm_client=None,
         bi_encoder_model: str = BI_ENCODER_MODEL,
-        cross_encoder_model: str = CROSS_ENCODER_MODEL
+        cross_encoder_model: str = CROSS_ENCODER_MODEL,
+        cache_dir: Optional[Path] = None,
     ):
         """Initialize entity resolver."""
         self.llm_client = llm_client
@@ -133,7 +135,11 @@ class EntityResolver:
         
         # Cache
         import config as _config
-        self.cache_dir = _config.CACHE_DIR / "entity_resolution"
+        self.cache_dir = (
+            Path(cache_dir)
+            if cache_dir
+            else _config.CACHE_DIR / "entity_resolution"
+        )
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         
         # Resolution cache
@@ -146,7 +152,11 @@ class EntityResolver:
     def resolve_entities(
         self,
         mentions: List[EntityMention],
-        semantic_type: Optional[str] = None
+        semantic_type: Optional[str] = None,
+        *,
+        bi_encoder_threshold: Optional[float] = None,
+        cross_encoder_threshold: Optional[float] = None,
+        use_llm_canonicalization: bool = True,
     ) -> ResolutionResult:
         """
         Resolve entity mentions to canonical forms.
@@ -154,6 +164,17 @@ class EntityResolver:
         Args:
             mentions: List of entity mentions
             semantic_type: Optional semantic type filter
+            bi_encoder_threshold: Override for the blocking-phase similarity
+                threshold (defaults to config.BI_ENCODER_THRESHOLD, WDIRS's
+                original single-config behavior, if not supplied). Exposed so
+                the SPP population-config layer (spp/population.py) can make
+                this implicit knob explicit and swappable per the Pop(T,s)
+                `Cer` axis, without changing default single-config behavior.
+            cross_encoder_threshold: Same, for the matching-phase threshold.
+            use_llm_canonicalization: If false, choose canonical forms with
+                deterministic frequency/length heuristics. Population configs
+                using embedding ER set this false so the embedding strategy
+                does not silently incur LLM calls.
             
         Returns:
             ResolutionResult with canonical map and clusters
@@ -174,15 +195,17 @@ class EntityResolver:
             )
         
         # Step 1: Blocking with bi-encoder
-        blocks = self._blocking_phase(mentions)
+        blocks = self._blocking_phase(mentions, threshold=bi_encoder_threshold)
         logger.info(f"Blocking produced {len(blocks)} blocks")
         
         # Step 2: Matching with cross-encoder
-        clusters = self._matching_phase(mentions, blocks)
+        clusters = self._matching_phase(mentions, blocks, threshold=cross_encoder_threshold)
         logger.info(f"Matching produced {len(clusters)} clusters")
         
         # Step 3: Canonicalization with LLM
-        canonical_clusters = self._canonicalization_phase(clusters, mentions)
+        canonical_clusters = self._canonicalization_phase(
+            clusters, mentions, use_llm=use_llm_canonicalization
+        )
         
         # Step 4: Build canonical map
         canonical_map = self._build_canonical_map(canonical_clusters, mentions)
@@ -198,11 +221,14 @@ class EntityResolver:
         
         return result
     
-    def _blocking_phase(self, mentions: List[EntityMention]) -> Dict[int, List[int]]:
+    def _blocking_phase(
+        self, mentions: List[EntityMention], *, threshold: Optional[float] = None
+    ) -> Dict[int, List[int]]:
         """
         Blocking phase: Use bi-encoder to find similar mentions.
         Returns blocks as dict of representative_idx -> [similar_indices]
         """
+        effective_threshold = BI_ENCODER_THRESHOLD if threshold is None else threshold
         # Extract unique values
         values = [m.value for m in mentions]
         
@@ -232,7 +258,7 @@ class EntityResolver:
         
         for i in range(len(mentions)):
             for j, sim in zip(indices[i], similarities[i]):
-                if i != j and sim >= BI_ENCODER_THRESHOLD:
+                if i != j and sim >= effective_threshold:
                     uf.union(i, j)
         
         # Get clusters
@@ -243,12 +269,15 @@ class EntityResolver:
     def _matching_phase(
         self,
         mentions: List[EntityMention],
-        blocks: Dict[int, List[int]]
+        blocks: Dict[int, List[int]],
+        *,
+        threshold: Optional[float] = None,
     ) -> Dict[int, List[int]]:
         """
         Matching phase: Use cross-encoder to refine blocks.
         Returns refined clusters.
         """
+        effective_threshold = CROSS_ENCODER_THRESHOLD if threshold is None else threshold
         refined_clusters = {}
         
         for block_id, block_indices in blocks.items():
@@ -280,7 +309,7 @@ class EntityResolver:
             uf = UnionFind(len(block_indices))
             
             for (i, j), score in zip(pair_indices, scores):
-                if score >= CROSS_ENCODER_THRESHOLD:
+                if score >= effective_threshold:
                     uf.union(i, j)
             
             # Get refined clusters
@@ -297,7 +326,9 @@ class EntityResolver:
     def _canonicalization_phase(
         self,
         clusters: Dict[Any, List[int]],
-        mentions: List[EntityMention]
+        mentions: List[EntityMention],
+        *,
+        use_llm: bool = True,
     ) -> List[EntityCluster]:
         """
         Canonicalization phase: Determine canonical form for each cluster.
@@ -314,7 +345,10 @@ class EntityResolver:
                 canonical_form = cluster_values[0]
                 confidence = 1.0
             else:
-                canonical_form, confidence = self._select_canonical_form(cluster_values)
+                if use_llm:
+                    canonical_form, confidence = self._select_canonical_form(cluster_values)
+                else:
+                    canonical_form, confidence = self._heuristic_canonical_form(cluster_values)
             
             # Create cluster
             entity_cluster = EntityCluster(

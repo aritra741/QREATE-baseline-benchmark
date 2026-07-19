@@ -22,7 +22,10 @@ Two operating modes:
 from __future__ import annotations
 
 import copy
+import json
+import hashlib
 import logging
+import math
 import re
 import statistics
 from collections import Counter
@@ -31,6 +34,7 @@ from difflib import SequenceMatcher
 from typing import Any, Callable, Dict, List, Optional
 
 from spp.population_config import PopulationConfig
+from token_counter import TokenBudgetExceeded
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +54,8 @@ class PopulationDiagnostics:
     n_values_normalized: int = 0
     n_values_unit_parsed: int = 0
     n_unit_parse_failures: int = 0
+    n_values_type_coerced: int = 0
+    n_type_coercion_failures: int = 0
     n_missing_cells_before: int = 0
     n_missing_cells_after: int = 0
     n_rows_dropped_for_missing: int = 0
@@ -73,8 +79,9 @@ class PopulationDiagnostics:
         signals = [
             self.schema_column_coverage,
             1.0 - min(self.missing_value_rate, 1.0),
-            1.0 - min(self.n_unit_parse_failures / max(self.n_values_unit_parsed, 1), 1.0)
-            if self.n_values_unit_parsed
+            self.n_values_unit_parsed
+            / (self.n_values_unit_parsed + self.n_unit_parse_failures)
+            if self.n_values_unit_parsed + self.n_unit_parse_failures
             else 1.0,
         ]
         return sum(signals) / len(signals)
@@ -92,6 +99,9 @@ _UNIT_MULTIPLIERS = {
     "b": 1e9,
     "billion": 1e9,
 }
+_NULL_STRINGS = {"", "null", "none", "nan", "n/a", "na"}
+_NUMERIC_TOKEN_PATTERN = re.compile(r"-?\d+(?:\.\d+)?")
+_BOOKKEEPING_COLUMNS = {"row_id", "created_at", "updated_at"}
 
 
 def _try_parse_unit_value(value: Any) -> Optional[float]:
@@ -120,6 +130,70 @@ def _dictionary_normalize(value: Any) -> Any:
     return cleaned
 
 
+def _strict_numeric(value: Any) -> Optional[float]:
+    if value is None or isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        if isinstance(value, float) and math.isnan(value):
+            return None
+        return float(value)
+    text = str(value).strip().replace(",", "")
+    if text.lower() in _NULL_STRINGS:
+        return None
+    try:
+        return float(text)
+    except ValueError:
+        return None
+
+
+def _permissive_numeric(value: Any) -> Optional[float]:
+    strict = _strict_numeric(value)
+    if strict is not None:
+        return strict
+    text = str(value).strip().replace(",", "")
+    match = _NUMERIC_TOKEN_PATTERN.search(text)
+    if not match:
+        return None
+    try:
+        return float(match.group(0))
+    except ValueError:
+        return None
+
+
+def _llm_numeric_mapping(
+    table_name: str,
+    column: str,
+    values: List[Any],
+    llm_client: Any,
+) -> Dict[str, Optional[float]]:
+    unique = list(dict.fromkeys(str(v) for v in values))[:100]
+    if not unique:
+        return {}
+    prompt = (
+        f"Parse the following values from numeric column {table_name}.{column}. "
+        "Return ONLY a JSON object mapping each exact original string to a "
+        "number or null.\nValues: "
+        f"{json.dumps(unique, ensure_ascii=False)}"
+    )
+    try:
+        response = llm_client.generate(prompt, max_tokens=500, temperature=0.0)
+        start, end = response.find("{"), response.rfind("}")
+        if start < 0 or end < start:
+            return {}
+        raw = json.loads(response[start : end + 1])
+        result: Dict[str, Optional[float]] = {}
+        for key, value in raw.items():
+            result[str(key)] = _strict_numeric(value)
+        return result
+    except TokenBudgetExceeded:
+        raise
+    except Exception as exc:
+        logger.warning(
+            "LLM type coercion failed for %s.%s: %s", table_name, column, exc
+        )
+        return {}
+
+
 def _cheap_cluster_values(
     values: List[str], threshold: float
 ) -> Dict[str, str]:
@@ -128,7 +202,7 @@ def _cheap_cluster_values(
     Stands in for embedding-based blocking in "cheap" mode. Returns a
     mention -> canonical map (canonical = most frequent member of cluster).
     """
-    unique_values = list(dict.fromkeys(v for v in values if v))
+    unique_values = sorted({v for v in values if v})
     clusters: List[List[str]] = []
     for value in unique_values:
         placed = False
@@ -152,20 +226,168 @@ def _cheap_cluster_values(
     return canonical_map
 
 
+def _llm_cluster_values(
+    values: List[str], llm_client: Any, *, batch_size: int = 40
+) -> Dict[str, str]:
+    """Genuinely LLM-driven entity clustering for er_strategy="llm": no
+    embedding blocking / cross-encoder matching at all, matching the
+    problem statement's `Cer = {embedding, llm}` dichotomy (these are meant
+    to be two DIFFERENT resolution mechanisms, not the same embedding
+    pipeline with the canonicalization step reused). The LLM is asked
+    directly which of a batch of values are the same real-world entity.
+
+    Batches to keep prompts bounded; unique values are batched by
+    insertion order (batch_size at a time), so within-batch duplicates are
+    still caught even though cross-batch duplicates may be missed -- an
+    accepted approximation given no embedding pre-blocking is used here.
+    """
+    import json as _json
+
+    unique_values = sorted({v for v in values if v})
+    if len(unique_values) < 2:
+        return {}
+
+    canonical_map: Dict[str, str] = {}
+    counts = Counter(values)
+
+    for start in range(0, len(unique_values), batch_size):
+        batch = unique_values[start : start + batch_size]
+        if len(batch) < 2:
+            continue
+        numbered = "\n".join(f"{i}: {v}" for i, v in enumerate(batch))
+        prompt = (
+            "Below is a numbered list of values. Group together any values "
+            "that refer to the SAME real-world entity (e.g. spelling "
+            "variants, abbreviations, alternate names). Respond with ONLY a "
+            "JSON list of groups, where each group is a list of the integer "
+            "indices that belong together. Only include groups with 2 or "
+            "more indices (omit singletons).\n\n"
+            f"{numbered}\n\nJSON:"
+        )
+        try:
+            response = llm_client.generate(prompt, max_tokens=500, temperature=0.0)
+            start_idx = response.find("[")
+            end_idx = response.rfind("]")
+            groups = _json.loads(response[start_idx : end_idx + 1]) if start_idx >= 0 else []
+        except TokenBudgetExceeded:
+            raise
+        except Exception as exc:
+            logger.warning("LLM entity clustering batch failed, skipping merges: %s", exc)
+            continue
+
+        for group in groups:
+            try:
+                members = [batch[i] for i in group if isinstance(i, int) and 0 <= i < len(batch)]
+            except (TypeError, IndexError):
+                continue
+            if len(members) < 2:
+                continue
+            canonical = max(members, key=lambda v: counts.get(v, 0))
+            for member in members:
+                if member != canonical:
+                    canonical_map[member] = canonical
+
+    return canonical_map
+
+
+def _llm_normalize_values(
+    values: List[str], llm_client: Any, *, batch_size: int = 100
+) -> Dict[str, str]:
+    """Normalize unique values in bounded JSON-mapping batches."""
+    unique = sorted({v for v in values if v.strip()})
+    mapping: Dict[str, str] = {}
+    for start in range(0, len(unique), batch_size):
+        batch = unique[start : start + batch_size]
+        prompt = (
+            "Normalize each string to a canonical form (trimmed, collapsed "
+            "whitespace, consistent casing and spelling). Return ONLY a JSON "
+            "object mapping every exact original string to its normalized "
+            f"form.\nValues: {json.dumps(batch, ensure_ascii=False)}"
+        )
+        try:
+            response = llm_client.generate(prompt, max_tokens=1000, temperature=0.0)
+            left, right = response.find("{"), response.rfind("}")
+            raw = (
+                json.loads(response[left : right + 1])
+                if left >= 0 and right >= left
+                else {}
+            )
+            for value in batch:
+                mapping[value] = str(raw.get(value, _dictionary_normalize(value)))
+        except TokenBudgetExceeded:
+            raise
+        except Exception as exc:
+            logger.warning("LLM normalization batch failed: %s", exc)
+            mapping.update({value: _dictionary_normalize(value) for value in batch})
+    return mapping
+
+
+def _llm_choose_fill_value(
+    table_name: str, column: str, observed: List[Any], llm_client: Any
+) -> Optional[Any]:
+    """Ask the LLM to pick a single representative fill value for a column,
+    given a sample of its observed non-null values. This is one LLM call
+    per (table, column) per config -- not per row -- and is meant to be a
+    more semantically-aware alternative to raw-frequency "mode" (e.g.
+    preferring a sensible representative category over a noisy outlier
+    that happens to repeat), matching the problem statement's Cmiss={llm}
+    option. Falls back to raw mode on any LLM failure or empty response.
+    """
+    if not observed:
+        return None
+    sample = observed[:30]
+    sample_str = "\n".join(f"- {v}" for v in sample)
+    prompt = (
+        f"Column '{column}' in table '{table_name}' has these observed "
+        f"values:\n{sample_str}\n\n"
+        "Some rows are missing a value for this column. Suggest the single "
+        "most reasonable fill-in value for this column, based on the "
+        "pattern above (e.g. the most common category, or a sensible "
+        "default). Respond with ONLY the value, nothing else."
+    )
+    try:
+        response = llm_client.generate(prompt, max_tokens=30, temperature=0.0)
+        response = response.strip()
+        if response:
+            return response
+    except TokenBudgetExceeded:
+        raise
+    except Exception as exc:
+        logger.warning("LLM fill-value selection failed for %s.%s: %s", table_name, column, exc)
+    return Counter(observed).most_common(1)[0][0]
+
+
 def _resolve_entities_for_column(
     records: List[Dict[str, Any]],
     column: str,
     config: PopulationConfig,
     entity_resolver: Optional[Any],
     semantic_type: str,
+    llm_client: Optional[Any] = None,
+    llm_cache: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, str]:
     """Returns mention -> canonical map for one column, respecting the
     configured er_strategy. Uses rich EntityResolver when supplied, else
-    the cheap SequenceMatcher heuristic.
+    the cheap SequenceMatcher heuristic. `llm_client` is required for a
+    genuine er_strategy="llm" path (see `_llm_cluster_values`); without it,
+    "llm" falls back to the cheap heuristic at a permissive threshold.
     """
     values = [str(r[column]) for r in records if r.get(column) not in (None, "")]
     if len(values) < 2:
         return {}
+
+    if config.er_strategy == "llm":
+        if llm_client is not None:
+            payload = json.dumps(
+                sorted(set(values)), ensure_ascii=False, separators=(",", ":")
+            )
+            cache_key = f"{column}:{hashlib.sha256(payload.encode()).hexdigest()}"
+            cache_root = llm_cache if llm_cache is not None else {}
+            er_cache = cache_root.setdefault("entity_resolution", {})
+            if cache_key not in er_cache:
+                er_cache[cache_key] = _llm_cluster_values(values, llm_client)
+            return dict(er_cache[cache_key])
+        return _cheap_cluster_values(values, threshold=0.6)
 
     if entity_resolver is not None:
         from entity_resolver import EntityMention  # WDIRS module
@@ -180,21 +402,16 @@ def _resolve_entities_for_column(
             )
             for i, v in enumerate(values)
         ]
-        original_threshold = getattr(entity_resolver, "bi_encoder_threshold", None)
-        try:
-            if config.er_strategy.startswith("embedding_"):
-                entity_resolver.bi_encoder_threshold = config.er_threshold
-                result = entity_resolver.resolve_entities(mentions, semantic_type=semantic_type)
-            else:  # "llm" strategy: rely on resolver's LLM canonicalization phase
-                result = entity_resolver.resolve_entities(mentions, semantic_type=semantic_type)
-            return dict(result.canonical_map)
-        finally:
-            if original_threshold is not None:
-                entity_resolver.bi_encoder_threshold = original_threshold
+        result = entity_resolver.resolve_entities(
+            mentions,
+            semantic_type=semantic_type,
+            bi_encoder_threshold=config.er_threshold,
+            use_llm_canonicalization=False,
+        )
+        return dict(result.canonical_map)
 
-    # Cheap mode fallback.
-    threshold = config.er_threshold if config.er_strategy.startswith("embedding_") else 0.6
-    return _cheap_cluster_values(values, threshold)
+    # Cheap mode fallback (no real EntityResolver supplied).
+    return _cheap_cluster_values(values, config.er_threshold)
 
 
 def apply_population(
@@ -206,8 +423,10 @@ def apply_population(
     identity_columns: Optional[List[str]] = None,
     numeric_columns: Optional[List[str]] = None,
     entity_resolver: Optional[Any] = None,
+    llm_client: Optional[Any] = None,
     llm_normalize_fn: Optional[Callable[[str], str]] = None,
     llm_fill_fn: Optional[Callable[[str, str], Any]] = None,
+    llm_cache: Optional[Dict[str, Any]] = None,
 ) -> "tuple[List[Dict[str, Any]], PopulationDiagnostics]":
     """Apply one PopulationConfig to already-extracted records.
 
@@ -217,12 +436,18 @@ def apply_population(
     then (implicit type coercion), then missing-value handling last.
     """
     column_semantic_types = column_semantic_types or {}
-    identity_columns = identity_columns or [
-        c for c, t in column_semantic_types.items() if t in ("PERSON", "ORG", "GPE")
-    ]
-    numeric_columns = numeric_columns or [
-        c for c, t in column_semantic_types.items() if t in ("MONEY", "QUANTITY", "QUANTITY_COUNT")
-    ]
+    if identity_columns is None:
+        identity_columns = [
+            c
+            for c, t in column_semantic_types.items()
+            if t in ("PERSON", "ORG", "GPE")
+        ]
+    if numeric_columns is None:
+        numeric_columns = [
+            c
+            for c, t in column_semantic_types.items()
+            if t in ("MONEY", "QUANTITY", "QUANTITY_COUNT")
+        ]
 
     diag = PopulationDiagnostics(
         table_name=table_name,
@@ -239,23 +464,62 @@ def apply_population(
     for column in identity_columns:
         semantic_type = column_semantic_types.get(column, "OTHER")
         canonical_map = _resolve_entities_for_column(
-            working, column, config, entity_resolver, semantic_type
+            working,
+            column,
+            config,
+            entity_resolver,
+            semantic_type,
+            llm_client=llm_client,
+            llm_cache=llm_cache,
         )
         if canonical_map:
             diag.n_entity_merges += len(canonical_map)
             for row in working:
-                if column in row and row[column] in canonical_map:
-                    row[column] = canonical_map[row[column]]
+                if column not in row or row[column] in (None, ""):
+                    continue
+                raw_value = str(row[column])
+                canonical = canonical_map.get(raw_value)
+                if canonical is None:
+                    canonical = canonical_map.get(raw_value.lower().strip())
+                if canonical is not None:
+                    row[column] = canonical
 
     # --- 2. Value normalization ----------------------------------------------
     all_columns = {k for r in working for k in r.keys()}
+    data_columns = all_columns - _BOOKKEEPING_COLUMNS
+    normalized_by_column: Dict[str, Dict[str, str]] = {}
+    if config.norm_strategy == "llm" and llm_normalize_fn is None and llm_client is not None:
+        cache_root = llm_cache if llm_cache is not None else {}
+        normalization_cache = cache_root.setdefault("normalization", {})
+        for column in data_columns:
+            values = [
+                row[column]
+                for row in working
+                if isinstance(row.get(column), str) and row.get(column)
+            ]
+            payload = json.dumps(
+                sorted(set(values)), ensure_ascii=False, separators=(",", ":")
+            )
+            cache_key = (
+                f"{table_name}.{column}:"
+                f"{hashlib.sha256(payload.encode()).hexdigest()}"
+            )
+            if cache_key not in normalization_cache:
+                normalization_cache[cache_key] = _llm_normalize_values(
+                    values, llm_client
+                )
+            normalized_by_column[column] = dict(normalization_cache[cache_key])
     for row in working:
-        for column in all_columns:
+        for column in data_columns:
             value = row.get(column)
             if not isinstance(value, str) or not value:
                 continue
             if config.norm_strategy == "llm" and llm_normalize_fn is not None:
                 normalized = llm_normalize_fn(value)
+            elif config.norm_strategy == "llm" and llm_client is not None:
+                normalized = normalized_by_column.get(column, {}).get(
+                    value, _dictionary_normalize(value)
+                )
             else:
                 normalized = _dictionary_normalize(value)
             if normalized != value:
@@ -276,34 +540,76 @@ def apply_population(
                 else:
                     diag.n_unit_parse_failures += 1
 
-    # --- 4. Missing-value handling ---------------------------------------------
-    # Never treat bookkeeping columns as data. When no semantic-type-derived
-    # numeric_columns are available, DON'T fall back to every column
-    # indiscriminately -- a single sparse-but-optional metadata column (e.g.
-    # "fiba_world_cup", present on ~10% of players) would otherwise cause
-    # miss_strategy="drop" to listwise-delete almost every row, even ones
-    # that are complete on every column the workload actually queries. Only
-    # columns that are populated in a majority of rows are eligible for
-    # "drop"/fill; the rest are left untouched.
-    _BOOKKEEPING_COLUMNS = {"row_id", "created_at", "updated_at"}
-    candidate_columns = [c for c in all_columns if c not in _BOOKKEEPING_COLUMNS]
-    if numeric_columns:
+    # --- 4. Type coercion ------------------------------------------------------
+    for column in numeric_columns:
+        unparseable: List[Any] = []
+        for row in working:
+            value = row.get(column)
+            if value in (None, ""):
+                continue
+            parsed = _strict_numeric(value)
+            if parsed is None:
+                unparseable.append(value)
+
+        llm_mapping: Dict[str, Optional[float]] = {}
+        if config.type_coercion == "llm" and unparseable and llm_client is not None:
+            payload = json.dumps(
+                sorted({str(v) for v in unparseable}),
+                ensure_ascii=False,
+                separators=(",", ":"),
+            )
+            cache_key = (
+                f"{table_name}.{column}:"
+                f"{hashlib.sha256(payload.encode()).hexdigest()}"
+            )
+            cache_root = llm_cache if llm_cache is not None else {}
+            coercion_cache = cache_root.setdefault("type_coercion", {})
+            if cache_key not in coercion_cache:
+                coercion_cache[cache_key] = _llm_numeric_mapping(
+                    table_name, column, unparseable, llm_client
+                )
+            llm_mapping = dict(coercion_cache[cache_key])
+
+        for row in working:
+            value = row.get(column)
+            if value in (None, ""):
+                continue
+            if config.type_coercion == "strict":
+                parsed = _strict_numeric(value)
+            elif config.type_coercion == "permissive":
+                parsed = _permissive_numeric(value)
+            else:
+                parsed = _strict_numeric(value)
+                if parsed is None:
+                    parsed = llm_mapping.get(str(value))
+                if parsed is None:
+                    parsed = _permissive_numeric(value)
+            if parsed is None:
+                row[column] = None
+                diag.n_type_coercion_failures += 1
+            else:
+                if parsed != value or not isinstance(value, (int, float)):
+                    diag.n_values_type_coerced += 1
+                row[column] = parsed
+
+    # --- 5. Missing-value handling ---------------------------------------------
+    # Never treat bookkeeping columns as data. Match spp-agent's sparse-table
+    # semantics: "drop" removes only wholly empty semantic rows, rather than
+    # listwise-deleting a useful entity because one optional attribute is null.
+    candidate_columns = list(data_columns)
+    if config.miss_strategy in {"mean", "median"}:
         fill_columns = numeric_columns
     else:
-        n_rows = max(len(working), 1)
-        fill_columns = [
-            c for c in candidate_columns
-            if sum(1 for r in working if r.get(c) in (None, "")) / n_rows <= 0.5
-        ] or candidate_columns
+        fill_columns = candidate_columns
     missing_before = sum(
-        1 for row in working for c in fill_columns if row.get(c) in (None, "")
+        1 for row in working for c in candidate_columns if row.get(c) in (None, "")
     )
     diag.n_missing_cells_before = missing_before
 
     if config.miss_strategy == "drop":
         working = [
             row for row in working
-            if all(row.get(c) not in (None, "") for c in fill_columns)
+            if any(row.get(c) not in (None, "") for c in fill_columns)
         ]
         diag.n_rows_dropped_for_missing = diag.n_input_rows - len(working)
     else:
@@ -319,22 +625,41 @@ def apply_population(
                 fill_value = Counter(observed).most_common(1)[0][0]
             elif config.miss_strategy == "constant":
                 fill_value = config.missing_constant
-            elif config.miss_strategy == "llm" and llm_fill_fn is not None:
-                fill_value = None  # resolved per-row below
+            elif config.miss_strategy == "llm":
+                if llm_fill_fn is not None:
+                    fill_value = llm_fill_fn(table_name, column)
+                elif llm_client is not None:
+                    payload = json.dumps(
+                        observed[:30], ensure_ascii=False, default=str
+                    )
+                    cache_key = (
+                        f"{table_name}.{column}:"
+                        f"{hashlib.sha256(payload.encode()).hexdigest()}"
+                    )
+                    cache_root = llm_cache if llm_cache is not None else {}
+                    fill_cache = cache_root.setdefault("missing_fill", {})
+                    if cache_key not in fill_cache:
+                        fill_cache[cache_key] = _llm_choose_fill_value(
+                            table_name, column, observed, llm_client
+                        )
+                    fill_value = fill_cache[cache_key]
+                elif observed:
+                    # No LLM available: fall back to mode rather than
+                    # silently leaving cells empty (previous behavior was a
+                    # no-op that made miss_strategy="llm" indistinguishable
+                    # from doing nothing).
+                    fill_value = Counter(observed).most_common(1)[0][0]
             for row in working:
-                if row.get(column) in (None, ""):
-                    if config.miss_strategy == "llm" and llm_fill_fn is not None:
-                        row[column] = llm_fill_fn(table_name, column)
-                    elif fill_value is not None:
-                        row[column] = fill_value
+                if row.get(column) in (None, "") and fill_value is not None:
+                    row[column] = fill_value
 
     diag.n_output_rows = len(working)
     missing_after = sum(
-        1 for row in working for c in fill_columns if row.get(c) in (None, "")
+        1 for row in working for c in candidate_columns if row.get(c) in (None, "")
     )
     diag.n_missing_cells_after = missing_after
 
-    for column in all_columns:
+    for column in data_columns:
         non_null = sum(1 for row in working if row.get(column) not in (None, ""))
         diag.column_coverage[column] = non_null / len(working) if working else 0.0
 

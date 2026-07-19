@@ -54,6 +54,12 @@ MISS_STRATEGIES: List[str] = [
     "llm",
 ]
 
+TYPE_COERCION_STRATEGIES: List[str] = [
+    "strict",
+    "permissive",
+    "llm",
+]
+
 # Default missing-value fill used by miss_strategy="constant" when no
 # schema-derived admissible value is supplied.
 DEFAULT_MISSING_CONSTANT = "UNKNOWN"
@@ -67,13 +73,15 @@ class PopulationConfig:
     norm_strategy: str = "dictionary"
     unit_strategy: str = "none"
     miss_strategy: str = "drop"
+    type_coercion: str = "strict"
     missing_constant: str = DEFAULT_MISSING_CONSTANT
 
     @property
     def config_id(self) -> str:
         return (
             f"er={self.er_strategy}|norm={self.norm_strategy}|"
-            f"unit={self.unit_strategy}|miss={self.miss_strategy}"
+            f"unit={self.unit_strategy}|miss={self.miss_strategy}|"
+            f"coerce={self.type_coercion}"
         )
 
     @property
@@ -101,6 +109,7 @@ def generate_config_space(
     norm_strategies: List[str] | None = None,
     unit_strategies: List[str] | None = None,
     miss_strategies: List[str] | None = None,
+    type_coercion_strategies: List[str] | None = None,
 ) -> List[PopulationConfig]:
     """Enumerate the full (or a restricted) Pop(T,s) config space.
 
@@ -111,10 +120,19 @@ def generate_config_space(
     norms = norm_strategies or NORM_STRATEGIES
     units = unit_strategies or UNIT_STRATEGIES
     misses = miss_strategies or MISS_STRATEGIES
+    coercions = type_coercion_strategies or TYPE_COERCION_STRATEGIES
 
     configs = [
-        PopulationConfig(er_strategy=er, norm_strategy=norm, unit_strategy=unit, miss_strategy=miss)
-        for er, norm, unit, miss in product(ers, norms, units, misses)
+        PopulationConfig(
+            er_strategy=er,
+            norm_strategy=norm,
+            unit_strategy=unit,
+            miss_strategy=miss,
+            type_coercion=coerce,
+        )
+        for er, norm, unit, miss, coerce in product(
+            ers, norms, units, misses, coercions
+        )
     ]
     configs.sort(key=lambda c: c.config_id)
     return configs
@@ -132,13 +150,14 @@ def parse_config_id(config_id: str) -> PopulationConfig:
         norm_strategy=parts.get("norm", "dictionary"),
         unit_strategy=parts.get("unit", "none"),
         miss_strategy=parts.get("miss", "drop"),
+        type_coercion=parts.get("coerce", "strict"),
     )
 
 
 def encode_config_features(config: PopulationConfig) -> List[float]:
     """One-hot feature vector, for surrogate/routing use in later phases.
 
-    Order: [er (4), norm (2), unit (2), miss (6)] = 14 dims.
+    Order: [er (4), norm (2), unit (2), miss (6), coerce (3)] = 17 dims.
     """
     vec: List[float] = []
     for er in ER_STRATEGIES:
@@ -149,4 +168,6 @@ def encode_config_features(config: PopulationConfig) -> List[float]:
         vec.append(1.0 if config.unit_strategy == unit else 0.0)
     for miss in MISS_STRATEGIES:
         vec.append(1.0 if config.miss_strategy == miss else 0.0)
+    for coerce in TYPE_COERCION_STRATEGIES:
+        vec.append(1.0 if config.type_coercion == coerce else 0.0)
     return vec

@@ -48,12 +48,17 @@ def estimate_config_marginal_cost(config: PopulationConfig, n_rows: int) -> floa
     units (rough proxy: 1 unit per row per LLM-backed axis touched).
 
     Extraction is shared/free at this point (Phase 1); only the LLM-backed
-    population axes (er="llm", norm="llm", miss="llm") cost anything --
+    population axes (er="llm", norm="llm", miss="llm", coerce="llm") cost anything --
     embedding/dictionary/rule-based axes are ~free CPU-only replays.
     """
     llm_axes = sum(
         1
-        for value in (config.er_strategy, config.norm_strategy, config.miss_strategy)
+        for value in (
+            config.er_strategy,
+            config.norm_strategy,
+            config.miss_strategy,
+            config.type_coercion,
+        )
         if value == "llm"
     )
     return float(llm_axes * n_rows)
@@ -127,7 +132,12 @@ def assign_configs_to_clusters(
     for cluster_id in sorted_clusters:
         cluster_type = query_clusters.cluster_types.get(cluster_id, "mixed")
         primary_table = cluster_primary_table.get(cluster_id)
-        n_rows = n_rows_by_table.get(primary_table, 0) if primary_table else 0
+        total_rows = sum(n_rows_by_table.values())
+        n_rows = (
+            n_rows_by_table.get(primary_table, total_rows)
+            if primary_table
+            else total_rows
+        )
 
         ranked = sorted(
             candidate_configs,

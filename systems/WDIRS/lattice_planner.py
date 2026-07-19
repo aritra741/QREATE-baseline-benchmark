@@ -229,11 +229,12 @@ class LatticePlanner:
     def _extract_columns(self, parsed: exp.Expression) -> List[Tuple[str, str]]:
         """Extract (real_table, column) pairs from a parsed query.
 
-        Three sources are considered:
+        Sources include:
           1. SELECT projections
           2. WHERE-clause columns
           3. ON-clause columns in every JOIN (join-key columns must be in
              the schema so they can be extracted and aligned)
+          4. Aggregate, GROUP BY, and HAVING expressions
 
         An alias map is built first so every qualified reference like ``p.name``
         is resolved to ``(player, name)`` and unqualified columns fall back to
@@ -243,7 +244,7 @@ class LatticePlanner:
         # Primary table = the FROM table (first real table in alias map values
         # that appears in the FROM clause, not a JOIN).
         primary_table: Optional[str] = None
-        from_clause = parsed.args.get("from")
+        from_clause = parsed.args.get("from_") or parsed.args.get("from")
         if from_clause:
             for t in from_clause.find_all(exp.Table):
                 if t.name:
@@ -295,6 +296,12 @@ class LatticePlanner:
             for col in agg.find_all(exp.Column):
                 _add(col.table or None, col.name)
 
+        # 5. GROUP BY / HAVING columns may not appear in the projection.
+        for clause_type in (exp.Group, exp.Having):
+            for clause in parsed.find_all(clause_type):
+                for col in clause.find_all(exp.Column):
+                    _add(col.table or None, col.name)
+
         return columns
 
     def _extract_predicates(
@@ -309,7 +316,7 @@ class LatticePlanner:
 
         alias_map = self._build_alias_map(parsed)
         primary_table: Optional[str] = None
-        from_clause = parsed.args.get("from")
+        from_clause = parsed.args.get("from_") or parsed.args.get("from")
         if from_clause:
             for t in from_clause.find_all(exp.Table):
                 if t.name:
@@ -383,7 +390,7 @@ class LatticePlanner:
         # Determine the left-hand (FROM) table for each join.  For the first
         # JOIN the FROM table is the left side; for subsequent JOINs it is the
         # right-side table of the previous JOIN in the chain.
-        from_clause = parsed.args.get("from")
+        from_clause = parsed.args.get("from_") or parsed.args.get("from")
         left_table_for_next: Optional[str] = None
         if from_clause:
             for t in from_clause.find_all(exp.Table):

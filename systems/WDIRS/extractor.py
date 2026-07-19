@@ -10,6 +10,7 @@ from typing import Dict, List, Optional, Any, Set
 from dataclasses import dataclass
 from collections import Counter
 import hashlib
+from pathlib import Path
 
 import requests
 from openai import OpenAI
@@ -114,7 +115,10 @@ class OllamaClient:
             messages.append({"role": "system", "content": system_prompt})
         
         messages.append({"role": "user", "content": prompt})
-        
+        input_text = " ".join(m["content"] for m in messages)
+        if GLOBAL_COUNTER.has_budget:
+            GLOBAL_COUNTER.ensure_can_spend(count_tokens(input_text), max_tokens)
+
         for attempt in range(OLLAMA_MAX_RETRIES):
             try:
                 response = self.client.chat.completions.create(
@@ -144,7 +148,6 @@ class OllamaClient:
                 else:
                     # If Ollama does not provide full usage, require local precise
                     # tokenizer for both prompt and completion.
-                    input_text = " ".join(m["content"] for m in messages)
                     input_tok = count_tokens(input_text)
                     recorded_in = input_tok
                     recorded_out = count_tokens(content or "")
@@ -176,18 +179,25 @@ class ConstrainedExtractor:
     Implements constrained global extraction with schema stabilization.
     """
     
-    def __init__(self, llm_client: Optional[OllamaClient] = None, attribute_index: Optional[AttributeIndex] = None):
+    def __init__(
+        self,
+        llm_client: Optional[OllamaClient] = None,
+        attribute_index: Optional[AttributeIndex] = None,
+        cache_dir: Optional[Path] = None,
+    ):
         """Initialize extractor."""
         import config as _config
         self.llm_client = llm_client or OllamaClient()
-        self.cache_dir = _config.CACHE_DIR / "extractions"
+        self.cache_dir = Path(cache_dir) if cache_dir else _config.CACHE_DIR / "extractions"
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
         # Schema cache
         self.stabilized_schemas: Dict[str, StabilizedSchema] = {}
         
         # Attribute index for smart column delta
-        self.attribute_index = attribute_index or AttributeIndex(cache_dir=_config.CACHE_DIR)
+        self.attribute_index = attribute_index or AttributeIndex(
+            cache_dir=self.cache_dir.parent
+        )
     
     # ========================================================================
     # Schema Stabilization
@@ -213,7 +223,8 @@ class ConstrainedExtractor:
         logger.info(f"Stabilizing schema for {table_name} with {len(sample_chunks)} samples")
         
         # Extract from sample chunks
-        all_keys = []
+        key_counts: Counter = Counter()
+        total_records = 0
         
         for chunk in sample_chunks[:SCHEMA_SAMPLE_SIZE]:
             try:
@@ -228,15 +239,13 @@ class ConstrainedExtractor:
                 # Collect keys from all records
                 for record in result.records:
                     if isinstance(record, dict):
-                        all_keys.extend(record.keys())
+                        key_counts.update(set(record.keys()))
+                        total_records += 1
             
             except Exception as e:
                 logger.warning(f"Error extracting from sample chunk: {e}")
         
         # Calculate key frequencies
-        key_counts = Counter(all_keys)
-        total_records = len(all_keys)
-        
         key_frequencies = (
             {
                 key: count / total_records
@@ -782,7 +791,14 @@ class ConstrainedExtractor:
         current_ids: List[str] = []
 
         for chunk, chunk_id in zip(chunks, chunk_ids):
-            cached = self._get_cached_result(chunk_id, table_name)
+            cached = self._get_cached_result(
+                chunk_id,
+                table_name,
+                schema=schema,
+                constrained_keys=constrained_keys,
+                normalization_hints=normalization_hints,
+                entity_col=entity_col,
+            )
             if cached:
                 pre_cached.append(cached)
                 continue
@@ -853,7 +869,15 @@ class ConstrainedExtractor:
         all_results: List[ExtractionResult] = list(pre_cached)
         for chunk_id, batch_map in chunk_batch_map.items():
             merged = self._merge_column_batches(chunk_id, batch_map, n_col_batches)
-            self._cache_result(chunk_id, table_name, merged)
+            self._cache_result(
+                chunk_id,
+                table_name,
+                merged,
+                schema=schema,
+                constrained_keys=constrained_keys,
+                normalization_hints=normalization_hints,
+                entity_col=entity_col,
+            )
             all_results.append(merged)
 
         return all_results
@@ -933,7 +957,14 @@ class ConstrainedExtractor:
 
         for chunk, chunk_id in zip(chunks, chunk_ids):
             cache_key = f"{chunk_id}_{table_name}_{pred_key}"
-            cached = self._get_cached_result(cache_key, table_name)
+            cached = self._get_cached_result(
+                cache_key,
+                table_name,
+                schema=schema,
+                constrained_keys=constrained_keys,
+                normalization_hints=normalization_hints,
+                entity_col=entity_col,
+            )
             if cached:
                 pre_cached.append(cached)
                 continue
@@ -948,23 +979,28 @@ class ConstrainedExtractor:
         if current_texts:
             groups.append((current_texts, current_ids))
 
-        total_tasks = len(groups) * n_batches
+        total_tasks = sum(len(group_ids) for _, group_ids in groups) * n_batches
         logger.info(
-            f"  {len(groups)} chunk-groups × {n_batches} col-batches = {total_tasks} tasks"
+            f"  {sum(len(ids) for _, ids in groups)} chunks × "
+            f"{n_batches} col-batches = {total_tasks} predicate-aware tasks"
         )
 
         with ThreadPoolExecutor(max_workers=MAX_PARALLEL_REQUESTS) as executor:
             for group_texts, group_ids in groups:
                 for batch_idx, (col_batch, batch_ck, batch_nh) in enumerate(col_batches):
-                    # For predicate extraction we still use the per-chunk method so
-                    # predicate filtering is applied inside the call.  We wrap it
-                    # in a group loop to stay consistent with the new architecture.
-                    future = executor.submit(
-                        self._extract_chunk_group_safe,
-                        group_texts, group_ids, table_name,
-                        col_batch, batch_ck, batch_nh, entity_col,
-                    )
-                    future_to_key[future] = (group_ids, batch_idx)
+                    for chunk_text, chunk_id in zip(group_texts, group_ids):
+                        future = executor.submit(
+                            self._extract_single_chunk_with_predicates,
+                            chunk_text,
+                            chunk_id,
+                            table_name,
+                            col_batch,
+                            batch_ck,
+                            predicates,
+                            batch_nh,
+                            entity_col,
+                        )
+                        future_to_key[future] = ([chunk_id], batch_idx)
 
             completed = 0
             for future in as_completed(future_to_key):
@@ -973,7 +1009,12 @@ class ConstrainedExtractor:
                 if completed % 100 == 0 or completed == total_tasks:
                     logger.info(f"  {completed}/{total_tasks} tasks done")
                 try:
-                    group_results = future.result()
+                    raw_result = future.result()
+                    group_results = (
+                        [raw_result]
+                        if isinstance(raw_result, ExtractionResult)
+                        else raw_result
+                    )
                     for er in group_results:
                         chunk_batch_map[er.chunk_id][batch_idx] = er
                 except Exception as e:
@@ -991,7 +1032,15 @@ class ConstrainedExtractor:
         for chunk_id, batch_map in chunk_batch_map.items():
             merged = self._merge_column_batches(chunk_id, batch_map, n_batches)
             cache_key = f"{chunk_id}_{table_name}_{pred_key}"
-            self._cache_result(cache_key, table_name, merged)
+            self._cache_result(
+                cache_key,
+                table_name,
+                merged,
+                schema=schema,
+                constrained_keys=constrained_keys,
+                normalization_hints=normalization_hints,
+                entity_col=entity_col,
+            )
             all_results.append(merged)
 
         return all_results
@@ -1866,17 +1915,42 @@ class ConstrainedExtractor:
     # Caching
     # ========================================================================
     
-    def _get_cache_key(self, chunk_id: str, table_name: str) -> str:
-        """Generate cache key."""
-        return hashlib.md5(f"{chunk_id}:{table_name}".encode()).hexdigest()
+    def _get_cache_key(
+        self,
+        chunk_id: str,
+        table_name: str,
+        *,
+        schema: Optional[Dict[str, str]] = None,
+        constrained_keys: Optional[Set[str]] = None,
+        normalization_hints: Optional[Dict[str, List[str]]] = None,
+        entity_col: Optional[str] = None,
+    ) -> str:
+        """Generate a cache key covering every prompt-shaping input.
+
+        The old key used only ``chunk_id`` and ``table_name``. Expanding a
+        workload schema could therefore replay a narrower cached extraction
+        and permanently leave newly requested columns empty.
+        """
+        payload = {
+            "chunk_id": chunk_id,
+            "table_name": table_name,
+            "schema": sorted((schema or {}).items()),
+            "constrained_keys": sorted(constrained_keys or set()),
+            "normalization_hints": normalization_hints or {},
+            "entity_col": entity_col,
+            "model": getattr(self.llm_client, "model", None),
+        }
+        encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+        return hashlib.md5(encoded.encode()).hexdigest()
     
     def _get_cached_result(
         self,
         chunk_id: str,
-        table_name: str
+        table_name: str,
+        **cache_context: Any,
     ) -> Optional[ExtractionResult]:
         """Get cached extraction result."""
-        cache_key = self._get_cache_key(chunk_id, table_name)
+        cache_key = self._get_cache_key(chunk_id, table_name, **cache_context)
         cache_file = self.cache_dir / f"{cache_key}.json"
         
         if cache_file.exists():
@@ -1901,10 +1975,11 @@ class ConstrainedExtractor:
         self,
         chunk_id: str,
         table_name: str,
-        result: ExtractionResult
+        result: ExtractionResult,
+        **cache_context: Any,
     ) -> None:
         """Cache extraction result."""
-        cache_key = self._get_cache_key(chunk_id, table_name)
+        cache_key = self._get_cache_key(chunk_id, table_name, **cache_context)
         cache_file = self.cache_dir / f"{cache_key}.json"
         
         try:

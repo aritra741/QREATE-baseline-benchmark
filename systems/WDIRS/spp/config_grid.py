@@ -24,41 +24,65 @@ from __future__ import annotations
 
 import re
 import sqlite3
+import logging
+import sys
+from pathlib import Path
 from dataclasses import dataclass, field
 from difflib import SequenceMatcher
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Mapping, Optional
 
 from spp.population_config import PopulationConfig, generate_config_space
+from token_counter import TokenBudgetExceeded
 
 FUZZY_THRESHOLD = 0.85
+logger = logging.getLogger(__name__)
+
+
+class SQLExecutionError(RuntimeError):
+    """Raised when a diagnostic SQL query cannot be evaluated."""
+
+
+def _sqlite_affinity(values: List[Any], declared_type: Optional[str] = None) -> str:
+    if declared_type in {"MONEY", "QUANTITY", "QUANTITY_COUNT", "REAL", "NUMERIC", "INTEGER"}:
+        return "NUMERIC"
+    non_null = [v for v in values if v not in (None, "")]
+    if non_null:
+        for value in non_null:
+            try:
+                float(str(value).strip().replace(",", ""))
+            except (TypeError, ValueError):
+                return "TEXT"
+        return "NUMERIC"
+    return "TEXT"
 
 
 # ============================================================================
 # Query execution against config-populated in-memory tables
 # ============================================================================
 
-def _build_in_memory_db(tables: Dict[str, List[Dict[str, Any]]]) -> sqlite3.Connection:
+def _build_in_memory_db(
+    tables: Dict[str, List[Dict[str, Any]]],
+    table_schemas: Optional[Dict[str, Dict[str, str]]] = None,
+) -> sqlite3.Connection:
     """Build a throwaway in-memory SQLite DB from populated/ground-truth rows.
 
-    IMPORTANT: columns are declared NUMERIC (not TEXT). SQLite's TEXT
-    affinity forces every inserted value -- including numeric-looking
-    extraction output like "37" or 91.0 -- into TEXT storage class, and
-    SQLite's cross-type ordering rule (INTEGER/REAL always < TEXT) then
-    makes ANY numeric WHERE/GROUP BY/aggregate comparison ("age > 91",
-    "MIN(olympic_gold_medals)") silently wrong, identically so across every
-    PopulationConfig (since the bug is in this diagnostic's SQL layer, not
-    in population/config choice). NUMERIC affinity instead auto-coerces
-    values that look numeric into INTEGER/REAL storage class on insert,
-    while leaving genuinely non-numeric text (names, colleges, etc.)
-    unaffected, so both kinds of comparisons behave correctly.
+    Affinity is schema/value-aware. Declared numeric columns and columns whose
+    non-null values are all numeric-looking use NUMERIC; genuine text uses
+    TEXT. Declaring everything TEXT breaks numeric predicates, while declaring
+    everything NUMERIC corrupts numeric-looking identifiers (for example,
+    leading-zero codes).
     """
     conn = sqlite3.connect(":memory:")
     cursor = conn.cursor()
     for table_name, rows in tables.items():
-        if not rows:
+        declared = (table_schemas or {}).get(table_name, {})
+        columns = sorted({*declared.keys(), *(k for row in rows for k in row.keys())})
+        if not columns:
             continue
-        columns = sorted({k for row in rows for k in row.keys()})
-        col_defs = ", ".join(f'"{c}" NUMERIC' for c in columns)
+        col_defs = ", ".join(
+            f'"{c}" {_sqlite_affinity([row.get(c) for row in rows], declared.get(c))}'
+            for c in columns
+        )
         cursor.execute(f'CREATE TABLE "{table_name}" ({col_defs})')
         placeholders = ", ".join("?" for _ in columns)
         for row in rows:
@@ -75,10 +99,7 @@ def _execute_sql(conn: sqlite3.Connection, query: str) -> List[Dict[str, Any]]:
         columns = [d[0] for d in cursor.description]
         return [dict(zip(columns, row)) for row in cursor.fetchall()]
     except Exception as exc:
-        import logging as _logging
-
-        _logging.getLogger(__name__).warning("SQL execution failed for %r: %s", query, exc)
-        return []
+        raise SQLExecutionError(f"SQL execution failed for {query!r}: {exc}") from exc
 
 
 # ============================================================================
@@ -101,7 +122,11 @@ def _fuzzy_equal(a: Any, b: Any) -> bool:
 
 
 def query_error(gt_rows: List[Dict[str, Any]], pred_rows: List[Dict[str, Any]]) -> float:
-    """1 - F1 over row alignment with fuzzy cell matching. Lower is better."""
+    """Legacy lightweight row-F1 diagnostic. Lower is better.
+
+    This is intentionally not labeled as the official UDA-Bench metric. HPC
+    grid runs pass ``official_query_error`` into ``run_config_grid`` instead.
+    """
     if not gt_rows and not pred_rows:
         return 0.0
     if not gt_rows or not pred_rows:
@@ -128,6 +153,94 @@ def query_error(gt_rows: List[Dict[str, Any]], pred_rows: List[Dict[str, Any]]) 
     return 1.0 - f1
 
 
+def official_query_error(
+    sql: str,
+    gt_rows: List[Dict[str, Any]],
+    pred_rows: List[Dict[str, Any]],
+    attributes: Mapping[str, Mapping[str, Mapping[str, Any]]],
+) -> float:
+    """Compute 1 - official UDA-Bench column macro-F1 without evaluator LLMs."""
+    import pandas as pd
+
+    project_root = Path(__file__).resolve().parents[3]
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+
+    from evaluation.config import EvalSettings
+    from evaluation.metrics import MetricCalculator
+    from evaluation.query_manifest import QueryManifest
+    from evaluation.row_matcher import RowMatcher
+    from evaluation.sql_parser import SqlParser
+    from evaluation.utils import (
+        add_missing_columns,
+        clean_string_columns,
+        normalize_types,
+        standardize_column_name,
+    )
+
+    parser = SqlParser()
+    settings = EvalSettings(llm_provider="none")
+    manifest = QueryManifest(sql, parser.parse(sql), attributes)
+
+    def _frame(rows: List[Dict[str, Any]]) -> "pd.DataFrame":
+        frame = pd.DataFrame(rows)
+        frame = frame.rename(
+            columns={column: standardize_column_name(column) for column in frame.columns}
+        )
+        frame = add_missing_columns(frame, manifest.parsed.output_columns)
+        frame = add_missing_columns(frame, manifest.stop_columns)
+        frame = clean_string_columns(frame)
+        return normalize_types(frame, attributes)
+
+    gold_df = _frame(gt_rows)
+    pred_df = _frame(pred_rows)
+    keys = []
+    for key in manifest.primary_keys:
+        candidates = [key, key.split(".", 1)[-1]]
+        chosen = next(
+            (
+                candidate
+                for candidate in candidates
+                if candidate in gold_df.columns and candidate in pred_df.columns
+            ),
+            None,
+        )
+        if chosen and chosen not in keys:
+            keys.append(chosen)
+
+    if not keys:
+        # Aggregate-only queries generally yield one row. For non-aggregate
+        # queries, use projected columns as deterministic alignment keys.
+        keys = [
+            column
+            for column in manifest.parsed.output_columns
+            if column in gold_df.columns and column in pred_df.columns
+        ]
+
+    for key in keys:
+        for frame in (gold_df, pred_df):
+            if key in frame.columns:
+                frame[key] = frame[key].map(
+                    lambda value: value.lower().strip()
+                    if isinstance(value, str)
+                    else value
+                )
+
+    if not keys:
+        # Both frames have no evaluable output columns.
+        return 0.0 if gold_df.empty and pred_df.empty else 1.0
+
+    match_result = RowMatcher(settings=settings).match(
+        gold_df=gold_df,
+        pred_df=pred_df,
+        primary_keys=keys,
+        attr_descriptions=attributes,
+        query_type=manifest.parsed.query_type,
+    )
+    metrics = MetricCalculator(manifest, settings).compute(match_result)
+    return 1.0 - float(metrics["macro_f1"])
+
+
 # ============================================================================
 # Grid execution
 # ============================================================================
@@ -137,6 +250,8 @@ class ConfigGridResult:
     per_config: Dict[str, Dict[str, Any]] = field(default_factory=dict)
     n_queries: int = 0
     config_space_size: int = 0
+    stopped_early: bool = False
+    stop_reason: Optional[str] = None
 
 
 def run_config_grid(
@@ -146,6 +261,9 @@ def run_config_grid(
     *,
     config_space: Optional[List[PopulationConfig]] = None,
     required_tables_by_query: Optional[Dict[str, List[str]]] = None,
+    query_error_fn: Optional[
+        Callable[[str, List[Dict[str, Any]], List[Dict[str, Any]]], float]
+    ] = None,
 ) -> ConfigGridResult:
     """Run every config in `config_space` against WDIRS's shared extraction
     (via `runner.materialize_population_config`) and score each query.
@@ -164,33 +282,88 @@ def run_config_grid(
         found = [t for t in found if t in all_tables]
         return found or all_tables
 
-    for config in config_space:
-        per_query_rows: List[Dict[str, Any]] = []
-        populated_tables: Dict[str, List[Dict[str, Any]]] = {}
-
-        for query in queries:
-            qid = query.get("query_id", query.get("sql", "")[:40])
-            sql = query["sql"]
-            needed_tables = (
-                required_tables_by_query.get(qid) if required_tables_by_query else None
-            ) or _tables_for(sql)
-
-            for table_name in needed_tables:
-                if table_name not in populated_tables:
-                    records, _diag = runner.materialize_population_config(table_name, config)
-                    populated_tables[table_name] = records
-
-            conn = _build_in_memory_db({t: populated_tables[t] for t in needed_tables})
-            pred_rows = _execute_sql(conn, sql)
-            conn.close()
-
+    query_specs: List[Dict[str, Any]] = []
+    for query in queries:
+        qid = query.get("query_id", query.get("sql", "")[:40])
+        sql = query["sql"]
+        needed_tables = (
+            required_tables_by_query.get(qid) if required_tables_by_query else None
+        ) or _tables_for(sql)
+        gt_error = None
+        gt_rows: List[Dict[str, Any]] = []
+        try:
             gt_conn = _build_in_memory_db(
                 {t: ground_truth_tables[t] for t in needed_tables if t in ground_truth_tables}
             )
             gt_rows = _execute_sql(gt_conn, sql)
             gt_conn.close()
+        except SQLExecutionError as exc:
+            gt_error = str(exc)
+            logger.error("Ground-truth query is invalid; excluding %s: %s", qid, exc)
+        query_specs.append(
+            {
+                "query_id": qid,
+                "sql": sql,
+                "tables": needed_tables,
+                "gt_rows": gt_rows,
+                "gt_error": gt_error,
+            }
+        )
+    required_table_names = sorted(
+        {table for spec in query_specs for table in spec["tables"]}
+    )
 
-            err = query_error(gt_rows, pred_rows)
+    for config in config_space:
+        per_query_rows: List[Dict[str, Any]] = []
+        try:
+            if hasattr(runner, "materialize_population_tables"):
+                populated_tables = runner.materialize_population_tables(
+                    required_table_names, config
+                )
+            else:
+                populated_tables = {
+                    table_name: runner.materialize_population_config(
+                        table_name, config
+                    )[0]
+                    for table_name in required_table_names
+                }
+        except TokenBudgetExceeded as exc:
+            result.stopped_early = True
+            result.stop_reason = str(exc)
+            break
+
+        for spec in query_specs:
+            qid = spec["query_id"]
+            sql = spec["sql"]
+            needed_tables = spec["tables"]
+
+            table_schemas = {
+                t: runner.lattice_planner.get_table_schema(t) for t in needed_tables
+            }
+            pred_rows: List[Dict[str, Any]] = []
+            pred_error = None
+            try:
+                conn = _build_in_memory_db(
+                    {t: populated_tables[t] for t in needed_tables},
+                    table_schemas=table_schemas,
+                )
+                pred_rows = _execute_sql(conn, sql)
+                conn.close()
+            except SQLExecutionError as exc:
+                pred_error = str(exc)
+                logger.error("Populated query failed for %s / %s: %s", qid, config.config_id, exc)
+
+            gt_rows = spec["gt_rows"]
+            sql_error = spec["gt_error"] or pred_error
+            err = (
+                None
+                if sql_error
+                else (
+                    query_error_fn(sql, gt_rows, pred_rows)
+                    if query_error_fn
+                    else query_error(gt_rows, pred_rows)
+                )
+            )
             per_query_rows.append(
                 {
                     "query_id": qid,
@@ -199,11 +372,12 @@ def run_config_grid(
                     "query_error": err,
                     "gold_rows": len(gt_rows),
                     "pred_rows": len(pred_rows),
+                    "sql_error": sql_error,
                     "populated_table_sizes": {t: len(populated_tables.get(t, [])) for t in needed_tables},
                 }
             )
 
-        errs = [r["query_error"] for r in per_query_rows]
+        errs = [r["query_error"] for r in per_query_rows if r["query_error"] is not None]
         result.per_config[config.config_id] = {
             "mean_query_error": sum(errs) / len(errs) if errs else None,
             "per_query": per_query_rows,
@@ -272,11 +446,10 @@ def summarize_query_sensitivity(
         "config_sensitive_queries": sorted(sensitive, key=lambda s: -s["error_spread"]),
         "config_insensitive_queries": insensitive,
         "note": (
-            "config_insensitive_queries had IDENTICAL error across every evaluated "
-            "config -- almost always an extraction-quality ceiling/floor (wrong "
-            "extracted value, unmatched join key, etc.), not evidence that the "
-            "Pop(T,s) axes are irrelevant for that query. Only "
-            "config_sensitive_queries carry signal about which axes matter."
+            "Config-insensitive queries had identical valid error across every "
+            "evaluated config. They may be stably correct, extraction-limited, "
+            "or genuinely unaffected by these axes. They provide no evidence "
+            "for retaining or pruning an individual config."
         ),
     }
 
@@ -295,25 +468,30 @@ def build_viable_config_search_space(grid: ConfigGridResult, *, tie_epsilon: flo
             if qid not in query_ids:
                 query_ids.append(qid)
 
+    ever_optimal_all_queries: set = set()
     ever_optimal: set = set()
+    n_discriminative_queries = 0
     for qid in query_ids:
-        best_err = None
+        errors_by_config: Dict[str, float] = {}
         for cid in config_ids:
             row = next(
                 (r for r in per_config[cid].get("per_query", []) if r["query_id"] == qid), None
             )
             if row is None or row["query_error"] is None:
                 continue
-            if best_err is None or row["query_error"] < best_err - tie_epsilon:
-                best_err = row["query_error"]
-        if best_err is None:
+            errors_by_config[cid] = row["query_error"]
+        if not errors_by_config:
             continue
-        for cid in config_ids:
-            row = next(
-                (r for r in per_config[cid].get("per_query", []) if r["query_id"] == qid), None
-            )
-            if row is not None and row["query_error"] is not None and abs(row["query_error"] - best_err) <= tie_epsilon:
-                ever_optimal.add(cid)
+        best_err = min(errors_by_config.values())
+        best_ids = {
+            cid
+            for cid, error in errors_by_config.items()
+            if abs(error - best_err) <= tie_epsilon
+        }
+        ever_optimal_all_queries.update(best_ids)
+        if max(errors_by_config.values()) - min(errors_by_config.values()) > tie_epsilon:
+            n_discriminative_queries += 1
+            ever_optimal.update(best_ids)
 
     never_optimal = [cid for cid in config_ids if cid not in ever_optimal]
 
@@ -322,16 +500,24 @@ def build_viable_config_search_space(grid: ConfigGridResult, *, tie_epsilon: flo
         "full_config_space_size": grid.config_space_size,
         "n_evaluated_configs": len(config_ids),
         "n_queries": len(query_ids),
+        "n_discriminative_queries": n_discriminative_queries,
         "n_ever_optimal": len(ever_optimal),
         "n_never_optimal": len(never_optimal),
         "ever_optimal_fraction_of_evaluated": (
             len(ever_optimal) / len(config_ids) if config_ids else 0.0
         ),
         "ever_optimal_config_ids": sorted(ever_optimal),
+        "n_ever_optimal_including_flat_queries": len(ever_optimal_all_queries),
+        "ever_optimal_config_ids_including_flat_queries": sorted(
+            ever_optimal_all_queries
+        ),
         "never_optimal_config_ids": sorted(never_optimal),
         "pruning_note": (
-            "never_optimal_config_ids never appear in the tied-best set for any "
-            "scored query on THIS WDIRS-extraction run; compare against "
+            "Primary ever/never-optimal counts use only config-sensitive queries. "
+            "Flat queries are excluded because one flat query makes every config "
+            "tied-best and otherwise forces a meaningless 100% result. "
+            "never_optimal_config_ids never appear in a tied-best set for any "
+            "sensitive scored query on THIS WDIRS-extraction run; compare against "
             "spp-agent's own viable_config_search_space.json to see whether "
             "extraction quality changes which configs are prunable."
         ),

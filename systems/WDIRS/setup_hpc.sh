@@ -4,8 +4,8 @@
 # Differences from setup.sh (which assumes a laptop with brew/apt + sudo):
 #   - No sudo, no system package manager: everything goes through `module load`
 #     (if your cluster uses Lmod/Environment Modules) or user-space installs.
-#   - Skips trying to install Postgres/Ollama via a package manager; instead
-#     tells you what to check/module-load and exits with guidance if missing.
+#   - Uses Python's built-in SQLite support; no database service is required.
+#   - Checks Ollama without trying to install it via a system package manager.
 #   - Assumes pip install needs network access, which many clusters only allow
 #     from the login node, not compute nodes — run this script on the login
 #     node, then submit the actual WDIRS job (sbatch/srun) separately.
@@ -40,17 +40,15 @@ if ! python3 -c 'import sys; exit(0 if sys.version_info >= (3, 9) else 1)'; then
 fi
 echo -e "${GREEN}✓ Python OK${NC}"
 
-# --- [2/6] Postgres (check only — do not attempt to install) ---------------
-echo -e "\n${YELLOW}[2/6] Checking PostgreSQL reachability...${NC}"
-if command -v psql &> /dev/null; then
-    echo -e "${GREEN}✓ psql found: $(psql --version)${NC}"
+# --- [2/6] SQLite -----------------------------------------------------------
+echo -e "\n${YELLOW}[2/6] Checking Python SQLite support...${NC}"
+if python3 -c 'import sqlite3; print(sqlite3.sqlite_version)' >/dev/null 2>&1; then
+    sqlite_version=$(python3 -c 'import sqlite3; print(sqlite3.sqlite_version)')
+    echo -e "${GREEN}✓ Python SQLite available: ${sqlite_version}${NC}"
 else
-    echo -e "${YELLOW}psql not on PATH.${NC}"
-    echo "  Try: module avail postgres | postgresql"
-    echo "  If your cluster has no Postgres module, either:"
-    echo "    a) run a user-space Postgres via a Singularity/Apptainer container, or"
-    echo "    b) point WDIRS at a Postgres instance running elsewhere (set PGHOST/PGPORT/"
-    echo "       PGUSER/PGPASSWORD/PGDATABASE env vars, or edit systems/WDIRS/config.py)"
+    echo -e "${RED}Python was built without sqlite3 support.${NC}"
+    echo "Load a different Python module before creating the virtual environment."
+    exit 1
 fi
 
 # --- [3/6] Ollama (check only) ----------------------------------------------
@@ -111,8 +109,7 @@ echo "==================================${NC}"
 echo ""
 echo "Reminders before running diagnostics/run_config_grid.py on this cluster:"
 echo "  1. source venv/bin/activate   (do this in every new shell/job script)"
-echo "  2. Ensure Postgres is reachable (env vars or config.py) and Ollama is"
-echo "     serving qwen2.5:7b-instruct -- check with: ollama list"
+echo "  2. Ensure Ollama is serving qwen2.5:7b-instruct -- check with: ollama list"
 echo "  3. If submitting via SLURM, put steps 1-2 plus the python invocation"
 echo "     inside your sbatch script; pip/ollama-pull network access usually"
 echo "     only works from the login node, so do the install there first,"

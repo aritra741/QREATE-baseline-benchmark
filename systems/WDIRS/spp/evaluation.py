@@ -1,9 +1,9 @@
 """Phase 5 — Ground-truth-firewalled evaluation harness.
 
 Scores a WDIRS-backed `RoutingTable` (Phase 4) against UDA-Bench ground
-truth, reusing the row-aligned cell-level `Error` definition from Phase 2's
-`config_grid.query_error` (which already matches UDA-Bench's evaluation
-protocol, per the migration plan).
+truth. When attribute metadata is supplied, it uses the official UDA-Bench
+RowMatcher + column macro-F1 metric; the legacy lightweight row-F1 remains
+available only for callers without metadata.
 
 GROUND-TRUTH FIREWALL: every function in this module takes
 `ground_truth_tables` explicitly and is only ever meant to be called
@@ -20,7 +20,12 @@ from dataclasses import dataclass, field
 from statistics import mean
 from typing import Any, Dict, List, Optional
 
-from spp.config_grid import _build_in_memory_db, _execute_sql, query_error
+from spp.config_grid import (
+    _build_in_memory_db,
+    _execute_sql,
+    official_query_error,
+    query_error,
+)
 from spp.population_config import PopulationConfig, parse_config_id
 from spp.query_clustering import QueryClusters
 from spp.routing import RoutingTable
@@ -60,7 +65,13 @@ def _populate_and_run(
             records, _diag = runner.materialize_population_config(table_name, config)
             populated[table_name] = records
 
-    conn = _build_in_memory_db({t: populated[t] for t in tables_needed})
+    schemas = {
+        t: runner.lattice_planner.get_table_schema(t) for t in tables_needed
+    }
+    conn = _build_in_memory_db(
+        {t: populated[t] for t in tables_needed},
+        table_schemas=schemas,
+    )
     rows = _execute_sql(conn, sql)
     conn.close()
     return rows
@@ -74,6 +85,7 @@ def routed_error(
     ground_truth_tables: Dict[str, List[dict]],
     *,
     materialization_cache: Optional[Dict[str, Dict[str, List[dict]]]] = None,
+    attributes: Optional[Dict[str, dict]] = None,
 ) -> "tuple[float, Dict[str, float]]":
     """Average query error obtained by executing each query against the
     PopulationConfig its cluster was routed to. This IS ground-truth-firewalled
@@ -90,14 +102,16 @@ def routed_error(
     per_query_errors: Dict[str, float] = {}
 
     for idx, query in enumerate(queries):
+        qid = query.get("query_id", query.get("sql", "")[:40])
         if idx >= len(labels):
-            break
+            per_query_errors[qid] = 1.0
+            continue
         cluster_id = labels[idx]
         config_id = routing_table.cluster_to_config.get(cluster_id)
         if not config_id:
+            per_query_errors[qid] = 1.0
             continue
 
-        qid = query.get("query_id", query.get("sql", "")[:40])
         sql = query["sql"]
         tables_needed = _tables_for_sql(sql, all_tables)
 
@@ -108,7 +122,11 @@ def routed_error(
         gt_rows = _execute_sql(gt_conn, sql)
         gt_conn.close()
 
-        per_query_errors[qid] = query_error(gt_rows, pred_rows)
+        per_query_errors[qid] = (
+            official_query_error(sql, gt_rows, pred_rows, attributes)
+            if attributes
+            else query_error(gt_rows, pred_rows)
+        )
 
     if not per_query_errors:
         return float("nan"), {}
@@ -122,6 +140,7 @@ def oracle_min_error(
     ground_truth_tables: Dict[str, List[dict]],
     *,
     materialization_cache: Optional[Dict[str, Dict[str, List[dict]]]] = None,
+    attributes: Optional[Dict[str, dict]] = None,
 ) -> "tuple[str, float]":
     """True (ground-truth-using, offline-only) oracle: the single BEST
     PopulationConfig across the whole workload, i.e. an upper bound on what
@@ -145,7 +164,11 @@ def oracle_min_error(
             gt_conn = _build_in_memory_db({t: ground_truth_tables[t] for t in tables_needed})
             gt_rows = _execute_sql(gt_conn, sql)
             gt_conn.close()
-            errs.append(query_error(gt_rows, pred_rows))
+            errs.append(
+                official_query_error(sql, gt_rows, pred_rows, attributes)
+                if attributes
+                else query_error(gt_rows, pred_rows)
+            )
         mean_err = mean(errs) if errs else float("nan")
         if mean_err == mean_err and mean_err < best_error:
             best_error = mean_err
@@ -161,6 +184,7 @@ def per_query_oracle_error(
     ground_truth_tables: Dict[str, List[dict]],
     *,
     materialization_cache: Optional[Dict[str, Dict[str, List[dict]]]] = None,
+    attributes: Optional[Dict[str, dict]] = None,
 ) -> float:
     """Strongest oracle bound: best config PER QUERY (perfect, unbounded
     routing). Reported alongside oracle_min_error (best SINGLE config) so
@@ -183,7 +207,11 @@ def per_query_oracle_error(
         best_err = float("inf")
         for config in candidate_configs:
             pred_rows = _populate_and_run(runner, config, sql, tables_needed, cache)
-            err = query_error(gt_rows, pred_rows)
+            err = (
+                official_query_error(sql, gt_rows, pred_rows, attributes)
+                if attributes
+                else query_error(gt_rows, pred_rows)
+            )
             best_err = min(best_err, err)
         per_query_best.append(best_err)
 
@@ -197,6 +225,8 @@ def evaluate_routing(
     runner: Any,
     ground_truth_tables: Dict[str, List[dict]],
     candidate_configs: List[PopulationConfig],
+    *,
+    attributes: Optional[Dict[str, dict]] = None,
 ) -> EvaluationResult:
     """Full Phase 5 evaluation: routed_error, oracle_min_error (best single
     config, ground-truth-using, offline-only), and regret.
@@ -206,10 +236,12 @@ def evaluate_routing(
     r_err, per_query = routed_error(
         routing_table, query_clusters, queries, runner, ground_truth_tables,
         materialization_cache=cache,
+        attributes=attributes,
     )
     _best_config_id, o_err = oracle_min_error(
         candidate_configs, queries, runner, ground_truth_tables,
         materialization_cache=cache,
+        attributes=attributes,
     )
 
     regret = r_err - o_err if r_err == r_err and o_err == o_err else float("nan")
