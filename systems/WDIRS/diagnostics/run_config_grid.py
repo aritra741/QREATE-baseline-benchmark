@@ -34,6 +34,7 @@ import csv
 import json
 import os
 import random
+import shutil
 import sys
 import time
 from pathlib import Path
@@ -215,9 +216,11 @@ def main() -> None:
     parser.add_argument(
         "--token-budget",
         type=float,
-        default=172400,
+        default=10_846_866,
         help=(
-            "Hard token budget for grid materialization. The precise Qwen "
+            "Hard end-to-end token budget covering preprocessing/extraction "
+            "and grid materialization. The default is 20%% of DocETL's "
+            "54,234,332-token Player run (10,846,866 tokens). The precise Qwen "
             "token counter rejects an LLM call before dispatch if its prompt "
             "plus maximum output could exceed the remaining budget. A cheap "
             "row-based estimate is also used to avoid starting configs that "
@@ -243,10 +246,22 @@ def main() -> None:
             "caches, preventing duplicate/stale materialized rows."
         ),
     )
+    parser.add_argument(
+        "--reuse-cache",
+        action="store_true",
+        help=(
+            "Reuse extraction and entity-resolution caches under the output "
+            "directory. By default the diagnostic uses a fresh run-scoped "
+            "cache so token_spent_actual measures cold end-to-end cost."
+        ),
+    )
     args = parser.parse_args()
 
     out_dir = Path(args.out) if args.out else PROJECT_ROOT / "results" / f"spp_config_grid_{args.dataset}"
     out_dir.mkdir(parents=True, exist_ok=True)
+    cache_root = (out_dir / "wdirs_cache" / args.dataset).expanduser().resolve()
+    if cache_root.exists() and not args.reuse_cache:
+        shutil.rmtree(cache_root)
     using_default_db = args.db_path is None
     db_path = Path(args.db_path) if args.db_path else out_dir / "wdirs_grid.db"
     db_path = db_path.expanduser().resolve()
@@ -264,6 +279,7 @@ def main() -> None:
     print("=" * 80)
     print(f"SPP CONFIG GRID — dataset={args.dataset} model={os.environ['OLLAMA_MODEL']}")
     print(f"SQLite DB: {db_path} ({'reused' if args.reuse_db else 'fresh'})")
+    print(f"Cache: {cache_root} ({'reused' if args.reuse_cache else 'fresh'})")
     print("=" * 80)
 
     print("\n[1/5] Loading ground truth...")
@@ -323,17 +339,29 @@ def main() -> None:
 
     print("\n[3/5] Running WDIRS preprocessing (shared extraction; this is the expensive step)...")
     from wdirs_runner import WDIRSRunner
+    from token_counter import GLOBAL_COUNTER
 
+    # One end-to-end budget covers schema planning, extraction, population,
+    # and every other LLM call. Previously this counter was started only after
+    # preprocessing, which incorrectly reported grid-only cost.
+    GLOBAL_COUNTER.reset()
+    GLOBAL_COUNTER.set_budget(int(args.token_budget))
     t0 = time.time()
-    runner = WDIRSRunner(args.dataset)
+    runner = WDIRSRunner(args.dataset, cache_dir=cache_root)
     preprocess_result = runner.preprocess(
         workload_queries=train_queries,
         perform_proactive_er=False,
     )
     preprocess_time = time.time() - t0
+    preprocess_tokens = GLOBAL_COUNTER.total_tokens
 
     if not preprocess_result.success:
         print(f"PREPROCESSING FAILED: {preprocess_result.error}")
+        print(
+            f"  preprocessing consumed {preprocess_tokens:.0f}/"
+            f"{args.token_budget:.0f} end-to-end budget tokens"
+        )
+        GLOBAL_COUNTER.save_json(out_dir / "token_cost.json")
         sys.exit(1)
 
     materialized_sql_errors = []
@@ -354,7 +382,8 @@ def main() -> None:
 
     print(
         f"  preprocessing done in {preprocess_time:.1f}s: "
-        f"{preprocess_result.tables_processed} tables, {preprocess_result.total_records} records"
+        f"{preprocess_result.tables_processed} tables, {preprocess_result.total_records} records; "
+        f"tokens={preprocess_tokens:.0f}/{args.token_budget:.0f}"
     )
 
     print("\n[4/5] Running config grid over Pop(T,s) space (token-budget-gated)...")
@@ -366,8 +395,6 @@ def main() -> None:
         summarize_query_sensitivity,
     )
     from spp.routing import TokenBudget, estimate_config_marginal_cost
-    from token_counter import GLOBAL_COUNTER
-
     cartesian_config_space = generate_config_space()
     full_cartesian_size = len(cartesian_config_space)
     full_config_space = cartesian_config_space
@@ -387,7 +414,8 @@ def main() -> None:
     )
     n_rows_total = n_rows_total or 1
 
-    budget = TokenBudget(total=args.token_budget)
+    remaining_after_preprocess = max(args.token_budget - preprocess_tokens, 0)
+    budget = TokenBudget(total=remaining_after_preprocess)
     config_space: list = []
     skipped_over_budget: list = []
     for config in full_config_space:
@@ -400,8 +428,10 @@ def main() -> None:
             skipped_over_budget.append({"config_id": config.config_id, "estimated_cost": marginal})
 
     print(
-        f"  token budget={args.token_budget:.0f} row-cost estimate="
-        f"{budget.spent:.0f} estimated remaining={budget.remaining:.0f}"
+        f"  end-to-end token budget={args.token_budget:.0f}; "
+        f"preprocessing spent={preprocess_tokens:.0f}; "
+        f"grid row-cost estimate={budget.spent:.0f}; "
+        f"estimated remaining={budget.remaining:.0f}"
     )
     print(
         f"  configs within budget: {len(config_space)}/{len(full_config_space)} "
@@ -413,8 +443,7 @@ def main() -> None:
     queries_payload = [{"query_id": f"q{i}", "sql": sql} for i, sql in enumerate(test_queries)]
 
     t0 = time.time()
-    GLOBAL_COUNTER.reset()
-    GLOBAL_COUNTER.set_budget(int(args.token_budget))
+    grid_tokens_before = GLOBAL_COUNTER.total_tokens
     grid = run_config_grid(
         runner,
         queries_payload,
@@ -425,10 +454,12 @@ def main() -> None:
         ),
     )
     grid_time = time.time() - t0
-    actual_tokens = GLOBAL_COUNTER.total_tokens
+    actual_tokens_total = GLOBAL_COUNTER.total_tokens
+    actual_tokens_grid = actual_tokens_total - grid_tokens_before
     print(
-        f"  grid complete in {grid_time:.1f}s; actual materialization "
-        f"tokens={actual_tokens:.0f}/{args.token_budget:.0f}"
+        f"  grid complete in {grid_time:.1f}s; grid tokens="
+        f"{actual_tokens_grid:.0f}; end-to-end tokens="
+        f"{actual_tokens_total:.0f}/{args.token_budget:.0f}"
     )
     if grid.stopped_early:
         print(f"  grid stopped at hard token limit: {grid.stop_reason}")
@@ -446,9 +477,13 @@ def main() -> None:
         "planned_config_space_size": len(full_config_space),
         "config_space_size": len(config_space),
         "token_budget": args.token_budget,
-        "token_spent_estimate": budget.spent,
-        "token_spent_actual": actual_tokens,
-        "token_remaining_actual": max(args.token_budget - actual_tokens, 0),
+        "token_spent_estimate_grid": budget.spent,
+        "token_spent_actual_preprocess": preprocess_tokens,
+        "token_spent_actual_grid": actual_tokens_grid,
+        "token_spent_actual": actual_tokens_total,
+        "token_remaining_actual": max(args.token_budget - actual_tokens_total, 0),
+        "cache_mode": "warm" if args.reuse_cache else "cold",
+        "cache_path": str(cache_root),
         "grid_stopped_early": grid.stopped_early,
         "grid_stop_reason": grid.stop_reason,
         "n_skipped_over_budget": len(skipped_over_budget),
@@ -459,12 +494,19 @@ def main() -> None:
     }
     (out_dir / "config_grid_results.json").write_text(json.dumps(grid_json, indent=2))
     viable["token_budget"] = args.token_budget
-    viable["token_spent_estimate"] = budget.spent
-    viable["token_spent_actual"] = actual_tokens
+    viable["token_spent_estimate_grid"] = budget.spent
+    viable["token_spent_actual_preprocess"] = preprocess_tokens
+    viable["token_spent_actual_grid"] = actual_tokens_grid
+    viable["token_spent_actual"] = actual_tokens_total
+    viable["token_remaining_actual"] = max(
+        args.token_budget - actual_tokens_total, 0
+    )
+    viable["cache_mode"] = "warm" if args.reuse_cache else "cold"
     viable["full_cartesian_config_space_size"] = full_cartesian_size
     viable["planned_config_space_size"] = len(full_config_space)
     (out_dir / "viable_config_search_space.json").write_text(json.dumps(viable, indent=2))
     (out_dir / "query_sensitivity.json").write_text(json.dumps(sensitivity, indent=2))
+    GLOBAL_COUNTER.save_json(out_dir / "token_cost.json")
 
     print(f"\nWrote {out_dir / 'config_grid_results.json'}")
     print(f"Wrote {out_dir / 'viable_config_search_space.json'}")

@@ -75,17 +75,25 @@ class OllamaClient:
         self,
         base_url: str = OLLAMA_URL,
         model: str = OLLAMA_MODEL,
-        timeout: int = OLLAMA_TIMEOUT
+        timeout: int = OLLAMA_TIMEOUT,
+        api_key: Optional[str] = None,
+        extra_body: Optional[Dict[str, Any]] = None,
     ):
-        """Initialize Ollama client."""
+        """Initialize an OpenAI-compatible client.
+
+        Ollama remains the default. ``api_key`` and ``extra_body`` allow the
+        same rigorously-accounted client to call hosted providers such as
+        DeepSeek without adding a second unmetered LLM path.
+        """
         self.base_url = base_url
         self.model = model
         self.timeout = timeout
+        self.extra_body = dict(extra_body or {})
         
         # Initialize OpenAI client (Ollama uses OpenAI-compatible API)
         self.client = OpenAI(
             base_url=base_url,
-            api_key="ollama"  # Ollama doesn't require real API key
+            api_key=api_key or "ollama"
         )
         
         logger.info(f"Initialized Ollama client: {base_url} with model {model}")
@@ -119,14 +127,27 @@ class OllamaClient:
         if GLOBAL_COUNTER.has_budget:
             GLOBAL_COUNTER.ensure_can_spend(count_tokens(input_text), max_tokens)
 
-        for attempt in range(OLLAMA_MAX_RETRIES):
+        # The new offline SPP system wraps this client with an external ledger.
+        # In that mode each failed dispatch must be visible and charged as its
+        # own call, so hidden retries are disabled.
+        max_attempts = (
+            1
+            if getattr(self, "external_budget_retry_control", False)
+            else OLLAMA_MAX_RETRIES
+        )
+        for attempt in range(max_attempts):
             try:
+                request = {
+                    "model": self.model,
+                    "messages": messages,
+                    "max_tokens": max_tokens,
+                    "temperature": temperature,
+                    "timeout": self.timeout,
+                }
+                if self.extra_body:
+                    request["extra_body"] = self.extra_body
                 response = self.client.chat.completions.create(
-                    model=self.model,
-                    messages=messages,
-                    max_tokens=max_tokens,
-                    temperature=temperature,
-                    timeout=self.timeout
+                    **request
                 )
 
                 content = response.choices[0].message.content
@@ -160,9 +181,9 @@ class OllamaClient:
                 return content
 
             except Exception as e:
-                logger.warning(f"Ollama API error (attempt {attempt + 1}/{OLLAMA_MAX_RETRIES}): {e}")
+                logger.warning(f"Ollama API error (attempt {attempt + 1}/{max_attempts}): {e}")
 
-                if attempt < OLLAMA_MAX_RETRIES - 1:
+                if attempt < max_attempts - 1:
                     time.sleep(OLLAMA_RETRY_DELAY)
                 else:
                     raise

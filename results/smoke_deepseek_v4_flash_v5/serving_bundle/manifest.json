@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "portfolio": {
+    "selected_config_ids": [
+      "schema=snowflake:d2e2a03d3782|pre=whole_document|er=embedding_0.7|norm=dictionary|unit=none|miss=drop|coerce=permissive"
+    ],
+    "query_to_config": {
+      "q_players": "schema=snowflake:d2e2a03d3782|pre=whole_document|er=embedding_0.7|norm=dictionary|unit=none|miss=drop|coerce=permissive",
+      "q_top_score": "schema=snowflake:d2e2a03d3782|pre=whole_document|er=embedding_0.7|norm=dictionary|unit=none|miss=drop|coerce=permissive"
+    },
+    "query_scores": {
+      "q_players": 0.8908987181403393,
+      "q_top_score": 0.8908987181403393
+    },
+    "construction_tokens": 7484,
+    "objective_value": 1.7817974362806785
+  },
+  "databases": [
+    {
+      "config_id": "schema=snowflake:d2e2a03d3782|pre=whole_document|er=embedding_0.7|norm=dictionary|unit=none|miss=drop|coerce=permissive",
+      "filename": "databases/a8d7e73087911379.sqlite",
+      "sha256": "bc83bab60d68035e114b00097bef2519526482e33741d108774d1e0b630177db",
+      "size_bytes": 16384
+    }
+  ],
+  "queries": [
+    {
+      "query_id": "q_players",
+      "natural_language_query": "List each player name and the team they play for.",
+      "config_id": "schema=snowflake:d2e2a03d3782|pre=whole_document|er=embedding_0.7|norm=dictionary|unit=none|miss=drop|coerce=permissive",
+      "sql": "SELECT p.player_name, p.team\nFROM player p",
+      "sql_sha256": "bb539bda7b0219335a6d5e855b35960d6faf65e2ac8d14ab5f0bcb0f5dd63b94"
+    },
+    {
+      "query_id": "q_top_score",
+      "natural_language_query": "What is the maximum number of points scored by a player in the 2025 season?",
+      "config_id": "schema=snowflake:d2e2a03d3782|pre=whole_document|er=embedding_0.7|norm=dictionary|unit=none|miss=drop|coerce=permissive",
+      "sql": "SELECT MAX(points_scored) \nFROM player \nWHERE season = 2025",
+      "sql_sha256": "2909daa4156769b567388b81d54bccda1acb5c73eac6c283f266c60fd81dd9ea"
+    }
+  ],
+  "token_ledger_sha256": "dad68117b33c3a20f630c58218f2b77cd90d17501f2647ec7597d500926e3ca9",
+  "synthesis_manifest_sha256": "1306b5130331111c0d8ef75a6b96beaddca067d1d34a49a71eb6c26ad773dc69",
+  "evidence_manifest": {
+    "path": "/Users/aritramazumder/Documents/UDA-Bench-main/results/smoke_deepseek_v4_flash_v5/evidence.sqlite",
+    "sha256": "7053b1946cb20d9fb562de514d2404475134b01d3cfb812b56e76d52ddb867fa",
+    "counts": {
+      "documents": 1,
+      "anchors": 1,
+      "cell_provenance": 44,
+      "shared_artifacts": 6
+    }
+  }
+}

@@ -1,10 +1,30 @@
-"""SPP (Schema-Population-Preprocessing) control-plane layer for WDIRS.
+"""Offline Query Workload-Aware Relational Table Synthesis.
 
-Implements the plan in `.cursor/plans/wdirs_to_spp_migration_*.plan.md`:
-WDIRS remains the data-plane (single extraction, sieve synthesis, schema
-stabilization, grounding checks are untouched). This package adds a thin
-control-plane on top: an explicit population config space (Phase 1), a
-brute-force config grid diagnostic (Phase 2), structural query clustering
-(Phase 3), budget-aware routing (Phase 4), and a ground-truth-firewalled
-evaluation harness (Phase 5).
+The deployable system selects explicit ``<schema, population, preprocessing>``
+configurations using corpus evidence and workload-derived quality estimates
+under one global token ledger. It emits immutable SQLite databases, compiled
+SQL, and fixed routing; serving performs no extraction or LLM calls.
+
+Ground-truth-dependent grid/oracle modules remain evaluation-only and are not
+imported by :mod:`spp.system`.
 """
+
+from spp.spec import (
+    FrozenPortfolio,
+    PreprocessingPolicy,
+    QualityEstimate,
+    QueryRequirement,
+    RelationSpec,
+    SchemaDesign,
+    SynthesisConfig,
+)
+
+__all__ = [
+    "FrozenPortfolio",
+    "PreprocessingPolicy",
+    "QualityEstimate",
+    "QueryRequirement",
+    "RelationSpec",
+    "SchemaDesign",
+    "SynthesisConfig",
+]

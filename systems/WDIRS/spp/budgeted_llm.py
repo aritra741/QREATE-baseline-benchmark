@@ -1,0 +1,110 @@
+"""Ledger-enforcing adapter for existing WDIRS-compatible LLM clients."""
+
+from __future__ import annotations
+
+from typing import Any, Optional
+
+from spp.budget_ledger import GlobalBudgetLedger
+from token_counter import GLOBAL_COUNTER, count_tokens
+
+
+class BudgetedLLMClient:
+    """Wrap ``generate`` so every synthesis call reserves and reconciles tokens."""
+
+    def __init__(
+        self,
+        client: Any,
+        ledger: GlobalBudgetLedger,
+        *,
+        default_stage: str,
+        config_id: Optional[str] = None,
+        query_id: Optional[str] = None,
+    ):
+        self.client = client
+        self.ledger = ledger
+        self.default_stage = default_stage
+        self.config_id = config_id
+        self.query_id = query_id
+        # Prevent the wrapped client from hiding unaccounted retry attempts.
+        setattr(self.client, "external_budget_retry_control", True)
+
+    def generate(
+        self,
+        prompt: str,
+        max_tokens: int = 2048,
+        temperature: float = 0.0,
+        system_prompt: Optional[str] = None,
+        *,
+        stage: Optional[str] = None,
+        operation: str = "llm_generate",
+        shared_key: Optional[str] = None,
+    ) -> str:
+        input_text = " ".join(
+            text for text in (system_prompt, prompt) if text
+        )
+        # Hosted providers may use a different tokenizer than WDIRS's local
+        # Qwen counter. Reserve the larger of the local exact count and a
+        # conservative two-characters-per-token bound; actual provider usage
+        # is reconciled after the response.
+        conservative_estimate = (len(input_text.encode("utf-8")) + 1) // 2
+        try:
+            local_estimate = count_tokens(input_text)
+        except RuntimeError:
+            # Hosted APIs report actual usage after dispatch. A broken or
+            # unavailable local tokenizer must not block them; reserve a
+            # conservative character-based upper estimate instead.
+            local_estimate = conservative_estimate
+        input_estimate = max(local_estimate, conservative_estimate)
+        reservation_id = self.ledger.reserve(
+            stage=stage or self.default_stage,
+            operation=operation,
+            input_tokens=input_estimate,
+            max_output_tokens=max_tokens,
+            config_id=self.config_id,
+            query_id=self.query_id,
+            shared_key=shared_key,
+        )
+        if reservation_id is None:
+            raise RuntimeError(
+                "shared artifact already exists; caller must load it from cache "
+                "instead of dispatching the LLM call"
+            )
+        before_in = GLOBAL_COUNTER.input_tokens
+        before_out = GLOBAL_COUNTER.output_tokens
+        try:
+            response = self.client.generate(
+                prompt,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                system_prompt=system_prompt,
+            )
+        except Exception as exc:
+            # Provider usage may be unavailable after transport failures. Charge
+            # any globally observed usage; otherwise conservatively charge the
+            # prompt because it may already have reached the provider.
+            observed_in = GLOBAL_COUNTER.input_tokens - before_in
+            observed_out = GLOBAL_COUNTER.output_tokens - before_out
+            self.ledger.reconcile(
+                reservation_id,
+                input_tokens=max(observed_in, input_estimate),
+                output_tokens=max(observed_out, 0),
+                error=str(exc),
+            )
+            raise
+        observed_in = GLOBAL_COUNTER.input_tokens - before_in
+        observed_out = GLOBAL_COUNTER.output_tokens - before_out
+        if observed_out > 0:
+            reconciled_output = observed_out
+        else:
+            try:
+                reconciled_output = count_tokens(response or "")
+            except RuntimeError:
+                reconciled_output = (
+                    len((response or "").encode("utf-8")) + 1
+                ) // 2
+        self.ledger.reconcile(
+            reservation_id,
+            input_tokens=observed_in if observed_in > 0 else input_estimate,
+            output_tokens=reconciled_output,
+        )
+        return response
