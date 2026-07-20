@@ -12,6 +12,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Sequence, Tuple
 
+from json_repair import repair_json
+
 from spp.budget_ledger import GlobalBudgetLedger
 from spp.budgeted_llm import BudgetedLLMClient
 from spp.evidence_store import CellProvenance, EvidenceAnchor, EvidenceStore
@@ -220,9 +222,9 @@ class NativeSPPBackend:
     @staticmethod
     def _extract_json_array(response: str) -> List[dict]:
         start, end = response.find("["), response.rfind("]")
-        if start < 0 or end < start:
+        if start < 0:
             raise ValueError("extraction response contains no JSON array")
-        candidate = response[start : end + 1]
+        candidate = response[start : end + 1] if end >= start else response[start:]
         try:
             payload = json.loads(candidate)
         except json.JSONDecodeError:
@@ -263,8 +265,16 @@ class NativeSPPBackend:
                 index += 1
             try:
                 payload = json.loads("".join(repaired))
-            except json.JSONDecodeError as exc:
-                raise ValueError("extraction response contains malformed JSON") from exc
+            except json.JSONDecodeError:
+                try:
+                    structurally_repaired = repair_json(
+                        candidate, return_objects=True
+                    )
+                except Exception as exc:
+                    raise ValueError(
+                        "extraction response contains malformed JSON"
+                    ) from exc
+                payload = structurally_repaired
         if not isinstance(payload, list):
             raise ValueError("extraction response must be a JSON list")
         return [row for row in payload if isinstance(row, dict)]

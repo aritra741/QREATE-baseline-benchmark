@@ -224,7 +224,16 @@ def test_preprocessing_policy_changes_actual_document_units():
     assert [unit.text for unit in chunked] == ["abcdef", "efghij", "ij"]
 
 
-def test_native_extraction_repairs_qwen_json_syntax(tmp_path: Path):
+def test_native_extraction_repairs_qwen_json_syntax(
+    tmp_path: Path, monkeypatch
+):
+    def unavailable_structural_repair(*_args, **_kwargs):
+        raise ValueError("forced repair fallback")
+
+    monkeypatch.setattr(
+        "spp.native_backend.repair_json", unavailable_structural_repair
+    )
+
     class FakeClient:
         model = "qwen-test"
 
@@ -267,6 +276,35 @@ def test_native_extraction_repairs_qwen_json_syntax(tmp_path: Path):
 def test_native_extraction_repairs_invalid_json_escape():
     rows = NativeSPPBackend._extract_json_array('[{"name": "A\\_B"}]')
     assert rows == [{"name": "A\\_B"}]
+
+
+def test_native_extraction_repairs_missing_commas_deterministically():
+    rows = NativeSPPBackend._extract_json_array(
+        """
+        [
+          {
+            "name": "Alice",
+            "team": "Comets"
+            "age": 30
+          },
+          {
+            "name": "Bob"
+            "team": "Rockets"
+          }
+        ]
+        """
+    )
+    assert rows == [
+        {"name": "Alice", "team": "Comets", "age": 30},
+        {"name": "Bob", "team": "Rockets"},
+    ]
+
+
+def test_native_extraction_repairs_truncated_array():
+    rows = NativeSPPBackend._extract_json_array(
+        '[{"name": "Alice"}, {"name": "Bob"'
+    )
+    assert rows == [{"name": "Alice"}, {"name": "Bob"}]
 
 
 def test_sqlite_materializer_serializes_nested_values(tmp_path: Path):
