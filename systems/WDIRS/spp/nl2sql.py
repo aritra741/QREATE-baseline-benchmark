@@ -33,7 +33,49 @@ def _verification_payload(response: str) -> dict:
     start, end = response.find("{"), response.rfind("}")
     if start < 0 or end < start:
         raise ValueError("NL2SQL verifier returned no JSON object")
-    payload = json.loads(response[start : end + 1])
+    candidate = response[start : end + 1]
+    try:
+        payload = json.loads(candidate)
+    except json.JSONDecodeError:
+        # Smaller/local models frequently emit SQL backslashes or literal
+        # newlines inside JSON strings. Repair only JSON-invalid escapes and
+        # control characters; preserve valid escapes and all SQL text.
+        repaired: list[str] = []
+        in_string = False
+        index = 0
+        while index < len(candidate):
+            character = candidate[index]
+            preceding_backslashes = 0
+            cursor = index - 1
+            while cursor >= 0 and candidate[cursor] == "\\":
+                preceding_backslashes += 1
+                cursor -= 1
+            if character == '"' and preceding_backslashes % 2 == 0:
+                in_string = not in_string
+                repaired.append(character)
+            elif in_string and character == "\\":
+                following = (
+                    candidate[index + 1]
+                    if index + 1 < len(candidate)
+                    else ""
+                )
+                if following not in '"\\/bfnrtu':
+                    repaired.append("\\\\")
+                else:
+                    repaired.append(character)
+            elif in_string and character == "\n":
+                repaired.append("\\n")
+            elif in_string and character == "\r":
+                repaired.append("\\r")
+            elif in_string and character == "\t":
+                repaired.append("\\t")
+            else:
+                repaired.append(character)
+            index += 1
+        try:
+            payload = json.loads("".join(repaired))
+        except json.JSONDecodeError as exc:
+            raise ValueError("NL2SQL verifier returned malformed JSON") from exc
     if not isinstance(payload, dict) or not isinstance(
         payload.get("consistent"), bool
     ):
@@ -176,18 +218,54 @@ def make_nl2sql_compiler(llm_client: Any):
             f"{json.dumps(data_profile, default=str)}"
             f"\n\nCandidate SQL:\n{sql}"
         )
-        verification = _verification_payload(
-            budgeted.generate(
-                verification_prompt,
-                max_tokens=1024,
-                temperature=0.0,
-                operation="verify_compiled_query",
-            )
+        verification_response = budgeted.generate(
+            verification_prompt,
+            max_tokens=1024,
+            temperature=0.0,
+            operation="verify_compiled_query",
         )
+        try:
+            verification = _verification_payload(verification_response)
+        except ValueError:
+            # Verification is advisory evidence. A malformed verifier response
+            # must not destroy an executable, informative query after the
+            # expensive synthesis stages have already completed.
+            if _query_is_informative(database_path, sql):
+                return sql
+            raise
         if verification["consistent"]:
             return sql
         corrected = verification.get("corrected_sql")
         if not isinstance(corrected, str) or not corrected.strip():
+            if _query_is_informative(database_path, sql):
+                return sql
+            repair_prompt = (
+                "Repair the candidate into one read-only SQLite query that "
+                "answers the analytical intent. Use populated columns and avoid "
+                "empty join paths. Return SQL only.\n\n"
+                f"Intent:\n{requirement.text}\n\n"
+                f"Schema:\n{json.dumps(schema_payload)}\n\n"
+                "Gold-free database profile:\n"
+                f"{json.dumps(data_profile, default=str)}\n\n"
+                f"Candidate SQL:\n{sql}\n\n"
+                "Verifier objection:\n"
+                f"{verification.get('reason', 'unspecified inconsistency')}"
+            )
+            try:
+                repaired_sql = _extract_sql(
+                    budgeted.generate(
+                        repair_prompt,
+                        max_tokens=1024,
+                        temperature=0.0,
+                        operation="repair_compiled_query",
+                    )
+                )
+            except ValueError:
+                repaired_sql = ""
+            if repaired_sql and _query_is_informative(
+                database_path, repaired_sql
+            ):
+                return repaired_sql
             raise ValueError(
                 f"NL2SQL semantic verification failed: "
                 f"{verification.get('reason', 'no reason')}"

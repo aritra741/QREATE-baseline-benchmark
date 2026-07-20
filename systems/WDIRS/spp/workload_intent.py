@@ -194,49 +194,59 @@ def _parse_llm_payload(
     requirements: List[QueryRequirement] = []
     seen: set[str] = set()
     for row in rows:
+        if not isinstance(row, Mapping):
+            continue
         query_id = str(row.get("query_id", ""))
         if query_id not in queries_by_id or query_id in seen:
             continue
         seen.add(query_id)
+        def list_field(name: str) -> list:
+            value = row.get(name)
+            return list(value) if isinstance(value, (list, tuple)) else []
+
         relationships = []
-        for rel in row.get("relationships", []):
+        for rel in list_field("relationships"):
             if isinstance(rel, Mapping):
-                relationships.append(
-                    (
-                        str(rel.get("left", "")).lower(),
-                        str(rel.get("relation", "")).lower(),
-                        str(rel.get("right", "")).lower(),
-                    )
+                parsed = (
+                    str(rel.get("left", "")).lower(),
+                    str(rel.get("relation", "")).lower(),
+                    str(rel.get("right", "")).lower(),
                 )
+                if all(parsed):
+                    relationships.append(parsed)
             elif isinstance(rel, (list, tuple)) and len(rel) == 3:
-                relationships.append(tuple(str(v).lower() for v in rel))
+                parsed = tuple(str(v).lower() for v in rel)
+                if all(parsed):
+                    relationships.append(parsed)
         requirements.append(
             QueryRequirement(
                 query_id=query_id,
                 text=queries_by_id[query_id],
                 entities=tuple(
-                    dict.fromkeys(str(v).lower() for v in row.get("entities", []))
+                    dict.fromkeys(str(v).lower() for v in list_field("entities"))
                 ),
                 attributes=tuple(
-                    dict.fromkeys(str(v).lower() for v in row.get("attributes", []))
+                    dict.fromkeys(str(v).lower() for v in list_field("attributes"))
                 ),
                 attribute_bindings=tuple(
                     (str(v.get("entity", "")).lower(), str(v.get("attribute", "")).lower())
-                    for v in row.get("attribute_bindings", [])
+                    for v in list_field("attribute_bindings")
                     if isinstance(v, Mapping) and v.get("entity") and v.get("attribute")
                 ),
                 relationships=tuple(relationships),
                 operators=tuple(
-                    dict.fromkeys(str(v).lower() for v in row.get("operators", []))
+                    dict.fromkeys(str(v).lower() for v in list_field("operators"))
                 ),
                 units=tuple(
-                    dict.fromkeys(str(v).lower() for v in row.get("units", []))
+                    dict.fromkeys(str(v).lower() for v in list_field("units"))
                 ),
             )
         )
     missing = set(queries_by_id) - seen
-    if missing:
-        raise ValueError(f"intent analyzer omitted query IDs: {sorted(missing)}")
+    requirements.extend(
+        _heuristic_nl_requirement(query_id, queries_by_id[query_id])
+        for query_id in sorted(missing)
+    )
     return requirements
 
 

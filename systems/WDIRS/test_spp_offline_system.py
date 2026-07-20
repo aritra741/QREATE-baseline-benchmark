@@ -26,7 +26,7 @@ from spp.optimizer import (
 )
 from spp.operator_dag import OperatorNode, SharedOperatorDAG
 from spp.native_backend import SourceDocument, preprocess_documents
-from spp.nl2sql import make_nl2sql_compiler
+from spp.nl2sql import _verification_payload, make_nl2sql_compiler
 from spp.oracle_evaluation import OracleConfigResult, solve_exact_budgeted_oracle
 from spp.risk_estimator import CellEvidence, PilotObservation, estimate_query_risk
 from spp.quality_signals import MetamorphicCheck, metamorphic_consistency
@@ -43,7 +43,7 @@ from spp.spec import (
     SchemaDesign,
     SynthesisConfig,
 )
-from spp.workload_intent import analyze_workload
+from spp.workload_intent import _parse_llm_payload, analyze_workload
 from spp.population_config import PopulationConfig
 
 
@@ -141,6 +141,17 @@ def test_sql_workload_intent_and_schema_patterns_are_full_cover():
         intent, observed_document_lengths=[500], exhaustive=True
     )
     assert len(pruned) < len(exhaustive)
+
+
+def test_qwen_null_intent_fields_are_treated_as_empty():
+    requirements = _parse_llm_payload(
+        '[{"query_id":"q0","entities":["player"],"attributes":["name"],'
+        '"attribute_bindings":null,"relationships":null,"operators":null,'
+        '"units":null}]',
+        {"q0": "List player names."},
+    )
+    assert requirements[0].entities == ("player",)
+    assert requirements[0].relationships == ()
 
 
 def test_preprocessing_policy_changes_actual_document_units():
@@ -557,3 +568,28 @@ def test_nl2sql_repair_cannot_destroy_informative_result(tmp_path: Path):
     compiler = make_nl2sql_compiler(FakeClient())
     sql = compiler(requirement, config, db_path, GlobalBudgetLedger(10_000))
     assert sql == "SELECT player_name, team FROM player"
+
+    no_repair = FakeClient()
+    no_repair.responses = [
+        "SELECT player_name, team FROM player",
+        json.dumps(
+            {
+                "consistent": False,
+                "reason": "spurious objection",
+                "corrected_sql": None,
+            }
+        ),
+    ]
+    sql = make_nl2sql_compiler(no_repair)(
+        requirement, config, db_path, GlobalBudgetLedger(10_000)
+    )
+    assert sql == "SELECT player_name, team FROM player"
+
+
+def test_verifier_repairs_qwen_invalid_json_escapes():
+    payload = _verification_payload(
+        '{"consistent": false, "reason": "bad\\_escape", '
+        '"corrected_sql": "SELECT player_name\nFROM player"}'
+    )
+    assert payload["consistent"] is False
+    assert "SELECT player_name\nFROM player" == payload["corrected_sql"]
