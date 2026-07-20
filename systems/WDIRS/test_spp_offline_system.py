@@ -25,7 +25,7 @@ from spp.optimizer import (
     select_budgeted_portfolio,
 )
 from spp.operator_dag import OperatorNode, SharedOperatorDAG
-from spp.native_backend import SourceDocument, preprocess_documents
+from spp.native_backend import NativeSPPBackend, SourceDocument, preprocess_documents
 from spp.nl2sql import _verification_payload, make_nl2sql_compiler
 from spp.oracle_evaluation import OracleConfigResult, solve_exact_budgeted_oracle
 from spp.risk_estimator import CellEvidence, PilotObservation, estimate_query_risk
@@ -167,6 +167,51 @@ def test_preprocessing_policy_changes_actual_document_units():
     )
     assert [unit.text for unit in whole] == ["abcdefghij"]
     assert [unit.text for unit in chunked] == ["abcdef", "efghij", "ij"]
+
+
+def test_native_extraction_repairs_qwen_json_syntax(tmp_path: Path):
+    class FakeClient:
+        model = "qwen-test"
+
+        def __init__(self):
+            self.responses = iter(
+                [
+                    '[{"name": "Alice" "unsupported": 1}]',
+                    '[{"name": "Alice"}]',
+                ]
+            )
+
+        def generate(self, *_args, **_kwargs):
+            return next(self.responses)
+
+    requirement = _player_requirement()
+    config = _config("denormalized", requirement)
+    backend = NativeSPPBackend(
+        [SourceDocument("d1", "Alice is a player.", {})],
+        FakeClient(),
+        max_extraction_tokens=128,
+    )
+    units = preprocess_documents(backend.documents, config.preprocessing)
+    ledger = GlobalBudgetLedger(10_000)
+    with EvidenceStore(tmp_path / "evidence.sqlite") as evidence:
+        records, _cells = backend._extract_relation(
+            config,
+            config.schema.relations[0],
+            units,
+            evidence,
+            ledger,
+            stage="pilot_extraction",
+        )
+
+    assert records[0]["name"] == "Alice"
+    assert [
+        charge["operation"] for charge in ledger.summary()["charges"]
+    ] == ["constrained_extraction", "repair_extraction_json"]
+
+
+def test_native_extraction_repairs_invalid_json_escape():
+    rows = NativeSPPBackend._extract_json_array('[{"name": "A\\_B"}]')
+    assert rows == [{"name": "A\\_B"}]
 
 
 def test_risk_proxy_requires_grounded_cells_and_coverage():

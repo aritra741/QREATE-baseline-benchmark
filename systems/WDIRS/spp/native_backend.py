@@ -153,7 +153,10 @@ class NativeSPPBackend:
             prompt_tokens = max(count_tokens(prompt), conservative)
         except RuntimeError:
             prompt_tokens = conservative
-        return prompt_tokens + self.max_extraction_tokens
+        # Include a worst-case syntax-repair call. Its prompt contains the
+        # original completion, so budget for the initial output as repair input
+        # as well as a replacement completion.
+        return prompt_tokens + 3 * self.max_extraction_tokens + 512
 
     def estimate_full_cost(
         self,
@@ -196,7 +199,49 @@ class NativeSPPBackend:
         start, end = response.find("["), response.rfind("]")
         if start < 0 or end < start:
             raise ValueError("extraction response contains no JSON array")
-        payload = json.loads(response[start : end + 1])
+        candidate = response[start : end + 1]
+        try:
+            payload = json.loads(candidate)
+        except json.JSONDecodeError:
+            # Repair JSON-invalid escapes and literal control characters
+            # deterministically. Structural errors such as missing commas are
+            # handled by the explicit, budgeted repair call below.
+            repaired: List[str] = []
+            in_string = False
+            index = 0
+            while index < len(candidate):
+                character = candidate[index]
+                preceding_backslashes = 0
+                cursor = index - 1
+                while cursor >= 0 and candidate[cursor] == "\\":
+                    preceding_backslashes += 1
+                    cursor -= 1
+                if character == '"' and preceding_backslashes % 2 == 0:
+                    in_string = not in_string
+                    repaired.append(character)
+                elif in_string and character == "\\":
+                    following = (
+                        candidate[index + 1]
+                        if index + 1 < len(candidate)
+                        else ""
+                    )
+                    if following not in '"\\/bfnrtu':
+                        repaired.append("\\\\")
+                    else:
+                        repaired.append(character)
+                elif in_string and character == "\n":
+                    repaired.append("\\n")
+                elif in_string and character == "\r":
+                    repaired.append("\\r")
+                elif in_string and character == "\t":
+                    repaired.append("\\t")
+                else:
+                    repaired.append(character)
+                index += 1
+            try:
+                payload = json.loads("".join(repaired))
+            except json.JSONDecodeError as exc:
+                raise ValueError("extraction response contains malformed JSON") from exc
         if not isinstance(payload, list):
             raise ValueError("extraction response must be a JSON list")
         return [row for row in payload if isinstance(row, dict)]
@@ -237,8 +282,32 @@ class NativeSPPBackend:
                     temperature=0.0,
                     operation="constrained_extraction",
                 )
+                try:
+                    rows = self._extract_json_array(response)
+                except ValueError:
+                    repair_prompt = (
+                        "Repair the JSON syntax in the extraction response below. "
+                        "Do not add, remove, infer, or change any row or value. "
+                        "Return only one valid JSON array of objects. The allowed "
+                        f"object keys are {json.dumps(list(relation.attributes))}."
+                        "\n\nMalformed extraction response:\n"
+                        f"{response}"
+                    )
+                    repaired_response = budgeted.generate(
+                        repair_prompt,
+                        max_tokens=self.max_extraction_tokens,
+                        temperature=0.0,
+                        operation="repair_extraction_json",
+                    )
+                    try:
+                        rows = self._extract_json_array(repaired_response)
+                    except ValueError as repair_error:
+                        digest = hashlib.sha256(response.encode()).hexdigest()[:16]
+                        raise ValueError(
+                            "extraction JSON remained malformed after one "
+                            f"budgeted repair (response_sha256={digest})"
+                        ) from repair_error
                 produced_tokens = ledger.actual_spent - before
-                rows = self._extract_json_array(response)
                 evidence_store.put_shared_artifact(
                     artifact_key,
                     stage=stage,
