@@ -177,7 +177,7 @@ def test_native_extraction_repairs_qwen_json_syntax(tmp_path: Path):
             self.responses = iter(
                 [
                     '[{"name": "Alice" "unsupported": 1}]',
-                    '[{"name": "Alice"}]',
+                    '[{"name": ["Alice"]}]',
                 ]
             )
 
@@ -212,6 +212,37 @@ def test_native_extraction_repairs_qwen_json_syntax(tmp_path: Path):
 def test_native_extraction_repairs_invalid_json_escape():
     rows = NativeSPPBackend._extract_json_array('[{"name": "A\\_B"}]')
     assert rows == [{"name": "A\\_B"}]
+
+
+def test_sqlite_materializer_serializes_nested_values(tmp_path: Path):
+    relation = RelationSpec(
+        name="record", attributes=("labels", "metadata")
+    )
+    schema = SchemaDesign(
+        pattern="denormalized",
+        relations=(relation,),
+        covered_query_ids=("q0",),
+    )
+    path = write_sqlite_database(
+        tmp_path / "nested.sqlite",
+        {
+            "record": [
+                {
+                    "labels": ["guard", "forward"],
+                    "metadata": {"source": "profile", "rank": 1},
+                }
+            ]
+        },
+        schema,
+    )
+    with sqlite3.connect(path) as connection:
+        row = connection.execute(
+            "SELECT labels, metadata FROM record"
+        ).fetchone()
+    assert row == (
+        '["guard","forward"]',
+        '{"rank":1,"source":"profile"}',
+    )
 
 
 def test_risk_proxy_requires_grounded_cells_and_coverage():

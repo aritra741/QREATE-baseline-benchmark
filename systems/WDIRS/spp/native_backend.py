@@ -47,6 +47,29 @@ class DocumentUnit:
     end: int
 
 
+def _scalarize_extracted_value(value: Any) -> Any:
+    """Convert model-produced JSON values to deterministic relational scalars."""
+    if value is None or isinstance(value, (str, int, bool)):
+        return value
+    if isinstance(value, float):
+        return value if math.isfinite(value) else None
+    if isinstance(value, list):
+        if not value:
+            return None
+        if len(value) == 1:
+            return _scalarize_extracted_value(value[0])
+        return json.dumps(
+            value, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+        )
+    if isinstance(value, dict):
+        if set(value) == {"value"}:
+            return _scalarize_extracted_value(value["value"])
+        return json.dumps(
+            value, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+        )
+    return str(value)
+
+
 def preprocess_documents(
     documents: Sequence[SourceDocument],
     policy: PreprocessingPolicy,
@@ -331,7 +354,7 @@ class NativeSPPBackend:
             evidence_store.add_anchors([anchor])
             for local_index, raw_row in enumerate(rows):
                 row = {
-                    column: raw_row.get(column)
+                    column: _scalarize_extracted_value(raw_row.get(column))
                     for column in relation.attributes
                 }
                 row_identity = str(

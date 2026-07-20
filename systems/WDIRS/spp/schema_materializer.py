@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+import math
 import sqlite3
 from pathlib import Path
 from typing import Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
@@ -16,8 +18,25 @@ def _quote(identifier: str) -> str:
     return '"' + identifier.replace('"', '""') + '"'
 
 
+def _sqlite_value(value: object) -> object:
+    """Return a deterministic value supported by Python's SQLite bindings."""
+    if value is None or isinstance(value, (str, int, bytes)):
+        return value
+    if isinstance(value, float):
+        return value if math.isfinite(value) else None
+    if isinstance(value, (dict, list, tuple)):
+        return json.dumps(
+            value, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+        )
+    return str(value)
+
+
 def _affinity(values: Iterable[object]) -> str:
-    observed = [value for value in values if value not in (None, "")]
+    observed = [
+        normalized
+        for value in values
+        if (normalized := _sqlite_value(value)) not in (None, "")
+    ]
     if observed and all(
         isinstance(value, (int, float)) and not isinstance(value, bool)
         for value in observed
@@ -165,7 +184,10 @@ def write_sqlite_database(
                     f"INSERT INTO {_quote(relation.name)} ({columns}) "
                     f"VALUES ({placeholders})",
                     [
-                        tuple(row.get(column) for column in relation.attributes)
+                        tuple(
+                            _sqlite_value(row.get(column))
+                            for column in relation.attributes
+                        )
                         for row in rows
                     ],
                 )
