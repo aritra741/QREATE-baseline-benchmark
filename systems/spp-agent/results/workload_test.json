@@ -2,7 +2,7 @@
   {
     "query_id": "agg_only_gen_125",
     "sql_query": "SELECT position, college, SUM(nba_championships) AS sum_nba_championships FROM player GROUP BY position, college;",
-    "nl_query": null,
+    "nl_query": "For each combination of playing position and college, how many NBA championships have those players won altogether?",
     "category": "Expanded",
     "metadata": {
       "generated": true,
@@ -15,7 +15,7 @@
   {
     "query_id": "agg_only_gen_104",
     "sql_query": "SELECT nationality, team, SUM(mvp_awards) AS sum_mvp_awards FROM player GROUP BY nationality, team;",
-    "nl_query": null,
+    "nl_query": "Break the players down by nationality and team, and tell me the total number of MVP awards in each group.",
     "category": "Expanded",
     "metadata": {
       "generated": true,
@@ -28,7 +28,7 @@
   {
     "query_id": "agg_only_gen_94",
     "sql_query": "SELECT nationality, team, SUM(olympic_gold_medals) AS sum_olympic_gold_medals FROM player GROUP BY nationality, team;",
-    "nl_query": null,
+    "nl_query": "For every nationality-and-team combination, what is the players' combined number of Olympic gold medals?",
     "category": "Expanded",
     "metadata": {
       "generated": true,
@@ -41,7 +41,7 @@
   {
     "query_id": "agg_only_expanded_15",
     "sql_query": "SELECT team, MAX(nba_championships) AS max_nba_championships FROM player GROUP BY team;",
-    "nl_query": null,
+    "nl_query": "On each team, what is the largest number of NBA championships won by any one player?",
     "category": "Expanded",
     "metadata": {
       "source_file": "/Users/aritramazumder/Documents/UDA-Bench-main/Query/Player/Expanded/agg_only_expanded.sql",
@@ -59,7 +59,7 @@
   {
     "query_id": "agg_only_gen_57",
     "sql_query": "SELECT college, AVG(fiba_world_cup) AS avg_fiba_world_cup FROM player GROUP BY college;",
-    "nl_query": null,
+    "nl_query": "What is the average number of FIBA World Cup titles among players from each college?",
     "category": "Expanded",
     "metadata": {
       "generated": true,
@@ -72,7 +72,7 @@
   {
     "query_id": "agg_filter_gen_186",
     "sql_query": "SELECT team, AVG(age) AS avg_age FROM player WHERE (nationality != 'Nigerian-American') AND (team = 'Lokomotiv Kuban') GROUP BY team;",
-    "nl_query": null,
+    "nl_query": "What is the average age of Lokomotiv Kuban players who are not Nigerian-American?",
     "category": "Expanded",
     "metadata": {
       "generated": true,
@@ -85,7 +85,7 @@
   {
     "query_id": "mixed_queries_filter_agg_player_1",
     "sql_query": "SELECT team, MIN(olympic_gold_medals) AS min_olympic_gold_medals FROM player WHERE draft_pick < 1 GROUP BY team;",
-    "nl_query": null,
+    "nl_query": "Among players whose draft-pick number is below one, what is the fewest Olympic gold medals held by a player on each team?",
     "category": "Mixed",
     "metadata": {
       "source_file": "/Users/aritramazumder/Documents/UDA-Bench-main/Query/Player/Mixed/mixed_queries_filter_agg_player.sql",
@@ -102,7 +102,7 @@
   {
     "query_id": "agg_filter_gen_85",
     "sql_query": "SELECT position, COUNT(*) AS count_all FROM player WHERE nationality = 'French' GROUP BY position;",
-    "nl_query": null,
+    "nl_query": "How many French players are there at each playing position?",
     "category": "Expanded",
     "metadata": {
       "generated": true,
@@ -115,7 +115,7 @@
   {
     "query_id": "agg_filter_gen_1",
     "sql_query": "SELECT nationality, COUNT(*) AS count_all FROM player WHERE nationality = 'American' GROUP BY nationality;",
-    "nl_query": null,
+    "nl_query": "How many American players are in the dataset?",
     "category": "Expanded",
     "metadata": {
       "generated": true,
@@ -128,7 +128,7 @@
   {
     "query_id": "agg_filter_gen_196",
     "sql_query": "SELECT team, SUM(olympic_gold_medals) AS sum_olympic_gold_medals FROM player WHERE (nationality = 'Nigerian-American' AND nationality != 'Croatian') OR (team != 'Bursaspor Basketbol') GROUP BY team;",
-    "nl_query": null,
+    "nl_query": "For each team, total the Olympic gold medals of players who are either Nigerian-American but not Croatian, or who do not play for Bursaspor Basketbol.",
     "category": "Expanded",
     "metadata": {
       "generated": true,
@@ -141,7 +141,7 @@
   {
     "query_id": "agg_join_gen_28",
     "sql_query": "SELECT player.college, COUNT(player.age) AS count_player_age FROM player JOIN team ON player.team = team.team_name JOIN city ON team.location = city.city_name GROUP BY player.college;",
-    "nl_query": null,
+    "nl_query": "Considering players with matching team and home-city records, how many have a known age for each college?",
     "category": "Expanded",
     "metadata": {
       "generated": true,
@@ -154,7 +154,7 @@
   {
     "query_id": "agg_join_expanded_3",
     "sql_query": "SELECT player.position, AVG(team.championship) AS avg_team_championship FROM player JOIN team ON player.team = team.team_name JOIN city ON team.location = city.city_name GROUP BY player.position;",
-    "nl_query": null,
+    "nl_query": "For each playing position, what is the average championship count of the players' teams, considering teams with a matching home-city record?",
     "category": "Expanded",
     "metadata": {
       "source_file": "/Users/aritramazumder/Documents/UDA-Bench-main/Query/Player/Expanded/agg_join_expanded.sql",
@@ -173,7 +173,7 @@
   {
     "query_id": "agg_join_gen_40",
     "sql_query": "SELECT player.nationality, MIN(team.championship) AS min_team_championship FROM player JOIN team ON player.team = team.team_name JOIN city ON team.location = city.city_name GROUP BY player.nationality;",
-    "nl_query": null,
+    "nl_query": "For every player nationality, what is the lowest championship count among their teams that have a matching home-city record?",
     "category": "Expanded",
     "metadata": {
       "generated": true,
@@ -186,7 +186,7 @@
   {
     "query_id": "agg_join_gen_4",
     "sql_query": "SELECT player.position, MAX(player.mvp_awards) AS max_player_mvp_awards FROM player JOIN team ON player.team = team.team_name GROUP BY player.position;",
-    "nl_query": null,
+    "nl_query": "Among players with a matching team record, what is the highest number of MVP awards won by a player at each position?",
     "category": "Expanded",
     "metadata": {
       "generated": true,
@@ -199,7 +199,7 @@
   {
     "query_id": "agg_join_gen_17",
     "sql_query": "SELECT team.location, SUM(player.mvp_awards) AS sum_player_mvp_awards FROM player JOIN team ON player.team = team.team_name GROUP BY team.location;",
-    "nl_query": null,
+    "nl_query": "Group teams by their home location and report the total MVP awards won by their players.",
     "category": "Expanded",
     "metadata": {
       "generated": true,
@@ -212,7 +212,7 @@
   {
     "query_id": "agg_filter_join_gen_318",
     "sql_query": "SELECT team.location, MIN(player.olympic_gold_medals) AS min_player_olympic_gold_medals FROM player JOIN team ON player.team = team.team_name JOIN city ON team.location = city.city_name WHERE (city.gdp > 100) OR (player.nationality = 'American') GROUP BY team.location;",
-    "nl_query": null,
+    "nl_query": "For each team location, what is the fewest Olympic gold medals held by an eligible player when either the home city's GDP is above 100 or the player is American?",
     "category": "Expanded",
     "metadata": {
       "generated": true,
@@ -225,7 +225,7 @@
   {
     "query_id": "agg_filter_join_gen_288",
     "sql_query": "SELECT player.team, AVG(player.age) AS avg_player_age FROM player JOIN team ON player.team = team.team_name JOIN city ON team.location = city.city_name WHERE (city.city_name = 'Los Angeles') OR (player.mvp_awards >= 1) GROUP BY player.team;",
-    "nl_query": null,
+    "nl_query": "What is the average player age for each team when the team is based in Los Angeles or the player has won at least one MVP award?",
     "category": "Expanded",
     "metadata": {
       "generated": true,
@@ -238,7 +238,7 @@
   {
     "query_id": "agg_filter_join_gen_291",
     "sql_query": "SELECT player.team, COUNT(*) AS count_all FROM player JOIN team ON player.team = team.team_name JOIN city ON team.location = city.city_name WHERE (city.city_name = 'San Antonio') OR (player.olympic_gold_medals = 0) GROUP BY player.team;",
-    "nl_query": null,
+    "nl_query": "For each team, how many players either play for a team based in San Antonio or have no Olympic gold medals?",
     "category": "Expanded",
     "metadata": {
       "generated": true,
@@ -251,7 +251,7 @@
   {
     "query_id": "agg_filter_join_gen_202",
     "sql_query": "SELECT player.nationality, COUNT(*) AS count_all FROM player JOIN team ON player.team = team.team_name JOIN city ON team.location = city.city_name WHERE city.population < 2000000 GROUP BY player.nationality;",
-    "nl_query": null,
+    "nl_query": "Among players whose teams are based in cities with fewer than two million residents, how many players are there of each nationality?",
     "category": "Expanded",
     "metadata": {
       "generated": true,
@@ -263,8 +263,8 @@
   },
   {
     "query_id": "agg_filter_join_gen_172",
-    "sql_query": "SELECT team.location, MAX(team.championship) AS max_team_championship FROM player JOIN team ON player.team = team.team_name WHERE city.city_name = 'Boston' GROUP BY team.location;",
-    "nl_query": null,
+    "sql_query": "SELECT team.location, MAX(team.championship) AS max_team_championship FROM player JOIN team ON player.team = team.team_name WHERE team.location = 'Boston' GROUP BY team.location;",
+    "nl_query": "For teams based in Boston, what is the highest championship count at each team location?",
     "category": "Expanded",
     "metadata": {
       "generated": true,
@@ -277,7 +277,7 @@
   {
     "query_id": "mixed_queries_filter_agg_join_11",
     "sql_query": "SELECT player.nationality, SUM(player.mvp_awards) AS sum_player_mvp_awards FROM player JOIN team ON player.team = team.team_name WHERE player.team != 'Milwaukee Bucks' OR player.nba_championships > 2 OR team.founded_year != 1949 GROUP BY player.nationality;",
-    "nl_query": null,
+    "nl_query": "By nationality, total the MVP awards for players who are not on the Milwaukee Bucks, have won more than two NBA championships, or play for a team founded in a year other than 1949.",
     "category": "Mixed",
     "metadata": {
       "source_file": "/Users/aritramazumder/Documents/UDA-Bench-main/Query/Player/Mixed/mixed_queries_filter_agg_join.sql",
@@ -295,7 +295,7 @@
   {
     "query_id": "agg_temporal_expanded_10",
     "sql_query": "SELECT player.position, MAX(player.draft_pick) AS max_player_draft_pick FROM player WHERE player.birth_date = '1919/3/23' GROUP BY player.position;",
-    "nl_query": null,
+    "nl_query": "Among players born on March 23, 1919, what is the highest draft-pick number at each position?",
     "category": "Expanded",
     "metadata": {
       "source_file": "/Users/aritramazumder/Documents/UDA-Bench-main/Query/Player/Expanded/agg_temporal_expanded.sql",
@@ -312,7 +312,7 @@
   {
     "query_id": "agg_temporal_expanded_4",
     "sql_query": "SELECT player.position, COUNT(*) AS count_all FROM player JOIN team ON player.team = team.team_name WHERE team.founded_year > 1946 GROUP BY player.position;",
-    "nl_query": null,
+    "nl_query": "How many players are there at each position whose teams were founded after 1946?",
     "category": "Expanded",
     "metadata": {
       "source_file": "/Users/aritramazumder/Documents/UDA-Bench-main/Query/Player/Expanded/agg_temporal_expanded.sql",
@@ -330,7 +330,7 @@
   {
     "query_id": "agg_temporal_gen_514",
     "sql_query": "SELECT player.team, COUNT(*) AS count_all FROM player JOIN team ON player.team = team.team_name WHERE team.founded_year <= 1946 GROUP BY player.team;",
-    "nl_query": null,
+    "nl_query": "For every team founded in 1946 or earlier, how many players are on that team?",
     "category": "Expanded",
     "metadata": {
       "generated": true,
@@ -343,7 +343,7 @@
   {
     "query_id": "agg_temporal_gen_507",
     "sql_query": "SELECT player.nationality, AVG(player.age) AS avg_player_age FROM player JOIN team ON player.team = team.team_name WHERE team.founded_year > 1946 GROUP BY player.nationality;",
-    "nl_query": null,
+    "nl_query": "For players on teams founded after 1946, what is the average player age for each nationality?",
     "category": "Expanded",
     "metadata": {
       "generated": true,
