@@ -22,6 +22,7 @@ from spp.optimizer import (
     canonical_output_signature,
     collapse_output_equivalent,
     diverse_candidate_order,
+    progressive_pilot_search,
     select_budgeted_portfolio,
 )
 from spp.operator_dag import OperatorNode, SharedOperatorDAG
@@ -113,6 +114,60 @@ def test_budget_ledger_reserves_reconciles_and_charges_failures(tmp_path: Path):
     ledger.save(tmp_path / "ledger.json")
     assert json.loads((tmp_path / "ledger.json").read_text())["actual_spent"] == 25
     assert 10_846_866 in docetl_relative_budgets(54_234_332)
+
+
+def test_progressive_search_preserves_escrowed_completion_candidate():
+    requirement = _player_requirement()
+    cheap = _config("cheap", requirement)
+    expensive = _config("expensive", requirement)
+    costs = {cheap.config_id: 60, expensive.config_id: 80}
+    ledger = GlobalBudgetLedger(100)
+    escrow = ledger.reserve(
+        stage="completion_escrow",
+        operation="reserve_full_materialization",
+        input_tokens=60,
+        max_output_tokens=0,
+    )
+    assert escrow is not None
+
+    def evaluate(config, sample_fraction, active_ledger):
+        reservation = active_ledger.reserve(
+            stage="pilot",
+            operation="extract",
+            input_tokens=30,
+            max_output_tokens=0,
+            config_id=config.config_id,
+        )
+        assert reservation is not None
+        active_ledger.reconcile(
+            reservation, input_tokens=30, output_tokens=0
+        )
+        return PilotResult(
+            config_id=config.config_id,
+            estimates={
+                requirement.query_id: _estimate(
+                    requirement, config, 0.5
+                )
+            },
+            output_signature=config.config_id,
+            full_cost_upper_bound=costs[config.config_id],
+            sample_fraction=sample_fraction,
+        )
+
+    result = progressive_pilot_search(
+        [expensive, cheap],
+        [requirement],
+        evaluate,
+        ledger,
+        sample_fractions=(0.1,),
+        completion_reserve=60,
+        completion_costs=costs,
+        completion_escrowed=True,
+    )
+    ledger.cancel(escrow, reason="test completion")
+
+    assert result.survivors == [cheap.config_id]
+    assert ledger.available == 70
 
 
 def test_sql_workload_intent_and_schema_patterns_are_full_cover():

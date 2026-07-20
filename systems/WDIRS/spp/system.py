@@ -145,13 +145,32 @@ class OfflineSynthesisSystem:
         evidence_path = output_dir / "evidence.sqlite"
         with EvidenceStore(evidence_path) as evidence_store:
             self.backend.prepare(intent, evidence_store, ledger)
+            construction_costs = {
+                config.config_id: int(
+                    self.backend.estimate_full_cost(
+                        config, intent.requirements
+                    )
+                )
+                for config in configs
+            }
             completion_reserve = int(
                 self.backend.completion_reserve(configs, intent.requirements)
+            )
+            completion_reserve = max(
+                completion_reserve, min(construction_costs.values())
             )
             if not ledger.can_complete(completion_reserve):
                 raise BudgetExhausted(
                     "budget cannot complete one valid full-workload configuration"
                 )
+            completion_escrow = ledger.reserve(
+                stage="completion_escrow",
+                operation="reserve_full_materialization",
+                input_tokens=completion_reserve,
+                max_output_tokens=0,
+            )
+            if completion_escrow is None:
+                raise AssertionError("completion escrow unexpectedly deduplicated")
 
             def evaluate(
                 config: SynthesisConfig,
@@ -162,15 +181,23 @@ class OfflineSynthesisSystem:
                     config, fraction, evidence_store, active_ledger
                 )
 
-            search = progressive_pilot_search(
-                configs,
-                intent.requirements,
-                evaluate,
-                ledger,
-                sample_fractions=sample_fractions,
-                completion_reserve=completion_reserve,
-                beta=self.beta,
-            )
+            try:
+                search = progressive_pilot_search(
+                    configs,
+                    intent.requirements,
+                    evaluate,
+                    ledger,
+                    sample_fractions=sample_fractions,
+                    completion_reserve=completion_reserve,
+                    completion_costs=construction_costs,
+                    completion_escrowed=True,
+                    beta=self.beta,
+                )
+            finally:
+                ledger.cancel(
+                    completion_escrow,
+                    reason="released for selected full materialization",
+                )
             survivor_configs = [
                 config for config in configs if config.config_id in search.survivors
             ]
@@ -184,9 +211,7 @@ class OfflineSynthesisSystem:
                 for query_id, estimate in pilot.estimates.items()
             }
             costs = {
-                config.config_id: int(
-                    self.backend.estimate_full_cost(config, intent.requirements)
-                )
+                config.config_id: construction_costs[config.config_id]
                 for config in survivor_configs
             }
             preliminary = select_budgeted_portfolio(

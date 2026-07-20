@@ -161,6 +161,8 @@ def progressive_pilot_search(
     *,
     sample_fractions: Sequence[float] = (0.05, 0.15, 0.4),
     completion_reserve: int,
+    completion_costs: Optional[Mapping[str, int]] = None,
+    completion_escrowed: bool = False,
     beta: float = 1.0,
 ) -> ProgressiveSearchResult:
     """Pilot candidates progressively and eliminate only safe dominations.
@@ -175,22 +177,47 @@ def progressive_pilot_search(
     rounds_completed = 0
 
     for sample_fraction in sample_fractions:
-        if not ledger.can_complete(completion_reserve):
+        if not completion_escrowed and not ledger.can_complete(completion_reserve):
             break
         round_results: Dict[str, PilotResult] = {}
         round_order = diverse_candidate_order(list(survivors.values()))
+        if completion_costs and round_order:
+            anchor = min(
+                round_order,
+                key=lambda config: (
+                    int(completion_costs[config.config_id]),
+                    config.config_id,
+                ),
+            )
+            round_order = [
+                anchor,
+                *[config for config in round_order if config != anchor],
+            ]
+        pilot_budget_exhausted = False
         for config in round_order:
-            if not ledger.can_complete(completion_reserve):
+            if (
+                not completion_escrowed
+                and not ledger.can_complete(completion_reserve)
+            ):
                 break
             config_id = config.config_id
             before = ledger.actual_spent
-            result = evaluator(config, float(sample_fraction), ledger)
+            try:
+                result = evaluator(config, float(sample_fraction), ledger)
+            except BudgetExhausted:
+                eliminated[config_id] = "not-admitted:pilot-budget"
+                pilot_budget_exhausted = True
+                break
             if result.config_id != config_id:
                 raise ValueError("pilot evaluator returned the wrong config_id")
             if ledger.actual_spent < before:
                 raise AssertionError("token ledger spend moved backwards")
             round_results[config_id] = result
             pilots[config_id] = result
+        if not round_results and pilot_budget_exhausted:
+            raise BudgetExhausted(
+                "completion escrow leaves insufficient budget for one pilot"
+            )
         if not round_results:
             break
         rounds_completed += 1
@@ -237,6 +264,14 @@ def progressive_pilot_search(
                     break
         active -= set(eliminated)
         survivors = {cid: survivors[cid] for cid in active}
+        if completion_escrowed and completion_costs and survivors:
+            survivor_reserve = min(
+                int(completion_costs[config_id]) for config_id in survivors
+            )
+            if survivor_reserve > completion_reserve:
+                raise AssertionError(
+                    "pilot pruning discarded every completion-reserved candidate"
+                )
         if len(survivors) <= 1:
             break
 
