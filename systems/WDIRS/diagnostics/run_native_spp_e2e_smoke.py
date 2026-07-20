@@ -159,7 +159,7 @@ def main() -> int:
     parser.add_argument("--corpus-dir", type=Path, required=True)
     parser.add_argument("--workload", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--token-budget", type=int, default=2_000_000)
+    parser.add_argument("--token-budget", type=int, default=10_846_866)
     parser.add_argument("--max-documents", type=int, default=24)
     parser.add_argument("--base-url", default="http://localhost:11434/v1")
     parser.add_argument("--model", default="qwen2.5:7b-instruct")
