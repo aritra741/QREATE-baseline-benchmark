@@ -10,9 +10,14 @@ imported by :mod:`spp.system`.
 """
 
 from spp.spec import (
+    AggregateSpec,
+    AttributeRef,
     FrozenPortfolio,
+    JoinSpec,
     PreprocessingPolicy,
+    PredicateSpec,
     QualityEstimate,
+    QueryPlan,
     QueryRequirement,
     RelationSpec,
     SchemaDesign,
@@ -20,9 +25,14 @@ from spp.spec import (
 )
 
 __all__ = [
+    "AggregateSpec",
+    "AttributeRef",
     "FrozenPortfolio",
+    "JoinSpec",
     "PreprocessingPolicy",
+    "PredicateSpec",
     "QualityEstimate",
+    "QueryPlan",
     "QueryRequirement",
     "RelationSpec",
     "SchemaDesign",

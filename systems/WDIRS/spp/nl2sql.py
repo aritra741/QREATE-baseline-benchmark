@@ -12,6 +12,7 @@ from json_repair import repair_json
 
 from spp.budget_ledger import GlobalBudgetLedger
 from spp.budgeted_llm import BudgetedLLMClient
+from spp.query_plan_compiler import compile_query_plan
 from spp.spec import QueryRequirement, SynthesisConfig
 
 
@@ -190,10 +191,20 @@ def make_nl2sql_compiler(llm_client: Any):
                 and _query_validation_error(database_path, original_sql) is None
             ):
                 return original_sql
+        if requirement.plan is not None:
+            deterministic_sql = compile_query_plan(requirement.plan, config)
+            if (
+                deterministic_sql
+                and _query_validation_error(
+                    database_path, deterministic_sql
+                ) is None
+            ):
+                return deterministic_sql
         schema_payload = [
             {
                 "table": relation.name,
                 "columns": list(relation.attributes),
+                "semantic_types": dict(relation.semantic_types),
                 "primary_key": relation.primary_key,
                 "foreign_keys": [
                     {

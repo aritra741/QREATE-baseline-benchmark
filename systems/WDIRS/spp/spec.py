@@ -17,6 +17,106 @@ from spp.population_config import PopulationConfig
 
 
 @dataclass(frozen=True)
+class AttributeRef:
+    entity: str
+    attribute: str
+    semantic_type: str = "text"
+
+    def __post_init__(self) -> None:
+        if self.semantic_type not in {
+            "text", "integer", "real", "date", "boolean"
+        }:
+            raise ValueError(
+                f"unsupported semantic type: {self.semantic_type}"
+            )
+
+
+@dataclass(frozen=True)
+class AggregateSpec:
+    function: str
+    attribute: Optional[AttributeRef] = None
+    alias: str = ""
+    distinct: bool = False
+
+    def __post_init__(self) -> None:
+        if self.function not in {"count", "sum", "avg", "min", "max"}:
+            raise ValueError(f"unsupported aggregate: {self.function}")
+        if self.function != "count" and self.attribute is None:
+            raise ValueError(f"{self.function} requires an attribute")
+
+
+@dataclass(frozen=True)
+class PredicateSpec:
+    kind: str = "predicate"
+    attribute: Optional[AttributeRef] = None
+    operator: str = "="
+    value: object = None
+    children: Tuple["PredicateSpec", ...] = ()
+
+    def __post_init__(self) -> None:
+        if self.kind not in {"predicate", "and", "or"}:
+            raise ValueError(f"unsupported predicate kind: {self.kind}")
+        if self.kind == "predicate":
+            if self.attribute is None:
+                raise ValueError("leaf predicate requires an attribute")
+            if self.operator not in {
+                "=", "!=", "<", "<=", ">", ">=", "contains",
+                "is_null", "is_not_null",
+            }:
+                raise ValueError(
+                    f"unsupported predicate operator: {self.operator}"
+                )
+            if self.children:
+                raise ValueError("leaf predicate cannot have children")
+        elif not self.children:
+            raise ValueError("boolean predicate requires children")
+
+
+@dataclass(frozen=True)
+class JoinSpec:
+    left: AttributeRef
+    right: AttributeRef
+    join_type: str = "inner"
+
+    def __post_init__(self) -> None:
+        if self.join_type not in {"inner", "left"}:
+            raise ValueError(f"unsupported join type: {self.join_type}")
+
+
+@dataclass(frozen=True)
+class QueryPlan:
+    projections: Tuple[AttributeRef, ...] = ()
+    group_by: Tuple[AttributeRef, ...] = ()
+    aggregates: Tuple[AggregateSpec, ...] = ()
+    predicate: Optional[PredicateSpec] = None
+    joins: Tuple[JoinSpec, ...] = ()
+
+    def attributes(self) -> Tuple[AttributeRef, ...]:
+        result: List[AttributeRef] = []
+
+        def add(reference: Optional[AttributeRef]) -> None:
+            if reference is not None and reference not in result:
+                result.append(reference)
+
+        def visit(predicate: Optional[PredicateSpec]) -> None:
+            if predicate is None:
+                return
+            add(predicate.attribute)
+            for child in predicate.children:
+                visit(child)
+
+        for reference in (*self.projections, *self.group_by):
+            add(reference)
+        for aggregate in self.aggregates:
+            add(aggregate.attribute)
+        visit(self.predicate)
+        for join in self.joins:
+            add(join.left)
+            add(join.right)
+        return tuple(result)
+
+
+@dataclass(frozen=True)
 class QueryRequirement:
     query_id: str
     text: str
@@ -26,11 +126,15 @@ class QueryRequirement:
     relationships: Tuple[Tuple[str, str, str], ...] = ()
     operators: Tuple[str, ...] = ()
     units: Tuple[str, ...] = ()
+    plan: Optional[QueryPlan] = None
 
     def required_symbols(self) -> Set[str]:
         symbols = set(self.entities) | set(self.attributes)
         for left, _relation, right in self.relationships:
             symbols.update((left, right))
+        if self.plan:
+            for reference in self.plan.attributes():
+                symbols.update((reference.entity, reference.attribute))
         return symbols
 
 
@@ -40,6 +144,10 @@ class RelationSpec:
     attributes: Tuple[str, ...]
     primary_key: Optional[str] = None
     foreign_keys: Tuple[Tuple[str, str, str], ...] = ()
+    semantic_types: Tuple[Tuple[str, str], ...] = ()
+
+    def semantic_type(self, attribute: str) -> str:
+        return dict(self.semantic_types).get(attribute, "text")
 
 
 @dataclass(frozen=True)

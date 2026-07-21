@@ -167,7 +167,12 @@ def write_sqlite_database(
             rows = list(tables.get(relation.name, ()))
             definitions = []
             for column in relation.attributes:
-                affinity = _affinity(row.get(column) for row in rows)
+                declared_type = relation.semantic_type(column)
+                affinity = (
+                    "NUMERIC"
+                    if declared_type in {"integer", "real", "boolean"}
+                    else _affinity(row.get(column) for row in rows)
+                )
                 definitions.append(f"{_quote(column)} {affinity}")
             if relation.primary_key and relation.primary_key in relation.attributes:
                 # Do not declare a SQLite PK: pilot extraction can contain

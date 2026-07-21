@@ -338,9 +338,18 @@ class OfflineSynthesisSystem:
                 ]
                 if not output_values:
                     support = 0.0
-                elif set(
-                    requirements_by_id[query.query_id].operators
-                ) & {"count", "sum", "avg", "min", "max"}:
+                elif (
+                    set(requirements_by_id[query.query_id].operators)
+                    & {"count", "sum", "avg", "min", "max"}
+                    or (
+                        requirements_by_id[query.query_id].plan is not None
+                        and bool(
+                            requirements_by_id[
+                                query.query_id
+                            ].plan.aggregates
+                        )
+                    )
+                ):
                     # Aggregate outputs are derived and need not occur verbatim
                     # in provenance. Their source-cell support is already part
                     # of the base query-conditioned estimate.

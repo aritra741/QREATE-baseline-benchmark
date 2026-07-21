@@ -33,18 +33,24 @@ from spp.risk_estimator import CellEvidence, PilotObservation, estimate_query_ri
 from spp.quality_signals import MetamorphicCheck, metamorphic_consistency
 from spp.schema_materializer import reshape_tables, write_sqlite_database
 from spp.schema_design import generate_schema_designs, generate_synthesis_configs
+from spp.query_plan_compiler import compile_query_plan
 from spp.serving import CompiledQuery, OfflineQueryServer, freeze_serving_bundle
 from spp.system import OfflineSynthesisSystem
 from spp.spec import (
+    AggregateSpec,
+    AttributeRef,
     FrozenPortfolio,
+    JoinSpec,
     PreprocessingPolicy,
+    PredicateSpec,
     QualityEstimate,
+    QueryPlan,
     QueryRequirement,
     RelationSpec,
     SchemaDesign,
     SynthesisConfig,
 )
-from spp.workload_intent import _parse_llm_payload, analyze_workload
+from spp.workload_intent import WorkloadIntent, _parse_llm_payload, analyze_workload
 from spp.population_config import PopulationConfig
 
 
@@ -779,3 +785,332 @@ def test_verifier_repairs_qwen_invalid_json_escapes():
         '"corrected_sql": "SELECT player_name FROM player"'
     )
     assert truncated["corrected_sql"] == "SELECT player_name FROM player"
+
+
+def test_query_plan_compiler_preserves_aggregate_and_literal(tmp_path: Path):
+    position = AttributeRef("player", "position", "text")
+    college = AttributeRef("player", "college", "text")
+    championships = AttributeRef(
+        "player", "nba_championships", "integer"
+    )
+    nationality = AttributeRef("player", "nationality", "text")
+    plan = QueryPlan(
+        group_by=(position, college),
+        aggregates=(
+            AggregateSpec("sum", championships, "total_championships"),
+        ),
+        predicate=PredicateSpec(
+            attribute=nationality, operator="=", value="French"
+        ),
+    )
+    relation = RelationSpec(
+        "workload_flat",
+        ("position", "college", "nba_championships", "nationality"),
+        semantic_types=(
+            ("position", "text"),
+            ("college", "text"),
+            ("nba_championships", "integer"),
+            ("nationality", "text"),
+        ),
+    )
+    config = SynthesisConfig(
+        SchemaDesign("denormalized", (relation,), ("q",)),
+        PopulationConfig(),
+        PreprocessingPolicy("whole_document"),
+    )
+    sql = compile_query_plan(plan, config)
+    assert sql is not None
+    assert "SUM(" in sql
+    assert "COUNT(" not in sql
+    assert "'French'" in sql
+    assert "France" not in sql
+
+    db_path = write_sqlite_database(
+        tmp_path / "semantic.sqlite",
+        {
+            "workload_flat": [
+                {
+                    "position": "Guard",
+                    "college": "A",
+                    "nba_championships": 2,
+                    "nationality": "French",
+                },
+                {
+                    "position": "Guard",
+                    "college": "A",
+                    "nba_championships": 3,
+                    "nationality": "French",
+                },
+                {
+                    "position": "Guard",
+                    "college": "A",
+                    "nba_championships": 20,
+                    "nationality": "American",
+                },
+            ]
+        },
+        config.schema,
+    )
+    with sqlite3.connect(db_path) as connection:
+        assert connection.execute(sql).fetchall() == [("Guard", "A", 5)]
+
+
+def test_query_plan_compiler_uses_declared_join_path(tmp_path: Path):
+    nationality = AttributeRef("player", "nationality", "text")
+    player_team = AttributeRef("player", "team", "text")
+    team_name = AttributeRef("team", "team_name", "text")
+    team_city = AttributeRef("team", "location", "text")
+    city_name = AttributeRef("city", "city_name", "text")
+    population = AttributeRef("city", "population", "integer")
+    plan = QueryPlan(
+        group_by=(nationality,),
+        aggregates=(AggregateSpec("count", None, "count_all"),),
+        predicate=PredicateSpec(
+            attribute=population, operator="<", value=2_000_000
+        ),
+        joins=(
+            JoinSpec(player_team, team_name),
+            JoinSpec(team_city, city_name),
+        ),
+    )
+    schema = SchemaDesign(
+        "snowflake",
+        (
+            RelationSpec("player", ("nationality", "team")),
+            RelationSpec("team", ("team_name", "location")),
+            RelationSpec(
+                "city",
+                ("city_name", "population"),
+                semantic_types=(("population", "integer"),),
+            ),
+        ),
+        ("q",),
+    )
+    config = SynthesisConfig(
+        schema, PopulationConfig(), PreprocessingPolicy("whole_document")
+    )
+    sql = compile_query_plan(plan, config)
+    assert sql is not None
+    assert '"player"."team"' not in sql
+    assert "JOIN" in sql
+    assert "COUNT(*)" in sql
+
+    db_path = write_sqlite_database(
+        tmp_path / "joins.sqlite",
+        {
+            "player": [
+                {"nationality": "French", "team": "A"},
+                {"nationality": "American", "team": "B"},
+            ],
+            "team": [
+                {"team_name": "A", "location": "Small"},
+                {"team_name": "B", "location": "Large"},
+            ],
+            "city": [
+                {"city_name": "Small", "population": 1_000_000},
+                {"city_name": "Large", "population": 3_000_000},
+            ],
+        },
+        schema,
+    )
+    with sqlite3.connect(db_path) as connection:
+        assert connection.execute(sql).fetchall() == [("French", 1)]
+
+
+def test_intent_payload_parses_typed_boolean_query_plan():
+    response = json.dumps(
+        [
+            {
+                "query_id": "q",
+                "entities": ["player"],
+                "attributes": [],
+                "attribute_bindings": [],
+                "relationships": [],
+                "operators": [],
+                "units": [],
+                "plan": {
+                    "projections": [],
+                    "group_by": [
+                        {
+                            "entity": "player",
+                            "attribute": "position",
+                            "semantic_type": "text",
+                        }
+                    ],
+                    "aggregates": [
+                        {
+                            "function": "avg",
+                            "attribute": {
+                                "entity": "player",
+                                "attribute": "age",
+                                "semantic_type": "real",
+                            },
+                            "alias": "average_age",
+                            "distinct": False,
+                        }
+                    ],
+                    "predicate": {
+                        "kind": "or",
+                        "children": [
+                            {
+                                "kind": "predicate",
+                                "entity": "player",
+                                "attribute": "nationality",
+                                "semantic_type": "text",
+                                "operator": "=",
+                                "value": "American",
+                            },
+                            {
+                                "kind": "predicate",
+                                "entity": "player",
+                                "attribute": "nationality",
+                                "semantic_type": "text",
+                                "operator": "=",
+                                "value": "French",
+                            },
+                        ],
+                    },
+                    "joins": [],
+                },
+            }
+        ]
+    )
+    requirement = _parse_llm_payload(response, {"q": "question"})[0]
+    assert requirement.plan is not None
+    assert requirement.plan.aggregates[0].function == "avg"
+    assert requirement.plan.aggregates[0].attribute.semantic_type == "real"
+    assert requirement.plan.predicate.kind == "or"
+    assert requirement.plan.predicate.children[0].value == "American"
+    assert ("player", "age") in requirement.attribute_bindings
+
+
+def test_nl2sql_uses_query_plan_without_free_form_llm(tmp_path: Path):
+    class FailIfCalled:
+        model = "unused"
+
+        def generate(self, *_args, **_kwargs):
+            raise AssertionError("deterministic query plan should bypass LLM")
+
+    nationality = AttributeRef("player", "nationality", "text")
+    plan = QueryPlan(
+        aggregates=(AggregateSpec("count", None, "count_all"),),
+        predicate=PredicateSpec(
+            attribute=nationality, operator="=", value="American"
+        ),
+    )
+    requirement = QueryRequirement(
+        query_id="q",
+        text="How many American players are there?",
+        entities=("player",),
+        attributes=("nationality",),
+        attribute_bindings=(("player", "nationality"),),
+        operators=("count", "filter"),
+        plan=plan,
+    )
+    relation = RelationSpec("player", ("nationality",))
+    config = SynthesisConfig(
+        SchemaDesign("snowflake", (relation,), ("q",)),
+        PopulationConfig(),
+        PreprocessingPolicy("whole_document"),
+    )
+    db_path = write_sqlite_database(
+        tmp_path / "no_llm.sqlite",
+        {"player": [{"nationality": "American"}]},
+        config.schema,
+    )
+    ledger = GlobalBudgetLedger(1_000)
+    sql = make_nl2sql_compiler(FailIfCalled())(
+        requirement, config, db_path, ledger
+    )
+    assert "COUNT(*)" in sql
+    assert "'American'" in sql
+    assert ledger.actual_spent == 0
+
+
+def test_schema_design_propagates_query_plan_semantic_types():
+    age = AttributeRef("player", "age", "real")
+    requirement = QueryRequirement(
+        query_id="q",
+        text="What is the average player age?",
+        plan=QueryPlan(
+            aggregates=(AggregateSpec("avg", age, "average_age"),)
+        ),
+    )
+    assert requirement.required_symbols() == {"player", "age"}
+    intent = WorkloadIntent(
+        requirements=(requirement,),
+        entity_frequency={"player": 1},
+        attribute_frequency={"age": 1},
+        operator_frequency={"avg": 1},
+    )
+    for design in generate_schema_designs(intent):
+        typed_relations = [
+            relation
+            for relation in design.relations
+            if "age" in relation.attributes
+        ]
+        assert typed_relations
+        assert all(
+            relation.semantic_type("age") == "real"
+            for relation in typed_relations
+        )
+
+
+def test_denormalized_backend_extracts_entities_before_joining():
+    player_team = AttributeRef("player", "team", "text")
+    team_name = AttributeRef("team", "team_name", "text")
+    team_city = AttributeRef("team", "location", "text")
+    city_name = AttributeRef("city", "city_name", "text")
+    population = AttributeRef("city", "population", "integer")
+    requirement = QueryRequirement(
+        query_id="q",
+        text="Count players in teams from small cities.",
+        entities=("player", "team", "city"),
+        attributes=(
+            "team", "team_name", "location", "city_name", "population"
+        ),
+        attribute_bindings=(
+            ("player", "team"),
+            ("team", "team_name"),
+            ("team", "location"),
+            ("city", "city_name"),
+            ("city", "population"),
+        ),
+        operators=("count", "filter", "join"),
+        plan=QueryPlan(
+            aggregates=(AggregateSpec("count", None, "count_all"),),
+            predicate=PredicateSpec(
+                attribute=population, operator="<", value=2_000_000
+            ),
+            joins=(
+                JoinSpec(player_team, team_name),
+                JoinSpec(team_city, city_name),
+            ),
+        ),
+    )
+    intent = WorkloadIntent(
+        requirements=(requirement,),
+        entity_frequency={"player": 1, "team": 1, "city": 1},
+        attribute_frequency={name: 1 for name in requirement.attributes},
+        operator_frequency={"count": 1, "filter": 1, "join": 1},
+    )
+    flat = next(
+        design
+        for design in generate_schema_designs(intent)
+        if design.pattern == "denormalized"
+    )
+    config = SynthesisConfig(
+        flat, PopulationConfig(), PreprocessingPolicy("whole_document")
+    )
+    backend = NativeSPPBackend(
+        [SourceDocument("d", "Player, team, and city facts.", {})],
+        object(),
+    )
+    backend.intent = intent
+    assert {
+        relation.name for relation in backend._extraction_relations(config)
+    } == {"player", "team", "city"}
+    assert backend._intent_join_pairs() == [
+        ("player", "team", "team", "team_name"),
+        ("team", "location", "city", "city_name"),
+    ]

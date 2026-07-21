@@ -21,7 +21,8 @@ from spp.optimizer import PilotResult, canonical_output_signature
 from spp.population import apply_population
 from spp.quality_signals import profile_relational_database
 from spp.risk_estimator import CellEvidence, PilotObservation, estimate_query_risk
-from spp.schema_materializer import write_sqlite_database
+from spp.schema_design import generate_schema_designs
+from spp.schema_materializer import reshape_tables, write_sqlite_database
 from spp.spec import (
     PreprocessingPolicy,
     QualityEstimate,
@@ -159,12 +160,23 @@ class NativeSPPBackend:
             )
 
     def _prompt(self, relation: RelationSpec, unit: DocumentUnit) -> str:
+        typed_columns = [
+            {
+                "name": attribute,
+                "semantic_type": relation.semantic_type(attribute),
+            }
+            for attribute in relation.attributes
+        ]
         return (
             "Extract zero or more rows for the requested relation from the source "
             "text. Do not infer unsupported values. Return only a JSON array of "
-            "objects; use null for absent optional values.\n\n"
+            "objects; use null for absent optional values. Every cell must be a "
+            "single scalar, never a list or object. Return integer/real columns "
+            "as JSON numbers. Count-valued attributes (awards, medals, titles, "
+            "championships) are numeric counts, not event-name lists. Preserve "
+            "categorical literals as stated in the source.\n\n"
             f"Relation: {relation.name}\n"
-            f"Columns: {json.dumps(list(relation.attributes))}\n"
+            f"Columns: {json.dumps(typed_columns)}\n"
             f"Primary key: {relation.primary_key}\n\n"
             f"Source text:\n{unit.text}"
         )
@@ -183,6 +195,45 @@ class NativeSPPBackend:
         # as well as a replacement completion.
         return prompt_tokens + 3 * self.max_extraction_tokens + 512
 
+    def _extraction_relations(
+        self, config: SynthesisConfig
+    ) -> Tuple[RelationSpec, ...]:
+        if config.schema.pattern != "denormalized" or self.intent is None:
+            return config.schema.relations
+        normalized = next(
+            (
+                design
+                for design in generate_schema_designs(self.intent)
+                if design.pattern == "snowflake"
+            ),
+            None,
+        )
+        return normalized.relations if normalized else config.schema.relations
+
+    def _intent_join_pairs(self) -> List[Tuple[str, str, str, str]]:
+        pairs: List[Tuple[str, str, str, str]] = []
+        if self.intent is None:
+            return pairs
+        for requirement in self.intent.requirements:
+            if requirement.plan:
+                for join in requirement.plan.joins:
+                    pair = (
+                        join.left.entity,
+                        join.left.attribute,
+                        join.right.entity,
+                        join.right.attribute,
+                    )
+                    if pair not in pairs:
+                        pairs.append(pair)
+            for left, relation, right in requirement.relationships:
+                if "=" not in relation:
+                    continue
+                left_column, right_column = relation.split("=", 1)
+                pair = (left, left_column, right, right_column)
+                if pair not in pairs:
+                    pairs.append(pair)
+        return pairs
+
     def estimate_full_cost(
         self,
         config: SynthesisConfig,
@@ -194,7 +245,7 @@ class NativeSPPBackend:
         if extraction is None:
             extraction = sum(
                 self._estimated_unit_cost(relation, unit)
-                for relation in config.schema.relations
+                for relation in self._extraction_relations(config)
                 for unit in units
             )
             self._extraction_cost_cache[cost_key] = extraction
@@ -443,7 +494,8 @@ class NativeSPPBackend:
             default_stage=f"{stage}_population",
             config_id=config.config_id,
         )
-        for relation in config.schema.relations:
+        extraction_relations = self._extraction_relations(config)
+        for relation in extraction_relations:
             extracted, cells = self._extract_relation(
                 config,
                 relation,
@@ -454,6 +506,10 @@ class NativeSPPBackend:
             )
             numeric_columns: List[str] = []
             for column in relation.attributes:
+                declared_type = relation.semantic_type(column)
+                if declared_type in {"integer", "real"}:
+                    numeric_columns.append(column)
+                    continue
                 observed = [
                     row.get(column)
                     for row in extracted
@@ -493,6 +549,12 @@ class NativeSPPBackend:
             )
             tables[relation.name] = populated
             cells_by_table[relation.name] = cells
+        if config.schema.pattern == "denormalized":
+            tables = reshape_tables(
+                tables,
+                config.schema,
+                join_pairs=self._intent_join_pairs(),
+            )
         return tables, cells_by_table
 
     def _estimates(
@@ -507,6 +569,11 @@ class NativeSPPBackend:
         estimates: Dict[str, QualityEstimate] = {}
         for requirement in requirements:
             relevant_columns = set(requirement.attributes)
+            if requirement.plan:
+                relevant_columns.update(
+                    reference.attribute
+                    for reference in requirement.plan.attributes()
+                )
             cells = [
                 cell
                 for table_cells in cells_by_table.values()

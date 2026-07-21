@@ -5,8 +5,9 @@ ground-truth-only oracle track.
 
 ## Deployable path
 
-1. `workload_intent.py` converts SQL or natural-language workloads to a
-   schema-independent intent graph.
+1. `workload_intent.py` converts SQL or natural-language workloads to a typed,
+   schema-independent query-plan IR (projections, aggregates, predicates,
+   joins, and semantic column types).
 2. `schema_design.py` creates workload-pruned denormalized, star, snowflake,
    preprocessing, and population candidates.
 3. `evidence_store.py` stores shared source anchors and cell provenance.
@@ -14,8 +15,10 @@ ground-truth-only oracle track.
    uncertainty from provenance coverage and relational consistency.
 5. `optimizer.py` performs progressive pilots, output-equivalence pruning,
    confidence-dominance pruning, and budgeted portfolio/routing selection.
-6. `system.py` materializes selected databases, compiles all NL2SQL, validates
-   them, and freezes a serving bundle.
+6. `query_plan_compiler.py` deterministically binds the IR to each selected
+   schema and emits SQLite SQL; `system.py` validates it and freezes a serving
+   bundle. Free-form NL2SQL remains only as a compatibility fallback when an
+   older workload has no complete plan.
 7. `serving.py` opens checksum-verified SQLite files in immutable read-only
    mode and executes only precompiled workload SQL.
 

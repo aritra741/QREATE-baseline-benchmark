@@ -17,7 +17,14 @@ from json_repair import repair_json
 
 from spp.budget_ledger import GlobalBudgetLedger
 from spp.budgeted_llm import BudgetedLLMClient
-from spp.spec import QueryRequirement
+from spp.spec import (
+    AggregateSpec,
+    AttributeRef,
+    JoinSpec,
+    PredicateSpec,
+    QueryPlan,
+    QueryRequirement,
+)
 
 try:
     import sqlglot
@@ -62,7 +69,10 @@ class WorkloadIntent:
 
     @property
     def has_joins(self) -> bool:
-        return any(r.relationships for r in self.requirements)
+        return any(
+            r.relationships or (r.plan and r.plan.joins)
+            for r in self.requirements
+        )
 
     @property
     def has_units(self) -> bool:
@@ -71,7 +81,17 @@ class WorkloadIntent:
     @property
     def has_numeric_operations(self) -> bool:
         numeric_ops = {"count", "sum", "avg", "min", "max", "range"}
-        return any(numeric_ops.intersection(r.operators) for r in self.requirements)
+        return any(
+            numeric_ops.intersection(r.operators)
+            or (
+                r.plan
+                and any(
+                    aggregate.function in numeric_ops
+                    for aggregate in r.plan.aggregates
+                )
+            )
+            for r in self.requirements
+        )
 
     def query_ids(self) -> Tuple[str, ...]:
         return tuple(r.query_id for r in self.requirements)
@@ -79,6 +99,121 @@ class WorkloadIntent:
 
 def _is_sql(text: str) -> bool:
     return bool(re.match(r"^\s*(select|with)\b", text, re.IGNORECASE))
+
+
+def _attribute_ref(payload: object) -> Optional[AttributeRef]:
+    if not isinstance(payload, Mapping):
+        return None
+    entity = str(payload.get("entity", "")).strip().lower()
+    attribute = str(payload.get("attribute", "")).strip().lower()
+    semantic_type = str(
+        payload.get("semantic_type", "text")
+    ).strip().lower()
+    if not entity or not attribute:
+        return None
+    aliases = {
+        "str": "text", "string": "text", "int": "integer",
+        "float": "real", "number": "real", "numeric": "real",
+        "datetime": "date", "bool": "boolean",
+    }
+    semantic_type = aliases.get(semantic_type, semantic_type)
+    try:
+        return AttributeRef(entity, attribute, semantic_type)
+    except ValueError:
+        return AttributeRef(entity, attribute, "text")
+
+
+def _predicate_spec(payload: object) -> Optional[PredicateSpec]:
+    if not isinstance(payload, Mapping):
+        return None
+    kind = str(payload.get("kind", "predicate")).strip().lower()
+    if kind in {"and", "or"}:
+        raw_children = payload.get("children", [])
+        if not isinstance(raw_children, (list, tuple)):
+            return None
+        children = tuple(
+            child
+            for child in (
+                _predicate_spec(value)
+                for value in raw_children
+            )
+            if child is not None
+        )
+        return PredicateSpec(kind=kind, children=children) if children else None
+    reference = _attribute_ref(
+        payload.get("attribute")
+        if isinstance(payload.get("attribute"), Mapping)
+        else payload
+    )
+    if reference is None:
+        return None
+    operator = str(payload.get("operator", "=")).strip().lower()
+    return PredicateSpec(
+        attribute=reference,
+        operator=operator,
+        value=payload.get("value"),
+    )
+
+
+def _query_plan(payload: object) -> Optional[QueryPlan]:
+    if not isinstance(payload, Mapping):
+        return None
+
+    def refs(name: str) -> Tuple[AttributeRef, ...]:
+        values = payload.get(name, [])
+        if not isinstance(values, (list, tuple)):
+            return ()
+        return tuple(
+            reference
+            for reference in (_attribute_ref(value) for value in values)
+            if reference is not None
+        )
+
+    aggregates: List[AggregateSpec] = []
+    values = payload.get("aggregates", [])
+    if isinstance(values, (list, tuple)):
+        for value in values:
+            if not isinstance(value, Mapping):
+                continue
+            function = str(value.get("function", "")).strip().lower()
+            reference = _attribute_ref(value.get("attribute"))
+            try:
+                aggregates.append(
+                    AggregateSpec(
+                        function=function,
+                        attribute=reference,
+                        alias=str(value.get("alias", "")).strip().lower(),
+                        distinct=bool(value.get("distinct", False)),
+                    )
+                )
+            except ValueError:
+                continue
+
+    joins: List[JoinSpec] = []
+    values = payload.get("joins", [])
+    if isinstance(values, (list, tuple)):
+        for value in values:
+            if not isinstance(value, Mapping):
+                continue
+            left = _attribute_ref(value.get("left"))
+            right = _attribute_ref(value.get("right"))
+            if left is None or right is None:
+                continue
+            joins.append(
+                JoinSpec(
+                    left,
+                    right,
+                    str(value.get("join_type", "inner")).lower(),
+                )
+            )
+    plan = QueryPlan(
+        projections=refs("projections"),
+        group_by=refs("group_by"),
+        aggregates=tuple(aggregates),
+        predicate=_predicate_spec(payload.get("predicate")),
+        joins=tuple(joins),
+    )
+    return plan if plan.attributes() or plan.aggregates else None
 
 
 def _sql_requirement(query_id: str, sql: str) -> QueryRequirement:
@@ -93,6 +228,13 @@ def _sql_requirement(query_id: str, sql: str) -> QueryRequirement:
             entities.append(name)
         aliases[name] = name
         aliases[(table.alias_or_name or name).lower()] = name
+
+    def column_ref(
+        column: "exp.Column", semantic_type: str = "text"
+    ) -> AttributeRef:
+        fallback = entities[0] if entities else "record"
+        entity = aliases.get((column.table or fallback).lower(), fallback)
+        return AttributeRef(entity, column.name.lower(), semantic_type)
 
     attributes: List[str] = []
     attribute_bindings: List[Tuple[str, str]] = []
@@ -140,6 +282,137 @@ def _sql_requirement(query_id: str, sql: str) -> QueryRequirement:
         if next(tree.find_all(node_type), None) is not None:
             operators.append(label)
 
+    aggregate_types = (
+        (exp.Count, "count"),
+        (exp.Sum, "sum"),
+        (exp.Avg, "avg"),
+        (exp.Min, "min"),
+        (exp.Max, "max"),
+    )
+    aggregates: List[AggregateSpec] = []
+    projections: List[AttributeRef] = []
+    for expression in tree.expressions:
+        alias = expression.alias_or_name.lower() if expression.alias_or_name else ""
+        value = expression.this if isinstance(expression, exp.Alias) else expression
+        matched_aggregate = False
+        for node_type, function in aggregate_types:
+            if isinstance(value, node_type):
+                argument = value.this
+                reference = (
+                    column_ref(
+                        argument,
+                        "integer" if function in {"count", "sum"} else "real",
+                    )
+                    if isinstance(argument, exp.Column)
+                    else None
+                )
+                aggregates.append(
+                    AggregateSpec(
+                        function=function,
+                        attribute=reference,
+                        alias=alias,
+                        distinct=bool(value.args.get("distinct")),
+                    )
+                )
+                matched_aggregate = True
+                break
+        if not matched_aggregate and isinstance(value, exp.Column):
+            projections.append(column_ref(value))
+
+    group_by: List[AttributeRef] = []
+    group = tree.args.get("group")
+    if group is not None:
+        for expression in group.expressions:
+            if isinstance(expression, exp.Column):
+                group_by.append(column_ref(expression))
+
+    comparison_types = (
+        (exp.EQ, "="), (exp.NEQ, "!="), (exp.LT, "<"),
+        (exp.LTE, "<="), (exp.GT, ">"), (exp.GTE, ">="),
+    )
+
+    def literal_value(node: "exp.Expression") -> object:
+        if isinstance(node, exp.Null):
+            return None
+        if isinstance(node, exp.Boolean):
+            return str(node.this).lower() == "true"
+        if isinstance(node, exp.Literal):
+            if node.is_number:
+                rendered = str(node.this)
+                return float(rendered) if "." in rendered else int(rendered)
+            return str(node.this)
+        return node.sql()
+
+    def predicate(node: Optional["exp.Expression"]) -> Optional[PredicateSpec]:
+        if node is None:
+            return None
+        if isinstance(node, exp.Paren):
+            return predicate(node.this)
+        if isinstance(node, (exp.And, exp.Or)):
+            children = tuple(
+                child
+                for child in (predicate(node.left), predicate(node.right))
+                if child is not None
+            )
+            if not children:
+                return None
+            if len(children) == 1:
+                return children[0]
+            return PredicateSpec(
+                kind="and" if isinstance(node, exp.And) else "or",
+                children=children,
+            )
+        if isinstance(node, exp.Is) and isinstance(node.this, exp.Column):
+            if isinstance(node.expression, exp.Null):
+                return PredicateSpec(
+                    attribute=column_ref(node.this), operator="is_null"
+                )
+        for node_type, operator in comparison_types:
+            if isinstance(node, node_type):
+                if isinstance(node.left, exp.Column):
+                    value = literal_value(node.right)
+                    semantic_type = (
+                        "integer" if isinstance(value, int)
+                        else "real" if isinstance(value, float)
+                        else "date" if isinstance(value, str)
+                        and bool(re.match(r"^\d{4}[-/]", value))
+                        else "text"
+                    )
+                    return PredicateSpec(
+                        attribute=column_ref(node.left, semantic_type),
+                        operator=operator,
+                        value=value,
+                    )
+        return None
+
+    where = tree.args.get("where")
+    parsed_predicate = predicate(where.this if where is not None else None)
+    join_specs: List[JoinSpec] = []
+    for join in tree.find_all(exp.Join):
+        on_expr = join.args.get("on")
+        if on_expr is None:
+            continue
+        for equality in on_expr.find_all(exp.EQ):
+            if isinstance(equality.left, exp.Column) and isinstance(
+                equality.right, exp.Column
+            ):
+                join_specs.append(
+                    JoinSpec(
+                        column_ref(equality.left),
+                        column_ref(equality.right),
+                        "left"
+                        if str(join.args.get("kind", "")).lower() == "left"
+                        else "inner",
+                    )
+                )
+    plan = QueryPlan(
+        projections=tuple(projections),
+        group_by=tuple(group_by),
+        aggregates=tuple(aggregates),
+        predicate=parsed_predicate,
+        joins=tuple(join_specs),
+    )
+
     return QueryRequirement(
         query_id=query_id,
         text=sql,
@@ -149,6 +422,7 @@ def _sql_requirement(query_id: str, sql: str) -> QueryRequirement:
         relationships=tuple(relationships),
         operators=tuple(operators),
         units=tuple(sorted({m.group(1).lower() for m in _UNIT_RE.finditer(sql)})),
+        plan=plan,
     )
 
 
@@ -224,28 +498,62 @@ def _parse_llm_payload(
                 parsed = tuple(str(v).lower() for v in rel)
                 if all(parsed):
                     relationships.append(parsed)
+        plan = _query_plan(row.get("plan"))
+        plan_references = plan.attributes() if plan else ()
+        entities = list(
+            dict.fromkeys(
+                [
+                    *(str(v).lower() for v in list_field("entities")),
+                    *(reference.entity for reference in plan_references),
+                ]
+            )
+        )
+        attributes = list(
+            dict.fromkeys(
+                [
+                    *(str(v).lower() for v in list_field("attributes")),
+                    *(reference.attribute for reference in plan_references),
+                ]
+            )
+        )
+        bindings = [
+            (str(v.get("entity", "")).lower(), str(v.get("attribute", "")).lower())
+            for v in list_field("attribute_bindings")
+            if isinstance(v, Mapping) and v.get("entity") and v.get("attribute")
+        ]
+        bindings.extend(
+            (reference.entity, reference.attribute)
+            for reference in plan_references
+            if (reference.entity, reference.attribute) not in bindings
+        )
+        operators = list(
+            dict.fromkeys(str(v).lower() for v in list_field("operators"))
+        )
+        if plan:
+            operators.extend(
+                aggregate.function
+                for aggregate in plan.aggregates
+                if aggregate.function not in operators
+            )
+            if plan.group_by and "group_by" not in operators:
+                operators.append("group_by")
+            if plan.predicate and "filter" not in operators:
+                operators.append("filter")
+            if plan.joins and "join" not in operators:
+                operators.append("join")
         requirements.append(
             QueryRequirement(
                 query_id=query_id,
                 text=queries_by_id[query_id],
-                entities=tuple(
-                    dict.fromkeys(str(v).lower() for v in list_field("entities"))
-                ),
-                attributes=tuple(
-                    dict.fromkeys(str(v).lower() for v in list_field("attributes"))
-                ),
-                attribute_bindings=tuple(
-                    (str(v.get("entity", "")).lower(), str(v.get("attribute", "")).lower())
-                    for v in list_field("attribute_bindings")
-                    if isinstance(v, Mapping) and v.get("entity") and v.get("attribute")
-                ),
+                entities=tuple(entities),
+                attributes=tuple(attributes),
+                attribute_bindings=tuple(bindings),
                 relationships=tuple(relationships),
-                operators=tuple(
-                    dict.fromkeys(str(v).lower() for v in list_field("operators"))
-                ),
+                operators=tuple(dict.fromkeys(operators)),
                 units=tuple(
                     dict.fromkeys(str(v).lower() for v in list_field("units"))
                 ),
+                plan=plan,
             )
         )
     missing = set(queries_by_id) - seen
@@ -287,18 +595,38 @@ def analyze_workload(
     nl_requirements: List[QueryRequirement]
     if nl_queries and llm_client is not None:
         prompt = (
-            "Convert each analytical query into a schema-independent intent. "
-            "Return ONLY a JSON array. Each item must contain query_id, entities, "
-            "attributes, attribute_bindings (entity/attribute), relationships "
-            "(left/relation/right), operators, and units. "
-            "Use lowercase snake_case names and do not invent facts from any "
-            "ground-truth table.\n\nQueries:\n"
+            "Convert every analytical question into a lossless, schema-independent "
+            "query plan. Return ONLY a JSON array. Preserve every literal value "
+            "exactly as written: never translate French to France, American to "
+            "USA, or alter names. Preserve the requested aggregate exactly: total "
+            "means sum, average means avg, fewest means min, largest/highest means "
+            "max, and how many means count. Use concise conventional lowercase "
+            "snake_case attributes (position, not playing_position; plural count "
+            "measures such as mvp_awards and nba_championships).\n\n"
+            "Each item must contain query_id, entities, attributes, "
+            "attribute_bindings, relationships, operators, units, and plan. "
+            "plan must contain:\n"
+            "- projections and group_by: arrays of {entity, attribute, "
+            "semantic_type};\n"
+            "- aggregates: array of {function, attribute (or null for COUNT(*)), "
+            "alias, distinct};\n"
+            "- predicate: null or a recursive tree. Leaves are {kind:'predicate', "
+            "entity, attribute, semantic_type, operator, value}; boolean nodes "
+            "are {kind:'and'|'or', children:[...]};\n"
+            "- joins: array of {left:{entity,attribute,semantic_type}, "
+            "right:{...}, join_type:'inner'|'left'}.\n"
+            "Allowed semantic types are text, integer, real, date, boolean. "
+            "Allowed predicate operators are =, !=, <, <=, >, >=, contains, "
+            "is_null, is_not_null. Bind city properties such as population and "
+            "gdp to city, team properties such as founded_year and championships "
+            "to team, and player properties to player. Do not invent facts from "
+            "ground-truth data.\n\nQueries:\n"
             + json.dumps(
                 [{"query_id": qid, "query": text} for qid, text in nl_queries.items()],
                 indent=2,
             )
         )
-        response = llm_client.generate(prompt, max_tokens=4096, temperature=0.0)
+        response = llm_client.generate(prompt, max_tokens=8192, temperature=0.0)
         nl_requirements = _parse_llm_payload(response, nl_queries)
     else:
         nl_requirements = [

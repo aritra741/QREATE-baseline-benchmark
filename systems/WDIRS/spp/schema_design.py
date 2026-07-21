@@ -27,6 +27,11 @@ from spp.workload_intent import WorkloadIntent
 def _all_symbols(requirements: Sequence[QueryRequirement]) -> Tuple[Set[str], Set[str]]:
     entities = {entity for req in requirements for entity in req.entities}
     attributes = {attribute for req in requirements for attribute in req.attributes}
+    for requirement in requirements:
+        if requirement.plan:
+            for reference in requirement.plan.attributes():
+                entities.add(reference.entity)
+                attributes.add(reference.attribute)
     return entities or {"record"}, attributes
 
 
@@ -55,9 +60,17 @@ def generate_schema_designs(intent: WorkloadIntent) -> List[SchemaDesign]:
     sorted_entities = sorted(entities)
     sorted_attributes = sorted(attributes)
     attributes_by_entity: Dict[str, Set[str]] = defaultdict(set)
+    semantic_types_by_attribute: Dict[Tuple[str, str], str] = {}
     for requirement in requirements:
         for entity, attribute in requirement.attribute_bindings:
             attributes_by_entity[entity].add(attribute)
+        if requirement.plan:
+            for reference in requirement.plan.attributes():
+                attributes_by_entity[reference.entity].add(reference.attribute)
+                key = (reference.entity, reference.attribute)
+                current = semantic_types_by_attribute.get(key, "text")
+                if current == "text" or reference.semantic_type != "text":
+                    semantic_types_by_attribute[key] = reference.semantic_type
     bound_attributes = {
         attribute
         for owned in attributes_by_entity.values()
@@ -77,6 +90,41 @@ def generate_schema_designs(intent: WorkloadIntent) -> List[SchemaDesign]:
                     right_column,
                     left_column,
                 )
+        if requirement.plan:
+            for join in requirement.plan.joins:
+                relationship_columns[(join.left.entity, join.right.entity)] = (
+                    join.left.attribute,
+                    join.right.attribute,
+                )
+                relationship_columns[(join.right.entity, join.left.entity)] = (
+                    join.right.attribute,
+                    join.left.attribute,
+                )
+
+    def relation_types(
+        relation_entity: Optional[str], relation_attributes: Sequence[str]
+    ) -> Tuple[Tuple[str, str], ...]:
+        result = []
+        for attribute in relation_attributes:
+            semantic_type = "text"
+            if relation_entity is not None:
+                semantic_type = semantic_types_by_attribute.get(
+                    (relation_entity, attribute), semantic_type
+                )
+            else:
+                candidates = {
+                    value
+                    for (entity, name), value in semantic_types_by_attribute.items()
+                    if name == attribute
+                }
+                if len(candidates) == 1:
+                    semantic_type = next(iter(candidates))
+                elif candidates & {"integer", "real"}:
+                    semantic_type = (
+                        "real" if "real" in candidates else "integer"
+                    )
+            result.append((attribute, semantic_type))
+        return tuple(result)
 
     def entity_key(entity: str) -> str:
         owned = attributes_by_entity.get(entity, set())
@@ -98,6 +146,7 @@ def generate_schema_designs(intent: WorkloadIntent) -> List[SchemaDesign]:
             name="workload_flat",
             attributes=flat_attributes,
             primary_key=entity_key(sorted_entities[0]) if sorted_entities else None,
+            semantic_types=relation_types(None, flat_attributes),
         ),
     )
     designs.append(
@@ -149,6 +198,7 @@ def generate_schema_designs(intent: WorkloadIntent) -> List[SchemaDesign]:
             attributes=central_attrs,
             primary_key=central_key,
             foreign_keys=central_fks,
+            semantic_types=relation_types(central, central_attrs),
         )
     ]
     for entity in dimension_entities:
@@ -160,6 +210,12 @@ def generate_schema_designs(intent: WorkloadIntent) -> List[SchemaDesign]:
                     sorted({key} | attributes_by_entity.get(entity, set()))
                 ),
                 primary_key=key,
+                semantic_types=relation_types(
+                    entity,
+                    tuple(
+                        sorted({key} | attributes_by_entity.get(entity, set()))
+                    ),
+                ),
             )
         )
     designs.append(
@@ -176,6 +232,10 @@ def generate_schema_designs(intent: WorkloadIntent) -> List[SchemaDesign]:
         for left, _relation, right in requirement.relationships:
             relationship_neighbors[left].add(right)
             relationship_neighbors[right].add(left)
+        if requirement.plan:
+            for join in requirement.plan.joins:
+                relationship_neighbors[join.left.entity].add(join.right.entity)
+                relationship_neighbors[join.right.entity].add(join.left.entity)
     snowflake_relations: List[RelationSpec] = []
     for index, entity in enumerate(sorted_entities):
         key = entity_key(entity)
@@ -220,6 +280,7 @@ def generate_schema_designs(intent: WorkloadIntent) -> List[SchemaDesign]:
                 attributes=attributes_for_entity,
                 primary_key=key,
                 foreign_keys=foreign_keys,
+                semantic_types=relation_types(entity, attributes_for_entity),
             )
         )
     designs.append(
