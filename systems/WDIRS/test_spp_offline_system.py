@@ -612,24 +612,8 @@ def test_end_to_end_system_freezes_routing_sql_and_database(tmp_path: Path):
             return 0
 
         def pilot(self, config, sample_fraction, evidence_store, ledger):
-            estimates = {
-                requirement.query_id: QualityEstimate(
-                    requirement.query_id,
-                    config.config_id,
-                    0.9,
-                    0.9,
-                    1.0,
-                    0.0,
-                    1,
-                )
-                for requirement in self.requirements
-            }
-            return PilotResult(
-                config.config_id,
-                estimates,
-                config.schema.schema_id,
-                0,
-                sample_fraction,
+            raise BudgetExhausted(
+                "test budget permits direct completion but no pilot"
             )
 
         def materialize(

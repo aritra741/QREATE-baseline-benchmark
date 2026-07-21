@@ -214,16 +214,46 @@ class OfflineSynthesisSystem:
                 config.config_id: construction_costs[config.config_id]
                 for config in survivor_configs
             }
-            preliminary = select_budgeted_portfolio(
-                survivor_configs,
-                intent.requirements,
-                estimates,
-                costs,
-                token_budget=token_budget,
-                tokens_already_spent=ledger.actual_spent,
-                beta=self.beta,
-                quality_floor=self.quality_floor,
-            )
+            if search.pilots:
+                preliminary = select_budgeted_portfolio(
+                    survivor_configs,
+                    intent.requirements,
+                    estimates,
+                    costs,
+                    token_budget=token_budget,
+                    tokens_already_spent=ledger.actual_spent,
+                    beta=self.beta,
+                    quality_floor=self.quality_floor,
+                )
+            else:
+                direct = min(
+                    survivor_configs,
+                    key=lambda config: (
+                        costs[config.config_id],
+                        config.config_id,
+                    ),
+                )
+                direct_id = direct.config_id
+                preliminary = FrozenPortfolio(
+                    selected_config_ids=(direct_id,),
+                    query_to_config={
+                        requirement.query_id: direct_id
+                        for requirement in intent.requirements
+                    },
+                    query_scores={
+                        requirement.query_id: 0.0
+                        for requirement in intent.requirements
+                    },
+                    construction_tokens=(
+                        ledger.actual_spent + costs[direct_id]
+                    ),
+                    objective_value=0.0,
+                )
+                preliminary.validate(
+                    intent.requirements,
+                    {config.config_id: config for config in configs},
+                    token_budget,
+                )
 
             db_work_dir = output_dir / "materialized_work"
             db_work_dir.mkdir()

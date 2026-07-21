@@ -215,9 +215,15 @@ def progressive_pilot_search(
             round_results[config_id] = result
             pilots[config_id] = result
         if not round_results and pilot_budget_exhausted:
-            raise BudgetExhausted(
-                "completion escrow leaves insufficient budget for one pilot"
-            )
+            # The budget can still complete the escrowed cheapest full-cover
+            # configuration. Preserve it for direct materialization instead of
+            # incorrectly declaring the whole SPP problem infeasible.
+            direct = round_order[0]
+            eliminated.pop(direct.config_id, None)
+            for config_id in set(survivors) - {direct.config_id}:
+                eliminated[config_id] = "not-admitted:direct-completion"
+            survivors = {direct.config_id: direct}
+            break
         if not round_results:
             break
         rounds_completed += 1
