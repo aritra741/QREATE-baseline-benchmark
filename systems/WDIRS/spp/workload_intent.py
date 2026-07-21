@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 import re
 from collections import Counter
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 from json_repair import repair_json
@@ -101,11 +101,41 @@ def _is_sql(text: str) -> bool:
     return bool(re.match(r"^\s*(select|with)\b", text, re.IGNORECASE))
 
 
-def _attribute_ref(payload: object) -> Optional[AttributeRef]:
+def _canonical_entity(
+    value: object,
+    entity_vocabulary: Sequence[str],
+    default_entity: str = "",
+) -> str:
+    entity = str(value or "").strip().lower()
+    allowed = tuple(
+        dict.fromkeys(str(item).strip().lower() for item in entity_vocabulary)
+    )
+    if not allowed or entity in allowed:
+        return entity
+    parts = set(re.split(r"[^a-z0-9]+", entity))
+    matches = [candidate for candidate in allowed if candidate in parts]
+    if len(matches) == 1:
+        return matches[0]
+    return default_entity if default_entity in allowed else ""
+
+
+def _attribute_ref(
+    payload: object,
+    entity_vocabulary: Sequence[str] = (),
+    default_entity: str = "",
+) -> Optional[AttributeRef]:
     if not isinstance(payload, Mapping):
         return None
-    entity = str(payload.get("entity", "")).strip().lower()
+    raw_entity = str(payload.get("entity", "")).strip().lower()
+    entity = _canonical_entity(
+        raw_entity, entity_vocabulary, default_entity
+    )
     attribute = str(payload.get("attribute", "")).strip().lower()
+    for prefix in (raw_entity, entity):
+        if prefix:
+            attribute = re.sub(
+                rf"^{re.escape(prefix)}[./:]+", "", attribute
+            )
     semantic_type = str(
         payload.get("semantic_type", "text")
     ).strip().lower()
@@ -123,7 +153,11 @@ def _attribute_ref(payload: object) -> Optional[AttributeRef]:
         return AttributeRef(entity, attribute, "text")
 
 
-def _predicate_spec(payload: object) -> Optional[PredicateSpec]:
+def _predicate_spec(
+    payload: object,
+    entity_vocabulary: Sequence[str] = (),
+    default_entity: str = "",
+) -> Optional[PredicateSpec]:
     if not isinstance(payload, Mapping):
         return None
     kind = str(payload.get("kind", "predicate")).strip().lower()
@@ -134,7 +168,9 @@ def _predicate_spec(payload: object) -> Optional[PredicateSpec]:
         children = tuple(
             child
             for child in (
-                _predicate_spec(value)
+                _predicate_spec(
+                    value, entity_vocabulary, default_entity
+                )
                 for value in raw_children
             )
             if child is not None
@@ -143,7 +179,9 @@ def _predicate_spec(payload: object) -> Optional[PredicateSpec]:
     reference = _attribute_ref(
         payload.get("attribute")
         if isinstance(payload.get("attribute"), Mapping)
-        else payload
+        else payload,
+        entity_vocabulary,
+        default_entity,
     )
     if reference is None:
         return None
@@ -175,7 +213,11 @@ def _predicate_spec(payload: object) -> Optional[PredicateSpec]:
         return None
 
 
-def _query_plan(payload: object) -> Optional[QueryPlan]:
+def _query_plan(
+    payload: object,
+    entity_vocabulary: Sequence[str] = (),
+    default_entity: str = "",
+) -> Optional[QueryPlan]:
     if not isinstance(payload, Mapping):
         return None
 
@@ -185,7 +227,12 @@ def _query_plan(payload: object) -> Optional[QueryPlan]:
             return ()
         return tuple(
             reference
-            for reference in (_attribute_ref(value) for value in values)
+            for reference in (
+                _attribute_ref(
+                    value, entity_vocabulary, default_entity
+                )
+                for value in values
+            )
             if reference is not None
         )
 
@@ -196,7 +243,11 @@ def _query_plan(payload: object) -> Optional[QueryPlan]:
             if not isinstance(value, Mapping):
                 continue
             function = str(value.get("function", "")).strip().lower()
-            reference = _attribute_ref(value.get("attribute"))
+            reference = _attribute_ref(
+                value.get("attribute"),
+                entity_vocabulary,
+                default_entity,
+            )
             try:
                 aggregates.append(
                     AggregateSpec(
@@ -215,8 +266,12 @@ def _query_plan(payload: object) -> Optional[QueryPlan]:
         for value in values:
             if not isinstance(value, Mapping):
                 continue
-            left = _attribute_ref(value.get("left"))
-            right = _attribute_ref(value.get("right"))
+            left = _attribute_ref(
+                value.get("left"), entity_vocabulary, default_entity
+            )
+            right = _attribute_ref(
+                value.get("right"), entity_vocabulary, default_entity
+            )
             if left is None or right is None:
                 continue
             join_type = str(
@@ -242,10 +297,114 @@ def _query_plan(payload: object) -> Optional[QueryPlan]:
         projections=refs("projections"),
         group_by=refs("group_by"),
         aggregates=tuple(aggregates),
-        predicate=_predicate_spec(payload.get("predicate")),
+        predicate=_predicate_spec(
+            payload.get("predicate"),
+            entity_vocabulary,
+            default_entity,
+        ),
         joins=tuple(joins),
     )
     return plan if plan.attributes() or plan.aggregates else None
+
+
+def _expected_aggregate(text: str) -> Optional[str]:
+    lowered = text.lower()
+    if re.search(r"\b(average|mean)\b", lowered):
+        return "avg"
+    if re.search(r"\b(fewest|lowest|smallest|minimum)\b", lowered):
+        return "min"
+    if re.search(r"\b(largest|highest|greatest|maximum)\b", lowered):
+        return "max"
+    if re.search(r"\b(total|combined|altogether|sum)\b", lowered):
+        return "sum"
+    if re.search(r"\b(how many|count)\b", lowered):
+        return "count"
+    return None
+
+
+def _repair_plan_aggregate(
+    plan: Optional[QueryPlan], text: str
+) -> Optional[QueryPlan]:
+    if plan is None:
+        return None
+    expected = _expected_aggregate(text)
+    if expected is None:
+        return plan
+    aggregates = list(plan.aggregates)
+    projections = list(plan.projections)
+    grouped = set(plan.group_by)
+    if not aggregates:
+        candidates = [
+            reference
+            for reference in projections
+            if reference not in grouped
+        ]
+        target = candidates[-1] if candidates and expected != "count" else None
+        if expected == "count" and re.search(
+            r"\b(known|non[- ]?null|with (?:an? )?[a-z_ ]+)\b",
+            text.lower(),
+        ):
+            target = candidates[-1] if candidates else None
+        aggregates.append(
+            AggregateSpec(
+                expected,
+                target,
+                (
+                    f"{expected}_{target.attribute}"
+                    if target is not None
+                    else "count_all"
+                ),
+            )
+        )
+        if target is not None:
+            projections = [
+                reference
+                for reference in projections
+                if reference != target
+            ]
+    else:
+        repaired = []
+        for aggregate in aggregates:
+            function = expected
+            target = aggregate.attribute
+            if function != "count" and target is None:
+                candidates = [
+                    reference
+                    for reference in projections
+                    if reference not in grouped
+                ]
+                target = candidates[-1] if candidates else None
+            try:
+                repaired.append(
+                    replace(
+                        aggregate,
+                        function=function,
+                        attribute=target,
+                        alias=(
+                            f"{function}_{target.attribute}"
+                            if target is not None
+                            else "count_all"
+                        ),
+                    )
+                )
+            except ValueError:
+                continue
+        aggregates = repaired
+    aggregate_refs = {
+        aggregate.attribute
+        for aggregate in aggregates
+        if aggregate.attribute is not None
+    }
+    projections = [
+        reference
+        for reference in projections
+        if reference in grouped or reference not in aggregate_refs
+    ]
+    return replace(
+        plan,
+        projections=tuple(projections),
+        aggregates=tuple(aggregates),
+    )
 
 
 def _sql_requirement(query_id: str, sql: str) -> QueryRequirement:
@@ -491,7 +650,10 @@ def _heuristic_nl_requirement(query_id: str, text: str) -> QueryRequirement:
 
 
 def _parse_llm_payload(
-    payload: str, queries_by_id: Mapping[str, str]
+    payload: str,
+    queries_by_id: Mapping[str, str],
+    *,
+    entity_vocabulary: Sequence[str] = (),
 ) -> List[QueryRequirement]:
     start, end = payload.find("["), payload.rfind("]")
     if start < 0:
@@ -516,48 +678,81 @@ def _parse_llm_payload(
             value = row.get(name)
             return list(value) if isinstance(value, (list, tuple)) else []
 
+        canonical_entities = [
+            entity
+            for entity in (
+                _canonical_entity(value, entity_vocabulary)
+                for value in list_field("entities")
+            )
+            if entity
+        ]
+        default_entity = canonical_entities[0] if canonical_entities else (
+            entity_vocabulary[0] if len(entity_vocabulary) == 1 else ""
+        )
         relationships = []
         for rel in list_field("relationships"):
             if isinstance(rel, Mapping):
                 parsed = (
-                    str(rel.get("left", "")).lower(),
+                    _canonical_entity(
+                        rel.get("left"), entity_vocabulary, default_entity
+                    ),
                     str(rel.get("relation", "")).lower(),
-                    str(rel.get("right", "")).lower(),
+                    _canonical_entity(
+                        rel.get("right"), entity_vocabulary, default_entity
+                    ),
                 )
                 if all(parsed):
                     relationships.append(parsed)
             elif isinstance(rel, (list, tuple)) and len(rel) == 3:
-                parsed = tuple(str(v).lower() for v in rel)
+                parsed = (
+                    _canonical_entity(
+                        rel[0], entity_vocabulary, default_entity
+                    ),
+                    str(rel[1]).lower(),
+                    _canonical_entity(
+                        rel[2], entity_vocabulary, default_entity
+                    ),
+                )
                 if all(parsed):
                     relationships.append(parsed)
-        plan = _query_plan(row.get("plan"))
+        plan = _query_plan(
+            row.get("plan"), entity_vocabulary, default_entity
+        )
+        plan = _repair_plan_aggregate(plan, queries_by_id[query_id])
         plan_references = plan.attributes() if plan else ()
         entities = list(
             dict.fromkeys(
                 [
-                    *(str(v).lower() for v in list_field("entities")),
+                    *canonical_entities,
                     *(reference.entity for reference in plan_references),
                 ]
             )
         )
-        attributes = list(
-            dict.fromkeys(
-                [
-                    *(str(v).lower() for v in list_field("attributes")),
-                    *(reference.attribute for reference in plan_references),
-                ]
+        attributes = (
+            list(dict.fromkeys(reference.attribute for reference in plan_references))
+            if plan
+            else list(
+                dict.fromkeys(
+                    str(value).lower()
+                    for value in list_field("attributes")
+                )
             )
         )
-        bindings = [
-            (str(v.get("entity", "")).lower(), str(v.get("attribute", "")).lower())
-            for v in list_field("attribute_bindings")
-            if isinstance(v, Mapping) and v.get("entity") and v.get("attribute")
-        ]
-        bindings.extend(
+        bindings = list(
             (reference.entity, reference.attribute)
             for reference in plan_references
-            if (reference.entity, reference.attribute) not in bindings
         )
+        if not plan:
+            for value in list_field("attribute_bindings"):
+                if not isinstance(value, Mapping):
+                    continue
+                reference = _attribute_ref(
+                    value, entity_vocabulary, default_entity
+                )
+                if reference is not None:
+                    bindings.append(
+                        (reference.entity, reference.attribute)
+                    )
         operators = list(
             dict.fromkeys(str(v).lower() for v in list_field("operators"))
         )
@@ -600,6 +795,7 @@ def analyze_workload(
     queries: Sequence[Mapping[str, Any] | str],
     *,
     llm_client: Optional[Any] = None,
+    entity_vocabulary: Sequence[str] = (),
 ) -> WorkloadIntent:
     """Analyze SQL or NL workload without reading any ground-truth artifact."""
     normalized: List[Tuple[str, str]] = []
@@ -626,6 +822,17 @@ def analyze_workload(
 
     nl_requirements: List[QueryRequirement]
     if nl_queries and llm_client is not None:
+        entity_instruction = ""
+        if entity_vocabulary:
+            entity_instruction = (
+                "The only available source entity types are "
+                f"{json.dumps(list(entity_vocabulary))}. Every entity and every "
+                "attribute owner must be one of these exact values. Treat all "
+                "other nouns as attributes, measures, values, or relationship "
+                "phrases—not as new entities. Do not invent identifier columns "
+                "or relations; use a natural label relationship stated or "
+                "implied by the question.\n\n"
+            )
         instructions = (
             "Convert every analytical question into a lossless, schema-independent "
             "query plan. Return ONLY a JSON array. Preserve every literal value "
@@ -656,6 +863,7 @@ def analyze_workload(
             "entities. Do not use corpus contents, database metadata, or "
             "ground-truth data, and do not invent domain facts.\n\nQueries:\n"
         )
+        instructions = entity_instruction + instructions
         nl_requirements = []
         items = list(nl_queries.items())
         batch_size = 4
@@ -671,7 +879,13 @@ def analyze_workload(
             response = llm_client.generate(
                 prompt, max_tokens=4096, temperature=0.0
             )
-            nl_requirements.extend(_parse_llm_payload(response, batch))
+            nl_requirements.extend(
+                _parse_llm_payload(
+                    response,
+                    batch,
+                    entity_vocabulary=entity_vocabulary,
+                )
+            )
     else:
         nl_requirements = [
             _heuristic_nl_requirement(query_id, text)
@@ -688,7 +902,9 @@ def analyze_workload(
     )
 
 
-def make_budgeted_intent_analyzer(llm_client: Any):
+def make_budgeted_intent_analyzer(
+    llm_client: Any, *, entity_vocabulary: Sequence[str] = ()
+):
     """Adapt a WDIRS-compatible client to the system's analyzer callback."""
 
     def analyzer(
@@ -698,6 +914,10 @@ def make_budgeted_intent_analyzer(llm_client: Any):
         budgeted = BudgetedLLMClient(
             llm_client, ledger, default_stage="workload_analysis"
         )
-        return analyze_workload(queries, llm_client=budgeted)
+        return analyze_workload(
+            queries,
+            llm_client=budgeted,
+            entity_vocabulary=entity_vocabulary,
+        )
 
     return analyzer

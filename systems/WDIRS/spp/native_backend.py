@@ -105,6 +105,20 @@ def preprocess_documents(
     return units
 
 
+def infer_source_entity_vocabulary(
+    documents: Sequence[SourceDocument],
+) -> Tuple[str, ...]:
+    """Infer entity types from top-level corpus partitions, when present."""
+    entities = {
+        normalized.split("/", 1)[0].lower()
+        for document in documents
+        if "/" in (
+            normalized := document.document_id.replace("\\", "/").strip("/")
+        )
+    }
+    return tuple(sorted(entity for entity in entities if entity))
+
+
 class NativeSPPBackend:
     """LLM-backed backend where every formal SPP axis changes execution."""
 

@@ -18,7 +18,11 @@ if str(WDIRS_ROOT) not in sys.path:
     sys.path.insert(0, str(WDIRS_ROOT))
 
 from extractor import OllamaClient  # noqa: E402
-from spp.native_backend import NativeSPPBackend, SourceDocument  # noqa: E402
+from spp.native_backend import (  # noqa: E402
+    NativeSPPBackend,
+    SourceDocument,
+    infer_source_entity_vocabulary,
+)
 from spp.nl2sql import make_nl2sql_compiler  # noqa: E402
 from spp.serving import OfflineQueryServer  # noqa: E402
 from spp.system import OfflineSynthesisSystem  # noqa: E402
@@ -31,8 +35,8 @@ _STOPWORDS = {
     "before", "below", "between", "both", "combination", "considering", "count",
     "dataset", "each", "either", "every", "for", "from", "group", "have", "held",
     "highest", "how", "into", "least", "lowest", "matching", "more", "most",
-    "number", "one", "only", "other", "players", "player", "report", "team",
-    "teams", "tell", "than", "that", "their", "there", "these", "they", "those",
+    "number", "one", "only", "other", "report", "tell", "than", "that",
+    "their", "there", "these", "they", "those",
     "total", "what", "when", "where", "which", "whose", "with", "won",
 }
 
@@ -196,7 +200,10 @@ def main() -> int:
     system = OfflineSynthesisSystem(
         backend,
         make_nl2sql_compiler(client),
-        intent_analyzer=make_budgeted_intent_analyzer(client),
+        intent_analyzer=make_budgeted_intent_analyzer(
+            client,
+            entity_vocabulary=infer_source_entity_vocabulary(documents),
+        ),
     )
     result = system.synthesize(
         queries=queries,

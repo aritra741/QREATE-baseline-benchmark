@@ -27,7 +27,12 @@ from spp.optimizer import (
     select_budgeted_portfolio,
 )
 from spp.operator_dag import OperatorNode, SharedOperatorDAG
-from spp.native_backend import NativeSPPBackend, SourceDocument, preprocess_documents
+from spp.native_backend import (
+    NativeSPPBackend,
+    SourceDocument,
+    infer_source_entity_vocabulary,
+    preprocess_documents,
+)
 from spp.nl2sql import _verification_payload, make_nl2sql_compiler
 from spp.oracle_evaluation import OracleConfigResult, solve_exact_budgeted_oracle
 from spp.risk_estimator import CellEvidence, PilotObservation, estimate_query_risk
@@ -1100,6 +1105,61 @@ def test_nl_intent_analysis_batches_large_workloads():
     assert all(requirement.plan for requirement in intent.requirements)
 
 
+def test_intent_constrains_entities_and_repairs_missing_aggregate():
+    response = json.dumps(
+        [
+            {
+                "query_id": "q",
+                "entities": ["transaction", "region", "amount_measure"],
+                "attributes": ["total", "each", "transaction.region"],
+                "attribute_bindings": [],
+                "relationships": [],
+                "operators": ["sum", "group_by"],
+                "units": [],
+                "plan": {
+                    "projections": [
+                        {
+                            "entity": "transaction",
+                            "attribute": "transaction.region",
+                            "semantic_type": "text",
+                        },
+                        {
+                            "entity": "amount_measure",
+                            "attribute": "transaction/amount",
+                            "semantic_type": "real",
+                        },
+                    ],
+                    "group_by": [
+                        {
+                            "entity": "transaction",
+                            "attribute": "region",
+                            "semantic_type": "text",
+                        }
+                    ],
+                    "aggregates": [],
+                    "predicate": None,
+                    "joins": [],
+                },
+            }
+        ]
+    )
+    requirement = _parse_llm_payload(
+        response,
+        {"q": "For each region, report the total transaction amount."},
+        entity_vocabulary=("account", "transaction"),
+    )[0]
+    assert requirement.entities == ("transaction",)
+    assert requirement.attributes == ("region", "amount")
+    assert requirement.plan.aggregates == (
+        AggregateSpec(
+            "sum",
+            AttributeRef("transaction", "amount", "real"),
+            "sum_amount",
+        ),
+    )
+    assert "total" not in requirement.attributes
+
+
 def test_nl2sql_uses_query_plan_without_free_form_llm(tmp_path: Path):
     class FailIfCalled:
         model = "unused"
@@ -1230,14 +1290,17 @@ def test_denormalized_backend_extracts_entities_before_joining():
         ("player", "team", "team", "team_name"),
         ("team", "location", "city", "city_name"),
     ]
+    partitioned_documents = [
+        SourceDocument("player/1.txt", "player facts", {}),
+        SourceDocument("team/1.txt", "team facts", {}),
+        SourceDocument("city/1.txt", "city facts", {}),
+        SourceDocument("owner/1.txt", "unrequested owner facts", {}),
+    ]
     units = preprocess_documents(
-        [
-            SourceDocument("player/1.txt", "player facts", {}),
-            SourceDocument("team/1.txt", "team facts", {}),
-            SourceDocument("city/1.txt", "city facts", {}),
-            SourceDocument("owner/1.txt", "unrequested owner facts", {}),
-        ],
-        config.preprocessing,
+        partitioned_documents, config.preprocessing
+    )
+    assert infer_source_entity_vocabulary(partitioned_documents) == (
+        "city", "owner", "player", "team"
     )
     extraction_relations = backend._extraction_relations(config)
     routed = {

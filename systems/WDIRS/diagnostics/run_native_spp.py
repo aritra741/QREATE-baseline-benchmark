@@ -7,6 +7,7 @@ import argparse
 import json
 import os
 import sys
+from dataclasses import asdict
 from pathlib import Path
 
 WDIRS_ROOT = Path(__file__).resolve().parents[1]
@@ -14,7 +15,12 @@ if str(WDIRS_ROOT) not in sys.path:
     sys.path.insert(0, str(WDIRS_ROOT))
 
 from extractor import OllamaClient  # noqa: E402
-from spp.native_backend import NativeSPPBackend, SourceDocument  # noqa: E402
+from spp.budget_ledger import GlobalBudgetLedger  # noqa: E402
+from spp.native_backend import (  # noqa: E402
+    NativeSPPBackend,
+    SourceDocument,
+    infer_source_entity_vocabulary,
+)
 from spp.nl2sql import make_nl2sql_compiler  # noqa: E402
 from spp.system import OfflineSynthesisSystem  # noqa: E402
 from spp.workload_intent import make_budgeted_intent_analyzer  # noqa: E402
@@ -68,6 +74,11 @@ def main() -> int:
     parser.add_argument("--token-budget", type=int, required=True)
     parser.add_argument("--quality-floor", type=float, default=0.0)
     parser.add_argument("--beta", type=float, default=1.0)
+    parser.add_argument(
+        "--intent-only",
+        action="store_true",
+        help="Analyze and save the workload IR without materializing databases.",
+    )
     parser.add_argument("--base-url", "--ollama-url", dest="base_url")
     parser.add_argument("--model")
     parser.add_argument(
@@ -97,16 +108,41 @@ def main() -> int:
     if args.disable_thinking:
         client_kwargs["extra_body"] = {"thinking": {"type": "disabled"}}
     client = OllamaClient(**client_kwargs)
-    backend = NativeSPPBackend(_load_documents(args.corpus_dir), client)
+    documents = _load_documents(args.corpus_dir)
+    queries = _load_queries(args.workload)
+    entity_vocabulary = infer_source_entity_vocabulary(documents)
+    intent_analyzer = make_budgeted_intent_analyzer(
+        client,
+        entity_vocabulary=entity_vocabulary,
+    )
+    if args.intent_only:
+        output = args.output.expanduser().resolve()
+        if output.exists() and any(output.iterdir()):
+            raise FileExistsError(f"intent output is not empty: {output}")
+        output.mkdir(parents=True, exist_ok=True)
+        ledger = GlobalBudgetLedger(args.token_budget)
+        intent = intent_analyzer(queries, ledger)
+        payload = {
+            "entity_vocabulary": list(entity_vocabulary),
+            "workload_intent": asdict(intent),
+            "tokens": ledger.summary(),
+        }
+        (output / "intent_preview.json").write_text(
+            json.dumps(payload, indent=2, default=str)
+        )
+        ledger.save(output / "token_ledger.json")
+        print(json.dumps(payload, indent=2, default=str))
+        return 0
+    backend = NativeSPPBackend(documents, client)
     system = OfflineSynthesisSystem(
         backend,
         make_nl2sql_compiler(client),
-        intent_analyzer=make_budgeted_intent_analyzer(client),
+        intent_analyzer=intent_analyzer,
         beta=args.beta,
         quality_floor=args.quality_floor,
     )
     result = system.synthesize(
-        queries=_load_queries(args.workload),
+        queries=queries,
         token_budget=args.token_budget,
         output_dir=args.output,
         observed_document_lengths=[
