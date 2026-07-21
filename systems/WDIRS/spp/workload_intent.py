@@ -353,6 +353,8 @@ def _repair_plan_aggregate(
             text.lower(),
         ):
             target = candidates[-1] if candidates else None
+        if expected != "count" and target is None:
+            return plan
         aggregates.append(
             AggregateSpec(
                 expected,

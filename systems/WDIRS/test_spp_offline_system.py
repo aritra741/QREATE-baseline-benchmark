@@ -1160,6 +1160,40 @@ def test_intent_constrains_entities_and_repairs_missing_aggregate():
     assert "total" not in requirement.attributes
 
 
+def test_missing_non_count_measure_does_not_abort_intent_analysis():
+    response = json.dumps(
+        [
+            {
+                "query_id": "q",
+                "entities": ["record"],
+                "attributes": ["category"],
+                "attribute_bindings": [],
+                "relationships": [],
+                "operators": ["min", "group_by"],
+                "units": [],
+                "plan": {
+                    "projections": [],
+                    "group_by": [
+                        {
+                            "entity": "record",
+                            "attribute": "category",
+                            "semantic_type": "text",
+                        }
+                    ],
+                    "aggregates": [],
+                    "predicate": None,
+                    "joins": [],
+                },
+            }
+        ]
+    )
+    requirement = _parse_llm_payload(
+        response, {"q": "What is the fewest value for each category?"}
+    )[0]
+    assert requirement.plan is not None
+    assert requirement.plan.aggregates == ()
+
+
 def test_nl2sql_uses_query_plan_without_free_form_llm(tmp_path: Path):
     class FailIfCalled:
         model = "unused"
