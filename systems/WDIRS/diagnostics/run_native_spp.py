@@ -131,7 +131,21 @@ def main() -> int:
             json.dumps(payload, indent=2, default=str)
         )
         ledger.save(output / "token_ledger.json")
-        print(json.dumps(payload, indent=2, default=str))
+        print(
+            json.dumps(
+                {
+                    "intent_preview": str(output / "intent_preview.json"),
+                    "entity_vocabulary": list(entity_vocabulary),
+                    "query_count": len(intent.requirements),
+                    "planned_query_count": sum(
+                        requirement.plan is not None
+                        for requirement in intent.requirements
+                    ),
+                    "actual_tokens": ledger.actual_spent,
+                },
+                indent=2,
+            )
+        )
         return 0
     backend = NativeSPPBackend(documents, client)
     system = OfflineSynthesisSystem(
