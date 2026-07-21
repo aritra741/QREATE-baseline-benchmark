@@ -134,7 +134,7 @@ class NativeSPPBackend:
                 getattr(self.llm_client, "model", type(self.llm_client).__name__)
             ),
             "max_extraction_tokens": self.max_extraction_tokens,
-            "extraction_prompt_version": 1,
+            "extraction_prompt_version": 2,
             "documents": [
                 {
                     "document_id": document.document_id,
@@ -172,9 +172,9 @@ class NativeSPPBackend:
             "text. Do not infer unsupported values. Return only a JSON array of "
             "objects; use null for absent optional values. Every cell must be a "
             "single scalar, never a list or object. Return integer/real columns "
-            "as JSON numbers. Count-valued attributes (awards, medals, titles, "
-            "championships) are numeric counts, not event-name lists. Preserve "
-            "categorical literals as stated in the source.\n\n"
+            "as JSON numbers and boolean columns as JSON booleans. Respect each "
+            "declared semantic type and preserve categorical literals exactly as "
+            "stated in the source.\n\n"
             f"Relation: {relation.name}\n"
             f"Columns: {json.dumps(typed_columns)}\n"
             f"Primary key: {relation.primary_key}\n\n"
@@ -210,6 +210,30 @@ class NativeSPPBackend:
         )
         return normalized.relations if normalized else config.schema.relations
 
+    @staticmethod
+    def _units_for_relation(
+        relation: RelationSpec,
+        relations: Sequence[RelationSpec],
+        units: Sequence[DocumentUnit],
+    ) -> List[DocumentUnit]:
+        """Route explicitly partitioned corpus documents to their entity."""
+        relation_names = {candidate.name.lower() for candidate in relations}
+
+        def partition(unit: DocumentUnit) -> str:
+            normalized = unit.document_id.replace("\\", "/").strip("/")
+            return normalized.split("/", 1)[0].lower()
+
+        corpus_is_partitioned = any(
+            partition(unit) in relation_names for unit in units
+        )
+        if not corpus_is_partitioned:
+            return list(units)
+        return [
+            unit
+            for unit in units
+            if partition(unit) == relation.name.lower()
+        ]
+
     def _intent_join_pairs(self) -> List[Tuple[str, str, str, str]]:
         pairs: List[Tuple[str, str, str, str]] = []
         if self.intent is None:
@@ -243,10 +267,13 @@ class NativeSPPBackend:
         cost_key = (config.schema.schema_id, config.preprocessing.policy_id)
         extraction = self._extraction_cost_cache.get(cost_key)
         if extraction is None:
+            extraction_relations = self._extraction_relations(config)
             extraction = sum(
                 self._estimated_unit_cost(relation, unit)
-                for relation in self._extraction_relations(config)
-                for unit in units
+                for relation in extraction_relations
+                for unit in self._units_for_relation(
+                    relation, extraction_relations, units
+                )
             )
             self._extraction_cost_cache[cost_key] = extraction
         population_llm_axes = sum(
@@ -496,10 +523,13 @@ class NativeSPPBackend:
         )
         extraction_relations = self._extraction_relations(config)
         for relation in extraction_relations:
+            relation_units = self._units_for_relation(
+                relation, extraction_relations, units
+            )
             extracted, cells = self._extract_relation(
                 config,
                 relation,
-                units,
+                relation_units,
                 evidence_store,
                 ledger,
                 stage=stage,
@@ -522,14 +552,7 @@ class NativeSPPBackend:
                         numeric += 1
                     except ValueError:
                         continue
-                name_hint = any(
-                    token in column.lower()
-                    for token in (
-                        "age", "year", "count", "amount", "price", "area",
-                        "population", "gdp", "score", "number", "total",
-                    )
-                )
-                if name_hint or (observed and numeric / len(observed) >= 0.5):
+                if observed and numeric / len(observed) >= 0.5:
                     numeric_columns.append(column)
             semantic_types = {
                 column: "QUANTITY" if column in numeric_columns else "OTHER"

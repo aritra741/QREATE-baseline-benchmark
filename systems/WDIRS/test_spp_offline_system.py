@@ -917,6 +917,52 @@ def test_query_plan_compiler_uses_declared_join_path(tmp_path: Path):
         assert connection.execute(sql).fetchall() == [("French", 1)]
 
 
+def test_query_plan_compiler_is_domain_agnostic(tmp_path: Path):
+    account_id = AttributeRef("transaction", "account_id", "text")
+    account_key = AttributeRef("account", "account_key", "text")
+    region = AttributeRef("account", "region", "text")
+    amount = AttributeRef("transaction", "amount", "real")
+    status = AttributeRef("transaction", "status", "text")
+    plan = QueryPlan(
+        group_by=(region,),
+        aggregates=(AggregateSpec("sum", amount, "total_amount"),),
+        predicate=PredicateSpec(
+            attribute=status, operator="=", value="settled"
+        ),
+        joins=(JoinSpec(account_id, account_key),),
+    )
+    schema = SchemaDesign(
+        "snowflake",
+        (
+            RelationSpec(
+                "transaction",
+                ("account_id", "amount", "status"),
+                semantic_types=(("amount", "real"),),
+            ),
+            RelationSpec("account", ("account_key", "region")),
+        ),
+        ("q",),
+    )
+    config = SynthesisConfig(
+        schema, PopulationConfig(), PreprocessingPolicy("whole_document")
+    )
+    sql = compile_query_plan(plan, config)
+    assert sql is not None
+    db_path = write_sqlite_database(
+        tmp_path / "domain_neutral.sqlite",
+        {
+            "transaction": [
+                {"account_id": "a", "amount": 4.5, "status": "settled"},
+                {"account_id": "a", "amount": 1.5, "status": "pending"},
+            ],
+            "account": [{"account_key": "a", "region": "north"}],
+        },
+        schema,
+    )
+    with sqlite3.connect(db_path) as connection:
+        assert connection.execute(sql).fetchall() == [("north", 4.5)]
+
+
 def test_intent_payload_parses_typed_boolean_query_plan():
     response = json.dumps(
         [
@@ -1114,3 +1160,27 @@ def test_denormalized_backend_extracts_entities_before_joining():
         ("player", "team", "team", "team_name"),
         ("team", "location", "city", "city_name"),
     ]
+    units = preprocess_documents(
+        [
+            SourceDocument("player/1.txt", "player facts", {}),
+            SourceDocument("team/1.txt", "team facts", {}),
+            SourceDocument("city/1.txt", "city facts", {}),
+            SourceDocument("owner/1.txt", "unrequested owner facts", {}),
+        ],
+        config.preprocessing,
+    )
+    extraction_relations = backend._extraction_relations(config)
+    routed = {
+        relation.name: [
+            unit.document_id
+            for unit in backend._units_for_relation(
+                relation, extraction_relations, units
+            )
+        ]
+        for relation in extraction_relations
+    }
+    assert routed == {
+        "city": ["city/1.txt"],
+        "player": ["player/1.txt"],
+        "team": ["team/1.txt"],
+    }
