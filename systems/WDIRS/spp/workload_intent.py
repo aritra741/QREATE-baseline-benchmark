@@ -516,6 +516,220 @@ def _repair_plan_aggregate(
     )
 
 
+def _normalize_plan_with_schema(
+    plan: Optional[QueryPlan],
+    text: str,
+    *,
+    attribute_vocabulary: Optional[Mapping[str, Sequence[str]]] = None,
+    join_vocabulary: Sequence[Tuple[str, str, str, str]] = (),
+) -> Optional[QueryPlan]:
+    if plan is None:
+        return None
+
+    def clean_predicate(
+        predicate: Optional[PredicateSpec],
+    ) -> Optional[PredicateSpec]:
+        if predicate is None:
+            return None
+        if predicate.kind in {"and", "or"}:
+            children = tuple(
+                child
+                for child in (
+                    clean_predicate(value)
+                    for value in predicate.children
+                )
+                if child is not None
+            )
+            if not children:
+                return None
+            if len(children) == 1:
+                return children[0]
+            return replace(predicate, children=children)
+        value = predicate.value
+        if isinstance(value, Mapping):
+            return None
+        if isinstance(value, str) and re.fullmatch(
+            r"\$?[a-z_][a-z0-9_]*[./][a-z_][a-z0-9_]*",
+            value.strip().lower(),
+        ):
+            return None
+        return predicate
+
+    predicate = clean_predicate(plan.predicate)
+    aggregates = list(plan.aggregates)
+    lowered = text.lower()
+    if (
+        aggregates
+        and aggregates[0].function == "count"
+        and aggregates[0].attribute is None
+        and re.search(r"\b(known|non[- ]?null)\b", lowered)
+        and attribute_vocabulary
+    ):
+        candidates = [
+            AttributeRef(entity, attribute, "text")
+            for entity, attributes in attribute_vocabulary.items()
+            for attribute in attributes
+            if all(token in lowered for token in attribute.split("_"))
+        ]
+        predicate_attributes: set[Tuple[str, str]] = set()
+
+        def collect_predicates(value: Optional[PredicateSpec]) -> None:
+            if value is None:
+                return
+            if value.attribute is not None:
+                predicate_attributes.add(
+                    (value.attribute.entity, value.attribute.attribute)
+                )
+            for child in value.children:
+                collect_predicates(child)
+
+        collect_predicates(predicate)
+        candidates = [
+            candidate
+            for candidate in candidates
+            if (candidate.entity, candidate.attribute)
+            not in predicate_attributes
+        ]
+        if candidates:
+            known_position = max(
+                lowered.find("known"),
+                lowered.find("non-null"),
+                lowered.find("non null"),
+            )
+
+            def known_distance(value: AttributeRef) -> int:
+                position = lowered.find(
+                    value.attribute.replace("_", " ")
+                )
+                if position < 0:
+                    position = lowered.find(
+                        value.attribute.split("_")[-1]
+                    )
+                return (
+                    abs(position - known_position)
+                    if position >= 0 and known_position >= 0
+                    else len(lowered)
+                )
+
+            target = max(
+                candidates,
+                key=lambda value: (
+                    -known_distance(value),
+                    len(value.attribute),
+                ),
+            )
+            aggregates[0] = replace(
+                aggregates[0],
+                attribute=target,
+                alias=f"count_{target.attribute}",
+            )
+
+    group_by = list(plan.group_by)
+    group_signal = re.search(
+        r"\b(for each|for every|each|every|group\b|grouped\b|by\b)",
+        lowered,
+    )
+    if not group_by and group_signal and attribute_vocabulary:
+        excluded = {
+            (aggregate.attribute.entity, aggregate.attribute.attribute)
+            for aggregate in aggregates
+            if aggregate.attribute is not None
+        }
+
+        def collect_excluded(value: Optional[PredicateSpec]) -> None:
+            if value is None:
+                return
+            if value.attribute is not None:
+                excluded.add(
+                    (value.attribute.entity, value.attribute.attribute)
+                )
+            for child in value.children:
+                collect_excluded(child)
+
+        collect_excluded(predicate)
+        candidates = [
+            AttributeRef(entity, attribute, "text")
+            for entity, attributes in attribute_vocabulary.items()
+            for attribute in attributes
+            if (entity, attribute) not in excluded
+            and all(token in lowered for token in attribute.split("_"))
+        ]
+        if candidates:
+            group_by.append(
+                max(
+                    candidates,
+                    key=lambda value: (
+                        len(value.attribute.split("_")),
+                        len(value.attribute),
+                    ),
+                )
+            )
+
+    required_entities = {
+        reference.entity
+        for reference in QueryPlan(
+            projections=plan.projections,
+            group_by=tuple(group_by),
+            aggregates=tuple(aggregates),
+            predicate=predicate,
+            joins=(),
+        ).attributes()
+    }
+    normalized_joins: List[JoinSpec] = []
+    if len(required_entities) > 1 and join_vocabulary:
+        root = next(
+            (
+                reference.entity
+                for reference in (
+                    *group_by,
+                    *plan.projections,
+                    *(
+                        aggregate.attribute
+                        for aggregate in aggregates
+                        if aggregate.attribute is not None
+                    ),
+                )
+                if reference.entity in required_entities
+            ),
+            min(required_entities),
+        )
+        connected = {root}
+        while required_entities - connected:
+            progress = False
+            for left_entity, left_attr, right_entity, right_attr in join_vocabulary:
+                if left_entity in connected and right_entity not in connected:
+                    target = right_entity
+                elif right_entity in connected and left_entity not in connected:
+                    target = left_entity
+                else:
+                    continue
+                if target not in required_entities and not (
+                    required_entities - connected
+                ):
+                    continue
+                normalized_joins.append(
+                    JoinSpec(
+                        AttributeRef(left_entity, left_attr),
+                        AttributeRef(right_entity, right_attr),
+                    )
+                )
+                connected.add(left_entity)
+                connected.add(right_entity)
+                progress = True
+                if not (required_entities - connected):
+                    break
+            if not progress:
+                break
+
+    return replace(
+        plan,
+        group_by=tuple(group_by),
+        aggregates=tuple(aggregates),
+        predicate=predicate,
+        joins=tuple(normalized_joins) if join_vocabulary else plan.joins,
+    )
+
+
 def _sql_requirement(query_id: str, sql: str) -> QueryRequirement:
     if sqlglot is None or exp is None:
         raise RuntimeError("sqlglot is required to analyze SQL workloads")
@@ -913,6 +1127,7 @@ def analyze_workload(
     llm_client: Optional[Any] = None,
     entity_vocabulary: Sequence[str] = (),
     attribute_vocabulary: Optional[Mapping[str, Sequence[str]]] = None,
+    join_vocabulary: Sequence[Tuple[str, str, str, str]] = (),
 ) -> WorkloadIntent:
     """Analyze SQL or NL workload without reading any ground-truth artifact."""
     normalized: List[Tuple[str, str]] = []
@@ -955,6 +1170,11 @@ def analyze_workload(
                 "Use only these canonical source attributes, selecting the "
                 "closest semantically matching attribute for each query phrase:\n"
                 f"{json.dumps(attribute_vocabulary, sort_keys=True)}\n\n"
+            )
+        if join_vocabulary:
+            entity_instruction += (
+                "Use only these canonical source join edges:\n"
+                f"{json.dumps(list(join_vocabulary))}\n\n"
             )
         instructions = (
             "Convert every analytical question into a lossless, schema-independent "
@@ -1036,6 +1256,8 @@ def analyze_workload(
                 f"Allowed source entities: {json.dumps(list(entity_vocabulary))}\n"
                 "Allowed canonical attributes: "
                 f"{json.dumps(attribute_vocabulary or {}, sort_keys=True)}\n"
+                "Allowed canonical joins: "
+                f"{json.dumps(list(join_vocabulary))}\n"
                 f"Question: {next(iter(batch.values()))}\n\n"
                 "Draft:\n"
                 f"{json.dumps(asdict(draft), indent=2, default=str)}"
@@ -1056,6 +1278,15 @@ def analyze_workload(
                 # The independently budgeted draft remains usable and auditable
                 # when the semantic reviewer emits malformed output.
                 pass
+            draft = replace(
+                draft,
+                plan=_normalize_plan_with_schema(
+                    draft.plan,
+                    next(iter(batch.values())),
+                    attribute_vocabulary=attribute_vocabulary,
+                    join_vocabulary=join_vocabulary,
+                ),
+            )
             nl_requirements.append(draft)
     else:
         nl_requirements = [
@@ -1078,6 +1309,7 @@ def make_budgeted_intent_analyzer(
     *,
     entity_vocabulary: Sequence[str] = (),
     attribute_vocabulary: Optional[Mapping[str, Sequence[str]]] = None,
+    join_vocabulary: Sequence[Tuple[str, str, str, str]] = (),
 ):
     """Adapt a WDIRS-compatible client to the system's analyzer callback."""
 
@@ -1093,6 +1325,7 @@ def make_budgeted_intent_analyzer(
             llm_client=budgeted,
             entity_vocabulary=entity_vocabulary,
             attribute_vocabulary=attribute_vocabulary,
+            join_vocabulary=join_vocabulary,
         )
 
     return analyzer

@@ -128,6 +128,11 @@ def main() -> int:
                     if schema_vocabulary
                     else None
                 ),
+                join_vocabulary=(
+                    schema_vocabulary.joins
+                    if schema_vocabulary
+                    else ()
+                ),
             ),
             beta=args.beta,
             quality_floor=args.quality_floor,

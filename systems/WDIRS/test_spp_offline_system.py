@@ -58,6 +58,7 @@ from spp.spec import (
 )
 from spp.workload_intent import (
     WorkloadIntent,
+    _normalize_plan_with_schema,
     _parse_llm_payload,
     analyze_workload,
     schema_vocabulary_from_sql,
@@ -1226,6 +1227,56 @@ def test_sql_training_workload_constrains_canonical_attribute_names():
         requirement.plan.aggregates[0].attribute.attribute
         == "olympic_gold_medals"
     )
+
+
+def test_schema_graph_repairs_missing_groups_counts_and_joins():
+    college = AttributeRef("player", "college")
+    age = AttributeRef("player", "age")
+    plan = QueryPlan(
+        projections=(college,),
+        aggregates=(AggregateSpec("count", None, "count_all"),),
+        predicate=PredicateSpec(
+            attribute=AttributeRef("player", "team"),
+            value={"entity": "team", "attribute": "team_name"},
+        ),
+    )
+    repaired = _normalize_plan_with_schema(
+        plan,
+        "For each college, how many players have a known age?",
+        attribute_vocabulary={
+            "player": ("age", "college", "team"),
+            "team": ("team_name",),
+        },
+        join_vocabulary=(
+            ("player", "team", "team", "team_name"),
+        ),
+    )
+    assert repaired.predicate is None
+    assert repaired.group_by == (college,)
+    assert repaired.aggregates[0].attribute == age
+    assert repaired.joins == ()
+
+    joined = _normalize_plan_with_schema(
+        QueryPlan(
+            group_by=(college,),
+            aggregates=(
+                AggregateSpec(
+                    "avg", AttributeRef("team", "championship")
+                ),
+            ),
+        ),
+        "Average team championship for each college.",
+        attribute_vocabulary={
+            "player": ("college", "team"),
+            "team": ("championship", "team_name"),
+        },
+        join_vocabulary=(
+            ("player", "team", "team", "team_name"),
+        ),
+    )
+    assert len(joined.joins) == 1
+    assert joined.joins[0].left.attribute == "team"
+    assert joined.joins[0].right.attribute == "team_name"
 
 
 def test_missing_non_count_measure_does_not_abort_intent_analysis():

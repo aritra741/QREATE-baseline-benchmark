@@ -119,6 +119,7 @@ def main() -> int:
     queries = _load_queries(args.workload)
     entity_vocabulary = infer_source_entity_vocabulary(documents)
     attribute_vocabulary = None
+    join_vocabulary = ()
     if args.schema_workload:
         import sqlglot
 
@@ -132,10 +133,12 @@ def main() -> int:
         schema_vocabulary = schema_vocabulary_from_sql(schema_sql)
         entity_vocabulary = schema_vocabulary.entities
         attribute_vocabulary = schema_vocabulary.attributes
+        join_vocabulary = schema_vocabulary.joins
     intent_analyzer = make_budgeted_intent_analyzer(
         client,
         entity_vocabulary=entity_vocabulary,
         attribute_vocabulary=attribute_vocabulary,
+        join_vocabulary=join_vocabulary,
     )
     if args.intent_only:
         output = args.output.expanduser().resolve()
