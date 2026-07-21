@@ -610,7 +610,16 @@ def _normalize_plan_with_schema(
         operator = predicate.operator
         rendered = str(value).lower()
         position = lowered.find(rendered)
-        context = lowered[max(0, position - 45) : position] if position >= 0 else ""
+        context = ""
+        if position >= 0:
+            prefix = lowered[:position]
+            boundary = max(
+                prefix.rfind(" or "),
+                prefix.rfind(" and "),
+                prefix.rfind(","),
+                prefix.rfind(";"),
+            )
+            context = prefix[boundary + 1 :]
         if re.search(r"\b(not|other than|different from)\b", context):
             operator = "!="
         elif re.search(r"\b(more than|greater than|above|after)\b", context):
@@ -621,6 +630,18 @@ def _normalize_plan_with_schema(
             operator = "<"
         elif re.search(r"\b(at most|no more than|or earlier)\b", context):
             operator = "<="
+        if (
+            operator in {"is_null", "is_not_null"}
+            and attribute is not None
+            and re.search(
+                rf"\bno\s+(?:[a-z-]+\s+){{0,4}}"
+                rf"{re.escape(attribute.attribute.split('_')[-1])}\b",
+                lowered,
+            )
+            and not re.search(r"\b(missing|unknown|known|null)\b", lowered)
+        ):
+            operator = "="
+            value = 0
         return replace(
             predicate,
             attribute=attribute,
@@ -652,7 +673,10 @@ def _normalize_plan_with_schema(
         def collect_predicates(value: Optional[PredicateSpec]) -> None:
             if value is None:
                 return
-            if value.attribute is not None:
+            if (
+                value.attribute is not None
+                and value.operator != "is_not_null"
+            ):
                 predicate_attributes.add(
                     (value.attribute.entity, value.attribute.attribute)
                 )
@@ -756,6 +780,21 @@ def _normalize_plan_with_schema(
             if (entity, attribute) not in excluded
             and mentioned(attribute)
         ]
+        mentioned_candidates = [
+            candidate
+            for candidate in candidates
+            if candidate.entity in mentioned_entities
+        ]
+        if mentioned_candidates:
+            candidates = mentioned_candidates
+        else:
+            core_candidates = [
+                candidate
+                for candidate in candidates
+                if candidate.entity in core_entities
+            ]
+            if core_candidates:
+                candidates = core_candidates
         candidates = [
             candidate
             for candidate in candidates

@@ -10,6 +10,7 @@ from pathlib import Path
 import pytest
 
 from spp.budget_ledger import BudgetExhausted, GlobalBudgetLedger
+from spp.corpus_subset import build_representative_subset
 from spp.evidence_store import CellProvenance, EvidenceAnchor, EvidenceStore
 from spp.experiment import (
     docetl_relative_budgets,
@@ -73,6 +74,30 @@ def _player_requirement() -> QueryRequirement:
         entities=("player",),
         attributes=("name",),
     )
+
+
+def test_representative_subset_is_partitioned_and_relevance_ranked(
+    tmp_path: Path,
+):
+    source = tmp_path / "source" / "Example"
+    for entity in ("account", "transaction"):
+        (source / entity).mkdir(parents=True)
+    (source / "account" / "1.txt").write_text("ordinary account")
+    (source / "account" / "2.txt").write_text("priority north account")
+    (source / "transaction" / "1.txt").write_text("ordinary transaction")
+    (source / "transaction" / "2.txt").write_text(
+        "priority north transaction"
+    )
+    root, selected = build_representative_subset(
+        source,
+        ["Show priority transactions in the north"],
+        tmp_path / "subset",
+        max_documents_per_entity=1,
+    )
+    assert root == tmp_path / "subset"
+    assert selected == ["account/2.txt", "transaction/2.txt"]
+    assert (root / "Example" / "account" / "2.txt").is_file()
+    assert (root / "Example" / "transaction" / "2.txt").is_file()
 
 
 def _config(label: str, requirement: QueryRequirement) -> SynthesisConfig:
