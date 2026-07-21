@@ -192,7 +192,22 @@ def make_nl2sql_compiler(llm_client: Any):
             ):
                 return original_sql
         if requirement.plan is not None:
-            deterministic_sql = compile_query_plan(requirement.plan, config)
+            operators = set(requirement.operators)
+            aggregate_ops = {"count", "sum", "avg", "min", "max"}
+            plan_complete = not (
+                (operators & aggregate_ops and not requirement.plan.aggregates)
+                or ("filter" in operators and requirement.plan.predicate is None)
+                or (
+                    "join" in operators
+                    and len(set(requirement.entities)) > 1
+                    and not requirement.plan.joins
+                )
+            )
+            deterministic_sql = (
+                compile_query_plan(requirement.plan, config)
+                if plan_complete
+                else None
+            )
             if (
                 deterministic_sql
                 and _query_validation_error(

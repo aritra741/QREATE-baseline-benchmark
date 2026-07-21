@@ -64,6 +64,16 @@ def main() -> int:
     parser.add_argument("--beta", type=float, default=1.0)
     parser.add_argument("--base-url")
     parser.add_argument("--model")
+    parser.add_argument(
+        "--projection-fastpath",
+        action="store_true",
+        help="Use WDIRS table-partitioned projection extraction.",
+    )
+    parser.add_argument(
+        "--projection-fastpath-col-batch-size",
+        type=int,
+        default=0,
+    )
     args = parser.parse_args()
 
     output = args.output.expanduser().resolve()
@@ -76,6 +86,10 @@ def main() -> int:
     runner = WDIRSRunner(
         args.dataset,
         cache_dir=scratch / "cache",
+        use_projection_fastpath=args.projection_fastpath,
+        projection_fastpath_col_batch_size=(
+            args.projection_fastpath_col_batch_size
+        ),
     )
     try:
         client_kwargs = {}

@@ -525,6 +525,21 @@ def _normalize_plan_with_schema(
 ) -> Optional[QueryPlan]:
     if plan is None:
         return None
+    lowered = text.lower()
+    core_entities = {
+        reference.entity
+        for reference in (*plan.projections, *plan.group_by)
+    }
+    core_entities.update(
+        aggregate.attribute.entity
+        for aggregate in plan.aggregates
+        if aggregate.attribute is not None
+    )
+    mentioned_entities = {
+        entity
+        for entity in (attribute_vocabulary or {})
+        if re.search(rf"\b{re.escape(entity)}s?\b", lowered)
+    }
 
     def clean_predicate(
         predicate: Optional[PredicateSpec],
@@ -544,20 +559,77 @@ def _normalize_plan_with_schema(
                 return None
             if len(children) == 1:
                 return children[0]
-            return replace(predicate, children=children)
+            kind = predicate.kind
+            if (
+                kind == "and"
+                and " or " in lowered
+                and "either" not in lowered
+            ):
+                kind = "or"
+            return replace(predicate, kind=kind, children=children)
         value = predicate.value
         if isinstance(value, Mapping):
             return None
+        if isinstance(value, (list, tuple)) and len(value) == 1:
+            value = value[0]
         if isinstance(value, str) and re.fullmatch(
             r"\$?[a-z_][a-z0-9_]*[./][a-z_][a-z0-9_]*",
             value.strip().lower(),
         ):
             return None
-        return predicate
+        attribute = predicate.attribute
+        if (
+            attribute is not None
+            and attribute_vocabulary
+            and attribute.entity not in mentioned_entities
+        ):
+            allowed_owners = core_entities | mentioned_entities
+            source_tokens = set(attribute.attribute.split("_"))
+            alternatives = [
+                AttributeRef(owner, name, attribute.semantic_type)
+                for owner, names in attribute_vocabulary.items()
+                if owner in allowed_owners
+                for name in names
+                if source_tokens & set(name.split("_"))
+            ]
+            if alternatives:
+                attribute = max(
+                    alternatives,
+                    key=lambda candidate: (
+                        len(
+                            source_tokens
+                            & set(candidate.attribute.split("_"))
+                        )
+                        / len(
+                            source_tokens
+                            | set(candidate.attribute.split("_"))
+                        ),
+                        candidate.entity in core_entities,
+                    ),
+                )
+        operator = predicate.operator
+        rendered = str(value).lower()
+        position = lowered.find(rendered)
+        context = lowered[max(0, position - 45) : position] if position >= 0 else ""
+        if re.search(r"\b(not|other than|different from)\b", context):
+            operator = "!="
+        elif re.search(r"\b(more than|greater than|above|after)\b", context):
+            operator = ">"
+        elif re.search(r"\b(at least|no fewer than)\b", context):
+            operator = ">="
+        elif re.search(r"\b(less than|fewer than|below|before)\b", context):
+            operator = "<"
+        elif re.search(r"\b(at most|no more than|or earlier)\b", context):
+            operator = "<="
+        return replace(
+            predicate,
+            attribute=attribute,
+            operator=operator,
+            value=value,
+        )
 
     predicate = clean_predicate(plan.predicate)
     aggregates = list(plan.aggregates)
-    lowered = text.lower()
     if (
         aggregates
         and aggregates[0].function == "count"
@@ -571,6 +643,10 @@ def _normalize_plan_with_schema(
             for attribute in attributes
             if all(token in lowered for token in attribute.split("_"))
         ]
+        context_entities = {
+            reference.entity
+            for reference in (*plan.projections, *plan.group_by)
+        }
         predicate_attributes: set[Tuple[str, str]] = set()
 
         def collect_predicates(value: Optional[PredicateSpec]) -> None:
@@ -614,6 +690,7 @@ def _normalize_plan_with_schema(
             target = max(
                 candidates,
                 key=lambda value: (
+                    value.entity in context_entities,
                     -known_distance(value),
                     len(value.attribute),
                 ),
@@ -625,11 +702,23 @@ def _normalize_plan_with_schema(
             )
 
     group_by = list(plan.group_by)
-    group_signal = re.search(
-        r"\b(for each|for every|each|every|group\b|grouped\b|by\b)",
-        lowered,
+    group_clause = ""
+    group_patterns = (
+        r"\b(?:for|at|on)\s+(?:each|every)\s+(.+?)(?:,|\?|"
+        r"\b(?:what|how|when|where|whose|who)\b)",
+        r"\b(?:each|every)\s+(.+?)(?:,|\?|"
+        r"\b(?:what|how|when|where|whose|who)\b)",
+        r"\bgroup(?:ed)?\b.+?\bby\b\s+(.+?)(?:,|\?|"
+        r"\band\s+(?:report|tell|show)\b)",
+        r"^\s*by\s+(.+?)(?:,|\?)",
+        r"\bby\s+(.+?)(?:,|\?|\band\s+(?:report|tell|show)\b)",
     )
-    if not group_by and group_signal and attribute_vocabulary:
+    for pattern in group_patterns:
+        match = re.search(pattern, lowered)
+        if match:
+            group_clause = match.group(1).strip()
+            break
+    if group_clause and attribute_vocabulary:
         excluded = {
             (aggregate.attribute.entity, aggregate.attribute.attribute)
             for aggregate in aggregates
@@ -647,22 +736,72 @@ def _normalize_plan_with_schema(
                 collect_excluded(child)
 
         collect_excluded(predicate)
+        clause_tokens = set(re.findall(r"[a-z0-9]+", group_clause))
+
+        def mentioned(attribute: str) -> bool:
+            tokens = attribute.split("_")
+            return all(
+                token in clause_tokens
+                or (
+                    token.endswith("s")
+                    and token[:-1] in clause_tokens
+                )
+                for token in tokens
+            )
+
         candidates = [
             AttributeRef(entity, attribute, "text")
             for entity, attributes in attribute_vocabulary.items()
             for attribute in attributes
             if (entity, attribute) not in excluded
-            and all(token in lowered for token in attribute.split("_"))
+            and mentioned(attribute)
         ]
+        candidates = [
+            candidate
+            for candidate in candidates
+            if not any(
+                candidate.attribute == other.entity
+                and candidate != other
+                for other in candidates
+            )
+        ]
+        for entity, attributes in attribute_vocabulary.items():
+            entity_mentioned = (
+                entity in clause_tokens
+                or f"{entity}s" in clause_tokens
+            )
+            if not entity_mentioned or any(
+                candidate.entity == entity for candidate in candidates
+            ) or any(
+                candidate.attribute == entity for candidate in candidates
+            ):
+                continue
+            identity = next(
+                (
+                    value
+                    for value in (
+                        f"{entity}_name",
+                        "name",
+                        entity,
+                    )
+                    if value in attributes
+                ),
+                None,
+            )
+            if identity:
+                candidates.append(AttributeRef(entity, identity, "text"))
         if candidates:
-            group_by.append(
-                max(
-                    candidates,
-                    key=lambda value: (
-                        len(value.attribute.split("_")),
-                        len(value.attribute),
-                    ),
-                )
+            group_by = sorted(
+                dict.fromkeys(candidates),
+                key=lambda value: (
+                    group_clause.find(
+                        value.attribute.replace("_", " ")
+                    )
+                    if value.attribute.replace("_", " ") in group_clause
+                    else group_clause.find(value.entity),
+                    value.entity,
+                    value.attribute,
+                ),
             )
 
     required_entities = {
