@@ -9,14 +9,20 @@ import os
 import sys
 from pathlib import Path
 
+import sqlglot
+
 WDIRS_ROOT = Path(__file__).resolve().parents[1]
 if str(WDIRS_ROOT) not in sys.path:
     sys.path.insert(0, str(WDIRS_ROOT))
 
+from extractor import OllamaClient  # noqa: E402
 from spp.nl2sql import make_nl2sql_compiler  # noqa: E402
 from spp.system import OfflineSynthesisSystem  # noqa: E402
 from spp.wdirs_backend import WDIRSPrimitiveBackend  # noqa: E402
-from spp.workload_intent import make_budgeted_intent_analyzer  # noqa: E402
+from spp.workload_intent import (  # noqa: E402
+    make_budgeted_intent_analyzer,
+    schema_vocabulary_from_sql,
+)
 from wdirs_runner import WDIRSRunner  # noqa: E402
 
 
@@ -46,10 +52,18 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", required=True)
     parser.add_argument("--workload", type=Path, required=True)
+    parser.add_argument(
+        "--schema-workload",
+        type=Path,
+        default=None,
+        help="SQL training workload used by WDIRS for canonical extraction schema.",
+    )
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--token-budget", type=int, required=True)
     parser.add_argument("--quality-floor", type=float, default=0.0)
     parser.add_argument("--beta", type=float, default=1.0)
+    parser.add_argument("--base-url")
+    parser.add_argument("--model")
     args = parser.parse_args()
 
     output = args.output.expanduser().resolve()
@@ -64,12 +78,57 @@ def main() -> int:
         cache_dir=scratch / "cache",
     )
     try:
-        original_client = runner.llm_client
-        backend = WDIRSPrimitiveBackend(runner)
+        client_kwargs = {}
+        if args.base_url:
+            client_kwargs["base_url"] = args.base_url
+        if args.model:
+            client_kwargs["model"] = args.model
+        original_client = OllamaClient(**client_kwargs)
+        runner.llm_client = original_client
+        for component_name in (
+            "extractor",
+            "sieve_synthesizer",
+            "entity_resolver",
+            "entity_anchor",
+            "lattice_planner",
+        ):
+            component = getattr(runner, component_name, None)
+            if component is not None and hasattr(component, "llm_client"):
+                component.llm_client = original_client
+
+        schema_queries = []
+        schema_vocabulary = None
+        if args.schema_workload:
+            schema_queries = [
+                expression.sql()
+                for expression in sqlglot.parse(
+                    args.schema_workload.read_text(encoding="utf-8")
+                )
+                if expression is not None
+            ]
+            schema_vocabulary = schema_vocabulary_from_sql(
+                schema_queries
+            )
+        backend = WDIRSPrimitiveBackend(
+            runner,
+            schema_workload_queries=schema_queries,
+        )
         system = OfflineSynthesisSystem(
             backend,
             make_nl2sql_compiler(original_client),
-            intent_analyzer=make_budgeted_intent_analyzer(original_client),
+            intent_analyzer=make_budgeted_intent_analyzer(
+                original_client,
+                entity_vocabulary=(
+                    schema_vocabulary.entities
+                    if schema_vocabulary
+                    else ()
+                ),
+                attribute_vocabulary=(
+                    schema_vocabulary.attributes
+                    if schema_vocabulary
+                    else None
+                ),
+            ),
             beta=args.beta,
             quality_floor=args.quality_floor,
         )
@@ -81,6 +140,11 @@ def main() -> int:
         run_manifest = {
             "dataset": args.dataset,
             "workload": str(args.workload.resolve()),
+            "schema_workload": (
+                str(args.schema_workload.resolve())
+                if args.schema_workload
+                else None
+            ),
             "token_budget": args.token_budget,
             "candidate_count": result.candidate_count,
             "selected_config_ids": list(result.portfolio.selected_config_ids),

@@ -32,8 +32,14 @@ logger = logging.getLogger(__name__)
 class WDIRSPrimitiveBackend:
     """Ground-truth-free data plane for the new offline optimizer."""
 
-    def __init__(self, runner: Any):
+    def __init__(
+        self,
+        runner: Any,
+        *,
+        schema_workload_queries: Sequence[str] = (),
+    ):
         self.runner = runner
+        self.schema_workload_queries = tuple(schema_workload_queries)
         self.intent: WorkloadIntent | None = None
         self._corpus_text = ""
         self._table_names: List[str] = []
@@ -52,6 +58,16 @@ class WDIRSPrimitiveBackend:
             ),
             "cache_dir": str(self.runner.cache_dir),
             "source_primitive": "WDIRS",
+            "schema_workload_query_count": len(
+                self.schema_workload_queries
+            ),
+            "schema_workload_sha256": (
+                hashlib.sha256(
+                    "\n;\n".join(self.schema_workload_queries).encode()
+                ).hexdigest()
+                if self.schema_workload_queries
+                else None
+            ),
         }
 
     def _install_budgeted_client(
@@ -86,12 +102,15 @@ class WDIRSPrimitiveBackend:
         ledger: GlobalBudgetLedger,
     ) -> None:
         self.intent = intent
-        sql_queries = [
+        sql_queries = list(self.schema_workload_queries) or [
             requirement.text
             for requirement in intent.requirements
             if re.match(r"^\s*(select|with)\b", requirement.text, re.I)
         ]
-        if len(sql_queries) != len(intent.requirements):
+        if (
+            not self.schema_workload_queries
+            and len(sql_queries) != len(intent.requirements)
+        ):
             columns_by_entity: Dict[str, set[str]] = {
                 entity: set()
                 for requirement in intent.requirements
@@ -117,7 +136,9 @@ class WDIRSPrimitiveBackend:
         if not result.success:
             raise RuntimeError("shared WDIRS primitive extraction failed")
         self._table_names = sorted(
-            {
+            self.runner.lattice_planner.lattice.tables
+            if self.schema_workload_queries
+            else {
                 entity
                 for requirement in intent.requirements
                 for entity in requirement.entities

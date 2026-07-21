@@ -11,6 +11,7 @@ import json
 import re
 from collections import Counter
 from dataclasses import asdict, dataclass, replace
+from difflib import SequenceMatcher
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 from json_repair import repair_json
@@ -97,6 +98,49 @@ class WorkloadIntent:
         return tuple(r.query_id for r in self.requirements)
 
 
+@dataclass(frozen=True)
+class SchemaVocabulary:
+    entities: Tuple[str, ...]
+    attributes: Mapping[str, Tuple[str, ...]]
+    joins: Tuple[Tuple[str, str, str, str], ...] = ()
+
+
+def schema_vocabulary_from_sql(
+    sql_queries: Sequence[str],
+) -> SchemaVocabulary:
+    """Derive a canonical, ground-truth-free schema vocabulary from SQL."""
+    attributes: Dict[str, set[str]] = {}
+    joins: List[Tuple[str, str, str, str]] = []
+    for index, sql in enumerate(sql_queries):
+        requirement = _sql_requirement(f"schema_{index}", sql)
+        for entity in requirement.entities:
+            attributes.setdefault(entity, set())
+        for entity, attribute in requirement.attribute_bindings:
+            attributes.setdefault(entity, set()).add(attribute)
+        if requirement.plan:
+            for reference in requirement.plan.attributes():
+                attributes.setdefault(reference.entity, set()).add(
+                    reference.attribute
+                )
+            for join in requirement.plan.joins:
+                value = (
+                    join.left.entity,
+                    join.left.attribute,
+                    join.right.entity,
+                    join.right.attribute,
+                )
+                if value not in joins:
+                    joins.append(value)
+    return SchemaVocabulary(
+        entities=tuple(sorted(attributes)),
+        attributes={
+            entity: tuple(sorted(names))
+            for entity, names in sorted(attributes.items())
+        },
+        joins=tuple(joins),
+    )
+
+
 def _is_sql(text: str) -> bool:
     return bool(re.match(r"^\s*(select|with)\b", text, re.IGNORECASE))
 
@@ -123,9 +167,17 @@ def _attribute_ref(
     payload: object,
     entity_vocabulary: Sequence[str] = (),
     default_entity: str = "",
+    attribute_vocabulary: Optional[Mapping[str, Sequence[str]]] = None,
 ) -> Optional[AttributeRef]:
     if not isinstance(payload, Mapping):
         return None
+    if isinstance(payload.get("attribute"), Mapping):
+        return _attribute_ref(
+            payload["attribute"],
+            entity_vocabulary,
+            default_entity,
+            attribute_vocabulary,
+        )
     raw_entity = str(payload.get("entity", "")).strip().lower()
     entity = _canonical_entity(
         raw_entity, entity_vocabulary, default_entity
@@ -144,6 +196,36 @@ def _attribute_ref(
             attribute = re.sub(
                 rf"^{re.escape(prefix)}[./:]+", "", attribute
             )
+    if attribute_vocabulary:
+        candidates = [
+            (owner, str(name).lower())
+            for owner, names in attribute_vocabulary.items()
+            for name in names
+        ]
+        exact = [
+            (owner, name)
+            for owner, name in candidates
+            if name == attribute and (owner == entity or not entity)
+        ]
+        if exact:
+            entity, attribute = exact[0]
+        elif candidates:
+            attribute_tokens = set(attribute.split("_"))
+
+            def similarity(candidate: Tuple[str, str]) -> float:
+                owner, name = candidate
+                name_tokens = set(name.split("_"))
+                overlap = (
+                    len(attribute_tokens & name_tokens)
+                    / max(len(attribute_tokens | name_tokens), 1)
+                )
+                sequence = SequenceMatcher(None, attribute, name).ratio()
+                owner_bonus = 0.15 if owner == entity else 0.0
+                return max(overlap, sequence) + owner_bonus
+
+            best = max(candidates, key=similarity)
+            if similarity(best) >= 0.58:
+                entity, attribute = best
     semantic_type = str(
         payload.get("semantic_type", "text")
     ).strip().lower()
@@ -165,6 +247,7 @@ def _predicate_spec(
     payload: object,
     entity_vocabulary: Sequence[str] = (),
     default_entity: str = "",
+    attribute_vocabulary: Optional[Mapping[str, Sequence[str]]] = None,
 ) -> Optional[PredicateSpec]:
     if not isinstance(payload, Mapping):
         return None
@@ -177,7 +260,10 @@ def _predicate_spec(
             child
             for child in (
                 _predicate_spec(
-                    value, entity_vocabulary, default_entity
+                    value,
+                    entity_vocabulary,
+                    default_entity,
+                    attribute_vocabulary,
                 )
                 for value in raw_children
             )
@@ -190,6 +276,7 @@ def _predicate_spec(
         else payload,
         entity_vocabulary,
         default_entity,
+        attribute_vocabulary,
     )
     if reference is None:
         return None
@@ -225,6 +312,7 @@ def _query_plan(
     payload: object,
     entity_vocabulary: Sequence[str] = (),
     default_entity: str = "",
+    attribute_vocabulary: Optional[Mapping[str, Sequence[str]]] = None,
 ) -> Optional[QueryPlan]:
     if not isinstance(payload, Mapping):
         return None
@@ -237,7 +325,10 @@ def _query_plan(
             reference
             for reference in (
                 _attribute_ref(
-                    value, entity_vocabulary, default_entity
+                    value,
+                    entity_vocabulary,
+                    default_entity,
+                    attribute_vocabulary,
                 )
                 for value in values
             )
@@ -255,6 +346,7 @@ def _query_plan(
                 value.get("attribute"),
                 entity_vocabulary,
                 default_entity,
+                attribute_vocabulary,
             )
             try:
                 aggregates.append(
@@ -275,10 +367,16 @@ def _query_plan(
             if not isinstance(value, Mapping):
                 continue
             left = _attribute_ref(
-                value.get("left"), entity_vocabulary, default_entity
+                value.get("left"),
+                entity_vocabulary,
+                default_entity,
+                attribute_vocabulary,
             )
             right = _attribute_ref(
-                value.get("right"), entity_vocabulary, default_entity
+                value.get("right"),
+                entity_vocabulary,
+                default_entity,
+                attribute_vocabulary,
             )
             if left is None or right is None:
                 continue
@@ -309,6 +407,7 @@ def _query_plan(
             payload.get("predicate"),
             entity_vocabulary,
             default_entity,
+            attribute_vocabulary,
         ),
         joins=tuple(joins),
     )
@@ -664,6 +763,7 @@ def _parse_llm_payload(
     queries_by_id: Mapping[str, str],
     *,
     entity_vocabulary: Sequence[str] = (),
+    attribute_vocabulary: Optional[Mapping[str, Sequence[str]]] = None,
 ) -> List[QueryRequirement]:
     start, end = payload.find("["), payload.rfind("]")
     if start < 0:
@@ -726,7 +826,10 @@ def _parse_llm_payload(
                 if all(parsed):
                     relationships.append(parsed)
         plan = _query_plan(
-            row.get("plan"), entity_vocabulary, default_entity
+            row.get("plan"),
+            entity_vocabulary,
+            default_entity,
+            attribute_vocabulary,
         )
         plan = _repair_plan_aggregate(plan, queries_by_id[query_id])
         plan_references = plan.attributes() if plan else ()
@@ -757,7 +860,10 @@ def _parse_llm_payload(
                 if not isinstance(value, Mapping):
                     continue
                 reference = _attribute_ref(
-                    value, entity_vocabulary, default_entity
+                    value,
+                    entity_vocabulary,
+                    default_entity,
+                    attribute_vocabulary,
                 )
                 if reference is not None:
                     bindings.append(
@@ -806,6 +912,7 @@ def analyze_workload(
     *,
     llm_client: Optional[Any] = None,
     entity_vocabulary: Sequence[str] = (),
+    attribute_vocabulary: Optional[Mapping[str, Sequence[str]]] = None,
 ) -> WorkloadIntent:
     """Analyze SQL or NL workload without reading any ground-truth artifact."""
     normalized: List[Tuple[str, str]] = []
@@ -842,6 +949,12 @@ def analyze_workload(
                 "phrases—not as new entities. Do not invent identifier columns "
                 "or relations; use a natural label relationship stated or "
                 "implied by the question.\n\n"
+            )
+        if attribute_vocabulary:
+            entity_instruction += (
+                "Use only these canonical source attributes, selecting the "
+                "closest semantically matching attribute for each query phrase:\n"
+                f"{json.dumps(attribute_vocabulary, sort_keys=True)}\n\n"
             )
         instructions = (
             "Convert every analytical question into a lossless, schema-independent "
@@ -896,6 +1009,7 @@ def analyze_workload(
                 response,
                 batch,
                 entity_vocabulary=entity_vocabulary,
+                attribute_vocabulary=attribute_vocabulary,
             )
             draft = drafts[0]
             review_prompt = (
@@ -920,6 +1034,8 @@ def analyze_workload(
                 "6. A property belongs to the entity grammatically possessing it. "
                 "Use concise lowercase snake_case attribute names.\n\n"
                 f"Allowed source entities: {json.dumps(list(entity_vocabulary))}\n"
+                "Allowed canonical attributes: "
+                f"{json.dumps(attribute_vocabulary or {}, sort_keys=True)}\n"
                 f"Question: {next(iter(batch.values()))}\n\n"
                 "Draft:\n"
                 f"{json.dumps(asdict(draft), indent=2, default=str)}"
@@ -932,6 +1048,7 @@ def analyze_workload(
                     reviewed_response,
                     batch,
                     entity_vocabulary=entity_vocabulary,
+                    attribute_vocabulary=attribute_vocabulary,
                 )
                 if reviewed and reviewed[0].plan is not None:
                     draft = reviewed[0]
@@ -957,7 +1074,10 @@ def analyze_workload(
 
 
 def make_budgeted_intent_analyzer(
-    llm_client: Any, *, entity_vocabulary: Sequence[str] = ()
+    llm_client: Any,
+    *,
+    entity_vocabulary: Sequence[str] = (),
+    attribute_vocabulary: Optional[Mapping[str, Sequence[str]]] = None,
 ):
     """Adapt a WDIRS-compatible client to the system's analyzer callback."""
 
@@ -972,6 +1092,7 @@ def make_budgeted_intent_analyzer(
             queries,
             llm_client=budgeted,
             entity_vocabulary=entity_vocabulary,
+            attribute_vocabulary=attribute_vocabulary,
         )
 
     return analyzer

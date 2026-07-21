@@ -56,7 +56,12 @@ from spp.spec import (
     SchemaDesign,
     SynthesisConfig,
 )
-from spp.workload_intent import WorkloadIntent, _parse_llm_payload, analyze_workload
+from spp.workload_intent import (
+    WorkloadIntent,
+    _parse_llm_payload,
+    analyze_workload,
+    schema_vocabulary_from_sql,
+)
 from spp.population_config import PopulationConfig
 
 
@@ -1158,6 +1163,69 @@ def test_intent_constrains_entities_and_repairs_missing_aggregate():
         ),
     )
     assert "total" not in requirement.attributes
+
+
+def test_sql_training_workload_constrains_canonical_attribute_names():
+    vocabulary = schema_vocabulary_from_sql(
+        [
+            "SELECT p.position, p.olympic_gold_medals "
+            "FROM player p JOIN team t ON p.team = t.team_name"
+        ]
+    )
+    assert vocabulary.entities == ("player", "team")
+    assert vocabulary.attributes["player"] == (
+        "olympic_gold_medals",
+        "position",
+        "team",
+    )
+    response = json.dumps(
+        [
+            {
+                "query_id": "q",
+                "entities": ["player"],
+                "attributes": [],
+                "attribute_bindings": [],
+                "relationships": [],
+                "operators": ["sum", "group_by"],
+                "units": [],
+                "plan": {
+                    "projections": [],
+                    "group_by": [
+                        {
+                            "entity": "player",
+                            "attribute": "playing_position",
+                            "semantic_type": "text",
+                        }
+                    ],
+                    "aggregates": [
+                        {
+                            "function": "sum",
+                            "attribute": {
+                                "entity": "player",
+                                "attribute": "gold_medals",
+                                "semantic_type": "integer",
+                            },
+                            "alias": "total",
+                            "distinct": False,
+                        }
+                    ],
+                    "predicate": None,
+                    "joins": [],
+                },
+            }
+        ]
+    )
+    requirement = _parse_llm_payload(
+        response,
+        {"q": "Total gold medals for each playing position."},
+        entity_vocabulary=vocabulary.entities,
+        attribute_vocabulary=vocabulary.attributes,
+    )[0]
+    assert requirement.plan.group_by[0].attribute == "position"
+    assert (
+        requirement.plan.aggregates[0].attribute.attribute
+        == "olympic_gold_medals"
+    )
 
 
 def test_missing_non_count_measure_does_not_abort_intent_analysis():

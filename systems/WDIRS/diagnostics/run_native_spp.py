@@ -24,6 +24,7 @@ from spp.native_backend import (  # noqa: E402
 from spp.nl2sql import make_nl2sql_compiler  # noqa: E402
 from spp.system import OfflineSynthesisSystem  # noqa: E402
 from spp.workload_intent import make_budgeted_intent_analyzer  # noqa: E402
+from spp.workload_intent import schema_vocabulary_from_sql  # noqa: E402
 
 
 def _load_queries(path: Path) -> list[dict]:
@@ -70,6 +71,12 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--corpus-dir", type=Path, required=True)
     parser.add_argument("--workload", type=Path, required=True)
+    parser.add_argument(
+        "--schema-workload",
+        type=Path,
+        default=None,
+        help="Optional SQL training workload providing canonical schema vocabulary.",
+    )
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--token-budget", type=int, required=True)
     parser.add_argument("--quality-floor", type=float, default=0.0)
@@ -111,9 +118,24 @@ def main() -> int:
     documents = _load_documents(args.corpus_dir)
     queries = _load_queries(args.workload)
     entity_vocabulary = infer_source_entity_vocabulary(documents)
+    attribute_vocabulary = None
+    if args.schema_workload:
+        import sqlglot
+
+        schema_sql = [
+            expression.sql()
+            for expression in sqlglot.parse(
+                args.schema_workload.read_text(encoding="utf-8")
+            )
+            if expression is not None
+        ]
+        schema_vocabulary = schema_vocabulary_from_sql(schema_sql)
+        entity_vocabulary = schema_vocabulary.entities
+        attribute_vocabulary = schema_vocabulary.attributes
     intent_analyzer = make_budgeted_intent_analyzer(
         client,
         entity_vocabulary=entity_vocabulary,
+        attribute_vocabulary=attribute_vocabulary,
     )
     if args.intent_only:
         output = args.output.expanduser().resolve()
@@ -124,6 +146,7 @@ def main() -> int:
         intent = intent_analyzer(queries, ledger)
         payload = {
             "entity_vocabulary": list(entity_vocabulary),
+            "attribute_vocabulary": attribute_vocabulary or {},
             "workload_intent": asdict(intent),
             "tokens": ledger.summary(),
         }
