@@ -1054,7 +1054,7 @@ def test_intent_payload_parses_typed_boolean_query_plan():
     assert ("player", "age") in requirement.attribute_bindings
 
 
-def test_nl_intent_analysis_batches_large_workloads():
+def test_nl_intent_analysis_isolates_queries():
     class BatchClient:
         def __init__(self):
             self.calls = 0
@@ -1100,7 +1100,7 @@ def test_nl_intent_analysis_batches_large_workloads():
         ],
         llm_client=client,
     )
-    assert client.calls == 2
+    assert client.calls == 5
     assert len(intent.requirements) == 5
     assert all(requirement.plan for requirement in intent.requirements)
 

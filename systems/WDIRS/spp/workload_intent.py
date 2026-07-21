@@ -131,6 +131,14 @@ def _attribute_ref(
         raw_entity, entity_vocabulary, default_entity
     )
     attribute = str(payload.get("attribute", "")).strip().lower()
+    if (
+        entity_vocabulary
+        and raw_entity
+        and raw_entity not in entity_vocabulary
+        and entity != raw_entity
+        and attribute in {"name", "label", "title", "value"}
+    ):
+        attribute = re.sub(r"[^a-z0-9]+", "_", raw_entity).strip("_")
     for prefix in (raw_entity, entity):
         if prefix:
             attribute = re.sub(
@@ -866,7 +874,10 @@ def analyze_workload(
         instructions = entity_instruction + instructions
         nl_requirements = []
         items = list(nl_queries.items())
-        batch_size = 4
+        # Small models frequently leak predicates and groupings between adjacent
+        # questions. A focused call is still inexpensive relative to extraction
+        # and gives each plan an independent, auditable budget charge.
+        batch_size = 1
         for start in range(0, len(items), batch_size):
             batch = dict(items[start : start + batch_size])
             prompt = instructions + json.dumps(
