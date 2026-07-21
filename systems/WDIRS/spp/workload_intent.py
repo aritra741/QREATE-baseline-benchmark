@@ -594,7 +594,7 @@ def analyze_workload(
 
     nl_requirements: List[QueryRequirement]
     if nl_queries and llm_client is not None:
-        prompt = (
+        instructions = (
             "Convert every analytical question into a lossless, schema-independent "
             "query plan. Return ONLY a JSON array. Preserve every literal value "
             "exactly as written; never translate, expand, normalize, or replace "
@@ -623,13 +623,23 @@ def analyze_workload(
             "relationship as a join only when the question requires combining "
             "entities. Do not use corpus contents, database metadata, or "
             "ground-truth data, and do not invent domain facts.\n\nQueries:\n"
-            + json.dumps(
-                [{"query_id": qid, "query": text} for qid, text in nl_queries.items()],
+        )
+        nl_requirements = []
+        items = list(nl_queries.items())
+        batch_size = 4
+        for start in range(0, len(items), batch_size):
+            batch = dict(items[start : start + batch_size])
+            prompt = instructions + json.dumps(
+                [
+                    {"query_id": query_id, "query": text}
+                    for query_id, text in batch.items()
+                ],
                 indent=2,
             )
-        )
-        response = llm_client.generate(prompt, max_tokens=8192, temperature=0.0)
-        nl_requirements = _parse_llm_payload(response, nl_queries)
+            response = llm_client.generate(
+                prompt, max_tokens=4096, temperature=0.0
+            )
+            nl_requirements.extend(_parse_llm_payload(response, batch))
     else:
         nl_requirements = [
             _heuristic_nl_requirement(query_id, text)

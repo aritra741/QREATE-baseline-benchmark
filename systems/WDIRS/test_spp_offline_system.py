@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 from pathlib import Path
 
@@ -963,6 +964,23 @@ def test_query_plan_compiler_is_domain_agnostic(tmp_path: Path):
         assert connection.execute(sql).fetchall() == [("north", 4.5)]
 
 
+def test_denormalization_preserves_rows_when_unrelated_relation_is_empty():
+    schema = SchemaDesign(
+        "denormalized",
+        (RelationSpec("workload_flat", ("value",)),),
+        ("q",),
+    )
+    tables = reshape_tables(
+        {
+            "empty_first": [],
+            "populated_second": [{"value": "kept"}],
+            "empty_third": [],
+        },
+        schema,
+    )
+    assert tables == {"workload_flat": [{"value": "kept"}]}
+
+
 def test_intent_payload_parses_typed_boolean_query_plan():
     response = json.dumps(
         [
@@ -1028,6 +1046,57 @@ def test_intent_payload_parses_typed_boolean_query_plan():
     assert requirement.plan.predicate.kind == "or"
     assert requirement.plan.predicate.children[0].value == "American"
     assert ("player", "age") in requirement.attribute_bindings
+
+
+def test_nl_intent_analysis_batches_large_workloads():
+    class BatchClient:
+        def __init__(self):
+            self.calls = 0
+
+        def generate(self, prompt, **_kwargs):
+            self.calls += 1
+            query_ids = re.findall(r'"query_id": "(q\d+)"', prompt)
+            return json.dumps(
+                [
+                    {
+                        "query_id": query_id,
+                        "entities": ["record"],
+                        "attributes": ["category"],
+                        "attribute_bindings": [
+                            {"entity": "record", "attribute": "category"}
+                        ],
+                        "relationships": [],
+                        "operators": [],
+                        "units": [],
+                        "plan": {
+                            "projections": [
+                                {
+                                    "entity": "record",
+                                    "attribute": "category",
+                                    "semantic_type": "text",
+                                }
+                            ],
+                            "group_by": [],
+                            "aggregates": [],
+                            "predicate": None,
+                            "joins": [],
+                        },
+                    }
+                    for query_id in query_ids
+                ]
+            )
+
+    client = BatchClient()
+    intent = analyze_workload(
+        [
+            {"query_id": f"q{index}", "text": f"Show category {index}"}
+            for index in range(5)
+        ],
+        llm_client=client,
+    )
+    assert client.calls == 2
+    assert len(intent.requirements) == 5
+    assert all(requirement.plan for requirement in intent.requirements)
 
 
 def test_nl2sql_uses_query_plan_without_free_form_llm(tmp_path: Path):

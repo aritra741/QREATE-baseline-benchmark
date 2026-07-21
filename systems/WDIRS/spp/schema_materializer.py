@@ -61,7 +61,14 @@ def _joined_rows(
     if not base_tables:
         return []
     ordered_tables = sorted(base_tables)
-    root = ordered_tables[0]
+    root = next(
+        (
+            table
+            for table in ordered_tables
+            if base_tables.get(table)
+        ),
+        ordered_tables[0],
+    )
     rows: List[Dict[Tuple[str, str], object]] = [
         {(root, column): value for column, value in record.items()}
         for record in base_tables[root]
@@ -106,6 +113,10 @@ def _joined_rows(
         # Disconnected workload branches are combined without inventing a join.
         target_table = min(remaining)
         records = base_tables[target_table]
+        if not records:
+            included.add(target_table)
+            remaining.remove(target_table)
+            continue
         rows = [
             {
                 **row,

@@ -573,11 +573,16 @@ class NativeSPPBackend:
             tables[relation.name] = populated
             cells_by_table[relation.name] = cells
         if config.schema.pattern == "denormalized":
+            source_row_count = sum(len(rows) for rows in tables.values())
             tables = reshape_tables(
                 tables,
                 config.schema,
                 join_pairs=self._intent_join_pairs(),
             )
+            if source_row_count and not any(tables.values()):
+                raise RuntimeError(
+                    "denormalization discarded all populated source rows"
+                )
         return tables, cells_by_table
 
     def _estimates(
