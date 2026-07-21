@@ -1100,7 +1100,7 @@ def test_nl_intent_analysis_isolates_queries():
         ],
         llm_client=client,
     )
-    assert client.calls == 5
+    assert client.calls == 10
     assert len(intent.requirements) == 5
     assert all(requirement.plan for requirement in intent.requirements)
 

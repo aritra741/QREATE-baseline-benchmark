@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 import re
 from collections import Counter
-from dataclasses import dataclass, replace
+from dataclasses import asdict, dataclass, replace
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 from json_repair import repair_json
@@ -892,13 +892,54 @@ def analyze_workload(
             response = llm_client.generate(
                 prompt, max_tokens=4096, temperature=0.0
             )
-            nl_requirements.extend(
-                _parse_llm_payload(
-                    response,
+            drafts = _parse_llm_payload(
+                response,
+                batch,
+                entity_vocabulary=entity_vocabulary,
+            )
+            draft = drafts[0]
+            review_prompt = (
+                "Audit and correct one schema-independent analytical query plan. "
+                "Return ONLY a JSON array containing one complete corrected item "
+                "in the same shape as the draft. Re-read the question rather than "
+                "trusting the draft.\n\n"
+                "Checklist:\n"
+                "1. Preserve the exact requested aggregate and its numeric measure; "
+                "COUNT(*) is only entity cardinality, while COUNT(attribute) counts "
+                "known values.\n"
+                "2. Include exactly the dimensions requested by phrases such as "
+                "'for each', 'for every', 'by', or 'group'. Do not group by a "
+                "constant used only as a filter.\n"
+                "3. Encode every record restriction from the question and no extra "
+                "restriction. Preserve literals and comparison directions exactly.\n"
+                "4. Preserve AND/OR/NOT scope. A relationship equality belongs in "
+                "joins, never as a literal-valued predicate.\n"
+                "5. Use only the supplied source entity types. Do not invent ID "
+                "columns, tables, measures, or conditions not named or implied by "
+                "the question.\n"
+                "6. A property belongs to the entity grammatically possessing it. "
+                "Use concise lowercase snake_case attribute names.\n\n"
+                f"Allowed source entities: {json.dumps(list(entity_vocabulary))}\n"
+                f"Question: {next(iter(batch.values()))}\n\n"
+                "Draft:\n"
+                f"{json.dumps(asdict(draft), indent=2, default=str)}"
+            )
+            try:
+                reviewed_response = llm_client.generate(
+                    review_prompt, max_tokens=4096, temperature=0.0
+                )
+                reviewed = _parse_llm_payload(
+                    reviewed_response,
                     batch,
                     entity_vocabulary=entity_vocabulary,
                 )
-            )
+                if reviewed and reviewed[0].plan is not None:
+                    draft = reviewed[0]
+            except (RuntimeError, ValueError, TypeError):
+                # The independently budgeted draft remains usable and auditable
+                # when the semantic reviewer emits malformed output.
+                pass
+            nl_requirements.append(draft)
     else:
         nl_requirements = [
             _heuristic_nl_requirement(query_id, text)
