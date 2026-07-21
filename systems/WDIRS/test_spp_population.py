@@ -13,7 +13,7 @@ from spp.config_grid import (
     build_viable_config_search_space,
     official_query_error,
 )
-from spp.population import apply_population
+from spp.population import _parse_llm_json, apply_population
 from spp.population_config import (
     PopulationConfig,
     encode_config_features,
@@ -59,6 +59,13 @@ def test_categorical_missing_values_are_handled_when_numeric_columns_exist():
         column_semantic_types={"category": "OTHER", "amount": "QUANTITY"},
     )
     assert populated[1]["category"] == "A"
+
+
+def test_population_json_parser_handles_qwen_malformed_outputs():
+    assert _parse_llm_json("[[0, 1]]\nextra explanation", list) == [[0, 1]]
+    assert _parse_llm_json(
+        '{"A\\_B": "A B", "C": "C"', dict
+    ) == {"A\\_B": "A B", "C": "C"}
 
 
 def test_rich_entity_resolution_applies_lowercase_canonical_map_keys(monkeypatch):

@@ -33,6 +33,8 @@ from dataclasses import dataclass, field
 from difflib import SequenceMatcher
 from typing import Any, Callable, Dict, List, Optional
 
+from json_repair import repair_json
+
 from spp.population_config import PopulationConfig
 from token_counter import TokenBudgetExceeded
 
@@ -102,6 +104,29 @@ _UNIT_MULTIPLIERS = {
 _NULL_STRINGS = {"", "null", "none", "nan", "n/a", "na"}
 _NUMERIC_TOKEN_PATTERN = re.compile(r"-?\d+(?:\.\d+)?")
 _BOOKKEEPING_COLUMNS = {"row_id", "created_at", "updated_at"}
+
+
+def _parse_llm_json(response: str, expected_type: type) -> Any:
+    """Parse the first expected JSON value, repairing malformed LLM syntax."""
+    opener = "[" if expected_type is list else "{"
+    decoder = json.JSONDecoder()
+    for match in re.finditer(re.escape(opener), response):
+        candidate = response[match.start() :]
+        try:
+            value, _end = decoder.raw_decode(candidate)
+            if isinstance(value, expected_type):
+                return value
+        except json.JSONDecodeError:
+            continue
+    start = response.find(opener)
+    if start < 0:
+        raise ValueError(f"LLM response contains no {expected_type.__name__}")
+    repaired = repair_json(response[start:], return_objects=True)
+    if not isinstance(repaired, expected_type):
+        raise ValueError(
+            f"repaired LLM response is not a {expected_type.__name__}"
+        )
+    return repaired
 
 
 def _try_parse_unit_value(value: Any) -> Optional[float]:
@@ -177,10 +202,7 @@ def _llm_numeric_mapping(
     )
     try:
         response = llm_client.generate(prompt, max_tokens=500, temperature=0.0)
-        start, end = response.find("{"), response.rfind("}")
-        if start < 0 or end < start:
-            return {}
-        raw = json.loads(response[start : end + 1])
+        raw = _parse_llm_json(response, dict)
         result: Dict[str, Optional[float]] = {}
         for key, value in raw.items():
             result[str(key)] = _strict_numeric(value)
@@ -241,8 +263,6 @@ def _llm_cluster_values(
     still caught even though cross-batch duplicates may be missed -- an
     accepted approximation given no embedding pre-blocking is used here.
     """
-    import json as _json
-
     unique_values = sorted({v for v in values if v})
     if len(unique_values) < 2:
         return {}
@@ -266,9 +286,7 @@ def _llm_cluster_values(
         )
         try:
             response = llm_client.generate(prompt, max_tokens=500, temperature=0.0)
-            start_idx = response.find("[")
-            end_idx = response.rfind("]")
-            groups = _json.loads(response[start_idx : end_idx + 1]) if start_idx >= 0 else []
+            groups = _parse_llm_json(response, list)
         except TokenBudgetExceeded:
             raise
         except Exception as exc:
@@ -306,12 +324,7 @@ def _llm_normalize_values(
         )
         try:
             response = llm_client.generate(prompt, max_tokens=1000, temperature=0.0)
-            left, right = response.find("{"), response.rfind("}")
-            raw = (
-                json.loads(response[left : right + 1])
-                if left >= 0 and right >= left
-                else {}
-            )
+            raw = _parse_llm_json(response, dict)
             for value in batch:
                 mapping[value] = str(raw.get(value, _dictionary_normalize(value)))
         except TokenBudgetExceeded:

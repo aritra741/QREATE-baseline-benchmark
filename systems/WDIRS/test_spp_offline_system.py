@@ -208,6 +208,14 @@ def test_qwen_null_intent_fields_are_treated_as_empty():
     assert requirements[0].entities == ("player",)
     assert requirements[0].relationships == ()
 
+    malformed = _parse_llm_payload(
+        '[{"query_id":"q0" "entities":["player"],'
+        '"attributes":["name"]',
+        {"q0": "List player names."},
+    )
+    assert malformed[0].entities == ("player",)
+    assert malformed[0].attributes == ("name",)
+
 
 def test_preprocessing_policy_changes_actual_document_units():
     documents = [SourceDocument("d", "abcdefghij", {})]
@@ -754,6 +762,25 @@ def test_nl2sql_repair_cannot_destroy_informative_result(tmp_path: Path):
     )
     assert sql == "SELECT player_name, team FROM player"
 
+    false_consistent = FakeClient()
+    false_consistent.responses = [
+        "SELECT player_name team medals FROM player",
+        json.dumps(
+            {
+                "consistent": True,
+                "reason": "looks correct",
+                "corrected_sql": None,
+            }
+        ),
+        "SELECT player_name, team FROM player",
+    ]
+    sql = make_nl2sql_compiler(false_consistent)(
+        requirement, config, db_path, GlobalBudgetLedger(10_000)
+    )
+    assert sql == "SELECT player_name, team FROM player"
+    with sqlite3.connect(db_path) as connection:
+        connection.execute(f"EXPLAIN QUERY PLAN {sql}").fetchall()
+
 
 def test_verifier_repairs_qwen_invalid_json_escapes():
     payload = _verification_payload(
@@ -762,3 +789,9 @@ def test_verifier_repairs_qwen_invalid_json_escapes():
     )
     assert payload["consistent"] is False
     assert "SELECT player_name\nFROM player" == payload["corrected_sql"]
+
+    truncated = _verification_payload(
+        '{"consistent": false, "reason": "syntax", '
+        '"corrected_sql": "SELECT player_name FROM player"'
+    )
+    assert truncated["corrected_sql"] == "SELECT player_name FROM player"

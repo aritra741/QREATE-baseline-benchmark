@@ -13,6 +13,8 @@ from collections import Counter
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
+from json_repair import repair_json
+
 from spp.budget_ledger import GlobalBudgetLedger
 from spp.budgeted_llm import BudgetedLLMClient
 from spp.spec import QueryRequirement
@@ -186,9 +188,13 @@ def _parse_llm_payload(
     payload: str, queries_by_id: Mapping[str, str]
 ) -> List[QueryRequirement]:
     start, end = payload.find("["), payload.rfind("]")
-    if start < 0 or end < start:
+    if start < 0:
         raise ValueError("intent analyzer did not return a JSON array")
-    rows = json.loads(payload[start : end + 1])
+    candidate = payload[start : end + 1] if end >= start else payload[start:]
+    try:
+        rows = json.loads(candidate)
+    except json.JSONDecodeError:
+        rows = repair_json(candidate, return_objects=True)
     if not isinstance(rows, list):
         raise ValueError("intent payload must be a list")
     requirements: List[QueryRequirement] = []
