@@ -89,6 +89,12 @@ def main() -> int:
     parser.add_argument("--base-url", "--ollama-url", dest="base_url")
     parser.add_argument("--model")
     parser.add_argument(
+        "--intent-workers",
+        type=int,
+        default=int(os.getenv("SPP_INTENT_MAX_WORKERS", "4")),
+        help="Concurrent independent NL intent draft/audit chains.",
+    )
+    parser.add_argument(
         "--api-key-env",
         default=None,
         help="Environment variable containing the hosted-provider API key.",
@@ -139,6 +145,7 @@ def main() -> int:
         entity_vocabulary=entity_vocabulary,
         attribute_vocabulary=attribute_vocabulary,
         join_vocabulary=join_vocabulary,
+        intent_max_workers=args.intent_workers,
     )
     if args.intent_only:
         output = args.output.expanduser().resolve()
@@ -167,6 +174,7 @@ def main() -> int:
                         requirement.plan is not None
                         for requirement in intent.requirements
                     ),
+                    "intent_workers": args.intent_workers,
                     "actual_tokens": ledger.actual_spent,
                 },
                 indent=2,
@@ -193,6 +201,7 @@ def main() -> int:
         "serving_manifest": str(result.serving_manifest),
         "selected_config_ids": list(result.portfolio.selected_config_ids),
         "candidate_count": result.candidate_count,
+        "intent_workers": args.intent_workers,
         "tokens": result.token_summary,
     }
     (Path(args.output) / "run_manifest.json").write_text(

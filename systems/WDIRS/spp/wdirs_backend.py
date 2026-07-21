@@ -58,6 +58,9 @@ class WDIRSPrimitiveBackend:
             ),
             "cache_dir": str(self.runner.cache_dir),
             "source_primitive": "WDIRS",
+            "runtime_delta_attribute_discovery": bool(
+                getattr(self.runner, "enable_attribute_discovery", True)
+            ),
             "schema_workload_query_count": len(
                 self.schema_workload_queries
             ),

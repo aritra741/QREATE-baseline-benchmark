@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytest
 
+from extractor import ConstrainedExtractor, ExtractionResult
 from spp.budget_ledger import BudgetExhausted, GlobalBudgetLedger
 from spp.budgeted_llm import BudgetedLLMClient
 from spp.corpus_subset import build_representative_subset
@@ -1117,42 +1118,56 @@ def test_intent_payload_parses_typed_boolean_query_plan():
 
 
 def test_nl_intent_analysis_isolates_queries():
+    import threading
+    import time
+
     class BatchClient:
         def __init__(self):
             self.calls = 0
+            self.active = 0
+            self.max_active = 0
+            self.lock = threading.Lock()
 
         def generate(self, prompt, **_kwargs):
-            self.calls += 1
-            query_ids = re.findall(r'"query_id": "(q\d+)"', prompt)
-            return json.dumps(
-                [
-                    {
-                        "query_id": query_id,
-                        "entities": ["record"],
-                        "attributes": ["category"],
-                        "attribute_bindings": [
-                            {"entity": "record", "attribute": "category"}
-                        ],
-                        "relationships": [],
-                        "operators": [],
-                        "units": [],
-                        "plan": {
-                            "projections": [
-                                {
-                                    "entity": "record",
-                                    "attribute": "category",
-                                    "semantic_type": "text",
-                                }
+            with self.lock:
+                self.calls += 1
+                self.active += 1
+                self.max_active = max(self.max_active, self.active)
+            try:
+                time.sleep(0.01)
+                query_ids = re.findall(r'"query_id": "(q\d+)"', prompt)
+                return json.dumps(
+                    [
+                        {
+                            "query_id": query_id,
+                            "entities": ["record"],
+                            "attributes": ["category"],
+                            "attribute_bindings": [
+                                {"entity": "record", "attribute": "category"}
                             ],
-                            "group_by": [],
-                            "aggregates": [],
-                            "predicate": None,
-                            "joins": [],
-                        },
-                    }
-                    for query_id in query_ids
-                ]
-            )
+                            "relationships": [],
+                            "operators": [],
+                            "units": [],
+                            "plan": {
+                                "projections": [
+                                    {
+                                        "entity": "record",
+                                        "attribute": "category",
+                                        "semantic_type": "text",
+                                    }
+                                ],
+                                "group_by": [],
+                                "aggregates": [],
+                                "predicate": None,
+                                "joins": [],
+                            },
+                        }
+                        for query_id in query_ids
+                    ]
+                )
+            finally:
+                with self.lock:
+                    self.active -= 1
 
     client = BatchClient()
     intent = analyze_workload(
@@ -1161,10 +1176,53 @@ def test_nl_intent_analysis_isolates_queries():
             for index in range(5)
         ],
         llm_client=client,
+        intent_max_workers=3,
     )
     assert client.calls == 10
+    assert client.max_active > 1
     assert len(intent.requirements) == 5
     assert all(requirement.plan for requirement in intent.requirements)
+
+
+def test_schema_stabilization_parallelizes_independent_samples(monkeypatch):
+    import threading
+    import time
+
+    import config
+
+    monkeypatch.setattr(config, "MAX_PARALLEL_REQUESTS", 4)
+    extractor = object.__new__(ConstrainedExtractor)
+    extractor.stabilized_schemas = {}
+    lock = threading.Lock()
+    active = 0
+    max_active = 0
+
+    def extract_sample(*_args, **_kwargs):
+        nonlocal active, max_active
+        with lock:
+            active += 1
+            max_active = max(max_active, active)
+        try:
+            time.sleep(0.01)
+            return ExtractionResult(
+                chunk_id="",
+                records=[{"category": "value"}],
+                schema_keys={"category"},
+                extraction_time=0.01,
+            )
+        finally:
+            with lock:
+                active -= 1
+
+    monkeypatch.setattr(extractor, "_extract_single_chunk", extract_sample)
+    stabilized = extractor.stabilize_schema(
+        "record",
+        {"category": "OTHER"},
+        ["sample"] * 8,
+    )
+
+    assert max_active > 1
+    assert stabilized.frozen_keys == {"category"}
 
 
 def test_intent_constrains_entities_and_repairs_missing_aggregate():

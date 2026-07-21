@@ -200,6 +200,7 @@ class WDIRSRunner:
         use_projection_fastpath: Optional[bool] = None,
         projection_fastpath_col_batch_size: Optional[int] = None,
         cache_dir: Optional[Path] = None,
+        enable_attribute_discovery: bool = True,
     ):
         """
         Initialize WDIRS runner.
@@ -220,6 +221,7 @@ class WDIRSRunner:
             if projection_fastpath_col_batch_size is None
             else int(projection_fastpath_col_batch_size)
         )
+        self.enable_attribute_discovery = bool(enable_attribute_discovery)
         
         # Set cache directory (for attribute index and other cached artifacts)
         if cache_dir is not None:
@@ -234,6 +236,10 @@ class WDIRSRunner:
             "Projection fast path: %s (col_batch_size=%s)",
             self.use_projection_fastpath,
             self.projection_fastpath_col_batch_size,
+        )
+        logger.info(
+            "Runtime-delta attribute discovery: %s",
+            self.enable_attribute_discovery,
         )
         
         # Initialize components
@@ -287,6 +293,86 @@ class WDIRSRunner:
             )
         
         logger.info("WDIRS initialization complete")
+
+    def _discover_attributes_for_chunks(
+        self,
+        table_name: str,
+        chunks: List[TextChunk],
+    ) -> None:
+        """Build the optional index used only by runtime column deltas."""
+        if not self.enable_attribute_discovery:
+            logger.info(
+                "[AttributeIndex] Skipping %s: runtime deltas are disabled",
+                table_name,
+            )
+            return
+        if not chunks:
+            logger.warning(
+                "[AttributeIndex] No candidate chunks found for %s, skipping",
+                table_name,
+            )
+            return
+
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        from attribute_index import AttributeDiscovery
+        from config import MAX_PARALLEL_REQUESTS
+
+        logger.info(
+            "[AttributeIndex] Processing %s chunks for %s with %s workers...",
+            len(chunks),
+            table_name,
+            MAX_PARALLEL_REQUESTS,
+        )
+
+        def _discover_chunk(chunk: TextChunk):
+            attributes = self.extractor.discover_attributes_from_chunk(
+                chunk.content,
+                chunk.chunk_id,
+                table_name,
+            )
+            return (chunk.chunk_id, attributes) if attributes else None
+
+        discoveries = []
+        with ThreadPoolExecutor(max_workers=MAX_PARALLEL_REQUESTS) as executor:
+            futures = {
+                executor.submit(_discover_chunk, chunk): chunk
+                for chunk in chunks
+            }
+            for completed, future in enumerate(as_completed(futures), start=1):
+                if completed % 500 == 0:
+                    logger.info(
+                        "  [AttributeIndex] %s/%s chunks processed",
+                        completed,
+                        len(chunks),
+                    )
+                try:
+                    result = future.result()
+                    if result:
+                        chunk_id, attributes = result
+                        discoveries.append(
+                            AttributeDiscovery(
+                                chunk_id=chunk_id,
+                                table_name=table_name,
+                                discovered_attributes=attributes,
+                            )
+                        )
+                except Exception as exc:
+                    logger.warning(
+                        "[AttributeIndex] Error discovering attributes: %s",
+                        exc,
+                    )
+
+        for discovery in discoveries:
+            self.extractor.attribute_index.add_discovery(discovery)
+        coverage = self.extractor.attribute_index.get_coverage_stats(table_name)
+        logger.info(
+            "[AttributeIndex] %s: discovered %s unique attributes from %s "
+            "chunks, coverage: %s",
+            table_name,
+            len(coverage),
+            len(discoveries),
+            dict(list(coverage.items())[:5]),
+        )
     
     # ========================================================================
     # Phase 1: Offline Relational Synthesis (Preprocessing)
@@ -1825,62 +1911,16 @@ class WDIRSRunner:
                             f"from {len(source_texts)} source docs"
                         )
                         
-                        # ── Attribute Discovery for Smart Column Delta ──────────────
-                        # NOTE: Projection fastpath uses synthetic chunk IDs (doc::table::name),
-                        # but Phase 2 delta engine uses actual chunk IDs from the chunk store.
-                        # We need to discover attributes from the CHUNKED versions.
-                        logger.info(f"[AttributeIndex] Discovering attributes for {table_name}...")
+                        # Projection extraction uses synthetic document IDs, but
+                        # runtime deltas (when enabled) need actual chunk IDs.
                         candidate_chunk_ids = self.data_layer.get_candidates(table_name)
-                        if candidate_chunk_ids:
-                            from concurrent.futures import ThreadPoolExecutor, as_completed
-                            from config import MAX_PARALLEL_REQUESTS
-                            from attribute_index import AttributeDiscovery
-                            
-                            candidate_chunks = self.data_layer.get_chunks_by_ids(candidate_chunk_ids)
-                            logger.info(
-                                f"[AttributeIndex] Processing {len(candidate_chunks)} chunks "
-                                f"for {table_name} with {MAX_PARALLEL_REQUESTS} workers..."
-                            )
-                            
-                            def _discover_chunk(chunk):
-                                attrs = self.extractor.discover_attributes_from_chunk(
-                                    chunk.content, chunk.chunk_id, table_name
-                                )
-                                return (chunk.chunk_id, attrs) if attrs else None
-                            
-                            discoveries = []
-                            with ThreadPoolExecutor(max_workers=MAX_PARALLEL_REQUESTS) as executor:
-                                futures = {executor.submit(_discover_chunk, c): c for c in candidate_chunks}
-                                completed = 0
-                                for future in as_completed(futures):
-                                    completed += 1
-                                    if completed % 500 == 0:
-                                        logger.info(f"  [AttributeIndex] {completed}/{len(candidate_chunks)} chunks processed")
-                                    try:
-                                        result = future.result()
-                                        if result:
-                                            chunk_id, attrs = result
-                                            discovery = AttributeDiscovery(
-                                                chunk_id=chunk_id,
-                                                table_name=table_name,
-                                                discovered_attributes=attrs
-                                            )
-                                            discoveries.append(discovery)
-                                    except Exception as e:
-                                        logger.warning(f"[AttributeIndex] Error discovering attributes: {e}")
-                            
-                            # Add all discoveries to index
-                            for discovery in discoveries:
-                                self.extractor.attribute_index.add_discovery(discovery)
-                            
-                            # Log coverage stats
-                            coverage = self.extractor.attribute_index.get_coverage_stats(table_name)
-                            logger.info(
-                                f"[AttributeIndex] {table_name}: discovered {len(coverage)} unique attributes "
-                                f"from {len(discoveries)} chunks, coverage: {dict(list(coverage.items())[:5])}"
-                            )
-                        else:
-                            logger.warning(f"[AttributeIndex] No candidate chunks found for {table_name}, skipping attribute discovery")
+                        candidate_chunks = self.data_layer.get_chunks_by_ids(
+                            candidate_chunk_ids
+                        )
+                        self._discover_attributes_for_chunks(
+                            table_name,
+                            candidate_chunks,
+                        )
 
                         for col_name in schema.keys():
                             self.data_layer.update_metadata(
@@ -1954,52 +1994,9 @@ class WDIRSRunner:
                     )
                     total_records += table_records
                     
-                    # ── Attribute Discovery for Smart Column Delta ──────────────
-                    from concurrent.futures import ThreadPoolExecutor, as_completed
-                    from config import MAX_PARALLEL_REQUESTS
-                    from attribute_index import AttributeDiscovery
-                    
-                    logger.info(
-                        f"[AttributeIndex] Discovering attributes for {table_name} "
-                        f"from {len(candidate_chunks)} chunks with {MAX_PARALLEL_REQUESTS} workers..."
-                    )
-                    
-                    def _discover_chunk(chunk):
-                        attrs = self.extractor.discover_attributes_from_chunk(
-                            chunk.content, chunk.chunk_id, table_name
-                        )
-                        return (chunk.chunk_id, attrs) if attrs else None
-                    
-                    discoveries = []
-                    with ThreadPoolExecutor(max_workers=MAX_PARALLEL_REQUESTS) as executor:
-                        futures = {executor.submit(_discover_chunk, c): c for c in candidate_chunks}
-                        completed = 0
-                        for future in as_completed(futures):
-                            completed += 1
-                            if completed % 500 == 0:
-                                logger.info(f"  [AttributeIndex] {completed}/{len(candidate_chunks)} chunks processed")
-                            try:
-                                result = future.result()
-                                if result:
-                                    chunk_id, attrs = result
-                                    discovery = AttributeDiscovery(
-                                        chunk_id=chunk_id,
-                                        table_name=table_name,
-                                        discovered_attributes=attrs
-                                    )
-                                    discoveries.append(discovery)
-                            except Exception as e:
-                                logger.warning(f"[AttributeIndex] Error discovering attributes: {e}")
-                    
-                    # Add all discoveries to index
-                    for discovery in discoveries:
-                        self.extractor.attribute_index.add_discovery(discovery)
-                    
-                    # Log coverage stats
-                    coverage = self.extractor.attribute_index.get_coverage_stats(table_name)
-                    logger.info(
-                        f"[AttributeIndex] {table_name}: discovered {len(coverage)} unique attributes "
-                        f"from {len(discoveries)} chunks, coverage: {dict(list(coverage.items())[:5])}"
+                    self._discover_attributes_for_chunks(
+                        table_name,
+                        candidate_chunks,
                     )
                 else:
                     # ── Brute-force extraction (no identity column) ──────────
@@ -2025,55 +2022,9 @@ class WDIRSRunner:
                     total_records += table_records
                     logger.info(f"Extracted {table_records} records for {table_name}")
                     
-                    # ── Attribute Discovery for Smart Column Delta ──────────────
-                    from concurrent.futures import ThreadPoolExecutor, as_completed
-                    from config import MAX_PARALLEL_REQUESTS
-                    from attribute_index import AttributeDiscovery
-                    
-                    logger.info(
-                        f"[AttributeIndex] Discovering attributes for {table_name} "
-                        f"from {len(chunk_texts)} chunks with {MAX_PARALLEL_REQUESTS} workers..."
-                    )
-                    
-                    def _discover_chunk(chunk_text, chunk_id):
-                        attrs = self.extractor.discover_attributes_from_chunk(
-                            chunk_text, chunk_id, table_name
-                        )
-                        return (chunk_id, attrs) if attrs else None
-                    
-                    discoveries = []
-                    with ThreadPoolExecutor(max_workers=MAX_PARALLEL_REQUESTS) as executor:
-                        futures = {
-                            executor.submit(_discover_chunk, text, cid): cid 
-                            for text, cid in zip(chunk_texts, chunk_ids_list)
-                        }
-                        completed = 0
-                        for future in as_completed(futures):
-                            completed += 1
-                            if completed % 500 == 0:
-                                logger.info(f"  [AttributeIndex] {completed}/{len(chunk_texts)} chunks processed")
-                            try:
-                                result = future.result()
-                                if result:
-                                    chunk_id, attrs = result
-                                    discovery = AttributeDiscovery(
-                                        chunk_id=chunk_id,
-                                        table_name=table_name,
-                                        discovered_attributes=attrs
-                                    )
-                                    discoveries.append(discovery)
-                            except Exception as e:
-                                logger.warning(f"[AttributeIndex] Error discovering attributes: {e}")
-                    
-                    # Add all discoveries to index
-                    for discovery in discoveries:
-                        self.extractor.attribute_index.add_discovery(discovery)
-                    
-                    # Log coverage stats
-                    coverage = self.extractor.attribute_index.get_coverage_stats(table_name)
-                    logger.info(
-                        f"[AttributeIndex] {table_name}: discovered {len(coverage)} unique attributes "
-                        f"from {len(discoveries)} chunks, coverage: {dict(list(coverage.items())[:5])}"
+                    self._discover_attributes_for_chunks(
+                        table_name,
+                        candidate_chunks,
                     )
 
                     self.data_layer.create_dynamic_table(table_name, sql_schema)

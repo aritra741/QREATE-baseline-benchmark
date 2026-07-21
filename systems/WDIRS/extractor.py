@@ -260,25 +260,42 @@ class ConstrainedExtractor:
         # Extract from sample chunks
         key_counts: Counter = Counter()
         total_records = 0
-        
-        for chunk in sample_chunks[:SCHEMA_SAMPLE_SIZE]:
+        samples = sample_chunks[:SCHEMA_SAMPLE_SIZE]
+
+        def _extract_sample(chunk: str) -> Optional[ExtractionResult]:
             try:
-                # Extract without constraints to discover keys
-                result = self._extract_single_chunk(
+                return self._extract_single_chunk(
                     chunk,
                     table_name,
                     schema,
-                    constrained_keys=None
+                    constrained_keys=None,
                 )
-                
-                # Collect keys from all records
+            except Exception as exc:
+                logger.warning("Error extracting schema sample: %s", exc)
+                return None
+
+        if len(samples) <= 1:
+            sample_results = [_extract_sample(chunk) for chunk in samples]
+        else:
+            from concurrent.futures import ThreadPoolExecutor
+            from config import MAX_PARALLEL_REQUESTS
+
+            workers = min(MAX_PARALLEL_REQUESTS, len(samples))
+            logger.info(
+                "Stabilizing %s schema samples with %s workers",
+                table_name,
+                workers,
+            )
+            with ThreadPoolExecutor(max_workers=workers) as executor:
+                # map preserves sample order, keeping aggregation deterministic.
+                sample_results = list(executor.map(_extract_sample, samples))
+
+        for result in sample_results:
+            if result is not None:
                 for record in result.records:
                     if isinstance(record, dict):
                         key_counts.update(set(record.keys()))
                         total_records += 1
-            
-            except Exception as e:
-                logger.warning(f"Error extracting from sample chunk: {e}")
         
         # Calculate key frequencies
         key_frequencies = (

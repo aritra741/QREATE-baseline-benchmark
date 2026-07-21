@@ -67,6 +67,12 @@ def main() -> int:
     parser.add_argument("--base-url")
     parser.add_argument("--model")
     parser.add_argument(
+        "--intent-workers",
+        type=int,
+        default=int(os.getenv("SPP_INTENT_MAX_WORKERS", "4")),
+        help="Concurrent independent NL intent draft/audit chains.",
+    )
+    parser.add_argument(
         "--projection-fastpath",
         action="store_true",
         help="Use WDIRS table-partitioned projection extraction.",
@@ -119,6 +125,10 @@ def main() -> int:
         projection_fastpath_col_batch_size=(
             args.projection_fastpath_col_batch_size
         ),
+        # Frozen SPP bundles never perform query-time column deltas. Building
+        # their per-chunk discovery index would consume budget without changing
+        # the synthesized database or any serving result.
+        enable_attribute_discovery=False,
     )
     try:
         client_kwargs = {}
@@ -176,6 +186,7 @@ def main() -> int:
                     if schema_vocabulary
                     else ()
                 ),
+                intent_max_workers=args.intent_workers,
             ),
             beta=args.beta,
             quality_floor=args.quality_floor,
@@ -200,6 +211,10 @@ def main() -> int:
             "token_summary": result.token_summary,
             "backend_scratch": str(scratch),
             "selected_source_documents": selected_documents,
+            "runtime_delta_attribute_discovery": (
+                runner.enable_attribute_discovery
+            ),
+            "intent_workers": args.intent_workers,
         }
         if selected_documents:
             server = OfflineQueryServer(result.serving_manifest.parent)

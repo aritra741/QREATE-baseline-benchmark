@@ -1306,8 +1306,11 @@ def analyze_workload(
     entity_vocabulary: Sequence[str] = (),
     attribute_vocabulary: Optional[Mapping[str, Sequence[str]]] = None,
     join_vocabulary: Sequence[Tuple[str, str, str, str]] = (),
+    intent_max_workers: int = 1,
 ) -> WorkloadIntent:
     """Analyze SQL or NL workload without reading any ground-truth artifact."""
+    if intent_max_workers < 1:
+        raise ValueError("intent_max_workers must be at least 1")
     normalized: List[Tuple[str, str]] = []
     for index, query in enumerate(queries):
         if isinstance(query, str):
@@ -1385,18 +1388,17 @@ def analyze_workload(
             "ground-truth data, and do not invent domain facts.\n\nQueries:\n"
         )
         instructions = entity_instruction + instructions
-        nl_requirements = []
         items = list(nl_queries.items())
         # Small models frequently leak predicates and groupings between adjacent
-        # questions. A focused call is still inexpensive relative to extraction
-        # and gives each plan an independent, auditable budget charge.
-        batch_size = 1
-        for start in range(0, len(items), batch_size):
-            batch = dict(items[start : start + batch_size])
+        # questions. Each worker therefore owns one complete draft -> audit
+        # chain. Chains are independent, while calls inside one chain remain
+        # ordered. executor.map below preserves workload order.
+        def _analyze_one(item: Tuple[str, str]) -> QueryRequirement:
+            query_id, query_text = item
+            batch = {query_id: query_text}
             prompt = instructions + json.dumps(
                 [
-                    {"query_id": query_id, "query": text}
-                    for query_id, text in batch.items()
+                    {"query_id": query_id, "query": query_text}
                 ],
                 indent=2,
             )
@@ -1436,7 +1438,7 @@ def analyze_workload(
                 f"{json.dumps(attribute_vocabulary or {}, sort_keys=True)}\n"
                 "Allowed canonical joins: "
                 f"{json.dumps(list(join_vocabulary))}\n"
-                f"Question: {next(iter(batch.values()))}\n\n"
+                f"Question: {query_text}\n\n"
                 "Draft:\n"
                 f"{json.dumps(asdict(draft), indent=2, default=str)}"
             )
@@ -1460,12 +1462,21 @@ def analyze_workload(
                 draft,
                 plan=_normalize_plan_with_schema(
                     draft.plan,
-                    next(iter(batch.values())),
+                    query_text,
                     attribute_vocabulary=attribute_vocabulary,
                     join_vocabulary=join_vocabulary,
                 ),
             )
-            nl_requirements.append(draft)
+            return draft
+
+        worker_count = min(intent_max_workers, len(items))
+        if worker_count == 1:
+            nl_requirements = [_analyze_one(item) for item in items]
+        else:
+            from concurrent.futures import ThreadPoolExecutor
+
+            with ThreadPoolExecutor(max_workers=worker_count) as executor:
+                nl_requirements = list(executor.map(_analyze_one, items))
     else:
         nl_requirements = [
             _heuristic_nl_requirement(query_id, text)
@@ -1488,6 +1499,7 @@ def make_budgeted_intent_analyzer(
     entity_vocabulary: Sequence[str] = (),
     attribute_vocabulary: Optional[Mapping[str, Sequence[str]]] = None,
     join_vocabulary: Sequence[Tuple[str, str, str, str]] = (),
+    intent_max_workers: int = 1,
 ):
     """Adapt a WDIRS-compatible client to the system's analyzer callback."""
 
@@ -1504,6 +1516,7 @@ def make_budgeted_intent_analyzer(
             entity_vocabulary=entity_vocabulary,
             attribute_vocabulary=attribute_vocabulary,
             join_vocabulary=join_vocabulary,
+            intent_max_workers=intent_max_workers,
         )
 
     return analyzer
