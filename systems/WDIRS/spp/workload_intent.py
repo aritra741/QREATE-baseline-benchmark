@@ -148,11 +148,31 @@ def _predicate_spec(payload: object) -> Optional[PredicateSpec]:
     if reference is None:
         return None
     operator = str(payload.get("operator", "=")).strip().lower()
-    return PredicateSpec(
-        attribute=reference,
-        operator=operator,
-        value=payload.get("value"),
-    )
+    operator = {
+        "==": "=",
+        "eq": "=",
+        "<>": "!=",
+        "ne": "!=",
+        "neq": "!=",
+        "lt": "<",
+        "lte": "<=",
+        "le": "<=",
+        "gt": ">",
+        "gte": ">=",
+        "ge": ">=",
+        "like": "contains",
+        "is null": "is_null",
+        "not null": "is_not_null",
+        "is not null": "is_not_null",
+    }.get(operator, operator)
+    try:
+        return PredicateSpec(
+            attribute=reference,
+            operator=operator,
+            value=payload.get("value"),
+        )
+    except ValueError:
+        return None
 
 
 def _query_plan(payload: object) -> Optional[QueryPlan]:
@@ -199,13 +219,25 @@ def _query_plan(payload: object) -> Optional[QueryPlan]:
             right = _attribute_ref(value.get("right"))
             if left is None or right is None:
                 continue
-            joins.append(
-                JoinSpec(
-                    left,
-                    right,
-                    str(value.get("join_type", "inner")).lower(),
+            join_type = str(
+                value.get("join_type", "inner")
+            ).strip().lower()
+            join_type = {
+                "left join": "left",
+                "left outer": "left",
+                "left outer join": "left",
+                "inner join": "inner",
+            }.get(join_type, join_type)
+            try:
+                joins.append(
+                    JoinSpec(
+                        left,
+                        right,
+                        join_type,
+                    )
                 )
-            )
+            except ValueError:
+                continue
     plan = QueryPlan(
         projections=refs("projections"),
         group_by=refs("group_by"),

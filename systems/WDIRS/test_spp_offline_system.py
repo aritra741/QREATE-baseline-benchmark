@@ -1029,7 +1029,7 @@ def test_intent_payload_parses_typed_boolean_query_plan():
                                 "entity": "player",
                                 "attribute": "nationality",
                                 "semantic_type": "text",
-                                "operator": "=",
+                                "operator": "<>",
                                 "value": "French",
                             },
                         ],
@@ -1045,6 +1045,7 @@ def test_intent_payload_parses_typed_boolean_query_plan():
     assert requirement.plan.aggregates[0].attribute.semantic_type == "real"
     assert requirement.plan.predicate.kind == "or"
     assert requirement.plan.predicate.children[0].value == "American"
+    assert requirement.plan.predicate.children[1].operator == "!="
     assert ("player", "age") in requirement.attribute_bindings
 
 
