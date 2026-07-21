@@ -82,6 +82,12 @@ def main() -> int:
         default=None,
         help="Run an isolated relevance-ranked corpus subset smoke test.",
     )
+    parser.add_argument(
+        "--max-document-characters",
+        type=int,
+        default=8000,
+        help="Per-document character cap used only for subset smoke tests.",
+    )
     args = parser.parse_args()
 
     output = args.output.expanduser().resolve()
@@ -101,6 +107,7 @@ def main() -> int:
             [query["sql"] for query in queries],
             scratch / "source_data",
             max_documents_per_entity=args.max_documents_per_entity,
+            max_document_characters=args.max_document_characters,
         )
         config_module.SOURCE_DATA_DIR = subset_root
         runner_module.SOURCE_DATA_DIR = subset_root

@@ -5,6 +5,7 @@ Implements LLM-based extraction with schema stabilization and batching.
 
 import json
 import logging
+import threading
 import time
 from typing import Dict, List, Optional, Any, Set
 from dataclasses import dataclass
@@ -89,6 +90,7 @@ class OllamaClient:
         self.model = model
         self.timeout = timeout
         self.extra_body = dict(extra_body or {})
+        self._usage_local = threading.local()
         
         # Initialize OpenAI client (Ollama uses OpenAI-compatible API)
         self.client = OpenAI(
@@ -97,6 +99,14 @@ class OllamaClient:
         )
         
         logger.info(f"Initialized Ollama client: {base_url} with model {model}")
+
+    def clear_last_usage(self) -> None:
+        self._usage_local.value = None
+
+    def consume_last_usage(self) -> Optional[tuple[int, int]]:
+        value = getattr(self._usage_local, "value", None)
+        self._usage_local.value = None
+        return value
     
     def generate(
         self,
@@ -176,6 +186,10 @@ class OllamaClient:
                 GLOBAL_COUNTER.record(
                     input_tokens=recorded_in,
                     output_tokens=recorded_out,
+                )
+                self._usage_local.value = (
+                    int(recorded_in),
+                    int(recorded_out),
                 )
 
                 return content

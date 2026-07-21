@@ -10,6 +10,7 @@ from pathlib import Path
 import pytest
 
 from spp.budget_ledger import BudgetExhausted, GlobalBudgetLedger
+from spp.budgeted_llm import BudgetedLLMClient
 from spp.corpus_subset import build_representative_subset
 from spp.evidence_store import CellProvenance, EvidenceAnchor, EvidenceStore
 from spp.experiment import (
@@ -93,11 +94,41 @@ def test_representative_subset_is_partitioned_and_relevance_ranked(
         ["Show priority transactions in the north"],
         tmp_path / "subset",
         max_documents_per_entity=1,
+        max_document_characters=8,
     )
     assert root == tmp_path / "subset"
     assert selected == ["account/2.txt", "transaction/2.txt"]
     assert (root / "Example" / "account" / "2.txt").is_file()
     assert (root / "Example" / "transaction" / "2.txt").is_file()
+    assert (
+        root / "Example" / "account" / "2.txt"
+    ).read_text() == "priority"
+
+
+def test_budgeted_client_prefers_call_local_provider_usage():
+    class UsageClient:
+        model = "test"
+
+        def __init__(self):
+            self.usage = None
+
+        def clear_last_usage(self):
+            self.usage = None
+
+        def consume_last_usage(self):
+            usage, self.usage = self.usage, None
+            return usage
+
+        def generate(self, *_args, **_kwargs):
+            self.usage = (7, 3)
+            return "ok"
+
+    ledger = GlobalBudgetLedger(1_000)
+    client = BudgetedLLMClient(
+        UsageClient(), ledger, default_stage="test"
+    )
+    assert client.generate("prompt", max_tokens=100) == "ok"
+    assert ledger.actual_spent == 10
 
 
 def _config(label: str, requirement: QueryRequirement) -> SynthesisConfig:

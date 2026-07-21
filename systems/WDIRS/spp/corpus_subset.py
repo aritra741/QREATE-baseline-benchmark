@@ -14,9 +14,15 @@ def build_representative_subset(
     destination_root: Path,
     *,
     max_documents_per_entity: int,
+    max_document_characters: int | None = None,
 ) -> tuple[Path, list[str]]:
     if max_documents_per_entity < 1:
         raise ValueError("max documents per entity must be positive")
+    if (
+        max_document_characters is not None
+        and max_document_characters < 1
+    ):
+        raise ValueError("max document characters must be positive")
     source_dataset = Path(source_dataset).expanduser().resolve()
     terms = {
         token.lower()
@@ -46,7 +52,16 @@ def build_representative_subset(
             relative = path.relative_to(source_dataset)
             target = target_dataset / relative
             target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(path, target)
+            if max_document_characters is None:
+                shutil.copy2(path, target)
+            else:
+                text = path.read_text(
+                    encoding="utf-8", errors="replace"
+                )
+                target.write_text(
+                    text[:max_document_characters],
+                    encoding="utf-8",
+                )
             selected.append(str(relative))
     if not selected:
         raise ValueError(f"no source documents found under {source_dataset}")

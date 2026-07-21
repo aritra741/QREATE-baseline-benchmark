@@ -69,6 +69,10 @@ class BudgetedLLMClient:
                 "shared artifact already exists; caller must load it from cache "
                 "instead of dispatching the LLM call"
             )
+        clear_usage = getattr(self.client, "clear_last_usage", None)
+        consume_usage = getattr(self.client, "consume_last_usage", None)
+        if callable(clear_usage):
+            clear_usage()
         before_in = GLOBAL_COUNTER.input_tokens
         before_out = GLOBAL_COUNTER.output_tokens
         try:
@@ -82,8 +86,16 @@ class BudgetedLLMClient:
             # Provider usage may be unavailable after transport failures. Charge
             # any globally observed usage; otherwise conservatively charge the
             # prompt because it may already have reached the provider.
-            observed_in = GLOBAL_COUNTER.input_tokens - before_in
-            observed_out = GLOBAL_COUNTER.output_tokens - before_out
+            exact_usage = (
+                consume_usage() if callable(consume_usage) else None
+            )
+            if exact_usage is not None:
+                observed_in, observed_out = map(int, exact_usage)
+            elif callable(consume_usage):
+                observed_in, observed_out = 0, 0
+            else:
+                observed_in = GLOBAL_COUNTER.input_tokens - before_in
+                observed_out = GLOBAL_COUNTER.output_tokens - before_out
             self.ledger.reconcile(
                 reservation_id,
                 input_tokens=max(observed_in, input_estimate),
@@ -93,7 +105,11 @@ class BudgetedLLMClient:
             raise
         observed_in = GLOBAL_COUNTER.input_tokens - before_in
         observed_out = GLOBAL_COUNTER.output_tokens - before_out
-        if observed_out > 0:
+        exact_usage = consume_usage() if callable(consume_usage) else None
+        if exact_usage is not None:
+            observed_in, observed_out = map(int, exact_usage)
+            reconciled_output = observed_out
+        elif observed_out > 0:
             reconciled_output = observed_out
         else:
             try:
