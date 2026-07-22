@@ -604,6 +604,11 @@ def _normalize_plan_with_schema(
             return None
         if isinstance(value, (list, tuple)) and len(value) == 1:
             value = value[0]
+        if (
+            value is None
+            and predicate.operator not in {"is_null", "is_not_null"}
+        ):
+            return None
         if isinstance(value, str) and re.fullmatch(
             r"\$?[a-z_][a-z0-9_]*[./][a-z_][a-z0-9_]*",
             value.strip().lower(),
@@ -974,6 +979,223 @@ def _normalize_plan_with_schema(
             add_recovered(recovered)
             existing_values.add(literal.lower())
 
+    either_position = lowered.find("either")
+    if (
+        either_position >= 0
+        and re.search(r"\bbut\s+not\b", lowered[either_position:])
+        and re.search(r"\bor\b", lowered[either_position:])
+    ):
+        alternatives = [
+            match.group(0)
+            for match in proper_literals
+            if match.start() > either_position
+        ]
+        if len(alternatives) >= 3:
+            category_candidates = [
+                reference
+                for reference in context_pool
+                if (reference.entity, reference.attribute)
+                not in aggregate_keys | grouped_keys
+                and reference.semantic_type == "text"
+            ]
+            if category_candidates:
+                category = max(
+                    category_candidates,
+                    key=lambda reference: (
+                        reference.entity == subject_entity,
+                        reference.attribute
+                        not in {"name", f"{reference.entity}_name"},
+                    ),
+                )
+                relationship_candidates = [
+                    reference
+                    for reference in context_pool
+                    if reference.entity == subject_entity
+                    and (
+                        (reference.entity, reference.attribute)
+                        in grouped_keys
+                        or any(
+                            (
+                                reference.entity == left_entity
+                                and reference.attribute == left_attr
+                            )
+                            or (
+                                reference.entity == right_entity
+                                and reference.attribute == right_attr
+                            )
+                            for (
+                                left_entity,
+                                left_attr,
+                                right_entity,
+                                right_attr,
+                            ) in join_vocabulary
+                        )
+                    )
+                ]
+                if relationship_candidates:
+                    relationship = relationship_candidates[0]
+                    predicate = PredicateSpec(
+                        kind="or",
+                        children=(
+                            PredicateSpec(
+                                kind="and",
+                                children=(
+                                    PredicateSpec(
+                                        attribute=category,
+                                        operator="=",
+                                        value=alternatives[0],
+                                    ),
+                                    PredicateSpec(
+                                        attribute=category,
+                                        operator="!=",
+                                        value=alternatives[1],
+                                    ),
+                                ),
+                            ),
+                            PredicateSpec(
+                                attribute=relationship,
+                                operator="!=",
+                                value=alternatives[2],
+                            ),
+                        ),
+                    )
+
+    elif re.search(r",\s*or\b", lowered):
+        restriction_text = re.split(
+            r"\b(?:who|that)\b", text, maxsplit=1, flags=re.IGNORECASE
+        )[-1]
+        clauses = [
+            clause.strip(" .")
+            for clause in re.split(
+                r",\s*(?:or\s+)?", restriction_text, flags=re.IGNORECASE
+            )
+            if clause.strip(" .")
+        ]
+        recovered_clauses: List[PredicateSpec] = []
+        number_words = (
+            "zero one two three four five six seven eight nine ten "
+            "eleven twelve thirteen fourteen fifteen sixteen seventeen "
+            "eighteen nineteen twenty"
+        ).split()
+        all_schema_refs = [
+            AttributeRef(
+                entity,
+                attribute,
+                (
+                    "integer"
+                    if any(
+                        token in attribute
+                        for token in (
+                            "amount", "count", "number", "quantity", "year"
+                        )
+                    )
+                    else "text"
+                ),
+            )
+            for entity, attributes in (attribute_vocabulary or {}).items()
+            for attribute in attributes
+            if (entity, attribute) not in aggregate_keys | grouped_keys
+        ]
+        join_refs = [
+            reference
+            for reference in all_schema_refs
+            if reference.entity == subject_entity
+            and any(
+                (
+                    reference.entity == left_entity
+                    and reference.attribute == left_attr
+                )
+                or (
+                    reference.entity == right_entity
+                    and reference.attribute == right_attr
+                )
+                for (
+                    left_entity,
+                    left_attr,
+                    right_entity,
+                    right_attr,
+                ) in join_vocabulary
+            )
+        ]
+        for clause in clauses:
+            clause_lower = clause.lower()
+            clause_tokens = set(re.findall(r"[a-z0-9]+", clause_lower))
+            number_match = re.search(r"\b\d+(?:\.\d+)?\b", clause_lower)
+            numeric_value: Optional[object] = None
+            if number_match:
+                numeric_value = (
+                    float(number_match.group(0))
+                    if "." in number_match.group(0)
+                    else int(number_match.group(0))
+                )
+            else:
+                for number, word in enumerate(number_words):
+                    if re.search(rf"\b{word}\b", clause_lower):
+                        numeric_value = number
+                        break
+            proper = [
+                match.group(0)
+                for match in re.finditer(
+                    r"\b[A-Z][a-z]+(?:[- ][A-Z][a-z]+)*\b", clause
+                )
+                if match.start() > 0
+            ]
+            literal: Optional[object] = (
+                numeric_value
+                if numeric_value is not None
+                else (proper[-1] if proper else None)
+            )
+            if literal is None:
+                continue
+            scored = [
+                (
+                    len(set(reference.attribute.split("_")) & clause_tokens),
+                    reference.entity in {
+                        entity
+                        for entity in (attribute_vocabulary or {})
+                        if re.search(
+                            rf"\b{re.escape(entity)}s?\b", clause_lower
+                        )
+                    },
+                    reference.entity == subject_entity,
+                    reference,
+                )
+                for reference in all_schema_refs
+            ]
+            best = max(scored, default=None, key=lambda item: item[:3])
+            target = best[3] if best is not None and best[0] > 0 else (
+                join_refs[0] if join_refs else None
+            )
+            if target is None:
+                continue
+            if re.search(
+                r"\b(?:not|other than|different from)\b", clause_lower
+            ):
+                operator = "!="
+            elif re.search(
+                r"\b(?:more than|greater than|above|over|after)\b",
+                clause_lower,
+            ):
+                operator = ">"
+            elif re.search(
+                r"\b(?:less than|fewer than|below|under|before)\b",
+                clause_lower,
+            ):
+                operator = "<"
+            else:
+                operator = "="
+            recovered_clauses.append(
+                PredicateSpec(
+                    attribute=target,
+                    operator=operator,
+                    value=literal,
+                )
+            )
+        if len(recovered_clauses) >= 2:
+            predicate = PredicateSpec(
+                kind="or", children=tuple(recovered_clauses)
+            )
+
     existing_numbers = {
         value
         for value in existing_values
@@ -1026,7 +1248,6 @@ def _normalize_plan_with_schema(
     if (
         aggregates
         and aggregates[0].function == "count"
-        and aggregates[0].attribute is None
         and re.search(r"\b(known|non[- ]?null)\b", lowered)
         and attribute_vocabulary
     ):
@@ -1040,28 +1261,6 @@ def _normalize_plan_with_schema(
             reference.entity
             for reference in (*plan.projections, *plan.group_by)
         }
-        predicate_attributes: set[Tuple[str, str]] = set()
-
-        def collect_predicates(value: Optional[PredicateSpec]) -> None:
-            if value is None:
-                return
-            if (
-                value.attribute is not None
-                and value.operator != "is_not_null"
-            ):
-                predicate_attributes.add(
-                    (value.attribute.entity, value.attribute.attribute)
-                )
-            for child in value.children:
-                collect_predicates(child)
-
-        collect_predicates(predicate)
-        candidates = [
-            candidate
-            for candidate in candidates
-            if (candidate.entity, candidate.attribute)
-            not in predicate_attributes
-        ]
         if candidates:
             known_position = max(
                 lowered.find("known"),

@@ -2030,3 +2030,113 @@ def test_schema_context_repairs_small_model_contract_omissions():
         ),
     )
     assert len(repaired.joins) == 2
+
+    known = _normalize_plan_with_schema(
+        QueryPlan(
+            group_by=(AttributeRef("event", "category"),),
+            aggregates=(
+                AggregateSpec(
+                    "count",
+                    AttributeRef("event", "category"),
+                    "count_category",
+                ),
+            ),
+            predicate=PredicateSpec(
+                attribute=AttributeRef("event", "amount"),
+                operator=">",
+                value=0,
+            ),
+        ),
+        "How many have a known amount for each category?",
+        attribute_vocabulary={
+            "event": ("amount", "category"),
+        },
+    )
+    assert known.aggregates[0].attribute == AttributeRef("event", "amount")
+
+    null_filter = _normalize_plan_with_schema(
+        QueryPlan(
+            group_by=(AttributeRef("event", "category"),),
+            aggregates=(
+                AggregateSpec(
+                    "min",
+                    AttributeRef("event", "amount", "real"),
+                    "min_amount",
+                ),
+            ),
+            predicate=PredicateSpec(
+                attribute=AttributeRef("event", "group"),
+                operator="=",
+                value=None,
+            ),
+        ),
+        "What is the lowest amount for each category?",
+    )
+    assert null_filter.predicate is None
+
+    alternatives = _normalize_plan_with_schema(
+        QueryPlan(
+            group_by=(AttributeRef("event", "group"),),
+            aggregates=(
+                AggregateSpec(
+                    "sum",
+                    AttributeRef("event", "amount", "real"),
+                    "sum_amount",
+                ),
+            ),
+        ),
+        (
+            "For each group, total the amount for records that are either "
+            "Premium but not Suspended, or do not belong to Legacy Group."
+        ),
+        attribute_vocabulary={
+            "event": ("amount", "category", "group"),
+        },
+        context_references=(
+            AttributeRef("event", "amount", "real"),
+            AttributeRef("event", "category"),
+            AttributeRef("event", "group"),
+        ),
+        join_vocabulary=(
+            ("event", "group", "group", "group_name"),
+        ),
+    )
+    assert alternatives.predicate.kind == "or"
+    assert alternatives.predicate.children[0].children[0].attribute == (
+        AttributeRef("event", "category")
+    )
+    assert alternatives.predicate.children[1].attribute == AttributeRef(
+        "event", "group"
+    )
+
+    disjunction = _normalize_plan_with_schema(
+        QueryPlan(
+            group_by=(AttributeRef("event", "category"),),
+            aggregates=(
+                AggregateSpec(
+                    "sum",
+                    AttributeRef("event", "amount", "real"),
+                    "sum_amount",
+                ),
+            ),
+        ),
+        (
+            "By category, total the amount for events that are not on Legacy "
+            "Group, have more than two retries, or belong to an account opened "
+            "in a year other than 1949."
+        ),
+        attribute_vocabulary={
+            "event": ("account_id", "amount", "category", "group", "retries"),
+            "account": ("account_key", "opened_year"),
+        },
+        join_vocabulary=(
+            ("event", "account_id", "account", "account_key"),
+        ),
+    )
+    assert disjunction.predicate.kind == "or"
+    assert len(disjunction.predicate.children) == 3
+    assert disjunction.predicate.children[0].operator == "!="
+    assert disjunction.predicate.children[1].value == 2
+    assert disjunction.predicate.children[2].attribute == AttributeRef(
+        "account", "opened_year", "integer"
+    )
