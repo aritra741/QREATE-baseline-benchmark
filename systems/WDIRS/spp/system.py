@@ -145,6 +145,13 @@ class OfflineSynthesisSystem:
         evidence_path = output_dir / "evidence.sqlite"
         with EvidenceStore(evidence_path) as evidence_store:
             self.backend.prepare(intent, evidence_store, ledger)
+            prune_configs = getattr(self.backend, "prune_configs", None)
+            if callable(prune_configs):
+                configs = list(prune_configs(configs))
+                if not configs:
+                    raise ValueError(
+                        "backend equivalence pruning removed every configuration"
+                    )
             construction_costs = {
                 config.config_id: int(
                     self.backend.estimate_full_cost(

@@ -435,6 +435,7 @@ def apply_population(
     column_semantic_types: Optional[Dict[str, str]] = None,
     identity_columns: Optional[List[str]] = None,
     numeric_columns: Optional[List[str]] = None,
+    protected_columns: Optional[List[str]] = None,
     entity_resolver: Optional[Any] = None,
     llm_client: Optional[Any] = None,
     llm_normalize_fn: Optional[Callable[[str], str]] = None,
@@ -449,17 +450,19 @@ def apply_population(
     then (implicit type coercion), then missing-value handling last.
     """
     column_semantic_types = column_semantic_types or {}
+    protected_columns = protected_columns or []
     if identity_columns is None:
         identity_columns = [
             c
             for c, t in column_semantic_types.items()
-            if t in ("PERSON", "ORG", "GPE")
+            if str(t).upper() in ("PERSON", "ORG", "GPE")
         ]
     if numeric_columns is None:
         numeric_columns = [
             c
             for c, t in column_semantic_types.items()
-            if t in ("MONEY", "QUANTITY", "QUANTITY_COUNT")
+            if str(t).upper()
+            in ("MONEY", "QUANTITY", "QUANTITY_COUNT", "INTEGER", "REAL")
         ]
 
     diag = PopulationDiagnostics(
@@ -527,7 +530,9 @@ def apply_population(
             value = row.get(column)
             if not isinstance(value, str) or not value:
                 continue
-            if config.norm_strategy == "llm" and llm_normalize_fn is not None:
+            if column in protected_columns:
+                normalized = _dictionary_normalize(value)
+            elif config.norm_strategy == "llm" and llm_normalize_fn is not None:
                 normalized = llm_normalize_fn(value)
             elif config.norm_strategy == "llm" and llm_client is not None:
                 normalized = normalized_by_column.get(column, {}).get(
@@ -535,6 +540,14 @@ def apply_population(
                 )
             else:
                 normalized = _dictionary_normalize(value)
+            # A normalizer may repair spelling, but case-only rewrites destroy
+            # exact predicate and join keys without adding semantic evidence.
+            cleaned_original = _dictionary_normalize(value)
+            if (
+                isinstance(normalized, str)
+                and normalized.casefold() == cleaned_original.casefold()
+            ):
+                normalized = cleaned_original
             if normalized != value:
                 diag.n_values_normalized += 1
                 row[column] = normalized
@@ -610,10 +623,17 @@ def apply_population(
     # semantics: "drop" removes only wholly empty semantic rows, rather than
     # listwise-deleting a useful entity because one optional attribute is null.
     candidate_columns = list(data_columns)
+    mutable_columns = [
+        column
+        for column in candidate_columns
+        if column not in set(protected_columns) | set(identity_columns)
+    ]
     if config.miss_strategy in {"mean", "median"}:
-        fill_columns = numeric_columns
+        fill_columns = [
+            column for column in numeric_columns if column in mutable_columns
+        ]
     else:
-        fill_columns = candidate_columns
+        fill_columns = mutable_columns
     missing_before = sum(
         1 for row in working for c in candidate_columns if row.get(c) in (None, "")
     )
@@ -622,7 +642,7 @@ def apply_population(
     if config.miss_strategy == "drop":
         working = [
             row for row in working
-            if any(row.get(c) not in (None, "") for c in fill_columns)
+            if any(row.get(c) not in (None, "") for c in candidate_columns)
         ]
         diag.n_rows_dropped_for_missing = diag.n_input_rows - len(working)
     else:

@@ -527,6 +527,8 @@ class DataLayer:
         self,
         table_name: str,
         extraction_results: list,
+        *,
+        doc_id_by_chunk_id: Optional[Dict[str, str]] = None,
     ) -> List[str]:
         """
         Insert all records from a list of ExtractionResult objects in a single
@@ -536,6 +538,7 @@ class DataLayer:
         Returns list of (row_id, chunk_id) tuples.
         """
         row_provenance_pairs: List[tuple] = []
+        cell_provenance_triples: List[tuple] = []
 
         # Fetch real column names once to strip LLM-hallucinated keys.
         with self.engine.connect() as _c:
@@ -570,12 +573,23 @@ class DataLayer:
                         sql = f"INSERT INTO {table_name} ({columns_str}) VALUES ({placeholders})"
                         conn.execute(text(sql), params)
                         row_provenance_pairs.append((row_id, extraction_result.chunk_id))
+                        if doc_id_by_chunk_id is not None:
+                            chunk_id = str(extraction_result.chunk_id)
+                            doc_id = doc_id_by_chunk_id.get(chunk_id)
+                            if doc_id is not None:
+                                cell_provenance_triples.extend(
+                                    (row_id, column, chunk_id, doc_id)
+                                    for column, value in clean.items()
+                                    if value is not None and column != "row_id"
+                                )
 
                 conn.commit()
             except Exception as e:
                 logger.error(f"Error bulk inserting into {table_name}: {e}")
                 raise
 
+        if cell_provenance_triples:
+            self.bulk_insert_cell_provenance(cell_provenance_triples)
         return row_provenance_pairs
 
     def bulk_insert_provenance(

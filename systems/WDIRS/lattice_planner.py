@@ -34,6 +34,7 @@ class ColumnInfo:
     # These are used as normalization hints during extraction so the LLM stores
     # values in exactly the form the queries expect.
     predicate_literals: Set[str] = field(default_factory=set)
+    type_evidence: Set[str] = field(default_factory=set)
     is_join_key: bool = False
     is_group_by: bool = False
     is_aggregated: bool = False
@@ -148,6 +149,8 @@ class LatticePlanner:
                         table_name=table_name,
                         column_name=col_name
                     )
+
+            self._record_literal_type_evidence(parsed)
             
             # Add predicates
             for table_name, col_name, predicate in predicates:
@@ -339,17 +342,56 @@ class LatticePlanner:
                         predicate = f"{column} {operator} {value}"
                         predicates.append((table.lower(), column.lower(), predicate))
 
-                        # For equality predicates, record the raw literal so
-                        # the extractor can normalize extracted values to match.
-                        if isinstance(comparison, exp.EQ) and isinstance(right, exp.Literal):
-                            literal_val = right.this
-                            tbl_entry = self.lattice.tables.get(table.lower())
-                            if tbl_entry is not None:
-                                col_info = tbl_entry.columns.get(column.lower())
-                                if col_info is not None:
-                                    col_info.predicate_literals.add(literal_val)
-
         return predicates
+
+    def _record_literal_type_evidence(
+        self, parsed: exp.Expression
+    ) -> None:
+        """Record literal types after referenced columns exist in the lattice."""
+        alias_map = self._build_alias_map(parsed)
+        primary_table: Optional[str] = None
+        from_clause = parsed.args.get("from_") or parsed.args.get("from")
+        if from_clause:
+            table = next(from_clause.find_all(exp.Table), None)
+            if table is not None and table.name:
+                primary_table = alias_map.get(
+                    table.name.lower(), table.name.lower()
+                )
+        comparisons = (exp.EQ, exp.GT, exp.LT, exp.GTE, exp.LTE, exp.NEQ)
+        for where in parsed.find_all(exp.Where):
+            for comparison in where.find_all(*comparisons):
+                left, right = comparison.left, comparison.right
+                if not isinstance(left, exp.Column) or not isinstance(
+                    right, exp.Literal
+                ):
+                    continue
+                table_name = self._resolve_table(
+                    left.table or None, alias_map, primary_table
+                )
+                if table_name is None:
+                    continue
+                table_info = self.lattice.tables.get(table_name)
+                column_info = (
+                    table_info.columns.get(left.name.lower())
+                    if table_info is not None
+                    else None
+                )
+                if column_info is None:
+                    continue
+                rendered = str(right.this)
+                if right.is_string:
+                    kind = (
+                        "date"
+                        if re.fullmatch(
+                            r"\d{4}[-/]\d{1,2}[-/]\d{1,2}", rendered
+                        )
+                        else "text"
+                    )
+                else:
+                    kind = "numeric"
+                column_info.type_evidence.add(kind)
+                if isinstance(comparison, exp.EQ):
+                    column_info.predicate_literals.add(rendered)
 
     def _get_operator(self, comparison: exp.Expression) -> str:
         """Get operator string from comparison expression."""
@@ -461,13 +503,14 @@ class LatticePlanner:
                     col_info = self.lattice.tables[table].columns.get(col_name.lower())
                     if col_info is not None:
                         col_info.is_aggregated = True
-                        # SUM/AVG/MIN/MAX always imply a numeric column.
-                        # Promote to QUANTITY when the heuristic left it as OTHER
-                        # so the extractor knows to request a JSON number.
-                        if not isinstance(agg, exp.Count) and col_info.semantic_type == "OTHER":
-                            # Aggregated numeric columns default to QUANTITY.
-                            # QUANTITY_COUNT is determined by the LLM based on column name,
-                            # table context, and workload predicates.
+                        # SUM and AVG require numeric input. MIN/MAX also apply
+                        # to text and dates, so they cannot establish a type.
+                        if isinstance(agg, (exp.Sum, exp.Avg)):
+                            col_info.type_evidence.add("numeric")
+                        if (
+                            isinstance(agg, (exp.Sum, exp.Avg))
+                            and col_info.semantic_type == "OTHER"
+                        ):
                             col_info.semantic_type = "QUANTITY"
 
         # GROUP BY columns
@@ -517,11 +560,22 @@ class LatticePlanner:
         
         for table_name, table_info in self.lattice.tables.items():
             for col_name, col_info in table_info.columns.items():
-                # We previously used string-matching heuristics here, but that is
-                # domain-overfitting (e.g. hardcoding 'price' -> MONEY).
-                # Instead, we rely entirely on the LLM to infer the semantic type
-                # from the column name, table context, and observed workload predicates.
-                if self.llm_client:
+                # Literal and SQL-operator evidence is deterministic and takes
+                # precedence over an LLM guess. This prevents categorical
+                # dimensions from being requested as JSON numbers.
+                if (
+                    "text" in col_info.type_evidence
+                    and "numeric" not in col_info.type_evidence
+                ):
+                    semantic_type = "OTHER"
+                elif (
+                    "date" in col_info.type_evidence
+                    and "numeric" not in col_info.type_evidence
+                ):
+                    semantic_type = "DATE"
+                elif "numeric" in col_info.type_evidence:
+                    semantic_type = "QUANTITY"
+                elif self.llm_client:
                     semantic_type = self._llm_semantic_type(
                         col_name,
                         table_name,
@@ -646,10 +700,8 @@ Respond with only the semantic type label (one word, uppercase).
         schema = {}
         
         for col_name, col_info in table_info.columns.items():
-            # Aggregated columns (SUM/AVG/MIN/MAX) are always numeric.
-            # Fall back to QUANTITY for aggregated columns still typed as OTHER.
             sem = col_info.semantic_type
-            if col_info.is_aggregated and sem == "OTHER":
+            if "numeric" in col_info.type_evidence and sem == "OTHER":
                 sem = "QUANTITY"
             schema[col_name] = sem
         

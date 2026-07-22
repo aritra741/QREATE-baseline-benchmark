@@ -161,6 +161,233 @@ def _query_validation_error(database_path: Path, sql: str) -> str | None:
     return None
 
 
+def _semantic_validation_errors(
+    requirement: QueryRequirement,
+    config: SynthesisConfig,
+    sql: str,
+) -> list[str]:
+    """Check NL/IR atoms that SQLite syntax validation cannot detect."""
+    lowered_text = requirement.text.lower()
+    normalized_sql = re.sub(r'["`]', "", sql.lower())
+    errors: list[str] = []
+
+    expected_function = None
+    aggregate_phrases = (
+        (r"\b(average|mean)\b", "avg"),
+        (r"\b(fewest|lowest|smallest|minimum)\b", "min"),
+        (r"\b(largest|highest|greatest|maximum)\b", "max"),
+        (r"\b(total|combined|altogether|sum)\b", "sum"),
+        (r"\b(how many|count)\b", "count"),
+    )
+    for pattern, function in aggregate_phrases:
+        if re.search(pattern, lowered_text):
+            expected_function = function
+            break
+    if expected_function and not re.search(
+        rf"\b{expected_function}\s*\(", normalized_sql
+    ):
+        errors.append(f"missing {expected_function.upper()} aggregate")
+
+    if requirement.plan is not None:
+        for aggregate in requirement.plan.aggregates:
+            if aggregate.attribute is None:
+                continue
+            pattern = (
+                rf"\b{aggregate.function}\s*\(\s*(?:distinct\s+)?"
+                rf"(?:[a-z_][a-z0-9_]*\.)?{re.escape(aggregate.attribute.attribute)}\b"
+            )
+            if not re.search(pattern, normalized_sql):
+                errors.append(
+                    "aggregate target must be "
+                    f"{aggregate.attribute.entity}.{aggregate.attribute.attribute}"
+                )
+        group_match = re.search(
+            r"\bgroup\s+by\b(.+?)(?:\border\s+by\b|\blimit\b|$)",
+            normalized_sql,
+            re.DOTALL,
+        )
+        group_sql = group_match.group(1) if group_match else ""
+        for reference in requirement.plan.group_by:
+            if not re.search(
+                rf"\b{re.escape(reference.attribute)}\b", group_sql
+            ):
+                errors.append(
+                    f"missing GROUP BY dimension {reference.entity}.{reference.attribute}"
+                )
+        for join in requirement.plan.joins:
+            if join.left.entity == join.right.entity:
+                continue
+            left = re.escape(join.left.attribute)
+            right = re.escape(join.right.attribute)
+            if not (
+                re.search(
+                    rf"\b{left}\b\s*=\s*(?:[a-z_][a-z0-9_]*\.)?\b{right}\b",
+                    normalized_sql,
+                )
+                or re.search(
+                    rf"\b{right}\b\s*=\s*(?:[a-z_][a-z0-9_]*\.)?\b{left}\b",
+                    normalized_sql,
+                )
+            ):
+                errors.append(
+                    "missing join edge "
+                    f"{join.left.entity}.{join.left.attribute}="
+                    f"{join.right.entity}.{join.right.attribute}"
+                )
+
+        def check_predicate(predicate) -> None:
+            if predicate is None:
+                return
+            if predicate.kind in {"and", "or"}:
+                for child in predicate.children:
+                    check_predicate(child)
+                return
+            attribute = predicate.attribute.attribute
+            value = predicate.value
+            value_rendered = str(value).strip().lower()
+            value_is_explicit = (
+                isinstance(value, (int, float))
+                or value_rendered in lowered_text
+            )
+            if value_is_explicit and not re.search(
+                rf"\b{re.escape(attribute)}\b", normalized_sql
+            ):
+                errors.append(f"missing predicate attribute {attribute}")
+            if (
+                value_is_explicit
+                and predicate.operator not in {"is_null", "is_not_null", "contains"}
+                and value_rendered not in normalized_sql
+            ):
+                errors.append(f"missing predicate literal {value!r}")
+
+        check_predicate(requirement.plan.predicate)
+
+    if "matching" in lowered_text and len(requirement.entities) > 1:
+        referenced_tables = set(
+            re.findall(
+                r"\b(?:from|join)\s+([a-z_][a-z0-9_]*)",
+                normalized_sql,
+            )
+        )
+        for entity in requirement.entities:
+            if entity.lower() not in referenced_tables:
+                errors.append(f"missing matched entity {entity}")
+
+    # Preserve explicit numeric restrictions even when the LLM omitted the
+    # entire predicate from its plan.
+    for number in re.findall(r"\b\d+(?:\.\d+)?\b", lowered_text):
+        if not re.search(rf"(?<![a-z0-9_]){re.escape(number)}(?![a-z0-9_])", normalized_sql):
+            errors.append(f"missing numeric literal {number}")
+    word_numbers = {
+        "one": 1,
+        "two": 2,
+        "three": 3,
+        "four": 4,
+        "five": 5,
+        "six": 6,
+        "seven": 7,
+        "eight": 8,
+        "nine": 9,
+        "ten": 10,
+    }
+    for word, value in word_numbers.items():
+        if re.search(rf"\b{word}\s+million\b", lowered_text):
+            rendered = str(value * 1_000_000)
+            if rendered not in normalized_sql:
+                errors.append(f"missing numeric literal {rendered}")
+
+    # Capitalized spans inside a sentence are categorical literals. Attribute
+    # acronyms (NBA/FIBA/MVP) are all-caps and therefore excluded naturally.
+    ignored_literals = {
+        "among", "break", "for", "group", "how", "on", "what",
+        "january", "february", "march", "april", "may", "june",
+        "july", "august", "september", "october", "november", "december",
+    }
+    schema_phrases = {
+        column.lower().replace("_", " ")
+        for relation in config.schema.relations
+        for column in relation.attributes
+    } | {
+        relation.name.lower().replace("_", " ")
+        for relation in config.schema.relations
+    }
+    for match in re.finditer(
+        r"\b[A-Z][a-z]+(?:[- ][A-Z][a-z]+)*\b", requirement.text
+    ):
+        literal = match.group(0)
+        if (
+            match.start() == 0
+            or literal.lower() in ignored_literals
+            or any(
+                literal.lower() in schema_phrase
+                for schema_phrase in schema_phrases
+            )
+        ):
+            continue
+        if literal.lower() not in normalized_sql:
+            errors.append(f"missing categorical literal {literal!r}")
+            continue
+        if literal not in sql:
+            errors.append(
+                f"categorical literal casing must match {literal!r}"
+            )
+        predicate_match = re.search(
+            rf"\b([a-z_][a-z0-9_.]*)\s*(?:=|!=|<>)\s*"
+            rf"'{re.escape(literal.lower())}'",
+            normalized_sql,
+        )
+        if predicate_match and re.search(
+            rf"\bbased\s+in\s+{re.escape(literal.lower())}\b",
+            lowered_text,
+        ):
+            attribute = predicate_match.group(1).split(".")[-1]
+            if not any(
+                token in attribute
+                for token in (
+                    "location", "city", "place", "region", "address",
+                    "headquarter", "home", "base",
+                )
+            ):
+                errors.append(
+                    f"literal {literal!r} is bound to non-location column "
+                    f"{attribute}"
+                )
+
+    all_columns = {
+        column.lower()
+        for relation in config.schema.relations
+        for column in relation.attributes
+    }
+    for _attribute, literal in re.findall(
+        r"\b([a-z_][a-z0-9_.]*)\s*(?:=|!=|<>|<=|>=|<|>)\s*'([^']*)'",
+        normalized_sql,
+    ):
+        if literal in all_columns and literal.replace("_", " ") not in lowered_text:
+            errors.append(f"invented schema-name literal {literal!r}")
+
+    # "No <measure>" means equality to zero, not a non-negative range.
+    if (
+        " no " in f" {lowered_text} "
+        and not re.search(
+            r"\bno\s+(?:more|fewer|less)\s+than\b", lowered_text
+        )
+    ):
+        for relation in config.schema.relations:
+            for column in relation.attributes:
+                phrase = column.replace("_", " ")
+                if phrase in lowered_text and re.search(
+                    rf"\bno\b[^,.?]*\b{re.escape(phrase.split()[-1])}\b",
+                    lowered_text,
+                ):
+                    if not re.search(
+                        rf"\b{re.escape(column)}\b\s*=\s*0\b",
+                        normalized_sql,
+                    ):
+                        errors.append(f"{column} must equal zero")
+
+    return list(dict.fromkeys(errors))
+
+
 def make_nl2sql_compiler(llm_client: Any):
     """Return an ``OfflineSynthesisSystem`` compiler callback."""
 
@@ -213,6 +440,9 @@ def make_nl2sql_compiler(llm_client: Any):
                 and _query_validation_error(
                     database_path, deterministic_sql
                 ) is None
+                and not _semantic_validation_errors(
+                    requirement, config, deterministic_sql
+                )
             ):
                 return deterministic_sql
         schema_payload = [
@@ -266,6 +496,13 @@ def make_nl2sql_compiler(llm_client: Any):
         except ValueError:
             sql = response.strip()
         initial_error = _query_validation_error(database_path, sql)
+        initial_semantic_errors = _semantic_validation_errors(
+            requirement, config, sql
+        )
+        if initial_error is None and initial_semantic_errors:
+            initial_error = "semantic mismatch: " + "; ".join(
+                initial_semantic_errors
+            )
         verification_prompt = (
             "Check whether the SQLite query exactly answers the stated "
             "analytical intent using the supplied schema. Verify requested "
@@ -313,6 +550,14 @@ def make_nl2sql_compiler(llm_client: Any):
                 corrected_error = _query_validation_error(
                     database_path, corrected_sql
                 )
+                if corrected_error is None:
+                    semantic_errors = _semantic_validation_errors(
+                        requirement, config, corrected_sql
+                    )
+                    if semantic_errors:
+                        corrected_error = "semantic mismatch: " + "; ".join(
+                            semantic_errors
+                        )
             except ValueError:
                 corrected_error = "corrected response contains no SQL"
         elif (
@@ -361,6 +606,14 @@ def make_nl2sql_compiler(llm_client: Any):
             repaired_error = _query_validation_error(
                 database_path, repaired_sql
             )
+            if repaired_error is None:
+                semantic_errors = _semantic_validation_errors(
+                    requirement, config, repaired_sql
+                )
+                if semantic_errors:
+                    repaired_error = "semantic mismatch: " + "; ".join(
+                        semantic_errors
+                    )
         except ValueError:
             pass
         if repaired_sql and repaired_error is None:

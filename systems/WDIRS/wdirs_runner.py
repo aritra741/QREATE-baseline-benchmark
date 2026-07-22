@@ -1787,7 +1787,7 @@ class WDIRSRunner:
     ) -> Tuple[List[str], List[str]]:
         """
         Load raw source documents for a table from source_data/<dataset>/<table_name>/*.txt.
-        Returns (texts, synthetic_chunk_ids) for projection fast-path extraction.
+        Returns (texts, source_document_ids) for projection fast-path extraction.
         """
         table_dir = dataset_path / table_name
         if not table_dir.exists():
@@ -1804,7 +1804,7 @@ class WDIRSRunner:
             if not txt.strip():
                 continue
             texts.append(txt)
-            chunk_ids.append(f"doc::{table_name}::{p.stem}")
+            chunk_ids.append(str(p.relative_to(dataset_path)))
         return texts, chunk_ids
 
     def _global_extraction(self, lattice) -> int:
@@ -1902,17 +1902,56 @@ class WDIRSRunner:
                             col_batch_size_override=col_batch_override,
                         )
 
+                        source_by_id = dict(zip(source_ids, source_texts))
+                        for extraction_result in results:
+                            source_text = source_by_id.get(
+                                str(extraction_result.chunk_id), ""
+                            )
+                            validated_records = []
+                            validated_spans = []
+                            for record_index, record in enumerate(
+                                extraction_result.records
+                            ):
+                                record_spans = (
+                                    extraction_result.spans[record_index]
+                                    if extraction_result.spans
+                                    and record_index
+                                    < len(extraction_result.spans)
+                                    else None
+                                )
+                                validated = _validate_record(
+                                    record,
+                                    sql_schema,
+                                    [source_text] if source_text else [],
+                                    entity_col or "",
+                                    record_spans,
+                                )
+                                if validated:
+                                    validated_records.append(validated)
+                                    validated_spans.append(
+                                        record_spans or {}
+                                    )
+                            extraction_result.records = validated_records
+                            extraction_result.spans = validated_spans
+
                         table_records = sum(len(r.records) for r in results)
                         total_records += table_records
-                        prov_pairs = self.data_layer.bulk_insert_records(table_name, results)
+                        prov_pairs = self.data_layer.bulk_insert_records(
+                            table_name,
+                            results,
+                            doc_id_by_chunk_id={
+                                source_id: source_id
+                                for source_id in source_ids
+                            },
+                        )
                         self.data_layer.bulk_insert_provenance(table_name, prov_pairs)
                         logger.info(
                             f"[ProjectionFastPath] {table_name}: extracted {table_records} rows "
                             f"from {len(source_texts)} source docs"
                         )
                         
-                        # Projection extraction uses synthetic document IDs, but
-                        # runtime deltas (when enabled) need actual chunk IDs.
+                        # Runtime deltas (when enabled) still need ingested
+                        # source-chunk IDs rather than document-level anchors.
                         candidate_chunk_ids = self.data_layer.get_candidates(table_name)
                         candidate_chunks = self.data_layer.get_chunks_by_ids(
                             candidate_chunk_ids
@@ -2485,12 +2524,17 @@ class WDIRSRunner:
         self,
         table_names: List[str],
         population_config: "Any" = None,
+        *,
+        semantic_type_overrides: "Optional[Dict[str, Dict[str, str]]]" = None,
+        protected_columns: "Optional[Dict[str, List[str]]]" = None,
     ) -> "Dict[str, List[Dict[str, Any]]]":
         """Materialize a config jointly so ER preserves cross-table joins."""
         from spp.population import apply_population, _resolve_entities_for_column
         from spp.population_config import PopulationConfig
 
         config = population_config or PopulationConfig()
+        semantic_type_overrides = semantic_type_overrides or {}
+        protected_columns = protected_columns or {}
         selected = set(table_names)
         join_pairs = [
             pair
@@ -2507,7 +2551,12 @@ class WDIRSRunner:
 
         populated: Dict[str, List[Dict[str, Any]]] = {}
         for table_name in table_names:
-            semantic_types = self.lattice_planner.get_table_schema(table_name)
+            semantic_types = dict(
+                self.lattice_planner.get_table_schema(table_name)
+            )
+            semantic_types.update(
+                semantic_type_overrides.get(table_name, {})
+            )
             identity_col = self.identity_columns.get(table_name)
             local_identity = (
                 [identity_col]
@@ -2520,6 +2569,7 @@ class WDIRSRunner:
                 table_name=table_name,
                 column_semantic_types=semantic_types,
                 identity_columns=local_identity,
+                protected_columns=protected_columns.get(table_name, []),
                 entity_resolver=self.entity_resolver,
                 llm_client=self.llm_client,
                 llm_cache=self._population_llm_cache,
@@ -2536,8 +2586,11 @@ class WDIRSRunner:
                 for row in populated[right_table]
                 if row.get(right_col) not in (None, "")
             ]
-            semantic_type = self.lattice_planner.get_table_schema(left_table).get(
-                left_col, "OTHER"
+            semantic_type = semantic_type_overrides.get(left_table, {}).get(
+                left_col,
+                self.lattice_planner.get_table_schema(left_table).get(
+                    left_col, "OTHER"
+                ),
             )
             canonical_map = _resolve_entities_for_column(
                 combined,

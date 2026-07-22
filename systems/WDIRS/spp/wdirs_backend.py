@@ -7,12 +7,14 @@ new-system schema candidates.
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 import logging
 import math
 import re
 import tempfile
+from dataclasses import replace
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Sequence
 
@@ -44,6 +46,12 @@ class WDIRSPrimitiveBackend:
         self._corpus_text = ""
         self._table_names: List[str] = []
         self._original_llm_client = runner.llm_client
+        self._population_cache: Dict[str, Dict[str, List[dict]]] = {}
+        self._evidence_store: EvidenceStore | None = None
+        self._shared_provenance: List[CellProvenance] = []
+        self._supported_source_cells: Dict[
+            tuple[str, str, str], object
+        ] = {}
 
     def reproducibility_manifest(self) -> dict:
         return {
@@ -61,6 +69,11 @@ class WDIRSPrimitiveBackend:
             "runtime_delta_attribute_discovery": bool(
                 getattr(self.runner, "enable_attribute_discovery", True)
             ),
+            "config_equivalence_pruning": {
+                "preprocessing": "shared_extraction_fixed",
+                "normalization": "workload_columns_surface_preserved",
+                "missing_values": "workload_columns_not_imputed",
+            },
             "schema_workload_query_count": len(
                 self.schema_workload_queries
             ),
@@ -105,6 +118,7 @@ class WDIRSPrimitiveBackend:
         ledger: GlobalBudgetLedger,
     ) -> None:
         self.intent = intent
+        self._evidence_store = evidence_store
         sql_queries = list(self.schema_workload_queries) or [
             requirement.text
             for requirement in intent.requirements
@@ -159,6 +173,14 @@ class WDIRSPrimitiveBackend:
             content = "\n".join(chunk.content for chunk in ordered)
             corpus_parts.append(content.lower())
             evidence_store.add_document(document_id, content)
+            document_anchor = EvidenceAnchor.create(
+                document_id=document_id,
+                text=content,
+                start=0,
+                end=len(content),
+                anchor_type="source_document",
+                metadata={"projection_fastpath": True},
+            )
             anchors = [
                 EvidenceAnchor.create(
                     document_id=document_id,
@@ -170,7 +192,9 @@ class WDIRSPrimitiveBackend:
                 )
                 for chunk in ordered
             ]
-            evidence_store.add_anchors(anchors)
+            evidence_store.add_anchors([document_anchor, *anchors])
+            anchor_by_chunk[document_id] = document_anchor.anchor_id
+            content_by_chunk[document_id] = content.lower()
             for chunk, anchor in zip(ordered, anchors):
                 anchor_by_chunk[str(chunk.chunk_id)] = anchor.anchor_id
                 content_by_chunk[str(chunk.chunk_id)] = chunk.content.lower()
@@ -198,8 +222,18 @@ class WDIRSPrimitiveBackend:
                 table, record = record_entry
                 value = record.get(row.column_name)
                 rendered = str(value).strip().lower() if value is not None else ""
+                source_text = content_by_chunk.get(str(row.chunk_id), "")
                 restored = bool(
-                    rendered and rendered in content_by_chunk.get(str(row.chunk_id), "")
+                    rendered
+                    and (
+                        rendered in source_text
+                        or (
+                            isinstance(value, (int, float))
+                            and not isinstance(value, bool)
+                            and format(value, "g")
+                            in source_text.replace(",", "")
+                        )
+                    )
                 )
                 provenance_rows.append(
                     CellProvenance(
@@ -214,6 +248,16 @@ class WDIRSPrimitiveBackend:
                     )
                 )
             evidence_store.add_cell_provenance(provenance_rows)
+            self._shared_provenance = provenance_rows
+            self._supported_source_cells = {
+                (
+                    provenance.relation,
+                    provenance.row_identity,
+                    provenance.column,
+                ): json.loads(provenance.value_json)
+                for provenance in provenance_rows
+                if provenance.entailed and provenance.span_restored
+            }
         except Exception as exc:
             # Older WDIRS caches may predate cell-level provenance. Row-level
             # support remains available through source chunks and is reflected
@@ -242,7 +286,8 @@ class WDIRSPrimitiveBackend:
         # Admission upper bound only. Actual reporting always comes from ledger.
         return int(
             llm_axes * max(self._row_count(), 1) * 48
-            + len(requirements) * 4_096
+            # Initial compile, semantic verifier, and one bounded repair.
+            + len(requirements) * 12_288
         )
 
     def completion_reserve(
@@ -255,12 +300,194 @@ class WDIRSPrimitiveBackend:
         )
         return cheapest
 
+    def prune_configs(
+        self, configs: Sequence[SynthesisConfig]
+    ) -> Sequence[SynthesisConfig]:
+        """Collapse axes that the shared WDIRS extraction cannot replay."""
+        representatives: Dict[tuple[str, str, str, str], SynthesisConfig] = {}
+        lattice_tables = getattr(
+            self.runner.lattice_planner.lattice, "tables", {}
+        )
+
+        def evidence_type(table: str, column: str) -> str | None:
+            candidates = []
+            if table in lattice_tables:
+                candidates.append(lattice_tables[table].columns.get(column))
+            if not candidates or candidates == [None]:
+                candidates = [
+                    table_info.columns.get(column)
+                    for table_info in lattice_tables.values()
+                    if column in table_info.columns
+                ]
+            inferred = set()
+            for column_info in candidates:
+                evidence = set(
+                    getattr(column_info, "type_evidence", ())
+                )
+                if "numeric" in evidence:
+                    inferred.add("real")
+                elif "date" in evidence:
+                    inferred.add("date")
+                elif "text" in evidence:
+                    inferred.add("text")
+            return next(iter(inferred)) if len(inferred) == 1 else None
+
+        for original_config in configs:
+            corrected_relations = []
+            for relation in original_config.schema.relations:
+                types = dict(relation.semantic_types)
+                for column in relation.attributes:
+                    inferred = evidence_type(relation.name, column)
+                    if inferred is not None:
+                        types[column] = inferred
+                corrected_relations.append(
+                    replace(
+                        relation,
+                        semantic_types=tuple(
+                            (column, types.get(column, "text"))
+                            for column in relation.attributes
+                        ),
+                    )
+                )
+            config = replace(
+                original_config,
+                schema=replace(
+                    original_config.schema,
+                    relations=tuple(corrected_relations),
+                ),
+            )
+            key = (
+                config.schema.schema_id,
+                config.population.er_strategy,
+                config.population.unit_strategy,
+                config.population.type_coercion,
+            )
+            current = representatives.get(key)
+            rank = (
+                config.preprocessing.strategy == "whole_document",
+                config.population.norm_strategy == "dictionary",
+                config.population.miss_strategy == "drop",
+            )
+            current_rank = (
+                (
+                    current.preprocessing.strategy == "whole_document",
+                    current.population.norm_strategy == "dictionary",
+                    current.population.miss_strategy == "drop",
+                )
+                if current is not None
+                else (False, False, False)
+            )
+            if current is None or rank > current_rank:
+                representatives[key] = config
+        return tuple(
+            sorted(representatives.values(), key=lambda item: item.config_id)
+        )
+
+    def _copy_provenance_for_config(
+        self,
+        config_id: str,
+        populated: Mapping[str, Sequence[dict]],
+    ) -> None:
+        if self._evidence_store is None or not self._shared_provenance:
+            return
+        values_by_cell = {
+            (table, str(row.get("row_id")), column): row.get(column)
+            for table, rows in populated.items()
+            for row in rows
+            for column in row
+        }
+        copied = []
+        for provenance in self._shared_provenance:
+            key = (
+                provenance.relation,
+                provenance.row_identity,
+                provenance.column,
+            )
+            if key not in values_by_cell:
+                continue
+            try:
+                source_value = json.loads(provenance.value_json)
+            except json.JSONDecodeError:
+                source_value = provenance.value_json
+            if values_by_cell[key] != source_value:
+                continue
+            copied.append(
+                CellProvenance(
+                    config_id=config_id,
+                    relation=provenance.relation,
+                    row_identity=provenance.row_identity,
+                    column=provenance.column,
+                    value_json=provenance.value_json,
+                    anchor_id=provenance.anchor_id,
+                    entailed=provenance.entailed,
+                    span_restored=provenance.span_restored,
+                )
+            )
+        self._evidence_store.add_cell_provenance(copied)
+
     def _populated_tables(
         self, config: SynthesisConfig
     ) -> Dict[str, List[dict]]:
-        return self.runner.materialize_population_tables(
-            self._table_names, config.population
+        cache_key = config.population.config_id
+        if cache_key in self._population_cache:
+            populated = copy.deepcopy(self._population_cache[cache_key])
+            self._copy_provenance_for_config(config.config_id, populated)
+            return populated
+
+        semantic_types: Dict[str, Dict[str, str]] = {
+            table: {} for table in self._table_names
+        }
+        protected: Dict[str, set[str]] = {
+            table: set() for table in self._table_names
+        }
+        for relation in config.schema.relations:
+            if relation.name in semantic_types:
+                semantic_types[relation.name].update(
+                    dict(relation.semantic_types)
+                )
+        if self.intent is not None:
+            for requirement in self.intent.requirements:
+                for entity, attribute in requirement.attribute_bindings:
+                    if entity in protected:
+                        protected[entity].add(attribute)
+                if requirement.plan is None:
+                    continue
+                for reference in requirement.plan.attributes():
+                    if reference.entity not in semantic_types:
+                        continue
+                    semantic_types[reference.entity][
+                        reference.attribute
+                    ] = reference.semantic_type
+                    protected[reference.entity].add(reference.attribute)
+        lattice_tables = getattr(
+            self.runner.lattice_planner.lattice, "tables", {}
         )
+        for table, table_info in lattice_tables.items():
+            if table not in semantic_types:
+                continue
+            for column, column_info in table_info.columns.items():
+                evidence = set(
+                    getattr(column_info, "type_evidence", ())
+                )
+                if "numeric" in evidence:
+                    semantic_types[table][column] = "real"
+                elif "date" in evidence:
+                    semantic_types[table][column] = "date"
+                elif "text" in evidence:
+                    semantic_types[table][column] = "text"
+
+        populated = self.runner.materialize_population_tables(
+            self._table_names,
+            config.population,
+            semantic_type_overrides=semantic_types,
+            protected_columns={
+                table: sorted(columns)
+                for table, columns in protected.items()
+            },
+        )
+        self._copy_provenance_for_config(config.config_id, populated)
+        self._population_cache[cache_key] = copy.deepcopy(populated)
+        return populated
 
     def _sample_tables(
         self, tables: Mapping[str, Sequence[dict]], fraction: float
@@ -312,7 +539,13 @@ class WDIRSPrimitiveBackend:
                 atom = f"{table}:{attribute}:{identity}"
                 represented_atoms.add(atom)
                 rendered = str(value).strip().lower()
-                supported = bool(rendered and rendered in self._corpus_text)
+                source_value = self._supported_source_cells.get(
+                    (table, str(identity), attribute)
+                )
+                supported = (
+                    source_value == value
+                    and source_value not in (None, "")
+                )
                 cells.append(
                     CellEvidence(
                         row_identity=str(row.get("row_id", index)),

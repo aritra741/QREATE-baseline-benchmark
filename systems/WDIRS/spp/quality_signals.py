@@ -67,11 +67,51 @@ def profile_relational_database(
             else:
                 key_scores.append(0.0 if relation.primary_key else 1.0)
 
-            valid_types = sum(
-                1
-                for column in relation.attributes
-                if column in columns and columns[column] not in {"", "BLOB"}
-            )
+            valid_types = 0.0
+            declared_semantic_types = dict(relation.semantic_types)
+            for column in relation.attributes:
+                if column not in columns:
+                    continue
+                declared = columns[column]
+                semantic_type = declared_semantic_types.get(column, "text")
+                expects_numeric = semantic_type in {
+                    "integer", "real", "boolean"
+                }
+                declared_compatible = (
+                    any(
+                        token in declared
+                        for token in (
+                            "INT", "REAL", "NUMERIC", "FLOAT", "DOUBLE"
+                        )
+                    )
+                    if expects_numeric
+                    else "TEXT" in declared
+                )
+                quoted_column = column.replace('"', '""')
+                storage_counts = dict(
+                    connection.execute(
+                        f'SELECT typeof("{quoted_column}"), COUNT(*) '
+                        f'FROM "{quoted_table}" '
+                        f'WHERE "{quoted_column}" IS NOT NULL '
+                        f'GROUP BY typeof("{quoted_column}")'
+                    ).fetchall()
+                )
+                total_values = sum(storage_counts.values())
+                compatible_values = (
+                    storage_counts.get("integer", 0)
+                    + storage_counts.get("real", 0)
+                    if expects_numeric
+                    else storage_counts.get("text", 0)
+                )
+                storage_score = (
+                    compatible_values / total_values
+                    if total_values
+                    else 1.0
+                )
+                valid_types += (
+                    (1.0 if declared_compatible else 0.0)
+                    + storage_score
+                ) / 2.0
             type_scores.append(
                 valid_types / max(len(relation.attributes), 1)
             )

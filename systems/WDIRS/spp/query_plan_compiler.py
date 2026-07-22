@@ -70,7 +70,16 @@ def compile_query_plan(
         table, name = locations[reference]
         return f"{_quote(aliases[table])}.{_quote(name)}"
 
-    selected_refs = list(dict.fromkeys((*plan.group_by, *plan.projections)))
+    # SQLite permits bare, non-grouped columns in aggregate SELECT lists and
+    # returns an arbitrary row's value. Treat the IR strictly instead: aggregate
+    # outputs contain only grouping dimensions plus aggregates.
+    selected_refs = list(
+        dict.fromkeys(
+            plan.group_by
+            if plan.aggregates
+            else (*plan.group_by, *plan.projections)
+        )
+    )
     select_parts = [column(reference) for reference in selected_refs]
     for aggregate in plan.aggregates:
         argument = "*"

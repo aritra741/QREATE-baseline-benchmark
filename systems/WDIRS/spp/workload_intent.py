@@ -577,6 +577,20 @@ def _normalize_plan_with_schema(
             value.strip().lower(),
         ):
             return None
+        if (
+            isinstance(value, str)
+            and attribute_vocabulary
+            and value.strip().lower()
+            in {
+                attribute.lower()
+                for attributes in attribute_vocabulary.values()
+                for attribute in attributes
+            }
+            and value.strip().lower().replace("_", " ") not in lowered
+        ):
+            # A schema column name used as a quoted literal is almost always a
+            # leaked relationship equality (for example entity='entity_name').
+            return None
         attribute = predicate.attribute
         if (
             attribute is not None
@@ -607,6 +621,37 @@ def _normalize_plan_with_schema(
                         candidate.entity in core_entities,
                     ),
                 )
+        if (
+            attribute is not None
+            and isinstance(value, str)
+            and attribute_vocabulary
+            and re.search(
+                rf"\bbased\s+in\s+{re.escape(value.lower())}\b",
+                lowered,
+            )
+        ):
+            location_candidates = [
+                AttributeRef(owner, name, "text")
+                for owner, names in attribute_vocabulary.items()
+                for name in names
+                if any(
+                    token in name
+                    for token in (
+                        "location", "city", "place", "region", "address",
+                        "headquarter", "home", "base",
+                    )
+                )
+            ]
+            if location_candidates:
+                attribute = max(
+                    location_candidates,
+                    key=lambda candidate: (
+                        candidate.entity in mentioned_entities,
+                        candidate.entity in core_entities,
+                        "location" in candidate.attribute,
+                        "city" in candidate.attribute,
+                    ),
+                )
         operator = predicate.operator
         rendered = str(value).lower()
         position = lowered.find(rendered)
@@ -631,14 +676,16 @@ def _normalize_plan_with_schema(
         elif re.search(r"\b(at most|no more than|or earlier)\b", context):
             operator = "<="
         if (
-            operator in {"is_null", "is_not_null"}
-            and attribute is not None
+            attribute is not None
             and re.search(
                 rf"\bno\s+(?:[a-z-]+\s+){{0,4}}"
                 rf"{re.escape(attribute.attribute.split('_')[-1])}\b",
                 lowered,
             )
             and not re.search(r"\b(missing|unknown|known|null)\b", lowered)
+            and not re.search(
+                r"\bno\s+(?:more|fewer|less)\s+than\b", lowered
+            )
         ):
             operator = "="
             value = 0
@@ -724,14 +771,24 @@ def _normalize_plan_with_schema(
                 attribute=target,
                 alias=f"count_{target.attribute}",
             )
+    if (
+        aggregates
+        and aggregates[0].function == "count"
+        and not re.search(r"\b(known|non[- ]?null|not null)\b", lowered)
+    ):
+        aggregates[0] = replace(
+            aggregates[0], attribute=None, alias="count_all"
+        )
 
     group_by = list(plan.group_by)
     group_clause = ""
     group_patterns = (
-        r"\b(?:for|at|on)\s+(?:each|every)\s+(.+?)(?:,|\?|"
+        r"\b(?:for|at|on|from|of)\s+(?:each|every)\s+(.+?)(?:,|\?|"
         r"\b(?:what|how|when|where|whose|who)\b)",
         r"\b(?:each|every)\s+(.+?)(?:,|\?|"
         r"\b(?:what|how|when|where|whose|who)\b)",
+        r"\bbreak\b.+?\bdown by\b\s+(.+?)(?:,|\?|"
+        r"\band\s+(?:report|tell|show)\b)",
         r"\bgroup(?:ed)?\b.+?\bby\b\s+(.+?)(?:,|\?|"
         r"\band\s+(?:report|tell|show)\b)",
         r"^\s*by\s+(.+?)(?:,|\?)",
@@ -843,10 +900,92 @@ def _normalize_plan_with_schema(
                 ),
             )
 
+    # COUNT over a categorical equality conventionally returns the filtered
+    # category as its sole dimension, even when the question says only
+    # "how many X entities". This is also necessary to retain the requested
+    # category in a relational answer rather than returning an unlabeled count.
+    if (
+        not group_by
+        and aggregates
+        and aggregates[0].function == "count"
+        and predicate is not None
+        and predicate.kind == "predicate"
+        and predicate.operator == "="
+        and isinstance(predicate.value, str)
+    ):
+        group_by = [predicate.attribute]
+
+    if aggregates and attribute_vocabulary:
+        grouped_keys = {
+            (reference.entity, reference.attribute) for reference in group_by
+        }
+        existing_refs = {
+            (reference.entity, reference.attribute): reference
+            for reference in plan.attributes()
+        }
+        cue_matches = list(
+            re.finditer(
+                r"\b(?:average|mean|fewest|lowest|smallest|minimum|largest|"
+                r"highest|greatest|maximum|total|combined|altogether|sum|"
+                r"how many|count)\b",
+                lowered,
+            )
+        )
+        cue_position = cue_matches[0].start() if cue_matches else 0
+
+        def phrase_position(attribute: str) -> int:
+            phrase = attribute.replace("_", " ")
+            match = re.search(rf"\b{re.escape(phrase)}s?\b", lowered)
+            if match:
+                return match.start()
+            tokens = attribute.split("_")
+            positions = [lowered.find(token) for token in tokens]
+            return min(positions) if positions and all(pos >= 0 for pos in positions) else -1
+
+        candidates: List[AttributeRef] = []
+        for entity, names in attribute_vocabulary.items():
+            for attribute in names:
+                position = phrase_position(attribute)
+                key = (entity, attribute)
+                if position < 0 or key in grouped_keys:
+                    continue
+                candidates.append(
+                    existing_refs.get(
+                        key,
+                        AttributeRef(
+                            entity,
+                            attribute,
+                            "real"
+                            if aggregates[0].function == "avg"
+                            else "integer",
+                        ),
+                    )
+                )
+        if candidates and aggregates[0].function != "count":
+            target = max(
+                candidates,
+                key=lambda reference: (
+                    reference.entity in mentioned_entities,
+                    reference.entity in core_entities,
+                    -abs(phrase_position(reference.attribute) - cue_position),
+                    len(reference.attribute.split("_")),
+                ),
+            )
+            aggregates[0] = replace(
+                aggregates[0],
+                attribute=target,
+                alias=f"{aggregates[0].function}_{target.attribute}",
+            )
+
+    # In an aggregate query every non-aggregate output must be a grouping
+    # dimension. Discard leaked projections from the LLM audit; otherwise
+    # SQLite accepts them permissively and returns arbitrary values.
+    projections = tuple(group_by) if aggregates else plan.projections
+
     required_entities = {
         reference.entity
         for reference in QueryPlan(
-            projections=plan.projections,
+            projections=projections,
             group_by=tuple(group_by),
             aggregates=tuple(aggregates),
             predicate=predicate,
@@ -872,40 +1011,123 @@ def _normalize_plan_with_schema(
             min(required_entities),
         )
         connected = {root}
+        adjacency: Dict[str, List[Tuple[str, JoinSpec]]] = {}
+        for left_entity, left_attr, right_entity, right_attr in join_vocabulary:
+            edge = JoinSpec(
+                AttributeRef(left_entity, left_attr),
+                AttributeRef(right_entity, right_attr),
+            )
+            adjacency.setdefault(left_entity, []).append((right_entity, edge))
+            adjacency.setdefault(right_entity, []).append((left_entity, edge))
         while required_entities - connected:
-            progress = False
-            for left_entity, left_attr, right_entity, right_attr in join_vocabulary:
-                if left_entity in connected and right_entity not in connected:
-                    target = right_entity
-                elif right_entity in connected and left_entity not in connected:
-                    target = left_entity
-                else:
-                    continue
-                if target not in required_entities and not (
-                    required_entities - connected
-                ):
-                    continue
-                normalized_joins.append(
-                    JoinSpec(
-                        AttributeRef(left_entity, left_attr),
-                        AttributeRef(right_entity, right_attr),
-                    )
-                )
-                connected.add(left_entity)
-                connected.add(right_entity)
-                progress = True
-                if not (required_entities - connected):
+            target = min(required_entities - connected)
+            queue: List[Tuple[str, List[Tuple[str, JoinSpec]]]] = [
+                (entity, []) for entity in sorted(connected)
+            ]
+            visited = set(connected)
+            path: Optional[List[Tuple[str, JoinSpec]]] = None
+            while queue:
+                entity, candidate_path = queue.pop(0)
+                if entity == target:
+                    path = candidate_path
                     break
-            if not progress:
+                for neighbour, edge in adjacency.get(entity, []):
+                    if neighbour in visited:
+                        continue
+                    visited.add(neighbour)
+                    queue.append(
+                        (neighbour, [*candidate_path, (neighbour, edge)])
+                    )
+            if path is None:
                 break
+            for neighbour, edge in path:
+                if edge not in normalized_joins:
+                    normalized_joins.append(edge)
+                connected.add(edge.left.entity)
+                connected.add(edge.right.entity)
+                connected.add(neighbour)
 
     return replace(
         plan,
+        projections=projections,
         group_by=tuple(group_by),
         aggregates=tuple(aggregates),
         predicate=predicate,
         joins=tuple(normalized_joins) if join_vocabulary else plan.joins,
     )
+
+
+def _plan_contract_score(plan: Optional[QueryPlan], text: str) -> int:
+    """Rank independent plans by explicit NL atoms, without corpus access."""
+    if plan is None:
+        return -10_000
+    lowered = text.lower()
+    score = 0
+    expected = _expected_aggregate(text)
+    if expected is not None:
+        score += 8 if any(
+            aggregate.function == expected for aggregate in plan.aggregates
+        ) else -8
+    predicate_values: List[str] = []
+    predicate_leaves: List[PredicateSpec] = []
+
+    def visit(predicate: Optional[PredicateSpec]) -> None:
+        if predicate is None:
+            return
+        if predicate.kind in {"and", "or"}:
+            for child in predicate.children:
+                visit(child)
+            return
+        predicate_leaves.append(predicate)
+        predicate_values.append(str(predicate.value).strip().lower())
+
+    visit(plan.predicate)
+    for number in re.findall(r"\b\d+(?:\.\d+)?\b", lowered):
+        score += 3 if any(number in value for value in predicate_values) else -3
+    for match in re.finditer(
+        r"\b[A-Z][a-z]+(?:[- ][A-Z][a-z]+)*\b", text
+    ):
+        if match.start() == 0:
+            continue
+        literal = match.group(0).lower()
+        score += 2 if any(
+            literal in value for value in predicate_values
+        ) else -2
+    if re.search(
+        r"\b(?:each|every|group(?:ed)?\s+by|break\b.+\bdown by)\b",
+        lowered,
+    ):
+        score += 4 if plan.group_by else -4
+    if re.search(r"\b(?:matching|joined|related)\b", lowered):
+        score += 4 if plan.joins else -4
+    if (
+        " no " in f" {lowered} "
+        and not re.search(
+            r"\bno\s+(?:more|fewer|less)\s+than\b", lowered
+        )
+    ):
+        score += 3 if any(
+            leaf.operator == "=" and leaf.value == 0
+            for leaf in predicate_leaves
+        ) else -3
+    if plan.aggregates:
+        score -= 2 * sum(
+            reference not in plan.group_by for reference in plan.projections
+        )
+        target = plan.aggregates[0].attribute
+        if target is not None:
+            phrase = target.attribute.replace("_", " ")
+            score += 3 if phrase in lowered else -1
+    schema_name_literals = {
+        reference.attribute.lower()
+        for reference in plan.attributes()
+    }
+    score -= 4 * sum(
+        value in schema_name_literals
+        and value.replace("_", " ") not in lowered
+        for value in predicate_values
+    )
+    return score
 
 
 def _sql_requirement(query_id: str, sql: str) -> QueryRequirement:
@@ -1412,6 +1634,7 @@ def analyze_workload(
                 attribute_vocabulary=attribute_vocabulary,
             )
             draft = drafts[0]
+            candidates = [draft]
             review_prompt = (
                 "Audit and correct one schema-independent analytical query plan. "
                 "Return ONLY a JSON array containing one complete corrected item "
@@ -1425,7 +1648,11 @@ def analyze_workload(
                 "'for each', 'for every', 'by', or 'group'. Do not group by a "
                 "constant used only as a filter.\n"
                 "3. Encode every record restriction from the question and no extra "
-                "restriction. Preserve literals and comparison directions exactly.\n"
+                "restriction. Before writing the plan, inventory every number, date, "
+                "capitalized name/adjective, and negative cue (no/not/other than); "
+                "each must appear in exactly one correctly scoped predicate. Preserve "
+                "literals and comparison directions exactly. 'No <numeric measure>' "
+                "means that measure equals zero.\n"
                 "4. Preserve AND/OR/NOT scope. A relationship equality belongs in "
                 "joins, never as a literal-valued predicate.\n"
                 "5. Use only the supplied source entity types. Do not invent ID "
@@ -1453,20 +1680,33 @@ def analyze_workload(
                     attribute_vocabulary=attribute_vocabulary,
                 )
                 if reviewed and reviewed[0].plan is not None:
-                    draft = reviewed[0]
+                    candidates.append(reviewed[0])
             except (RuntimeError, ValueError, TypeError):
                 # The independently budgeted draft remains usable and auditable
                 # when the semantic reviewer emits malformed output.
                 pass
-            draft = replace(
-                draft,
-                plan=_normalize_plan_with_schema(
-                    draft.plan,
-                    query_text,
-                    attribute_vocabulary=attribute_vocabulary,
-                    join_vocabulary=join_vocabulary,
+            normalized_candidates = [
+                replace(
+                    candidate,
+                    plan=_normalize_plan_with_schema(
+                        candidate.plan,
+                        query_text,
+                        attribute_vocabulary=attribute_vocabulary,
+                        join_vocabulary=join_vocabulary,
+                    ),
+                )
+                for candidate in candidates
+            ]
+            draft = max(
+                enumerate(normalized_candidates),
+                key=lambda item: (
+                    _plan_contract_score(
+                        item[1].plan,
+                        query_text,
+                    ),
+                    item[0],
                 ),
-            )
+            )[1]
             return draft
 
         worker_count = min(intent_max_workers, len(items))

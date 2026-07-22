@@ -106,6 +106,42 @@ def test_llm_normalization_does_not_modify_bookkeeping_columns():
     assert populated[0]["name"] == "NORMALIZED"
 
 
+def test_llm_normalization_preserves_case_only_surface_forms():
+    populated, _ = apply_population(
+        [{"country": "Canada"}],
+        PopulationConfig(norm_strategy="llm", miss_strategy="mode"),
+        llm_normalize_fn=lambda _value: "canada",
+    )
+    assert populated[0]["country"] == "Canada"
+
+
+def test_workload_columns_are_not_fabricated_by_imputation():
+    populated, _ = apply_population(
+        [
+            {"category": "A", "measure": 1},
+            {"category": None, "measure": None},
+        ],
+        PopulationConfig(miss_strategy="mode"),
+        column_semantic_types={
+            "category": "text",
+            "measure": "integer",
+        },
+        protected_columns=["category", "measure"],
+    )
+    assert populated[1] == {"category": None, "measure": None}
+
+
+def test_lowercase_semantic_numeric_types_are_respected():
+    populated, _ = apply_population(
+        [{"amount": "USD 12"}, {"amount": "13"}],
+        PopulationConfig(
+            type_coercion="permissive", miss_strategy="mode"
+        ),
+        column_semantic_types={"amount": "real"},
+    )
+    assert populated[0]["amount"] == 12.0
+
+
 def test_empty_populated_table_keeps_schema_and_sql_errors_are_not_empty_results():
     conn = _build_in_memory_db(
         {"player": []},

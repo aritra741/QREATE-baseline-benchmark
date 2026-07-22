@@ -11,6 +11,7 @@ import pytest
 from sqlalchemy import text
 
 from data_layer import DataLayer
+from lattice_planner import LatticePlanner
 from extractor import ConstrainedExtractor, ExtractionResult
 from spp.budget_ledger import BudgetExhausted, GlobalBudgetLedger
 from spp.budgeted_llm import BudgetedLLMClient
@@ -38,10 +39,18 @@ from spp.native_backend import (
     infer_source_entity_vocabulary,
     preprocess_documents,
 )
-from spp.nl2sql import _verification_payload, make_nl2sql_compiler
+from spp.nl2sql import (
+    _semantic_validation_errors,
+    _verification_payload,
+    make_nl2sql_compiler,
+)
 from spp.oracle_evaluation import OracleConfigResult, solve_exact_budgeted_oracle
 from spp.risk_estimator import CellEvidence, PilotObservation, estimate_query_risk
-from spp.quality_signals import MetamorphicCheck, metamorphic_consistency
+from spp.quality_signals import (
+    MetamorphicCheck,
+    metamorphic_consistency,
+    profile_relational_database,
+)
 from spp.schema_materializer import reshape_tables, write_sqlite_database
 from spp.schema_design import generate_schema_designs, generate_synthesis_configs
 from spp.query_plan_compiler import compile_query_plan
@@ -68,6 +77,7 @@ from spp.workload_intent import (
     analyze_workload,
     schema_vocabulary_from_sql,
 )
+from spp.wdirs_backend import WDIRSPrimitiveBackend
 from spp.population_config import PopulationConfig
 
 
@@ -1597,3 +1607,215 @@ def test_denormalized_backend_extracts_entities_before_joining():
         "player": ["player/1.txt"],
         "team": ["team/1.txt"],
     }
+
+
+def test_schema_normalization_repairs_measure_and_leaked_projection():
+    college = AttributeRef("person", "college")
+    leaked_name = AttributeRef("person", "name")
+    repaired = _normalize_plan_with_schema(
+        QueryPlan(
+            projections=(leaked_name, college),
+            group_by=(college,),
+            aggregates=(AggregateSpec("avg", college, "avg_college"),),
+        ),
+        "What is the average number of international awards from each college?",
+        attribute_vocabulary={
+            "person": ("name", "college", "international_awards")
+        },
+    )
+    assert repaired is not None
+    assert repaired.aggregates[0].attribute is not None
+    assert repaired.aggregates[0].attribute.entity == "person"
+    assert repaired.aggregates[0].attribute.attribute == "international_awards"
+    assert repaired.projections == (college,)
+
+
+def test_semantic_validator_rejects_artifact_style_contract_violations():
+    branch = AttributeRef("transaction", "branch")
+    amount = AttributeRef("transaction", "amount", "real")
+    year = AttributeRef("transaction", "year", "integer")
+    requirement = QueryRequirement(
+        query_id="q",
+        text=(
+            "For each branch, what is the average transaction amount "
+            "after 2020 for Canadian customers?"
+        ),
+        entities=("transaction",),
+        operators=("avg", "group_by", "filter"),
+        plan=QueryPlan(
+            group_by=(branch,),
+            aggregates=(AggregateSpec("avg", amount, "avg_amount"),),
+            predicate=PredicateSpec(attribute=year, operator=">", value=2020),
+        ),
+    )
+    schema = SchemaDesign(
+        "snowflake",
+        (
+            RelationSpec(
+                "transaction",
+                ("branch", "amount", "year", "customer_country"),
+            ),
+        ),
+        ("q",),
+    )
+    config = SynthesisConfig(
+        schema, PopulationConfig(), PreprocessingPolicy("whole_document")
+    )
+    errors = _semantic_validation_errors(
+        requirement,
+        config,
+        "SELECT branch, AVG(branch) FROM transaction GROUP BY branch",
+    )
+    assert "aggregate target must be transaction.amount" in errors
+    assert "missing numeric literal 2020" in errors
+    assert "missing categorical literal 'Canadian'" in errors
+
+
+def test_aggregate_compiler_drops_non_grouped_projection():
+    branch = AttributeRef("transaction", "branch")
+    amount = AttributeRef("transaction", "amount", "real")
+    leaked = AttributeRef("transaction", "customer_name")
+    plan = QueryPlan(
+        projections=(leaked,),
+        group_by=(branch,),
+        aggregates=(AggregateSpec("avg", amount, "avg_amount"),),
+    )
+    config = SynthesisConfig(
+        SchemaDesign(
+            "snowflake",
+            (
+                RelationSpec(
+                    "transaction", ("branch", "amount", "customer_name")
+                ),
+            ),
+            ("q",),
+        ),
+        PopulationConfig(),
+        PreprocessingPolicy("whole_document"),
+    )
+    sql = compile_query_plan(plan, config)
+    assert sql is not None
+    assert "customer_name" not in sql
+
+
+def test_sql_literal_evidence_overrides_wrong_llm_semantic_type():
+    class AlwaysNumeric:
+        def generate(self, *_args, **_kwargs):
+            return "QUANTITY"
+
+    lattice = LatticePlanner(AlwaysNumeric()).parse_workload(
+        [
+            "SELECT category, AVG(amount) FROM transaction "
+            "WHERE category = 'Retail' GROUP BY category"
+        ]
+    )
+    assert lattice.tables["transaction"].columns["category"].semantic_type == "OTHER"
+    assert lattice.tables["transaction"].columns["amount"].semantic_type == "QUANTITY"
+
+
+def test_projection_insert_records_cell_provenance(tmp_path: Path):
+    layer = DataLayer(f"sqlite:///{tmp_path / 'provenance.sqlite'}")
+    try:
+        layer.create_dynamic_table("item", {"name": "TEXT"})
+        result = type(
+            "ExtractionResult",
+            (),
+            {
+                "error": None,
+                "records": [{"name": "Alpha"}],
+                "chunk_id": "item/alpha.txt",
+            },
+        )()
+        layer.bulk_insert_records(
+            "item",
+            [result],
+            doc_id_by_chunk_id={
+                "item/alpha.txt": "item/alpha.txt"
+            },
+        )
+        with layer.engine.connect() as connection:
+            row = connection.execute(
+                text(
+                    "SELECT column_name, chunk_id, doc_id "
+                    "FROM cell_provenance"
+                )
+            ).one()
+        assert tuple(row) == (
+            "name",
+            "item/alpha.txt",
+            "item/alpha.txt",
+        )
+    finally:
+        layer.close()
+
+
+def test_wdirs_prunes_provably_inert_configuration_axes():
+    schema = SchemaDesign(
+        "snowflake",
+        (RelationSpec("record", ("category",)),),
+        ("q",),
+    )
+    unsafe = SynthesisConfig(
+        schema,
+        PopulationConfig(
+            er_strategy="embedding_0.7",
+            norm_strategy="llm",
+            miss_strategy="mode",
+        ),
+        PreprocessingPolicy("chunked", 1000, 100),
+    )
+    safe = SynthesisConfig(
+        schema,
+        PopulationConfig(
+            er_strategy="embedding_0.7",
+            norm_strategy="dictionary",
+            miss_strategy="drop",
+        ),
+        PreprocessingPolicy("whole_document"),
+    )
+    backend = object.__new__(WDIRSPrimitiveBackend)
+    backend.runner = type(
+        "Runner",
+        (),
+        {
+            "lattice_planner": type(
+                "Planner",
+                (),
+                {"lattice": type("Lattice", (), {"tables": {}})()},
+            )()
+        },
+    )()
+    result = backend.prune_configs((unsafe, safe))
+    assert len(result) == 1
+    assert result[0].preprocessing.strategy == "whole_document"
+    assert result[0].population.norm_strategy == "dictionary"
+    assert result[0].population.miss_strategy == "drop"
+
+
+def test_relational_profile_checks_declared_and_stored_types(
+    tmp_path: Path,
+):
+    database = tmp_path / "types.sqlite"
+    with sqlite3.connect(database) as connection:
+        connection.execute(
+            "CREATE TABLE metric(label NUMERIC, amount TEXT)"
+        )
+        connection.execute(
+            "INSERT INTO metric VALUES (12, 'not-a-number')"
+        )
+    schema = SchemaDesign(
+        "snowflake",
+        (
+            RelationSpec(
+                "metric",
+                ("label", "amount"),
+                semantic_types=(
+                    ("label", "text"),
+                    ("amount", "real"),
+                ),
+            ),
+        ),
+        ("q",),
+    )
+    diagnostics = profile_relational_database(database, schema)
+    assert diagnostics.type_validity == 0.0
