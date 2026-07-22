@@ -8,7 +8,9 @@ import sqlite3
 from pathlib import Path
 
 import pytest
+from sqlalchemy import text
 
+from data_layer import DataLayer
 from extractor import ConstrainedExtractor, ExtractionResult
 from spp.budget_ledger import BudgetExhausted, GlobalBudgetLedger
 from spp.budgeted_llm import BudgetedLLMClient
@@ -1223,6 +1225,17 @@ def test_schema_stabilization_parallelizes_independent_samples(monkeypatch):
 
     assert max_active > 1
     assert stabilized.frozen_keys == {"category"}
+
+
+def test_sqlite_delete_journal_mode_is_configurable(tmp_path, monkeypatch):
+    monkeypatch.setenv("WDIRS_SQLITE_JOURNAL_MODE", "DELETE")
+    layer = DataLayer(f"sqlite:///{tmp_path / 'journal.sqlite'}")
+    try:
+        with layer.engine.connect() as connection:
+            mode = connection.execute(text("PRAGMA journal_mode")).scalar()
+        assert str(mode).lower() == "delete"
+    finally:
+        layer.close()
 
 
 def test_intent_constrains_entities_and_repairs_missing_aggregate():

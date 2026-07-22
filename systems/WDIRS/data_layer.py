@@ -6,6 +6,7 @@ Implements PostgreSQL schema, metadata registry, and provenance tracking.
 import json
 import hashlib
 import logging
+import os
 import uuid
 from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass, asdict
@@ -70,22 +71,45 @@ class DataLayer:
     def __init__(self, connection_uri: str = DATABASE_URI):
         """Initialize database connection and schema."""
         is_sqlite = 'sqlite' in connection_uri
+        sqlite_timeout = int(os.getenv("WDIRS_SQLITE_TIMEOUT_SECONDS", "60"))
         self.engine = create_engine(
             connection_uri,
             poolclass=NullPool,
             echo=False,
-            connect_args={'check_same_thread': False} if is_sqlite else {}
+            connect_args={
+                'check_same_thread': False,
+                'timeout': sqlite_timeout,
+            } if is_sqlite else {}
         )
 
-        # Enable WAL mode for SQLite: allows concurrent reads during writes
-        # and dramatically reduces write contention from parallel extraction threads.
+        # WAL is fast on local disks but its shared-memory lock protocol is not
+        # reliable on every HPC/network filesystem. Offline SPP can select
+        # DELETE mode through the environment because its DB writes are serialized.
         if is_sqlite:
+            journal_mode = os.getenv(
+                "WDIRS_SQLITE_JOURNAL_MODE", "WAL"
+            ).strip().upper()
+            if journal_mode not in {"WAL", "DELETE"}:
+                raise ValueError(
+                    "WDIRS_SQLITE_JOURNAL_MODE must be WAL or DELETE"
+                )
             with self.engine.connect() as conn:
-                conn.execute(text("PRAGMA journal_mode=WAL"))
+                actual_mode = conn.execute(
+                    text(f"PRAGMA journal_mode={journal_mode}")
+                ).scalar()
+                conn.execute(
+                    text(f"PRAGMA busy_timeout={sqlite_timeout * 1000}")
+                )
                 conn.execute(text("PRAGMA synchronous=NORMAL"))
                 conn.execute(text("PRAGMA cache_size=-131072"))   # 128 MB page cache
                 conn.execute(text("PRAGMA temp_store=MEMORY"))
                 conn.commit()
+            logger.info(
+                "SQLite journal mode: %s (requested=%s, timeout=%ss)",
+                actual_mode,
+                journal_mode,
+                sqlite_timeout,
+            )
 
         self.metadata = MetaData()
         self.Session = sessionmaker(bind=self.engine)

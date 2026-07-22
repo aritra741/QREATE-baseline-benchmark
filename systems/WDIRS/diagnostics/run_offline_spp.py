@@ -61,11 +61,23 @@ def main() -> int:
         help="SQL training workload used by WDIRS for canonical extraction schema.",
     )
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--scratch-dir",
+        type=Path,
+        default=None,
+        help="Backend cache/SQLite parent; use node-local scratch on HPC.",
+    )
     parser.add_argument("--token-budget", type=int, required=True)
     parser.add_argument("--quality-floor", type=float, default=0.0)
     parser.add_argument("--beta", type=float, default=1.0)
     parser.add_argument("--base-url")
     parser.add_argument("--model")
+    parser.add_argument(
+        "--sqlite-journal-mode",
+        choices=("WAL", "DELETE"),
+        default="DELETE",
+        help="DELETE is safer than WAL on shared HPC filesystems.",
+    )
     parser.add_argument(
         "--intent-workers",
         type=int,
@@ -99,8 +111,15 @@ def main() -> int:
     output = args.output.expanduser().resolve()
     if output.exists() and any(output.iterdir()):
         raise FileExistsError(output)
-    scratch = output.parent / f".{output.name}_backend"
+    scratch_parent = (
+        args.scratch_dir.expanduser().resolve()
+        if args.scratch_dir is not None
+        else output.parent
+    )
+    scratch_parent.mkdir(parents=True, exist_ok=True)
+    scratch = scratch_parent / f".{output.name}_backend"
     scratch.mkdir(parents=True, exist_ok=False)
+    os.environ["WDIRS_SQLITE_JOURNAL_MODE"] = args.sqlite_journal_mode
     os.environ["WDIRS_DB_PATH"] = str(scratch / "shared_extraction.sqlite")
     queries = _load_queries(args.workload)
     selected_documents: list[str] = []
@@ -210,6 +229,7 @@ def main() -> int:
             "serving_manifest": str(result.serving_manifest),
             "token_summary": result.token_summary,
             "backend_scratch": str(scratch),
+            "sqlite_journal_mode": args.sqlite_journal_mode,
             "selected_source_documents": selected_documents,
             "runtime_delta_attribute_discovery": (
                 runner.enable_attribute_discovery

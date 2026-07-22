@@ -129,7 +129,7 @@ STATUS_FULL = "FULL"
 
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-LOG_FILE = WDIRS_DIR / "wdirs.log"
+LOG_FILE = Path(os.getenv("WDIRS_LOG_FILE", str(WDIRS_DIR / "wdirs.log")))
 
 # ============================================================================
 # Performance Configuration
