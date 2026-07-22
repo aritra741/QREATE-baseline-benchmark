@@ -8,13 +8,18 @@ import json
 import os
 import shutil
 import sqlite3
+import sys
 from dataclasses import asdict
 from pathlib import Path
 from typing import Dict, Mapping
 
-from spp.query_plan_compiler import compile_query_plan
-from spp.serving import OfflineQueryServer, _validate_readonly_sql
-from spp.spec import (
+WDIRS_ROOT = Path(__file__).resolve().parents[1]
+if str(WDIRS_ROOT) not in sys.path:
+    sys.path.insert(0, str(WDIRS_ROOT))
+
+from spp.query_plan_compiler import compile_query_plan  # noqa: E402
+from spp.serving import OfflineQueryServer, _validate_readonly_sql  # noqa: E402
+from spp.spec import (  # noqa: E402
     AttributeRef,
     PopulationConfig,
     PreprocessingPolicy,
@@ -22,7 +27,7 @@ from spp.spec import (
     SchemaDesign,
     SynthesisConfig,
 )
-from spp.workload_intent import (
+from spp.workload_intent import (  # noqa: E402
     _normalize_plan_with_schema,
     _query_plan,
     _repair_plan_aggregate,
