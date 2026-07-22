@@ -56,6 +56,7 @@ from spp.schema_design import generate_schema_designs, generate_synthesis_config
 from spp.query_plan_compiler import compile_query_plan
 from spp.serving import CompiledQuery, OfflineQueryServer, freeze_serving_bundle
 from spp.system import OfflineSynthesisSystem
+from spp.value_normalization import canonical_date
 from spp.spec import (
     AggregateSpec,
     AttributeRef,
@@ -1933,3 +1934,99 @@ def test_relational_profile_checks_declared_and_stored_types(
     )
     diagnostics = profile_relational_database(database, schema)
     assert diagnostics.type_validity == 0.0
+
+
+def test_materializer_honors_declared_text_over_numeric_values(
+    tmp_path: Path,
+):
+    schema = SchemaDesign(
+        "snowflake",
+        (
+            RelationSpec(
+                "record",
+                ("category",),
+                semantic_types=(("category", "text"),),
+            ),
+        ),
+        ("q",),
+    )
+    database = write_sqlite_database(
+        tmp_path / "declared_text.sqlite",
+        {"record": [{"category": 1}, {"category": 2}]},
+        schema,
+    )
+    with sqlite3.connect(database) as connection:
+        declared = connection.execute(
+            'PRAGMA table_info("record")'
+        ).fetchone()[2]
+        storage_types = {
+            row[0]
+            for row in connection.execute(
+                'SELECT typeof("category") FROM "record"'
+            )
+        }
+    assert declared == "TEXT"
+    assert storage_types == {"text"}
+
+
+def test_date_normalization_canonicalizes_equivalent_surfaces():
+    assert canonical_date("1919-03-23") == "1919/3/23"
+    assert canonical_date("March 23, 1919") == "1919/3/23"
+
+
+def test_schema_context_repairs_small_model_contract_omissions():
+    premium = _normalize_plan_with_schema(
+        QueryPlan(
+            aggregates=(AggregateSpec("count", None, "count_all"),),
+        ),
+        "How many Premium records are in the dataset?",
+        attribute_vocabulary={"record": ("segment",)},
+        context_references=(AttributeRef("record", "segment"),),
+    )
+    assert premium.predicate == PredicateSpec(
+        attribute=AttributeRef("record", "segment"),
+        operator="=",
+        value="Premium",
+    )
+    assert premium.group_by == (AttributeRef("record", "segment"),)
+
+    repaired = _normalize_plan_with_schema(
+        QueryPlan(
+            group_by=(AttributeRef("event", "category"),),
+            aggregates=(
+                AggregateSpec(
+                    "avg",
+                    AttributeRef("event", "age", "real"),
+                    "avg_age",
+                ),
+            ),
+        ),
+        (
+            "For each event category, what is the average event amount for "
+            "events with matching account and region records?"
+        ),
+        attribute_vocabulary={
+            "event": ("account_id", "amount", "category"),
+            "account": ("account_key", "region"),
+            "region": ("region_name",),
+        },
+        join_vocabulary=(
+            ("event", "account_id", "account", "account_key"),
+            ("account", "region", "region", "region_name"),
+        ),
+        context_references=(
+            AttributeRef("event", "amount", "real"),
+            AttributeRef("event", "account_id"),
+            AttributeRef("account", "account_key"),
+            AttributeRef("account", "region"),
+            AttributeRef("region", "region_name"),
+        ),
+    )
+    assert repaired.aggregates == (
+        AggregateSpec(
+            "avg",
+            AttributeRef("event", "amount", "real"),
+            "avg_event_amount",
+        ),
+    )
+    assert len(repaired.joins) == 2

@@ -6,6 +6,7 @@ Integrates all components and provides the main interface.
 import json
 import logging
 import os
+import re
 import time
 from typing import Dict, List, Optional, Any, Tuple
 from pathlib import Path
@@ -20,6 +21,7 @@ from extractor import ConstrainedExtractor, OllamaClient
 from entity_resolver import EntityResolver, extract_mentions_from_records, apply_canonical_map
 from delta_engine import DeltaEngine, DeltaType
 from entity_anchor import detect_identity_column
+from spp.value_normalization import canonical_date
 
 from config import (
     SOURCE_DATA_DIR,
@@ -106,6 +108,7 @@ def _validate_record(
     chunk_texts: List[str],
     identity_col: str,
     spans: Optional[Dict[str, str]] = None,
+    semantic_schema: Optional[Dict[str, str]] = None,
 ) -> Dict[str, Any]:
     """
     Validate and clean one extracted record before writing to the DB.
@@ -159,6 +162,25 @@ def _validate_record(
             if val_str.startswith("[") or val_str.startswith("{"):
                 logger.debug(f"[Validate] Dropped '{col}'={val_str[:60]!r}: JSON shape")
                 continue
+
+            if (semantic_schema or {}).get(col) == "DATE":
+                canonical = canonical_date(val)
+                source_dates = {
+                    normalized
+                    for match in re.finditer(
+                        r"\b(?:\d{4}[-/]\d{1,2}[-/]\d{1,2}|"
+                        r"(?:January|February|March|April|May|June|July|"
+                        r"August|September|October|November|December)\s+"
+                        r"\d{1,2},\s*\d{4})\b",
+                        " ".join(chunk_texts),
+                        re.IGNORECASE,
+                    )
+                    if (normalized := canonical_date(match.group(0)))
+                    is not None
+                }
+                if canonical is not None and canonical in source_dates:
+                    validated[col] = canonical
+                    continue
 
             # Prefer span check; fall back to value check.
             span = spans.get(col, "")
@@ -1502,7 +1524,12 @@ class WDIRSRunner:
                     )
                     # Type check + span-grounding validation on all other cols.
                     record = _validate_record(
-                        record, sql_schema, local_texts, identity_col, rec_spans
+                        record,
+                        sql_schema,
+                        local_texts,
+                        identity_col,
+                        rec_spans,
+                        schema,
                     )
                     triples.append((record, er.chunk_id, doc_id))
             return triples
@@ -1572,7 +1599,12 @@ class WDIRSRunner:
                         else None
                     )
                     record = _validate_record(
-                        record, sql_schema, local_texts, identity_col, rec_spans
+                        record,
+                        sql_schema,
+                        local_texts,
+                        identity_col,
+                        rec_spans,
+                        schema,
                     )
                     ua_triples.append((record, er.chunk_id, doc_id))
             if ua_triples:
@@ -1925,6 +1957,7 @@ class WDIRSRunner:
                                     [source_text] if source_text else [],
                                     entity_col or "",
                                     record_spans,
+                                    schema,
                                 )
                                 if validated:
                                     validated_records.append(validated)

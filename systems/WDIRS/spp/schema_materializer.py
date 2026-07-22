@@ -6,7 +6,7 @@ import json
 import math
 import sqlite3
 from pathlib import Path
-from typing import Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
+from typing import Dict, List, Mapping, Optional, Sequence, Tuple
 
 from spp.spec import RelationSpec, SchemaDesign
 
@@ -29,20 +29,6 @@ def _sqlite_value(value: object) -> object:
             value, ensure_ascii=False, sort_keys=True, separators=(",", ":")
         )
     return str(value)
-
-
-def _affinity(values: Iterable[object]) -> str:
-    observed = [
-        normalized
-        for value in values
-        if (normalized := _sqlite_value(value)) not in (None, "")
-    ]
-    if observed and all(
-        isinstance(value, (int, float)) and not isinstance(value, bool)
-        for value in observed
-    ):
-        return "NUMERIC"
-    return "TEXT"
 
 
 def _project_rows(
@@ -182,7 +168,7 @@ def write_sqlite_database(
                 affinity = (
                     "NUMERIC"
                     if declared_type in {"integer", "real", "boolean"}
-                    else _affinity(row.get(column) for row in rows)
+                    else "TEXT"
                 )
                 definitions.append(f"{_quote(column)} {affinity}")
             if relation.primary_key and relation.primary_key in relation.attributes:

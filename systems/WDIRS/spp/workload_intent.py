@@ -430,7 +430,11 @@ def _expected_aggregate(text: str) -> Optional[str]:
 
 
 def _repair_plan_aggregate(
-    plan: Optional[QueryPlan], text: str
+    plan: Optional[QueryPlan],
+    text: str,
+    *,
+    context_references: Sequence[AttributeRef] = (),
+    attribute_vocabulary: Optional[Mapping[str, Sequence[str]]] = None,
 ) -> Optional[QueryPlan]:
     if plan is None:
         return None
@@ -443,9 +447,32 @@ def _repair_plan_aggregate(
     if not aggregates:
         candidates = [
             reference
-            for reference in projections
+            for reference in (*projections, *context_references)
             if reference not in grouped
         ]
+        if expected != "count" and attribute_vocabulary:
+            lowered = text.lower()
+            existing = {
+                (reference.entity, reference.attribute): reference
+                for reference in (*plan.attributes(), *context_references)
+            }
+            candidates.extend(
+                existing.get(
+                    (entity, attribute),
+                    AttributeRef(
+                        entity,
+                        attribute,
+                        "real" if expected == "avg" else "integer",
+                    ),
+                )
+                for entity, attributes in attribute_vocabulary.items()
+                for attribute in attributes
+                if all(
+                    token in lowered
+                    for token in attribute.replace("_", " ").split()
+                )
+            )
+        candidates = list(dict.fromkeys(candidates))
         target = candidates[-1] if candidates and expected != "count" else None
         if expected == "count" and re.search(
             r"\b(known|non[- ]?null|with (?:an? )?[a-z_ ]+)\b",
@@ -479,7 +506,7 @@ def _repair_plan_aggregate(
             if function != "count" and target is None:
                 candidates = [
                     reference
-                    for reference in projections
+                    for reference in (*projections, *context_references)
                     if reference not in grouped
                 ]
                 target = candidates[-1] if candidates else None
@@ -522,13 +549,18 @@ def _normalize_plan_with_schema(
     *,
     attribute_vocabulary: Optional[Mapping[str, Sequence[str]]] = None,
     join_vocabulary: Sequence[Tuple[str, str, str, str]] = (),
+    context_references: Sequence[AttributeRef] = (),
 ) -> Optional[QueryPlan]:
     if plan is None:
         return None
     lowered = text.lower()
     core_entities = {
         reference.entity
-        for reference in (*plan.projections, *plan.group_by)
+        for reference in (
+            *plan.projections,
+            *plan.group_by,
+            *context_references,
+        )
     }
     core_entities.update(
         aggregate.attribute.entity
@@ -594,6 +626,30 @@ def _normalize_plan_with_schema(
         attribute = predicate.attribute
         if (
             attribute is not None
+            and isinstance(value, str)
+            and (
+                attribute.semantic_type == "date"
+                or "date" in attribute.attribute
+            )
+        ):
+            date_match = re.fullmatch(
+                r"\s*(January|February|March|April|May|June|July|August|"
+                r"September|October|November|December)\s+"
+                r"(\d{1,2}),\s*(\d{4})\s*",
+                value,
+                re.IGNORECASE,
+            )
+            if date_match:
+                month = (
+                    "january february march april may june july august "
+                    "september october november december"
+                ).split().index(date_match.group(1).lower()) + 1
+                value = (
+                    f"{int(date_match.group(3))}/{month}/"
+                    f"{int(date_match.group(2))}"
+                )
+        if (
+            attribute is not None
             and attribute_vocabulary
             and attribute.entity not in mentioned_entities
         ):
@@ -652,10 +708,53 @@ def _normalize_plan_with_schema(
                         "city" in candidate.attribute,
                     ),
                 )
+        if (
+            attribute is not None
+            and isinstance(value, (int, float))
+            and attribute.semantic_type == "text"
+            and attribute_vocabulary
+            and attribute.attribute.replace("_", " ") not in lowered
+        ):
+            source_tokens = set(re.findall(r"[a-z0-9]+", lowered))
+            join_keys = {
+                (entity, name)
+                for left_entity, left_attr, right_entity, right_attr
+                in join_vocabulary
+                for entity, name in (
+                    (left_entity, left_attr),
+                    (right_entity, right_attr),
+                )
+            }
+            candidates = [
+                (
+                    len(set(name.split("_")) & source_tokens),
+                    (owner, name) not in join_keys,
+                    len(name.split("_")),
+                    AttributeRef(owner, name, "integer"),
+                )
+                for owner, names in attribute_vocabulary.items()
+                if owner in (mentioned_entities | core_entities)
+                for name in names
+            ]
+            best = max(candidates, default=None, key=lambda item: item[:3])
+            if best is not None and best[0] > 0:
+                attribute = best[3]
         operator = predicate.operator
         rendered = str(value).lower()
         position = lowered.find(rendered)
+        if position < 0 and isinstance(value, int) and 0 <= value <= 20:
+            number_words = (
+                "zero one two three four five six seven eight nine ten "
+                "eleven twelve thirteen fourteen fifteen sixteen seventeen "
+                "eighteen nineteen twenty"
+            ).split()
+            word_match = re.search(
+                rf"\b{number_words[value]}\b", lowered
+            )
+            if word_match:
+                position = word_match.start()
         context = ""
+        suffix_context = ""
         if position >= 0:
             prefix = lowered[:position]
             boundary = max(
@@ -665,15 +764,29 @@ def _normalize_plan_with_schema(
                 prefix.rfind(";"),
             )
             context = prefix[boundary + 1 :]
+            suffix_context = lowered[
+                position + len(rendered) : position + len(rendered) + 24
+            ]
         if re.search(r"\b(not|other than|different from)\b", context):
             operator = "!="
-        elif re.search(r"\b(more than|greater than|above|after)\b", context):
+        elif re.search(
+            r"\b(more than|greater than|above|after)\b",
+            context + suffix_context,
+        ):
             operator = ">"
-        elif re.search(r"\b(at least|no fewer than)\b", context):
+        elif re.search(
+            r"\b(at least|no fewer than)\b", context + suffix_context
+        ):
             operator = ">="
-        elif re.search(r"\b(less than|fewer than|below|before)\b", context):
+        elif re.search(
+            r"\b(less than|fewer than|below|before)\b",
+            context + suffix_context,
+        ):
             operator = "<"
-        elif re.search(r"\b(at most|no more than|or earlier)\b", context):
+        elif re.search(
+            r"\b(at most|no more than|or earlier)\b",
+            context + suffix_context,
+        ):
             operator = "<="
         if (
             attribute is not None
@@ -697,6 +810,218 @@ def _normalize_plan_with_schema(
         )
 
     predicate = clean_predicate(plan.predicate)
+    context_pool = list(
+        dict.fromkeys((*plan.attributes(), *context_references))
+    )
+    aggregate_keys = {
+        (aggregate.attribute.entity, aggregate.attribute.attribute)
+        for aggregate in plan.aggregates
+        if aggregate.attribute is not None
+    }
+    grouped_keys = {
+        (reference.entity, reference.attribute) for reference in plan.group_by
+    }
+
+    existing_values: set[str] = set()
+
+    def collect_values(value: Optional[PredicateSpec]) -> None:
+        if value is None:
+            return
+        if value.kind == "predicate":
+            existing_values.add(str(value.value).strip().lower())
+        for child in value.children:
+            collect_values(child)
+
+    collect_values(predicate)
+
+    def add_recovered(value: PredicateSpec) -> None:
+        nonlocal predicate
+        predicate = (
+            PredicateSpec(kind="and", children=(predicate, value))
+            if predicate is not None
+            else value
+        )
+
+    subject_entity = next(
+        (
+            aggregate.attribute.entity
+            for aggregate in plan.aggregates
+            if aggregate.attribute is not None
+        ),
+        plan.projections[0].entity if plan.projections else "",
+    )
+    date_spans: List[Tuple[int, int]] = []
+    month_numbers = {
+        name.lower(): index
+        for index, name in enumerate(
+            (
+                "",
+                "January",
+                "February",
+                "March",
+                "April",
+                "May",
+                "June",
+                "July",
+                "August",
+                "September",
+                "October",
+                "November",
+                "December",
+            )
+        )
+        if name
+    }
+    for match in re.finditer(
+        r"\b(" + "|".join(month_numbers) + r")\s+(\d{1,2}),\s+(\d{4})\b",
+        text,
+        re.IGNORECASE,
+    ):
+        date_spans.append(match.span())
+        candidates = [
+            reference
+            for reference in context_pool
+            if (
+                reference.semantic_type == "date"
+                or any(
+                    token in reference.attribute
+                    for token in ("date", "day", "time")
+                )
+            )
+            and (reference.entity, reference.attribute)
+            not in aggregate_keys | grouped_keys
+        ]
+        if not candidates:
+            continue
+        target = max(
+            candidates,
+            key=lambda reference: reference.entity == subject_entity,
+        )
+        value = (
+            f"{int(match.group(3))}/"
+            f"{month_numbers[match.group(1).lower()]}/"
+            f"{int(match.group(2))}"
+        )
+        if value.lower() not in existing_values:
+            add_recovered(
+                PredicateSpec(attribute=target, operator="=", value=value)
+            )
+            existing_values.add(value.lower())
+
+    proper_literals = [
+        match
+        for match in re.finditer(
+            r"\b[A-Z][a-z]+(?:[- ][A-Z][a-z]+)*\b", text
+        )
+        if match.start() > 0
+        and not any(
+            start <= match.start() < end for start, end in date_spans
+        )
+    ]
+    for match in proper_literals:
+        literal = match.group(0)
+        if literal.lower() in existing_values:
+            continue
+        following = text[match.end() : match.end() + 30].lower()
+        preceding = text[max(0, match.start() - 35) : match.start()].lower()
+        qualifies = any(
+            re.match(rf"\s+{re.escape(entity)}s?\b", following)
+            for entity in (attribute_vocabulary or {})
+        ) or bool(
+            re.search(
+                r"\b(?:based|born|from|in|on|for|who|whose|not)\s*$",
+                preceding,
+            )
+        )
+        if not qualifies:
+            continue
+        candidates = [
+            reference
+            for reference in context_pool
+            if (reference.entity, reference.attribute)
+            not in aggregate_keys | grouped_keys
+        ]
+        if not candidates:
+            continue
+        join_columns = {
+            (entity, attribute)
+            for left_entity, left_attr, right_entity, right_attr
+            in join_vocabulary
+            for entity, attribute in (
+                (left_entity, left_attr),
+                (right_entity, right_attr),
+            )
+        }
+        target = max(
+            candidates,
+            key=lambda reference: (
+                reference.entity == subject_entity,
+                (reference.entity, reference.attribute) in join_columns,
+                reference.semantic_type == "text",
+            ),
+        )
+        operator = "!=" if re.search(
+            r"\b(?:not|other than)\s*$", preceding
+        ) else "="
+        recovered = clean_predicate(
+            PredicateSpec(
+                attribute=target,
+                operator=operator,
+                value=literal,
+            )
+        )
+        if recovered is not None:
+            add_recovered(recovered)
+            existing_values.add(literal.lower())
+
+    existing_numbers = {
+        value
+        for value in existing_values
+        if re.fullmatch(r"-?\d+(?:\.\d+)?", value)
+    }
+    for match in re.finditer(r"\b\d+(?:\.\d+)?\b", text):
+        rendered = match.group(0)
+        if rendered in existing_numbers:
+            continue
+        preceding = text[max(0, match.start() - 45) : match.start()].lower()
+        following = text[match.end() : match.end() + 20].lower()
+        if not re.search(
+            r"\b(?:above|after|at least|at most|before|below|earlier|"
+            r"fewer|greater|less|more|over|under|founded)\b",
+            preceding + following,
+        ):
+            continue
+        candidates = [
+            reference
+            for reference in context_pool
+            if (reference.entity, reference.attribute)
+            not in aggregate_keys | grouped_keys
+        ]
+        if not candidates:
+            continue
+        context_tokens = set(
+            re.findall(r"[a-z]+", preceding + following)
+        )
+        target = max(
+            candidates,
+            key=lambda reference: (
+                len(set(reference.attribute.split("_")) & context_tokens),
+                reference.semantic_type in {"integer", "real"},
+            ),
+        )
+        recovered = clean_predicate(
+            PredicateSpec(
+                attribute=target,
+                operator="=",
+                value=(
+                    float(rendered) if "." in rendered else int(rendered)
+                ),
+            )
+        )
+        if recovered is not None:
+            add_recovered(recovered)
+            existing_numbers.add(rendered)
+
     aggregates = list(plan.aggregates)
     if (
         aggregates
@@ -806,17 +1131,6 @@ def _normalize_plan_with_schema(
             if aggregate.attribute is not None
         }
 
-        def collect_excluded(value: Optional[PredicateSpec]) -> None:
-            if value is None:
-                return
-            if value.attribute is not None:
-                excluded.add(
-                    (value.attribute.entity, value.attribute.attribute)
-                )
-            for child in value.children:
-                collect_excluded(child)
-
-        collect_excluded(predicate)
         clause_tokens = set(re.findall(r"[a-z0-9]+", group_clause))
 
         def mentioned(attribute: str) -> bool:
@@ -904,16 +1218,25 @@ def _normalize_plan_with_schema(
     # category as its sole dimension, even when the question says only
     # "how many X entities". This is also necessary to retain the requested
     # category in a relational answer rather than returning an unlabeled count.
-    if (
-        not group_by
-        and aggregates
-        and aggregates[0].function == "count"
-        and predicate is not None
-        and predicate.kind == "predicate"
-        and predicate.operator == "="
-        and isinstance(predicate.value, str)
-    ):
-        group_by = [predicate.attribute]
+    if not group_by and aggregates and predicate is not None:
+        equality_dimensions: List[AttributeRef] = []
+
+        def collect_equality_dimensions(value: PredicateSpec) -> None:
+            if value.kind in {"and", "or"}:
+                for child in value.children:
+                    collect_equality_dimensions(child)
+                return
+            if (
+                value.attribute is not None
+                and value.operator == "="
+                and isinstance(value.value, str)
+                and value.attribute.semantic_type != "date"
+                and "date" not in value.attribute.attribute
+            ):
+                equality_dimensions.append(value.attribute)
+
+        collect_equality_dimensions(predicate)
+        group_by = list(dict.fromkeys(equality_dimensions))
 
     if aggregates and attribute_vocabulary:
         grouped_keys = {
@@ -921,7 +1244,7 @@ def _normalize_plan_with_schema(
         }
         existing_refs = {
             (reference.entity, reference.attribute): reference
-            for reference in plan.attributes()
+            for reference in (*plan.attributes(), *context_references)
         }
         cue_matches = list(
             re.finditer(
@@ -939,8 +1262,15 @@ def _normalize_plan_with_schema(
             if match:
                 return match.start()
             tokens = attribute.split("_")
-            positions = [lowered.find(token) for token in tokens]
-            return min(positions) if positions and all(pos >= 0 for pos in positions) else -1
+            matches = [
+                re.search(rf"\b{re.escape(token)}s?\b", lowered)
+                for token in tokens
+            ]
+            return (
+                min(match.start() for match in matches if match is not None)
+                if matches and all(match is not None for match in matches)
+                else -1
+            )
 
         candidates: List[AttributeRef] = []
         for entity, names in attribute_vocabulary.items():
@@ -962,13 +1292,33 @@ def _normalize_plan_with_schema(
                     )
                 )
         if candidates and aggregates[0].function != "count":
+            mentioned_candidates = [
+                reference
+                for reference in candidates
+                if reference.entity in mentioned_entities
+            ]
+            if mentioned_candidates:
+                candidates = mentioned_candidates
+            join_keys = {
+                (entity, attribute)
+                for left_entity, left_attr, right_entity, right_attr
+                in join_vocabulary
+                for entity, attribute in (
+                    (left_entity, left_attr),
+                    (right_entity, right_attr),
+                )
+            }
             target = max(
                 candidates,
                 key=lambda reference: (
-                    reference.entity in mentioned_entities,
-                    reference.entity in core_entities,
-                    -abs(phrase_position(reference.attribute) - cue_position),
+                    (reference.entity, reference.attribute)
+                    not in join_keys,
                     len(reference.attribute.split("_")),
+                    reference.entity in mentioned_entities,
+                    -abs(phrase_position(reference.attribute) - cue_position),
+                    reference.semantic_type
+                    in {"integer", "real", "boolean"},
+                    reference.entity in core_entities,
                 ),
             )
             aggregates[0] = replace(
@@ -976,6 +1326,70 @@ def _normalize_plan_with_schema(
                 attribute=target,
                 alias=f"{aggregates[0].function}_{target.attribute}",
             )
+
+    explicit_distinct = bool(
+        re.search(r"\b(?:distinct|different|unique)\b", lowered)
+    )
+    aggregates = [
+        replace(aggregate, distinct=False)
+        if aggregate.distinct and not explicit_distinct
+        else aggregate
+        for aggregate in aggregates
+    ]
+
+    # Prefer a fact table's local relationship key when the question requests
+    # only the related entity itself (for example, "by account"), not a remote
+    # property (for example, "by account region"). This avoids a lossy join
+    # without encoding any domain-specific table or column names.
+    measure_entity = next(
+        (
+            aggregate.attribute.entity
+            for aggregate in aggregates
+            if aggregate.attribute is not None
+        ),
+        None,
+    )
+    if measure_entity and join_vocabulary:
+        localized_groups: List[AttributeRef] = []
+        for reference in group_by:
+            replacement = None
+            identity_names = {
+                "id",
+                "key",
+                "name",
+                reference.entity,
+                f"{reference.entity}_id",
+                f"{reference.entity}_key",
+                f"{reference.entity}_name",
+            }
+            if (
+                reference.entity != measure_entity
+                and reference.attribute in identity_names
+                and reference.attribute.replace("_", " ") not in lowered
+            ):
+                for left_entity, left_attr, right_entity, right_attr in (
+                    join_vocabulary
+                ):
+                    if (
+                        left_entity == reference.entity
+                        and left_attr == reference.attribute
+                        and right_entity == measure_entity
+                    ):
+                        replacement = AttributeRef(
+                            right_entity, right_attr, "text"
+                        )
+                        break
+                    if (
+                        right_entity == reference.entity
+                        and right_attr == reference.attribute
+                        and left_entity == measure_entity
+                    ):
+                        replacement = AttributeRef(
+                            left_entity, left_attr, "text"
+                        )
+                        break
+            localized_groups.append(replacement or reference)
+        group_by = list(dict.fromkeys(localized_groups))
 
     # In an aggregate query every non-aggregate output must be a grouping
     # dimension. Discard leaked projections from the LLM audit; otherwise
@@ -992,6 +1406,8 @@ def _normalize_plan_with_schema(
             joins=(),
         ).attributes()
     }
+    if re.search(r"\b(?:matching|joined|related)\b", lowered):
+        required_entities.update(mentioned_entities)
     normalized_joins: List[JoinSpec] = []
     if len(required_entities) > 1 and join_vocabulary:
         root = next(
@@ -1046,6 +1462,24 @@ def _normalize_plan_with_schema(
                 connected.add(edge.left.entity)
                 connected.add(edge.right.entity)
                 connected.add(neighbour)
+
+    qualified_aliases = bool(normalized_joins)
+    aggregates = [
+        replace(
+            aggregate,
+            alias=(
+                f"{aggregate.function}_{aggregate.attribute.entity}_"
+                f"{aggregate.attribute.attribute}"
+                if qualified_aliases and aggregate.attribute is not None
+                else (
+                    f"{aggregate.function}_{aggregate.attribute.attribute}"
+                    if aggregate.attribute is not None
+                    else "count_all"
+                )
+            ),
+        )
+        for aggregate in aggregates
+    ]
 
     return replace(
         plan,
@@ -1413,6 +1847,26 @@ def _parse_llm_payload(
         default_entity = canonical_entities[0] if canonical_entities else (
             entity_vocabulary[0] if len(entity_vocabulary) == 1 else ""
         )
+        context_references: List[AttributeRef] = []
+        for value in list_field("attribute_bindings"):
+            if isinstance(value, Mapping):
+                reference = _attribute_ref(
+                    value,
+                    entity_vocabulary,
+                    default_entity,
+                    attribute_vocabulary,
+                )
+            elif isinstance(value, (list, tuple)) and len(value) == 2:
+                reference = _attribute_ref(
+                    {"entity": value[0], "attribute": value[1]},
+                    entity_vocabulary,
+                    default_entity,
+                    attribute_vocabulary,
+                )
+            else:
+                reference = None
+            if reference is not None:
+                context_references.append(reference)
         relationships = []
         for rel in list_field("relationships"):
             if isinstance(rel, Mapping):
@@ -1445,7 +1899,12 @@ def _parse_llm_payload(
             default_entity,
             attribute_vocabulary,
         )
-        plan = _repair_plan_aggregate(plan, queries_by_id[query_id])
+        plan = _repair_plan_aggregate(
+            plan,
+            queries_by_id[query_id],
+            context_references=context_references,
+            attribute_vocabulary=attribute_vocabulary,
+        )
         plan_references = plan.attributes() if plan else ()
         entities = list(
             dict.fromkeys(
@@ -1456,7 +1915,12 @@ def _parse_llm_payload(
             )
         )
         attributes = (
-            list(dict.fromkeys(reference.attribute for reference in plan_references))
+            list(
+                dict.fromkeys(
+                    reference.attribute
+                    for reference in (*plan_references, *context_references)
+                )
+            )
             if plan
             else list(
                 dict.fromkeys(
@@ -1467,22 +1931,9 @@ def _parse_llm_payload(
         )
         bindings = list(
             (reference.entity, reference.attribute)
-            for reference in plan_references
+            for reference in (*plan_references, *context_references)
         )
-        if not plan:
-            for value in list_field("attribute_bindings"):
-                if not isinstance(value, Mapping):
-                    continue
-                reference = _attribute_ref(
-                    value,
-                    entity_vocabulary,
-                    default_entity,
-                    attribute_vocabulary,
-                )
-                if reference is not None:
-                    bindings.append(
-                        (reference.entity, reference.attribute)
-                    )
+        bindings = list(dict.fromkeys(bindings))
         operators = list(
             dict.fromkeys(str(v).lower() for v in list_field("operators"))
         )
@@ -1693,6 +2144,28 @@ def analyze_workload(
                         query_text,
                         attribute_vocabulary=attribute_vocabulary,
                         join_vocabulary=join_vocabulary,
+                        context_references=tuple(
+                            AttributeRef(
+                                entity,
+                                attribute,
+                                next(
+                                    (
+                                        reference.semantic_type
+                                        for reference in (
+                                            candidate.plan.attributes()
+                                            if candidate.plan
+                                            else ()
+                                        )
+                                        if reference.entity == entity
+                                        and reference.attribute == attribute
+                                    ),
+                                    "text",
+                                ),
+                            )
+                            for entity, attribute in (
+                                candidate.attribute_bindings
+                            )
+                        ),
                     ),
                 )
                 for candidate in candidates
