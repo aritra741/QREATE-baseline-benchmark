@@ -1493,6 +1493,70 @@ def test_nl2sql_uses_query_plan_without_free_form_llm(tmp_path: Path):
     assert ledger.actual_spent == 0
 
 
+def test_nl2sql_does_not_require_join_for_local_foreign_key_group(
+    tmp_path: Path,
+):
+    class FailIfCalled:
+        model = "unused"
+
+        def generate(self, *_args, **_kwargs):
+            raise AssertionError("local grouping should bypass LLM")
+
+    nationality = AttributeRef("player", "nationality")
+    team = AttributeRef("player", "team")
+    medals = AttributeRef("player", "olympic_gold_medals", "integer")
+    requirement = QueryRequirement(
+        query_id="q",
+        text=(
+            "For every nationality-and-team combination, what is the "
+            "players' combined number of Olympic gold medals?"
+        ),
+        entities=("player", "team"),
+        operators=("sum", "group_by", "join"),
+        plan=QueryPlan(
+            group_by=(nationality, team),
+            aggregates=(AggregateSpec("sum", medals, "sum_medals"),),
+        ),
+    )
+    config = SynthesisConfig(
+        SchemaDesign(
+            "star",
+            (
+                RelationSpec(
+                    "player",
+                    ("nationality", "team", "olympic_gold_medals"),
+                ),
+                RelationSpec("team", ("team_name",)),
+            ),
+            ("q",),
+        ),
+        PopulationConfig(),
+        PreprocessingPolicy("whole_document"),
+    )
+    database = write_sqlite_database(
+        tmp_path / "local_group.sqlite",
+        {
+            "player": [
+                {
+                    "nationality": "American",
+                    "team": "Comets",
+                    "olympic_gold_medals": 2,
+                }
+            ],
+            "team": [{"team_name": "Comets"}],
+        },
+        config.schema,
+    )
+    ledger = GlobalBudgetLedger(1_000)
+    sql = make_nl2sql_compiler(FailIfCalled())(
+        requirement, config, database, ledger
+    )
+    assert "GROUP BY" in sql
+    assert '"nationality"' in sql
+    assert '"team"' in sql
+    assert ledger.actual_spent == 0
+
+
 def test_schema_design_propagates_query_plan_semantic_types():
     age = AttributeRef("player", "age", "real")
     requirement = QueryRequirement(
@@ -1689,7 +1753,11 @@ def test_semantic_validator_accepts_inner_join_equivalent_group_key():
         SchemaDesign(
             "star",
             (
-                RelationSpec("player", ("team",)),
+                RelationSpec(
+                    "player",
+                    ("team",),
+                    foreign_keys=(("team", "team", "team_name"),),
+                ),
                 RelationSpec("team", ("team_name",)),
             ),
             ("q",),
@@ -1702,6 +1770,19 @@ def test_semantic_validator_accepts_inner_join_equivalent_group_key():
         "JOIN team t ON p.team = t.team_name GROUP BY t.team_name"
     )
     assert _semantic_validation_errors(requirement, config, sql) == []
+    requirement_without_plan_join = QueryRequirement(
+        query_id="q",
+        text=requirement.text,
+        entities=requirement.entities,
+        operators=requirement.operators,
+        plan=QueryPlan(
+            group_by=(player_team,),
+            aggregates=(AggregateSpec("count", None, "count_all"),),
+        ),
+    )
+    assert _semantic_validation_errors(
+        requirement_without_plan_join, config, sql
+    ) == []
 
 
 def test_aggregate_compiler_drops_non_grouped_projection():

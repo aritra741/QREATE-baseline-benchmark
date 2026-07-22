@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 import sqlite3
 from pathlib import Path
@@ -13,10 +14,11 @@ from json_repair import repair_json
 from spp.budget_ledger import GlobalBudgetLedger
 from spp.budgeted_llm import BudgetedLLMClient
 from spp.query_plan_compiler import compile_query_plan
-from spp.spec import QueryRequirement, SynthesisConfig
+from spp.spec import AttributeRef, QueryRequirement, SynthesisConfig
 
 
 _SQL_START = re.compile(r"\b(SELECT|WITH)\b", re.IGNORECASE)
+logger = logging.getLogger(__name__)
 
 
 def _extract_sql(response: str) -> str:
@@ -207,19 +209,30 @@ def _semantic_validation_errors(
             re.DOTALL,
         )
         group_sql = group_match.group(1) if group_match else ""
+        equivalence_edges = [
+            (join.left, join.right)
+            for join in requirement.plan.joins
+            if join.join_type == "inner"
+        ]
+        equivalence_edges.extend(
+            (
+                AttributeRef(relation.name, column),
+                AttributeRef(target_table, target_column),
+            )
+            for relation in config.schema.relations
+            for column, target_table, target_column in relation.foreign_keys
+        )
         for reference in requirement.plan.group_by:
             equivalent_refs = {reference}
             changed = True
             while changed:
                 changed = False
-                for join in requirement.plan.joins:
-                    if join.join_type != "inner":
-                        continue
-                    if join.left in equivalent_refs and join.right not in equivalent_refs:
-                        equivalent_refs.add(join.right)
+                for left, right in equivalence_edges:
+                    if left in equivalent_refs and right not in equivalent_refs:
+                        equivalent_refs.add(right)
                         changed = True
-                    if join.right in equivalent_refs and join.left not in equivalent_refs:
-                        equivalent_refs.add(join.left)
+                    if right in equivalent_refs and left not in equivalent_refs:
+                        equivalent_refs.add(left)
                         changed = True
             if not any(
                 re.search(
@@ -413,6 +426,8 @@ def make_nl2sql_compiler(llm_client: Any):
         database_path: Path,
         ledger: GlobalBudgetLedger,
     ) -> str:
+        deterministic_fallback: str | None = None
+        deterministic_fallback_errors: list[str] = []
         is_sql = bool(
             re.match(r"^\s*(select|with)\b", requirement.text, re.IGNORECASE)
         )
@@ -440,11 +455,6 @@ def make_nl2sql_compiler(llm_client: Any):
             plan_complete = not (
                 (operators & aggregate_ops and not requirement.plan.aggregates)
                 or ("filter" in operators and requirement.plan.predicate is None)
-                or (
-                    "join" in operators
-                    and len(set(requirement.entities)) > 1
-                    and not requirement.plan.joins
-                )
             )
             deterministic_sql = (
                 compile_query_plan(requirement.plan, config)
@@ -456,11 +466,16 @@ def make_nl2sql_compiler(llm_client: Any):
                 and _query_validation_error(
                     database_path, deterministic_sql
                 ) is None
-                and not _semantic_validation_errors(
+            ):
+                deterministic_fallback = deterministic_sql
+                deterministic_fallback_errors = _semantic_validation_errors(
                     requirement, config, deterministic_sql
                 )
+            if (
+                deterministic_fallback
+                and not deterministic_fallback_errors
             ):
-                return deterministic_sql
+                return deterministic_fallback
         schema_payload = [
             {
                 "table": relation.name,
@@ -642,6 +657,14 @@ def make_nl2sql_compiler(llm_client: Any):
             return repaired_sql
         if initial_error is None:
             return sql
+        if deterministic_fallback is not None:
+            logger.warning(
+                "Semantic LLM repairs failed for query %s; using executable "
+                "deterministic-plan SQL with validation warnings: %s",
+                requirement.query_id,
+                "; ".join(deterministic_fallback_errors) or "none",
+            )
+            return deterministic_fallback
         raise ValueError(
             "NL2SQL could not produce valid SQLite after repair: "
             f"{repaired_error or initial_error}"
