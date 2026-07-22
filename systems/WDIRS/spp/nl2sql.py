@@ -208,8 +208,24 @@ def _semantic_validation_errors(
         )
         group_sql = group_match.group(1) if group_match else ""
         for reference in requirement.plan.group_by:
-            if not re.search(
-                rf"\b{re.escape(reference.attribute)}\b", group_sql
+            equivalent_refs = {reference}
+            changed = True
+            while changed:
+                changed = False
+                for join in requirement.plan.joins:
+                    if join.join_type != "inner":
+                        continue
+                    if join.left in equivalent_refs and join.right not in equivalent_refs:
+                        equivalent_refs.add(join.right)
+                        changed = True
+                    if join.right in equivalent_refs and join.left not in equivalent_refs:
+                        equivalent_refs.add(join.left)
+                        changed = True
+            if not any(
+                re.search(
+                    rf"\b{re.escape(candidate.attribute)}\b", group_sql
+                )
+                for candidate in equivalent_refs
             ):
                 errors.append(
                     f"missing GROUP BY dimension {reference.entity}.{reference.attribute}"

@@ -1671,6 +1671,39 @@ def test_semantic_validator_rejects_artifact_style_contract_violations():
     assert "missing categorical literal 'Canadian'" in errors
 
 
+def test_semantic_validator_accepts_inner_join_equivalent_group_key():
+    player_team = AttributeRef("player", "team")
+    team_name = AttributeRef("team", "team_name")
+    requirement = QueryRequirement(
+        query_id="q",
+        text="For every team, how many players are on that team?",
+        entities=("player", "team"),
+        operators=("count", "group_by", "join"),
+        plan=QueryPlan(
+            group_by=(player_team,),
+            aggregates=(AggregateSpec("count", None, "count_all"),),
+            joins=(JoinSpec(player_team, team_name),),
+        ),
+    )
+    config = SynthesisConfig(
+        SchemaDesign(
+            "star",
+            (
+                RelationSpec("player", ("team",)),
+                RelationSpec("team", ("team_name",)),
+            ),
+            ("q",),
+        ),
+        PopulationConfig(),
+        PreprocessingPolicy("whole_document"),
+    )
+    sql = (
+        "SELECT t.team_name, COUNT(*) FROM player p "
+        "JOIN team t ON p.team = t.team_name GROUP BY t.team_name"
+    )
+    assert _semantic_validation_errors(requirement, config, sql) == []
+
+
 def test_aggregate_compiler_drops_non_grouped_projection():
     branch = AttributeRef("transaction", "branch")
     amount = AttributeRef("transaction", "amount", "real")

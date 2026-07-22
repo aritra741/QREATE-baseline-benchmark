@@ -82,7 +82,12 @@ def compile_workload_sql(
         config = configs[config_id]
         db_path = Path(database_paths[config_id])
         before = ledger.actual_spent
-        sql = compiler(requirement, config, db_path, ledger)
+        try:
+            sql = compiler(requirement, config, db_path, ledger)
+        except Exception as exc:
+            raise ValueError(
+                f"failed to compile query {requirement.query_id!r}: {exc}"
+            ) from exc
         if ledger.actual_spent < before:
             raise AssertionError("compiler moved token ledger backwards")
         _validate_readonly_sql(sql)
