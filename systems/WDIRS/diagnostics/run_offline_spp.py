@@ -122,7 +122,8 @@ def main() -> int:
     )
     scratch_parent.mkdir(parents=True, exist_ok=True)
     scratch = scratch_parent / f".{output.name}_backend"
-    scratch.mkdir(parents=True, exist_ok=False)
+    # Reuse an existing backend scratch so extraction caches survive restarts.
+    scratch.mkdir(parents=True, exist_ok=True)
     os.environ["WDIRS_SQLITE_JOURNAL_MODE"] = args.sqlite_journal_mode
     os.environ["WDIRS_DB_PATH"] = str(scratch / "shared_extraction.sqlite")
     queries = _load_queries(args.workload)
