@@ -418,13 +418,25 @@ def _expected_aggregate(text: str) -> Optional[str]:
     lowered = text.lower()
     if re.search(r"\b(average|mean)\b", lowered):
         return "avg"
-    if re.search(r"\b(fewest|lowest|smallest|minimum)\b", lowered):
+    if re.search(
+        r"\b(fewest|lowest|smallest|minimum|youngest)\b", lowered
+    ):
         return "min"
-    if re.search(r"\b(largest|highest|greatest|maximum)\b", lowered):
+    if re.search(
+        r"\b(largest|highest|greatest|maximum|oldest)\b", lowered
+    ):
         return "max"
     if re.search(r"\b(total|combined|altogether|sum)\b", lowered):
         return "sum"
-    if re.search(r"\b(how many|count)\b", lowered):
+    # Treat ``count`` as an aggregate only when it is used as a counting
+    # instruction.  In analytical schemas it is also commonly part of a
+    # scalar measure name ("championship count", "retry count", etc.).
+    if re.search(
+        r"\bhow many\b"
+        r"|(?:^|[.!?]\s+|,\s+)\s*(?:please\s+)?count\b"
+        r"|\bcount\s+(?:the|all|each|every|non[- ]?(?:missing|null))\b",
+        lowered,
+    ):
         return "count"
     return None
 

@@ -1736,6 +1736,51 @@ def test_semantic_validator_rejects_artifact_style_contract_violations():
     assert "missing categorical literal 'Canadian'" in errors
 
 
+def test_scalar_count_column_is_not_mistaken_for_count_aggregate():
+    championships = AttributeRef(
+        "player", "nba_championships", "integer"
+    )
+    requirement = QueryRequirement(
+        query_id="q",
+        text="Show each player's NBA championship count.",
+        entities=("player",),
+        attributes=("nba_championships",),
+        attribute_bindings=(("player", "nba_championships"),),
+        operators=("projection",),
+        plan=QueryPlan(projections=(championships,)),
+    )
+    config = SynthesisConfig(
+        SchemaDesign(
+            "denormalized",
+            (
+                RelationSpec(
+                    "player",
+                    ("name", "nba_championships"),
+                    semantic_types=(("nba_championships", "integer"),),
+                ),
+            ),
+            ("q",),
+        ),
+        PopulationConfig(),
+        PreprocessingPolicy("whole_document"),
+    )
+
+    assert _semantic_validation_errors(
+        requirement,
+        config,
+        "SELECT nba_championships FROM player",
+    ) == []
+    normalized = _normalize_plan_with_schema(
+        requirement.plan,
+        requirement.text,
+        attribute_vocabulary={
+            "player": ("name", "nba_championships"),
+        },
+    )
+    assert normalized is not None
+    assert normalized.aggregates == ()
+
+
 def test_semantic_validator_accepts_inner_join_equivalent_group_key():
     player_team = AttributeRef("player", "team")
     team_name = AttributeRef("team", "team_name")

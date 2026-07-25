@@ -15,6 +15,7 @@ from spp.budget_ledger import GlobalBudgetLedger
 from spp.budgeted_llm import BudgetedLLMClient
 from spp.query_plan_compiler import compile_query_plan
 from spp.spec import AttributeRef, QueryRequirement, SynthesisConfig
+from spp.workload_intent import _expected_aggregate
 
 
 _SQL_START = re.compile(r"\b(SELECT|WITH)\b", re.IGNORECASE)
@@ -173,18 +174,7 @@ def _semantic_validation_errors(
     normalized_sql = re.sub(r'["`]', "", sql.lower())
     errors: list[str] = []
 
-    expected_function = None
-    aggregate_phrases = (
-        (r"\b(average|mean)\b", "avg"),
-        (r"\b(fewest|lowest|smallest|minimum)\b", "min"),
-        (r"\b(largest|highest|greatest|maximum)\b", "max"),
-        (r"\b(total|combined|altogether|sum)\b", "sum"),
-        (r"\b(how many|count)\b", "count"),
-    )
-    for pattern, function in aggregate_phrases:
-        if re.search(pattern, lowered_text):
-            expected_function = function
-            break
+    expected_function = _expected_aggregate(requirement.text)
     if expected_function and not re.search(
         rf"\b{expected_function}\s*\(", normalized_sql
     ):
@@ -304,9 +294,17 @@ def _semantic_validation_errors(
 
     # Preserve explicit numeric restrictions even when the LLM omitted the
     # entire predicate from its plan.
-    for number in re.findall(r"\b\d+(?:\.\d+)?\b", lowered_text):
-        if not re.search(rf"(?<![a-z0-9_]){re.escape(number)}(?![a-z0-9_])", normalized_sql):
-            errors.append(f"missing numeric literal {number}")
+    numeric_literals = re.findall(
+        r"\b\d{1,3}(?:,\d{3})+(?:\.\d+)?\b|\b\d+(?:\.\d+)?\b",
+        lowered_text,
+    )
+    for rendered_number in numeric_literals:
+        number = rendered_number.replace(",", "")
+        if not re.search(
+            rf"(?<![a-z0-9_]){re.escape(number)}(?![a-z0-9_])",
+            normalized_sql,
+        ):
+            errors.append(f"missing numeric literal {rendered_number}")
     word_numbers = {
         "one": 1,
         "two": 2,
