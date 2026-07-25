@@ -7,6 +7,8 @@ import argparse
 import json
 import os
 import sys
+import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 import sqlglot
@@ -107,6 +109,8 @@ def main() -> int:
         help="Per-document character cap used only for subset smoke tests.",
     )
     args = parser.parse_args()
+    started_at = datetime.now(timezone.utc)
+    started_monotonic = time.monotonic()
 
     output = args.output.expanduser().resolve()
     if output.exists() and any(output.iterdir()):
@@ -215,6 +219,7 @@ def main() -> int:
             token_budget=args.token_budget,
             output_dir=output,
         )
+        finished_at = datetime.now(timezone.utc)
         run_manifest = {
             "dataset": args.dataset,
             "workload": str(args.workload.resolve()),
@@ -235,6 +240,11 @@ def main() -> int:
                 runner.enable_attribute_discovery
             ),
             "intent_workers": args.intent_workers,
+            "started_at_utc": started_at.isoformat(),
+            "finished_at_utc": finished_at.isoformat(),
+            "synthesis_wall_clock_seconds": (
+                time.monotonic() - started_monotonic
+            ),
         }
         if selected_documents:
             server = OfflineQueryServer(result.serving_manifest.parent)
