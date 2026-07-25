@@ -37,6 +37,7 @@ class PilotObservation:
     type_validity: float = 1.0
     key_validity: float = 1.0
     join_validity: float = 1.0
+    population_coverage: float = 1.0
     metamorphic_consistency: float = 1.0
     nl_sql_consistency: float = 1.0
     candidate_agreement: float = 1.0
@@ -67,6 +68,7 @@ def _validity_product(observation: PilotObservation) -> Tuple[float, Dict[str, f
         "type_validity": _clamp(observation.type_validity),
         "key_validity": _clamp(observation.key_validity),
         "join_validity": _clamp(observation.join_validity),
+        "population_coverage": _clamp(observation.population_coverage),
         "metamorphic_consistency": _clamp(observation.metamorphic_consistency),
         "nl_sql_consistency": _clamp(observation.nl_sql_consistency),
     }

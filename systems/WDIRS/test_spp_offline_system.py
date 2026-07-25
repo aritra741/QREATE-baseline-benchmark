@@ -1195,10 +1195,62 @@ def test_nl_intent_analysis_isolates_queries():
         llm_client=client,
         intent_max_workers=3,
     )
-    assert client.calls == 10
+    # Each isolated query receives a draft, semantic audit, and independent
+    # SQL-shaped interpretation.
+    assert client.calls == 15
     assert client.max_active > 1
     assert len(intent.requirements) == 5
     assert all(requirement.plan for requirement in intent.requirements)
+
+
+def test_nl_intent_uses_independent_sql_shadow_candidate():
+    class ShadowClient:
+        def generate(self, prompt, **_kwargs):
+            if prompt.startswith("Translate the analytical question"):
+                return "SELECT category FROM record WHERE amount > 5"
+            return json.dumps(
+                [
+                    {
+                        "query_id": "q0",
+                        "entities": ["record"],
+                        "attributes": ["category", "amount"],
+                        "attribute_bindings": [
+                            {"entity": "record", "attribute": "category"},
+                            {"entity": "record", "attribute": "amount"},
+                        ],
+                        "relationships": [],
+                        "operators": ["filter"],
+                        "units": [],
+                        "plan": {
+                            "projections": [
+                                {
+                                    "entity": "record",
+                                    "attribute": "category",
+                                    "semantic_type": "text",
+                                }
+                            ],
+                            "group_by": [],
+                            "aggregates": [],
+                            "predicate": None,
+                            "joins": [],
+                        },
+                    }
+                ]
+            )
+
+    intent = analyze_workload(
+        [{"query_id": "q0", "text": "Show category where amount is above 5."}],
+        llm_client=ShadowClient(),
+        entity_vocabulary=("record",),
+        attribute_vocabulary={"record": ("amount", "category")},
+    )
+    requirement = intent.requirements[0]
+    assert requirement.plan is not None
+    assert requirement.plan.predicate == PredicateSpec(
+        attribute=AttributeRef("record", "amount", "integer"),
+        operator=">",
+        value=5,
+    )
 
 
 def test_schema_stabilization_parallelizes_independent_samples(monkeypatch):
@@ -1792,6 +1844,88 @@ def test_scalar_count_column_is_not_mistaken_for_count_aggregate():
     )
     assert normalized is not None
     assert normalized.aggregates == ()
+
+
+def test_projection_for_every_entity_does_not_invent_grouping():
+    plan = _normalize_plan_with_schema(
+        QueryPlan(
+            projections=(
+                AttributeRef("person", "group"),
+                AttributeRef("person", "nationality"),
+                AttributeRef("group", "location"),
+                AttributeRef("group", "group_name"),
+            ),
+            group_by=(AttributeRef("person", "group"),),
+        ),
+        (
+            "For every person matched to a group, show the person's nationality "
+            "together with the group's location and name."
+        ),
+        attribute_vocabulary={
+            "person": ("group", "nationality"),
+            "group": ("group_name", "location"),
+        },
+        join_vocabulary=(
+            ("person", "group", "group", "group_name"),
+        ),
+    )
+    assert plan is not None
+    assert plan.group_by == ()
+    assert plan.aggregates == ()
+
+
+def test_normalization_canonicalizes_dates_without_contradictory_duplicates():
+    birth_date = AttributeRef("person", "birth_date", "date")
+    plan = _normalize_plan_with_schema(
+        QueryPlan(
+            projections=(birth_date,),
+            predicate=PredicateSpec(
+                attribute=birth_date,
+                operator="!=",
+                value="1959-06-10",
+            ),
+        ),
+        "List birth dates, excluding people born on June 10, 1959.",
+        attribute_vocabulary={
+            "person": ("birth_date",),
+        },
+    )
+    assert plan is not None
+    assert plan.predicate == PredicateSpec(
+        attribute=birth_date,
+        operator="!=",
+        value="1959/6/10",
+    )
+
+
+def test_normalization_treats_comma_number_as_one_literal():
+    population = AttributeRef("place", "population", "integer")
+    plan = _normalize_plan_with_schema(
+        QueryPlan(
+            projections=(AttributeRef("place", "name"),),
+            predicate=PredicateSpec(
+                attribute=population,
+                operator="<",
+                value=1_603_797,
+            ),
+        ),
+        "Show places whose population is below 1,603,797.",
+        attribute_vocabulary={
+            "place": ("name", "population"),
+        },
+    )
+    assert plan is not None
+    leaves = []
+
+    def collect(predicate):
+        if predicate.kind in {"and", "or"}:
+            for child in predicate.children:
+                collect(child)
+        else:
+            leaves.append(predicate)
+
+    collect(plan.predicate)
+    assert [leaf.value for leaf in leaves] == [1_603_797]
 
 
 def test_semantic_validator_accepts_inner_join_equivalent_group_key():

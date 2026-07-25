@@ -8,6 +8,7 @@ import json
 import os
 import sys
 import time
+from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -18,6 +19,7 @@ if str(WDIRS_ROOT) not in sys.path:
     sys.path.insert(0, str(WDIRS_ROOT))
 
 from extractor import OllamaClient  # noqa: E402
+from spp.budget_ledger import GlobalBudgetLedger  # noqa: E402
 from spp.corpus_subset import build_representative_subset  # noqa: E402
 from spp.nl2sql import make_nl2sql_compiler  # noqa: E402
 from spp.serving import OfflineQueryServer  # noqa: E402
@@ -108,6 +110,11 @@ def main() -> int:
         default=8000,
         help="Per-document character cap used only for subset smoke tests.",
     )
+    parser.add_argument(
+        "--intent-only",
+        action="store_true",
+        help="Analyze and save workload plans without extraction/materialization.",
+    )
     args = parser.parse_args()
     started_at = datetime.now(timezone.utc)
     started_monotonic = time.monotonic()
@@ -186,6 +193,58 @@ def main() -> int:
             schema_vocabulary = schema_vocabulary_from_sql(
                 schema_queries
             )
+        intent_analyzer = make_budgeted_intent_analyzer(
+            original_client,
+            entity_vocabulary=(
+                schema_vocabulary.entities
+                if schema_vocabulary
+                else ()
+            ),
+            attribute_vocabulary=(
+                schema_vocabulary.attributes
+                if schema_vocabulary
+                else None
+            ),
+            join_vocabulary=(
+                schema_vocabulary.joins
+                if schema_vocabulary
+                else ()
+            ),
+            intent_max_workers=args.intent_workers,
+        )
+        if args.intent_only:
+            ledger = GlobalBudgetLedger(args.token_budget)
+            intent = intent_analyzer(queries, ledger)
+            output.mkdir(parents=True, exist_ok=True)
+            finished_at = datetime.now(timezone.utc)
+            preview = {
+                "dataset": args.dataset,
+                "workload": str(args.workload.resolve()),
+                "schema_workload": (
+                    str(args.schema_workload.resolve())
+                    if args.schema_workload
+                    else None
+                ),
+                "workload_intent": asdict(intent),
+                "token_summary": ledger.summary(),
+                "started_at_utc": started_at.isoformat(),
+                "finished_at_utc": finished_at.isoformat(),
+                "wall_clock_seconds": time.monotonic() - started_monotonic,
+            }
+            path = output / "intent_preview.json"
+            path.write_text(json.dumps(preview, indent=2, default=str))
+            print(
+                json.dumps(
+                    {
+                        "query_count": len(intent.requirements),
+                        "token_summary": ledger.summary(),
+                        "intent_preview": str(path),
+                    },
+                    indent=2,
+                )
+            )
+            return 0
+
         backend = WDIRSPrimitiveBackend(
             runner,
             schema_workload_queries=schema_queries,
@@ -194,25 +253,7 @@ def main() -> int:
         system = OfflineSynthesisSystem(
             backend,
             make_nl2sql_compiler(original_client),
-            intent_analyzer=make_budgeted_intent_analyzer(
-                original_client,
-                entity_vocabulary=(
-                    schema_vocabulary.entities
-                    if schema_vocabulary
-                    else ()
-                ),
-                attribute_vocabulary=(
-                    schema_vocabulary.attributes
-                    if schema_vocabulary
-                    else None
-                ),
-                join_vocabulary=(
-                    schema_vocabulary.joins
-                    if schema_vocabulary
-                    else ()
-                ),
-                intent_max_workers=args.intent_workers,
-            ),
+            intent_analyzer=intent_analyzer,
             beta=args.beta,
             quality_floor=args.quality_floor,
         )

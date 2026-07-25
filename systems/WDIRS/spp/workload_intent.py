@@ -26,6 +26,7 @@ from spp.spec import (
     QueryPlan,
     QueryRequirement,
 )
+from spp.value_normalization import canonical_date
 
 try:
     import sqlglot
@@ -428,9 +429,9 @@ def _expected_aggregate(text: str) -> Optional[str]:
         return "max"
     if re.search(r"\b(total|combined|altogether|sum)\b", lowered):
         return "sum"
-    # Treat ``count`` as an aggregate only when it is used as a counting
-    # instruction.  In analytical schemas it is also commonly part of a
-    # scalar measure name ("championship count", "retry count", etc.).
+    # Treat ``count`` as an aggregate only when it is used as an instruction.
+    # It can also be part of an arbitrary stored measure's natural-language
+    # label, so a bare occurrence is insufficient.
     if re.search(
         r"\bhow many\b"
         r"|(?:^|[.!?]\s+|,\s+)\s*(?:please\s+)?count\b"
@@ -649,22 +650,7 @@ def _normalize_plan_with_schema(
                 or "date" in attribute.attribute
             )
         ):
-            date_match = re.fullmatch(
-                r"\s*(January|February|March|April|May|June|July|August|"
-                r"September|October|November|December)\s+"
-                r"(\d{1,2}),\s*(\d{4})\s*",
-                value,
-                re.IGNORECASE,
-            )
-            if date_match:
-                month = (
-                    "january february march april may june july august "
-                    "september october november december"
-                ).split().index(date_match.group(1).lower()) + 1
-                value = (
-                    f"{int(date_match.group(3))}/{month}/"
-                    f"{int(date_match.group(2))}"
-                )
+            value = canonical_date(value) or value
         if (
             attribute is not None
             and attribute_vocabulary
@@ -925,6 +911,19 @@ def _normalize_plan_with_schema(
             )
             existing_values.add(value.lower())
 
+    schema_phrases = {
+        attribute.replace("_", " ").lower()
+        for attributes in (attribute_vocabulary or {}).values()
+        for attribute in attributes
+    }
+    schema_tokens = {
+        token
+        for phrase in schema_phrases
+        for token in phrase.split()
+    }
+    ignored_proper_literals = {
+        "list", "show", "return", "match", "calculate", "find",
+    }
     proper_literals = [
         match
         for match in re.finditer(
@@ -933,6 +932,11 @@ def _normalize_plan_with_schema(
         if match.start() > 0
         and not any(
             start <= match.start() < end for start, end in date_spans
+        )
+        and match.group(0).lower() not in ignored_proper_literals
+        and not all(
+            token.lower() in schema_tokens
+            for token in match.group(0).split()
         )
     ]
     for match in proper_literals:
@@ -1213,8 +1217,13 @@ def _normalize_plan_with_schema(
         for value in existing_values
         if re.fullmatch(r"-?\d+(?:\.\d+)?", value)
     }
-    for match in re.finditer(r"\b\d+(?:\.\d+)?\b", text):
-        rendered = match.group(0)
+    numeric_pattern = (
+        r"\b\d{1,3}(?:,\d{3})+(?:\.\d+)?\b"
+        r"|\b\d+(?:\.\d+)?\b"
+    )
+    for match in re.finditer(numeric_pattern, text):
+        rendered_surface = match.group(0)
+        rendered = rendered_surface.replace(",", "")
         if rendered in existing_numbers:
             continue
         preceding = text[max(0, match.start() - 45) : match.start()].lower()
@@ -1316,7 +1325,7 @@ def _normalize_plan_with_schema(
             aggregates[0], attribute=None, alias="count_all"
         )
 
-    group_by = list(plan.group_by)
+    group_by = list(plan.group_by) if aggregates else []
     group_clause = ""
     group_patterns = (
         r"\b(?:for|at|on|from|of)\s+(?:each|every)\s+(.+?)(?:,|\?|"
@@ -1335,7 +1344,7 @@ def _normalize_plan_with_schema(
         if match:
             group_clause = match.group(1).strip()
             break
-    if group_clause and attribute_vocabulary:
+    if aggregates and group_clause and attribute_vocabulary:
         excluded = {
             (aggregate.attribute.entity, aggregate.attribute.attribute)
             for aggregate in aggregates
@@ -1522,11 +1531,11 @@ def _normalize_plan_with_schema(
             target = max(
                 candidates,
                 key=lambda reference: (
+                    -abs(phrase_position(reference.attribute) - cue_position),
                     (reference.entity, reference.attribute)
                     not in join_keys,
                     len(reference.attribute.split("_")),
                     reference.entity in mentioned_entities,
-                    -abs(phrase_position(reference.attribute) - cue_position),
                     reference.semantic_type
                     in {"integer", "real", "boolean"},
                     reference.entity in core_entities,
@@ -1605,7 +1614,24 @@ def _normalize_plan_with_schema(
     # In an aggregate query every non-aggregate output must be a grouping
     # dimension. Discard leaked projections from the LLM audit; otherwise
     # SQLite accepts them permissively and returns arbitrary values.
-    projections = tuple(group_by) if aggregates else plan.projections
+    if aggregates:
+        projections = tuple(group_by)
+    else:
+        # Projection-only questions must never inherit grouping invented by an
+        # LLM audit ("for every record" means rows, not GROUP BY record).
+        projections = tuple(
+            dict.fromkeys(
+                reference
+                for reference in plan.projections
+                if (
+                    reference.attribute.replace("_", " ") in lowered
+                    or all(
+                        re.search(rf"\b{re.escape(token.rstrip('s'))}s?\b", lowered)
+                        for token in reference.attribute.split("_")
+                    )
+                )
+            )
+        ) or plan.projections
 
     required_entities = {
         reference.entity
@@ -1713,6 +1739,9 @@ def _plan_contract_score(plan: Optional[QueryPlan], text: str) -> int:
         score += 8 if any(
             aggregate.function == expected for aggregate in plan.aggregates
         ) else -8
+    else:
+        score += 6 if not plan.aggregates else -12
+        score += 6 if not plan.group_by else -12
     predicate_values: List[str] = []
     predicate_leaves: List[PredicateSpec] = []
 
@@ -1727,19 +1756,34 @@ def _plan_contract_score(plan: Optional[QueryPlan], text: str) -> int:
         predicate_values.append(str(predicate.value).strip().lower())
 
     visit(plan.predicate)
-    for number in re.findall(r"\b\d+(?:\.\d+)?\b", lowered):
+    for rendered_number in re.findall(
+        r"\b\d{1,3}(?:,\d{3})+(?:\.\d+)?\b|\b\d+(?:\.\d+)?\b",
+        lowered,
+    ):
+        number = rendered_number.replace(",", "")
         score += 3 if any(number in value for value in predicate_values) else -3
+    attribute_tokens = {
+        token
+        for reference in plan.attributes()
+        for token in reference.attribute.lower().split("_")
+    }
     for match in re.finditer(
         r"\b[A-Z][a-z]+(?:[- ][A-Z][a-z]+)*\b", text
     ):
         if match.start() == 0:
             continue
         literal = match.group(0).lower()
+        if (
+            literal in {"list", "show", "return", "match", "calculate", "find"}
+            or all(token in attribute_tokens for token in literal.split())
+        ):
+            continue
         score += 2 if any(
             literal in value for value in predicate_values
         ) else -2
-    if re.search(
-        r"\b(?:each|every|group(?:ed)?\s+by|break\b.+\bdown by)\b",
+    if expected is not None and re.search(
+        r"\b(?:(?:for|by)\s+(?:each|every)|group(?:ed)?\s+by|"
+        r"break\b.+\bdown by)\b",
         lowered,
     ):
         score += 4 if plan.group_by else -4
@@ -2306,9 +2350,12 @@ def analyze_workload(
                 "1. Preserve the exact requested aggregate and its numeric measure; "
                 "COUNT(*) is only entity cardinality, while COUNT(attribute) counts "
                 "known values.\n"
-                "2. Include exactly the dimensions requested by phrases such as "
-                "'for each', 'for every', 'by', or 'group'. Do not group by a "
-                "constant used only as a filter.\n"
+                "2. Include grouping dimensions only for aggregate queries. "
+                "In a projection question, 'for every record' means return one "
+                "row per matching record and MUST NOT create GROUP BY. In an "
+                "aggregate question, include exactly the dimensions requested "
+                "by 'for each', 'by', or 'group'. Do not group by a constant "
+                "used only as a filter.\n"
                 "3. Encode every record restriction from the question and no extra "
                 "restriction. Before writing the plan, inventory every number, date, "
                 "capitalized name/adjective, and negative cue (no/not/other than); "
@@ -2346,6 +2393,49 @@ def analyze_workload(
             except (RuntimeError, ValueError, TypeError):
                 # The independently budgeted draft remains usable and auditable
                 # when the semantic reviewer emits malformed output.
+                pass
+            # Build an independent SQL-shaped interpretation. Small models are
+            # often substantially better at familiar SQL syntax than deeply
+            # nested JSON predicate trees. Parsing it back into the same IR
+            # gives contract scoring an independent candidate without allowing
+            # SQL to bypass the synthesis firewall.
+            sql_prompt = (
+                "Translate the analytical question into one SQLite SELECT "
+                "query. Return SQL only. Use exactly the supplied tables, "
+                "columns, and join edges. Preserve every predicate, Boolean "
+                "operator, grouping dimension, aggregate target, and literal. "
+                "Projection questions must not use GROUP BY. Do not add "
+                "conditions merely because entities are joined.\n\n"
+                f"Tables and columns: "
+                f"{json.dumps(attribute_vocabulary or {}, sort_keys=True)}\n"
+                f"Join edges: {json.dumps(list(join_vocabulary))}\n"
+                f"Question: {query_text}"
+            )
+            try:
+                sql_response = llm_client.generate(
+                    sql_prompt, max_tokens=2048, temperature=0.0
+                )
+                fenced = re.search(
+                    r"```(?:sql)?\s*(.*?)```",
+                    sql_response,
+                    re.IGNORECASE | re.DOTALL,
+                )
+                rendered_sql = (
+                    fenced.group(1).strip()
+                    if fenced is not None
+                    else sql_response.strip()
+                )
+                sql_start = re.search(
+                    r"\b(?:SELECT|WITH)\b", rendered_sql, re.IGNORECASE
+                )
+                if sql_start is None:
+                    raise ValueError("SQL shadow contains no SELECT/WITH")
+                rendered_sql = rendered_sql[sql_start.start() :].split(
+                    ";", 1
+                )[0]
+                shadow = _sql_requirement(query_id, rendered_sql)
+                candidates.append(replace(shadow, text=query_text))
+            except (RuntimeError, ValueError, TypeError):
                 pass
             normalized_candidates = [
                 replace(

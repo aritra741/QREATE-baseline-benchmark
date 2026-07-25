@@ -29,7 +29,7 @@ from spp.schema_materializer import (
     write_sqlite_database,
 )
 from spp.spec import QualityEstimate, QueryRequirement, SynthesisConfig
-from spp.workload_intent import WorkloadIntent
+from spp.workload_intent import WorkloadIntent, _plan_contract_score
 
 logger = logging.getLogger(__name__)
 
@@ -528,12 +528,24 @@ class WDIRSPrimitiveBackend:
         cells: List[CellEvidence] = []
         relevant_atoms = set()
         represented_atoms = set()
+        coverage_values: List[float] = []
         bound = requirement.attribute_bindings or tuple(
             (table, attribute)
             for table in requirement.entities
             for attribute in requirement.attributes
         )
         for table, attribute in bound:
+            populated_rows = list(populated.get(table, ()))
+            if populated_rows:
+                coverage_values.append(
+                    sum(
+                        row.get(attribute) not in (None, "")
+                        for row in populated_rows
+                    )
+                    / len(populated_rows)
+                )
+            else:
+                coverage_values.append(0.0)
             for index, row in enumerate(
                 self.runner.data_layer.get_all_records(table)
             ):
@@ -579,10 +591,27 @@ class WDIRSPrimitiveBackend:
             type_validity=validity["type_validity"],
             key_validity=validity["key_validity"],
             join_validity=validity["join_validity"],
+            population_coverage=(
+                min(coverage_values) if coverage_values else 0.0
+            ),
             metamorphic_consistency=1.0,
-            nl_sql_consistency=1.0
-            if re.match(r"^\s*(select|with)\b", requirement.text, re.I)
-            else 0.5,
+            nl_sql_consistency=(
+                1.0
+                if re.match(r"^\s*(select|with)\b", requirement.text, re.I)
+                else max(
+                    0.0,
+                    min(
+                        1.0,
+                        (
+                            _plan_contract_score(
+                                requirement.plan, requirement.text
+                            )
+                            + 10
+                        )
+                        / 30,
+                    ),
+                )
+            ),
             stochastic_scores=[sample_fraction],
         )
         return estimate_query_risk(observation, bootstrap_rounds=40)
