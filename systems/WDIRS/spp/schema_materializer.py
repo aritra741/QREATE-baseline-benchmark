@@ -4,14 +4,37 @@ from __future__ import annotations
 
 import json
 import math
+import shutil
 import sqlite3
+import tempfile
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import Dict, Iterator, List, Mapping, Optional, Sequence, Tuple
 
 from spp.spec import RelationSpec, SchemaDesign
 
 
 JoinPair = Tuple[str, str, str, str]
+
+
+@contextmanager
+def temporary_work_dir(
+    prefix: str,
+    *,
+    parent: Path | None = None,
+) -> Iterator[Path]:
+    """Create a temp directory that tolerates NFS/VAST cleanup races."""
+    if parent is not None:
+        parent.mkdir(parents=True, exist_ok=True)
+        path = Path(tempfile.mkdtemp(prefix=prefix, dir=str(parent)))
+    else:
+        path = Path(tempfile.mkdtemp(prefix=prefix))
+    try:
+        yield path
+    finally:
+        # Shared filesystems can leave .nfs* stubs or journal sidecars that
+        # make TemporaryDirectory raise OSError: Directory not empty.
+        shutil.rmtree(path, ignore_errors=True)
 
 
 def _quote(identifier: str) -> str:
@@ -160,6 +183,7 @@ def write_sqlite_database(
         raise FileExistsError(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(path) as connection:
+        connection.execute("PRAGMA journal_mode=DELETE")
         for relation in schema.relations:
             rows = list(tables.get(relation.name, ()))
             definitions = []

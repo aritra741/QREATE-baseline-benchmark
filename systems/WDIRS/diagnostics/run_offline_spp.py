@@ -188,6 +188,7 @@ def main() -> int:
         backend = WDIRSPrimitiveBackend(
             runner,
             schema_workload_queries=schema_queries,
+            scratch_dir=scratch,
         )
         system = OfflineSynthesisSystem(
             backend,

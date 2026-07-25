@@ -7,7 +7,6 @@ import json
 import math
 import re
 import sqlite3
-import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Sequence, Tuple
@@ -22,7 +21,11 @@ from spp.population import apply_population
 from spp.quality_signals import profile_relational_database
 from spp.risk_estimator import CellEvidence, PilotObservation, estimate_query_risk
 from spp.schema_design import generate_schema_designs
-from spp.schema_materializer import reshape_tables, write_sqlite_database
+from spp.schema_materializer import (
+    reshape_tables,
+    temporary_work_dir,
+    write_sqlite_database,
+)
 from spp.spec import (
     PreprocessingPolicy,
     QualityEstimate,
@@ -695,13 +698,13 @@ class NativeSPPBackend:
                 document.document_id.encode()
             ).hexdigest(),
         )[:count]
-        with tempfile.TemporaryDirectory(prefix="native-spp-pilot-") as directory:
+        with temporary_work_dir("native-spp-pilot-") as directory:
             tables, estimates = self._run_materialization(
                 config,
                 sampled,
                 evidence_store,
                 ledger,
-                Path(directory) / "pilot.sqlite",
+                directory / "pilot.sqlite",
                 stage="pilot_extraction",
             )
         return PilotResult(

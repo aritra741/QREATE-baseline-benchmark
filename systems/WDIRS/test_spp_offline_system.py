@@ -51,7 +51,11 @@ from spp.quality_signals import (
     metamorphic_consistency,
     profile_relational_database,
 )
-from spp.schema_materializer import reshape_tables, write_sqlite_database
+from spp.schema_materializer import (
+    reshape_tables,
+    temporary_work_dir,
+    write_sqlite_database,
+)
 from spp.schema_design import generate_schema_designs, generate_synthesis_configs
 from spp.query_plan_compiler import compile_query_plan
 from spp.serving import CompiledQuery, OfflineQueryServer, freeze_serving_bundle
@@ -1734,6 +1738,15 @@ def test_semantic_validator_rejects_artifact_style_contract_violations():
     assert "aggregate target must be transaction.amount" in errors
     assert "missing numeric literal 2020" in errors
     assert "missing categorical literal 'Canadian'" in errors
+
+
+def test_temporary_work_dir_tolerates_nonempty_cleanup(tmp_path: Path):
+    # Must not raise even when sticky sidecars are present during cleanup.
+    with temporary_work_dir("spp-pilot-", parent=tmp_path) as directory:
+        path = directory
+        (directory / "pilot.sqlite").write_text("x", encoding="utf-8")
+        (directory / ".nfsdeadbeef").write_text("stub", encoding="utf-8")
+    assert not path.exists()
 
 
 def test_scalar_count_column_is_not_mistaken_for_count_aggregate():

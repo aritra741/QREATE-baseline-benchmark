@@ -13,7 +13,6 @@ import json
 import logging
 import math
 import re
-import tempfile
 from dataclasses import replace
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Sequence
@@ -24,7 +23,11 @@ from spp.evidence_store import CellProvenance, EvidenceAnchor, EvidenceStore
 from spp.optimizer import PilotResult, canonical_output_signature
 from spp.quality_signals import profile_relational_database
 from spp.risk_estimator import CellEvidence, PilotObservation, estimate_query_risk
-from spp.schema_materializer import reshape_tables, write_sqlite_database
+from spp.schema_materializer import (
+    reshape_tables,
+    temporary_work_dir,
+    write_sqlite_database,
+)
 from spp.spec import QualityEstimate, QueryRequirement, SynthesisConfig
 from spp.workload_intent import WorkloadIntent
 
@@ -39,9 +42,15 @@ class WDIRSPrimitiveBackend:
         runner: Any,
         *,
         schema_workload_queries: Sequence[str] = (),
+        scratch_dir: Path | None = None,
     ):
         self.runner = runner
         self.schema_workload_queries = tuple(schema_workload_queries)
+        self.scratch_dir = (
+            Path(scratch_dir).expanduser().resolve()
+            if scratch_dir is not None
+            else None
+        )
         self.intent: WorkloadIntent | None = None
         self._corpus_text = ""
         self._table_names: List[str] = []
@@ -65,6 +74,9 @@ class WDIRSPrimitiveBackend:
                 )
             ),
             "cache_dir": str(self.runner.cache_dir),
+            "scratch_dir": (
+                str(self.scratch_dir) if self.scratch_dir is not None else None
+            ),
             "source_primitive": "WDIRS",
             "runtime_delta_attribute_discovery": bool(
                 getattr(self.runner, "enable_attribute_discovery", True)
@@ -594,9 +606,14 @@ class WDIRSPrimitiveBackend:
         reshaped = reshape_tables(
             populated, config.schema, join_pairs=join_pairs
         )
-        with tempfile.TemporaryDirectory(prefix="spp-pilot-") as directory:
+        pilot_parent = (
+            self.scratch_dir / "pilots"
+            if self.scratch_dir is not None
+            else None
+        )
+        with temporary_work_dir("spp-pilot-", parent=pilot_parent) as directory:
             db_path = write_sqlite_database(
-                Path(directory) / "pilot.sqlite", reshaped, config.schema
+                directory / "pilot.sqlite", reshaped, config.schema
             )
             relational = profile_relational_database(db_path, config.schema)
         validity = {
