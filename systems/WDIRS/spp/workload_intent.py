@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 import re
 from collections import Counter
-from dataclasses import asdict, dataclass, replace
+from dataclasses import asdict, dataclass, field, replace
 from difflib import SequenceMatcher
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
@@ -68,6 +68,7 @@ class WorkloadIntent:
     entity_frequency: Mapping[str, int]
     attribute_frequency: Mapping[str, int]
     operator_frequency: Mapping[str, int]
+    analysis_diagnostics: Mapping[str, Any] = field(default_factory=dict)
 
     @property
     def has_joins(self) -> bool:
@@ -2321,6 +2322,8 @@ def analyze_workload(
         # questions. Each worker therefore owns one complete draft -> audit
         # chain. Chains are independent, while calls inside one chain remain
         # ordered. executor.map below preserves workload order.
+        analysis_diagnostics: Dict[str, Any] = {}
+
         def _analyze_one(item: Tuple[str, str]) -> QueryRequirement:
             query_id, query_text = item
             batch = {query_id: query_text}
@@ -2341,6 +2344,7 @@ def analyze_workload(
             )
             draft = drafts[0]
             candidates = [draft]
+            candidate_sources = ["json_draft"]
             review_prompt = (
                 "Audit and correct one schema-independent analytical query plan. "
                 "Return ONLY a JSON array containing one complete corrected item "
@@ -2390,6 +2394,7 @@ def analyze_workload(
                 )
                 if reviewed and reviewed[0].plan is not None:
                     candidates.append(reviewed[0])
+                    candidate_sources.append("json_audit")
             except (RuntimeError, ValueError, TypeError):
                 # The independently budgeted draft remains usable and auditable
                 # when the semantic reviewer emits malformed output.
@@ -2435,6 +2440,7 @@ def analyze_workload(
                 )[0]
                 shadow = _sql_requirement(query_id, rendered_sql)
                 candidates.append(replace(shadow, text=query_text))
+                candidate_sources.append("sql_shadow")
             except (RuntimeError, ValueError, TypeError):
                 pass
             normalized_candidates = [
@@ -2471,16 +2477,33 @@ def analyze_workload(
                 )
                 for candidate in candidates
             ]
-            draft = max(
-                enumerate(normalized_candidates),
-                key=lambda item: (
-                    _plan_contract_score(
-                        item[1].plan,
-                        query_text,
-                    ),
-                    item[0],
-                ),
-            )[1]
+            scored_candidates = [
+                (
+                    _plan_contract_score(candidate.plan, query_text),
+                    index,
+                    candidate,
+                )
+                for index, candidate in enumerate(normalized_candidates)
+            ]
+            _score, selected_index, draft = max(
+                scored_candidates,
+                key=lambda item: (item[0], item[1]),
+            )
+            analysis_diagnostics[query_id] = {
+                "selected_source": candidate_sources[selected_index],
+                "candidates": [
+                    {
+                        "source": candidate_sources[index],
+                        "contract_score": score,
+                        "plan": (
+                            asdict(candidate.plan)
+                            if candidate.plan is not None
+                            else None
+                        ),
+                    }
+                    for score, index, candidate in scored_candidates
+                ],
+            }
             return draft
 
         worker_count = min(intent_max_workers, len(items))
@@ -2504,6 +2527,11 @@ def analyze_workload(
         entity_frequency=dict(Counter(v for r in ordered for v in r.entities)),
         attribute_frequency=dict(Counter(v for r in ordered for v in r.attributes)),
         operator_frequency=dict(Counter(v for r in ordered for v in r.operators)),
+        analysis_diagnostics=(
+            analysis_diagnostics
+            if nl_queries and llm_client is not None
+            else {}
+        ),
     )
 
 
