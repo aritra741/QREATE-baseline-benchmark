@@ -54,6 +54,8 @@ class WDIRSPrimitiveBackend:
         self.intent: WorkloadIntent | None = None
         self._corpus_text = ""
         self._table_names: List[str] = []
+        self._source_document_counts: Dict[str, int] = {}
+        self._extracted_document_counts: Dict[str, int] = {}
         self._original_llm_client = runner.llm_client
         self._population_cache: Dict[str, Dict[str, List[dict]]] = {}
         self._evidence_store: EvidenceStore | None = None
@@ -74,6 +76,10 @@ class WDIRSPrimitiveBackend:
                 )
             ),
             "cache_dir": str(self.runner.cache_dir),
+            "source_document_counts": dict(self._source_document_counts),
+            "extracted_document_counts": dict(
+                self._extracted_document_counts
+            ),
             "scratch_dir": (
                 str(self.scratch_dir) if self.scratch_dir is not None else None
             ),
@@ -172,6 +178,12 @@ class WDIRSPrimitiveBackend:
                 for requirement in intent.requirements
                 for entity in requirement.entities
             }
+        )
+        self._source_document_counts = dict(
+            getattr(self.runner, "source_document_counts", {})
+        )
+        self._extracted_document_counts = dict(
+            getattr(self.runner, "extracted_document_counts", {})
         )
         chunks = self.runner.data_layer.get_all_chunks()
         by_document: Dict[str, List[Any]] = {}
@@ -529,11 +541,32 @@ class WDIRSPrimitiveBackend:
         relevant_atoms = set()
         represented_atoms = set()
         coverage_values: List[float] = []
+        entity_completeness_values: List[float] = []
         bound = requirement.attribute_bindings or tuple(
             (table, attribute)
             for table in requirement.entities
             for attribute in requirement.attributes
         )
+        relevant_entities = set(requirement.entities) | {
+            table for table, _attribute in bound
+        }
+        for table in relevant_entities:
+            source_count = self._source_document_counts.get(table, 0)
+            if source_count <= 0:
+                continue
+            durable_rows = len(
+                self.runner.data_layer.get_all_records(table)
+            )
+            extracted_documents = self._extracted_document_counts.get(
+                table, durable_rows
+            )
+            entity_completeness_values.append(
+                min(
+                    1.0,
+                    durable_rows / source_count,
+                    extracted_documents / source_count,
+                )
+            )
         for table, attribute in bound:
             populated_rows = list(populated.get(table, ()))
             if populated_rows:
@@ -591,6 +624,11 @@ class WDIRSPrimitiveBackend:
             type_validity=validity["type_validity"],
             key_validity=validity["key_validity"],
             join_validity=validity["join_validity"],
+            entity_completeness=(
+                min(entity_completeness_values)
+                if entity_completeness_values
+                else 1.0
+            ),
             population_coverage=(
                 min(coverage_values) if coverage_values else 0.0
             ),

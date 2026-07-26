@@ -5,6 +5,7 @@ Integrates all components and provides the main interface.
 
 import json
 import logging
+import math
 import os
 import re
 import time
@@ -151,10 +152,46 @@ def _validate_record(
 
         if sql_type in _NUMERIC_SQL_TYPES:
             try:
-                float(str(val).replace(",", "").replace("%", "").strip())
-                validated[col] = val
+                numeric_value = float(
+                    str(val).replace(",", "").replace("%", "").strip()
+                )
             except (ValueError, TypeError):
                 logger.debug(f"[Validate] Dropped '{col}'={val!r}: expected numeric")
+                continue
+            span = spans.get(col, "")
+            if span and span.lower() in corpus:
+                validated[col] = val
+                continue
+            source_numbers = []
+            for match in re.finditer(
+                r"(?<![\w.])-?\d[\d,]*(?:\.\d+)?%?(?![\w.])",
+                corpus,
+            ):
+                try:
+                    source_numbers.append(
+                        float(
+                            match.group(0)
+                            .replace(",", "")
+                            .replace("%", "")
+                        )
+                    )
+                except ValueError:
+                    continue
+            if any(
+                math.isclose(
+                    numeric_value,
+                    source_value,
+                    rel_tol=1e-9,
+                    abs_tol=1e-9,
+                )
+                for source_value in source_numbers
+            ):
+                validated[col] = val
+            else:
+                logger.debug(
+                    f"[Validate] Dropped '{col}'={val!r}: "
+                    "numeric value not grounded in source"
+                )
         else:
             val_str = str(val).strip()
             if len(val_str) < 2:
@@ -1842,6 +1879,8 @@ class WDIRSRunner:
     def _global_extraction(self, lattice) -> int:
         """Perform predicate-based extraction (like QAIRS)."""
         total_records = 0
+        self.source_document_counts = {}
+        self.extracted_document_counts = {}
 
         # Validate before spending any time on LLM calls.
         dataset_path = get_dataset_path(self.dataset)
@@ -1902,6 +1941,7 @@ class WDIRSRunner:
                     source_texts, source_ids = self._load_table_source_documents(
                         dataset_path, table_name
                     )
+                    self.source_document_counts[table_name] = len(source_ids)
                     if source_texts:
                         logger.info(
                             f"[ProjectionFastPath] {table_name}: {len(source_texts)} source docs, "
@@ -1967,7 +2007,290 @@ class WDIRSRunner:
                             extraction_result.records = validated_records
                             extraction_result.spans = validated_spans
 
+                        failed_document_ids = [
+                            str(result.chunk_id)
+                            for result in results
+                            if not result.records
+                        ]
+                        if (
+                            failed_document_ids
+                            and os.getenv(
+                                "WDIRS_FASTPATH_RETRY_EMPTY", "1"
+                            ).strip().lower()
+                            not in {"0", "false", "no"}
+                        ):
+                            # Empty documents are invisible to all downstream
+                            # population policies. Spend bounded remaining
+                            # budget on a narrower, one-column-at-a-time retry
+                            # before accepting an incomplete entity table.
+                            failed_set = set(failed_document_ids)
+                            retry_texts = [
+                                text
+                                for text, source_id in zip(
+                                    source_texts, source_ids
+                                )
+                                if str(source_id) in failed_set
+                            ]
+                            retry_ids = [
+                                source_id
+                                for source_id in source_ids
+                                if str(source_id) in failed_set
+                            ]
+                            logger.warning(
+                                "[ProjectionFastPath] %s: retrying %d empty "
+                                "source documents with single-column batches",
+                                table_name,
+                                len(retry_ids),
+                            )
+                            try:
+                                retry_results = self.extractor.extract_batch(
+                                    retry_texts,
+                                    retry_ids,
+                                    table_name,
+                                    schema,
+                                    stabilized_schema.frozen_keys,
+                                    normalization_hints,
+                                    entity_col=None,
+                                    col_batch_size_override=1,
+                                )
+                                original_by_id = {
+                                    str(result.chunk_id): result
+                                    for result in results
+                                }
+                                retry_source_by_id = dict(
+                                    zip(retry_ids, retry_texts)
+                                )
+                                for retry_result in retry_results:
+                                    source_text = retry_source_by_id.get(
+                                        str(retry_result.chunk_id), ""
+                                    )
+                                    validated_records = []
+                                    validated_spans = []
+                                    for record_index, record in enumerate(
+                                        retry_result.records
+                                    ):
+                                        record_spans = (
+                                            retry_result.spans[record_index]
+                                            if retry_result.spans
+                                            and record_index
+                                            < len(retry_result.spans)
+                                            else None
+                                        )
+                                        validated = _validate_record(
+                                            record,
+                                            sql_schema,
+                                            [source_text]
+                                            if source_text
+                                            else [],
+                                            entity_col or "",
+                                            record_spans,
+                                            schema,
+                                        )
+                                        if validated:
+                                            validated_records.append(validated)
+                                            validated_spans.append(
+                                                record_spans or {}
+                                            )
+                                    if validated_records:
+                                        original = original_by_id.get(
+                                            str(retry_result.chunk_id)
+                                        )
+                                        if original is not None:
+                                            original.records = (
+                                                validated_records
+                                            )
+                                            original.spans = validated_spans
+                            except Exception as exc:
+                                logger.warning(
+                                    "[ProjectionFastPath] %s empty-document "
+                                    "repair stopped: %s",
+                                    table_name,
+                                    exc,
+                                )
+
+                        minimum_coverage = float(
+                            os.getenv(
+                                "WDIRS_FASTPATH_MIN_COLUMN_COVERAGE",
+                                "0.8",
+                            )
+                        )
+                        max_repair_columns = int(
+                            os.getenv(
+                                "WDIRS_FASTPATH_MAX_REPAIR_COLUMNS",
+                                "8",
+                            )
+                        )
+                        coverage_by_column = {}
+                        for column in schema:
+                            represented = sum(
+                                any(
+                                    record.get(column) not in (None, "")
+                                    for record in result.records
+                                )
+                                for result in results
+                            )
+                            coverage_by_column[column] = (
+                                represented / len(source_ids)
+                                if source_ids
+                                else 0.0
+                            )
+                        column_info = table_info.columns
+                        repair_columns = sorted(
+                            (
+                                column
+                                for column, coverage in (
+                                    coverage_by_column.items()
+                                )
+                                if coverage < minimum_coverage
+                            ),
+                            key=lambda column: (
+                                -sum(
+                                    (
+                                        bool(
+                                            getattr(
+                                                column_info.get(column),
+                                                "predicates",
+                                                (),
+                                            )
+                                        ),
+                                        bool(
+                                            getattr(
+                                                column_info.get(column),
+                                                "is_aggregated",
+                                                False,
+                                            )
+                                        ),
+                                        bool(
+                                            getattr(
+                                                column_info.get(column),
+                                                "is_group_by",
+                                                False,
+                                            )
+                                        ),
+                                        bool(
+                                            getattr(
+                                                column_info.get(column),
+                                                "is_join_key",
+                                                False,
+                                            )
+                                        ),
+                                    )
+                                ),
+                                coverage_by_column[column],
+                                column,
+                            ),
+                        )[:max_repair_columns]
+                        result_by_id = {
+                            str(result.chunk_id): result
+                            for result in results
+                        }
+                        for column in repair_columns:
+                            missing_pairs = [
+                                (text, source_id)
+                                for text, source_id in zip(
+                                    source_texts, source_ids
+                                )
+                                if result_by_id.get(str(source_id)) is None
+                                or not any(
+                                    record.get(column) not in (None, "")
+                                    for record in result_by_id[
+                                        str(source_id)
+                                    ].records
+                                )
+                            ]
+                            if not missing_pairs:
+                                continue
+                            logger.warning(
+                                "[ProjectionFastPath] %s.%s coverage %.3f; "
+                                "repairing %d source documents",
+                                table_name,
+                                column,
+                                coverage_by_column[column],
+                                len(missing_pairs),
+                            )
+                            try:
+                                repair_results = self.extractor.extract_batch(
+                                    [pair[0] for pair in missing_pairs],
+                                    [pair[1] for pair in missing_pairs],
+                                    table_name,
+                                    {column: schema[column]},
+                                    (
+                                        {column}
+                                        if column
+                                        in stabilized_schema.frozen_keys
+                                        else set()
+                                    ),
+                                    {
+                                        column: normalization_hints[column]
+                                    }
+                                    if column in normalization_hints
+                                    else {},
+                                    entity_col=None,
+                                    col_batch_size_override=1,
+                                )
+                                repair_source_by_id = dict(
+                                    (source_id, text)
+                                    for text, source_id in missing_pairs
+                                )
+                                for repair_result in repair_results:
+                                    if not repair_result.records:
+                                        continue
+                                    record = _validate_record(
+                                        repair_result.records[0],
+                                        sql_schema,
+                                        [
+                                            repair_source_by_id.get(
+                                                str(
+                                                    repair_result.chunk_id
+                                                ),
+                                                "",
+                                            )
+                                        ],
+                                        entity_col or "",
+                                        (
+                                            repair_result.spans[0]
+                                            if repair_result.spans
+                                            else None
+                                        ),
+                                        schema,
+                                    )
+                                    value = record.get(column)
+                                    if value in (None, ""):
+                                        continue
+                                    original = result_by_id.get(
+                                        str(repair_result.chunk_id)
+                                    )
+                                    if original is None:
+                                        continue
+                                    if not original.records:
+                                        original.records = [{}]
+                                        original.spans = [{}]
+                                    original.records[0][column] = value
+                                    if (
+                                        repair_result.spans
+                                        and repair_result.spans[0].get(
+                                            column
+                                        )
+                                    ):
+                                        if not original.spans:
+                                            original.spans = [{}]
+                                        original.spans[0][column] = (
+                                            repair_result.spans[0][column]
+                                        )
+                            except Exception as exc:
+                                logger.warning(
+                                    "[ProjectionFastPath] %s.%s repair "
+                                    "stopped: %s",
+                                    table_name,
+                                    column,
+                                    exc,
+                                )
+                                break
+
                         table_records = sum(len(r.records) for r in results)
+                        self.extracted_document_counts[table_name] = sum(
+                            bool(result.records) for result in results
+                        )
                         total_records += table_records
                         prov_pairs = self.data_layer.bulk_insert_records(
                             table_name,

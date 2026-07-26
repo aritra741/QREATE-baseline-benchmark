@@ -754,13 +754,32 @@ def _normalize_plan_with_schema(
             if len(children) == 1:
                 return children[0]
             kind = predicate.kind
+            explicit_disjunction = bool(
+                re.search(r",\s*or\b", lowered)
+                or re.search(r"\beither\b[^.?!]*\bor\b", lowered)
+                or re.search(
+                    r"\bor\s+(?:players?|owners?|teams?|cities|records?|"
+                    r"those|who|whose)\b",
+                    lowered,
+                )
+            )
             if (
                 kind == "and"
-                and " or " in lowered
-                and "either" not in lowered
+                and explicit_disjunction
+                and any(child.kind == "or" for child in children)
             ):
                 kind = "or"
-            return replace(predicate, kind=kind, children=children)
+            flattened: List[PredicateSpec] = []
+            for child in children:
+                if child.kind == kind:
+                    flattened.extend(child.children)
+                else:
+                    flattened.append(child)
+            return replace(
+                predicate,
+                kind=kind,
+                children=tuple(dict.fromkeys(flattened)),
+            )
         value = predicate.value
         if isinstance(value, Mapping):
             return None
@@ -2750,6 +2769,53 @@ def analyze_workload(
             except (RuntimeError, ValueError, TypeError):
                 pass
 
+            # Fuse components according to the task each independent path is
+            # best constrained to solve: SQL supplies executable output,
+            # grouping, and aggregate structure; the semantic audit supplies
+            # clause ownership, Boolean restrictions, and relationship intent.
+            # This is component-level evidence fusion, not a source-wide vote.
+            sql_index = next(
+                (
+                    index
+                    for index, source in enumerate(candidate_sources)
+                    if source == "sql_shadow"
+                ),
+                None,
+            )
+            semantic_index = next(
+                (
+                    index
+                    for index, source in enumerate(candidate_sources)
+                    if source == "json_audit"
+                ),
+                0,
+            )
+            if (
+                sql_index is not None
+                and candidates[sql_index].plan is not None
+                and candidates[semantic_index].plan is not None
+            ):
+                sql_plan = candidates[sql_index].plan
+                semantic_plan = candidates[semantic_index].plan
+                fused_plan = QueryPlan(
+                    projections=sql_plan.projections,
+                    group_by=sql_plan.group_by,
+                    aggregates=sql_plan.aggregates,
+                    predicate=(
+                        semantic_plan.predicate
+                        if semantic_plan.predicate is not None
+                        else sql_plan.predicate
+                    ),
+                    joins=(
+                        semantic_plan.joins
+                        if semantic_plan.joins
+                        else sql_plan.joins
+                    ),
+                )
+                if fused_plan != sql_plan:
+                    candidates.append(requirement_for_plan(fused_plan))
+                    candidate_sources.append("component_fusion")
+
             def normalize_candidate(
                 candidate: QueryRequirement,
             ) -> QueryRequirement:
@@ -2816,8 +2882,8 @@ def analyze_workload(
                     "plan assembled from the canonical schema.\n\n"
                     "Return ONLY one JSON object with keys selected_source, plan, "
                     "and checks. selected_source must be json_draft, json_audit, "
-                    "sql_shadow, clause_ledger, or corrected. plan must be null "
-                    "when selecting an "
+                    "sql_shadow, clause_ledger, component_fusion, or corrected. "
+                    "plan must be null when selecting an "
                     "unchanged candidate, and otherwise must be one complete plan "
                     "with projections, group_by, aggregates, predicate, and joins. "
                     "checks must briefly record output_count, filter_count, "

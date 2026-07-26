@@ -456,6 +456,20 @@ def test_risk_proxy_requires_grounded_cells_and_coverage():
     assert estimate.recall_proxy == pytest.approx(2 / 3)
     assert estimate.uncertainty >= 0.25
     assert estimate.lower_confidence_bound() < estimate.f_proxy
+    incomplete = estimate_query_risk(
+        PilotObservation(
+            query_id="q0",
+            config_id="incomplete",
+            cells=observation.cells,
+            relevant_evidence_atoms=observation.relevant_evidence_atoms,
+            represented_evidence_atoms=observation.represented_evidence_atoms,
+            entity_completeness=2 / 3,
+            candidate_agreement=0.75,
+        ),
+        bootstrap_rounds=20,
+    )
+    assert incomplete.components["entity_completeness"] == pytest.approx(2 / 3)
+    assert incomplete.validity < estimate.validity
     one_document = estimate_query_risk(
         PilotObservation(
             query_id="q1",
