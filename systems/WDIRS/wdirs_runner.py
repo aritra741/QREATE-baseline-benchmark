@@ -2287,6 +2287,66 @@ class WDIRSRunner:
                                 )
                                 break
 
+                        for extraction_result in results:
+                            if len(extraction_result.records) <= 1:
+                                continue
+                            ranked_indices = sorted(
+                                range(len(extraction_result.records)),
+                                key=lambda index: (
+                                    sum(
+                                        value not in (None, "")
+                                        for value in extraction_result.records[
+                                            index
+                                        ].values()
+                                    ),
+                                    -index,
+                                ),
+                                reverse=True,
+                            )
+                            primary_index = ranked_indices[0]
+                            merged_record = dict(
+                                extraction_result.records[primary_index]
+                            )
+                            merged_spans = (
+                                dict(
+                                    extraction_result.spans[primary_index]
+                                )
+                                if extraction_result.spans
+                                and primary_index
+                                < len(extraction_result.spans)
+                                else {}
+                            )
+                            conflicts = 0
+                            for index in ranked_indices[1:]:
+                                record = extraction_result.records[index]
+                                spans_for_record = (
+                                    extraction_result.spans[index]
+                                    if extraction_result.spans
+                                    and index < len(extraction_result.spans)
+                                    else {}
+                                )
+                                for column, value in record.items():
+                                    if value in (None, ""):
+                                        continue
+                                    if merged_record.get(column) in (None, ""):
+                                        merged_record[column] = value
+                                        if spans_for_record.get(column):
+                                            merged_spans[column] = (
+                                                spans_for_record[column]
+                                            )
+                                    elif merged_record[column] != value:
+                                        conflicts += 1
+                            logger.warning(
+                                "[ProjectionFastPath] %s document %s emitted "
+                                "%d rows; consolidated to one (%d conflicts)",
+                                table_name,
+                                extraction_result.chunk_id,
+                                len(extraction_result.records),
+                                conflicts,
+                            )
+                            extraction_result.records = [merged_record]
+                            extraction_result.spans = [merged_spans]
+
                         table_records = sum(len(r.records) for r in results)
                         self.extracted_document_counts[table_name] = sum(
                             bool(result.records) for result in results
