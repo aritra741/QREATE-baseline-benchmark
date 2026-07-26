@@ -743,7 +743,9 @@ def _normalize_plan_with_schema(
             best = max(candidates, default=None, key=lambda item: item[:3])
             if best is not None and best[0] > 0:
                 attribute = best[3]
-        operator = predicate.operator
+        original_operator = predicate.operator
+        original_value = value
+        operator = original_operator
         rendered = str(value).lower()
         position = lowered.find(rendered)
         if position < 0 and isinstance(value, int) and 0 <= value <= 20:
@@ -806,6 +808,9 @@ def _normalize_plan_with_schema(
         ):
             operator = "="
             value = 0
+        if not input_predicate_missing:
+            operator = original_operator
+            value = original_value
         return replace(
             predicate,
             attribute=attribute,
@@ -1632,19 +1637,11 @@ def _normalize_plan_with_schema(
     else:
         # Projection-only questions must never inherit grouping invented by an
         # LLM audit ("for every record" means rows, not GROUP BY record).
-        projections = tuple(
-            dict.fromkeys(
-                reference
-                for reference in plan.projections
-                if (
-                    reference.attribute.replace("_", " ") in lowered
-                    or all(
-                        re.search(rf"\b{re.escape(token.rstrip('s'))}s?\b", lowered)
-                        for token in reference.attribute.split("_")
-                    )
-                )
-            )
-        ) or plan.projections
+        # At this point all references have already been constrained to the
+        # canonical schema. Do not discard valid model projections merely
+        # because the question uses a morphological variant (for example,
+        # "founding year" for a canonical ``founded_year`` column).
+        projections = tuple(dict.fromkeys(plan.projections))
 
     required_entities = {
         reference.entity
@@ -1656,10 +1653,48 @@ def _normalize_plan_with_schema(
             joins=(),
         ).attributes()
     }
-    if re.search(r"\b(?:matching|joined|related)\b", lowered):
+    if re.search(
+        r"\b(?:match(?:ed|ing)?|join(?:ed|ing)?|related|relationships?)\b",
+        lowered,
+    ):
         required_entities.update(mentioned_entities)
     normalized_joins: List[JoinSpec] = []
-    if len(required_entities) > 1 and join_vocabulary:
+    allowed_join_keys = {
+        frozenset(((left_entity, left_attr), (right_entity, right_attr)))
+        for left_entity, left_attr, right_entity, right_attr in join_vocabulary
+    }
+    candidate_join_keys = {
+        frozenset(
+            (
+                (join.left.entity, join.left.attribute),
+                (join.right.entity, join.right.attribute),
+            )
+        )
+        for join in plan.joins
+    }
+    candidate_connected: set[str] = set()
+    if plan.joins:
+        candidate_connected.add(plan.joins[0].left.entity)
+        changed = True
+        while changed:
+            changed = False
+            for join in plan.joins:
+                if (
+                    join.left.entity in candidate_connected
+                    or join.right.entity in candidate_connected
+                ):
+                    before = len(candidate_connected)
+                    candidate_connected.update(
+                        (join.left.entity, join.right.entity)
+                    )
+                    changed = changed or len(candidate_connected) > before
+    candidate_joins_valid = bool(plan.joins) and (
+        candidate_join_keys <= allowed_join_keys
+        and required_entities <= candidate_connected
+    )
+    if candidate_joins_valid:
+        normalized_joins = list(dict.fromkeys(plan.joins))
+    elif len(required_entities) > 1 and join_vocabulary:
         root = next(
             (
                 reference.entity
@@ -2455,14 +2490,10 @@ def analyze_workload(
                 candidate_sources.append("sql_shadow")
             except (RuntimeError, ValueError, TypeError):
                 pass
-            raw_candidate_plans = [
-                asdict(candidate.plan)
-                if candidate.plan is not None
-                else None
-                for candidate in candidates
-            ]
-            normalized_candidates = [
-                replace(
+            def normalize_candidate(
+                candidate: QueryRequirement,
+            ) -> QueryRequirement:
+                return replace(
                     candidate,
                     plan=_normalize_plan_with_schema(
                         candidate.plan,
@@ -2493,8 +2524,181 @@ def analyze_workload(
                         ),
                     ),
                 )
+
+            raw_candidate_plans = [
+                asdict(candidate.plan)
+                if candidate.plan is not None
+                else None
                 for candidate in candidates
             ]
+            normalized_candidates = [
+                normalize_candidate(candidate) for candidate in candidates
+            ]
+
+            # Contract scores intentionally measure only observable structural
+            # requirements. They often tie when candidates differ in Boolean
+            # scope, attribute ownership, or join-path meaning. Give the same
+            # budgeted model one final, label-free adjudication view containing
+            # all independently produced plans and an explicit clause ledger.
+            adjudication: Dict[str, Any] = {}
+            if len(normalized_candidates) > 1:
+                adjudication_prompt = (
+                    "Adjudicate alternative query plans using only the analytical "
+                    "question and supplied canonical schema. Do not use database "
+                    "contents, expected answers, or domain facts.\n\n"
+                    "First construct a private clause ledger containing: (1) every "
+                    "requested output expression, (2) aggregate and grouping, "
+                    "(3) every filter with an exact quote, canonical attribute, "
+                    "operator, and literal, (4) the exact AND/OR tree, and (5) only "
+                    "the joins required to connect referenced entities. Compare "
+                    "every candidate against that ledger. Prefer an unchanged "
+                    "candidate only when it is lossless. Otherwise return a corrected "
+                    "plan assembled from the canonical schema.\n\n"
+                    "Return ONLY one JSON object with keys selected_source, plan, "
+                    "and checks. selected_source must be json_draft, json_audit, "
+                    "sql_shadow, or corrected. plan must be null when selecting an "
+                    "unchanged candidate, and otherwise must be one complete plan "
+                    "with projections, group_by, aggregates, predicate, and joins. "
+                    "checks must briefly record output_count, filter_count, "
+                    "literal_count, boolean_scope, and join_count.\n\n"
+                    f"Canonical attributes: "
+                    f"{json.dumps(attribute_vocabulary or {}, sort_keys=True)}\n"
+                    f"Canonical joins: {json.dumps(list(join_vocabulary))}\n"
+                    f"Question: {query_text}\n"
+                    "Candidates:\n"
+                    + json.dumps(
+                        [
+                            {
+                                "source": candidate_sources[index],
+                                "plan": asdict(candidate.plan),
+                            }
+                            for index, candidate in enumerate(
+                                normalized_candidates
+                            )
+                            if candidate.plan is not None
+                        ],
+                        indent=2,
+                        default=str,
+                    )
+                )
+                try:
+                    adjudication_response = llm_client.generate(
+                        adjudication_prompt,
+                        max_tokens=4096,
+                        temperature=0.0,
+                    )
+                    start = adjudication_response.find("{")
+                    end = adjudication_response.rfind("}")
+                    if start < 0:
+                        raise ValueError(
+                            "semantic adjudicator returned no JSON object"
+                        )
+                    rendered = (
+                        adjudication_response[start : end + 1]
+                        if end >= start
+                        else adjudication_response[start:]
+                    )
+                    try:
+                        adjudication_payload = json.loads(rendered)
+                    except json.JSONDecodeError:
+                        adjudication_payload = repair_json(
+                            rendered, return_objects=True
+                        )
+                    if not isinstance(adjudication_payload, Mapping):
+                        raise ValueError(
+                            "semantic adjudicator payload must be an object"
+                        )
+                    selected_source = str(
+                        adjudication_payload.get("selected_source", "")
+                    ).strip()
+                    adjudicated_plan = _query_plan(
+                        adjudication_payload.get("plan"),
+                        entity_vocabulary,
+                        (
+                            normalized_candidates[0].entities[0]
+                            if normalized_candidates[0].entities
+                            else ""
+                        ),
+                        attribute_vocabulary,
+                    )
+                    if adjudicated_plan is None:
+                        if selected_source not in candidate_sources:
+                            raise ValueError(
+                                "semantic adjudicator selected no valid candidate"
+                            )
+                        selected_candidate = normalized_candidates[
+                            candidate_sources.index(selected_source)
+                        ]
+                        adjudicated_plan = selected_candidate.plan
+                    if adjudicated_plan is None:
+                        raise ValueError(
+                            "semantic adjudicator produced no usable plan"
+                        )
+                    references = adjudicated_plan.attributes()
+
+                    def predicate_operators(
+                        predicate: Optional[PredicateSpec],
+                    ) -> Tuple[str, ...]:
+                        if predicate is None:
+                            return ()
+                        if predicate.kind == "predicate":
+                            return (predicate.operator,)
+                        return tuple(
+                            operator
+                            for child in predicate.children
+                            for operator in predicate_operators(child)
+                        )
+
+                    adjudicated = QueryRequirement(
+                        query_id=query_id,
+                        text=query_text,
+                        entities=tuple(
+                            dict.fromkeys(
+                                reference.entity
+                                for reference in references
+                            )
+                        ),
+                        attributes=tuple(
+                            dict.fromkeys(
+                                reference.attribute
+                                for reference in references
+                            )
+                        ),
+                        attribute_bindings=tuple(
+                            dict.fromkeys(
+                                (
+                                    reference.entity,
+                                    reference.attribute,
+                                )
+                                for reference in references
+                            )
+                        ),
+                        relationships=tuple(
+                            (
+                                join.left.entity,
+                                "join",
+                                join.right.entity,
+                            )
+                            for join in adjudicated_plan.joins
+                        ),
+                        operators=predicate_operators(
+                            adjudicated_plan.predicate
+                        ),
+                        plan=adjudicated_plan,
+                    )
+                    raw_candidate_plans.append(asdict(adjudicated_plan))
+                    normalized_candidates.append(
+                        normalize_candidate(adjudicated)
+                    )
+                    candidate_sources.append("semantic_adjudicator")
+                    adjudication = {
+                        "selected_source": selected_source,
+                        "checks": adjudication_payload.get("checks"),
+                    }
+                except (RuntimeError, ValueError, TypeError):
+                    # The original independent candidates remain available when
+                    # the adjudicator emits malformed or incomplete JSON.
+                    pass
             scored_candidates = [
                 (
                     _plan_contract_score(candidate.plan, query_text),
@@ -2509,6 +2713,7 @@ def analyze_workload(
             )
             analysis_diagnostics[query_id] = {
                 "selected_source": candidate_sources[selected_index],
+                "adjudication": adjudication,
                 "candidates": [
                     {
                         "source": candidate_sources[index],

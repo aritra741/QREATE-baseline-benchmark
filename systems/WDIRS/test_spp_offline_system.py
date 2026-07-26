@@ -1195,9 +1195,9 @@ def test_nl_intent_analysis_isolates_queries():
         llm_client=client,
         intent_max_workers=3,
     )
-    # Each isolated query receives a draft, semantic audit, and independent
-    # SQL-shaped interpretation.
-    assert client.calls == 15
+    # Each isolated query receives a draft, semantic audit, independent
+    # SQL-shaped interpretation, and final cross-candidate adjudication.
+    assert client.calls == 20
     assert client.max_active > 1
     assert len(intent.requirements) == 5
     assert all(requirement.plan for requirement in intent.requirements)
@@ -1206,6 +1206,20 @@ def test_nl_intent_analysis_isolates_queries():
 def test_nl_intent_uses_independent_sql_shadow_candidate():
     class ShadowClient:
         def generate(self, prompt, **_kwargs):
+            if prompt.startswith("Adjudicate alternative query plans"):
+                return json.dumps(
+                    {
+                        "selected_source": "sql_shadow",
+                        "plan": None,
+                        "checks": {
+                            "output_count": 1,
+                            "filter_count": 1,
+                            "literal_count": 1,
+                            "boolean_scope": "single predicate",
+                            "join_count": 0,
+                        },
+                    }
+                )
             if prompt.startswith("Translate the analytical question"):
                 return "SELECT category FROM record WHERE amount > 5"
             return json.dumps(
@@ -1251,6 +1265,12 @@ def test_nl_intent_uses_independent_sql_shadow_candidate():
         operator=">",
         value=5,
     )
+    assert intent.analysis_diagnostics["q0"]["selected_source"] == (
+        "semantic_adjudicator"
+    )
+    assert intent.analysis_diagnostics["q0"]["adjudication"][
+        "selected_source"
+    ] == "sql_shadow"
 
 
 def test_schema_stabilization_parallelizes_independent_samples(monkeypatch):
@@ -2332,3 +2352,41 @@ def test_schema_context_repairs_small_model_contract_omissions():
     assert disjunction.predicate.children[2].attribute == AttributeRef(
         "account", "opened_year", "integer"
     )
+
+
+def test_normalization_preserves_valid_candidate_semantics():
+    plan = QueryPlan(
+        projections=(
+            AttributeRef("event", "founding_year"),
+            AttributeRef("region", "region_name"),
+        ),
+        predicate=PredicateSpec(
+            attribute=AttributeRef("event", "score", "integer"),
+            operator=">=",
+            value=0,
+        ),
+        joins=(
+            JoinSpec(
+                AttributeRef("event", "region_id"),
+                AttributeRef("region", "region_id"),
+            ),
+        ),
+    )
+    normalized = _normalize_plan_with_schema(
+        plan,
+        (
+            "Show each event's founding year and its region name when the "
+            "event score is at least zero."
+        ),
+        attribute_vocabulary={
+            "event": ("founding_year", "region_id", "score"),
+            "region": ("region_id", "region_name"),
+        },
+        join_vocabulary=(
+            ("event", "region_id", "region", "region_id"),
+        ),
+    )
+
+    assert normalized.projections == plan.projections
+    assert normalized.predicate.operator == ">="
+    assert normalized.joins == plan.joins
