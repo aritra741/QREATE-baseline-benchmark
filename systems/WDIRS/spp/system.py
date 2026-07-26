@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import sqlite3
 from dataclasses import asdict, dataclass, replace
@@ -144,15 +145,10 @@ class OfflineSynthesisSystem:
 
         evidence_path = output_dir / "evidence.sqlite"
         with EvidenceStore(evidence_path) as evidence_store:
-            self.backend.prepare(intent, evidence_store, ledger)
-            prune_configs = getattr(self.backend, "prune_configs", None)
-            if callable(prune_configs):
-                configs = list(prune_configs(configs))
-                if not configs:
-                    raise ValueError(
-                        "backend equivalence pruning removed every configuration"
-                    )
-            construction_costs = {
+            # Reserve a completion path before shared extraction. Extraction
+            # and coverage repair may otherwise consume the entire budget
+            # before the system learns the final per-config costs.
+            initial_costs = {
                 config.config_id: int(
                     self.backend.estimate_full_cost(
                         config, intent.requirements
@@ -160,35 +156,84 @@ class OfflineSynthesisSystem:
                 )
                 for config in configs
             }
-            completion_reserve = int(
+            initial_completion_reserve = int(
                 self.backend.completion_reserve(configs, intent.requirements)
             )
-            completion_reserve = max(
-                completion_reserve, min(construction_costs.values())
+            initial_completion_reserve = max(
+                initial_completion_reserve,
+                min(initial_costs.values()),
             )
-            if not ledger.can_complete(completion_reserve):
+            # Cost estimates made before extraction cannot include the final
+            # row count. Keep a small bounded margin for that delta.
+            preparation_escrow_amount = min(
+                token_budget,
+                math.ceil(initial_completion_reserve * 1.1),
+            )
+            if not ledger.can_complete(preparation_escrow_amount):
                 raise BudgetExhausted(
                     "budget cannot complete one valid full-workload configuration"
                 )
-            completion_escrow = ledger.reserve(
+            completion_escrows = [
+                ledger.reserve(
                 stage="completion_escrow",
-                operation="reserve_full_materialization",
-                input_tokens=completion_reserve,
+                operation="reserve_before_shared_extraction",
+                input_tokens=preparation_escrow_amount,
                 max_output_tokens=0,
-            )
-            if completion_escrow is None:
-                raise AssertionError("completion escrow unexpectedly deduplicated")
-
-            def evaluate(
-                config: SynthesisConfig,
-                fraction: float,
-                active_ledger: GlobalBudgetLedger,
-            ) -> PilotResult:
-                return self.backend.pilot(
-                    config, fraction, evidence_store, active_ledger
                 )
-
+            ]
+            if completion_escrows[0] is None:
+                raise AssertionError("completion escrow unexpectedly deduplicated")
             try:
+                self.backend.prepare(intent, evidence_store, ledger)
+                prune_configs = getattr(self.backend, "prune_configs", None)
+                if callable(prune_configs):
+                    configs = list(prune_configs(configs))
+                    if not configs:
+                        raise ValueError(
+                            "backend equivalence pruning removed every configuration"
+                        )
+                construction_costs = {
+                    config.config_id: int(
+                        self.backend.estimate_full_cost(
+                            config, intent.requirements
+                        )
+                    )
+                    for config in configs
+                }
+                completion_reserve = max(
+                    int(
+                        self.backend.completion_reserve(
+                            configs, intent.requirements
+                        )
+                    ),
+                    min(construction_costs.values()),
+                )
+                additional_reserve = max(
+                    completion_reserve - preparation_escrow_amount,
+                    0,
+                )
+                if additional_reserve:
+                    extra_escrow = ledger.reserve(
+                        stage="completion_escrow",
+                        operation="extend_full_materialization_reserve",
+                        input_tokens=additional_reserve,
+                        max_output_tokens=0,
+                    )
+                    if extra_escrow is None:
+                        raise AssertionError(
+                            "additional completion escrow unexpectedly deduplicated"
+                        )
+                    completion_escrows.append(extra_escrow)
+
+                def evaluate(
+                    config: SynthesisConfig,
+                    fraction: float,
+                    active_ledger: GlobalBudgetLedger,
+                ) -> PilotResult:
+                    return self.backend.pilot(
+                        config, fraction, evidence_store, active_ledger
+                    )
+
                 search = progressive_pilot_search(
                     configs,
                     intent.requirements,
@@ -201,10 +246,14 @@ class OfflineSynthesisSystem:
                     beta=self.beta,
                 )
             finally:
-                ledger.cancel(
-                    completion_escrow,
-                    reason="released for selected full materialization",
-                )
+                for completion_escrow in completion_escrows:
+                    if completion_escrow is not None:
+                        ledger.cancel(
+                            completion_escrow,
+                            reason=(
+                                "released for selected full materialization"
+                            ),
+                        )
             survivor_configs = [
                 config for config in configs if config.config_id in search.survivors
             ]

@@ -1893,7 +1893,8 @@ class WDIRSRunner:
             for lt, lc, rt, rc in getattr(lattice, "join_column_pairs", []):
                 logger.info(f"  Join ON: {lt}.{lc} = {rt}.{rc}")
         
-        for table_name, table_info in lattice.tables.items():
+        table_items = list(lattice.tables.items())
+        for table_index, (table_name, table_info) in enumerate(table_items):
             try:
                 # Get schema
                 schema = self.lattice_planner.get_table_schema(table_name)
@@ -1943,6 +1944,34 @@ class WDIRSRunner:
                     )
                     self.source_document_counts[table_name] = len(source_ids)
                     if source_texts:
+                        remaining_base_documents = sum(
+                            len(
+                                self._load_table_source_documents(
+                                    dataset_path, remaining_table
+                                )[1]
+                            )
+                            for remaining_table, _remaining_info in table_items[
+                                table_index + 1 :
+                            ]
+                        )
+                        base_tokens_per_document = int(
+                            os.getenv(
+                                "WDIRS_FASTPATH_BASE_TOKENS_PER_DOCUMENT",
+                                "12000",
+                            )
+                        )
+
+                        def repair_budget_available() -> bool:
+                            ledger = getattr(
+                                self.llm_client, "ledger", None
+                            )
+                            if ledger is None:
+                                return True
+                            return ledger.available > (
+                                remaining_base_documents
+                                * base_tokens_per_document
+                            )
+
                         logger.info(
                             f"[ProjectionFastPath] {table_name}: {len(source_texts)} source docs, "
                             f"{len(schema)} inferred columns"
@@ -2014,6 +2043,7 @@ class WDIRSRunner:
                         ]
                         if (
                             failed_document_ids
+                            and repair_budget_available()
                             and os.getenv(
                                 "WDIRS_FASTPATH_RETRY_EMPTY", "1"
                             ).strip().lower()
@@ -2185,6 +2215,17 @@ class WDIRSRunner:
                             for result in results
                         }
                         for column in repair_columns:
+                            if not repair_budget_available():
+                                logger.warning(
+                                    "[ProjectionFastPath] %s: stopping column "
+                                    "repair to reserve %d tokens for %d "
+                                    "remaining source documents",
+                                    table_name,
+                                    remaining_base_documents
+                                    * base_tokens_per_document,
+                                    remaining_base_documents,
+                                )
+                                break
                             missing_pairs = [
                                 (text, source_id)
                                 for text, source_id in zip(
