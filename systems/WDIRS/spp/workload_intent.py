@@ -1949,6 +1949,14 @@ def _plan_contract_score(plan: Optional[QueryPlan], text: str) -> int:
         return -10_000
     lowered = text.lower()
     score = 0
+    # A predicate-only interpretation of a projection question cannot produce
+    # executable SQL, regardless of how accurately it captured the filters.
+    # Keep such partial ledgers as diagnostics, but never let them tie a
+    # complete candidate.
+    if not plan.projections and not plan.aggregates:
+        score -= 100
+    else:
+        score += 10
     expected = _expected_aggregate(text)
     if expected is not None:
         score += 8 if any(

@@ -79,6 +79,7 @@ from spp.workload_intent import (
     WorkloadIntent,
     _normalize_plan_with_schema,
     _parse_llm_payload,
+    _plan_contract_score,
     _plan_from_clause_ledger,
     analyze_workload,
     schema_vocabulary_from_sql,
@@ -1202,6 +1203,13 @@ def test_clause_ledger_compiles_boolean_expression_deterministically():
     assert plan.predicate.children[0].children[0].operator == ">="
     assert plan.predicate.children[0].children[1].operator == "!="
     assert plan.predicate.children[1].value == "West"
+    assert _plan_contract_score(
+        QueryPlan(predicate=plan.predicate),
+        "Show category where amount is at least 5.",
+    ) < _plan_contract_score(
+        plan,
+        "Show category where amount is at least 5.",
+    )
 
 
 def test_nl_intent_analysis_isolates_queries():
