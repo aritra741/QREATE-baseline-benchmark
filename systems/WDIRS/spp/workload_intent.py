@@ -455,6 +455,8 @@ def _repair_plan_aggregate(
     expected = _expected_aggregate(text)
     if expected is None:
         return plan
+
+
     aggregates = list(plan.aggregates)
     projections = list(plan.projections)
     grouped = set(plan.group_by)
@@ -555,6 +557,152 @@ def _repair_plan_aggregate(
         projections=tuple(projections),
         aggregates=tuple(aggregates),
     )
+
+
+def _plan_from_clause_ledger(
+    payload: object,
+    entity_vocabulary: Sequence[str] = (),
+    default_entity: str = "",
+    attribute_vocabulary: Optional[Mapping[str, Sequence[str]]] = None,
+) -> Optional[QueryPlan]:
+    """Compile a flat, inspectable semantic ledger into the recursive IR."""
+    if not isinstance(payload, Mapping):
+        return None
+
+    projections = payload.get("projections", [])
+    group_by = payload.get("group_by", [])
+    aggregate_payload = payload.get("aggregate")
+    aggregates = (
+        [aggregate_payload]
+        if isinstance(aggregate_payload, Mapping)
+        else payload.get("aggregates", [])
+    )
+    filters = payload.get("filters", [])
+    joins = payload.get("joins", [])
+    if not isinstance(filters, (list, tuple)):
+        filters = []
+
+    leaves: Dict[str, PredicateSpec] = {}
+    for index, value in enumerate(filters):
+        if not isinstance(value, Mapping):
+            continue
+        identifier = str(value.get("id", f"f{index + 1}")).strip().lower()
+        reference = _attribute_ref(
+            value.get("attribute_ref")
+            or {
+                "entity": value.get("entity"),
+                "attribute": value.get("attribute"),
+                "semantic_type": value.get("semantic_type", "text"),
+            },
+            entity_vocabulary,
+            default_entity,
+            attribute_vocabulary,
+        )
+        if not identifier or reference is None:
+            continue
+        rendered_operator = str(value.get("operator", "=")).strip().lower()
+        operator = {
+            "<>": "!=",
+            "==": "=",
+            "not equal": "!=",
+            "at least": ">=",
+            "at most": "<=",
+            "greater than": ">",
+            "less than": "<",
+        }.get(rendered_operator, rendered_operator)
+        try:
+            leaves[identifier] = PredicateSpec(
+                attribute=reference,
+                operator=operator,
+                value=value.get("value"),
+            )
+        except ValueError:
+            continue
+
+    expression = str(payload.get("boolean_expression", "")).strip().lower()
+    tokens = re.findall(r"\(|\)|\band\b|\bor\b|[a-z][a-z0-9_-]*", expression)
+    position = 0
+
+    def parse_factor() -> Optional[PredicateSpec]:
+        nonlocal position
+        if position >= len(tokens):
+            return None
+        token = tokens[position]
+        if token == "(":
+            position += 1
+            result = parse_or()
+            if position < len(tokens) and tokens[position] == ")":
+                position += 1
+            return result
+        position += 1
+        return leaves.get(token)
+
+    def combine(
+        kind: str, values: List[PredicateSpec]
+    ) -> Optional[PredicateSpec]:
+        flattened: List[PredicateSpec] = []
+        for value in values:
+            if value.kind == kind:
+                flattened.extend(value.children)
+            else:
+                flattened.append(value)
+        if not flattened:
+            return None
+        if len(flattened) == 1:
+            return flattened[0]
+        return PredicateSpec(kind=kind, children=tuple(flattened))
+
+    def parse_and() -> Optional[PredicateSpec]:
+        nonlocal position
+        values: List[PredicateSpec] = []
+        first = parse_factor()
+        if first is not None:
+            values.append(first)
+        while position < len(tokens) and tokens[position] == "and":
+            position += 1
+            value = parse_factor()
+            if value is not None:
+                values.append(value)
+        return combine("and", values)
+
+    def parse_or() -> Optional[PredicateSpec]:
+        nonlocal position
+        values: List[PredicateSpec] = []
+        first = parse_and()
+        if first is not None:
+            values.append(first)
+        while position < len(tokens) and tokens[position] == "or":
+            position += 1
+            value = parse_and()
+            if value is not None:
+                values.append(value)
+        return combine("or", values)
+
+    predicate = parse_or() if tokens else None
+    if predicate is None and leaves:
+        predicate = combine("and", list(leaves.values()))
+
+    plan = _query_plan(
+        {
+            "projections": projections,
+            "group_by": group_by,
+            "aggregates": aggregates,
+            "predicate": asdict(predicate) if predicate is not None else None,
+            "joins": joins,
+        },
+        entity_vocabulary,
+        default_entity,
+        attribute_vocabulary,
+    )
+    if plan is None or (
+        not plan.attributes()
+        and not (
+            plan.aggregates
+            and plan.aggregates[0].function == "count"
+        )
+    ):
+        return None
+    return plan
 
 
 def _normalize_plan_with_schema(
@@ -794,6 +942,9 @@ def _normalize_plan_with_schema(
             context + suffix_context,
         ):
             operator = "<="
+        if not input_predicate_missing:
+            operator = original_operator
+            value = original_value
         if (
             attribute is not None
             and re.search(
@@ -808,9 +959,6 @@ def _normalize_plan_with_schema(
         ):
             operator = "="
             value = 0
-        if not input_predicate_missing:
-            operator = original_operator
-            value = original_value
         return replace(
             predicate,
             attribute=attribute,
@@ -2392,6 +2540,53 @@ def analyze_workload(
             draft = drafts[0]
             candidates = [draft]
             candidate_sources = ["json_draft"]
+
+            def requirement_for_plan(plan: QueryPlan) -> QueryRequirement:
+                references = plan.attributes()
+
+                def predicate_operators(
+                    predicate: Optional[PredicateSpec],
+                ) -> Tuple[str, ...]:
+                    if predicate is None:
+                        return ()
+                    if predicate.kind == "predicate":
+                        return (predicate.operator,)
+                    return tuple(
+                        operator
+                        for child in predicate.children
+                        for operator in predicate_operators(child)
+                    )
+
+                return QueryRequirement(
+                    query_id=query_id,
+                    text=query_text,
+                    entities=tuple(
+                        dict.fromkeys(
+                            reference.entity for reference in references
+                        )
+                    ),
+                    attributes=tuple(
+                        dict.fromkeys(
+                            reference.attribute for reference in references
+                        )
+                    ),
+                    attribute_bindings=tuple(
+                        dict.fromkeys(
+                            (reference.entity, reference.attribute)
+                            for reference in references
+                        )
+                    ),
+                    relationships=tuple(
+                        (
+                            join.left.entity,
+                            "join",
+                            join.right.entity,
+                        )
+                        for join in plan.joins
+                    ),
+                    operators=predicate_operators(plan.predicate),
+                    plan=plan,
+                )
             review_prompt = (
                 "Audit and correct one schema-independent analytical query plan. "
                 "Return ONLY a JSON array containing one complete corrected item "
@@ -2490,6 +2685,71 @@ def analyze_workload(
                 candidate_sources.append("sql_shadow")
             except (RuntimeError, ValueError, TypeError):
                 pass
+
+            # Extract the intent once more as a flat clause ledger. This avoids
+            # asking a small model to simultaneously bind attributes and build
+            # a recursive Boolean tree. The tree is compiled deterministically
+            # from stable filter IDs after parsing.
+            ledger_prompt = (
+                "Extract a complete analytical clause ledger from one question. "
+                "Use only the canonical schema below and return ONLY one JSON "
+                "object. Do not emit SQL and do not emit a nested query plan.\n\n"
+                "Required keys:\n"
+                '- \"projections\": canonical {entity, attribute, semantic_type} '
+                "columns returned directly (exclude aggregate measures);\n"
+                '- \"group_by\": canonical grouping columns;\n'
+                '- \"aggregate\": null or one {function, attribute, alias, '
+                "distinct};\n"
+                '- \"filters\": a flat array of {id, entity, attribute, '
+                "semantic_type, operator, value}. Create exactly one filter for "
+                "each restriction and no join equalities. Preserve every literal "
+                "and comparison direction. \"no <numeric measure>\" means = 0, "
+                "while non-missing means is_not_null;\n"
+                '- \"boolean_expression\": an expression over filter IDs using '
+                "only AND, OR, and parentheses;\n"
+                '- \"joins\": only required canonical join objects with left, '
+                "right, and join_type.\n\n"
+                "Resolve possessives and relational phrases before binding each "
+                "attribute. Never use a categorical value as an attribute name. "
+                "Do not infer facts absent from the question.\n\n"
+                f"Canonical attributes: "
+                f"{json.dumps(attribute_vocabulary or {}, sort_keys=True)}\n"
+                f"Canonical joins: {json.dumps(list(join_vocabulary))}\n"
+                f"Question: {query_text}"
+            )
+            try:
+                ledger_response = llm_client.generate(
+                    ledger_prompt,
+                    max_tokens=3072,
+                    temperature=0.0,
+                )
+                start = ledger_response.find("{")
+                end = ledger_response.rfind("}")
+                if start < 0:
+                    raise ValueError("clause ledger returned no JSON object")
+                rendered = (
+                    ledger_response[start : end + 1]
+                    if end >= start
+                    else ledger_response[start:]
+                )
+                try:
+                    ledger_payload = json.loads(rendered)
+                except json.JSONDecodeError:
+                    ledger_payload = repair_json(
+                        rendered, return_objects=True
+                    )
+                ledger_plan = _plan_from_clause_ledger(
+                    ledger_payload,
+                    entity_vocabulary,
+                    draft.entities[0] if draft.entities else "",
+                    attribute_vocabulary,
+                )
+                if ledger_plan is not None:
+                    candidates.append(requirement_for_plan(ledger_plan))
+                    candidate_sources.append("clause_ledger")
+            except (RuntimeError, ValueError, TypeError):
+                pass
+
             def normalize_candidate(
                 candidate: QueryRequirement,
             ) -> QueryRequirement:
@@ -2556,7 +2816,8 @@ def analyze_workload(
                     "plan assembled from the canonical schema.\n\n"
                     "Return ONLY one JSON object with keys selected_source, plan, "
                     "and checks. selected_source must be json_draft, json_audit, "
-                    "sql_shadow, or corrected. plan must be null when selecting an "
+                    "sql_shadow, clause_ledger, or corrected. plan must be null "
+                    "when selecting an "
                     "unchanged candidate, and otherwise must be one complete plan "
                     "with projections, group_by, aggregates, predicate, and joins. "
                     "checks must briefly record output_count, filter_count, "
@@ -2634,58 +2895,7 @@ def analyze_workload(
                         raise ValueError(
                             "semantic adjudicator produced no usable plan"
                         )
-                    references = adjudicated_plan.attributes()
-
-                    def predicate_operators(
-                        predicate: Optional[PredicateSpec],
-                    ) -> Tuple[str, ...]:
-                        if predicate is None:
-                            return ()
-                        if predicate.kind == "predicate":
-                            return (predicate.operator,)
-                        return tuple(
-                            operator
-                            for child in predicate.children
-                            for operator in predicate_operators(child)
-                        )
-
-                    adjudicated = QueryRequirement(
-                        query_id=query_id,
-                        text=query_text,
-                        entities=tuple(
-                            dict.fromkeys(
-                                reference.entity
-                                for reference in references
-                            )
-                        ),
-                        attributes=tuple(
-                            dict.fromkeys(
-                                reference.attribute
-                                for reference in references
-                            )
-                        ),
-                        attribute_bindings=tuple(
-                            dict.fromkeys(
-                                (
-                                    reference.entity,
-                                    reference.attribute,
-                                )
-                                for reference in references
-                            )
-                        ),
-                        relationships=tuple(
-                            (
-                                join.left.entity,
-                                "join",
-                                join.right.entity,
-                            )
-                            for join in adjudicated_plan.joins
-                        ),
-                        operators=predicate_operators(
-                            adjudicated_plan.predicate
-                        ),
-                        plan=adjudicated_plan,
-                    )
+                    adjudicated = requirement_for_plan(adjudicated_plan)
                     raw_candidate_plans.append(asdict(adjudicated_plan))
                     normalized_candidates.append(
                         normalize_candidate(adjudicated)
@@ -2707,10 +2917,57 @@ def analyze_workload(
                 )
                 for index, candidate in enumerate(normalized_candidates)
             ]
+            base_scored_candidates = [
+                item
+                for item in scored_candidates
+                if candidate_sources[item[1]] != "semantic_adjudicator"
+            ]
             _score, selected_index, draft = max(
-                scored_candidates,
+                base_scored_candidates,
                 key=lambda item: (item[0], item[1]),
             )
+            adjudicator_item = next(
+                (
+                    item
+                    for item in scored_candidates
+                    if candidate_sources[item[1]]
+                    == "semantic_adjudicator"
+                ),
+                None,
+            )
+            if adjudicator_item is not None:
+                adjudicator_score = adjudicator_item[0]
+                adjudicated_source = adjudication.get("selected_source")
+                if adjudicator_score > _score:
+                    _score, selected_index, draft = adjudicator_item
+                elif adjudicated_source in candidate_sources:
+                    adjudicated_index = candidate_sources.index(
+                        adjudicated_source
+                    )
+                    adjudicated_candidate = normalized_candidates[
+                        adjudicated_index
+                    ]
+                    independently_corroborated = any(
+                        index != adjudicated_index
+                        and source != "semantic_adjudicator"
+                        and candidate.plan == adjudicated_candidate.plan
+                        for index, (source, candidate) in enumerate(
+                            zip(
+                                candidate_sources,
+                                normalized_candidates,
+                            )
+                        )
+                    )
+                    adjudicated_item = next(
+                        item
+                        for item in scored_candidates
+                        if item[1] == adjudicated_index
+                    )
+                    if (
+                        independently_corroborated
+                        and adjudicated_item[0] >= _score
+                    ):
+                        _score, selected_index, draft = adjudicated_item
             analysis_diagnostics[query_id] = {
                 "selected_source": candidate_sources[selected_index],
                 "adjudication": adjudication,

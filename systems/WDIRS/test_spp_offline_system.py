@@ -79,6 +79,7 @@ from spp.workload_intent import (
     WorkloadIntent,
     _normalize_plan_with_schema,
     _parse_llm_payload,
+    _plan_from_clause_ledger,
     analyze_workload,
     schema_vocabulary_from_sql,
 )
@@ -1134,6 +1135,61 @@ def test_intent_payload_parses_typed_boolean_query_plan():
     assert ("player", "age") in requirement.attribute_bindings
 
 
+def test_clause_ledger_compiles_boolean_expression_deterministically():
+    plan = _plan_from_clause_ledger(
+        {
+            "projections": [
+                {
+                    "entity": "event",
+                    "attribute": "category",
+                    "semantic_type": "text",
+                }
+            ],
+            "group_by": [],
+            "aggregate": None,
+            "filters": [
+                {
+                    "id": "f1",
+                    "entity": "event",
+                    "attribute": "amount",
+                    "semantic_type": "real",
+                    "operator": "at least",
+                    "value": 5,
+                },
+                {
+                    "id": "f2",
+                    "entity": "event",
+                    "attribute": "status",
+                    "semantic_type": "text",
+                    "operator": "not equal",
+                    "value": "Suspended",
+                },
+                {
+                    "id": "f3",
+                    "entity": "event",
+                    "attribute": "region",
+                    "semantic_type": "text",
+                    "operator": "=",
+                    "value": "West",
+                },
+            ],
+            "boolean_expression": "(f1 AND f2) OR f3",
+            "joins": [],
+        },
+        entity_vocabulary=("event",),
+        attribute_vocabulary={
+            "event": ("amount", "category", "region", "status"),
+        },
+    )
+
+    assert plan is not None
+    assert plan.predicate.kind == "or"
+    assert plan.predicate.children[0].kind == "and"
+    assert plan.predicate.children[0].children[0].operator == ">="
+    assert plan.predicate.children[0].children[1].operator == "!="
+    assert plan.predicate.children[1].value == "West"
+
+
 def test_nl_intent_analysis_isolates_queries():
     import threading
     import time
@@ -1196,8 +1252,8 @@ def test_nl_intent_analysis_isolates_queries():
         intent_max_workers=3,
     )
     # Each isolated query receives a draft, semantic audit, independent
-    # SQL-shaped interpretation, and final cross-candidate adjudication.
-    assert client.calls == 20
+    # SQL-shaped interpretation, flat clause ledger, and final adjudication.
+    assert client.calls == 25
     assert client.max_active > 1
     assert len(intent.requirements) == 5
     assert all(requirement.plan for requirement in intent.requirements)
@@ -1265,9 +1321,9 @@ def test_nl_intent_uses_independent_sql_shadow_candidate():
         operator=">",
         value=5,
     )
-    assert intent.analysis_diagnostics["q0"]["selected_source"] == (
-        "semantic_adjudicator"
-    )
+    # A self-adjudicated tie cannot override an independently grounded SQL
+    # candidate unless another independent candidate corroborates the choice.
+    assert intent.analysis_diagnostics["q0"]["selected_source"] == "sql_shadow"
     assert intent.analysis_diagnostics["q0"]["adjudication"][
         "selected_source"
     ] == "sql_shadow"
@@ -2390,3 +2446,23 @@ def test_normalization_preserves_valid_candidate_semantics():
     assert normalized.projections == plan.projections
     assert normalized.predicate.operator == ">="
     assert normalized.joins == plan.joins
+
+    explicit_zero = _normalize_plan_with_schema(
+        QueryPlan(
+            projections=(AttributeRef("event", "category"),),
+            predicate=PredicateSpec(
+                attribute=AttributeRef("event", "retry_count", "integer"),
+                operator="is_null",
+                value=None,
+            ),
+        ),
+        "Show each event category for events with no retry count.",
+        attribute_vocabulary={
+            "event": ("category", "retry_count"),
+        },
+    )
+    assert explicit_zero.predicate == PredicateSpec(
+        attribute=AttributeRef("event", "retry_count", "integer"),
+        operator="=",
+        value=0,
+    )
