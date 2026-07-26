@@ -813,6 +813,7 @@ def _normalize_plan_with_schema(
             value=value,
         )
 
+    input_predicate_missing = plan.predicate is None
     predicate = clean_predicate(plan.predicate)
     context_pool = list(
         dict.fromkeys((*plan.attributes(), *context_references))
@@ -998,7 +999,8 @@ def _normalize_plan_with_schema(
 
     either_position = lowered.find("either")
     if (
-        either_position >= 0
+        input_predicate_missing
+        and either_position >= 0
         and re.search(r"\bbut\s+not\b", lowered[either_position:])
         and re.search(r"\bor\b", lowered[either_position:])
     ):
@@ -1077,7 +1079,7 @@ def _normalize_plan_with_schema(
                         ),
                     )
 
-    elif re.search(r",\s*or\b", lowered):
+    elif input_predicate_missing and re.search(r",\s*or\b", lowered):
         restriction_text = re.split(
             r"\b(?:who|that)\b", text, maxsplit=1, flags=re.IGNORECASE
         )[-1]
@@ -1483,8 +1485,18 @@ def _normalize_plan_with_schema(
             if match:
                 return match.start()
             tokens = attribute.split("_")
+            inflected_phrase = r"\s+".join(
+                rf"{re.escape(token[:-1] if token.endswith('s') else token)}s?"
+                for token in tokens
+            )
+            match = re.search(rf"\b{inflected_phrase}\b", lowered)
+            if match:
+                return match.start()
             matches = [
-                re.search(rf"\b{re.escape(token)}s?\b", lowered)
+                re.search(
+                    rf"\b{re.escape(token[:-1] if token.endswith('s') else token)}s?\b",
+                    lowered,
+                )
                 for token in tokens
             ]
             return (
@@ -2443,6 +2455,12 @@ def analyze_workload(
                 candidate_sources.append("sql_shadow")
             except (RuntimeError, ValueError, TypeError):
                 pass
+            raw_candidate_plans = [
+                asdict(candidate.plan)
+                if candidate.plan is not None
+                else None
+                for candidate in candidates
+            ]
             normalized_candidates = [
                 replace(
                     candidate,
@@ -2495,6 +2513,7 @@ def analyze_workload(
                     {
                         "source": candidate_sources[index],
                         "contract_score": score,
+                        "raw_plan": raw_candidate_plans[index],
                         "plan": (
                             asdict(candidate.plan)
                             if candidate.plan is not None
