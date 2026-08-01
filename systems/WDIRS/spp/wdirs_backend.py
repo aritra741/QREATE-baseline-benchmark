@@ -63,6 +63,7 @@ class WDIRSPrimitiveBackend:
         self._supported_source_cells: Dict[
             tuple[str, str, str], object
         ] = {}
+        self._missing_tables: set[str] = set()
 
     def reproducibility_manifest(self) -> dict:
         return {
@@ -102,7 +103,37 @@ class WDIRSPrimitiveBackend:
                 if self.schema_workload_queries
                 else None
             ),
+            "missing_inferred_tables": sorted(self._missing_tables),
         }
+
+    def _records_for_table(self, table: str) -> List[dict]:
+        """Return materialized rows or an empty relation if extraction missed it.
+
+        In an NL-only run, inferred relations are hypotheses. A hypothesis that
+        produces no physical table is a zero-coverage outcome, not a fatal
+        database error.
+        """
+        if not self.runner.data_layer.table_exists(table):
+            if table not in self._missing_tables:
+                logger.warning(
+                    "Inferred relation %r was not materialized; treating it "
+                    "as empty for cost and quality estimation",
+                    table,
+                )
+                self._missing_tables.add(table)
+            return []
+        try:
+            return list(self.runner.data_layer.get_all_records(table))
+        except Exception as exc:
+            if table not in self._missing_tables:
+                logger.warning(
+                    "Could not read inferred relation %r; treating it as "
+                    "empty: %s",
+                    table,
+                    exc,
+                )
+                self._missing_tables.add(table)
+            return []
 
     def _install_budgeted_client(
         self,
@@ -170,7 +201,7 @@ class WDIRSPrimitiveBackend:
         )
         if not result.success:
             raise RuntimeError("shared WDIRS primitive extraction failed")
-        self._table_names = sorted(
+        inferred_table_names = sorted(
             self.runner.lattice_planner.lattice.tables
             if self.schema_workload_queries
             else {
@@ -179,6 +210,17 @@ class WDIRSPrimitiveBackend:
                 for entity in requirement.entities
             }
         )
+        self._table_names = []
+        for table in inferred_table_names:
+            if self.runner.data_layer.table_exists(table):
+                self._table_names.append(table)
+            else:
+                self._missing_tables.add(table)
+                logger.warning(
+                    "Inferred relation %r was not materialized; it will be "
+                    "treated as an empty, zero-coverage relation",
+                    table,
+                )
         self._source_document_counts = dict(
             getattr(self.runner, "source_document_counts", {})
         )
@@ -236,7 +278,7 @@ class WDIRSPrimitiveBackend:
                 ).fetchall()
             records_by_row: Dict[str, tuple[str, dict]] = {}
             for table in self._table_names:
-                for record in self.runner.data_layer.get_all_records(table):
+                for record in self._records_for_table(table):
                     records_by_row[str(record.get("row_id"))] = (table, record)
             for row in rows:
                 record_entry = records_by_row.get(str(row.row_id))
@@ -290,7 +332,7 @@ class WDIRSPrimitiveBackend:
 
     def _row_count(self) -> int:
         return sum(
-            len(self.runner.data_layer.get_all_records(table))
+            len(self._records_for_table(table))
             for table in self._table_names
         )
 
@@ -554,9 +596,7 @@ class WDIRSPrimitiveBackend:
             source_count = self._source_document_counts.get(table, 0)
             if source_count <= 0:
                 continue
-            durable_rows = len(
-                self.runner.data_layer.get_all_records(table)
-            )
+            durable_rows = len(self._records_for_table(table))
             extracted_documents = self._extracted_document_counts.get(
                 table, durable_rows
             )
@@ -580,7 +620,7 @@ class WDIRSPrimitiveBackend:
             else:
                 coverage_values.append(0.0)
             for index, row in enumerate(
-                self.runner.data_layer.get_all_records(table)
+                self._records_for_table(table)
             ):
                 value = row.get(attribute)
                 if value not in (None, ""):

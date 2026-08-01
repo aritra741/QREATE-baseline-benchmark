@@ -2169,6 +2169,35 @@ def test_dynamic_tables_accept_arbitrary_inferred_identifiers(tmp_path: Path):
         layer.close()
 
 
+def test_wdirs_backend_treats_unmaterialized_inferred_relation_as_empty():
+    class MissingTableLayer:
+        @staticmethod
+        def table_exists(_table_name):
+            return False
+
+        @staticmethod
+        def get_all_records(_table_name):
+            raise AssertionError("must not query a missing table")
+
+    runner = type(
+        "Runner",
+        (),
+        {
+            "llm_client": object(),
+            "data_layer": MissingTableLayer(),
+            "dataset": "Example",
+            "cache_dir": Path("."),
+            "enable_attribute_discovery": False,
+        },
+    )()
+    backend = WDIRSPrimitiveBackend(runner)
+    backend._table_names = ["city.city_name"]
+    assert backend._row_count() == 0
+    assert backend.reproducibility_manifest()["missing_inferred_tables"] == [
+        "city.city_name"
+    ]
+
+
 def test_wdirs_prunes_provably_inert_configuration_axes():
     schema = SchemaDesign(
         "snowflake",
