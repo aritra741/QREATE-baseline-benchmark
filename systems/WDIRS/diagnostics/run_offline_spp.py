@@ -19,7 +19,12 @@ if str(WDIRS_ROOT) not in sys.path:
     sys.path.insert(0, str(WDIRS_ROOT))
 
 from extractor import OllamaClient  # noqa: E402
+import config as config_module  # noqa: E402
 from spp.budget_ledger import GlobalBudgetLedger  # noqa: E402
+from spp.cache_fingerprint import (  # noqa: E402
+    ensure_compatible_scratch,
+    synthesis_cache_fingerprint,
+)
 from spp.corpus_subset import build_representative_subset  # noqa: E402
 from spp.nl2sql import make_nl2sql_compiler  # noqa: E402
 from spp.serving import OfflineQueryServer  # noqa: E402
@@ -52,6 +57,20 @@ def _load_queries(path: Path) -> list[dict]:
     if any(not row["sql"].strip() for row in queries):
         raise ValueError("every workload entry must contain SQL/text")
     return queries
+
+
+def _source_entity_vocabulary(dataset_path: Path) -> tuple[str, ...]:
+    """Use only top-level source partitions as entity-name evidence."""
+    dataset_path = Path(dataset_path).expanduser().resolve()
+    if not dataset_path.exists():
+        return ()
+    return tuple(
+        sorted(
+            path.name.strip().lower()
+            for path in dataset_path.iterdir()
+            if path.is_dir() and path.name.strip()
+        )
+    )
 
 
 def main() -> int:
@@ -134,9 +153,35 @@ def main() -> int:
     os.environ["WDIRS_SQLITE_JOURNAL_MODE"] = args.sqlite_journal_mode
     os.environ["WDIRS_DB_PATH"] = str(scratch / "shared_extraction.sqlite")
     queries = _load_queries(args.workload)
+    source_dataset = config_module.SOURCE_DATA_DIR / args.dataset
+    cache_fingerprint = synthesis_cache_fingerprint(
+        dataset=args.dataset,
+        workload_path=args.workload,
+        source_dir=source_dataset,
+        implementation_paths=(
+            Path(__file__),
+            WDIRS_ROOT / "spp" / "cache_fingerprint.py",
+            WDIRS_ROOT / "spp" / "workload_intent.py",
+            WDIRS_ROOT / "spp" / "schema_design.py",
+            WDIRS_ROOT / "spp" / "wdirs_backend.py",
+            WDIRS_ROOT / "spp" / "query_plan_compiler.py",
+            WDIRS_ROOT / "spp" / "sql_validator.py",
+            WDIRS_ROOT / "spp" / "nl2sql.py",
+        ),
+        parameters={
+            "model": args.model,
+            "base_url": args.base_url,
+            "projection_fastpath": args.projection_fastpath,
+            "projection_fastpath_col_batch_size": (
+                args.projection_fastpath_col_batch_size
+            ),
+            "max_documents_per_entity": args.max_documents_per_entity,
+            "max_document_characters": args.max_document_characters,
+        },
+    )
+    ensure_compatible_scratch(scratch, cache_fingerprint)
     selected_documents: list[str] = []
     if args.max_documents_per_entity is not None:
-        import config as config_module
         import wdirs_runner as runner_module
 
         subset_root, selected_documents = build_representative_subset(
@@ -193,12 +238,15 @@ def main() -> int:
             schema_vocabulary = schema_vocabulary_from_sql(
                 schema_queries
             )
+        source_entities = _source_entity_vocabulary(
+            config_module.SOURCE_DATA_DIR / args.dataset
+        )
         intent_analyzer = make_budgeted_intent_analyzer(
             original_client,
             entity_vocabulary=(
                 schema_vocabulary.entities
                 if schema_vocabulary
-                else ()
+                else source_entities
             ),
             attribute_vocabulary=(
                 schema_vocabulary.attributes
@@ -277,6 +325,7 @@ def main() -> int:
             "serving_manifest": str(result.serving_manifest),
             "token_summary": result.token_summary,
             "backend_scratch": str(scratch),
+            "cache_fingerprint": cache_fingerprint,
             "sqlite_journal_mode": args.sqlite_journal_mode,
             "selected_source_documents": selected_documents,
             "runtime_delta_attribute_discovery": (

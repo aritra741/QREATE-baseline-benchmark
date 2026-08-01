@@ -13,7 +13,7 @@ import json
 import logging
 import math
 import re
-from dataclasses import replace
+from dataclasses import asdict, replace
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Sequence
 
@@ -22,6 +22,7 @@ from spp.budgeted_llm import BudgetedLLMClient
 from spp.evidence_store import CellProvenance, EvidenceAnchor, EvidenceStore
 from spp.optimizer import PilotResult, canonical_output_signature
 from spp.quality_signals import profile_relational_database
+from spp.query_plan_compiler import compile_query_plan
 from spp.risk_estimator import CellEvidence, PilotObservation, estimate_query_risk
 from spp.schema_materializer import (
     reshape_tables,
@@ -64,6 +65,9 @@ class WDIRSPrimitiveBackend:
             tuple[str, str, str], object
         ] = {}
         self._missing_tables: set[str] = set()
+        self._cache_fingerprint: str | None = None
+        self._physical_requirement_issues: Dict[str, List[str]] = {}
+        self._physical_config_issues: Dict[str, Dict[str, str]] = {}
 
     def reproducibility_manifest(self) -> dict:
         return {
@@ -104,7 +108,88 @@ class WDIRSPrimitiveBackend:
                 else None
             ),
             "missing_inferred_tables": sorted(self._missing_tables),
+            "cache_workload_fingerprint": self._cache_fingerprint,
+            "physical_requirement_issues": dict(
+                self._physical_requirement_issues
+            ),
+            "physical_config_issues": dict(self._physical_config_issues),
         }
+
+    def _fingerprint_cache_state(self, intent: WorkloadIntent) -> None:
+        """Bind reusable extraction state to source identity and canonical IR."""
+        source_files = []
+        try:
+            import config as config_module
+
+            dataset_path = (
+                Path(config_module.SOURCE_DATA_DIR) / self.runner.dataset
+            ).expanduser().resolve()
+            if dataset_path.exists():
+                for path in sorted(
+                    item
+                    for item in dataset_path.rglob("*")
+                    if item.is_file()
+                ):
+                    stat = path.stat()
+                    source_files.append(
+                        {
+                            "path": str(path.relative_to(dataset_path)),
+                            "size": stat.st_size,
+                            "mtime_ns": stat.st_mtime_ns,
+                        }
+                    )
+        except (OSError, ValueError):
+            source_files = []
+        payload = {
+            "version": 1,
+            "dataset": str(self.runner.dataset),
+            "source_files": source_files,
+            "requirements": [asdict(item) for item in intent.requirements],
+        }
+        rendered = json.dumps(
+            payload, sort_keys=True, separators=(",", ":"), default=str
+        )
+        fingerprint = hashlib.sha256(rendered.encode()).hexdigest()
+        self._cache_fingerprint = fingerprint
+        if self.scratch_dir is None:
+            return
+        self.scratch_dir.mkdir(parents=True, exist_ok=True)
+        # Keep the canonical-intent identity separate from the outer runner's
+        # source/workload cache marker; both must match when both are present.
+        marker = self.scratch_dir / "spp_intent_fingerprint.json"
+        if marker.exists():
+            try:
+                existing = json.loads(marker.read_text())
+            except (OSError, json.JSONDecodeError) as exc:
+                raise ValueError(
+                    f"unreadable SPP cache fingerprint: {marker}"
+                ) from exc
+            if existing.get("fingerprint") != fingerprint:
+                raise ValueError(
+                    "scratch/cache fingerprint does not match the canonical "
+                    "workload and source identity; use a fresh scratch directory"
+                )
+            return
+        cache_dir = Path(self.runner.cache_dir)
+        if cache_dir.exists() and any(
+            path.is_file() for path in cache_dir.rglob("*")
+        ):
+            raise ValueError(
+                "existing extraction cache has no workload fingerprint; "
+                "use a fresh scratch directory"
+            )
+        temporary = marker.with_suffix(".tmp")
+        temporary.write_text(
+            json.dumps(
+                {
+                    "fingerprint": fingerprint,
+                    "version": payload["version"],
+                    "dataset": payload["dataset"],
+                },
+                indent=2,
+            )
+        )
+        temporary.replace(marker)
 
     def _records_for_table(self, table: str) -> List[dict]:
         """Return materialized rows or an empty relation if extraction missed it.
@@ -168,6 +253,7 @@ class WDIRSPrimitiveBackend:
     ) -> None:
         self.intent = intent
         self._evidence_store = evidence_store
+        self._fingerprint_cache_state(intent)
         sql_queries = list(self.schema_workload_queries) or [
             requirement.text
             for requirement in intent.requirements
@@ -369,7 +455,7 @@ class WDIRSPrimitiveBackend:
     def prune_configs(
         self, configs: Sequence[SynthesisConfig]
     ) -> Sequence[SynthesisConfig]:
-        """Collapse axes that the shared WDIRS extraction cannot replay."""
+        """Reject physically unsupported coverage and collapse inert axes."""
         representatives: Dict[tuple[str, str, str, str], SynthesisConfig] = {}
         lattice_tables = getattr(
             self.runner.lattice_planner.lattice, "tables", {}
@@ -398,7 +484,86 @@ class WDIRSPrimitiveBackend:
                     inferred.add("text")
             return next(iter(inferred)) if len(inferred) == 1 else None
 
+        physical_issues: Dict[str, List[str]] = {}
+        active_intent = getattr(self, "intent", None)
+        if active_intent is not None:
+            for requirement in active_intent.requirements:
+                issues: List[str] = []
+                required_by_entity: Dict[str, set[str]] = {
+                    entity: set() for entity in requirement.entities
+                }
+                for entity, attribute in requirement.attribute_bindings:
+                    required_by_entity.setdefault(entity, set()).add(attribute)
+                if requirement.plan is not None:
+                    for reference in requirement.plan.attributes():
+                        required_by_entity.setdefault(
+                            reference.entity, set()
+                        ).add(reference.attribute)
+                for left, _relation, right in requirement.relationships:
+                    required_by_entity.setdefault(left, set())
+                    required_by_entity.setdefault(right, set())
+                for table, required_columns in sorted(
+                    required_by_entity.items()
+                ):
+                    if (
+                        table not in self._table_names
+                        or not self.runner.data_layer.table_exists(table)
+                    ):
+                        issues.append(f"missing_physical_table:{table}")
+                        continue
+                    rows = self._records_for_table(table)
+                    if not rows:
+                        issues.append(f"empty_required_table:{table}")
+                        continue
+                    for column in sorted(required_columns):
+                        if not any(
+                            row.get(column) not in (None, "") for row in rows
+                        ):
+                            issues.append(
+                                f"all_null_required_column:{table}.{column}"
+                            )
+                if issues:
+                    physical_issues[requirement.query_id] = issues
+        self._physical_requirement_issues = physical_issues
+        requirements_by_id = (
+            {
+                requirement.query_id: requirement
+                for requirement in active_intent.requirements
+            }
+            if active_intent is not None
+            else {}
+        )
+        config_issues: Dict[str, Dict[str, str]] = {}
+
         for original_config in configs:
+            binding_issues: Dict[str, str] = {}
+            for query_id in original_config.schema.covered_query_ids:
+                requirement = requirements_by_id.get(query_id)
+                if requirement is None or requirement.plan is None:
+                    continue
+                if compile_query_plan(
+                    requirement.plan, original_config
+                ) is None:
+                    binding_issues[query_id] = (
+                        "typed query plan cannot bind to candidate schema"
+                    )
+            if binding_issues:
+                config_issues[original_config.config_id] = binding_issues
+            physically_covered = tuple(
+                query_id
+                for query_id in original_config.schema.covered_query_ids
+                if query_id not in physical_issues
+                and query_id not in binding_issues
+            )
+            if not physically_covered:
+                continue
+            original_config = replace(
+                original_config,
+                schema=replace(
+                    original_config.schema,
+                    covered_query_ids=physically_covered,
+                ),
+            )
             corrected_relations = []
             for relation in original_config.schema.relations:
                 types = dict(relation.semantic_types)
@@ -445,6 +610,7 @@ class WDIRSPrimitiveBackend:
             )
             if current is None or rank > current_rank:
                 representatives[key] = config
+        self._physical_config_issues = config_issues
         return tuple(
             sorted(representatives.values(), key=lambda item: item.config_id)
         )
@@ -494,7 +660,10 @@ class WDIRSPrimitiveBackend:
     def _populated_tables(
         self, config: SynthesisConfig
     ) -> Dict[str, List[dict]]:
-        cache_key = config.population.config_id
+        cache_key = (
+            f"{self._cache_fingerprint or 'unfingerprinted'}:"
+            f"{config.population.config_id}"
+        )
         if cache_key in self._population_cache:
             populated = copy.deepcopy(self._population_cache[cache_key])
             self._copy_provenance_for_config(config.config_id, populated)

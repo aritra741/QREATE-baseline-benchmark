@@ -21,6 +21,7 @@ from spp.budgeted_llm import BudgetedLLMClient
 from spp.spec import (
     AggregateSpec,
     AttributeRef,
+    HavingSpec,
     JoinSpec,
     PredicateSpec,
     QueryPlan,
@@ -162,6 +163,20 @@ def _canonical_entity(
     matches = [candidate for candidate in allowed if candidate in parts]
     if len(matches) == 1:
         return matches[0]
+    # Use a high-confidence, vocabulary-bounded lexical match. This is generic
+    # similarity over the full symbol—not a singular/plural rewrite rule.
+    ranked = sorted(
+        (
+            SequenceMatcher(None, entity, candidate).ratio(),
+            candidate,
+        )
+        for candidate in allowed
+    )
+    if ranked:
+        best_score, best = ranked[-1]
+        runner_up = ranked[-2][0] if len(ranked) > 1 else 0.0
+        if best_score >= 0.82 and best_score - runner_up >= 0.08:
+            return best
     return default_entity if default_entity in allowed else ""
 
 
@@ -362,6 +377,55 @@ def _query_plan(
             except ValueError:
                 continue
 
+    having: List[HavingSpec] = []
+    having_values = payload.get("having", [])
+    if isinstance(having_values, Mapping):
+        having_values = [having_values]
+    if isinstance(having_values, (list, tuple)):
+        for value in having_values:
+            if not isinstance(value, Mapping):
+                continue
+            aggregate_payload = value.get("aggregate", value)
+            if not isinstance(aggregate_payload, Mapping):
+                continue
+            reference = _attribute_ref(
+                aggregate_payload.get("attribute"),
+                entity_vocabulary,
+                default_entity,
+                attribute_vocabulary,
+            )
+            try:
+                aggregate = AggregateSpec(
+                    function=str(
+                        aggregate_payload.get("function", "")
+                    ).strip().lower(),
+                    attribute=reference,
+                    alias=str(
+                        aggregate_payload.get("alias", "")
+                    ).strip().lower(),
+                    distinct=bool(
+                        aggregate_payload.get("distinct", False)
+                    ),
+                )
+                operator = str(value.get("operator", "")).strip().lower()
+                operator = {
+                    "==": "=",
+                    "<>": "!=",
+                    "greater_than": ">",
+                    "greater_than_or_equal": ">=",
+                    "less_than": "<",
+                    "less_than_or_equal": "<=",
+                }.get(operator, operator)
+                having.append(
+                    HavingSpec(
+                        aggregate=aggregate,
+                        operator=operator,
+                        value=value.get("value"),
+                    )
+                )
+            except ValueError:
+                continue
+
     joins: List[JoinSpec] = []
     values = payload.get("joins", [])
     if isinstance(values, (list, tuple)):
@@ -412,8 +476,9 @@ def _query_plan(
             attribute_vocabulary,
         ),
         joins=tuple(joins),
+        having=tuple(having),
     )
-    return plan if plan.attributes() or plan.aggregates else None
+    return plan if plan.attributes() or plan.aggregates or plan.having else None
 
 
 def _expected_aggregate(text: str) -> Optional[str]:
@@ -421,11 +486,11 @@ def _expected_aggregate(text: str) -> Optional[str]:
     if re.search(r"\b(average|mean)\b", lowered):
         return "avg"
     if re.search(
-        r"\b(fewest|lowest|smallest|minimum|youngest)\b", lowered
+        r"\b(fewest|lowest|smallest|minimum|youngest|earliest)\b", lowered
     ):
         return "min"
     if re.search(
-        r"\b(largest|highest|greatest|maximum|oldest)\b", lowered
+        r"\b(largest|highest|greatest|maximum|oldest|latest|most)\b", lowered
     ):
         return "max"
     if re.search(r"\b(total|combined|altogether|sum)\b", lowered):
@@ -441,6 +506,18 @@ def _expected_aggregate(text: str) -> Optional[str]:
     ):
         return "count"
     return None
+
+
+def _expects_group_cardinality_having(text: str) -> bool:
+    """Detect explicit group-member count restrictions, not scalar magnitudes."""
+    return bool(
+        re.search(
+            r"\bwith\s+(?:more|fewer|less)\s+than\s+"
+            r"(?:one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+"
+            r"(?!(?:hundred|thousand|million|billion)\b)[a-z][a-z0-9_-]*",
+            text.lower(),
+        )
+    )
 
 
 def _repair_plan_aggregate(
@@ -1818,6 +1895,7 @@ def _normalize_plan_with_schema(
             aggregates=tuple(aggregates),
             predicate=predicate,
             joins=(),
+            having=plan.having,
         ).attributes()
     }
     if re.search(
@@ -1965,6 +2043,10 @@ def _plan_contract_score(plan: Optional[QueryPlan], text: str) -> int:
     else:
         score += 6 if not plan.aggregates else -12
         score += 6 if not plan.group_by else -12
+    if _expects_group_cardinality_having(text):
+        score += 8 if plan.having else -12
+    elif plan.having:
+        score -= 8
     predicate_values: List[str] = []
     predicate_leaves: List[PredicateSpec] = []
 
@@ -2039,7 +2121,463 @@ def _plan_contract_score(plan: Optional[QueryPlan], text: str) -> int:
         and value.replace("_", " ") not in lowered
         for value in predicate_values
     )
+    synthetic = QueryRequirement(
+        query_id="contract",
+        text=text,
+        operators=tuple(
+            operator
+            for operator in (
+                _expected_aggregate(text),
+                "group_by"
+                if re.search(
+                    r"\b(?:group(?:ed)?\s+by|by\s+each|"
+                    r"(?:for|at|in|of)\s+(?:each|every)|"
+                    r"(?:each|every)\s+[a-z])\b",
+                    lowered,
+                )
+                else None,
+                "filter"
+                if re.search(
+                    r"\b(?:where|whose|known|aged|drafted|before|after|at least|"
+                    r"at most|or later|greater than|less than|equal to|"
+                    r"more than (?:one|two|three|\d+) "
+                    r"(?:hundred|thousand|million|billion)|matching)\b",
+                    lowered,
+                )
+                else None,
+            )
+            if operator is not None
+        ),
+        plan=plan,
+    )
+    score -= 100 * len(_plan_contract_diagnostics(synthetic))
     return score
+
+
+def _symbol_tokens(value: object) -> Tuple[str, ...]:
+    """Normalize spelling and separators without inflection heuristics."""
+    rendered = re.sub(
+        r"([a-z0-9])([A-Z])", r"\1 \2", str(value or "").strip()
+    ).lower()
+    return tuple(re.findall(r"[a-z0-9]+", rendered))
+
+
+def _canonicalize_workload_requirements(
+    requirements: Sequence[QueryRequirement],
+) -> Tuple[Tuple[QueryRequirement, ...], Mapping[str, Any]]:
+    """Rewrite independently inferred symbols into one evidenced namespace.
+
+    Alias edges require either normalized identity or corroboration from both
+    lexical token overlap and shared attributes. A strong multi-attribute
+    overlap can also corroborate aliases whose surface forms have no common
+    token. No stemming or singular/plural suffix manipulation is performed.
+    """
+    entity_frequency: Counter[str] = Counter()
+    entity_attributes: Dict[str, set[str]] = {}
+    attribute_frequency: Counter[Tuple[str, str]] = Counter()
+    entity_cooccurrences: set[frozenset[str]] = set()
+
+    def observe(entity: str, attribute: Optional[str] = None) -> None:
+        entity = str(entity or "").strip().lower()
+        if not entity:
+            return
+        entity_frequency[entity] += 1
+        entity_attributes.setdefault(entity, set())
+        if attribute:
+            attribute = str(attribute).strip().lower()
+            entity_attributes[entity].add(attribute)
+            attribute_frequency[(entity, attribute)] += 1
+
+    for requirement in requirements:
+        query_entities = {
+            str(entity).strip().lower()
+            for entity in requirement.entities
+            if str(entity).strip()
+        }
+        query_entities.update(
+            str(entity).strip().lower()
+            for entity, _attribute in requirement.attribute_bindings
+            if str(entity).strip()
+        )
+        if requirement.plan:
+            query_entities.update(
+                reference.entity.strip().lower()
+                for reference in requirement.plan.attributes()
+                if reference.entity.strip()
+            )
+        for left, _relation, right in requirement.relationships:
+            query_entities.update(
+                value for value in (left.strip().lower(), right.strip().lower())
+                if value
+            )
+        for left in query_entities:
+            for right in query_entities:
+                if left < right:
+                    entity_cooccurrences.add(frozenset((left, right)))
+        for entity in requirement.entities:
+            observe(entity)
+        for entity, attribute in requirement.attribute_bindings:
+            observe(entity, attribute)
+        for left, _relation, right in requirement.relationships:
+            observe(left)
+            observe(right)
+        if requirement.plan:
+            for reference in requirement.plan.attributes():
+                observe(reference.entity, reference.attribute)
+
+    entities = sorted(entity_attributes)
+    parent = {entity: entity for entity in entities}
+
+    def root(entity: str) -> str:
+        while parent[entity] != entity:
+            parent[entity] = parent[parent[entity]]
+            entity = parent[entity]
+        return entity
+
+    def union(left: str, right: str) -> None:
+        left_root, right_root = root(left), root(right)
+        if left_root != right_root:
+            parent[max(left_root, right_root)] = min(left_root, right_root)
+
+    for index, left in enumerate(entities):
+        left_tokens = set(_symbol_tokens(left))
+        left_attrs = {
+            _symbol_tokens(attribute)
+            for attribute in entity_attributes[left]
+            if _symbol_tokens(attribute)
+        }
+        for right in entities[index + 1 :]:
+            right_tokens = set(_symbol_tokens(right))
+            right_attrs = {
+                _symbol_tokens(attribute)
+                for attribute in entity_attributes[right]
+                if _symbol_tokens(attribute)
+            }
+            shared_attributes = left_attrs & right_attrs
+            attribute_union = left_attrs | right_attrs
+            normalized_exact = bool(left_tokens) and left_tokens == right_tokens
+            lexical_overlap = bool(left_tokens & right_tokens)
+            explicitly_distinct = (
+                frozenset((left, right)) in entity_cooccurrences
+            )
+            corroborated_lexical = (
+                lexical_overlap
+                and bool(shared_attributes)
+                and not explicitly_distinct
+            )
+            strong_attribute_overlap = (
+                len(shared_attributes) >= 2
+                and len(shared_attributes) / max(len(attribute_union), 1) >= 0.67
+                and not explicitly_distinct
+            )
+            if (
+                normalized_exact
+                or corroborated_lexical
+                or strong_attribute_overlap
+            ):
+                union(left, right)
+
+    clusters: Dict[str, List[str]] = {}
+    for entity in entities:
+        clusters.setdefault(root(entity), []).append(entity)
+
+    entity_aliases: Dict[str, str] = {}
+    alias_evidence: List[dict] = []
+    for members in clusters.values():
+        canonical = min(
+            members,
+            key=lambda value: (
+                -entity_frequency[value],
+                -len(entity_attributes[value]),
+                len(_symbol_tokens(value)),
+                len(value),
+                value,
+            ),
+        )
+        combined_attributes = {
+            attribute
+            for member in members
+            for attribute in entity_attributes[member]
+        }
+        for member in members:
+            entity_aliases[member] = canonical
+            if member != canonical:
+                alias_evidence.append(
+                    {
+                        "kind": "entity",
+                        "alias": member,
+                        "canonical": canonical,
+                        "alias_frequency": entity_frequency[member],
+                        "canonical_frequency": entity_frequency[canonical],
+                        "shared_attributes": sorted(
+                            entity_attributes[member]
+                            & entity_attributes[canonical]
+                        ),
+                    }
+                )
+        entity_attributes[canonical] = combined_attributes
+
+    attribute_aliases: Dict[Tuple[str, str], str] = {}
+    for canonical_entity in sorted(set(entity_aliases.values())):
+        variants = sorted(
+            {
+                attribute
+                for entity, attributes in entity_attributes.items()
+                if entity_aliases.get(entity, entity) == canonical_entity
+                for attribute in attributes
+            }
+        )
+        by_normalized: Dict[Tuple[str, ...], List[str]] = {}
+        for attribute in variants:
+            by_normalized.setdefault(_symbol_tokens(attribute), []).append(attribute)
+        for normalized, members in by_normalized.items():
+            if not normalized:
+                continue
+            canonical_attribute = min(
+                members,
+                key=lambda value: (
+                    -sum(
+                        count
+                        for (entity, attribute), count in attribute_frequency.items()
+                        if entity_aliases.get(entity, entity) == canonical_entity
+                        and attribute == value
+                    ),
+                    len(value),
+                    value,
+                ),
+            )
+            for member in members:
+                attribute_aliases[(canonical_entity, member)] = canonical_attribute
+                if member != canonical_attribute:
+                    alias_evidence.append(
+                        {
+                            "kind": "attribute",
+                            "entity": canonical_entity,
+                            "alias": member,
+                            "canonical": canonical_attribute,
+                        }
+                    )
+
+    def canonical_entity(value: str) -> str:
+        rendered = str(value or "").strip().lower()
+        return entity_aliases.get(rendered, rendered)
+
+    def canonical_attribute(entity: str, value: str) -> str:
+        rendered = str(value or "").strip().lower()
+        return attribute_aliases.get(
+            (canonical_entity(entity), rendered), rendered
+        )
+
+    def reference(value: AttributeRef) -> AttributeRef:
+        entity = canonical_entity(value.entity)
+        return replace(
+            value,
+            entity=entity,
+            attribute=canonical_attribute(entity, value.attribute),
+        )
+
+    def predicate(value: Optional[PredicateSpec]) -> Optional[PredicateSpec]:
+        if value is None:
+            return None
+        if value.kind == "predicate":
+            return replace(
+                value,
+                attribute=reference(value.attribute)
+                if value.attribute is not None
+                else None,
+            )
+        return replace(
+            value,
+            children=tuple(predicate(child) for child in value.children),
+        )
+
+    def plan(value: Optional[QueryPlan]) -> Optional[QueryPlan]:
+        if value is None:
+            return None
+        return QueryPlan(
+            projections=tuple(reference(item) for item in value.projections),
+            group_by=tuple(reference(item) for item in value.group_by),
+            aggregates=tuple(
+                replace(
+                    aggregate,
+                    attribute=(
+                        reference(aggregate.attribute)
+                        if aggregate.attribute is not None
+                        else None
+                    ),
+                )
+                for aggregate in value.aggregates
+            ),
+            predicate=predicate(value.predicate),
+            joins=tuple(
+                replace(
+                    join,
+                    left=reference(join.left),
+                    right=reference(join.right),
+                )
+                for join in value.joins
+            ),
+            having=tuple(
+                replace(
+                    condition,
+                    aggregate=replace(
+                        condition.aggregate,
+                        attribute=(
+                            reference(condition.aggregate.attribute)
+                            if condition.aggregate.attribute is not None
+                            else None
+                        ),
+                    ),
+                )
+                for condition in value.having
+            ),
+        )
+
+    rewritten: List[QueryRequirement] = []
+    unresolved: List[dict] = []
+    for requirement in requirements:
+        rewritten_plan = plan(requirement.plan)
+        bindings = tuple(
+            dict.fromkeys(
+                (
+                    canonical_entity(entity),
+                    canonical_attribute(entity, attribute),
+                )
+                for entity, attribute in requirement.attribute_bindings
+            )
+        )
+        plan_references = (
+            rewritten_plan.attributes() if rewritten_plan is not None else ()
+        )
+        rewritten_entities = tuple(
+            dict.fromkeys(
+                [
+                    *(canonical_entity(entity) for entity in requirement.entities),
+                    *(reference.entity for reference in plan_references),
+                    *(entity for entity, _attribute in bindings),
+                ]
+            )
+        )
+        owned_attributes = [
+            attribute for _entity, attribute in bindings
+        ] + [item.attribute for item in plan_references]
+        rewritten_attributes = tuple(
+            dict.fromkeys(
+                owned_attributes
+                or (
+                    str(attribute).strip().lower()
+                    for attribute in requirement.attributes
+                )
+            )
+        )
+        relationships = []
+        for left, relation, right in requirement.relationships:
+            canonical_left = canonical_entity(left)
+            canonical_right = canonical_entity(right)
+            rendered_relation = str(relation).strip().lower()
+            if "=" in rendered_relation:
+                left_attribute, right_attribute = rendered_relation.split("=", 1)
+                rendered_relation = (
+                    f"{canonical_attribute(canonical_left, left_attribute)}="
+                    f"{canonical_attribute(canonical_right, right_attribute)}"
+                )
+            relationships.append(
+                (canonical_left, rendered_relation, canonical_right)
+            )
+        for item in plan_references:
+            if item.entity not in rewritten_entities:
+                unresolved.append(
+                    {
+                        "query_id": requirement.query_id,
+                        "entity": item.entity,
+                        "attribute": item.attribute,
+                    }
+                )
+        rewritten.append(
+            replace(
+                requirement,
+                entities=rewritten_entities,
+                attributes=rewritten_attributes,
+                attribute_bindings=bindings,
+                relationships=tuple(dict.fromkeys(relationships)),
+                plan=rewritten_plan,
+            )
+        )
+
+    return tuple(rewritten), {
+        "entity_aliases": {
+            alias: canonical
+            for alias, canonical in sorted(entity_aliases.items())
+            if alias != canonical
+        },
+        "alias_evidence": alias_evidence,
+        "unresolved_symbols": unresolved,
+    }
+
+
+def _plan_contract_diagnostics(
+    requirement: QueryRequirement,
+) -> Tuple[str, ...]:
+    """Return hard structural defects derivable from operators and NL cues."""
+    plan = requirement.plan
+    lowered = requirement.text.lower()
+    operators = set(requirement.operators)
+    aggregate_operators = operators & {"count", "sum", "avg", "min", "max"}
+    expected = _expected_aggregate(requirement.text)
+    if expected is not None:
+        aggregate_operators.add(expected)
+    group_cue = bool(
+        "group_by" in operators
+        or re.search(
+            r"\b(?:group(?:ed)?\s+by|by\s+each|"
+            r"(?:for|at|in|of)\s+(?:each|every)|"
+            r"(?:each|every)\s+[a-z]|per\s+(?:each\s+)?[a-z])",
+            lowered,
+        )
+    )
+    having_cue = (
+        "having" in operators
+        or bool(re.search(r"\bhaving\b", lowered))
+        or _expects_group_cardinality_having(requirement.text)
+    )
+    group_cue = group_cue or having_cue
+    filter_cue = bool(
+        "filter" in operators
+        or re.search(
+            r"\b(?:where|whose|known|aged|drafted|before|after|at least|at most|"
+            r"or later|greater than|less than|equal to|"
+            r"more than (?:one|two|three|\d+) "
+            r"(?:hundred|thousand|million|billion)|matching)\b",
+            lowered,
+        )
+    )
+    diagnostics: List[str] = []
+    if plan is None:
+        if aggregate_operators:
+            diagnostics.append("missing_plan_for_aggregate")
+        if group_cue:
+            diagnostics.append("missing_plan_for_group")
+        if filter_cue:
+            diagnostics.append("missing_plan_for_filter")
+        if having_cue:
+            diagnostics.append("missing_plan_for_having")
+        return tuple(diagnostics)
+    plan_functions = {aggregate.function for aggregate in plan.aggregates}
+    if aggregate_operators and not (aggregate_operators & plan_functions):
+        diagnostics.append("missing_or_wrong_aggregate")
+    if group_cue and aggregate_operators and not plan.group_by:
+        diagnostics.append("missing_group_by")
+    if filter_cue and plan.predicate is None:
+        diagnostics.append("missing_filter")
+    if having_cue and not plan.having:
+        diagnostics.append("missing_having")
+    if plan.aggregates and any(
+        projection not in plan.group_by for projection in plan.projections
+    ):
+        diagnostics.append("bare_projection_in_aggregate")
+    if plan.group_by and not plan.aggregates:
+        diagnostics.append("group_by_without_aggregate")
+    return tuple(dict.fromkeys(diagnostics))
 
 
 def _sql_requirement(query_id: str, sql: str) -> QueryRequirement:
@@ -2102,6 +2640,7 @@ def _sql_requirement(query_id: str, sql: str) -> QueryRequirement:
         (exp.Max, "max"),
         (exp.Group, "group_by"),
         (exp.Where, "filter"),
+        (exp.Having, "having"),
         (exp.Join, "join"),
     )
     for node_type, label in op_types:
@@ -2213,6 +2752,61 @@ def _sql_requirement(query_id: str, sql: str) -> QueryRequirement:
 
     where = tree.args.get("where")
     parsed_predicate = predicate(where.this if where is not None else None)
+    having_specs: List[HavingSpec] = []
+    having_clause = tree.args.get("having")
+
+    def collect_having(node: Optional["exp.Expression"]) -> None:
+        if node is None:
+            return
+        if isinstance(node, exp.Paren):
+            collect_having(node.this)
+            return
+        if isinstance(node, exp.And):
+            collect_having(node.left)
+            collect_having(node.right)
+            return
+        for node_type, operator in comparison_types:
+            if not isinstance(node, node_type):
+                continue
+            aggregate_node = node.left
+            for aggregate_type, function in aggregate_types:
+                if not isinstance(aggregate_node, aggregate_type):
+                    continue
+                argument = aggregate_node.this
+                distinct = isinstance(argument, exp.Distinct)
+                if distinct:
+                    argument = (
+                        argument.expressions[0]
+                        if argument.expressions
+                        else argument
+                    )
+                reference = (
+                    column_ref(
+                        argument,
+                        "integer" if function in {"count", "sum"} else "real",
+                    )
+                    if isinstance(argument, exp.Column)
+                    else None
+                )
+                try:
+                    having_specs.append(
+                        HavingSpec(
+                            AggregateSpec(
+                                function=function,
+                                attribute=reference,
+                                distinct=distinct,
+                            ),
+                            operator=operator,
+                            value=literal_value(node.right),
+                        )
+                    )
+                except ValueError:
+                    pass
+                return
+
+    collect_having(
+        having_clause.this if having_clause is not None else None
+    )
     join_specs: List[JoinSpec] = []
     for join in tree.find_all(exp.Join):
         on_expr = join.args.get("on")
@@ -2237,6 +2831,7 @@ def _sql_requirement(query_id: str, sql: str) -> QueryRequirement:
         aggregates=tuple(aggregates),
         predicate=parsed_predicate,
         joins=tuple(join_specs),
+        having=tuple(having_specs),
     )
 
     return QueryRequirement(
@@ -2525,6 +3120,10 @@ def analyze_workload(
             "semantic_type};\n"
             "- aggregates: array of {function, attribute (or null for COUNT(*)), "
             "alias, distinct};\n"
+            "- having: array of {aggregate:{function, attribute (or null for "
+            "COUNT(*)), alias, distinct}, operator, value}. Use this only for "
+            "restrictions on grouped aggregate values such as groups with more "
+            "than one member;\n"
             "- predicate: null or a recursive tree. Leaves are {kind:'predicate', "
             "entity, attribute, semantic_type, operator, value}; boolean nodes "
             "are {kind:'and'|'or', children:[...]};\n"
@@ -2819,6 +3418,11 @@ def analyze_workload(
                         if semantic_plan.joins
                         else sql_plan.joins
                     ),
+                    having=(
+                        semantic_plan.having
+                        if semantic_plan.having
+                        else sql_plan.having
+                    ),
                 )
                 if fused_plan != sql_plan:
                     candidates.append(requirement_for_plan(fused_plan))
@@ -2893,7 +3497,8 @@ def analyze_workload(
                     "sql_shadow, clause_ledger, component_fusion, or corrected. "
                     "plan must be null when selecting an "
                     "unchanged candidate, and otherwise must be one complete plan "
-                    "with projections, group_by, aggregates, predicate, and joins. "
+                    "with projections, group_by, aggregates, predicate, having, "
+                    "and joins. "
                     "checks must briefly record output_count, filter_count, "
                     "literal_count, boolean_scope, and join_count.\n\n"
                     f"Canonical attributes: "
@@ -3076,17 +3681,34 @@ def analyze_workload(
         ]
 
     by_id = {**sql_requirements, **{r.query_id: r for r in nl_requirements}}
-    ordered = tuple(by_id[query_id] for query_id, _ in normalized)
+    raw_ordered = tuple(by_id[query_id] for query_id, _ in normalized)
+    ordered, canonicalization_diagnostics = (
+        _canonicalize_workload_requirements(raw_ordered)
+    )
+    base_diagnostics = (
+        dict(analysis_diagnostics)
+        if nl_queries and llm_client is not None
+        else {}
+    )
+    contract_diagnostics = {
+        requirement.query_id: {
+            "valid": not violations,
+            "violations": list(violations),
+        }
+        for requirement in ordered
+        if (violations := _plan_contract_diagnostics(requirement))
+    }
+    base_diagnostics["_workload"] = {
+        "canonicalization": canonicalization_diagnostics,
+        "plan_contracts": contract_diagnostics,
+        "rejected_query_ids": sorted(contract_diagnostics),
+    }
     return WorkloadIntent(
         requirements=ordered,
         entity_frequency=dict(Counter(v for r in ordered for v in r.entities)),
         attribute_frequency=dict(Counter(v for r in ordered for v in r.attributes)),
         operator_frequency=dict(Counter(v for r in ordered for v in r.operators)),
-        analysis_diagnostics=(
-            analysis_diagnostics
-            if nl_queries and llm_client is not None
-            else {}
-        ),
+        analysis_diagnostics=base_diagnostics,
     )
 
 

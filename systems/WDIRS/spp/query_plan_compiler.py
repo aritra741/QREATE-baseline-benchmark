@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Dict, Optional, Set, Tuple
 
 from spp.spec import (
+    AggregateSpec,
     AttributeRef,
     PredicateSpec,
     QueryPlan,
@@ -81,13 +82,16 @@ def compile_query_plan(
         )
     )
     select_parts = [column(reference) for reference in selected_refs]
-    for aggregate in plan.aggregates:
+    def aggregate_sql(aggregate: AggregateSpec) -> str:
         argument = "*"
         if aggregate.attribute is not None:
             argument = column(aggregate.attribute)
             if aggregate.distinct:
                 argument = f"DISTINCT {argument}"
-        expression = f"{aggregate.function.upper()}({argument})"
+        return f"{aggregate.function.upper()}({argument})"
+
+    for aggregate in plan.aggregates:
+        expression = aggregate_sql(aggregate)
         alias = aggregate.alias or (
             f"{aggregate.function}_{aggregate.attribute.attribute}"
             if aggregate.attribute is not None
@@ -157,5 +161,11 @@ def compile_query_plan(
     if plan.group_by:
         sql += "\nGROUP BY " + ", ".join(
             column(reference) for reference in plan.group_by
+        )
+    if plan.having:
+        sql += "\nHAVING " + " AND ".join(
+            f"{aggregate_sql(condition.aggregate)} "
+            f"{condition.operator} {_literal(condition.value)}"
+            for condition in plan.having
         )
     return sql

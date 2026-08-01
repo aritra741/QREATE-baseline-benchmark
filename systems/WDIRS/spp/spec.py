@@ -46,6 +46,17 @@ class AggregateSpec:
 
 
 @dataclass(frozen=True)
+class HavingSpec:
+    aggregate: AggregateSpec
+    operator: str
+    value: object
+
+    def __post_init__(self) -> None:
+        if self.operator not in {"=", "!=", "<", "<=", ">", ">="}:
+            raise ValueError(f"unsupported HAVING operator: {self.operator}")
+
+
+@dataclass(frozen=True)
 class PredicateSpec:
     kind: str = "predicate"
     attribute: Optional[AttributeRef] = None
@@ -90,6 +101,7 @@ class QueryPlan:
     aggregates: Tuple[AggregateSpec, ...] = ()
     predicate: Optional[PredicateSpec] = None
     joins: Tuple[JoinSpec, ...] = ()
+    having: Tuple[HavingSpec, ...] = ()
 
     def attributes(self) -> Tuple[AttributeRef, ...]:
         result: List[AttributeRef] = []
@@ -109,6 +121,8 @@ class QueryPlan:
             add(reference)
         for aggregate in self.aggregates:
             add(aggregate.attribute)
+        for condition in self.having:
+            add(condition.aggregate.attribute)
         visit(self.predicate)
         for join in self.joins:
             add(join.left)

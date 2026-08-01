@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import logging
 import os
 import shutil
 import sqlite3
@@ -13,10 +12,8 @@ from pathlib import Path
 from typing import Callable, Dict, List, Mapping, Optional, Sequence
 
 from spp.budget_ledger import GlobalBudgetLedger
+from spp.sql_validator import require_valid_sql
 from spp.spec import FrozenPortfolio, QueryRequirement, SynthesisConfig
-
-
-logger = logging.getLogger(__name__)
 
 
 def _sha256(path: Path) -> str:
@@ -80,19 +77,7 @@ def compile_workload_sql(
     ],
     ledger: GlobalBudgetLedger,
 ) -> List[CompiledQuery]:
-    """Compile every NL query during synthesis, never at serving.
-
-    A per-query compiler failure is sealed as a deterministic sentinel-result
-    query and recorded in the manifest. The unmatched sentinel row/column
-    makes the failed query score zero during table evaluation without
-    discarding successful synthesis work for the rest of the workload.
-    """
-
-    def failure_result_sql() -> str:
-        return (
-            "SELECT '__SPP_COMPILE_ERROR__' "
-            'AS "__spp_compile_error"'
-        )
+    """Compile every query or fail before a serving bundle can be sealed."""
 
     compiled: List[CompiledQuery] = []
     for requirement in requirements:
@@ -100,18 +85,15 @@ def compile_workload_sql(
         config = configs[config_id]
         db_path = Path(database_paths[config_id])
         before = ledger.actual_spent
-        compilation_error: Optional[str] = None
         try:
             sql = compiler(requirement, config, db_path, ledger)
+            require_valid_sql(requirement, config, db_path, sql)
         except Exception as exc:
-            compilation_error = f"{type(exc).__name__}: {exc}"
-            sql = failure_result_sql()
-            logger.error(
-                "Failed to compile query %r; sealing a sentinel result so the "
-                "query scores zero: %s",
-                requirement.query_id,
-                compilation_error,
-            )
+            if ledger.actual_spent < before:
+                raise AssertionError("compiler moved token ledger backwards")
+            raise ValueError(
+                f"failed to compile query {requirement.query_id!r}: {exc}"
+            ) from exc
         if ledger.actual_spent < before:
             raise AssertionError("compiler moved token ledger backwards")
         _validate_readonly_sql(sql)
@@ -125,7 +107,7 @@ def compile_workload_sql(
                 config_id=config_id,
                 sql=sql,
                 sql_sha256=hashlib.sha256(sql.encode("utf-8")).hexdigest(),
-                compilation_error=compilation_error,
+                compilation_error=None,
             )
         )
     return compiled

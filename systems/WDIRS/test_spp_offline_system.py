@@ -58,6 +58,7 @@ from spp.schema_materializer import (
 )
 from spp.schema_design import generate_schema_designs, generate_synthesis_configs
 from spp.query_plan_compiler import compile_query_plan
+from spp.sql_validator import validate_sql
 from spp.serving import (
     CompiledQuery,
     OfflineQueryServer,
@@ -70,6 +71,7 @@ from spp.spec import (
     AggregateSpec,
     AttributeRef,
     FrozenPortfolio,
+    HavingSpec,
     JoinSpec,
     PreprocessingPolicy,
     PredicateSpec,
@@ -624,7 +626,7 @@ def test_frozen_bundle_executes_only_known_readonly_query(tmp_path: Path):
         server.execute("unknown")
 
 
-def test_compile_failure_is_sealed_as_empty_query_instead_of_aborting(
+def test_compile_failure_aborts_before_bundle_can_be_sealed(
     tmp_path: Path,
 ):
     requirement = _player_requirement()
@@ -643,21 +645,18 @@ def test_compile_failure_is_sealed_as_empty_query_instead_of_aborting(
     def failing_compiler(*_args):
         raise ValueError("no such column: nt.team_name")
 
-    compiled = compile_workload_sql(
-        [requirement],
-        portfolio,
-        {config.config_id: config},
-        {config.config_id: db_path},
-        failing_compiler,
-        GlobalBudgetLedger(0),
-    )
-    assert len(compiled) == 1
-    assert compiled[0].compilation_error is not None
-    assert "no such column" in compiled[0].compilation_error
-    with sqlite3.connect(db_path) as connection:
-        assert connection.execute(compiled[0].sql).fetchall() == [
-            ("__SPP_COMPILE_ERROR__",)
-        ]
+    with pytest.raises(
+        ValueError,
+        match=r"failed to compile query 'q0'.*no such column",
+    ):
+        compile_workload_sql(
+            [requirement],
+            portfolio,
+            {config.config_id: config},
+            {config.config_id: db_path},
+            failing_compiler,
+            GlobalBudgetLedger(0),
+        )
 
 
 def test_exact_budgeted_oracle_respects_selected_construction_cost():
@@ -996,6 +995,289 @@ def test_query_plan_compiler_preserves_aggregate_and_literal(tmp_path: Path):
     )
     with sqlite3.connect(db_path) as connection:
         assert connection.execute(sql).fetchall() == [("Guard", "A", 5)]
+
+
+def _validator_aggregate_fixture(
+    tmp_path: Path,
+) -> tuple[QueryRequirement, SynthesisConfig, Path]:
+    category = AttributeRef("event", "category")
+    amount = AttributeRef("event", "amount", "real")
+    requirement = QueryRequirement(
+        query_id="q",
+        text="For each category, total the amount.",
+        operators=("sum", "group_by"),
+        plan=QueryPlan(
+            group_by=(category,),
+            aggregates=(AggregateSpec("sum", amount, "total_amount"),),
+        ),
+    )
+    config = SynthesisConfig(
+        SchemaDesign(
+            "snowflake",
+            (RelationSpec("event", ("category", "amount")),),
+            ("q",),
+        ),
+        PopulationConfig(),
+        PreprocessingPolicy("whole_document"),
+    )
+    database = write_sqlite_database(
+        tmp_path / "validator.sqlite",
+        {"event": [{"category": "A", "amount": 2.0}]},
+        config.schema,
+    )
+    return requirement, config, database
+
+
+def test_sql_validator_rejects_missing_group_by(tmp_path: Path):
+    requirement, config, database = _validator_aggregate_fixture(tmp_path)
+    result = validate_sql(
+        requirement,
+        config,
+        database,
+        "SELECT category, SUM(amount) FROM event",
+    )
+    assert not result.valid
+    assert any("missing GROUP BY dimension" in error for error in result.errors)
+
+
+def test_sql_validator_rejects_sum_null(tmp_path: Path):
+    requirement, config, database = _validator_aggregate_fixture(tmp_path)
+    result = validate_sql(
+        requirement,
+        config,
+        database,
+        "SELECT category, SUM(NULL) FROM event GROUP BY category",
+    )
+    assert not result.valid
+    assert any("SUM(NULL)" in error for error in result.errors)
+
+
+def test_sql_validator_rejects_wrong_join(tmp_path: Path):
+    event_account = AttributeRef("event", "account_id")
+    account_key = AttributeRef("account", "account_key")
+    requirement = QueryRequirement(
+        query_id="q",
+        text="Show each event category with its account region.",
+        plan=QueryPlan(
+            projections=(
+                AttributeRef("event", "category"),
+                AttributeRef("account", "region"),
+            ),
+            joins=(JoinSpec(event_account, account_key),),
+        ),
+    )
+    config = SynthesisConfig(
+        SchemaDesign(
+            "snowflake",
+            (
+                RelationSpec("event", ("account_id", "category")),
+                RelationSpec("account", ("account_key", "region")),
+            ),
+            ("q",),
+        ),
+        PopulationConfig(),
+        PreprocessingPolicy("whole_document"),
+    )
+    database = write_sqlite_database(
+        tmp_path / "wrong_join.sqlite",
+        {
+            "event": [{"account_id": "a", "category": "retail"}],
+            "account": [{"account_key": "a", "region": "north"}],
+        },
+        config.schema,
+    )
+    result = validate_sql(
+        requirement,
+        config,
+        database,
+        "SELECT e.category, a.region FROM event e "
+        "JOIN account a ON e.category = a.region",
+    )
+    assert not result.valid
+    assert any("wrong join edge" in error for error in result.errors)
+
+
+def test_query_plan_compiler_and_validator_preserve_having(
+    tmp_path: Path,
+):
+    category = AttributeRef("event", "category")
+    amount = AttributeRef("event", "amount", "real")
+    plan = QueryPlan(
+        group_by=(category,),
+        aggregates=(AggregateSpec("max", amount, "max_amount"),),
+        having=(
+            HavingSpec(
+                aggregate=AggregateSpec("count"),
+                operator=">",
+                value=1,
+            ),
+        ),
+    )
+    requirement = QueryRequirement(
+        query_id="q",
+        text=(
+            "For each category with more than one event, what is the "
+            "highest amount?"
+        ),
+        entities=("event",),
+        operators=("max", "group_by", "having"),
+        plan=plan,
+    )
+    config = SynthesisConfig(
+        SchemaDesign(
+            "snowflake",
+            (RelationSpec("event", ("category", "amount")),),
+            ("q",),
+        ),
+        PopulationConfig(),
+        PreprocessingPolicy("whole_document"),
+    )
+    database = write_sqlite_database(
+        tmp_path / "having.sqlite",
+        {
+            "event": [
+                {"category": "a", "amount": 1},
+                {"category": "a", "amount": 2},
+                {"category": "b", "amount": 5},
+            ]
+        },
+        config.schema,
+    )
+    sql = compile_query_plan(plan, config)
+    assert sql is not None
+    assert "HAVING COUNT(*) > 1" in sql
+    assert validate_sql(requirement, config, database, sql).valid
+    missing = sql.split("\nHAVING", 1)[0]
+    assert any(
+        "missing HAVING condition" in error
+        for error in validate_sql(
+            requirement, config, database, missing
+        ).errors
+    )
+
+
+def test_sql_intent_parser_captures_having_aggregate():
+    requirement = analyze_workload(
+        [
+            {
+                "query_id": "q",
+                "sql": (
+                    "SELECT category, MAX(amount) AS max_amount FROM event "
+                    "GROUP BY category HAVING COUNT(*) > 1"
+                ),
+            }
+        ]
+    ).requirements[0]
+    assert requirement.plan is not None
+    assert requirement.plan.having == (
+        HavingSpec(AggregateSpec("count"), ">", 1),
+    )
+
+
+def test_sql_validator_rejects_wrong_boolean_filter_scope(
+    tmp_path: Path,
+):
+    category = AttributeRef("event", "category")
+    amount = AttributeRef("event", "amount", "real")
+    plan = QueryPlan(
+        group_by=(category,),
+        aggregates=(AggregateSpec("sum", amount, "total"),),
+        predicate=PredicateSpec(
+            kind="and",
+            children=(
+                PredicateSpec(attribute=amount, operator=">", value=0),
+                PredicateSpec(attribute=amount, operator="<", value=10),
+            ),
+        ),
+    )
+    requirement = QueryRequirement("q", "sum bounded amounts by category", plan=plan)
+    config = SynthesisConfig(
+        SchemaDesign(
+            "snowflake",
+            (RelationSpec("event", ("category", "amount")),),
+            ("q",),
+        ),
+        PopulationConfig(),
+        PreprocessingPolicy("whole_document"),
+    )
+    database = write_sqlite_database(
+        tmp_path / "boolean.sqlite",
+        {"event": [{"category": "a", "amount": 2}]},
+        config.schema,
+    )
+    result = validate_sql(
+        requirement,
+        config,
+        database,
+        "SELECT category, SUM(amount) FROM event "
+        "WHERE amount > 0 OR amount < 10 GROUP BY category",
+    )
+    assert "predicate boolean structure does not match plan" in result.errors
+
+
+def test_serving_mandatorily_validates_compiler_sql(tmp_path: Path):
+    requirement, config, database = _validator_aggregate_fixture(tmp_path)
+    portfolio = FrozenPortfolio(
+        selected_config_ids=(config.config_id,),
+        query_to_config={"q": config.config_id},
+        query_scores={"q": 0.0},
+        construction_tokens=0,
+        objective_value=0.0,
+    )
+    with pytest.raises(
+        ValueError,
+        match="missing GROUP BY dimension",
+    ):
+        compile_workload_sql(
+            [requirement],
+            portfolio,
+            {config.config_id: config},
+            {config.config_id: database},
+            lambda *_args: "SELECT category, SUM(amount) FROM event",
+            GlobalBudgetLedger(0),
+        )
+
+
+def test_nl2sql_rejects_known_warning_deterministic_fallback(
+    tmp_path: Path, monkeypatch
+):
+    requirement, config, database = _validator_aggregate_fixture(tmp_path)
+
+    class InvalidClient:
+        model = "fake"
+
+        def __init__(self):
+            self.responses = iter(
+                (
+                    "SELECT category, SUM(NULL) FROM event GROUP BY category",
+                    json.dumps(
+                        {
+                            "consistent": False,
+                            "reason": "invalid aggregate target",
+                            "corrected_sql": None,
+                        }
+                    ),
+                    "SELECT category, SUM(NULL) FROM event GROUP BY category",
+                )
+            )
+
+        def generate(self, *_args, **_kwargs):
+            return next(self.responses)
+
+    monkeypatch.setattr(
+        "spp.nl2sql.compile_query_plan",
+        lambda *_args: (
+            "SELECT category, SUM(NULL) FROM event GROUP BY category"
+        ),
+    )
+    compiler = make_nl2sql_compiler(InvalidClient())
+    with pytest.raises(ValueError, match=r"SUM\(NULL\)"):
+        compiler(
+            requirement,
+            config,
+            database,
+            GlobalBudgetLedger(10_000),
+        )
 
 
 def test_query_plan_compiler_uses_declared_join_path(tmp_path: Path):

@@ -19,10 +19,12 @@ if str(WDIRS_ROOT) not in sys.path:
 
 from spp.query_plan_compiler import compile_query_plan  # noqa: E402
 from spp.serving import OfflineQueryServer, _validate_readonly_sql  # noqa: E402
+from spp.sql_validator import require_valid_sql  # noqa: E402
 from spp.spec import (  # noqa: E402
     AttributeRef,
     PopulationConfig,
     PreprocessingPolicy,
+    QueryRequirement,
     RelationSpec,
     SchemaDesign,
     SynthesisConfig,
@@ -117,8 +119,8 @@ def _compile(
         )
         plan = _query_plan(
             requirement.get("plan"),
-            vocabulary.entities,
-            vocabulary.attributes,
+            entity_vocabulary=vocabulary.entities,
+            attribute_vocabulary=vocabulary.attributes,
         )
         plan = _repair_plan_aggregate(
             plan,
@@ -137,6 +139,31 @@ def _compile(
             raise ValueError(f"query {query_id!r} has no compilable plan")
         config_id = routes[query_id]
         sql = compile_query_plan(plan, configs[config_id])
+        if sql is None:
+            raise ValueError(f"query {query_id!r} plan cannot bind to schema")
+        typed_requirement = QueryRequirement(
+            query_id=query_id,
+            text=requirement["text"],
+            entities=tuple(requirement.get("entities", ())),
+            attributes=tuple(requirement.get("attributes", ())),
+            attribute_bindings=tuple(
+                tuple(binding)
+                for binding in requirement.get("attribute_bindings", ())
+            ),
+            relationships=tuple(
+                tuple(relationship)
+                for relationship in requirement.get("relationships", ())
+            ),
+            operators=tuple(requirement.get("operators", ())),
+            units=tuple(requirement.get("units", ())),
+            plan=plan,
+        )
+        require_valid_sql(
+            typed_requirement,
+            configs[config_id],
+            database_paths[config_id],
+            sql,
+        )
         _validate_readonly_sql(sql)
         uri = f"file:{database_paths[config_id].resolve()}?mode=ro"
         with sqlite3.connect(uri, uri=True) as connection:

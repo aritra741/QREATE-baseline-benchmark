@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import logging
 import re
 import sqlite3
 from pathlib import Path
@@ -14,12 +13,12 @@ from json_repair import repair_json
 from spp.budget_ledger import GlobalBudgetLedger
 from spp.budgeted_llm import BudgetedLLMClient
 from spp.query_plan_compiler import compile_query_plan
+from spp.sql_validator import validate_sql
 from spp.spec import AttributeRef, QueryRequirement, SynthesisConfig
 from spp.workload_intent import _expected_aggregate
 
 
 _SQL_START = re.compile(r"\b(SELECT|WITH)\b", re.IGNORECASE)
-logger = logging.getLogger(__name__)
 
 
 def _extract_sql(response: str) -> str:
@@ -415,6 +414,22 @@ def _semantic_validation_errors(
     return list(dict.fromkeys(errors))
 
 
+def _candidate_validation_error(
+    requirement: QueryRequirement,
+    config: SynthesisConfig,
+    database_path: Path,
+    sql: str,
+) -> str | None:
+    """Return one deterministic syntax/plan-contract error, if any."""
+    structural_error = _query_validation_error(database_path, sql)
+    if structural_error is not None:
+        return structural_error
+    errors = list(validate_sql(requirement, config, database_path, sql).errors)
+    errors.extend(_semantic_validation_errors(requirement, config, sql))
+    errors = list(dict.fromkeys(errors))
+    return "semantic mismatch: " + "; ".join(errors) if errors else None
+
+
 def make_nl2sql_compiler(llm_client: Any):
     """Return an ``OfflineSynthesisSystem`` compiler callback."""
 
@@ -425,7 +440,6 @@ def make_nl2sql_compiler(llm_client: Any):
         ledger: GlobalBudgetLedger,
     ) -> str:
         deterministic_fallback: str | None = None
-        deterministic_fallback_errors: list[str] = []
         is_sql = bool(
             re.match(r"^\s*(select|with)\b", requirement.text, re.IGNORECASE)
         )
@@ -444,7 +458,10 @@ def make_nl2sql_compiler(llm_client: Any):
             original_sql = requirement.text.strip().rstrip(";")
             if (
                 referenced_tables <= candidate_tables
-                and _query_validation_error(database_path, original_sql) is None
+                and _candidate_validation_error(
+                    requirement, config, database_path, original_sql
+                )
+                is None
             ):
                 return original_sql
         if requirement.plan is not None:
@@ -461,18 +478,12 @@ def make_nl2sql_compiler(llm_client: Any):
             )
             if (
                 deterministic_sql
-                and _query_validation_error(
-                    database_path, deterministic_sql
+                and _candidate_validation_error(
+                    requirement, config, database_path, deterministic_sql
                 ) is None
             ):
                 deterministic_fallback = deterministic_sql
-                deterministic_fallback_errors = _semantic_validation_errors(
-                    requirement, config, deterministic_sql
-                )
-            if (
-                deterministic_fallback
-                and not deterministic_fallback_errors
-            ):
+            if deterministic_fallback:
                 return deterministic_fallback
         schema_payload = [
             {
@@ -524,14 +535,9 @@ def make_nl2sql_compiler(llm_client: Any):
             sql = _extract_sql(response)
         except ValueError:
             sql = response.strip()
-        initial_error = _query_validation_error(database_path, sql)
-        initial_semantic_errors = _semantic_validation_errors(
-            requirement, config, sql
+        initial_error = _candidate_validation_error(
+            requirement, config, database_path, sql
         )
-        if initial_error is None and initial_semantic_errors:
-            initial_error = "semantic mismatch: " + "; ".join(
-                initial_semantic_errors
-            )
         verification_prompt = (
             "Check whether the SQLite query exactly answers the stated "
             "analytical intent using the supplied schema. Verify requested "
@@ -576,17 +582,9 @@ def make_nl2sql_compiler(llm_client: Any):
         if isinstance(corrected, str) and corrected.strip():
             try:
                 corrected_sql = _extract_sql(corrected)
-                corrected_error = _query_validation_error(
-                    database_path, corrected_sql
+                corrected_error = _candidate_validation_error(
+                    requirement, config, database_path, corrected_sql
                 )
-                if corrected_error is None:
-                    semantic_errors = _semantic_validation_errors(
-                        requirement, config, corrected_sql
-                    )
-                    if semantic_errors:
-                        corrected_error = "semantic mismatch: " + "; ".join(
-                            semantic_errors
-                        )
             except ValueError:
                 corrected_error = "corrected response contains no SQL"
         elif (
@@ -632,17 +630,9 @@ def make_nl2sql_compiler(llm_client: Any):
                     operation="repair_compiled_query",
                 )
             )
-            repaired_error = _query_validation_error(
-                database_path, repaired_sql
+            repaired_error = _candidate_validation_error(
+                requirement, config, database_path, repaired_sql
             )
-            if repaired_error is None:
-                semantic_errors = _semantic_validation_errors(
-                    requirement, config, repaired_sql
-                )
-                if semantic_errors:
-                    repaired_error = "semantic mismatch: " + "; ".join(
-                        semantic_errors
-                    )
         except ValueError:
             pass
         if repaired_sql and repaired_error is None:
@@ -655,14 +645,6 @@ def make_nl2sql_compiler(llm_client: Any):
             return repaired_sql
         if initial_error is None:
             return sql
-        if deterministic_fallback is not None:
-            logger.warning(
-                "Semantic LLM repairs failed for query %s; using executable "
-                "deterministic-plan SQL with validation warnings: %s",
-                requirement.query_id,
-                "; ".join(deterministic_fallback_errors) or "none",
-            )
-            return deterministic_fallback
         raise ValueError(
             "NL2SQL could not produce valid SQLite after repair: "
             f"{repaired_error or initial_error}"

@@ -32,7 +32,11 @@ from spp.spec import (
     SynthesisConfig,
     route_by_conservative_quality,
 )
-from spp.workload_intent import WorkloadIntent, analyze_workload
+from spp.workload_intent import (
+    WorkloadIntent,
+    _plan_contract_diagnostics,
+    analyze_workload,
+)
 
 
 class SynthesisBackend(Protocol):
@@ -135,6 +139,17 @@ class OfflineSynthesisSystem:
             intent = analyze_workload(queries)
         else:
             intent = self.intent_analyzer(queries, ledger)
+        contract_failures = {
+            requirement.query_id: _plan_contract_diagnostics(requirement)
+            for requirement in intent.requirements
+            if _plan_contract_diagnostics(requirement)
+        }
+        if contract_failures:
+            rendered = "; ".join(
+                f"{query_id}: {', '.join(violations)}"
+                for query_id, violations in sorted(contract_failures.items())
+            )
+            raise ValueError(f"workload plan contract failed: {rendered}")
         configs = generate_synthesis_configs(
             intent,
             observed_document_lengths=observed_document_lengths,
