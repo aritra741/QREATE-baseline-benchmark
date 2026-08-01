@@ -249,6 +249,82 @@ def _canonical_entity(
     return default_entity if default_entity in allowed else ""
 
 
+def _bind_plan_to_entity_vocabulary(
+    plan: Optional[QueryPlan],
+    entity_vocabulary: Sequence[str],
+) -> Optional[QueryPlan]:
+    """Bind every plan reference to an observed source partition or reject it."""
+    if plan is None or not entity_vocabulary:
+        return plan
+
+    def reference(value: AttributeRef) -> AttributeRef:
+        entity = _canonical_entity(value.entity, entity_vocabulary)
+        if not entity:
+            raise ValueError(
+                f"query plan uses unsupported source entity: {value.entity}"
+            )
+        return replace(value, entity=entity)
+
+    def predicate(value: Optional[PredicateSpec]) -> Optional[PredicateSpec]:
+        if value is None:
+            return None
+        if value.kind == "predicate":
+            return replace(
+                value,
+                attribute=(
+                    reference(value.attribute)
+                    if value.attribute is not None
+                    else None
+                ),
+            )
+        return replace(
+            value,
+            children=tuple(predicate(child) for child in value.children),
+        )
+
+    try:
+        return QueryPlan(
+            projections=tuple(reference(item) for item in plan.projections),
+            group_by=tuple(reference(item) for item in plan.group_by),
+            aggregates=tuple(
+                replace(
+                    aggregate,
+                    attribute=(
+                        reference(aggregate.attribute)
+                        if aggregate.attribute is not None
+                        else None
+                    ),
+                )
+                for aggregate in plan.aggregates
+            ),
+            predicate=predicate(plan.predicate),
+            joins=tuple(
+                replace(
+                    join,
+                    left=reference(join.left),
+                    right=reference(join.right),
+                )
+                for join in plan.joins
+            ),
+            having=tuple(
+                replace(
+                    condition,
+                    aggregate=replace(
+                        condition.aggregate,
+                        attribute=(
+                            reference(condition.aggregate.attribute)
+                            if condition.aggregate.attribute is not None
+                            else None
+                        ),
+                    ),
+                )
+                for condition in plan.having
+            ),
+        )
+    except ValueError:
+        return None
+
+
 def _attribute_ref(
     payload: object,
     entity_vocabulary: Sequence[str] = (),
@@ -900,21 +976,6 @@ def _normalize_plan_with_schema(
             if len(children) == 1:
                 return children[0]
             kind = predicate.kind
-            explicit_disjunction = bool(
-                re.search(r",\s*or\b", lowered)
-                or re.search(r"\beither\b[^.?!]*\bor\b", lowered)
-                or re.search(
-                    r"\bor\s+(?:players?|owners?|teams?|cities|records?|"
-                    r"those|who|whose)\b",
-                    lowered,
-                )
-            )
-            if (
-                kind == "and"
-                and explicit_disjunction
-                and any(child.kind == "or" for child in children)
-            ):
-                kind = "or"
             flattened: List[PredicateSpec] = []
             for child in children:
                 if child.kind == kind:
@@ -992,37 +1053,6 @@ def _normalize_plan_with_schema(
                             | set(candidate.attribute.split("_"))
                         ),
                         candidate.entity in core_entities,
-                    ),
-                )
-        if (
-            attribute is not None
-            and isinstance(value, str)
-            and attribute_vocabulary
-            and re.search(
-                rf"\bbased\s+in\s+{re.escape(value.lower())}\b",
-                lowered,
-            )
-        ):
-            location_candidates = [
-                AttributeRef(owner, name, "text")
-                for owner, names in attribute_vocabulary.items()
-                for name in names
-                if any(
-                    token in name
-                    for token in (
-                        "location", "city", "place", "region", "address",
-                        "headquarter", "home", "base",
-                    )
-                )
-            ]
-            if location_candidates:
-                attribute = max(
-                    location_candidates,
-                    key=lambda candidate: (
-                        candidate.entity in mentioned_entities,
-                        candidate.entity in core_entities,
-                        "location" in candidate.attribute,
-                        "city" in candidate.attribute,
                     ),
                 )
         if (
@@ -1133,6 +1163,42 @@ def _normalize_plan_with_schema(
 
     input_predicate_missing = plan.predicate is None
     predicate = clean_predicate(plan.predicate)
+
+    def replace_derived_presence_filter(
+        value: Optional[PredicateSpec],
+    ) -> Optional[PredicateSpec]:
+        if value is None:
+            return None
+        if value.kind in {"and", "or"}:
+            return replace(
+                value,
+                children=tuple(
+                    replace_derived_presence_filter(child)
+                    for child in value.children
+                ),
+            )
+        attribute = value.attribute
+        if (
+            attribute is None
+            or not attribute.attribute.startswith("has_")
+            or not re.search(r"\b(?:at least one|one or more)\b", lowered)
+        ):
+            return value
+        measures = [
+            aggregate.attribute
+            for aggregate in plan.aggregates
+            if aggregate.attribute is not None
+            and aggregate.attribute.entity == attribute.entity
+        ]
+        if len(measures) != 1:
+            return value
+        return PredicateSpec(
+            attribute=measures[0],
+            operator=">=",
+            value=1,
+        )
+
+    predicate = replace_derived_presence_filter(predicate)
     context_pool = list(
         dict.fromkeys((*plan.attributes(), *context_references))
     )
@@ -3471,7 +3537,17 @@ def analyze_workload(
                     ";", 1
                 )[0]
                 shadow = _sql_requirement(query_id, rendered_sql)
-                candidates.append(replace(shadow, text=query_text))
+                bounded_shadow_plan = _bind_plan_to_entity_vocabulary(
+                    shadow.plan,
+                    entity_vocabulary,
+                )
+                if bounded_shadow_plan is None:
+                    raise ValueError(
+                        "SQL shadow uses an unsupported source entity"
+                    )
+                candidates.append(
+                    requirement_for_plan(bounded_shadow_plan)
+                )
                 candidate_sources.append("sql_shadow")
             except (RuntimeError, ValueError, TypeError):
                 pass
@@ -3852,6 +3928,50 @@ def analyze_workload(
             entity_vocabulary=entity_vocabulary,
         )
     )
+    if entity_vocabulary:
+        allowed_entities = {
+            str(entity).strip().lower()
+            for entity in entity_vocabulary
+            if str(entity).strip()
+        }
+        unsupported_by_query = {
+            requirement.query_id: sorted(
+                {
+                    *requirement.entities,
+                    *(
+                        reference.entity
+                        for reference in (
+                            requirement.plan.attributes()
+                            if requirement.plan is not None
+                            else ()
+                        )
+                    ),
+                    *(
+                        entity
+                        for left, _relation, right in requirement.relationships
+                        for entity in (left, right)
+                    ),
+                }
+                - allowed_entities
+            )
+            for requirement in ordered
+        }
+        unsupported_by_query = {
+            query_id: entities
+            for query_id, entities in unsupported_by_query.items()
+            if entities
+        }
+        if unsupported_by_query:
+            rendered = "; ".join(
+                f"{query_id}: {', '.join(entities)}"
+                for query_id, entities in sorted(
+                    unsupported_by_query.items()
+                )
+            )
+            raise ValueError(
+                "workload intent uses entities outside the observed source "
+                f"partitions: {rendered}"
+            )
     base_diagnostics = (
         dict(analysis_diagnostics)
         if nl_queries and llm_client is not None

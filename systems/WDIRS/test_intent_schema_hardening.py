@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -23,6 +24,7 @@ from spp.spec import (
 from spp.system import OfflineSynthesisSystem
 from spp.workload_intent import (
     WorkloadIntent,
+    _bind_plan_to_entity_vocabulary,
     _canonical_entity,
     _expected_aggregate,
     _expects_group_cardinality_having,
@@ -73,7 +75,28 @@ def test_source_vocabulary_bounds_high_confidence_entity_aliases():
     vocabulary = ("player", "team", "owner", "city")
     assert _canonical_entity("players", vocabulary) == "player"
     assert _canonical_entity("nba_team", vocabulary) == "team"
+    assert _canonical_entity("cities", vocabulary) == ""
     assert _canonical_entity("award", vocabulary) == ""
+
+
+def test_source_vocabulary_rejects_phantom_sql_plan_entities():
+    vocabulary = ("player", "team", "owner", "city")
+    assert (
+        _bind_plan_to_entity_vocabulary(
+            QueryPlan(projections=(AttributeRef("cities", "state"),)),
+            vocabulary,
+        )
+        is None
+    )
+    assert (
+        _bind_plan_to_entity_vocabulary(
+            QueryPlan(projections=(AttributeRef("players", "nationality"),)),
+            vocabulary,
+        )
+        == QueryPlan(
+            projections=(AttributeRef("player", "nationality"),)
+        )
+    )
 
 
 def test_source_vocabulary_is_enforced_across_all_workload_candidates():
@@ -93,6 +116,94 @@ def test_source_vocabulary_is_enforced_across_all_workload_candidates():
         for requirement in intent.requirements
         for reference in requirement.plan.attributes()
     } == {"team", "player"}
+
+
+def test_workload_rejects_unresolved_entities_outside_source_partitions():
+    with pytest.raises(
+        ValueError,
+        match="outside the observed source partitions",
+    ):
+        analyze_workload(
+            ["SELECT nationality FROM people"],
+            entity_vocabulary=("team", "player", "owner", "city"),
+        )
+
+
+def test_presence_boolean_is_rewritten_to_numeric_measure_filter():
+    measure = AttributeRef("record", "title_count", "integer")
+    normalized = _normalize_plan_with_schema(
+        QueryPlan(
+            aggregates=(AggregateSpec("sum", measure, "total_titles"),),
+            predicate=PredicateSpec(
+                attribute=AttributeRef(
+                    "record",
+                    "has_world_title",
+                    "boolean",
+                ),
+                operator="=",
+                value=True,
+            ),
+        ),
+        "Among records with at least one world title, show total titles.",
+    )
+    assert normalized is not None
+    assert normalized.predicate == PredicateSpec(
+        attribute=measure,
+        operator=">=",
+        value=1,
+    )
+
+
+def test_boolean_normalization_preserves_nested_scope():
+    first = PredicateSpec(
+        attribute=AttributeRef("event", "kind"),
+        operator="=",
+        value="a",
+    )
+    second = PredicateSpec(
+        attribute=AttributeRef("event", "kind"),
+        operator="=",
+        value="b",
+    )
+    active = PredicateSpec(
+        attribute=AttributeRef("event", "active", "boolean"),
+        operator="=",
+        value=True,
+    )
+    predicate = PredicateSpec(
+        kind="and",
+        children=(
+            PredicateSpec(kind="or", children=(first, second)),
+            active,
+        ),
+    )
+    normalized = _normalize_plan_with_schema(
+        QueryPlan(
+            projections=(AttributeRef("event", "name"),),
+            predicate=predicate,
+        ),
+        "Show active events whose kind is either a or b.",
+    )
+    assert normalized is not None
+    assert normalized.predicate == predicate
+
+
+def test_workload_intent_contains_no_benchmark_domain_literals():
+    source = (
+        Path(__file__).parent / "spp" / "workload_intent.py"
+    ).read_text(encoding="utf-8").lower()
+    for term in (
+        "player",
+        "team",
+        "city",
+        "college",
+        "nba",
+        "fiba",
+        "mvp",
+        "olympic",
+        "championship",
+    ):
+        assert not re.search(rf"\b{term}s?\b", source), term
 
 
 def test_canonical_workload_intent_json_round_trip():
