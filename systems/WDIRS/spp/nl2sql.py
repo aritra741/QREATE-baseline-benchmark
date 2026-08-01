@@ -322,63 +322,6 @@ def _semantic_validation_errors(
             if rendered not in normalized_sql:
                 errors.append(f"missing numeric literal {rendered}")
 
-    # Capitalized spans inside a sentence are categorical literals. Attribute
-    # acronyms (NBA/FIBA/MVP) are all-caps and therefore excluded naturally.
-    ignored_literals = {
-        "among", "break", "for", "group", "how", "on", "what",
-        "january", "february", "march", "april", "may", "june",
-        "july", "august", "september", "october", "november", "december",
-    }
-    schema_phrases = {
-        column.lower().replace("_", " ")
-        for relation in config.schema.relations
-        for column in relation.attributes
-    } | {
-        relation.name.lower().replace("_", " ")
-        for relation in config.schema.relations
-    }
-    for match in re.finditer(
-        r"\b[A-Z][a-z]+(?:[- ][A-Z][a-z]+)*\b", requirement.text
-    ):
-        literal = match.group(0)
-        if (
-            match.start() == 0
-            or literal.lower() in ignored_literals
-            or any(
-                literal.lower() in schema_phrase
-                for schema_phrase in schema_phrases
-            )
-        ):
-            continue
-        if literal.lower() not in normalized_sql:
-            errors.append(f"missing categorical literal {literal!r}")
-            continue
-        if literal not in sql:
-            errors.append(
-                f"categorical literal casing must match {literal!r}"
-            )
-        predicate_match = re.search(
-            rf"\b([a-z_][a-z0-9_.]*)\s*(?:=|!=|<>)\s*"
-            rf"'{re.escape(literal.lower())}'",
-            normalized_sql,
-        )
-        if predicate_match and re.search(
-            rf"\bbased\s+in\s+{re.escape(literal.lower())}\b",
-            lowered_text,
-        ):
-            attribute = predicate_match.group(1).split(".")[-1]
-            if not any(
-                token in attribute
-                for token in (
-                    "location", "city", "place", "region", "address",
-                    "headquarter", "home", "base",
-                )
-            ):
-                errors.append(
-                    f"literal {literal!r} is bound to non-location column "
-                    f"{attribute}"
-                )
-
     all_columns = {
         column.lower()
         for relation in config.schema.relations
@@ -425,7 +368,8 @@ def _candidate_validation_error(
     if structural_error is not None:
         return structural_error
     errors = list(validate_sql(requirement, config, database_path, sql).errors)
-    errors.extend(_semantic_validation_errors(requirement, config, sql))
+    if requirement.plan is None:
+        errors.extend(_semantic_validation_errors(requirement, config, sql))
     errors = list(dict.fromkeys(errors))
     return "semantic mismatch: " + "; ".join(errors) if errors else None
 

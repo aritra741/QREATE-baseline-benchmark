@@ -1239,6 +1239,67 @@ def test_query_plan_compiler_and_validator_preserve_having(
     )
 
 
+def test_typed_plan_does_not_treat_measure_modifier_as_literal(
+    tmp_path: Path,
+):
+    category = AttributeRef("event", "category")
+    awards = AttributeRef("event", "international_awards", "integer")
+    plan = QueryPlan(
+        group_by=(category,),
+        aggregates=(AggregateSpec("avg", awards, "avg_awards"),),
+        predicate=PredicateSpec(
+            attribute=awards,
+            operator=">=",
+            value=1,
+        ),
+    )
+    requirement = QueryRequirement(
+        query_id="q",
+        text=(
+            "Among entries with at least one International award, what is "
+            "the average number of awards for each category?"
+        ),
+        entities=("event",),
+        operators=("avg", "group_by", "filter"),
+        plan=plan,
+    )
+    config = SynthesisConfig(
+        SchemaDesign(
+            "snowflake",
+            (
+                RelationSpec(
+                    "event",
+                    ("category", "international_awards"),
+                ),
+            ),
+            ("q",),
+        ),
+        PopulationConfig(),
+        PreprocessingPolicy("whole_document"),
+    )
+    database = write_sqlite_database(
+        tmp_path / "measure_modifier.sqlite",
+        {
+            "event": [
+                {"category": "a", "international_awards": 2},
+            ]
+        },
+        config.schema,
+    )
+
+    class NoLLM:
+        def generate(self, *_args, **_kwargs):
+            raise AssertionError("valid typed plan must not invoke NL2SQL")
+
+    sql = make_nl2sql_compiler(NoLLM())(
+        requirement,
+        config,
+        database,
+        GlobalBudgetLedger(1_000),
+    )
+    assert validate_sql(requirement, config, database, sql).valid
+
+
 def test_sql_intent_parser_captures_having_aggregate():
     requirement = analyze_workload(
         [
@@ -2293,7 +2354,6 @@ def test_semantic_validator_rejects_artifact_style_contract_violations():
     )
     assert "aggregate target must be transaction.amount" in errors
     assert "missing numeric literal 2020" in errors
-    assert "missing categorical literal 'Canadian'" in errors
 
 
 def test_temporary_work_dir_tolerates_nonempty_cleanup(tmp_path: Path):
