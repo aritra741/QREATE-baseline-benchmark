@@ -138,10 +138,13 @@ def test_grouped_categorical_column_can_use_source_observed_abstraction():
         table_name="person",
         protected_columns=["role"],
         abstraction_columns=["role"],
+        abstraction_hints={
+            "role": "Report the average score for each broad role."
+        },
         llm_client=llm,
         source_context=(
-            "Left Wing and Right Wing are attacking roles. "
-            "A Goalkeeper is a defensive role."
+            "Left Wing and Right Wing belong to the Attack category. "
+            "A Goalkeeper belongs to the Defense category."
         ),
     )
     assert [row["role"] for row in populated] == [
@@ -152,6 +155,7 @@ def test_grouped_categorical_column_can_use_source_observed_abstraction():
     assert "source-grounded" in llm.prompts[0].lower()
     assert "expected answers" in llm.prompts[0].lower()
     assert "relevant source excerpts" in llm.prompts[0].lower()
+    assert "natural-language grouping requests" in llm.prompts[0].lower()
 
 
 def test_sparse_join_columns_are_rebound_by_populated_value_overlap():

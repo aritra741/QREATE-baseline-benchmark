@@ -200,6 +200,40 @@ class OfflineSynthesisSystem:
                 raise AssertionError("completion escrow unexpectedly deduplicated")
             try:
                 self.backend.prepare(intent, evidence_store, ledger)
+                refine_intent = getattr(
+                    self.backend, "refine_intent", None
+                )
+                if callable(refine_intent):
+                    intent = refine_intent(intent)
+                    refined_failures = {
+                        requirement.query_id: _plan_contract_diagnostics(
+                            requirement
+                        )
+                        for requirement in intent.requirements
+                        if _plan_contract_diagnostics(requirement)
+                    }
+                    if refined_failures:
+                        rendered = "; ".join(
+                            f"{query_id}: {', '.join(violations)}"
+                            for query_id, violations
+                            in sorted(refined_failures.items())
+                        )
+                        raise ValueError(
+                            "physically bound workload plan contract "
+                            f"failed: {rendered}"
+                        )
+                    configs = generate_synthesis_configs(
+                        intent,
+                        observed_document_lengths=(
+                            observed_document_lengths
+                        ),
+                        exhaustive=False,
+                    )
+                    if not configs:
+                        raise ValueError(
+                            "physical intent binding produced no valid "
+                            "configurations"
+                        )
                 prune_configs = getattr(self.backend, "prune_configs", None)
                 if callable(prune_configs):
                     configs = list(prune_configs(configs))

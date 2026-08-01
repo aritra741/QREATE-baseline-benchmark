@@ -73,6 +73,44 @@ def test_analyze_workload_canonicalizes_plural_alias_from_shared_evidence():
     ]
 
 
+def test_workload_canonicalizes_attribute_inflection_and_name_suffixes():
+    intent = analyze_workload(
+        [
+            "SELECT category, SUM(event_count) FROM record GROUP BY category",
+            "SELECT category_name, MAX(event_counts) FROM record GROUP BY category_name",
+        ]
+    )
+    plans = [requirement.plan for requirement in intent.requirements]
+    assert {
+        reference.attribute
+        for plan in plans
+        for reference in plan.group_by
+    } == {"category"}
+    assert {
+        aggregate.attribute.attribute
+        for plan in plans
+        for aggregate in plan.aggregates
+        if aggregate.attribute is not None
+    } == {"event_count"}
+
+
+def test_plan_normalization_rejects_unresolved_literal_placeholder():
+    category = AttributeRef("record", "category")
+    normalized = _normalize_plan_with_schema(
+        QueryPlan(
+            projections=(category,),
+            predicate=PredicateSpec(
+                attribute=category,
+                operator="=",
+                value="$category_name",
+            ),
+        ),
+        "Show every record category.",
+    )
+    assert normalized is not None
+    assert normalized.predicate is None
+
+
 def test_source_vocabulary_bounds_high_confidence_entity_aliases():
     vocabulary = ("player", "team", "owner", "city")
     assert _canonical_entity("players", vocabulary) == "player"
@@ -591,6 +629,58 @@ def test_backend_retries_all_null_required_columns_once(tmp_path):
     assert tables["event"][0]["amount"] == 7
 
 
+def test_backend_refines_attributes_and_joins_from_populated_evidence(
+    tmp_path,
+):
+    account_name = AttributeRef("account", "name")
+    group_owner = AttributeRef("group", "owner_name")
+    amount = AttributeRef("group", "amount", "real")
+    requirement = QueryRequirement(
+        "q",
+        "What is the total amount for each account?",
+        entities=("account", "group"),
+        plan=QueryPlan(
+            group_by=(account_name,),
+            aggregates=(AggregateSpec("sum", amount, "total_amount"),),
+            joins=(JoinSpec(account_name, group_owner),),
+        ),
+    )
+    intent = WorkloadIntent(
+        (requirement,),
+        {"account": 1, "group": 1},
+        {"name": 1, "amount": 1},
+        {"sum": 1, "group_by": 1},
+    )
+    backend = _backend(
+        {
+            "account": [
+                {"name": "Alice", "group": "A"},
+                {"name": "Bob", "group": "B"},
+            ],
+            "group": [
+                {"name": "A", "amount": 2, "total_amount": 2},
+                {"name": "B", "amount": 3, "total_amount": 3},
+            ],
+        },
+        intent,
+        tmp_path,
+    )
+
+    refined = backend.refine_intent(intent)
+    plan = refined.requirements[0].plan
+    assert plan is not None
+    assert plan.joins == (
+        JoinSpec(
+            AttributeRef("account", "group"),
+            AttributeRef("group", "name"),
+        ),
+    )
+    assert plan.aggregates[0].attribute == AttributeRef(
+        "group", "total_amount", "real"
+    )
+    assert plan.group_by == (account_name,)
+
+
 def test_physical_gate_accepts_join_column_repairable_from_overlap(tmp_path):
     display = AttributeRef("account", "display_name")
     team_name = AttributeRef("group", "name")
@@ -686,6 +776,46 @@ def test_physical_gate_removes_unbindable_multi_relation_plan(tmp_path):
     assert backend._physical_config_issues[config.config_id] == {
         "q": "typed query plan cannot bind to candidate schema"
     }
+
+
+def test_grouped_workload_prefers_semantic_normalization_candidate(tmp_path):
+    category = AttributeRef("event", "category")
+    requirement = QueryRequirement(
+        "q",
+        "Count events for each category.",
+        entities=("event",),
+        plan=QueryPlan(
+            group_by=(category,),
+            aggregates=(AggregateSpec("count", alias="count_all"),),
+        ),
+    )
+    intent = WorkloadIntent(
+        (requirement,),
+        {"event": 1},
+        {"category": 1},
+        {"count": 1, "group_by": 1},
+    )
+    schema = SchemaDesign(
+        "snowflake",
+        (RelationSpec("event", ("category",)),),
+        ("q",),
+    )
+    configs = tuple(
+        SynthesisConfig(
+            schema,
+            PopulationConfig(norm_strategy=normalization),
+            PreprocessingPolicy("whole_document"),
+        )
+        for normalization in ("dictionary", "llm")
+    )
+    backend = _backend(
+        {"event": [{"category": "A"}, {"category": "B"}]},
+        intent,
+        tmp_path,
+    )
+    retained = backend.prune_configs(configs)
+    assert len(retained) == 1
+    assert retained[0].population.norm_strategy == "llm"
 
 
 def test_cache_fingerprint_rejects_different_canonical_workload(tmp_path):

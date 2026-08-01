@@ -15,7 +15,7 @@ from pathlib import Path
 import sqlglot
 
 WDIRS_ROOT = Path(__file__).resolve().parents[1]
-INTENT_CACHE_VERSION = 2
+INTENT_CACHE_VERSION = 3
 if str(WDIRS_ROOT) not in sys.path:
     sys.path.insert(0, str(WDIRS_ROOT))
 

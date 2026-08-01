@@ -3010,13 +3010,13 @@ class WDIRSRunner:
         semantic_type_overrides: "Optional[Dict[str, Dict[str, str]]]" = None,
         protected_columns: "Optional[Dict[str, List[str]]]" = None,
         abstraction_columns: "Optional[Dict[str, List[str]]]" = None,
+        abstraction_hints: "Optional[Dict[str, Dict[str, str]]]" = None,
         source_context: str = "",
     ) -> "Dict[str, List[Dict[str, Any]]]":
         """Materialize a config jointly so ER preserves cross-table joins."""
         from spp.population import (
             apply_population,
             _resolve_entities_for_column,
-            repair_join_columns_from_overlap,
         )
         from spp.population_config import PopulationConfig
 
@@ -3024,6 +3024,7 @@ class WDIRSRunner:
         semantic_type_overrides = semantic_type_overrides or {}
         protected_columns = protected_columns or {}
         abstraction_columns = abstraction_columns or {}
+        abstraction_hints = abstraction_hints or {}
         selected = set(table_names)
         join_pairs = [
             pair
@@ -3060,6 +3061,7 @@ class WDIRSRunner:
                 identity_columns=local_identity,
                 protected_columns=protected_columns.get(table_name, []),
                 abstraction_columns=abstraction_columns.get(table_name, []),
+                abstraction_hints=abstraction_hints.get(table_name, {}),
                 source_context=source_context,
                 entity_resolver=self.entity_resolver,
                 llm_client=self.llm_client,
@@ -3068,27 +3070,6 @@ class WDIRSRunner:
             populated[table_name] = records
 
         for left_table, left_col, right_table, right_col in join_pairs:
-            repaired_from = repair_join_columns_from_overlap(
-                populated[left_table],
-                left_col,
-                populated[right_table],
-                right_col,
-                left_table=left_table,
-                right_table=right_table,
-            )
-            if repaired_from is not None:
-                logger.info(
-                    "Rebound sparse join %s.%s=%s.%s from populated overlap "
-                    "%s.%s=%s.%s",
-                    left_table,
-                    left_col,
-                    right_table,
-                    right_col,
-                    left_table,
-                    repaired_from[0],
-                    right_table,
-                    repaired_from[1],
-                )
             combined = [
                 {"join_value": row.get(left_col)}
                 for row in populated[left_table]

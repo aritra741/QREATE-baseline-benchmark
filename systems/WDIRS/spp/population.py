@@ -402,6 +402,7 @@ def _llm_normalize_values(
     table_name: str = "",
     column: str = "",
     allow_abstraction: bool = False,
+    workload_hint: str = "",
     source_context: str = "",
     batch_size: int = 100,
 ) -> Dict[str, str]:
@@ -416,17 +417,27 @@ def _llm_normalize_values(
                 if source_context
                 else ""
             )
+            workload_section = (
+                f"\nNatural-language grouping requests:\n{workload_hint}"
+                if workload_hint
+                else ""
+            )
             prompt = (
                 "Induce a source-grounded categorical normalization for a "
                 "workload GROUP BY column. Map spelling/case variants together. "
                 "When the observed values are conventional fine-grained subtypes "
-                "of a small, well-established semantic taxonomy, map them to that "
-                "coherent higher-level taxonomy; otherwise preserve their original "
-                "granularity. Never invent facts about individual rows and never "
+                "of parent labels that also occur in the observed values or source "
+                "excerpts, map them to the smallest coherent source-supported parent "
+                "set. If the values already match the semantic level named by the "
+                "grouping request, preserve their granularity. Do not replace "
+                "peer categories with an unrequested broader taxonomy. Never "
+                "invent facts about individual "
+                "rows and never "
                 "use benchmark schemas or expected answers. Return ONLY a JSON "
                 "object mapping every exact original string to one canonical "
                 f"category.\nColumn: {table_name}.{column}\n"
                 f"Source-observed values: {json.dumps(batch, ensure_ascii=False)}"
+                f"{workload_section}"
                 f"{context_section}"
             )
         else:
@@ -440,7 +451,19 @@ def _llm_normalize_values(
             response = llm_client.generate(prompt, max_tokens=1000, temperature=0.0)
             raw = _parse_llm_json(response, dict)
             for value in batch:
-                mapping[value] = str(raw.get(value, _dictionary_normalize(value)))
+                normalized = str(
+                    raw.get(value, _dictionary_normalize(value))
+                ).strip()
+                if allow_abstraction and normalized:
+                    supported = (
+                        normalized.casefold()
+                        in {item.casefold() for item in unique}
+                        or normalized.casefold()
+                        in source_context.casefold()
+                    )
+                    if not supported:
+                        normalized = _dictionary_normalize(value)
+                mapping[value] = normalized or _dictionary_normalize(value)
         except TokenBudgetExceeded:
             raise
         except Exception as exc:
@@ -551,6 +574,7 @@ def apply_population(
     numeric_columns: Optional[List[str]] = None,
     protected_columns: Optional[List[str]] = None,
     abstraction_columns: Optional[List[str]] = None,
+    abstraction_hints: Optional[Dict[str, str]] = None,
     source_context: str = "",
     entity_resolver: Optional[Any] = None,
     llm_client: Optional[Any] = None,
@@ -568,6 +592,7 @@ def apply_population(
     column_semantic_types = column_semantic_types or {}
     protected_columns = protected_columns or []
     abstraction_columns = abstraction_columns or []
+    abstraction_hints = abstraction_hints or {}
     if identity_columns is None:
         identity_columns = [
             c
@@ -634,6 +659,7 @@ def apply_population(
                 sorted(set(values)), ensure_ascii=False, separators=(",", ":")
             )
             relevant_context = ""
+            workload_hint = abstraction_hints.get(column, "")
             if column in abstraction_columns and source_context:
                 lowered_values = {
                     str(value).casefold() for value in values[:100]
@@ -647,7 +673,7 @@ def apply_population(
             cache_key = (
                 f"{table_name}.{column}:"
                 f"abstract={column in abstraction_columns}:"
-                f"{hashlib.sha256((payload + relevant_context).encode()).hexdigest()}"
+                f"{hashlib.sha256((payload + workload_hint + relevant_context).encode()).hexdigest()}"
             )
             if cache_key not in normalization_cache:
                 normalization_cache[cache_key] = _llm_normalize_values(
@@ -656,6 +682,7 @@ def apply_population(
                     table_name=table_name,
                     column=column,
                     allow_abstraction=column in abstraction_columns,
+                    workload_hint=workload_hint,
                     source_context=relevant_context,
                 )
             normalized_by_column[column] = dict(normalization_cache[cache_key])

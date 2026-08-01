@@ -997,6 +997,11 @@ def _normalize_plan_with_schema(
             return None
         if isinstance(value, (list, tuple)) and len(value) == 1:
             value = value[0]
+        if isinstance(value, str) and re.fullmatch(
+            r"\$[a-z_][a-z0-9_]*",
+            value.strip().lower(),
+        ):
+            return None
         if (
             value is None
             and predicate.operator not in {"is_null", "is_not_null"}
@@ -1040,6 +1045,12 @@ def _normalize_plan_with_schema(
             # leaked relationship equality (for example entity='entity_name').
             return None
         attribute = predicate.attribute
+        if (
+            attribute is not None
+            and attribute.attribute.startswith(("is_", "has_"))
+            and attribute.attribute.replace("_", " ") not in lowered
+        ):
+            return None
         if (
             attribute is not None
             and isinstance(value, str)
@@ -2412,6 +2423,28 @@ def _symbol_tokens(value: object) -> Tuple[str, ...]:
     return tuple(re.findall(r"[a-z0-9]+", rendered))
 
 
+def _attribute_alias_tokens(
+    entity: str, attribute: str
+) -> Tuple[str, ...]:
+    """Normalize harmless attribute surface variants without domain terms."""
+    tokens = list(_symbol_tokens(attribute))
+    normalized: List[str] = []
+    for token in tokens:
+        if (
+            len(token) > 3
+            and token.endswith("s")
+            and not token.endswith(("ss", "us", "is"))
+        ):
+            token = token[:-1]
+        normalized.append(token)
+    if len(normalized) > 1 and normalized[-1] == "name":
+        normalized.pop()
+    entity_tokens = list(_symbol_tokens(entity))
+    if normalized == entity_tokens:
+        return ("name",)
+    return tuple(normalized)
+
+
 def _canonicalize_workload_requirements(
     requirements: Sequence[QueryRequirement],
     *,
@@ -2427,6 +2460,7 @@ def _canonicalize_workload_requirements(
     entity_frequency: Counter[str] = Counter()
     entity_attributes: Dict[str, set[str]] = {}
     attribute_frequency: Counter[Tuple[str, str]] = Counter()
+    attribute_text_support: Counter[str] = Counter()
     entity_cooccurrences: set[frozenset[str]] = set()
 
     def observe(entity: str, attribute: Optional[str] = None) -> None:
@@ -2441,6 +2475,7 @@ def _canonicalize_workload_requirements(
             attribute_frequency[(entity, attribute)] += 1
 
     for requirement in requirements:
+        normalized_text = " ".join(_symbol_tokens(requirement.text))
         query_entities = {
             str(entity).strip().lower()
             for entity in requirement.entities
@@ -2476,6 +2511,16 @@ def _canonicalize_workload_requirements(
         if requirement.plan:
             for reference in requirement.plan.attributes():
                 observe(reference.entity, reference.attribute)
+                phrase = " ".join(_symbol_tokens(reference.attribute))
+                if phrase:
+                    attribute_text_support[
+                        reference.attribute.strip().lower()
+                    ] += len(
+                        re.findall(
+                            rf"\b{re.escape(phrase)}\b",
+                            normalized_text,
+                        )
+                    )
 
     allowed_entities = tuple(
         dict.fromkeys(
@@ -2606,13 +2651,17 @@ def _canonicalize_workload_requirements(
         )
         by_normalized: Dict[Tuple[str, ...], List[str]] = {}
         for attribute in variants:
-            by_normalized.setdefault(_symbol_tokens(attribute), []).append(attribute)
+            by_normalized.setdefault(
+                _attribute_alias_tokens(canonical_entity, attribute),
+                [],
+            ).append(attribute)
         for normalized, members in by_normalized.items():
             if not normalized:
                 continue
             canonical_attribute = min(
                 members,
                 key=lambda value: (
+                    -attribute_text_support[value],
                     -sum(
                         count
                         for (entity, attribute), count in attribute_frequency.items()
