@@ -101,6 +101,75 @@ class WorkloadIntent:
         return tuple(r.query_id for r in self.requirements)
 
 
+def workload_intent_to_payload(intent: WorkloadIntent) -> dict:
+    """Serialize a canonical intent for deterministic scratch reuse."""
+    return {
+        "version": 1,
+        "requirements": [asdict(item) for item in intent.requirements],
+        "entity_frequency": dict(intent.entity_frequency),
+        "attribute_frequency": dict(intent.attribute_frequency),
+        "operator_frequency": dict(intent.operator_frequency),
+        "analysis_diagnostics": dict(intent.analysis_diagnostics),
+    }
+
+
+def workload_intent_from_payload(payload: object) -> WorkloadIntent:
+    """Restore a canonical intent previously produced by this module."""
+    if not isinstance(payload, Mapping) or payload.get("version") != 1:
+        raise ValueError("unsupported cached workload intent")
+    raw_requirements = payload.get("requirements")
+    if not isinstance(raw_requirements, list):
+        raise ValueError("cached workload intent has no requirements")
+    requirements = []
+    for item in raw_requirements:
+        if not isinstance(item, Mapping):
+            raise ValueError("invalid cached query requirement")
+        requirements.append(
+            QueryRequirement(
+                query_id=str(item.get("query_id", "")),
+                text=str(item.get("text", "")),
+                entities=tuple(str(value) for value in item.get("entities", ())),
+                attributes=tuple(
+                    str(value) for value in item.get("attributes", ())
+                ),
+                attribute_bindings=tuple(
+                    (str(entity), str(attribute))
+                    for entity, attribute in item.get(
+                        "attribute_bindings", ()
+                    )
+                ),
+                relationships=tuple(
+                    (str(left), str(relation), str(right))
+                    for left, relation, right in item.get(
+                        "relationships", ()
+                    )
+                ),
+                operators=tuple(
+                    str(value) for value in item.get("operators", ())
+                ),
+                units=tuple(str(value) for value in item.get("units", ())),
+                plan=_query_plan(item.get("plan")),
+            )
+        )
+
+    def frequencies(name: str) -> Dict[str, int]:
+        values = payload.get(name, {})
+        if not isinstance(values, Mapping):
+            raise ValueError(f"invalid cached {name}")
+        return {str(key): int(value) for key, value in values.items()}
+
+    diagnostics = payload.get("analysis_diagnostics", {})
+    if not isinstance(diagnostics, Mapping):
+        raise ValueError("invalid cached analysis diagnostics")
+    return WorkloadIntent(
+        requirements=tuple(requirements),
+        entity_frequency=frequencies("entity_frequency"),
+        attribute_frequency=frequencies("attribute_frequency"),
+        operator_frequency=frequencies("operator_frequency"),
+        analysis_diagnostics=dict(diagnostics),
+    )
+
+
 @dataclass(frozen=True)
 class SchemaVocabulary:
     entities: Tuple[str, ...]

@@ -33,6 +33,8 @@ from spp.wdirs_backend import WDIRSPrimitiveBackend  # noqa: E402
 from spp.workload_intent import (  # noqa: E402
     make_budgeted_intent_analyzer,
     schema_vocabulary_from_sql,
+    workload_intent_from_payload,
+    workload_intent_to_payload,
 )
 from wdirs_runner import WDIRSRunner  # noqa: E402
 
@@ -241,7 +243,7 @@ def main() -> int:
         source_entities = _source_entity_vocabulary(
             config_module.SOURCE_DATA_DIR / args.dataset
         )
-        intent_analyzer = make_budgeted_intent_analyzer(
+        analyze_uncached_intent = make_budgeted_intent_analyzer(
             original_client,
             entity_vocabulary=(
                 schema_vocabulary.entities
@@ -260,6 +262,27 @@ def main() -> int:
             ),
             intent_max_workers=args.intent_workers,
         )
+        intent_cache = scratch / "canonical_workload_intent.json"
+
+        def intent_analyzer(workload, ledger):
+            if intent_cache.exists():
+                return workload_intent_from_payload(
+                    json.loads(intent_cache.read_text(encoding="utf-8"))
+                )
+            intent = analyze_uncached_intent(workload, ledger)
+            temporary = intent_cache.with_suffix(".tmp")
+            temporary.write_text(
+                json.dumps(
+                    workload_intent_to_payload(intent),
+                    indent=2,
+                    sort_keys=True,
+                    default=str,
+                ),
+                encoding="utf-8",
+            )
+            temporary.replace(intent_cache)
+            return intent
+
         if args.intent_only:
             ledger = GlobalBudgetLedger(args.token_budget)
             intent = intent_analyzer(queries, ledger)

@@ -29,6 +29,8 @@ from spp.workload_intent import (
     _plan_contract_diagnostics,
     _normalize_plan_with_schema,
     analyze_workload,
+    workload_intent_from_payload,
+    workload_intent_to_payload,
 )
 from spp.wdirs_backend import WDIRSPrimitiveBackend
 
@@ -91,6 +93,16 @@ def test_source_vocabulary_is_enforced_across_all_workload_candidates():
         for requirement in intent.requirements
         for reference in requirement.plan.attributes()
     } == {"team", "player"}
+
+
+def test_canonical_workload_intent_json_round_trip():
+    intent = analyze_workload(
+        ["SELECT team, COUNT(*) FROM player GROUP BY team"]
+    )
+    restored = workload_intent_from_payload(
+        json.loads(json.dumps(workload_intent_to_payload(intent)))
+    )
+    assert restored == intent
 
 
 def test_group_cardinality_having_is_not_confused_with_scalar_magnitude():
