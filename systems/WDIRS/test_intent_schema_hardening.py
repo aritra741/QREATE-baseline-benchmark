@@ -74,6 +74,25 @@ def test_source_vocabulary_bounds_high_confidence_entity_aliases():
     assert _canonical_entity("award", vocabulary) == ""
 
 
+def test_source_vocabulary_is_enforced_across_all_workload_candidates():
+    intent = analyze_workload(
+        [
+            "SELECT name FROM teams",
+            "SELECT nationality FROM players",
+        ],
+        entity_vocabulary=("team", "player", "owner", "city"),
+    )
+    assert [requirement.entities for requirement in intent.requirements] == [
+        ("team",),
+        ("player",),
+    ]
+    assert {
+        reference.entity
+        for requirement in intent.requirements
+        for reference in requirement.plan.attributes()
+    } == {"team", "player"}
+
+
 def test_group_cardinality_having_is_not_confused_with_scalar_magnitude():
     assert _expects_group_cardinality_having(
         "Among categories with more than one event, show the maximum amount."

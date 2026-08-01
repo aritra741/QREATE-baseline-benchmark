@@ -2227,6 +2227,8 @@ def _symbol_tokens(value: object) -> Tuple[str, ...]:
 
 def _canonicalize_workload_requirements(
     requirements: Sequence[QueryRequirement],
+    *,
+    entity_vocabulary: Sequence[str] = (),
 ) -> Tuple[Tuple[QueryRequirement, ...], Mapping[str, Any]]:
     """Rewrite independently inferred symbols into one evidenced namespace.
 
@@ -2288,6 +2290,15 @@ def _canonicalize_workload_requirements(
             for reference in requirement.plan.attributes():
                 observe(reference.entity, reference.attribute)
 
+    allowed_entities = tuple(
+        dict.fromkeys(
+            str(entity).strip().lower()
+            for entity in entity_vocabulary
+            if str(entity).strip()
+        )
+    )
+    for entity in allowed_entities:
+        entity_attributes.setdefault(entity, set())
     entities = sorted(entity_attributes)
     parent = {entity: entity for entity in entities}
 
@@ -2301,6 +2312,21 @@ def _canonicalize_workload_requirements(
         left_root, right_root = root(left), root(right)
         if left_root != right_root:
             parent[max(left_root, right_root)] = min(left_root, right_root)
+
+    # Source partitions are observed input metadata, not evaluation schema.
+    # They form the authoritative entity namespace for every intent candidate,
+    # including independently generated SQL-shadow candidates.
+    for entity in entities:
+        canonical_source = _canonical_entity(
+            entity,
+            allowed_entities,
+        )
+        if (
+            canonical_source
+            and canonical_source in parent
+            and canonical_source != entity
+        ):
+            union(entity, canonical_source)
 
     for index, left in enumerate(entities):
         left_tokens = set(_symbol_tokens(left))
@@ -2350,6 +2376,7 @@ def _canonicalize_workload_requirements(
         canonical = min(
             members,
             key=lambda value: (
+                value not in allowed_entities,
                 -entity_frequency[value],
                 -len(entity_attributes[value]),
                 len(_symbol_tokens(value)),
@@ -3751,7 +3778,10 @@ def analyze_workload(
     by_id = {**sql_requirements, **{r.query_id: r for r in nl_requirements}}
     raw_ordered = tuple(by_id[query_id] for query_id, _ in normalized)
     ordered, canonicalization_diagnostics = (
-        _canonicalize_workload_requirements(raw_ordered)
+        _canonicalize_workload_requirements(
+            raw_ordered,
+            entity_vocabulary=entity_vocabulary,
+        )
     )
     base_diagnostics = (
         dict(analysis_diagnostics)

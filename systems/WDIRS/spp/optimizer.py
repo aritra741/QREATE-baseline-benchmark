@@ -345,12 +345,19 @@ def select_budgeted_portfolio(
                         continue
                     compatible[(q_index, c_index)] = lcb
                     objective[n_configs + q_index * n_configs + c_index] = -lcb
-            if any(
-                not any((q_index, c_index) in compatible for c_index in range(n_configs))
-                for q_index in range(n_queries)
-            ):
+            incompatible_query_ids = [
+                requirement.query_id
+                for q_index, requirement in enumerate(requirements)
+                if not any(
+                    (q_index, c_index) in compatible
+                    for c_index in range(n_configs)
+                )
+            ]
+            if incompatible_query_ids:
+                rendered_ids = ", ".join(incompatible_query_ids)
                 raise BudgetExhausted(
-                    "no full-cover portfolio satisfies the quality floor"
+                    "no full-cover portfolio satisfies the quality floor; "
+                    f"incompatible queries: {rendered_ids}"
                 )
 
             rows = 1 + n_queries + n_queries * n_configs
