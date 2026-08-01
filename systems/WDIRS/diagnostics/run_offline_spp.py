@@ -62,7 +62,7 @@ def main() -> int:
         "--schema-workload",
         type=Path,
         default=None,
-        help="SQL training workload used by WDIRS for canonical extraction schema.",
+        help="Optional SQL training workload used by WDIRS for canonical extraction schema.",
     )
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument(

@@ -288,3 +288,22 @@ def test_column_alignment_reports_key_and_measure_separately():
     assert "measure" in result["structure"]["column"]
     assert "P" in result["structure"]["column"]["key"]
     assert "R" in result["structure"]["column"]["key"]
+
+
+def test_one_key_one_measure_columns_align_by_role_when_names_differ():
+    gold = table_from_rows(
+        [{"nationality": "American", "avg_age": 70}],
+        key_columns=["nationality"],
+        measure_columns=["avg_age"],
+    )
+    pred = table_from_rows(
+        [{"group_label": "American", "metric": 70}],
+        key_columns=["group_label"],
+        measure_columns=["metric"],
+    )
+    result = evaluate_aggregation_tables(pred, gold)
+    assert result["structure"]["column"]["key"]["F1"] == 1.0
+    assert result["structure"]["column"]["measure"]["F1"] == 1.0
+    assert result["rank"]["structure_score"] == 1.0
+    assert result["rank"]["cell_f1"][0.05] == 1.0
+    assert result["rank"]["query_score"][0.05] == 1.0

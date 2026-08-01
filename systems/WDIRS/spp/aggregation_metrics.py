@@ -371,6 +371,10 @@ def align_columns(
         weight = np.zeros((len(p_list), len(g_list)), dtype=float)
         for i, p_idx in enumerate(p_list):
             for j, g_idx in enumerate(g_list):
+                # Never align a grouping key to an aggregate measure merely
+                # because their names happen to look similar.
+                if pred_cols[p_idx].role != gold_cols[g_idx].role:
+                    continue
                 weight[i, j] = string_sim(
                     pred_cols[p_idx].name,
                     gold_cols[g_idx].name,
@@ -395,6 +399,28 @@ def align_columns(
             gold_to_pred[gold_cols[g_idx].name] = pred_cols[p_idx].name
             unmatched_pred.discard(p_idx)
             unmatched_gold.discard(g_idx)
+
+    # Pass 3: schema-agnostic role fallback. When there is exactly one
+    # unmatched predicted and gold column for a role, their structural
+    # positions are unambiguous even if names differ completely (for example,
+    # ``group_label`` vs ``nationality`` or ``metric`` vs ``avg_age``).
+    # This is especially important for the one-key/one-measure aggregation
+    # workload and uses no dataset names or ground-truth values.
+    for role in ("key", "measure"):
+        role_pred = [
+            idx for idx in unmatched_pred if pred_cols[idx].role == role
+        ]
+        role_gold = [
+            idx for idx in unmatched_gold if gold_cols[idx].role == role
+        ]
+        if len(role_pred) != 1 or len(role_gold) != 1:
+            continue
+        p_idx = role_pred[0]
+        g_idx = role_gold[0]
+        matches[pred_cols[p_idx].name] = gold_cols[g_idx].name
+        gold_to_pred[gold_cols[g_idx].name] = pred_cols[p_idx].name
+        unmatched_pred.remove(p_idx)
+        unmatched_gold.remove(g_idx)
 
     key_gold = [c for c in gold_cols if c.role == "key"]
     measure_gold = [c for c in gold_cols if c.role == "measure"]
