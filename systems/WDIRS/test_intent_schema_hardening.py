@@ -202,6 +202,9 @@ def test_workload_intent_contains_no_benchmark_domain_literals():
         "mvp",
         "olympic",
         "championship",
+        "drafted",
+        "founded",
+        "aged",
     ):
         assert not re.search(rf"\b{term}s?\b", source), term
 

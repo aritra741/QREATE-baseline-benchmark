@@ -1680,7 +1680,7 @@ def _normalize_plan_with_schema(
         following = text[match.end() : match.end() + 20].lower()
         if not re.search(
             r"\b(?:above|after|at least|at most|before|below|earlier|"
-            r"fewer|greater|less|more|over|under|founded)\b",
+            r"fewer|greater|less|more|over|under)\b",
             preceding + following,
         ):
             continue
@@ -2336,7 +2336,7 @@ def _plan_contract_score(plan: Optional[QueryPlan], text: str) -> int:
                 else None,
                 "filter"
                 if re.search(
-                    r"\b(?:where|whose|known|aged|drafted|before|after|at least|"
+                    r"\b(?:where|whose|known|before|after|at least|"
                     r"at most|or later|greater than|less than|equal to|"
                     r"more than (?:one|two|three|\d+) "
                     r"(?:hundred|thousand|million|billion)|matching)\b",
@@ -2768,7 +2768,7 @@ def _plan_contract_diagnostics(
     group_cue = group_cue or having_cue
     lexical_filter_cue = bool(
         re.search(
-            r"\b(?:where|whose|known|aged|drafted|before|after|at least|at most|"
+            r"\b(?:where|whose|known|before|after|at least|at most|"
             r"or later|greater than|less than|equal to|"
             r"more than (?:one|two|three|\d+) "
             r"(?:hundred|thousand|million|billion)|matching)\b",
@@ -3887,9 +3887,131 @@ def analyze_workload(
                         and adjudicated_item[0] >= _score
                     ):
                         _score, selected_index, draft = adjudicated_item
+            contract_repair: Dict[str, Any] = {}
+            selected_violations = _plan_contract_diagnostics(draft)
+            if selected_violations:
+                selected_plan_payload = (
+                    asdict(draft.plan)
+                    if draft.plan is not None
+                    else None
+                )
+                repair_prompt = (
+                    "Repair one schema-independent analytical query plan that "
+                    "failed deterministic structural checks. Use only the "
+                    "question, observed source entity names, and candidate plans. "
+                    "Do not use database contents, expected answers, benchmark "
+                    "schema, or domain facts. Preserve valid structure and change "
+                    "only what is required by the listed violations.\n\n"
+                    "For missing_filter, quote each restrictive phrase from the "
+                    "question and encode it exactly once in predicate. Do not add "
+                    "a predicate merely to make the checker pass. Return ONLY a "
+                    "JSON object with one key, plan, containing a complete plan "
+                    "with projections, group_by, aggregates, predicate, having, "
+                    "and joins.\n\n"
+                    f"Observed source entities: "
+                    f"{json.dumps(list(entity_vocabulary))}\n"
+                    f"Canonical attributes, when available: "
+                    f"{json.dumps(attribute_vocabulary or {}, sort_keys=True)}\n"
+                    f"Canonical joins, when available: "
+                    f"{json.dumps(list(join_vocabulary))}\n"
+                    f"Question: {query_text}\n"
+                    f"Violations: {json.dumps(list(selected_violations))}\n"
+                    f"Selected plan: "
+                    f"{json.dumps(selected_plan_payload, default=str)}\n"
+                    "Alternative plans:\n"
+                    + json.dumps(
+                        [
+                            {
+                                "source": candidate_sources[index],
+                                "plan": (
+                                    asdict(candidate.plan)
+                                    if candidate.plan is not None
+                                    else None
+                                ),
+                            }
+                            for index, candidate in enumerate(
+                                normalized_candidates
+                            )
+                        ],
+                        indent=2,
+                        default=str,
+                    )
+                )
+                try:
+                    repair_response = llm_client.generate(
+                        repair_prompt,
+                        max_tokens=4096,
+                        temperature=0.0,
+                    )
+                    start = repair_response.find("{")
+                    end = repair_response.rfind("}")
+                    if start < 0:
+                        raise ValueError(
+                            "contract repair returned no JSON object"
+                        )
+                    rendered = (
+                        repair_response[start : end + 1]
+                        if end >= start
+                        else repair_response[start:]
+                    )
+                    try:
+                        repair_payload = json.loads(rendered)
+                    except json.JSONDecodeError:
+                        repair_payload = repair_json(
+                            rendered,
+                            return_objects=True,
+                        )
+                    if not isinstance(repair_payload, Mapping):
+                        raise ValueError(
+                            "contract repair payload must be an object"
+                        )
+                    repaired_plan = _query_plan(
+                        repair_payload.get("plan"),
+                        entity_vocabulary,
+                        draft.entities[0] if draft.entities else "",
+                        attribute_vocabulary,
+                    )
+                    if repaired_plan is None:
+                        raise ValueError(
+                            "contract repair produced no usable plan"
+                        )
+                    repaired_candidate = normalize_candidate(
+                        requirement_for_plan(repaired_plan)
+                    )
+                    repaired_violations = _plan_contract_diagnostics(
+                        repaired_candidate
+                    )
+                    contract_repair = {
+                        "requested_violations": list(selected_violations),
+                        "remaining_violations": list(repaired_violations),
+                    }
+                    if not repaired_violations:
+                        draft = repaired_candidate
+                        candidate_sources.append("contract_repair")
+                        normalized_candidates.append(repaired_candidate)
+                        raw_candidate_plans.append(
+                            asdict(repaired_plan)
+                            if repaired_plan is not None
+                            else None
+                        )
+                        selected_index = len(normalized_candidates) - 1
+                        _score = _plan_contract_score(
+                            repaired_candidate.plan,
+                            query_text,
+                        )
+                        scored_candidates.append(
+                            (_score, selected_index, repaired_candidate)
+                        )
+                except (RuntimeError, ValueError, TypeError):
+                    contract_repair = {
+                        "requested_violations": list(selected_violations),
+                        "remaining_violations": list(selected_violations),
+                        "error": "malformed_or_unusable_repair",
+                    }
             analysis_diagnostics[query_id] = {
                 "selected_source": candidate_sources[selected_index],
                 "adjudication": adjudication,
+                "contract_repair": contract_repair,
                 "candidates": [
                     {
                         "source": candidate_sources[index],
