@@ -58,7 +58,12 @@ from spp.schema_materializer import (
 )
 from spp.schema_design import generate_schema_designs, generate_synthesis_configs
 from spp.query_plan_compiler import compile_query_plan
-from spp.serving import CompiledQuery, OfflineQueryServer, freeze_serving_bundle
+from spp.serving import (
+    CompiledQuery,
+    OfflineQueryServer,
+    compile_workload_sql,
+    freeze_serving_bundle,
+)
 from spp.system import OfflineSynthesisSystem
 from spp.value_normalization import canonical_date
 from spp.spec import (
@@ -617,6 +622,42 @@ def test_frozen_bundle_executes_only_known_readonly_query(tmp_path: Path):
     assert server.execute("q0") == [{"name": "Alice"}]
     with pytest.raises(KeyError):
         server.execute("unknown")
+
+
+def test_compile_failure_is_sealed_as_empty_query_instead_of_aborting(
+    tmp_path: Path,
+):
+    requirement = _player_requirement()
+    config = _config("single", requirement)
+    db_path = tmp_path / "compile_failure.sqlite"
+    with sqlite3.connect(db_path) as connection:
+        connection.execute("CREATE TABLE player(name TEXT)")
+    portfolio = FrozenPortfolio(
+        selected_config_ids=(config.config_id,),
+        query_to_config={requirement.query_id: config.config_id},
+        query_scores={requirement.query_id: 0.0},
+        construction_tokens=0,
+        objective_value=0.0,
+    )
+
+    def failing_compiler(*_args):
+        raise ValueError("no such column: nt.team_name")
+
+    compiled = compile_workload_sql(
+        [requirement],
+        portfolio,
+        {config.config_id: config},
+        {config.config_id: db_path},
+        failing_compiler,
+        GlobalBudgetLedger(0),
+    )
+    assert len(compiled) == 1
+    assert compiled[0].compilation_error is not None
+    assert "no such column" in compiled[0].compilation_error
+    with sqlite3.connect(db_path) as connection:
+        assert connection.execute(compiled[0].sql).fetchall() == [
+            ("__SPP_COMPILE_ERROR__",)
+        ]
 
 
 def test_exact_budgeted_oracle_respects_selected_construction_cost():
