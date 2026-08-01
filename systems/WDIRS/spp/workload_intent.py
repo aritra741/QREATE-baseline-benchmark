@@ -1047,7 +1047,7 @@ def _normalize_plan_with_schema(
         attribute = predicate.attribute
         if (
             attribute is not None
-            and attribute.attribute.startswith(("is_", "has_"))
+            and attribute.attribute.startswith("is_")
             and attribute.attribute.replace("_", " ") not in lowered
         ):
             return None
