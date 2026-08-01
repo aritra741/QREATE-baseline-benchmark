@@ -36,6 +36,7 @@ from spp.workload_intent import (
     workload_intent_to_payload,
 )
 from spp.wdirs_backend import WDIRSPrimitiveBackend
+from wdirs_runner import _validate_record
 
 
 def test_analyze_workload_canonicalizes_plural_alias_from_shared_evidence():
@@ -324,6 +325,15 @@ def test_all_player_nl_aggregation_queries_have_generic_operation_cues():
     assert "missing_plan_for_having" in _plan_contract_diagnostics(
         QueryRequirement("q3", q3["text"])
     )
+
+
+def test_numeric_grounding_accepts_source_magnitude_suffixes():
+    assert _validate_record(
+        {"gdp": 1_200_000},
+        {"gdp": "REAL"},
+        ["The reported GDP was $1.2m."],
+        "row_id",
+    ) == {"gdp": 1_200_000}
 
 
 def test_canonicalization_does_not_merge_unrelated_single_field_entities():

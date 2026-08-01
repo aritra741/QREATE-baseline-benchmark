@@ -495,7 +495,9 @@ class ConstrainedExtractor:
         )
         numeric_rule = (
             "- Numeric columns: always return a JSON number (e.g. 1000000), "
-            "NEVER a text string (e.g. NOT \"one million\", NOT \"£1.2m\").\n"
+            "NEVER a text string (e.g. NOT \"one million\", NOT \"£1.2m\"). "
+            "Convert magnitude suffixes to their numeric value "
+            "(e.g. 1.2m means 1200000).\n"
             if has_numeric else ""
         )
         count_rule = (

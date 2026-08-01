@@ -101,6 +101,14 @@ def semantic_to_sql_type(semantic_type: str) -> str:
 
 
 _NUMERIC_SQL_TYPES = {"REAL", "INTEGER", "NUMERIC", "INT", "FLOAT", "DOUBLE"}
+_SOURCE_UNIT_MULTIPLIERS = {
+    "k": 1e3,
+    "thousand": 1e3,
+    "m": 1e6,
+    "million": 1e6,
+    "b": 1e9,
+    "billion": 1e9,
+}
 
 
 def _validate_record(
@@ -176,6 +184,21 @@ def _validate_record(
                         )
                     )
                 except ValueError:
+                    continue
+            for match in re.finditer(
+                r"(?<![\w.])[\$€£]?\s*(-?\d[\d,]*(?:\.\d+)?)\s*"
+                r"(k|m|b|thousand|million|billion)\b",
+                corpus,
+                re.IGNORECASE,
+            ):
+                try:
+                    source_numbers.append(
+                        float(match.group(1).replace(",", ""))
+                        * _SOURCE_UNIT_MULTIPLIERS[
+                            match.group(2).lower()
+                        ]
+                    )
+                except (ValueError, KeyError):
                     continue
             if any(
                 math.isclose(
