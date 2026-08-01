@@ -1096,6 +1096,69 @@ def _normalize_plan_with_schema(
             else value
         )
 
+    existing_null_checks: set[Tuple[str, str]] = set()
+
+    def collect_null_checks(value: Optional[PredicateSpec]) -> None:
+        if value is None:
+            return
+        if (
+            value.kind == "predicate"
+            and value.attribute is not None
+            and value.operator == "is_not_null"
+        ):
+            existing_null_checks.add(
+                (value.attribute.entity, value.attribute.attribute)
+            )
+        for child in value.children:
+            collect_null_checks(child)
+
+    collect_null_checks(predicate)
+    for known_match in re.finditer(r"\b(?:known|non[- ]?null)\b", lowered):
+        candidates: List[Tuple[int, bool, AttributeRef]] = []
+        for reference in context_pool:
+            phrases = {
+                reference.attribute.replace("_", " "),
+                reference.attribute.split("_")[-1],
+            }
+            positions = [
+                lowered.find(phrase, known_match.end())
+                for phrase in phrases
+                if phrase
+            ]
+            positions = [
+                position
+                for position in positions
+                if known_match.end() <= position <= known_match.end() + 48
+            ]
+            if positions:
+                candidates.append(
+                    (
+                        min(positions) - known_match.end(),
+                        (
+                            reference.entity,
+                            reference.attribute,
+                        )
+                        in grouped_keys,
+                        reference,
+                    )
+                )
+        if not candidates:
+            continue
+        _distance, _grouped, target = min(
+            candidates,
+            key=lambda item: (item[0], not item[1], item[2].attribute),
+        )
+        key = (target.entity, target.attribute)
+        if key in existing_null_checks:
+            continue
+        add_recovered(
+            PredicateSpec(
+                attribute=target,
+                operator="is_not_null",
+            )
+        )
+        existing_null_checks.add(key)
+
     subject_entity = next(
         (
             aggregate.attribute.entity
@@ -2541,15 +2604,20 @@ def _plan_contract_diagnostics(
         or _expects_group_cardinality_having(requirement.text)
     )
     group_cue = group_cue or having_cue
-    filter_cue = bool(
-        "filter" in operators
-        or re.search(
+    lexical_filter_cue = bool(
+        re.search(
             r"\b(?:where|whose|known|aged|drafted|before|after|at least|at most|"
             r"or later|greater than|less than|equal to|"
             r"more than (?:one|two|three|\d+) "
             r"(?:hundred|thousand|million|billion)|matching)\b",
             lowered,
         )
+    )
+    # A model may label a grouped cardinality restriction as a generic filter.
+    # The wording-derived HAVING cue is authoritative unless a separate lexical
+    # WHERE-style restriction is also present.
+    filter_cue = lexical_filter_cue or (
+        "filter" in operators and not having_cue
     )
     diagnostics: List[str] = []
     if plan is None:

@@ -11,6 +11,7 @@ from spp.population_config import PopulationConfig
 from spp.spec import (
     AggregateSpec,
     AttributeRef,
+    HavingSpec,
     PredicateSpec,
     PreprocessingPolicy,
     QueryPlan,
@@ -26,6 +27,7 @@ from spp.workload_intent import (
     _expected_aggregate,
     _expects_group_cardinality_having,
     _plan_contract_diagnostics,
+    _normalize_plan_with_schema,
     analyze_workload,
 )
 from spp.wdirs_backend import WDIRSPrimitiveBackend
@@ -165,6 +167,50 @@ def test_plan_contract_diagnostics_are_hard_and_domain_agnostic():
     assert _plan_contract_diagnostics(complete) == (
         "missing_or_wrong_aggregate",
         "group_by_without_aggregate",
+    )
+
+
+def test_having_does_not_require_a_duplicate_where_filter():
+    category = AttributeRef("event", "category")
+    requirement = QueryRequirement(
+        "q",
+        "Among categories with more than one event, show the highest amount.",
+        operators=("max", "group_by", "filter", "having"),
+        plan=QueryPlan(
+            group_by=(category,),
+            aggregates=(
+                AggregateSpec(
+                    "max",
+                    AttributeRef("event", "amount", "real"),
+                ),
+            ),
+            having=(
+                HavingSpec(AggregateSpec("count"), ">", 1),
+            ),
+        ),
+    )
+    assert _plan_contract_diagnostics(requirement) == ()
+
+
+def test_normalization_recovers_known_dimension_filter_generically():
+    category = AttributeRef("event", "category")
+    plan = QueryPlan(
+        group_by=(category,),
+        aggregates=(
+            AggregateSpec(
+                "sum",
+                AttributeRef("event", "amount", "real"),
+            ),
+        ),
+    )
+    normalized = _normalize_plan_with_schema(
+        plan,
+        "Among events with a known category, total the amount at each category.",
+    )
+    assert normalized is not None
+    assert normalized.predicate == PredicateSpec(
+        attribute=category,
+        operator="is_not_null",
     )
 
 
