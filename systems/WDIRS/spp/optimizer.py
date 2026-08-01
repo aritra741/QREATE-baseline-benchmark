@@ -102,13 +102,17 @@ def collapse_output_equivalent(
     config_ids: Sequence[str],
     pilots: Mapping[str, PilotResult],
 ) -> Tuple[List[str], Dict[str, str]]:
-    """Keep the cheapest representative for each observed output signature."""
-    by_signature: Dict[str, List[str]] = {}
+    """Keep the cheapest representative for each output and coverage signature."""
+    by_signature: Dict[Tuple[str, Tuple[str, ...]], List[str]] = {}
     for config_id in config_ids:
         pilot = pilots.get(config_id)
         if pilot is None:
             continue
-        by_signature.setdefault(pilot.output_signature, []).append(config_id)
+        signature = (
+            pilot.output_signature,
+            tuple(sorted(pilot.estimates)),
+        )
+        by_signature.setdefault(signature, []).append(config_id)
     retained: List[str] = []
     eliminated: Dict[str, str] = {}
     for group in by_signature.values():
@@ -134,6 +138,8 @@ def _confidence_dominated(
     candidate = pilots[candidate_id]
     challenger = pilots[challenger_id]
     if challenger.full_cost_upper_bound > candidate.full_cost_upper_bound:
+        return False
+    if not set(candidate.estimates) <= set(challenger.estimates):
         return False
     strict = False
     compared = False

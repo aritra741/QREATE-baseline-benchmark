@@ -507,6 +507,78 @@ def test_output_equivalence_keeps_cheapest_representative():
     assert eliminated == {"a": "output-equivalent-to:b"}
 
 
+def test_output_equivalence_does_not_discard_unique_query_coverage():
+    signature = canonical_output_signature({"q0": [{"x": 1}]})
+    q0 = QualityEstimate("q0", "a", 1, 1, 1, 0, 1)
+    q1 = QualityEstimate("q1", "a", 1, 1, 1, 0, 1)
+    pilots = {
+        "a": PilotResult(
+            "a", {"q0": q0, "q1": q1}, signature, 20, 0.1
+        ),
+        "b": PilotResult("b", {"q0": q0}, signature, 10, 0.1),
+    }
+    retained, eliminated = collapse_output_equivalent(["a", "b"], pilots)
+    assert retained == ["a", "b"]
+    assert eliminated == {}
+
+
+def test_progressive_dominance_preserves_unique_query_coverage():
+    q0 = _player_requirement()
+    q1 = QueryRequirement(
+        query_id="q1",
+        text="SELECT name FROM player",
+        entities=("player",),
+        attributes=("name",),
+    )
+    broad = _config("broad", q0)
+    broad = SynthesisConfig(
+        schema=SchemaDesign(
+            pattern=broad.schema.pattern,
+            relations=broad.schema.relations,
+            covered_query_ids=("q0", "q1"),
+        ),
+        population=broad.population,
+        preprocessing=broad.preprocessing,
+    )
+    narrow = _config("narrow", q0)
+
+    def evaluate(config, sample_fraction, _ledger):
+        scores = {"q0": 0.5, "q1": 0.5}
+        if config == narrow:
+            scores = {"q0": 1.0}
+        return PilotResult(
+            config_id=config.config_id,
+            estimates={
+                query_id: _estimate(
+                    q0 if query_id == "q0" else q1,
+                    config,
+                    score,
+                )
+                for query_id, score in scores.items()
+            },
+            output_signature=config.schema.pattern,
+            full_cost_upper_bound=20 if config == broad else 10,
+            sample_fraction=sample_fraction,
+        )
+
+    result = progressive_pilot_search(
+        [broad, narrow],
+        [q0, q1],
+        evaluate,
+        GlobalBudgetLedger(100),
+        sample_fractions=(0.1,),
+        completion_reserve=20,
+        completion_costs={
+            broad.config_id: 20,
+            narrow.config_id: 10,
+        },
+        completion_escrowed=True,
+    )
+    assert result.survivors == sorted(
+        [broad.config_id, narrow.config_id]
+    )
+
+
 def test_shared_operator_dag_charges_common_work_once():
     dag = SharedOperatorDAG(
         [
