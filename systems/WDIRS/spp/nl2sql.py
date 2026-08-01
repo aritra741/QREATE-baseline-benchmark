@@ -469,7 +469,12 @@ def make_nl2sql_compiler(llm_client: Any):
             aggregate_ops = {"count", "sum", "avg", "min", "max"}
             plan_complete = not (
                 (operators & aggregate_ops and not requirement.plan.aggregates)
-                or ("filter" in operators and requirement.plan.predicate is None)
+                or (
+                    "filter" in operators
+                    and requirement.plan.predicate is None
+                    and not requirement.plan.having
+                )
+                or ("having" in operators and not requirement.plan.having)
             )
             deterministic_sql = (
                 compile_query_plan(requirement.plan, config)

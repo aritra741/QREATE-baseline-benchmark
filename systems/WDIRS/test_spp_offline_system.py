@@ -1192,7 +1192,7 @@ def test_query_plan_compiler_and_validator_preserve_having(
             "highest amount?"
         ),
         entities=("event",),
-        operators=("max", "group_by", "having"),
+        operators=("max", "group_by", "filter", "having"),
         plan=plan,
     )
     config = SynthesisConfig(
@@ -1219,6 +1219,17 @@ def test_query_plan_compiler_and_validator_preserve_having(
     assert sql is not None
     assert "HAVING COUNT(*) > 1" in sql
     assert validate_sql(requirement, config, database, sql).valid
+    class NoLLM:
+        def generate(self, *_args, **_kwargs):
+            raise AssertionError("valid typed plan must not invoke NL2SQL")
+
+    compiled = make_nl2sql_compiler(NoLLM())(
+        requirement,
+        config,
+        database,
+        GlobalBudgetLedger(1_000),
+    )
+    assert compiled == sql
     missing = sql.split("\nHAVING", 1)[0]
     assert any(
         "missing HAVING condition" in error
