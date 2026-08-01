@@ -1908,6 +1908,42 @@ def _normalize_plan_with_schema(
         collect_equality_dimensions(predicate)
         group_by = list(dict.fromkeys(equality_dimensions))
 
+    measure_entity = next(
+        (
+            aggregate.attribute.entity
+            for aggregate in aggregates
+            if aggregate.attribute is not None
+        ),
+        None,
+    )
+    if measure_entity and group_clause:
+        words = re.findall(r"[a-z0-9_]+", lowered)
+
+        def entity_is_mentioned(entity: str) -> bool:
+            tokens = _symbol_tokens(entity)
+            return bool(tokens) and all(
+                any(
+                    SequenceMatcher(None, token, word).ratio() >= 0.82
+                    for word in words
+                )
+                for token in tokens
+            )
+
+        rebound_groups = []
+        for reference in group_by:
+            attribute_tokens = set(_symbol_tokens(reference.attribute))
+            clause_tokens = set(_symbol_tokens(group_clause))
+            if (
+                reference.entity != measure_entity
+                and not entity_is_mentioned(reference.entity)
+                and entity_is_mentioned(measure_entity)
+                and attribute_tokens
+                and attribute_tokens <= clause_tokens
+            ):
+                reference = replace(reference, entity=measure_entity)
+            rebound_groups.append(reference)
+        group_by = list(dict.fromkeys(rebound_groups))
+
     if aggregates and attribute_vocabulary:
         grouped_keys = {
             (reference.entity, reference.attribute) for reference in group_by
@@ -2021,14 +2057,6 @@ def _normalize_plan_with_schema(
     # only the related entity itself (for example, "by account"), not a remote
     # property (for example, "by account region"). This avoids a lossy join
     # without encoding any domain-specific table or column names.
-    measure_entity = next(
-        (
-            aggregate.attribute.entity
-            for aggregate in aggregates
-            if aggregate.attribute is not None
-        ),
-        None,
-    )
     if measure_entity and join_vocabulary:
         localized_groups: List[AttributeRef] = []
         for reference in group_by:
@@ -2131,9 +2159,14 @@ def _normalize_plan_with_schema(
                         (join.left.entity, join.right.entity)
                     )
                     changed = changed or len(candidate_connected) > before
-    candidate_joins_valid = bool(plan.joins) and (
-        candidate_join_keys <= allowed_join_keys
+    candidate_joins_valid = (
+        bool(plan.joins)
+        and len(required_entities) > 1
         and required_entities <= candidate_connected
+        and (
+            not join_vocabulary
+            or candidate_join_keys <= allowed_join_keys
+        )
     )
     if candidate_joins_valid:
         normalized_joins = list(dict.fromkeys(plan.joins))
@@ -2215,7 +2248,7 @@ def _normalize_plan_with_schema(
         group_by=tuple(group_by),
         aggregates=tuple(aggregates),
         predicate=predicate,
-        joins=tuple(normalized_joins) if join_vocabulary else plan.joins,
+        joins=tuple(normalized_joins),
     )
 
 

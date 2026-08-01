@@ -29,7 +29,12 @@ from spp.schema_materializer import (
     temporary_work_dir,
     write_sqlite_database,
 )
-from spp.spec import QualityEstimate, QueryRequirement, SynthesisConfig
+from spp.spec import (
+    AttributeRef,
+    QualityEstimate,
+    QueryRequirement,
+    SynthesisConfig,
+)
 from spp.workload_intent import WorkloadIntent, _plan_contract_score
 
 logger = logging.getLogger(__name__)
@@ -220,6 +225,85 @@ class WDIRSPrimitiveBackend:
                 self._missing_tables.add(table)
             return []
 
+    def _repair_all_null_required_columns(self) -> None:
+        """Run one isolated extraction pass for required columns with no values."""
+        if self.intent is None:
+            return
+        missing_by_table: Dict[str, set[str]] = {}
+        for requirement in self.intent.requirements:
+            references = list(
+                requirement.plan.attributes()
+                if requirement.plan is not None
+                else ()
+            )
+            references.extend(
+                AttributeRef(entity, attribute)
+                for entity, attribute in requirement.attribute_bindings
+            )
+            for reference in references:
+                table = reference.entity
+                column = reference.attribute
+                if (
+                    table not in self._table_names
+                    or not self.runner.data_layer.table_exists(table)
+                ):
+                    continue
+                rows = self._records_for_table(table)
+                if rows and not any(
+                    row.get(column) not in (None, "") for row in rows
+                ):
+                    missing_by_table.setdefault(table, set()).add(column)
+        if not missing_by_table:
+            return
+
+        def quote(identifier: str) -> str:
+            return '"' + str(identifier).replace('"', '""') + '"'
+
+        repair_queries = [
+            "SELECT "
+            + ", ".join(quote(column) for column in sorted(columns))
+            + f" FROM {quote(table)}"
+            for table, columns in sorted(missing_by_table.items())
+        ]
+        logger.warning(
+            "Retrying isolated extraction for all-null required columns: %s",
+            {
+                table: sorted(columns)
+                for table, columns in sorted(missing_by_table.items())
+            },
+        )
+        original_lattice = self.runner.lattice_planner.lattice
+        original_source_counts = dict(
+            getattr(self.runner, "source_document_counts", {})
+        )
+        original_extracted_counts = dict(
+            getattr(self.runner, "extracted_document_counts", {})
+        )
+        result = self.runner.preprocess(
+            workload_queries=repair_queries,
+            perform_proactive_er=False,
+        )
+        repair_source_counts = dict(
+            getattr(self.runner, "source_document_counts", {})
+        )
+        repair_extracted_counts = dict(
+            getattr(self.runner, "extracted_document_counts", {})
+        )
+        self.runner.lattice_planner.lattice = original_lattice
+        self.runner.source_document_counts = {
+            **original_source_counts,
+            **repair_source_counts,
+        }
+        self.runner.extracted_document_counts = {
+            **original_extracted_counts,
+            **repair_extracted_counts,
+        }
+        if not result.success:
+            logger.warning(
+                "Isolated required-column extraction failed: %s",
+                getattr(result, "error", "unknown error"),
+            )
+
     def _install_budgeted_client(
         self,
         ledger: GlobalBudgetLedger,
@@ -307,6 +391,7 @@ class WDIRSPrimitiveBackend:
                     "treated as an empty, zero-coverage relation",
                     table,
                 )
+        self._repair_all_null_required_columns()
         self._source_document_counts = dict(
             getattr(self.runner, "source_document_counts", {})
         )

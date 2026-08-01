@@ -13,6 +13,7 @@ from spp.spec import (
     AggregateSpec,
     AttributeRef,
     HavingSpec,
+    JoinSpec,
     PredicateSpec,
     PreprocessingPolicy,
     QueryPlan,
@@ -186,6 +187,35 @@ def test_boolean_normalization_preserves_nested_scope():
     )
     assert normalized is not None
     assert normalized.predicate == predicate
+
+
+def test_unqualified_group_dimension_stays_with_mentioned_measure_entity():
+    normalized = _normalize_plan_with_schema(
+        QueryPlan(
+            projections=(AttributeRef("account", "nationality"),),
+            group_by=(AttributeRef("account", "nationality"),),
+            aggregates=(
+                AggregateSpec(
+                    "avg",
+                    AttributeRef("person", "age", "integer"),
+                    "avg_age",
+                ),
+            ),
+            joins=(
+                JoinSpec(
+                    AttributeRef("account", "id"),
+                    AttributeRef("person", "account_id"),
+                ),
+            ),
+        ),
+        "What is the average person age for each nationality?",
+    )
+    assert normalized is not None
+    assert normalized.group_by == (
+        AttributeRef("person", "nationality"),
+    )
+    assert normalized.projections == normalized.group_by
+    assert normalized.joins == ()
 
 
 def test_workload_intent_contains_no_benchmark_domain_literals():
@@ -474,6 +504,42 @@ def test_physical_gate_removes_all_null_and_phantom_query_coverage(tmp_path):
         "null": ["all_null_required_column:event.amount"],
         "phantom": ["missing_physical_table:archive"],
     }
+
+
+def test_backend_retries_all_null_required_columns_once(tmp_path):
+    amount = AttributeRef("event", "amount", "real")
+    requirement = QueryRequirement(
+        "q",
+        "Show the maximum amount.",
+        entities=("event",),
+        attribute_bindings=(("event", "amount"),),
+        plan=QueryPlan(
+            aggregates=(AggregateSpec("max", amount, "max_amount"),),
+        ),
+    )
+    intent = WorkloadIntent(
+        (requirement,),
+        {"event": 1},
+        {"amount": 1},
+        {"max": 1},
+    )
+    tables = {"event": [{"amount": None}]}
+    backend = _backend(tables, intent, tmp_path)
+    calls = []
+
+    def preprocess(*, workload_queries, perform_proactive_er):
+        calls.append((workload_queries, perform_proactive_er))
+        tables["event"][0]["amount"] = 7
+        return type("Result", (), {"success": True})()
+
+    backend.runner.preprocess = preprocess
+    backend.runner.source_document_counts = {}
+    backend.runner.extracted_document_counts = {}
+
+    backend._repair_all_null_required_columns()
+
+    assert calls == [(['SELECT "amount" FROM "event"'], False)]
+    assert tables["event"][0]["amount"] == 7
 
 
 def test_physical_gate_removes_unbindable_multi_relation_plan(tmp_path):
