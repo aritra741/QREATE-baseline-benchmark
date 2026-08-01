@@ -1252,3 +1252,272 @@ def table_from_rows(
         columns=tuple(columns),
         rows=tuple(dict(row) for row in rows),
     )
+
+
+def schema_from_sql(sql: str) -> Dict[str, Any]:
+    """Infer aggregation key/measure roles from reference SQL.
+
+    Uses GROUP BY columns as keys and aggregate SELECT aliases as measures.
+    Non-aggregation SQL returns ``is_aggregation=False``.
+    """
+    import sqlglot
+    from sqlglot import exp
+
+    expr = sqlglot.parse_one(sql, error_level="ignore")
+    group_expr = expr.args.get("group") if expr is not None else None
+    group_by: List[str] = []
+    if group_expr is not None:
+        for node in group_expr.expressions:
+            if isinstance(node, exp.Column):
+                group_by.append(node.name)
+            else:
+                text = node.sql()
+                group_by.append(text.split(".")[-1] if "." in text else text)
+
+    key_columns: List[str] = []
+    measure_columns: List[str] = []
+    operators: Dict[str, str] = {}
+    column_types: Dict[str, str] = {}
+    selects = list(expr.selects) if expr is not None else []
+    for node in selects:
+        if isinstance(node, exp.Alias):
+            output_name = str(node.alias)
+            value = node.this
+        else:
+            output_name = str(
+                getattr(node, "alias_or_name", None)
+                or getattr(node, "output_name", None)
+                or node.sql()
+            )
+            value = node
+        is_agg = isinstance(value, exp.AggFunc) or bool(
+            getattr(value, "is_aggregate", False)
+        )
+        if is_agg:
+            measure_columns.append(output_name)
+            column_types[output_name] = "numeric"
+            if hasattr(value, "sql_name"):
+                operators[output_name] = value.sql_name().upper()
+            elif hasattr(value, "key"):
+                operators[output_name] = str(value.key).upper()
+        else:
+            # Prefer the bare column name that appears in result frames.
+            if isinstance(value, exp.Column):
+                output_name = value.name or output_name
+            key_columns.append(output_name)
+            column_types[output_name] = "string"
+
+    # GROUP BY is authoritative for keys when present.
+    if group_by:
+        key_columns = list(dict.fromkeys(group_by))
+        for name in key_columns:
+            column_types.setdefault(name, "string")
+
+    is_aggregation = bool(group_by) or bool(measure_columns)
+    return {
+        "key_columns": key_columns,
+        "measure_columns": measure_columns,
+        "column_types": column_types,
+        "operators": operators,
+        "is_aggregation": is_aggregation,
+        "has_groupby": bool(group_by),
+    }
+
+
+def _resolve_result_column(
+    declared: str, present: set[str]
+) -> Optional[str]:
+    if not present:
+        return declared
+    if declared in present:
+        return declared
+    target = _normalize_column_name(declared)
+    for name in present:
+        if _normalize_column_name(name) == target:
+            return name
+    return None
+
+
+def gold_table_from_sql(
+    rows: Sequence[Mapping[str, Any]], sql: str
+) -> AggregationTable:
+    """Build a typed gold aggregation table from reference SQL + result rows."""
+    schema = schema_from_sql(sql)
+    if not schema["is_aggregation"]:
+        raise ValueError("reference SQL is not an aggregation query")
+    present: set[str] = set()
+    for row in rows:
+        present.update(str(key) for key in row.keys())
+
+    key_columns: List[str] = []
+    for name in schema["key_columns"]:
+        resolved = _resolve_result_column(name, present)
+        if resolved is not None and resolved not in key_columns:
+            key_columns.append(resolved)
+
+    measure_columns: List[str] = []
+    for name in schema["measure_columns"]:
+        resolved = _resolve_result_column(name, present)
+        if resolved is not None and resolved not in measure_columns:
+            measure_columns.append(resolved)
+
+    claimed = set(key_columns) | set(measure_columns)
+    for name in present:
+        if name in claimed:
+            continue
+        if _column_values_look_numeric(rows, name):
+            measure_columns.append(name)
+        else:
+            key_columns.append(name)
+
+    column_types = dict(schema["column_types"])
+    for name in key_columns:
+        column_types.setdefault(name, "string")
+    for name in measure_columns:
+        column_types.setdefault(name, "numeric")
+    return table_from_rows(
+        rows,
+        key_columns=key_columns,
+        measure_columns=measure_columns,
+        column_types=column_types,
+        operators=schema["operators"],
+    )
+
+
+def _column_values_look_numeric(
+    rows: Sequence[Mapping[str, Any]], column: str
+) -> bool:
+    seen = False
+    for row in rows:
+        value = row.get(column)
+        if value is None or value == "":
+            continue
+        seen = True
+        if isinstance(value, bool):
+            return False
+        if isinstance(value, (int, float)):
+            continue
+        try:
+            float(str(value).replace(",", "").strip())
+        except (TypeError, ValueError):
+            return False
+    return seen
+
+
+def predicted_table_from_rows(
+    rows: Sequence[Mapping[str, Any]],
+    *,
+    gold: AggregationTable,
+) -> AggregationTable:
+    """Assign key/measure roles to predicted columns for alignment.
+
+    Name matches against the gold schema win first. Remaining columns are
+    filled into leftover key/measure slots using value-type heuristics so the
+    one-key/one-measure role fallback can still fire when names differ.
+    """
+    if not rows:
+        return AggregationTable(columns=(), rows=())
+
+    colnames: List[str] = []
+    seen: set[str] = set()
+    for row in rows:
+        for name in row.keys():
+            if name not in seen:
+                seen.add(name)
+                colnames.append(name)
+
+    gold_by_norm = {
+        _normalize_column_name(column.name): column for column in gold.columns
+    }
+    assigned: Dict[str, ColumnSpec] = {}
+    used_gold: set[str] = set()
+    for name in colnames:
+        gold_col = gold_by_norm.get(_normalize_column_name(name))
+        if gold_col is None or gold_col.name in used_gold:
+            continue
+        assigned[name] = ColumnSpec(
+            name=name,
+            role=gold_col.role,
+            type=gold_col.type,
+            operator=gold_col.operator,
+        )
+        used_gold.add(gold_col.name)
+
+    leftover = [name for name in colnames if name not in assigned]
+    key_slots = max(0, len(gold.by_role("key")) - sum(
+        1 for spec in assigned.values() if spec.role == "key"
+    ))
+    measure_slots = max(0, len(gold.by_role("measure")) - sum(
+        1 for spec in assigned.values() if spec.role == "measure"
+    ))
+
+    numeric_left = [
+        name for name in leftover if _column_values_look_numeric(rows, name)
+    ]
+    string_left = [name for name in leftover if name not in numeric_left]
+
+    # Prefer string-like leftovers for keys and numeric leftovers for measures.
+    for name in string_left:
+        if key_slots > 0:
+            assigned[name] = ColumnSpec(name=name, role="key", type="string")
+            key_slots -= 1
+        elif measure_slots > 0:
+            assigned[name] = ColumnSpec(
+                name=name, role="measure", type="numeric"
+            )
+            measure_slots -= 1
+        else:
+            assigned[name] = ColumnSpec(name=name, role="key", type="string")
+    for name in numeric_left:
+        if name in assigned:
+            continue
+        if measure_slots > 0:
+            assigned[name] = ColumnSpec(
+                name=name, role="measure", type="numeric"
+            )
+            measure_slots -= 1
+        elif key_slots > 0:
+            assigned[name] = ColumnSpec(name=name, role="key", type="string")
+            key_slots -= 1
+        else:
+            assigned[name] = ColumnSpec(
+                name=name, role="measure", type="numeric"
+            )
+
+    key_columns = [name for name in colnames if assigned[name].role == "key"]
+    measure_columns = [
+        name for name in colnames if assigned[name].role == "measure"
+    ]
+    column_types = {name: assigned[name].type for name in colnames}
+    operators = {
+        name: assigned[name].operator
+        for name in measure_columns
+        if assigned[name].operator
+    }
+    return table_from_rows(
+        rows,
+        key_columns=key_columns,
+        measure_columns=measure_columns,
+        column_types=column_types,
+        operators=operators,
+    )
+
+
+def json_ready_metrics(result: Mapping[str, Any]) -> Dict[str, Any]:
+    """Convert float-keyed metric dicts into JSON-safe string keys."""
+
+    def _convert(value: Any) -> Any:
+        if isinstance(value, Mapping):
+            out: Dict[str, Any] = {}
+            for key, item in value.items():
+                out[str(key) if isinstance(key, float) else key] = _convert(
+                    item
+                )
+            return out
+        if isinstance(value, list):
+            return [_convert(item) for item in value]
+        if isinstance(value, tuple):
+            return [_convert(item) for item in value]
+        return value
+
+    return _convert(result)

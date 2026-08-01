@@ -8,6 +8,9 @@ from spp.aggregation_metrics import (
     MetricConfig,
     canonicalize,
     evaluate_aggregation_tables,
+    gold_table_from_sql,
+    predicted_table_from_rows,
+    schema_from_sql,
     table_from_rows,
 )
 
@@ -306,4 +309,29 @@ def test_one_key_one_measure_columns_align_by_role_when_names_differ():
     assert result["structure"]["column"]["measure"]["F1"] == 1.0
     assert result["rank"]["structure_score"] == 1.0
     assert result["rank"]["cell_f1"][0.05] == 1.0
+    assert result["rank"]["query_score"][0.05] == 1.0
+
+
+def test_schema_from_sql_extracts_group_key_and_agg_measure():
+    schema = schema_from_sql(
+        "SELECT nationality, COUNT(*) AS player_count "
+        "FROM player WHERE nationality != '' GROUP BY nationality"
+    )
+    assert schema["is_aggregation"] is True
+    assert schema["key_columns"] == ["nationality"]
+    assert schema["measure_columns"] == ["player_count"]
+    assert schema["operators"]["player_count"] == "COUNT"
+
+
+def test_predicted_table_infers_roles_when_names_differ():
+    gold = gold_table_from_sql(
+        [{"nationality": "American", "avg_age": 70.0}],
+        "SELECT nationality, AVG(age) AS avg_age FROM owner GROUP BY nationality",
+    )
+    pred = predicted_table_from_rows(
+        [{"group_label": "American", "metric": 70.0}],
+        gold=gold,
+    )
+    assert [c.role for c in pred.columns] == ["key", "measure"]
+    result = evaluate_aggregation_tables(pred, gold)
     assert result["rank"]["query_score"][0.05] == 1.0
