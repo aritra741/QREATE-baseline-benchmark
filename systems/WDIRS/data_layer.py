@@ -27,6 +27,11 @@ from config import (
 logger = logging.getLogger(__name__)
 
 
+def _quote_identifier(value: str) -> str:
+    """Quote an arbitrary SQL identifier without changing its inferred name."""
+    return '"' + str(value).replace('"', '""') + '"'
+
+
 # ============================================================================
 # Data Models
 # ============================================================================
@@ -539,10 +544,11 @@ class DataLayer:
         """
         row_provenance_pairs: List[tuple] = []
         cell_provenance_triples: List[tuple] = []
+        quoted_table = _quote_identifier(table_name)
 
         # Fetch real column names once to strip LLM-hallucinated keys.
         with self.engine.connect() as _c:
-            _rows = _c.execute(text(f"PRAGMA table_info({table_name})")).fetchall()
+            _rows = _c.execute(text(f"PRAGMA table_info({quoted_table})")).fetchall()
         valid_cols: set = {row[1] for row in _rows}
 
         with self.engine.connect() as conn:
@@ -568,10 +574,21 @@ class DataLayer:
                             else:
                                 params[col] = val
 
-                        columns_str = ", ".join(columns)
-                        placeholders = ", ".join([f":{c}" for c in columns])
-                        sql = f"INSERT INTO {table_name} ({columns_str}) VALUES ({placeholders})"
-                        conn.execute(text(sql), params)
+                        columns_str = ", ".join(
+                            _quote_identifier(column) for column in columns
+                        )
+                        placeholders = ", ".join(
+                            f":p{index}" for index in range(len(columns))
+                        )
+                        sql = (
+                            f"INSERT INTO {quoted_table} ({columns_str}) "
+                            f"VALUES ({placeholders})"
+                        )
+                        safe_params = {
+                            f"p{index}": params[column]
+                            for index, column in enumerate(columns)
+                        }
+                        conn.execute(text(sql), safe_params)
                         row_provenance_pairs.append((row_id, extraction_result.chunk_id))
                         if doc_id_by_chunk_id is not None:
                             chunk_id = str(extraction_result.chunk_id)
@@ -865,9 +882,10 @@ class DataLayer:
         with self.engine.connect() as conn:
             try:
                 existed = self.table_exists(table_name)
+                quoted_table = _quote_identifier(table_name)
                 # Build CREATE TABLE statement
                 columns = [
-                    f"{col_name} {col_type}"
+                    f"{_quote_identifier(col_name)} {col_type}"
                     for col_name, col_type in schema.items()
                 ]
                 
@@ -876,7 +894,7 @@ class DataLayer:
                 columns.append("created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
                 
                 create_stmt = f"""
-                CREATE TABLE IF NOT EXISTS {table_name} (
+                CREATE TABLE IF NOT EXISTS {quoted_table} (
                     {', '.join(columns)}
                 )
                 """
@@ -918,10 +936,12 @@ class DataLayer:
         """Get all distinct values from a column in a dynamic table."""
         with self.engine.connect() as conn:
             try:
+                quoted_table = _quote_identifier(table_name)
+                quoted_column = _quote_identifier(column_name)
                 result = conn.execute(
                     text(
-                        f"SELECT DISTINCT {column_name} FROM {table_name} "
-                        f"WHERE {column_name} IS NOT NULL"
+                        f"SELECT DISTINCT {quoted_column} FROM {quoted_table} "
+                        f"WHERE {quoted_column} IS NOT NULL"
                     )
                 )
                 return [str(row[0]) for row in result.fetchall()]
@@ -941,12 +961,14 @@ class DataLayer:
         """
         with self.engine.connect() as conn:
             try:
+                quoted_table = _quote_identifier(table_name)
+                quoted_column = _quote_identifier(column_name)
                 updated_count = 0
                 for old_value, new_value in value_map.items():
                     result = conn.execute(
                         text(
-                            f"UPDATE {table_name} SET {column_name} = :new_value "
-                            f"WHERE {column_name} = :old_value"
+                            f"UPDATE {quoted_table} SET {quoted_column} = :new_value "
+                            f"WHERE {quoted_column} = :old_value"
                         ),
                         {"new_value": new_value, "old_value": old_value},
                     )
@@ -969,10 +991,11 @@ class DataLayer:
         """
         with self.engine.connect() as conn:
             try:
+                quoted_table = _quote_identifier(table_name)
                 # Fetch valid columns and strip any LLM-hallucinated keys.
                 _valid = {
                     row[1] for row in
-                    conn.execute(text(f"PRAGMA table_info({table_name})")).fetchall()
+                    conn.execute(text(f"PRAGMA table_info({quoted_table})")).fetchall()
                 }
                 clean_record = {k: v for k, v in record.items() if k in _valid}
 
@@ -982,19 +1005,20 @@ class DataLayer:
                 columns = list(full_record.keys())
                 values = [full_record[col] for col in columns]
 
-                columns_str = ", ".join(columns)
-                placeholders = ", ".join([f":{col}" for col in columns])
+                columns_str = ", ".join(_quote_identifier(col) for col in columns)
+                placeholders = ", ".join(f":p{index}" for index in range(len(columns)))
 
-                sql = f"INSERT INTO {table_name} ({columns_str}) VALUES ({placeholders})"
+                sql = f"INSERT INTO {quoted_table} ({columns_str}) VALUES ({placeholders})"
 
                 params = {}
-                for col, val in zip(columns, values):
+                for index, val in enumerate(values):
+                    param = f"p{index}"
                     if val is None:
-                        params[col] = None
+                        params[param] = None
                     elif isinstance(val, (list, dict)):
-                        params[col] = json.dumps(val)
+                        params[param] = json.dumps(val)
                     else:
-                        params[col] = val
+                        params[param] = val
 
                 conn.execute(text(sql), params)
                 conn.commit()
@@ -1037,8 +1061,10 @@ class DataLayer:
             that was written.  On UPDATE, only newly-filled cells are recorded.
         """
         # Fetch real column names once to strip LLM-hallucinated keys.
+        quoted_table = _quote_identifier(table_name)
+        quoted_identity = _quote_identifier(identity_col)
         with self.engine.connect() as _c:
-            _rows = _c.execute(text(f"PRAGMA table_info({table_name})")).fetchall()
+            _rows = _c.execute(text(f"PRAGMA table_info({quoted_table})")).fetchall()
         valid_cols: set = {row[1] for row in _rows}
 
         def _sanitize(record: Dict[str, Any]) -> Dict[str, Any]:
@@ -1085,8 +1111,9 @@ class DataLayer:
                 try:
                     existing = conn.execute(
                         text(
-                            f"SELECT row_id FROM {table_name} "
-                            f"WHERE LOWER(CAST({identity_col} AS TEXT)) = :val LIMIT 1"
+                            f"SELECT row_id FROM {quoted_table} "
+                            f"WHERE LOWER(CAST({quoted_identity} AS TEXT)) "
+                            "= :val LIMIT 1"
                         ),
                         {"val": entity_key},
                     ).fetchone()
@@ -1100,7 +1127,10 @@ class DataLayer:
                     # cell provenance only for cells that actually get filled.
                     try:
                         null_cols_row = conn.execute(
-                            text(f"SELECT * FROM {table_name} WHERE row_id = :rid"),
+                            text(
+                                f"SELECT * FROM {quoted_table} "
+                                "WHERE row_id = :rid"
+                            ),
                             {"rid": existing_row_id},
                         ).fetchone()
                         null_cols: set = {
@@ -1125,16 +1155,25 @@ class DataLayer:
                                 col_source[k] = (chunk_id, doc_id)
 
                     if merged:
-                        set_parts = [
-                            f"{col} = COALESCE({col}, :{col})" for col in merged
-                        ]
+                        merged_items = list(merged.items())
+                        set_parts = []
                         params: Dict[str, Any] = {}
-                        for col, val in merged.items():
-                            params[col] = json.dumps(val) if isinstance(val, (list, dict)) else val
+                        for index, (col, val) in enumerate(merged_items):
+                            quoted_col = _quote_identifier(col)
+                            param = f"p{index}"
+                            set_parts.append(
+                                f"{quoted_col} = COALESCE({quoted_col}, :{param})"
+                            )
+                            params[param] = (
+                                json.dumps(val)
+                                if isinstance(val, (list, dict))
+                                else val
+                            )
                         params["_row_id"] = existing_row_id
                         conn.execute(
                             text(
-                                f"UPDATE {table_name} SET {', '.join(set_parts)} "
+                                f"UPDATE {quoted_table} "
+                                f"SET {', '.join(set_parts)} "
                                 f"WHERE row_id = :_row_id"
                             ),
                             params,
@@ -1170,15 +1209,15 @@ class DataLayer:
                     full_record = {"row_id": row_id, **merged}
                     columns = list(full_record.keys())
                     params = {}
-                    for col in columns:
+                    for index, col in enumerate(columns):
                         val = full_record[col]
-                        params[col] = (
+                        params[f"p{index}"] = (
                             json.dumps(val) if isinstance(val, (list, dict)) else val
                         )
                     sql = (
-                        f"INSERT INTO {table_name} "
-                        f"({', '.join(columns)}) "
-                        f"VALUES ({', '.join(':' + c for c in columns)})"
+                        f"INSERT INTO {quoted_table} "
+                        f"({', '.join(_quote_identifier(c) for c in columns)}) "
+                        f"VALUES ({', '.join(f':p{i}' for i in range(len(columns)))})"
                     )
                     conn.execute(text(sql), params)
                     for _, chunk_id, _doc_id in group:
@@ -1197,15 +1236,15 @@ class DataLayer:
                     full_record = {"row_id": row_id, **clean}
                     columns = list(full_record.keys())
                     params = {}
-                    for col in columns:
+                    for index, col in enumerate(columns):
                         val = full_record[col]
-                        params[col] = (
+                        params[f"p{index}"] = (
                             json.dumps(val) if isinstance(val, (list, dict)) else val
                         )
                     sql = (
-                        f"INSERT INTO {table_name} "
-                        f"({', '.join(columns)}) "
-                        f"VALUES ({', '.join(':' + c for c in columns)})"
+                        f"INSERT INTO {quoted_table} "
+                        f"({', '.join(_quote_identifier(c) for c in columns)}) "
+                        f"VALUES ({', '.join(f':p{i}' for i in range(len(columns)))})"
                     )
                     conn.execute(text(sql), params)
                     row_prov_pairs.append((row_id, chunk_id))
@@ -1221,7 +1260,8 @@ class DataLayer:
         """Return all rows from a dynamic table as a list of dicts."""
         with self.engine.connect() as conn:
             try:
-                result = conn.execute(text(f"SELECT * FROM {table_name}"))
+                quoted_table = _quote_identifier(table_name)
+                result = conn.execute(text(f"SELECT * FROM {quoted_table}"))
                 columns = result.keys()
                 return [dict(zip(columns, row)) for row in result.fetchall()]
             except Exception as e:
@@ -1239,11 +1279,25 @@ class DataLayer:
             return
         with self.engine.connect() as conn:
             try:
-                set_clauses = ", ".join([f"{col} = :{col}" for col in data.keys()])
-                params = {col: (json.dumps(val) if isinstance(val, (list, dict)) else val)
-                          for col, val in data.items()}
+                quoted_table = _quote_identifier(table_name)
+                items = list(data.items())
+                set_clauses = ", ".join(
+                    f"{_quote_identifier(col)} = :p{index}"
+                    for index, (col, _value) in enumerate(items)
+                )
+                params = {
+                    f"p{index}": (
+                        json.dumps(val)
+                        if isinstance(val, (list, dict))
+                        else val
+                    )
+                    for index, (_col, val) in enumerate(items)
+                }
                 params["_row_id"] = row_id
-                sql = f"UPDATE {table_name} SET {set_clauses} WHERE row_id = :_row_id"
+                sql = (
+                    f"UPDATE {quoted_table} SET {set_clauses} "
+                    "WHERE row_id = :_row_id"
+                )
                 conn.execute(text(sql), params)
                 conn.commit()
             except Exception as e:
@@ -1254,8 +1308,11 @@ class DataLayer:
         """Delete a row from a dynamic table by row_id."""
         with self.engine.connect() as conn:
             try:
+                quoted_table = _quote_identifier(table_name)
                 conn.execute(
-                    text(f"DELETE FROM {table_name} WHERE row_id = :row_id"),
+                    text(
+                        f"DELETE FROM {quoted_table} WHERE row_id = :row_id"
+                    ),
                     {"row_id": row_id}
                 )
                 conn.commit()

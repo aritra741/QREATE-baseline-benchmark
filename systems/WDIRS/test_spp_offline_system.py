@@ -2154,6 +2154,21 @@ def test_projection_insert_records_cell_provenance(tmp_path: Path):
         layer.close()
 
 
+def test_dynamic_tables_accept_arbitrary_inferred_identifiers(tmp_path: Path):
+    layer = DataLayer(f"sqlite:///{tmp_path / 'identifiers.sqlite'}")
+    try:
+        table_name = "player.olympic_medal"
+        column_name = "medal.total"
+        layer.create_dynamic_table(table_name, {column_name: "INTEGER"})
+        assert layer.table_exists(table_name)
+        layer.insert_record(table_name, {column_name: 3})
+        rows = layer.get_all_records(table_name)
+        assert len(rows) == 1
+        assert rows[0][column_name] == 3
+    finally:
+        layer.close()
+
+
 def test_wdirs_prunes_provably_inert_configuration_axes():
     schema = SchemaDesign(
         "snowflake",

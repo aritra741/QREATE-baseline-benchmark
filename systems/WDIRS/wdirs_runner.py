@@ -15,7 +15,7 @@ from dataclasses import dataclass, asdict
 import sys
 
 from sqlalchemy import text as _sa_text
-from data_layer import DataLayer, TextChunk
+from data_layer import DataLayer, TextChunk, _quote_identifier
 from lattice_planner import LatticePlanner, load_workload_from_directory
 from sieve_synthesizer import SieveSynthesizer
 from extractor import ConstrainedExtractor, OllamaClient
@@ -1784,6 +1784,7 @@ class WDIRSRunner:
         logger.info("[PreFlight] 7/8 Checking existing DB table schemas…")
         try:
             for table_name, _tinfo in lattice.tables.items():
+                quoted_table = _quote_identifier(table_name)
                 schema = self.lattice_planner.get_table_schema(table_name)
                 sql_schema = {
                     col: semantic_to_sql_type(sem)
@@ -1791,7 +1792,7 @@ class WDIRSRunner:
                 }
                 with self.data_layer.engine.connect() as _conn:
                     existing_rows = _conn.execute(
-                        _sa_text(f"PRAGMA table_info({table_name})")
+                        _sa_text(f"PRAGMA table_info({quoted_table})")
                     ).fetchall()
                 if not existing_rows:
                     # Table doesn't exist yet — will be created during extraction.
@@ -1806,10 +1807,11 @@ class WDIRSRunner:
                     with self.data_layer.engine.connect() as _conn:
                         for col in missing:
                             col_type = sql_schema[col]
+                            quoted_col = _quote_identifier(col)
                             try:
                                 _conn.execute(_sa_text(
-                                    f"ALTER TABLE {table_name} "
-                                    f"ADD COLUMN {col} {col_type}"
+                                    f"ALTER TABLE {quoted_table} "
+                                    f"ADD COLUMN {quoted_col} {col_type}"
                                 ))
                                 logger.info(
                                     f"[PreFlight] Added column '{col}' "
