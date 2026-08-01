@@ -580,6 +580,9 @@ class LatticePlanner:
                         col_name,
                         table_name,
                         workload_predicates=list(col_info.predicates),
+                        is_aggregated=col_info.is_aggregated,
+                        is_group_by=col_info.is_group_by,
+                        is_join_key=col_info.is_join_key,
                     )
                 else:
                     semantic_type = "OTHER"
@@ -593,6 +596,10 @@ class LatticePlanner:
         column_name: str,
         table_name: str,
         workload_predicates: Optional[List[str]] = None,
+        *,
+        is_aggregated: bool = False,
+        is_group_by: bool = False,
+        is_join_key: bool = False,
     ) -> str:
         """
         Use LLM to identify semantic type.
@@ -618,7 +625,9 @@ class LatticePlanner:
 predicate examples, identify the most appropriate semantic type.
 
 Column: {column_name}
-Table: {table_name}{predicate_section}
+Table: {table_name}
+SQL usage: aggregated={is_aggregated}, grouped={is_group_by}, join_key={is_join_key}
+{predicate_section}
 Semantic types:
 - PERSON: Names of people
 - ORG: Organizations, companies, institutions
@@ -636,6 +645,7 @@ number of occurrences, number of completed tasks)
 Key distinction — QUANTITY vs QUANTITY_COUNT:
   QUANTITY: General numeric measurements.
   QUANTITY_COUNT: Tallies of how many times something discrete happened.
+Do not extract a nearby identifier or calendar year as a QUANTITY_COUNT.
 
 Please use the provided workload predicate examples (if any) as additional context \
 to help determine the semantic type.

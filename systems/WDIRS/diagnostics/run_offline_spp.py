@@ -15,6 +15,7 @@ from pathlib import Path
 import sqlglot
 
 WDIRS_ROOT = Path(__file__).resolve().parents[1]
+INTENT_CACHE_VERSION = 2
 if str(WDIRS_ROOT) not in sys.path:
     sys.path.insert(0, str(WDIRS_ROOT))
 
@@ -266,14 +267,19 @@ def main() -> int:
 
         def intent_analyzer(workload, ledger):
             if intent_cache.exists():
-                return workload_intent_from_payload(
-                    json.loads(intent_cache.read_text(encoding="utf-8"))
+                cached = json.loads(
+                    intent_cache.read_text(encoding="utf-8")
                 )
+                if cached.get("cache_version") == INTENT_CACHE_VERSION:
+                    return workload_intent_from_payload(cached["intent"])
             intent = analyze_uncached_intent(workload, ledger)
             temporary = intent_cache.with_suffix(".tmp")
             temporary.write_text(
                 json.dumps(
-                    workload_intent_to_payload(intent),
+                    {
+                        "cache_version": INTENT_CACHE_VERSION,
+                        "intent": workload_intent_to_payload(intent),
+                    },
                     indent=2,
                     sort_keys=True,
                     default=str,

@@ -956,6 +956,11 @@ def _normalize_plan_with_schema(
         for entity in (attribute_vocabulary or {})
         if re.search(rf"\b{re.escape(entity)}s?\b", lowered)
     }
+    join_attributes = {
+        (reference.entity.lower(), reference.attribute.lower())
+        for join in plan.joins
+        for reference in (join.left, join.right)
+    }
 
     def clean_predicate(
         predicate: Optional[PredicateSpec],
@@ -1000,6 +1005,24 @@ def _normalize_plan_with_schema(
         if isinstance(value, str) and re.fullmatch(
             r"\$?[a-z_][a-z0-9_]*[./][a-z_][a-z0-9_]*",
             value.strip().lower(),
+        ):
+            return None
+        if (
+            isinstance(value, str)
+            and value.strip().lower()
+            in {attribute for _entity, attribute in join_attributes}
+            and (
+                predicate.attribute is None
+                or (
+                    predicate.attribute.entity.lower(),
+                    predicate.attribute.attribute.lower(),
+                )
+                not in {
+                    (entity, attribute)
+                    for entity, attribute in join_attributes
+                    if attribute == value.strip().lower()
+                }
+            )
         ):
             return None
         if (
@@ -1087,7 +1110,6 @@ def _normalize_plan_with_schema(
             if best is not None and best[0] > 0:
                 attribute = best[3]
         original_operator = predicate.operator
-        original_value = value
         operator = original_operator
         rendered = str(value).lower()
         position = lowered.find(rendered)
@@ -1137,9 +1159,6 @@ def _normalize_plan_with_schema(
             context + suffix_context,
         ):
             operator = "<="
-        if not input_predicate_missing:
-            operator = original_operator
-            value = original_value
         if (
             attribute is not None
             and re.search(

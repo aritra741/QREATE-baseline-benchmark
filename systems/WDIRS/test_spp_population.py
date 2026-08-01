@@ -13,7 +13,11 @@ from spp.config_grid import (
     build_viable_config_search_space,
     official_query_error,
 )
-from spp.population import _parse_llm_json, apply_population
+from spp.population import (
+    _parse_llm_json,
+    apply_population,
+    repair_join_columns_from_overlap,
+)
 from spp.population_config import (
     PopulationConfig,
     encode_config_features,
@@ -113,6 +117,58 @@ def test_llm_normalization_preserves_case_only_surface_forms():
         llm_normalize_fn=lambda _value: "canada",
     )
     assert populated[0]["country"] == "Canada"
+
+
+def test_grouped_categorical_column_can_use_source_observed_abstraction():
+    class LLM:
+        prompts = []
+
+        def generate(self, prompt, **_kwargs):
+            self.prompts.append(prompt)
+            return '{"Left Wing": "Attack", "Right Wing": "Attack", "Goalkeeper": "Defense"}'
+
+    llm = LLM()
+    populated, _ = apply_population(
+        [
+            {"role": "Left Wing"},
+            {"role": "Right Wing"},
+            {"role": "Goalkeeper"},
+        ],
+        PopulationConfig(norm_strategy="llm", miss_strategy="drop"),
+        table_name="person",
+        protected_columns=["role"],
+        abstraction_columns=["role"],
+        llm_client=llm,
+        source_context=(
+            "Left Wing and Right Wing are attacking roles. "
+            "A Goalkeeper is a defensive role."
+        ),
+    )
+    assert [row["role"] for row in populated] == [
+        "Attack",
+        "Attack",
+        "Defense",
+    ]
+    assert "source-grounded" in llm.prompts[0].lower()
+    assert "expected answers" in llm.prompts[0].lower()
+    assert "relevant source excerpts" in llm.prompts[0].lower()
+
+
+def test_sparse_join_columns_are_rebound_by_populated_value_overlap():
+    left = [
+        {"foreign_id": 10, "organization_name": "Alpha"},
+        {"foreign_id": 20, "organization_name": "Beta"},
+    ]
+    right = [
+        {"id": 1, "name": "Alpha"},
+        {"id": 2, "name": "Beta"},
+    ]
+    repaired = repair_join_columns_from_overlap(
+        left, "foreign_id", right, "id"
+    )
+    assert repaired == ("organization_name", "name")
+    assert [row["foreign_id"] for row in left] == ["Alpha", "Beta"]
+    assert [row["id"] for row in right] == ["Alpha", "Beta"]
 
 
 def test_workload_columns_are_not_fabricated_by_imputation():

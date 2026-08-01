@@ -189,6 +189,45 @@ def test_boolean_normalization_preserves_nested_scope():
     assert normalized.predicate == predicate
 
 
+def test_normalization_corrects_explicit_comparator_and_join_literal():
+    year = AttributeRef("record", "year", "integer")
+    corrected = _normalize_plan_with_schema(
+        QueryPlan(
+            group_by=(year,),
+            aggregates=(AggregateSpec("count", alias="count_all"),),
+            predicate=PredicateSpec(
+                attribute=year,
+                operator=">=",
+                value=2010,
+            ),
+        ),
+        "How many records are there for each year after 2010?",
+    )
+    assert corrected is not None
+    assert corrected.predicate == PredicateSpec(
+        attribute=year,
+        operator=">",
+        value=2010,
+    )
+
+    left = AttributeRef("record", "place_name")
+    right = AttributeRef("place", "name")
+    cleaned = _normalize_plan_with_schema(
+        QueryPlan(
+            projections=(right,),
+            predicate=PredicateSpec(
+                attribute=right,
+                operator="=",
+                value="place_name",
+            ),
+            joins=(JoinSpec(left, right),),
+        ),
+        "Show records based in each place.",
+    )
+    assert cleaned is not None
+    assert cleaned.predicate is None
+
+
 def test_unqualified_group_dimension_stays_with_mentioned_measure_entity():
     normalized = _normalize_plan_with_schema(
         QueryPlan(
@@ -540,6 +579,58 @@ def test_backend_retries_all_null_required_columns_once(tmp_path):
 
     assert calls == [(['SELECT "amount" FROM "event"'], False)]
     assert tables["event"][0]["amount"] == 7
+
+
+def test_physical_gate_accepts_join_column_repairable_from_overlap(tmp_path):
+    display = AttributeRef("account", "display_name")
+    team_name = AttributeRef("group", "name")
+    amount = AttributeRef("group", "amount", "real")
+    requirement = QueryRequirement(
+        "q",
+        "Total group amount for each account.",
+        entities=("account", "group"),
+        plan=QueryPlan(
+            group_by=(display,),
+            aggregates=(AggregateSpec("sum", amount, "total_amount"),),
+            joins=(JoinSpec(display, team_name),),
+        ),
+    )
+    intent = WorkloadIntent(
+        (requirement,),
+        {"account": 1, "group": 1},
+        {"display_name": 1, "amount": 1},
+        {"sum": 1, "group_by": 1},
+    )
+    config = SynthesisConfig(
+        SchemaDesign(
+            "snowflake",
+            (
+                RelationSpec(
+                    "account", ("display_name", "group_name")
+                ),
+                RelationSpec("group", ("name", "amount")),
+            ),
+            ("q",),
+        ),
+        PopulationConfig(),
+        PreprocessingPolicy("whole_document"),
+    )
+    backend = _backend(
+        {
+            "account": [
+                {"display_name": None, "group_name": "A"},
+                {"display_name": None, "group_name": "B"},
+            ],
+            "group": [
+                {"name": "A", "amount": 2},
+                {"name": "B", "amount": 3},
+            ],
+        },
+        intent,
+        tmp_path,
+    )
+    assert backend.prune_configs((config,))
+    assert backend._physical_requirement_issues == {}
 
 
 def test_physical_gate_removes_unbindable_multi_relation_plan(tmp_path):

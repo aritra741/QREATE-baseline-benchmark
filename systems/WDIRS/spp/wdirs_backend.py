@@ -21,6 +21,7 @@ from spp.budget_ledger import GlobalBudgetLedger
 from spp.budgeted_llm import BudgetedLLMClient
 from spp.evidence_store import CellProvenance, EvidenceAnchor, EvidenceStore
 from spp.optimizer import PilotResult, canonical_output_signature
+from spp.population import repair_join_columns_from_overlap
 from spp.quality_signals import profile_relational_database
 from spp.query_plan_compiler import compile_query_plan
 from spp.risk_estimator import CellEvidence, PilotObservation, estimate_query_risk
@@ -249,7 +250,7 @@ class WDIRSPrimitiveBackend:
                 ):
                     continue
                 rows = self._records_for_table(table)
-                if rows and not any(
+                if not any(
                     row.get(column) not in (None, "") for row in rows
                 ):
                     missing_by_table.setdefault(table, set()).add(column)
@@ -259,12 +260,20 @@ class WDIRSPrimitiveBackend:
         def quote(identifier: str) -> str:
             return '"' + str(identifier).replace('"', '""') + '"'
 
-        repair_queries = [
-            "SELECT "
-            + ", ".join(quote(column) for column in sorted(columns))
-            + f" FROM {quote(table)}"
-            for table, columns in sorted(missing_by_table.items())
-        ]
+        repair_queries = []
+        for table, columns in sorted(missing_by_table.items()):
+            projected = set(columns)
+            identity = getattr(self.runner, "identity_columns", {}).get(table)
+            if identity and any(
+                row.get(identity) not in (None, "")
+                for row in self._records_for_table(table)
+            ):
+                projected.add(identity)
+            repair_queries.append(
+                "SELECT "
+                + ", ".join(quote(column) for column in sorted(projected))
+                + f" FROM {quote(table)}"
+            )
         logger.warning(
             "Retrying isolated extraction for all-null required columns: %s",
             {
@@ -541,7 +550,9 @@ class WDIRSPrimitiveBackend:
         self, configs: Sequence[SynthesisConfig]
     ) -> Sequence[SynthesisConfig]:
         """Reject physically unsupported coverage and collapse inert axes."""
-        representatives: Dict[tuple[str, str, str, str], SynthesisConfig] = {}
+        representatives: Dict[
+            tuple[str, str, str, str, str], SynthesisConfig
+        ] = {}
         lattice_tables = getattr(
             self.runner.lattice_planner.lattice, "tables", {}
         )
@@ -574,6 +585,35 @@ class WDIRSPrimitiveBackend:
         if active_intent is not None:
             for requirement in active_intent.requirements:
                 issues: List[str] = []
+                overlap_repairable: set[tuple[str, str]] = set()
+                if requirement.plan is not None:
+                    for join in requirement.plan.joins:
+                        left_rows = self._records_for_table(
+                            join.left.entity
+                        )
+                        right_rows = self._records_for_table(
+                            join.right.entity
+                        )
+                        if repair_join_columns_from_overlap(
+                            copy.deepcopy(left_rows),
+                            join.left.attribute,
+                            copy.deepcopy(right_rows),
+                            join.right.attribute,
+                            left_table=join.left.entity,
+                            right_table=join.right.entity,
+                        ) is not None:
+                            overlap_repairable.update(
+                                {
+                                    (
+                                        join.left.entity,
+                                        join.left.attribute,
+                                    ),
+                                    (
+                                        join.right.entity,
+                                        join.right.attribute,
+                                    ),
+                                }
+                            )
                 required_by_entity: Dict[str, set[str]] = {
                     entity: set() for entity in requirement.entities
                 }
@@ -603,7 +643,7 @@ class WDIRSPrimitiveBackend:
                     for column in sorted(required_columns):
                         if not any(
                             row.get(column) not in (None, "") for row in rows
-                        ):
+                        ) and (table, column) not in overlap_repairable:
                             issues.append(
                                 f"all_null_required_column:{table}.{column}"
                             )
@@ -675,6 +715,7 @@ class WDIRSPrimitiveBackend:
             key = (
                 config.schema.schema_id,
                 config.population.er_strategy,
+                config.population.norm_strategy,
                 config.population.unit_strategy,
                 config.population.type_coercion,
             )
@@ -760,6 +801,9 @@ class WDIRSPrimitiveBackend:
         protected: Dict[str, set[str]] = {
             table: set() for table in self._table_names
         }
+        abstractions: Dict[str, set[str]] = {
+            table: set() for table in self._table_names
+        }
         for relation in config.schema.relations:
             if relation.name in semantic_types:
                 semantic_types[relation.name].update(
@@ -779,6 +823,15 @@ class WDIRSPrimitiveBackend:
                         reference.attribute
                     ] = reference.semantic_type
                     protected[reference.entity].add(reference.attribute)
+                for reference in requirement.plan.group_by:
+                    if (
+                        reference.entity in abstractions
+                        and reference.semantic_type
+                        not in {"integer", "real", "date", "boolean"}
+                    ):
+                        abstractions[reference.entity].add(
+                            reference.attribute
+                        )
         lattice_tables = getattr(
             self.runner.lattice_planner.lattice, "tables", {}
         )
@@ -804,6 +857,11 @@ class WDIRSPrimitiveBackend:
                 table: sorted(columns)
                 for table, columns in protected.items()
             },
+            abstraction_columns={
+                table: sorted(columns)
+                for table, columns in abstractions.items()
+            },
+            source_context=self._corpus_text,
         )
         self._copy_provenance_for_config(config.config_id, populated)
         self._population_cache[cache_key] = copy.deepcopy(populated)
@@ -889,20 +947,57 @@ class WDIRSPrimitiveBackend:
                 identity = row.get("row_id", index)
                 atom = f"{table}:{attribute}:{identity}"
                 represented_atoms.add(atom)
-                rendered = str(value).strip().lower()
                 source_value = self._supported_source_cells.get(
                     (table, str(identity), attribute)
                 )
+                evidence_value = source_value
                 supported = (
                     source_value == value
                     and source_value not in (None, "")
+                )
+                if not supported:
+                    matching_source = next(
+                        (
+                            candidate
+                            for (
+                                source_table,
+                                source_identity,
+                                _source_column,
+                            ), candidate in self._supported_source_cells.items()
+                            if source_table == table
+                            and source_identity == str(identity)
+                            and candidate == value
+                            and candidate not in (None, "")
+                        ),
+                        None,
+                    )
+                    if matching_source is not None:
+                        evidence_value = matching_source
+                        supported = True
+                if (
+                    not supported
+                    and source_value not in (None, "")
+                    and (
+                        config.population.norm_strategy == "llm"
+                        or config.population.unit_strategy == "unit"
+                        or config.population.type_coercion != "strict"
+                    )
+                ):
+                    # The transformed value is derived from a span-restored
+                    # source cell by the selected population policy.
+                    evidence_value = source_value
+                    supported = True
+                rendered_evidence = (
+                    str(evidence_value).strip().lower()
+                    if evidence_value not in (None, "")
+                    else None
                 )
                 cells.append(
                     CellEvidence(
                         row_identity=str(row.get("row_id", index)),
                         column=attribute,
                         value=value,
-                        source_span=rendered if supported else None,
+                        source_span=rendered_evidence if supported else None,
                         span_restored=supported,
                         entailed=supported,
                         document_id=str(row.get("source_doc_id", "")) or None,

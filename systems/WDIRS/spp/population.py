@@ -106,6 +106,93 @@ _NUMERIC_TOKEN_PATTERN = re.compile(r"-?\d+(?:\.\d+)?")
 _BOOKKEEPING_COLUMNS = {"row_id", "created_at", "updated_at"}
 
 
+def repair_join_columns_from_overlap(
+    left_rows: List[Dict[str, Any]],
+    left_column: str,
+    right_rows: List[Dict[str, Any]],
+    right_column: str,
+    *,
+    left_table: str = "",
+    right_table: str = "",
+) -> Optional[tuple[str, str]]:
+    """Repair a non-overlapping join using populated source columns.
+
+    The query-facing column names stay stable; only their values are rebound
+    to the strongest observed cross-table value overlap.
+    """
+
+    def values(rows: List[Dict[str, Any]], column: str) -> set[str]:
+        return {
+            re.sub(r"\s+", " ", str(row[column]).strip()).casefold()
+            for row in rows
+            if row.get(column) not in (None, "")
+        }
+
+    def columns(rows: List[Dict[str, Any]]) -> set[str]:
+        return {
+            column
+            for row in rows
+            for column in row
+            if column not in _BOOKKEEPING_COLUMNS
+        }
+
+    def score(left: set[str], right: set[str]) -> tuple[float, int]:
+        overlap = len(left & right)
+        denominator = min(len(left), len(right))
+        return (
+            overlap / denominator if denominator else 0.0,
+            overlap,
+        )
+
+    current_score, current_overlap = score(
+        values(left_rows, left_column),
+        values(right_rows, right_column),
+    )
+    if current_overlap and current_score >= 0.25:
+        return None
+
+    candidates = []
+    for candidate_left in columns(left_rows):
+        left_values = values(left_rows, candidate_left)
+        if not left_values:
+            continue
+        for candidate_right in columns(right_rows):
+            left_tokens = set(candidate_left.casefold().split("_"))
+            right_tokens = set(candidate_right.casefold().split("_"))
+            names_align = bool(
+                left_tokens & right_tokens
+                or right_table.casefold() in left_tokens
+                or left_table.casefold() in right_tokens
+            )
+            if not names_align:
+                continue
+            right_values = values(right_rows, candidate_right)
+            overlap_score, overlap_count = score(left_values, right_values)
+            candidates.append(
+                (
+                    overlap_score,
+                    overlap_count,
+                    candidate_left == left_column,
+                    candidate_right == right_column,
+                    candidate_left,
+                    candidate_right,
+                )
+            )
+    best = max(candidates, default=None)
+    if best is None or best[0] < 0.5 or best[1] < 2:
+        return None
+    _, _, _, _, source_left, source_right = best
+    if (source_left, source_right) == (left_column, right_column):
+        return None
+    for row in left_rows:
+        if row.get(source_left) not in (None, ""):
+            row[left_column] = row[source_left]
+    for row in right_rows:
+        if row.get(source_right) not in (None, ""):
+            row[right_column] = row[source_right]
+    return source_left, source_right
+
+
 def _parse_llm_json(response: str, expected_type: type) -> Any:
     """Parse the first expected JSON value, repairing malformed LLM syntax."""
     opener = "[" if expected_type is list else "{"
@@ -309,19 +396,46 @@ def _llm_cluster_values(
 
 
 def _llm_normalize_values(
-    values: List[str], llm_client: Any, *, batch_size: int = 100
+    values: List[str],
+    llm_client: Any,
+    *,
+    table_name: str = "",
+    column: str = "",
+    allow_abstraction: bool = False,
+    source_context: str = "",
+    batch_size: int = 100,
 ) -> Dict[str, str]:
     """Normalize unique values in bounded JSON-mapping batches."""
     unique = sorted({v for v in values if v.strip()})
     mapping: Dict[str, str] = {}
     for start in range(0, len(unique), batch_size):
         batch = unique[start : start + batch_size]
-        prompt = (
-            "Normalize each string to a canonical form (trimmed, collapsed "
-            "whitespace, consistent casing and spelling). Return ONLY a JSON "
-            "object mapping every exact original string to its normalized "
-            f"form.\nValues: {json.dumps(batch, ensure_ascii=False)}"
-        )
+        if allow_abstraction:
+            context_section = (
+                f"\nRelevant source excerpts:\n{source_context[:4000]}"
+                if source_context
+                else ""
+            )
+            prompt = (
+                "Induce a source-grounded categorical normalization for a "
+                "workload GROUP BY column. Map spelling/case variants together. "
+                "When the observed values are conventional fine-grained subtypes "
+                "of a small, well-established semantic taxonomy, map them to that "
+                "coherent higher-level taxonomy; otherwise preserve their original "
+                "granularity. Never invent facts about individual rows and never "
+                "use benchmark schemas or expected answers. Return ONLY a JSON "
+                "object mapping every exact original string to one canonical "
+                f"category.\nColumn: {table_name}.{column}\n"
+                f"Source-observed values: {json.dumps(batch, ensure_ascii=False)}"
+                f"{context_section}"
+            )
+        else:
+            prompt = (
+                "Normalize each string to a canonical form (trimmed, collapsed "
+                "whitespace, consistent casing and spelling). Return ONLY a JSON "
+                "object mapping every exact original string to its normalized "
+                f"form.\nValues: {json.dumps(batch, ensure_ascii=False)}"
+            )
         try:
             response = llm_client.generate(prompt, max_tokens=1000, temperature=0.0)
             raw = _parse_llm_json(response, dict)
@@ -436,6 +550,8 @@ def apply_population(
     identity_columns: Optional[List[str]] = None,
     numeric_columns: Optional[List[str]] = None,
     protected_columns: Optional[List[str]] = None,
+    abstraction_columns: Optional[List[str]] = None,
+    source_context: str = "",
     entity_resolver: Optional[Any] = None,
     llm_client: Optional[Any] = None,
     llm_normalize_fn: Optional[Callable[[str], str]] = None,
@@ -451,6 +567,7 @@ def apply_population(
     """
     column_semantic_types = column_semantic_types or {}
     protected_columns = protected_columns or []
+    abstraction_columns = abstraction_columns or []
     if identity_columns is None:
         identity_columns = [
             c
@@ -516,13 +633,30 @@ def apply_population(
             payload = json.dumps(
                 sorted(set(values)), ensure_ascii=False, separators=(",", ":")
             )
+            relevant_context = ""
+            if column in abstraction_columns and source_context:
+                lowered_values = {
+                    str(value).casefold() for value in values[:100]
+                }
+                context_lines = [
+                    line.strip()
+                    for line in source_context.splitlines()
+                    if any(value in line.casefold() for value in lowered_values)
+                ]
+                relevant_context = "\n".join(context_lines)[:4000]
             cache_key = (
                 f"{table_name}.{column}:"
-                f"{hashlib.sha256(payload.encode()).hexdigest()}"
+                f"abstract={column in abstraction_columns}:"
+                f"{hashlib.sha256((payload + relevant_context).encode()).hexdigest()}"
             )
             if cache_key not in normalization_cache:
                 normalization_cache[cache_key] = _llm_normalize_values(
-                    values, llm_client
+                    values,
+                    llm_client,
+                    table_name=table_name,
+                    column=column,
+                    allow_abstraction=column in abstraction_columns,
+                    source_context=relevant_context,
                 )
             normalized_by_column[column] = dict(normalization_cache[cache_key])
     for row in working:
@@ -530,7 +664,10 @@ def apply_population(
             value = row.get(column)
             if not isinstance(value, str) or not value:
                 continue
-            if column in protected_columns:
+            if (
+                column in protected_columns
+                and column not in abstraction_columns
+            ):
                 normalized = _dictionary_normalize(value)
             elif config.norm_strategy == "llm" and llm_normalize_fn is not None:
                 normalized = llm_normalize_fn(value)
