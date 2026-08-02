@@ -301,6 +301,22 @@ def _semantic_attribute_grounded(
 ) -> bool:
     """Recognize explicit boolean predicates and singular counted events."""
 
+    if _value(record, "derivation_kind") == "age_from_birth_year":
+        inputs = _value(record, "derivation_inputs", {}) or {}
+        if isinstance(inputs, Mapping):
+            birth_year = _decimal(inputs.get("birth_year"))
+            reference_year = _decimal(inputs.get("reference_year"))
+            value = _decimal(_value(record, "value"))
+            if (
+                birth_year is not None
+                and reference_year is not None
+                and value == reference_year - birth_year
+                and re.search(
+                    rf"\b{re.escape(str(int(birth_year)))}\b",
+                    span,
+                )
+            ):
+                return True
     attribute_tokens = [
         _stem_token(token)
         for token in _symbol_key(_value(record, "attribute", "")).split("_")

@@ -348,6 +348,25 @@ def _materialized_counts(
     return counts
 
 
+def _relation_row_counts(
+    database_path: Path,
+    locations: Sequence[Tuple[str, str]],
+) -> Dict[str, int]:
+    counts: Dict[str, int] = {}
+    with sqlite3.connect(_readonly_uri(database_path), uri=True) as connection:
+        connection.execute("PRAGMA query_only=ON")
+        for table in dict.fromkeys(table for table, _column in locations):
+            try:
+                counts[table] = int(
+                    connection.execute(
+                        f"SELECT COUNT(*) FROM {_quote(table)}"
+                    ).fetchone()[0]
+                )
+            except sqlite3.Error:
+                counts[table] = 0
+    return counts
+
+
 def _provenance_rows(
     evidence_store: Optional[EvidenceStore],
     config_ids: Sequence[str],
@@ -395,6 +414,7 @@ def compute_evidence_coverage(
     """Measure query-conditioned cell and output support from provenance."""
     locations = _required_locations(requirement, config)
     counts = _materialized_counts(database_path, locations)
+    relation_counts = _relation_row_counts(database_path, locations)
     config_ids = tuple(
         dict.fromkeys((config.config_id, *evidence_config_ids))
     )
@@ -432,10 +452,10 @@ def compute_evidence_coverage(
     per_attribute = [
         min(
             len(supported_by_location.get(location, set()))
-            / max(counts.get(location, 0), 1),
+            / max(relation_counts.get(location[0], 0), 1),
             1.0,
         )
-        if counts.get(location, 0) > 0
+        if relation_counts.get(location[0], 0) > 0
         else 0.0
         for location in locations
     ]

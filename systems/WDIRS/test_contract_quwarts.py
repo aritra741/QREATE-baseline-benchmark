@@ -11,6 +11,7 @@ from spp.contract_extractor import (
     ContractExtractor,
     DerivationMapping,
     ExtractionRecord,
+    RelationshipRecord,
 )
 from spp.budget_ledger import GlobalBudgetLedger
 from spp.contract_backend import (
@@ -19,6 +20,7 @@ from spp.contract_backend import (
     RelationEdge,
     SharedExtraction,
     WorkloadRelationGraph,
+    _contract_extraction_parts,
     build_workload_relation_graph,
 )
 from spp.contract_validation import (
@@ -257,6 +259,146 @@ def test_field_grounding_accepts_explicit_boolean_and_singular_event():
         "Item received an award.",
         semantic_types=("integer",),
     ) == ()
+
+
+def test_age_derivation_uses_birth_year_and_corpus_reference_year(tmp_path):
+    document = type(
+        "Document",
+        (),
+        {
+            "document_id": "person/1.txt",
+            "text": (
+                "\nExample Person\n\n"
+                "Example Person (born January 2, 2000) is documented here. "
+                "The record was updated in 2024."
+            ),
+            "metadata": {},
+        },
+    )()
+    contract = WorkloadContract(
+        entities=(EntityContract("person"),),
+        attributes=(
+            AttributeContract(
+                "person",
+                "age",
+                semantic_types=("integer",),
+            ),
+        ),
+        relationships=(),
+    )
+    with EvidenceStore(tmp_path / "age.sqlite") as evidence:
+        extractor = ContractExtractor(
+            (document,),
+            object(),
+            evidence,
+            max_workers=1,
+        )
+        extraction = extractor.extract(contract)
+    assert len(extraction.attribute_records) == 1
+    age = extraction.attribute_records[0]
+    assert age.value == 24
+    assert age.derivation_kind == "age_from_birth_year"
+    assert validate_extraction(
+        extraction,
+        contract,
+        {"person/1.txt": document.text},
+    ) == ()
+
+
+def test_heading_derivation_separates_entity_name_and_region(tmp_path):
+    document = type(
+        "Document",
+        (),
+        {
+            "document_id": "place/1.txt",
+            "text": "\nExample City, Example Region\n\nSource text.",
+            "metadata": {},
+        },
+    )()
+    contract = WorkloadContract(
+        entities=(EntityContract("place"),),
+        attributes=(
+            AttributeContract(
+                "place", "name", semantic_types=("text",)
+            ),
+            AttributeContract(
+                "place", "region", semantic_types=("text",)
+            ),
+        ),
+        relationships=(),
+    )
+    with EvidenceStore(tmp_path / "heading.sqlite") as evidence:
+        extraction = ContractExtractor(
+            (document,),
+            object(),
+            evidence,
+            max_workers=1,
+        ).extract(contract)
+    values = {
+        record.attribute: record.value
+        for record in extraction.attribute_records
+    }
+    assert values == {
+        "name": "Example City",
+        "region": "Example Region",
+    }
+    assert validate_extraction(
+        extraction,
+        contract,
+        {"place/1.txt": document.text},
+    ) == ()
+
+
+def test_attribute_canonicalization_uses_each_documents_identity(tmp_path):
+    class AttributeClient:
+        def __init__(self):
+            self.ledger = type("Ledger", (), {"actual_spent": 0})()
+
+        def generate(self, prompt, **_kwargs):
+            if "Alpha Record" in prompt:
+                return (
+                    '[{"identity":"Alpha","value":"Type A",'
+                    '"exact_span":"Alpha Record is Type A.","unit":null}]'
+                )
+            return (
+                '[{"identity":"Beta","value":"Type B",'
+                '"exact_span":"Beta Record is Type B.","unit":null}]'
+            )
+
+    documents = tuple(
+        type(
+            "Document",
+            (),
+            {
+                "document_id": f"record/{index}.txt",
+                "text": f"\n{name} Record\n\n{name} Record is Type {kind}.",
+                "metadata": {},
+            },
+        )()
+        for index, (name, kind) in enumerate(
+            (("Alpha", "A"), ("Beta", "B")),
+            start=1,
+        )
+    )
+    contract = WorkloadContract(
+        entities=(EntityContract("record"),),
+        attributes=(
+            AttributeContract(
+                "record", "kind", semantic_types=("text",)
+            ),
+        ),
+        relationships=(),
+    )
+    with EvidenceStore(tmp_path / "identity-context.sqlite") as evidence:
+        extraction = ContractExtractor(
+            documents,
+            AttributeClient(),
+            evidence,
+            max_workers=1,
+        ).extract(contract)
+    assert {
+        record.identity for record in extraction.attribute_records
+    } == {"Alpha Record", "Beta Record"}
 
 
 def test_contract_extraction_retries_bad_shape_without_aborting(tmp_path):
@@ -816,6 +958,80 @@ def test_contract_backend_rebinds_join_only_from_observed_overlap(tmp_path):
         "name",
         "team_name",
     )
+
+
+def test_relationship_materialization_cannot_create_unknown_endpoint_rows():
+    entity_player = ExtractionRecord(
+        "player",
+        None,
+        "Player A",
+        "Player A",
+        "Player A",
+        None,
+        "player/1.txt",
+        "u1",
+        0,
+        8,
+    )
+    nationality = ExtractionRecord(
+        "player",
+        "nationality",
+        "Player A",
+        "Example",
+        "Player A is Example",
+        None,
+        "player/1.txt",
+        "u1",
+        0,
+        19,
+    )
+    entity_team = ExtractionRecord(
+        "team",
+        None,
+        "Team A",
+        "Team A",
+        "Team A",
+        None,
+        "team/1.txt",
+        "u2",
+        0,
+        6,
+    )
+    relationship = RelationshipRecord(
+        "member_of",
+        "player",
+        "team",
+        "Player A",
+        "Unknown Team",
+        "Player A joined Unknown Team",
+        "player/1.txt",
+        "u1",
+        0,
+        28,
+    )
+    graph = WorkloadRelationGraph(
+        relations=(
+            RelationSpec("player", ("nationality", "team_name")),
+            RelationSpec("team", ("name",), primary_key="name"),
+        ),
+        edges=(
+            RelationEdge("player", "team_name", "team", "name"),
+        ),
+        covered_query_ids=("q0",),
+    )
+    raw, _evidence = _contract_extraction_parts(
+        ContractExtraction(
+            "contract",
+            (entity_player, entity_team),
+            (nationality,),
+            (relationship,),
+        ),
+        graph,
+        set(),
+        set(),
+    )
+    assert len(raw["player"]) == 1
+    assert [row["name"] for row in raw["team"]] == ["Team A"]
 
 
 def test_raw_candidate_cannot_ignore_an_explicit_query_mapping():

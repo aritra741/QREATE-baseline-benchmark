@@ -74,7 +74,7 @@ from spp.workload_contract import (
 )
 
 
-BACKEND_VERSION = 5
+BACKEND_VERSION = 6
 
 
 class ContractIntegrationError(RuntimeError):
@@ -1247,6 +1247,7 @@ def _contract_extraction_parts(
     root_relation = graph.relations[0].name if graph.relations else ""
     rows: Dict[str, List[dict]] = {name: [] for name in relations}
     grouped: Dict[Tuple[str, str, str], List[dict]] = {}
+    registered_identities: set[Tuple[str, str, str]] = set()
     evidence: List[dict] = []
 
     def new_row(
@@ -1281,10 +1282,12 @@ def _contract_extraction_parts(
         if not identity or not document_id:
             continue
         key = (relation.name, identity, document_id)
+        attribute_value = _member(record, "attribute", default=None)
+        if attribute_value is None:
+            registered_identities.add(key)
         alternatives = grouped.setdefault(key, [])
         if not alternatives:
             alternatives.append(new_row(relation, identity, document_id, 0))
-        attribute_value = _member(record, "attribute", default=None)
         if attribute_value is None:
             column = relation.primary_key
             value = identity
@@ -1294,19 +1297,11 @@ def _contract_extraction_parts(
             if column not in relation.attributes:
                 continue
             value = _member(record, "value")
-            row = next(
-                (
-                    candidate
-                    for candidate in alternatives
-                    if candidate.get(column) in (None, "", value)
-                ),
-                None,
-            )
-            if row is None:
-                row = new_row(
-                    relation, identity, document_id, len(alternatives)
-                )
-                alternatives.append(row)
+            row = alternatives[0]
+            if row.get(column) not in (None, "", value):
+                # Conflicting alternatives remain in the audit store but must
+                # not duplicate an analytical entity row.
+                continue
             row[column] = value
         if not column or value in (None, ""):
             continue
@@ -1341,9 +1336,18 @@ def _contract_extraction_parts(
         ]
         if matches:
             return matches
-        key = (relation.name, identity, document_id)
-        row = new_row(relation, identity, document_id, 0)
-        grouped[key] = [row]
+        registered = next(
+            (
+                key
+                for key in registered_identities
+                if key[0] == relation.name and key[1] == identity
+            ),
+            None,
+        )
+        if registered is None:
+            return []
+        row = new_row(relation, identity, registered[2], 0)
+        grouped[registered] = [row]
         return [row]
 
     for relationship_index, record in enumerate(
@@ -1401,6 +1405,8 @@ def _contract_extraction_parts(
         right_rows = rows_for_identity(
             right_relation, right_identity, document_id
         )
+        if not left_rows or not right_rows:
+            continue
         for edge in matching_edges:
             reversed_edge = edge.left_relation != left_relation.name
             left_column = (
@@ -1491,6 +1497,18 @@ def _contract_extraction_parts(
                             "derivation": "relationship_edge",
                         }
                     )
+    rows = {
+        relation: [
+            row
+            for row in relation_rows
+            if any(
+                value not in (None, "")
+                for column, value in row.items()
+                if column != "row_id"
+            )
+        ]
+        for relation, relation_rows in rows.items()
+    }
     return rows, evidence
 
 
@@ -2300,6 +2318,16 @@ class ContractBackend:
                     metadata={
                         "document_id": document_id,
                         "record_index": index,
+                        "derivation_kind": _member(
+                            record, "derivation_kind", default=None
+                        ),
+                        "derivation_inputs": _jsonable(
+                            _member(
+                                record,
+                                "derivation_inputs",
+                                default={},
+                            )
+                        ),
                     },
                 )
             )

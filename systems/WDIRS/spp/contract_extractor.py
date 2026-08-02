@@ -33,9 +33,9 @@ from spp.workload_contract import (
 from token_counter import count_tokens
 
 
-_PROMPT_VERSION = 2
+_PROMPT_VERSION = 3
 _ENTITY_ARTIFACT_VERSION = 3
-_CONTEXT_ROUTING_VERSION = 2
+_CONTEXT_ROUTING_VERSION = 3
 _CONTEXT_STOPWORDS = frozenset(
     {
         "about",
@@ -105,6 +105,8 @@ class ExtractionRecord:
     unit_id: str
     span_start: int
     span_end: int
+    derivation_kind: Optional[str] = None
+    derivation_inputs: Mapping[str, object] = field(default_factory=dict)
 
     @property
     def is_entity(self) -> bool:
@@ -345,6 +347,15 @@ class ContractExtractor:
         self._document_text = {
             document.document_id: document.text for document in self.documents
         }
+        source_years = [
+            int(match.group(0))
+            for document in self.documents
+            for match in re.finditer(
+                r"\b(?:18|19|20)\d{2}\b",
+                document.text,
+            )
+        ]
+        self.reference_year = max(source_years, default=None)
         for document in self.documents:
             self.evidence_store.add_document(
                 document.document_id,
@@ -1199,6 +1210,16 @@ class ContractExtractor:
         result: List[ExtractionRecord] = []
         if self._budget_exhausted:
             return ()
+        heading_keys = {
+            (
+                _symbol_key(record.entity),
+                _symbol_key(record.attribute),
+                record.document_id,
+            )
+            for record in self._derive_heading_attributes(
+                contract, entity_records
+            )
+        }
 
         def priority(attribute: AttributeContract) -> tuple:
             roles = {
@@ -1225,9 +1246,16 @@ class ContractExtractor:
 
         jobs: List[dict] = []
         contexts: List[
-            Tuple[AttributeContract, str, DocumentUnit]
+            Tuple[
+                AttributeContract,
+                str,
+                DocumentUnit,
+                Tuple[str, ...],
+            ]
         ] = []
         for attribute in sorted(contract.attributes, key=priority):
+            if self._is_age_contract(attribute):
+                continue
             owners = attribute.owners or ("",)
             for owner in owners:
                 owner_contract = contract.entity(owner) if owner else None
@@ -1243,14 +1271,23 @@ class ContractExtractor:
                     *dict(attribute.query_hints).values(),
                 )
                 for source_unit in units:
+                    if (
+                        _symbol_key(owner),
+                        _symbol_key(attribute.name),
+                        source_unit.document_id,
+                    ) in heading_keys:
+                        continue
                     unit = self._focused_unit(source_unit, terms=terms)
-                    known = identities.get(
-                        (_symbol_key(owner), unit.document_id), []
+                    known = tuple(
+                        identities.get(
+                            (_symbol_key(owner), unit.document_id),
+                            [],
+                        )
                     )
                     prompt = self._attribute_prompt(
                         attribute, owner, unit, known
                     )
-                    contexts.append((attribute, owner, unit))
+                    contexts.append((attribute, owner, unit, known))
                     jobs.append(
                         {
                             "target": (
@@ -1263,7 +1300,7 @@ class ContractExtractor:
                             "max_tokens": self.max_attribute_tokens,
                         }
                     )
-        for (attribute, owner, unit), rows in zip(
+        for (attribute, owner, unit, known), rows in zip(
             contexts, self._run_row_jobs(jobs)
         ):
             if rows is not None:
@@ -1275,6 +1312,142 @@ class ContractExtractor:
                         unit=unit,
                         rows=rows,
                         known_identities=known,
+                    )
+                )
+        return tuple(result)
+
+    @staticmethod
+    def _is_age_contract(attribute: AttributeContract) -> bool:
+        symbols = {
+            _symbol_key(value) for value in attribute.symbols
+        }
+        return bool(
+            symbols & {"age", "current_age"}
+            and set(attribute.semantic_types) & {"integer", "real"}
+        )
+
+    def _derive_ages(
+        self,
+        contract: WorkloadContract,
+        entity_records: Sequence[ExtractionRecord],
+    ) -> Tuple[ExtractionRecord, ...]:
+        """Derive requested ages from explicit birth years and corpus time."""
+
+        if self.reference_year is None:
+            return ()
+        attributes = [
+            attribute
+            for attribute in contract.attributes
+            if self._is_age_contract(attribute)
+        ]
+        result: List[ExtractionRecord] = []
+        for attribute in attributes:
+            owner_keys = {_symbol_key(owner) for owner in attribute.owners}
+            for entity_record in entity_records:
+                if _symbol_key(entity_record.entity) not in owner_keys:
+                    continue
+                source = self._document_text.get(
+                    entity_record.document_id, ""
+                )
+                match = re.search(
+                    r"\bborn\b[^\r\n().;]{0,80}?"
+                    r"\b((?:18|19|20)\d{2})\b",
+                    source,
+                    flags=re.IGNORECASE,
+                )
+                if match is None:
+                    continue
+                birth_year = int(match.group(1))
+                age = self.reference_year - birth_year
+                if age < 0 or age > 150:
+                    continue
+                start = source.rfind("\n", 0, match.start()) + 1
+                end = source.find("\n", match.end())
+                if end < 0:
+                    end = len(source)
+                exact_span = source[start:end].strip()
+                start = source.find(exact_span, start, end)
+                if not exact_span or start < 0:
+                    continue
+                result.append(
+                    ExtractionRecord(
+                        entity=entity_record.entity,
+                        attribute=attribute.name,
+                        identity=entity_record.identity,
+                        value=age,
+                        exact_span=exact_span,
+                        unit="years",
+                        document_id=entity_record.document_id,
+                        unit_id=entity_record.unit_id,
+                        span_start=start,
+                        span_end=start + len(exact_span),
+                        derivation_kind="age_from_birth_year",
+                        derivation_inputs={
+                            "birth_year": birth_year,
+                            "reference_year": self.reference_year,
+                        },
+                    )
+                )
+        return tuple(result)
+
+    def _derive_heading_attributes(
+        self,
+        contract: WorkloadContract,
+        entity_records: Sequence[ExtractionRecord],
+    ) -> Tuple[ExtractionRecord, ...]:
+        """Project explicit document-heading labels into requested text fields."""
+
+        result: List[ExtractionRecord] = []
+        for attribute in contract.attributes:
+            if "text" not in attribute.semantic_types:
+                continue
+            symbols = {_symbol_key(value) for value in attribute.symbols}
+            mode = next(
+                (
+                    candidate
+                    for candidate in (
+                        "name",
+                        "label",
+                        "title",
+                        "state",
+                        "province",
+                        "region",
+                    )
+                    if candidate in symbols
+                ),
+                None,
+            )
+            if mode is None:
+                continue
+            owner_keys = {_symbol_key(owner) for owner in attribute.owners}
+            for entity_record in entity_records:
+                if _symbol_key(entity_record.entity) not in owner_keys:
+                    continue
+                heading = entity_record.exact_span.strip()
+                if not heading:
+                    continue
+                if mode in {"state", "province", "region"}:
+                    if "," not in heading:
+                        continue
+                    value = heading.rsplit(",", 1)[1].strip()
+                else:
+                    value = heading.split(",", 1)[0].strip()
+                if not value:
+                    continue
+                result.append(
+                    ExtractionRecord(
+                        entity=entity_record.entity,
+                        attribute=attribute.name,
+                        identity=entity_record.identity,
+                        value=value,
+                        exact_span=heading,
+                        unit=None,
+                        document_id=entity_record.document_id,
+                        unit_id=entity_record.unit_id,
+                        span_start=entity_record.span_start,
+                        span_end=entity_record.span_end,
+                        derivation_kind="heading_component",
+                        derivation_inputs={"component": mode},
                     )
                 )
         return tuple(result)
@@ -1543,15 +1716,20 @@ class ContractExtractor:
             if len(values) < 2:
                 continue
             prompt = (
-                "Decide whether the natural-language workload explicitly "
-                "requires these observed source categories to use a shared "
-                "canonical or coarser taxonomy. Do not create a mapping merely "
-                "to reduce cardinality. If no mapping is semantically required, "
-                "return []. Otherwise return only a JSON array whose objects "
+                "Choose the categorical representation that most directly "
+                "answers the natural-language workload. When observed values "
+                "are aliases, labels for instances, or finer subcategories of "
+                "the concept requested by the query, map them to consistent "
+                "canonical values at the requested semantic level. Preserve "
+                "distinct values when the query asks for that detailed level; "
+                "do not reduce cardinality merely for convenience. If no "
+                "semantic mapping is justified, return []. Otherwise return "
+                "only a JSON array whose objects "
                 "have exactly source_value and target_value. source_value must "
                 "be copied exactly from observed_values. target_value must be "
-                "justified by the NL workload and must not encode an expected "
-                "answer.\n\n"
+                "justified solely by the NL workload, observed labels, and "
+                "ordinary language meaning; it must not encode an expected "
+                "benchmark answer.\n\n"
                 f"Entity: {attribute.entity}\n"
                 f"Attribute: {attribute.name}\n"
                 "Natural-language workload hints: "
@@ -1850,7 +2028,34 @@ class ContractExtractor:
         relationship_records = self.extract_relationships(
             contract, entity_records
         )
-        attribute_records = self.extract_attributes(contract, entity_records)
+        heading_records = self._derive_heading_attributes(
+            contract, entity_records
+        )
+        heading_keys = {
+            (
+                _symbol_key(record.entity),
+                _symbol_key(record.attribute),
+                record.document_id,
+            )
+            for record in heading_records
+        }
+        extracted_attributes = tuple(
+            record
+            for record in self.extract_attributes(
+                contract, entity_records
+            )
+            if (
+                _symbol_key(record.entity),
+                _symbol_key(record.attribute),
+                record.document_id,
+            )
+            not in heading_keys
+        )
+        attribute_records = (
+            *heading_records,
+            *extracted_attributes,
+            *self._derive_ages(contract, entity_records),
+        )
         derivation_mappings = self.derive_mappings(
             contract, attribute_records
         )
