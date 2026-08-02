@@ -23,7 +23,11 @@ from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Seque
 
 from spp.budget_ledger import BudgetExhausted, GlobalBudgetLedger
 from spp.budgeted_llm import BudgetedLLMClient
-from spp.contract_extractor import ContractExtractor, DocumentUnit
+from spp.contract_extractor import (
+    ContractExtractor,
+    DocumentUnit,
+    ExtractionRecord,
+)
 from spp.contract_validation import (
     AdaptiveRepairAdmission,
     ValidationIssue,
@@ -76,7 +80,7 @@ from spp.workload_contract import (
 )
 
 
-BACKEND_VERSION = 7
+BACKEND_VERSION = 8
 HYBRID_BULK_VERSION = 1
 
 logger = logging.getLogger(__name__)
@@ -1748,7 +1752,7 @@ class ContractBackend:
         bootstrap_folds: int = 4,
         use_bulk_extraction: bool = False,
         bulk_extractor_factory: Optional[Callable[[object, Path], object]] = None,
-        bulk_min_column_coverage: float = 0.80,
+        bulk_min_column_coverage: float = 0.0,
         bulk_column_batch_size: Optional[int] = None,
     ):
         self.documents = _normalize_documents(documents)
@@ -1768,7 +1772,7 @@ class ContractBackend:
         self.bulk_column_batch_size = int(
             bulk_column_batch_size
             if bulk_column_batch_size is not None
-            else os.getenv("SPP_BULK_COLUMN_BATCH_SIZE", "6")
+            else os.getenv("SPP_BULK_COLUMN_BATCH_SIZE", "10")
         )
         if self.max_query_rows <= 0:
             raise ValueError("max_query_rows must be positive")
@@ -2358,6 +2362,53 @@ class ContractBackend:
                 "errors": error_manifest,
             },
         )
+
+    def _add_bulk_derivation_mappings(
+        self,
+        extractor: object,
+        result: object,
+        bulk: Optional[SharedExtraction],
+    ) -> object:
+        """Induce contract mappings over the bulk extractor's observed values."""
+
+        derive = getattr(extractor, "derive_mappings", None)
+        if bulk is None or not callable(derive):
+            return result
+        records = tuple(
+            ExtractionRecord(
+                entity=cell.relation,
+                attribute=cell.column,
+                identity=cell.row_identity,
+                value=cell.value,
+                exact_span=cell.anchor_text,
+                unit=None,
+                document_id=cell.document_id,
+                unit_id=cell.document_id,
+                span_start=cell.start,
+                span_end=cell.end,
+                derivation_kind="wdirs_bulk_observation",
+                derivation_inputs={},
+            )
+            for cell in bulk.evidence
+            if cell.supported
+        )
+        if not records:
+            return result
+        induced = tuple(derive(self.contract, records))
+        existing = tuple(
+            _member(result, "derivation_mappings", default=()) or ()
+        )
+        mappings: Dict[str, object] = {}
+        for mapping in (*existing, *induced):
+            mappings[_fingerprint(_jsonable(mapping))] = mapping
+        if is_dataclass(result) and hasattr(result, "derivation_mappings"):
+            return replace(
+                result,
+                derivation_mappings=tuple(
+                    mappings[key] for key in sorted(mappings)
+                ),
+            )
+        return result
 
     def _ensure_contract(self, intent: WorkloadIntent) -> None:
         fingerprint = _fingerprint(asdict(intent))
@@ -3178,6 +3229,11 @@ class ContractBackend:
                 extractor,
                 result,
                 ledger,
+            )
+            result = self._add_bulk_derivation_mappings(
+                extractor,
+                result,
+                bulk_shared,
             )
             self._persist_contract_audit(
                 result, validation_issues, evidence_store

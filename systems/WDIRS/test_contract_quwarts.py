@@ -18,6 +18,7 @@ from spp.contract_backend import (
     ContractBackend,
     ContractDocument,
     RelationEdge,
+    SharedCellEvidence,
     SharedExtraction,
     WorkloadRelationGraph,
     _contract_extraction_parts,
@@ -1122,6 +1123,65 @@ def test_contract_backend_bulk_extraction_preserves_coherent_rows(tmp_path):
         ("Beta Person", 50),
     }
     assert all(cell.supported for cell in shared.evidence)
+
+
+def test_bulk_values_participate_in_contract_taxonomy_induction(tmp_path):
+    class MappingExtractor:
+        def derive_mappings(self, _contract, records):
+            assert {record.value for record in records} == {"Detailed"}
+            return (
+                DerivationMapping(
+                    entity="item",
+                    attribute="category",
+                    source_value="Detailed",
+                    target_value="Broad",
+                    mapping_kind="taxonomy",
+                    supporting_document_ids=("item/1.txt",),
+                ),
+            )
+
+    backend = ContractBackend(
+        (ContractDocument("item/1.txt", "Detailed"),),
+        type("Client", (), {})(),
+        scratch_dir=tmp_path,
+    )
+    backend.contract = WorkloadContract(
+        entities=(EntityContract("item"),),
+        attributes=(
+            AttributeContract(
+                "item", "category", semantic_types=("text",)
+            ),
+        ),
+        relationships=(),
+    )
+    bulk = SharedExtraction(
+        raw_tables={
+            "item": (
+                {"row_id": "row-1", "category": "Detailed"},
+            )
+        },
+        evidence=(
+            SharedCellEvidence(
+                relation="item",
+                row_identity="row-1",
+                column="category",
+                value="Detailed",
+                anchor_id="anchor",
+                document_id="item/1.txt",
+                anchor_text="Detailed",
+                start=0,
+                end=8,
+                entailed=True,
+                span_restored=True,
+            ),
+        ),
+    )
+    result = backend._add_bulk_derivation_mappings(
+        MappingExtractor(),
+        ContractExtraction("contract", (), ()),
+        bulk,
+    )
+    assert result.derivation_mappings[0].target_value == "Broad"
 
 
 def test_raw_candidate_cannot_ignore_an_explicit_query_mapping():

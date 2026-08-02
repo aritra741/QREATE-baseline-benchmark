@@ -149,14 +149,17 @@ def main() -> int:
     parser.add_argument(
         "--bulk-column-batch-size",
         type=int,
-        default=int(os.getenv("SPP_BULK_COLUMN_BATCH_SIZE", "6")),
+        default=int(os.getenv("SPP_BULK_COLUMN_BATCH_SIZE", "10")),
         help="Columns per WDIRS bulk extraction call in the contract pipeline.",
     )
     parser.add_argument(
         "--bulk-min-column-coverage",
         type=float,
-        default=float(os.getenv("SPP_BULK_MIN_COLUMN_COVERAGE", "0.8")),
-        help="Coverage below which WDIRS retries a contract column.",
+        default=float(os.getenv("SPP_BULK_MIN_COLUMN_COVERAGE", "0.0")),
+        help=(
+            "Coverage below which WDIRS retries a contract column; zero keeps "
+            "the contract gap-fill budget intact."
+        ),
     )
     args = parser.parse_args()
     if args.pipeline == "contract":
