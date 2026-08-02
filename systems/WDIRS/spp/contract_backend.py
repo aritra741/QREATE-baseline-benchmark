@@ -1912,6 +1912,12 @@ class ContractBackend:
         self._intent_rebindings = rebindings
         refined = replace(intent, requirements=tuple(requirements))
         self.intent = refined
+        # Refinement only substitutes evidence-backed join columns already
+        # owned by the prepared relation graph. Treat the refined intent as
+        # the active contract input so generate_configs does not rebuild the
+        # contract and discard the shared extraction prepared above.
+        if self.contract is not None:
+            self._intent_fingerprint = _fingerprint(asdict(refined))
         return refined
 
     def _compiler(self) -> ContractCompiler:

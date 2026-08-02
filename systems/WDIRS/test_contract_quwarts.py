@@ -918,7 +918,8 @@ def test_contract_backend_rebinds_join_only_from_observed_overlap(tmp_path):
         edges=(RelationEdge("team", "id", "player", "team_id"),),
         covered_query_ids=("q0",),
     )
-    backend._shared = SharedExtraction(
+    backend.contract = compile_workload_contract(_intent(requirement))
+    shared = SharedExtraction(
         raw_tables={
             "team": (
                 {"id": None, "name": "A"},
@@ -931,6 +932,7 @@ def test_contract_backend_rebinds_join_only_from_observed_overlap(tmp_path):
         },
         evidence=(),
     )
+    backend._shared = shared
     refined = backend.refine_intent(_intent(requirement))
     join = refined.requirements[0].plan.joins[0]
     assert (join.left.attribute, join.right.attribute) == (
@@ -939,6 +941,8 @@ def test_contract_backend_rebinds_join_only_from_observed_overlap(tmp_path):
     )
     assert join.left.semantic_type == "text"
     assert join.right.semantic_type == "text"
+    assert backend.generate_configs(refined)
+    assert backend._shared is shared
     disconnected = QueryRequirement(
         "q1",
         "List players for each team.",
