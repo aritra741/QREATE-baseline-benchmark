@@ -80,8 +80,8 @@ from spp.workload_contract import (
 )
 
 
-BACKEND_VERSION = 12
-HYBRID_BULK_VERSION = 2
+BACKEND_VERSION = 13
+HYBRID_BULK_VERSION = 3
 
 logger = logging.getLogger(__name__)
 
@@ -2122,16 +2122,87 @@ class ContractBackend:
             return True
         key = _symbol_key(column)
         semantic_type = cls._bulk_semantic_type(relation, column)
+        count_like = any(
+            token in key
+            for token in (
+                "count",
+                "championship",
+                "award",
+                "medal",
+                "title",
+            )
+        )
         if (
-            semantic_type == "QUANTITY_COUNT"
+            (semantic_type == "QUANTITY_COUNT" or count_like)
             and numeric.is_integer()
-            and 1800 <= numeric <= 2100
+            and 1000 <= numeric <= 2999
             and not any(token in key for token in ("date", "year"))
         ):
             return False
         if key in {"age", "current_age"} and not 0 <= numeric <= 125:
             return False
         return math.isfinite(numeric)
+
+    def _sanitize_shared_values(
+        self,
+        shared: SharedExtraction,
+    ) -> SharedExtraction:
+        """Apply semantic plausibility gates after every extraction merge/cache."""
+
+        if self.relation_graph is None:
+            return shared
+        relations = {
+            relation.name: relation for relation in self.relation_graph.relations
+        }
+        rejected: set[Tuple[str, str, str]] = set()
+
+        def sanitize_tables(
+            tables: Optional[
+                Mapping[str, Sequence[Mapping[str, object]]]
+            ],
+        ) -> Optional[Dict[str, Tuple[Mapping[str, object], ...]]]:
+            if tables is None:
+                return None
+            result: Dict[str, Tuple[Mapping[str, object], ...]] = {}
+            for name, rows in tables.items():
+                relation = relations.get(name)
+                cleaned_rows: List[Mapping[str, object]] = []
+                for source_row in rows:
+                    row = dict(source_row)
+                    identity = str(row.get("row_id", ""))
+                    if relation is not None:
+                        for column in tuple(row):
+                            if column == "row_id":
+                                continue
+                            if not self._bulk_value_plausible(
+                                relation, column, row[column]
+                            ):
+                                rejected.add((name, identity, column))
+                                row.pop(column, None)
+                    cleaned_rows.append(row)
+                result[name] = tuple(cleaned_rows)
+            return result
+
+        raw = sanitize_tables(shared.raw_tables) or {}
+        semantic = sanitize_tables(shared.semantic_tables)
+        evidence = tuple(
+            cell
+            for cell in shared.evidence
+            if (
+                cell.relation,
+                cell.row_identity,
+                cell.column,
+            )
+            not in rejected
+        )
+        metadata = dict(shared.metadata)
+        metadata["plausibility_rejected_cell_count"] = len(rejected)
+        return SharedExtraction(
+            raw_tables=raw,
+            semantic_tables=semantic,
+            evidence=evidence,
+            metadata=metadata,
+        )
 
     def _bulk_documents_for_relation(
         self,
@@ -3296,7 +3367,9 @@ class ContractBackend:
         key = self._shared_key()
         cached = evidence_store.get_shared_artifact(key)
         if cached is not None:
-            self._shared = _shared_from_payload(cached)
+            self._shared = self._sanitize_shared_values(
+                _shared_from_payload(cached)
+            )
         else:
             before = ledger.actual_spent
             bulk_shared = (
@@ -3330,6 +3403,7 @@ class ContractBackend:
                 if bulk_shared is not None
                 else contract_shared
             )
+            self._shared = self._sanitize_shared_values(self._shared)
             if not any(self._shared.raw_tables.values()):
                 if bool(
                     _member(
@@ -3421,10 +3495,12 @@ class ContractBackend:
             )
             target = _member(mapping, "target_value", default=None)
             if entity and column:
-                mappings[(entity, column, source)] = target
+                entity_key = _symbol_key(entity)
+                column_key = _symbol_key(column)
+                mappings[(entity_key, column_key, source)] = target
                 if isinstance(source_value, str):
                     casefold_mappings[
-                        (entity, column, source_value.casefold())
+                        (entity_key, column_key, source_value.casefold())
                     ] = target
         result: Dict[str, List[dict]] = {}
         for name, rows in raw_tables.items():
@@ -3434,33 +3510,35 @@ class ContractBackend:
                 output = dict(row)
                 identity = str(row.get("row_id", ""))
                 for column, semantic_type in relation.semantic_types:
-                    if (name, identity, column) in supported:
-                        coerced = self._coerce_value(
-                            output.get(column), semantic_type
-                        )
-                        source_key = json.dumps(
-                            _jsonable(output.get(column)),
-                            sort_keys=True,
-                            separators=(",", ":"),
-                        )
-                        if (name, column, source_key) in mappings:
-                            output[column] = mappings[
-                                (name, column, source_key)
-                            ]
-                        elif (
-                            isinstance(coerced, str)
-                            and (
-                                name,
-                                column,
-                                coerced.casefold(),
-                            )
-                            in casefold_mappings
-                        ):
-                            output[column] = casefold_mappings[
-                                (name, column, coerced.casefold())
-                            ]
-                        else:
-                            output[column] = coerced
+                    value = output.get(column)
+                    coerced = self._coerce_value(value, semantic_type)
+                    source_key = json.dumps(
+                        _jsonable(value),
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    )
+                    mapping_key = (
+                        _symbol_key(name),
+                        _symbol_key(column),
+                        source_key,
+                    )
+                    casefold_key = (
+                        _symbol_key(name),
+                        _symbol_key(column),
+                        coerced.casefold(),
+                    ) if isinstance(coerced, str) else None
+                    if mapping_key in mappings:
+                        # A mapping induced from supported observations applies
+                        # to every identical raw surface, including cells whose
+                        # own local span could not be restored.
+                        output[column] = mappings[mapping_key]
+                    elif (
+                        casefold_key is not None
+                        and casefold_key in casefold_mappings
+                    ):
+                        output[column] = casefold_mappings[casefold_key]
+                    elif (name, identity, column) in supported:
+                        output[column] = coerced
                 transformed.append(output)
             result[name] = transformed
         return result

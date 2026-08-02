@@ -280,6 +280,72 @@ def test_partial_llm_taxonomy_is_rejected(tmp_path):
         assert extractor._taxonomy_mappings(contract, records) == ()
 
 
+def test_partial_llm_taxonomy_is_completed_by_targeted_retry(tmp_path):
+    class RepairingTaxonomyClient:
+        model = "fixture"
+
+        def __init__(self):
+            self.ledger = type("Ledger", (), {"actual_spent": 0})()
+
+        def generate(self, prompt, **_kwargs):
+            if "Complete an otherwise valid categorical mapping" in prompt:
+                return json.dumps(
+                    [{"source_value": "B", "target_value": "Broad"}]
+                )
+            return json.dumps(
+                [{"source_value": "A", "target_value": "Broad"}]
+            )
+
+    document = type(
+        "Document",
+        (),
+        {
+            "document_id": "item/1.txt",
+            "text": "\nItem\n\nA B",
+            "metadata": {},
+        },
+    )()
+    attribute = AttributeContract(
+        "item",
+        "category",
+        semantic_types=("text",),
+        contexts=(("q0", ("group_by",)),),
+        query_hints=(("q0", "Group each item by category."),),
+    )
+    contract = WorkloadContract(
+        entities=(EntityContract("item"),),
+        attributes=(attribute,),
+        relationships=(),
+    )
+    records = tuple(
+        ExtractionRecord(
+            "item",
+            "category",
+            "Item",
+            value,
+            value,
+            None,
+            "item/1.txt",
+            "u1",
+            index,
+            index + 1,
+        )
+        for index, value in enumerate(("A", "B"))
+    )
+    with EvidenceStore(tmp_path / "repaired-taxonomy.sqlite") as evidence:
+        extractor = ContractExtractor(
+            (document,),
+            RepairingTaxonomyClient(),
+            evidence,
+            max_workers=1,
+        )
+        mappings = extractor._taxonomy_mappings(contract, records)
+    assert {
+        (mapping.source_value, mapping.target_value)
+        for mapping in mappings
+    } == {("A", "Broad"), ("B", "Broad")}
+
+
 def test_contract_response_parser_accepts_envelopes_and_mixed_arrays():
     row = {
         "identity": "Example",
@@ -1429,15 +1495,135 @@ def test_supported_contract_cell_overrides_conflicting_bulk_value():
 def test_bulk_numeric_validation_rejects_years_as_counts_and_implausible_ages():
     relation = RelationSpec(
         "entity",
-        ("awards", "age"),
-        semantic_types=(("awards", "integer"), ("age", "real")),
+        ("awards", "titles", "age"),
+        semantic_types=(
+            ("awards", "integer"),
+            ("titles", "text"),
+            ("age", "real"),
+        ),
     )
     assert not ContractBackend._bulk_value_plausible(
         relation, "awards", 2023
     )
+    assert not ContractBackend._bulk_value_plausible(
+        relation, "titles", 2023
+    )
     assert ContractBackend._bulk_value_plausible(relation, "awards", 18)
     assert not ContractBackend._bulk_value_plausible(relation, "age", 136)
     assert ContractBackend._bulk_value_plausible(relation, "age", 86)
+
+
+def test_post_merge_plausibility_gate_removes_invalid_cells():
+    relation = RelationSpec(
+        "entity",
+        ("name", "awards", "age"),
+        semantic_types=(
+            ("name", "text"),
+            ("awards", "integer"),
+            ("age", "real"),
+        ),
+    )
+    backend = ContractBackend(
+        (ContractDocument("entity/1.txt", "Example"),),
+        object(),
+    )
+    backend.relation_graph = WorkloadRelationGraph(
+        pattern="snowflake",
+        relations=(relation,),
+        edges=(),
+        covered_query_ids=("q0",),
+    )
+    shared = SharedExtraction(
+        raw_tables={
+            "entity": (
+                {
+                    "row_id": "r1",
+                    "name": "Example",
+                    "awards": 2023,
+                    "age": 681,
+                },
+            )
+        },
+        evidence=(
+            SharedCellEvidence(
+                relation="entity",
+                row_identity="r1",
+                column="awards",
+                value=2023,
+                anchor_id="a",
+                document_id="entity/1.txt",
+                anchor_text="2023",
+                start=0,
+                end=4,
+                entailed=True,
+                span_restored=True,
+            ),
+        ),
+    )
+    cleaned = backend._sanitize_shared_values(shared)
+    assert cleaned.raw_tables["entity"] == (
+        {"row_id": "r1", "name": "Example"},
+    )
+    assert cleaned.evidence == ()
+
+
+def test_semantic_mapping_applies_to_same_unsupported_surface():
+    relation = RelationSpec(
+        "person",
+        ("role",),
+        semantic_types=(("role", "text"),),
+    )
+    backend = ContractBackend(
+        (ContractDocument("person/1.txt", "Guard"),),
+        object(),
+    )
+    backend.relation_graph = WorkloadRelationGraph(
+        pattern="snowflake",
+        relations=(relation,),
+        edges=(),
+        covered_query_ids=("q0",),
+    )
+    backend._shared = SharedExtraction(
+        raw_tables={
+            "person": (
+                {"row_id": "r1", "role": "Guard"},
+                {"row_id": "r2", "role": "Guard"},
+            )
+        },
+        evidence=(
+            SharedCellEvidence(
+                relation="person",
+                row_identity="r1",
+                column="role",
+                value="Guard",
+                anchor_id="a",
+                document_id="person/1.txt",
+                anchor_text="Guard",
+                start=0,
+                end=5,
+                entailed=True,
+                span_restored=True,
+            ),
+        ),
+        metadata={
+            "derivation_mappings": (
+                {
+                    "entity": "person",
+                    "attribute": "role",
+                    "source_value": "Guard",
+                    "target_value": "Backcourt",
+                    "mapping_kind": "taxonomy",
+                },
+            )
+        },
+    )
+    semantic = backend._derived_semantic_tables(
+        backend._shared.raw_tables
+    )
+    assert [row["role"] for row in semantic["person"]] == [
+        "Backcourt",
+        "Backcourt",
+    ]
 
 
 def test_raw_candidate_cannot_ignore_an_explicit_query_mapping():

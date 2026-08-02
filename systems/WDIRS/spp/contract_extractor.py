@@ -34,7 +34,7 @@ from spp.workload_contract import (
 from token_counter import count_tokens
 
 
-_PROMPT_VERSION = 7
+_PROMPT_VERSION = 8
 _ENTITY_ARTIFACT_VERSION = 3
 _CONTEXT_ROUTING_VERSION = 3
 CORPUS_REFERENCE_YEAR = 2026
@@ -1888,7 +1888,12 @@ class ContractExtractor:
                 "observed instance labels, map every observed value onto that "
                 "coarser mutually exclusive taxonomy. Preserve distinct values "
                 "only when the query asks for that detailed level; do not "
-                "reduce cardinality merely for convenience. If no semantic "
+                "reduce cardinality merely for convenience. Raw grouping is "
+                "not coherent when observed labels mix atomic categories, "
+                "compound categories, free-form descriptions, and spelling or "
+                "case variants; in that situation choose the smallest "
+                "conventional mutually exclusive taxonomy justified by ordinary "
+                "language, and map non-values to null. If no semantic "
                 "mapping is justified, return []. Otherwise return only a "
                 "JSON array whose objects have exactly source_value and "
                 "target_value. source_value must be copied exactly from "
@@ -1963,6 +1968,62 @@ class ContractExtractor:
             for value in values:
                 if value.casefold() in by_case:
                     mapping[value] = by_case[value.casefold()]
+            missing = sorted(set(values) - set(mapping))
+            if mapping and missing:
+                repair_prompt = (
+                    "Complete an otherwise valid categorical mapping. Return "
+                    "only a JSON array whose objects have exactly source_value "
+                    "and target_value. Include every missing source exactly "
+                    "once. source_value must be copied exactly from "
+                    "missing_observed_values. Use the same taxonomy already "
+                    "chosen in accepted_mapping. target_value must be a "
+                    "canonical string, or null when the source label is not "
+                    "actually a value of the requested attribute. Do not alter "
+                    "or repeat accepted mappings.\n\n"
+                    f"Entity: {attribute.entity}\n"
+                    f"Attribute: {attribute.name}\n"
+                    "Natural-language workload hints: "
+                    f"{json.dumps(dict(attribute.query_hints), sort_keys=True)}\n"
+                    f"Accepted mapping: {json.dumps(mapping, sort_keys=True)}\n"
+                    f"Missing observed values: {json.dumps(missing)}"
+                )
+                repair_rows = self._budgeted_rows(
+                    target=(
+                        f"taxonomy-repair:{attribute.entity}:"
+                        f"{attribute.name}"
+                    ),
+                    phase="taxonomy",
+                    prompt=repair_prompt,
+                    unit=representative,
+                    max_tokens=max(
+                        self.max_attribute_tokens,
+                        min(2_048, 96 * len(missing)),
+                    ),
+                )
+                if repair_rows is None:
+                    break
+                for row in repair_rows:
+                    if set(row) != {"source_value", "target_value"}:
+                        continue
+                    source = row.get("source_value")
+                    target = row.get("target_value")
+                    if (
+                        not isinstance(source, str)
+                        or source not in missing
+                        or (
+                            target is not None
+                            and (
+                                not isinstance(target, str)
+                                or not target.strip()
+                            )
+                        )
+                    ):
+                        continue
+                    mapping[source] = (
+                        target.strip()
+                        if isinstance(target, str)
+                        else None
+                    )
             # Mixed raw/canonical values are worse than no taxonomy because
             # they create incompatible grouping levels.
             if set(mapping) != set(values):
