@@ -605,6 +605,17 @@ class ConstrainedExtractor:
                     parsed = json.loads(m.group())
                 except json.JSONDecodeError:
                     pass
+            if not parsed:
+                try:
+                    from json_repair import repair_json
+
+                    repaired = repair_json(clean, return_objects=True)
+                    if isinstance(repaired, dict):
+                        parsed = repaired
+                    elif isinstance(repaired, list) and len(chunk_ids) == 1:
+                        parsed = {"passage_1": repaired}
+                except (ImportError, TypeError, ValueError):
+                    pass
 
         for i, chunk_id in enumerate(chunk_ids):
             key = f"passage_{i + 1}"
@@ -767,7 +778,9 @@ class ConstrainedExtractor:
           in additional fields from other batches at matching positions.  Any
           batch records beyond the base length are appended as partial records.
         """
-        records_per_batch: List[List[Dict[str, Any]]] = []
+        batch_payloads: List[
+            tuple[List[Dict[str, Any]], List[Dict[str, str]]]
+        ] = []
         total_time = 0.0
         last_error: Optional[str] = None
 
@@ -780,9 +793,14 @@ class ConstrainedExtractor:
                 last_error = result.error
                 continue
             if result.records:
-                records_per_batch.append(result.records)
+                batch_payloads.append(
+                    (
+                        result.records,
+                        list(result.spans or ()),
+                    )
+                )
 
-        if not records_per_batch:
+        if not batch_payloads:
             return ExtractionResult(
                 chunk_id=chunk_id,
                 records=[],
@@ -791,31 +809,51 @@ class ConstrainedExtractor:
                 error=last_error,
             )
 
-        counts = [len(r) for r in records_per_batch]
+        counts = [len(records) for records, _spans in batch_payloads]
 
         if all(c == counts[0] for c in counts):
             # Happy path: all batches agree on entity count — zip by position.
             merged_records = []
+            merged_spans = []
             for idx in range(counts[0]):
                 merged: Dict[str, Any] = {}
-                for batch_records in records_per_batch:
+                spans: Dict[str, str] = {}
+                for batch_records, batch_spans in batch_payloads:
                     merged.update(batch_records[idx])
+                    if idx < len(batch_spans):
+                        spans.update(batch_spans[idx])
                 merged_records.append(merged)
+                merged_spans.append(spans)
         else:
             # Counts disagree — use the largest batch as base, merge others in
             # by position, and append any overflow records as partial entries.
-            base = max(records_per_batch, key=len)
-            merged_records = [dict(r) for r in base]
-            for batch_records in records_per_batch:
-                if batch_records is base:
+            base_records, base_spans = max(
+                batch_payloads, key=lambda payload: len(payload[0])
+            )
+            merged_records = [dict(record) for record in base_records]
+            merged_spans = [
+                dict(base_spans[index])
+                if index < len(base_spans)
+                else {}
+                for index in range(len(base_records))
+            ]
+            for batch_records, batch_spans in batch_payloads:
+                if batch_records is base_records:
                     continue
                 for i, record in enumerate(batch_records):
                     if i < len(merged_records):
                         for k, v in record.items():
                             if k not in merged_records[i]:
                                 merged_records[i][k] = v
+                        if i < len(batch_spans):
+                            merged_spans[i].update(batch_spans[i])
                     else:
                         merged_records.append(dict(record))
+                        merged_spans.append(
+                            dict(batch_spans[i])
+                            if i < len(batch_spans)
+                            else {}
+                        )
 
         schema_keys: Set[str] = set()
         for record in merged_records:
@@ -827,6 +865,7 @@ class ConstrainedExtractor:
             schema_keys=schema_keys,
             extraction_time=total_time,
             error=last_error,
+            spans=merged_spans,
         )
 
     def extract_batch(
@@ -2017,6 +2056,7 @@ class ConstrainedExtractor:
         and permanently leave newly requested columns empty.
         """
         payload = {
+            "format_version": 2,
             "chunk_id": chunk_id,
             "table_name": table_name,
             "schema": sorted((schema or {}).items()),

@@ -12,7 +12,9 @@ from __future__ import annotations
 import hashlib
 import inspect
 import json
+import logging
 import math
+import os
 import re
 import sqlite3
 from dataclasses import asdict, dataclass, field, is_dataclass, replace
@@ -21,7 +23,7 @@ from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Seque
 
 from spp.budget_ledger import BudgetExhausted, GlobalBudgetLedger
 from spp.budgeted_llm import BudgetedLLMClient
-from spp.contract_extractor import ContractExtractor
+from spp.contract_extractor import ContractExtractor, DocumentUnit
 from spp.contract_validation import (
     AdaptiveRepairAdmission,
     ValidationIssue,
@@ -74,7 +76,10 @@ from spp.workload_contract import (
 )
 
 
-BACKEND_VERSION = 6
+BACKEND_VERSION = 7
+HYBRID_BULK_VERSION = 1
+
+logger = logging.getLogger(__name__)
 
 
 class ContractIntegrationError(RuntimeError):
@@ -1655,6 +1660,78 @@ def _shared_from_payload(payload: object) -> SharedExtraction:
     )
 
 
+def _source_span(source: str, surface: object) -> Tuple[str, int, int]:
+    rendered = str(surface).strip() if surface not in (None, "") else ""
+    if not rendered:
+        return "", -1, -1
+    start = source.casefold().find(rendered.casefold())
+    if start < 0:
+        return "", -1, -1
+    return source[start : start + len(rendered)], start, start + len(rendered)
+
+
+def _merge_shared_extractions(
+    primary: SharedExtraction,
+    secondary: SharedExtraction,
+) -> SharedExtraction:
+    """Fill high-recall bulk rows with validated contract-only evidence."""
+
+    names = set(primary.raw_tables) | set(secondary.raw_tables)
+    raw: Dict[str, Tuple[Mapping[str, object], ...]] = {}
+    for name in sorted(names):
+        rows: List[dict] = []
+        by_identity: Dict[str, dict] = {}
+        for source_rows in (
+            primary.raw_tables.get(name, ()),
+            secondary.raw_tables.get(name, ()),
+        ):
+            for source_row in source_rows:
+                row = dict(source_row)
+                identity = str(row.get("row_id", ""))
+                if not identity or identity not in by_identity:
+                    rows.append(row)
+                    if identity:
+                        by_identity[identity] = row
+                    continue
+                target = by_identity[identity]
+                for column, value in row.items():
+                    if target.get(column) in (None, "") and value not in (
+                        None,
+                        "",
+                    ):
+                        target[column] = value
+        raw[name] = tuple(rows)
+
+    evidence_by_key: Dict[
+        Tuple[str, str, str, str], SharedCellEvidence
+    ] = {}
+    for cell in (*primary.evidence, *secondary.evidence):
+        key = (
+            cell.relation,
+            cell.row_identity,
+            cell.column,
+            json.dumps(_jsonable(cell.value), sort_keys=True),
+        )
+        previous = evidence_by_key.get(key)
+        if previous is None or cell.supported > previous.supported:
+            evidence_by_key[key] = cell
+    metadata = dict(secondary.metadata)
+    metadata.update(
+        {
+            "extraction_strategy": "wdirs_bulk_plus_contract",
+            "bulk": _jsonable(primary.metadata),
+        }
+    )
+    return SharedExtraction(
+        raw_tables=raw,
+        evidence=tuple(
+            evidence_by_key[key] for key in sorted(evidence_by_key)
+        ),
+        semantic_tables=None,
+        metadata=metadata,
+    )
+
+
 class ContractBackend:
     """A ``SynthesisBackend`` implementation over one compiled contract."""
 
@@ -1669,6 +1746,10 @@ class ContractBackend:
         contract_compiler: Optional[ContractCompiler] = None,
         max_query_rows: int = 100_000,
         bootstrap_folds: int = 4,
+        use_bulk_extraction: bool = False,
+        bulk_extractor_factory: Optional[Callable[[object, Path], object]] = None,
+        bulk_min_column_coverage: float = 0.80,
+        bulk_column_batch_size: Optional[int] = None,
     ):
         self.documents = _normalize_documents(documents)
         self.llm_client = llm_client
@@ -1681,10 +1762,22 @@ class ContractBackend:
         self.contract_compiler = contract_compiler
         self.max_query_rows = int(max_query_rows)
         self.bootstrap_folds = int(bootstrap_folds)
+        self.use_bulk_extraction = bool(use_bulk_extraction)
+        self.bulk_extractor_factory = bulk_extractor_factory
+        self.bulk_min_column_coverage = float(bulk_min_column_coverage)
+        self.bulk_column_batch_size = int(
+            bulk_column_batch_size
+            if bulk_column_batch_size is not None
+            else os.getenv("SPP_BULK_COLUMN_BATCH_SIZE", "6")
+        )
         if self.max_query_rows <= 0:
             raise ValueError("max_query_rows must be positive")
         if self.bootstrap_folds < 2:
             raise ValueError("bootstrap_folds must be at least two")
+        if not 0.0 <= self.bulk_min_column_coverage <= 1.0:
+            raise ValueError("bulk_min_column_coverage must be in [0, 1]")
+        if self.bulk_column_batch_size <= 0:
+            raise ValueError("bulk_column_batch_size must be positive")
         self.intent: Optional[WorkloadIntent] = None
         self.contract: object = None
         self.relation_graph: Optional[WorkloadRelationGraph] = None
@@ -1948,6 +2041,324 @@ class ContractBackend:
         )
         return self.extractor
 
+    @staticmethod
+    def _bulk_semantic_type(
+        relation: RelationSpec,
+        column: str,
+    ) -> str:
+        semantic_type = relation.semantic_type(column)
+        key = _symbol_key(column)
+        if semantic_type == "date" or any(
+            token in key for token in ("date", "year")
+        ):
+            return "DATE"
+        if semantic_type == "boolean":
+            return "OTHER"
+        if semantic_type in {"integer", "real"}:
+            if any(
+                token in key
+                for token in (
+                    "count",
+                    "championship",
+                    "award",
+                    "medal",
+                    "title",
+                )
+            ):
+                return "QUANTITY_COUNT"
+            return "QUANTITY"
+        if any(token in key for token in ("city", "state", "country")):
+            return "GPE"
+        if any(token in key for token in ("owner", "player", "person")):
+            return "PERSON"
+        if any(token in key for token in ("team", "college", "organization")):
+            return "ORG"
+        return "OTHER"
+
+    def _bulk_documents_for_relation(
+        self,
+        relation: RelationSpec,
+    ) -> Tuple[ContractDocument, ...]:
+        relation_key = _symbol_key(relation.name).rstrip("s")
+        matched = []
+        for document in self.documents:
+            normalized = document.document_id.replace("\\", "/").strip("/")
+            partition = normalized.split("/", 1)[0] if "/" in normalized else ""
+            partition_key = _symbol_key(partition).rstrip("s")
+            if partition_key == relation_key:
+                matched.append(document)
+        return tuple(matched)
+
+    def _bulk_extractor(
+        self,
+        ledger: GlobalBudgetLedger,
+    ) -> object:
+        cache_dir = (
+            self.scratch_dir / "wdirs_bulk_extractions"
+            if self.scratch_dir is not None
+            else Path(".spp_wdirs_bulk_extractions").resolve()
+        )
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        client = BudgetedLLMClient(
+            self.llm_client,
+            ledger,
+            default_stage="wdirs_bulk_extraction",
+        )
+        if self.bulk_extractor_factory is not None:
+            return self.bulk_extractor_factory(client, cache_dir)
+        from extractor import ConstrainedExtractor
+
+        return ConstrainedExtractor(client, cache_dir=cache_dir)
+
+    def _bulk_extract_shared(
+        self,
+        ledger: GlobalBudgetLedger,
+    ) -> SharedExtraction:
+        """Run WDIRS multi-column extraction over contract-owned relations."""
+
+        if self.relation_graph is None:
+            raise ContractIntegrationError(
+                "relation graph must exist before bulk extraction"
+            )
+        extractor = self._bulk_extractor(ledger)
+        raw_tables: Dict[str, Tuple[Mapping[str, object], ...]] = {}
+        evidence: List[SharedCellEvidence] = []
+        coverage_manifest: Dict[str, Dict[str, float]] = {}
+        error_manifest: Dict[str, List[str]] = {}
+
+        for relation in self.relation_graph.relations:
+            documents = self._bulk_documents_for_relation(relation)
+            if not documents:
+                raw_tables[relation.name] = ()
+                continue
+            schema = {
+                column: self._bulk_semantic_type(relation, column)
+                for column in relation.attributes
+            }
+            if not schema:
+                raw_tables[relation.name] = ()
+                continue
+            texts = [document.text for document in documents]
+            document_ids = [document.document_id for document in documents]
+            results = extractor.extract_batch(
+                texts,
+                document_ids,
+                relation.name,
+                schema,
+                set(schema),
+                normalization_hints={},
+                entity_col=None,
+                col_batch_size_override=self.bulk_column_batch_size,
+            )
+            records_by_document: Dict[str, List[dict]] = {
+                document_id: [] for document_id in document_ids
+            }
+            spans_by_document: Dict[str, List[dict]] = {
+                document_id: [] for document_id in document_ids
+            }
+            errors: List[str] = []
+
+            def absorb(result: object, *, fill_only: bool) -> None:
+                document_id = str(
+                    getattr(result, "chunk_id", "") or ""
+                )
+                if document_id not in records_by_document:
+                    return
+                error = getattr(result, "error", None)
+                if error:
+                    errors.append(f"{document_id}: {error}")
+                incoming = [
+                    dict(record)
+                    for record in (getattr(result, "records", ()) or ())
+                    if isinstance(record, Mapping)
+                ]
+                incoming_spans = [
+                    dict(spans)
+                    for spans in (getattr(result, "spans", ()) or ())
+                    if isinstance(spans, Mapping)
+                ]
+                if not fill_only or not records_by_document[document_id]:
+                    records_by_document[document_id] = incoming
+                    spans_by_document[document_id] = incoming_spans
+                    return
+                for index, record in enumerate(incoming):
+                    if index >= len(records_by_document[document_id]):
+                        records_by_document[document_id].append(record)
+                        spans_by_document[document_id].append(
+                            incoming_spans[index]
+                            if index < len(incoming_spans)
+                            else {}
+                        )
+                        continue
+                    target = records_by_document[document_id][index]
+                    for column, value in record.items():
+                        if target.get(column) in (None, ""):
+                            target[column] = value
+                    while index >= len(spans_by_document[document_id]):
+                        spans_by_document[document_id].append({})
+                    if index < len(incoming_spans):
+                        spans_by_document[document_id][index].update(
+                            incoming_spans[index]
+                        )
+
+            for result in results:
+                absorb(result, fill_only=False)
+
+            coverage: Dict[str, float] = {}
+            for column in relation.attributes:
+                covered = [
+                    document_id
+                    for document_id in document_ids
+                    if any(
+                        record.get(column) not in (None, "")
+                        for record in records_by_document[document_id]
+                    )
+                ]
+                coverage[column] = len(covered) / max(len(document_ids), 1)
+                if coverage[column] >= self.bulk_min_column_coverage:
+                    continue
+                missing = [
+                    document
+                    for document in documents
+                    if document.document_id not in set(covered)
+                ]
+                if not missing:
+                    continue
+                repair_results = extractor.extract_batch(
+                    [document.text for document in missing],
+                    [document.document_id for document in missing],
+                    relation.name,
+                    {column: schema[column]},
+                    {column},
+                    normalization_hints={},
+                    entity_col=None,
+                    col_batch_size_override=1,
+                )
+                for result in repair_results:
+                    absorb(result, fill_only=True)
+                coverage[column] = sum(
+                    any(
+                        record.get(column) not in (None, "")
+                        for record in records_by_document[document_id]
+                    )
+                    for document_id in document_ids
+                ) / max(len(document_ids), 1)
+
+            rows: List[dict] = []
+            document_by_id = {
+                document.document_id: document for document in documents
+            }
+            for document_id in document_ids:
+                document = document_by_id[document_id]
+                unit = DocumentUnit(
+                    unit_id=document_id,
+                    document_id=document_id,
+                    text=document.text,
+                    start=0,
+                    end=len(document.text),
+                    source_ranges=((0, len(document.text)),),
+                )
+                entity_contract = (
+                    self.contract.entity(relation.name)
+                    if isinstance(self.contract, WorkloadContract)
+                    else None
+                )
+                identity = (
+                    ContractExtractor._partition_heading_identity(
+                        entity_contract,
+                        unit,
+                    )
+                    if entity_contract is not None
+                    else None
+                ) or Path(document_id).stem
+                for variant, record in enumerate(
+                    records_by_document[document_id]
+                ):
+                    row_id = hashlib.sha256(
+                        (
+                            f"{relation.name}\0{identity}\0"
+                            f"{document_id}\0{variant}"
+                        ).encode("utf-8")
+                    ).hexdigest()
+                    row = {"row_id": row_id}
+                    record_spans = (
+                        spans_by_document[document_id][variant]
+                        if variant < len(spans_by_document[document_id])
+                        else {}
+                    )
+                    for column in relation.attributes:
+                        value = record.get(column)
+                        if value in (None, ""):
+                            continue
+                        row[column] = value
+                        explicit_span = record_spans.get(column)
+                        exact_span, start, end = _source_span(
+                            document.text,
+                            explicit_span if explicit_span else value,
+                        )
+                        restored = start >= 0
+                        anchor_text = (
+                            exact_span if restored else document.text
+                        )
+                        anchor_start = start if restored else 0
+                        anchor_end = end if restored else len(document.text)
+                        anchor_id = hashlib.sha256(
+                            (
+                                f"{document_id}\0{anchor_start}\0"
+                                f"{anchor_end}\0{column}\0"
+                                f"{json.dumps(_jsonable(value), sort_keys=True)}"
+                            ).encode("utf-8")
+                        ).hexdigest()
+                        evidence.append(
+                            SharedCellEvidence(
+                                relation=relation.name,
+                                row_identity=row_id,
+                                column=column,
+                                value=value,
+                                anchor_id=anchor_id,
+                                document_id=document_id,
+                                anchor_text=anchor_text,
+                                start=anchor_start,
+                                end=anchor_end,
+                                entailed=restored,
+                                span_restored=restored,
+                            )
+                        )
+                    if len(row) > 1:
+                        rows.append(row)
+            raw_tables[relation.name] = tuple(rows)
+            coverage_manifest[relation.name] = coverage
+            error_manifest[relation.name] = errors
+            logger.info(
+                "WDIRS bulk extraction relation=%s documents=%d rows=%d "
+                "mean_column_coverage=%.3f",
+                relation.name,
+                len(documents),
+                len(rows),
+                (
+                    sum(coverage.values()) / len(coverage)
+                    if coverage
+                    else 0.0
+                ),
+            )
+
+        normalized = _normalize_table_identities(
+            raw_tables, self.relation_graph
+        )
+        return SharedExtraction(
+            raw_tables={
+                name: tuple(dict(row) for row in rows)
+                for name, rows in normalized.items()
+            },
+            evidence=tuple(evidence),
+            metadata={
+                "version": HYBRID_BULK_VERSION,
+                "extractor": "wdirs_constrained_bulk",
+                "column_coverage": coverage_manifest,
+                "errors": error_manifest,
+            },
+        )
+
     def _ensure_contract(self, intent: WorkloadIntent) -> None:
         fingerprint = _fingerprint(asdict(intent))
         if (
@@ -2118,6 +2529,12 @@ class ContractBackend:
         assert self.relation_graph is not None
         payload = {
             "backend_version": BACKEND_VERSION,
+            "bulk_extraction": {
+                "enabled": self.use_bulk_extraction,
+                "version": HYBRID_BULK_VERSION,
+                "min_column_coverage": self.bulk_min_column_coverage,
+                "column_batch_size": self.bulk_column_batch_size,
+            },
             "contract": _fingerprint(self.contract),
             "graph": self.relation_graph.fingerprint,
             "preprocessing": asdict(self.preprocessing_policy),
@@ -2587,6 +3004,7 @@ class ContractBackend:
                 )
             )
             if not repaired:
+                blocked_targets.add(target_key)
                 continue
 
             entity_records = list(
@@ -2749,6 +3167,11 @@ class ContractBackend:
             self._shared = _shared_from_payload(cached)
         else:
             before = ledger.actual_spent
+            bulk_shared = (
+                self._bulk_extract_shared(ledger)
+                if self.use_bulk_extraction
+                else None
+            )
             extractor = self._extractor(evidence_store, ledger)
             result = extractor.extract(self.contract)
             result, validation_issues = self._adaptive_repair(
@@ -2759,11 +3182,16 @@ class ContractBackend:
             self._persist_contract_audit(
                 result, validation_issues, evidence_store
             )
-            self._shared = _normalize_extraction(
+            contract_shared = _normalize_extraction(
                 result,
                 self.documents,
                 self.relation_graph,
                 validation_issues=validation_issues,
+            )
+            self._shared = (
+                _merge_shared_extractions(bulk_shared, contract_shared)
+                if bulk_shared is not None
+                else contract_shared
             )
             if not any(self._shared.raw_tables.values()):
                 if bool(
@@ -2778,11 +3206,15 @@ class ContractBackend:
                         "produced any materializable row"
                     )
                 raise ContractIntegrationError(
-                    "ContractExtractor.extract returned no raw relation rows"
+                    "bulk and contract extraction returned no raw relation rows"
                 )
             evidence_store.put_shared_artifact(
                 key,
-                stage="contract_extraction",
+                stage=(
+                    "hybrid_extraction"
+                    if self.use_bulk_extraction
+                    else "contract_extraction"
+                ),
                 payload=_shared_payload(self._shared),
                 producer_tokens=ledger.actual_spent - before,
             )
@@ -3553,6 +3985,22 @@ class ContractBackend:
             "backend": type(self).__name__,
             "backend_version": BACKEND_VERSION,
             "external_labels_used": False,
+            "extraction_strategy": (
+                "wdirs_bulk_plus_contract"
+                if self.use_bulk_extraction
+                else "contract_only"
+            ),
+            "bulk_extraction": {
+                "version": HYBRID_BULK_VERSION,
+                "column_batch_size": self.bulk_column_batch_size,
+                "minimum_column_coverage": self.bulk_min_column_coverage,
+                "summary": (
+                    _jsonable(self._shared.metadata.get("bulk", {}))
+                    if self._shared is not None
+                    and isinstance(self._shared.metadata, Mapping)
+                    else {}
+                ),
+            },
             "contract_sha256": (
                 _fingerprint(self.contract)
                 if self.contract is not None

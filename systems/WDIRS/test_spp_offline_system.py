@@ -1967,6 +1967,34 @@ def test_schema_stabilization_parallelizes_independent_samples(monkeypatch):
     assert stabilized.frozen_keys == {"category"}
 
 
+def test_column_batch_merge_preserves_field_local_spans():
+    extractor = object.__new__(ConstrainedExtractor)
+    merged = extractor._merge_column_batches(
+        "doc-1",
+        {
+            0: ExtractionResult(
+                chunk_id="doc-1",
+                records=[{"name": "Example"}],
+                schema_keys={"name"},
+                extraction_time=0.1,
+                spans=[{"name": "Example"}],
+            ),
+            1: ExtractionResult(
+                chunk_id="doc-1",
+                records=[{"amount": 42}],
+                schema_keys={"amount"},
+                extraction_time=0.1,
+                spans=[{"amount": "amount was 42"}],
+            ),
+        },
+        2,
+    )
+    assert merged.records == [{"name": "Example", "amount": 42}]
+    assert merged.spans == [
+        {"name": "Example", "amount": "amount was 42"}
+    ]
+
+
 def test_sqlite_delete_journal_mode_is_configurable(tmp_path, monkeypatch):
     monkeypatch.setenv("WDIRS_SQLITE_JOURNAL_MODE", "DELETE")
     layer = DataLayer(f"sqlite:///{tmp_path / 'journal.sqlite'}")

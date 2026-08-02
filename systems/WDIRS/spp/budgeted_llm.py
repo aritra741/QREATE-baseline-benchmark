@@ -25,6 +25,7 @@ class BudgetedLLMClient:
         self.default_stage = default_stage
         self.config_id = config_id
         self.query_id = query_id
+        self.model = getattr(client, "model", type(client).__name__)
         # Prevent the wrapped client from hiding unaccounted retry attempts.
         setattr(self.client, "external_budget_retry_control", True)
 

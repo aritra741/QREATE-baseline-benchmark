@@ -1038,6 +1038,92 @@ def test_relationship_materialization_cannot_create_unknown_endpoint_rows():
     assert [row["name"] for row in raw["team"]] == ["Team A"]
 
 
+def test_contract_backend_bulk_extraction_preserves_coherent_rows(tmp_path):
+    class BulkExtractor:
+        def extract_batch(
+            self,
+            texts,
+            document_ids,
+            _table,
+            schema,
+            *_args,
+            **_kwargs,
+        ):
+            results = []
+            for text, document_id in zip(texts, document_ids):
+                name = text.splitlines()[1]
+                age = 40 if name.startswith("Alpha") else 50
+                record = {
+                    column: (
+                        name if column == "name" else age
+                    )
+                    for column in schema
+                }
+                spans = {
+                    "name": name,
+                    "age": str(age),
+                }
+                results.append(
+                    type(
+                        "Result",
+                        (),
+                        {
+                            "chunk_id": document_id,
+                            "records": [record],
+                            "spans": [spans],
+                            "error": None,
+                        },
+                    )()
+                )
+            return results
+
+    documents = tuple(
+        ContractDocument(
+            f"person/{index}.txt",
+            f"\n{name} Person\n\n{name} Person is age {age}.",
+        )
+        for index, (name, age) in enumerate(
+            (("Alpha", 40), ("Beta", 50)),
+            start=1,
+        )
+    )
+    name = AttributeRef("person", "name", "text")
+    age = AttributeRef("person", "age", "real")
+    intent = _intent(
+        QueryRequirement(
+            "q0",
+            "Average age for each person.",
+            entities=("person",),
+            attribute_bindings=(
+                ("person", "name"),
+                ("person", "age"),
+            ),
+            plan=QueryPlan(
+                group_by=(name,),
+                aggregates=(AggregateSpec("avg", age),),
+            ),
+        )
+    )
+    backend = ContractBackend(
+        documents,
+        type("Client", (), {})(),
+        scratch_dir=tmp_path,
+        use_bulk_extraction=True,
+        bulk_extractor_factory=lambda _client, _cache: BulkExtractor(),
+    )
+    backend._ensure_contract(intent)
+    shared = backend._bulk_extract_shared(GlobalBudgetLedger(100_000))
+    rows = shared.raw_tables["person"]
+    assert len(rows) == 2
+    assert {
+        (row["name"], row["age"]) for row in rows
+    } == {
+        ("Alpha Person", 40),
+        ("Beta Person", 50),
+    }
+    assert all(cell.supported for cell in shared.evidence)
+
+
 def test_raw_candidate_cannot_ignore_an_explicit_query_mapping():
     category = AttributeRef("item", "category", "text")
     requirement = QueryRequirement(
