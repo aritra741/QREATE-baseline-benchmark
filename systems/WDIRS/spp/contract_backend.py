@@ -38,6 +38,7 @@ from spp.evidence_store import (
     ValidationOutcome as StoredValidationOutcome,
 )
 from spp.optimizer import PilotResult, canonical_output_signature
+from spp.population import repair_join_columns_from_overlap
 from spp.population_config import PopulationConfig
 from spp.query_plan_compiler import compile_query_plan
 from spp.query_quality import (
@@ -57,6 +58,8 @@ from spp.schema_materializer import (
     write_sqlite_database,
 )
 from spp.spec import (
+    AttributeRef,
+    JoinSpec,
     PreprocessingPolicy,
     QualityEstimate,
     QueryRequirement,
@@ -71,7 +74,7 @@ from spp.workload_contract import (
 )
 
 
-BACKEND_VERSION = 3
+BACKEND_VERSION = 4
 
 
 class ContractIntegrationError(RuntimeError):
@@ -1675,6 +1678,94 @@ class ContractBackend:
         self._shared: Optional[SharedExtraction] = None
         self._shared_artifact_key: Optional[str] = None
         self._repair_summary: Dict[str, object] = {}
+        self._intent_rebindings: Dict[str, Tuple[Tuple[str, str], ...]] = {}
+
+    def refine_intent(self, intent: WorkloadIntent) -> WorkloadIntent:
+        """Rebind unsupported joins only when extracted values prove overlap."""
+
+        if self._shared is None or self.relation_graph is None:
+            return intent
+        relations = {
+            relation.name: relation for relation in self.relation_graph.relations
+        }
+        rebindings: Dict[str, Tuple[Tuple[str, str], ...]] = {}
+        requirements = []
+        for requirement in intent.requirements:
+            plan = requirement.plan
+            if plan is None or not plan.joins:
+                requirements.append(requirement)
+                continue
+            joins = []
+            changed: List[Tuple[str, str]] = []
+            for join in plan.joins:
+                left_rows = [
+                    dict(row)
+                    for row in self._shared.raw_tables.get(
+                        join.left.entity, ()
+                    )
+                ]
+                right_rows = [
+                    dict(row)
+                    for row in self._shared.raw_tables.get(
+                        join.right.entity, ()
+                    )
+                ]
+                rebound = repair_join_columns_from_overlap(
+                    left_rows,
+                    join.left.attribute,
+                    right_rows,
+                    join.right.attribute,
+                    left_table=join.left.entity,
+                    right_table=join.right.entity,
+                )
+                if rebound is None:
+                    joins.append(join)
+                    continue
+                left_column, right_column = rebound
+                left_relation = relations.get(join.left.entity)
+                right_relation = relations.get(join.right.entity)
+                joins.append(
+                    JoinSpec(
+                        AttributeRef(
+                            join.left.entity,
+                            left_column,
+                            (
+                                left_relation.semantic_type(left_column)
+                                if left_relation is not None
+                                else "text"
+                            ),
+                        ),
+                        AttributeRef(
+                            join.right.entity,
+                            right_column,
+                            (
+                                right_relation.semantic_type(right_column)
+                                if right_relation is not None
+                                else "text"
+                            ),
+                        ),
+                        join.join_type,
+                    )
+                )
+                changed.append(
+                    (
+                        f"{join.left.entity}.{join.left.attribute}="
+                        f"{join.right.entity}.{join.right.attribute}",
+                        f"{join.left.entity}.{left_column}="
+                        f"{join.right.entity}.{right_column}",
+                    )
+                )
+            if changed:
+                rebindings[requirement.query_id] = tuple(changed)
+                requirement = replace(
+                    requirement,
+                    plan=replace(plan, joins=tuple(joins)),
+                )
+            requirements.append(requirement)
+        self._intent_rebindings = rebindings
+        refined = replace(intent, requirements=tuple(requirements))
+        self.intent = refined
+        return refined
 
     def _compiler(self) -> ContractCompiler:
         compiler = self.contract_compiler or _default_contract_compiler
@@ -3314,6 +3405,12 @@ class ContractBackend:
             ),
             "preprocessing_policy": asdict(self.preprocessing_policy),
             "candidate_semantics": dict(sorted(self._candidate_kind.items())),
+            "intent_join_rebindings": {
+                query_id: list(changes)
+                for query_id, changes in sorted(
+                    self._intent_rebindings.items()
+                )
+            },
             "repair": dict(self._repair_summary),
             "derivation_mapping_count": (
                 len(

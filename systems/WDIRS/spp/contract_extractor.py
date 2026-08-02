@@ -35,7 +35,7 @@ from token_counter import count_tokens
 
 _PROMPT_VERSION = 2
 _ENTITY_ARTIFACT_VERSION = 3
-_CONTEXT_ROUTING_VERSION = 1
+_CONTEXT_ROUTING_VERSION = 2
 _CONTEXT_STOPWORDS = frozenset(
     {
         "about",
@@ -220,6 +220,39 @@ class ContractExtraction:
 
 def _symbol_key(value: object) -> str:
     return re.sub(r"[^a-z0-9]+", "_", str(value or "").lower()).strip("_")
+
+
+def _canonical_identity(
+    surface: object,
+    known_identities: Sequence[str],
+) -> str:
+    rendered = str(surface or "").strip()
+    surface_key = _symbol_key(rendered)
+    if not surface_key:
+        return rendered
+    exact = [
+        identity
+        for identity in known_identities
+        if _symbol_key(identity) == surface_key
+    ]
+    if len(exact) == 1:
+        return exact[0]
+    surface_tokens = set(surface_key.split("_"))
+    candidates = []
+    for identity in known_identities:
+        identity_key = _symbol_key(identity)
+        identity_tokens = set(identity_key.split("_"))
+        overlap = {
+            token
+            for token in surface_tokens & identity_tokens
+            if len(token) >= 3
+        }
+        if overlap and (
+            surface_tokens <= identity_tokens
+            or identity_tokens <= surface_tokens
+        ):
+            candidates.append(identity)
+    return candidates[0] if len(candidates) == 1 else rendered
 
 
 def _document_unit(document: SourceDocument) -> DocumentUnit:
@@ -463,6 +496,31 @@ class ContractExtractor:
         return None
 
     @staticmethod
+    def _partition_heading_identity(
+        entity: EntityContract,
+        unit: DocumentUnit,
+    ) -> Optional[str]:
+        entity_keys = {
+            _symbol_key(value) for value in entity.symbols if _symbol_key(value)
+        }
+        if ContractExtractor._prefix(unit.document_id) not in entity_keys:
+            return None
+        match = re.search(r"(?m)^[ \t]*(\S[^\r\n]*)[ \t]*$", unit.text)
+        if match is None:
+            return None
+        heading = match.group(1).strip()
+        if (
+            not heading
+            or len(heading) > 200
+            or len(heading.split()) > 20
+            or heading[-1:] in {".", "!", "?", ";", ":"}
+            or _symbol_key(heading)
+            in {"contents", "introduction", "overview", "references"}
+        ):
+            return None
+        return heading
+
+    @staticmethod
     def _entity_prompt(entity: EntityContract, unit: DocumentUnit) -> str:
         contract = {
             "entity": entity.name,
@@ -566,7 +624,10 @@ class ContractExtractor:
             "supported entity instance in this source document. Return one "
             "object per supported identity and no object for a missing value. "
             "Do not infer, calculate, normalize, or copy a value from another "
-            "field. Return only a JSON array. Every object must have exactly "
+            "field. Preserve the source's numeric magnitude: for example, if "
+            "the source states 1.2 million, value must be 1.2 and unit must be "
+            '"million", never 1200000. Return only a JSON array. Every object '
+            "must have exactly "
             'these keys: "identity", "value", "exact_span", "unit". identity '
             "links the value to its source-stated entity instance; value is one "
             "JSON scalar; exact_span is the shortest verbatim, case-sensitive "
@@ -916,6 +977,7 @@ class ContractExtractor:
         attribute: Optional[str],
         unit: DocumentUnit,
         rows: Iterable[Mapping[str, object]],
+        known_identities: Sequence[str] = (),
     ) -> Tuple[ExtractionRecord, ...]:
         """Accept only complete rows whose exact span occurs in this unit."""
 
@@ -938,7 +1000,10 @@ class ContractExtractor:
                 )
             ):
                 continue
-            identity = str(identity_value).strip()
+            identity = _canonical_identity(
+                identity_value,
+                known_identities,
+            )
             exact_span = span_value
             if not identity or not exact_span:
                 continue
@@ -991,6 +1056,8 @@ class ContractExtractor:
         relationship: RelationshipContract,
         unit: DocumentUnit,
         rows: Iterable[Mapping[str, object]],
+        left_identities: Sequence[str] = (),
+        right_identities: Sequence[str] = (),
     ) -> Tuple[RelationshipRecord, ...]:
         """Accept explicit edges only when their complete span is verbatim."""
 
@@ -1003,8 +1070,14 @@ class ContractExtractor:
                 "exact_span",
             } <= set(row):
                 continue
-            left_identity = str(row.get("left_identity") or "").strip()
-            right_identity = str(row.get("right_identity") or "").strip()
+            left_identity = _canonical_identity(
+                row.get("left_identity"),
+                left_identities,
+            )
+            right_identity = _canonical_identity(
+                row.get("right_identity"),
+                right_identities,
+            )
             exact_span = row.get("exact_span")
             if (
                 not left_identity
@@ -1060,6 +1133,27 @@ class ContractExtractor:
         contexts: List[Tuple[EntityContract, DocumentUnit]] = []
         for entity in contract.entities:
             for source_unit in self.documents_for_entity(entity):
+                heading = self._partition_heading_identity(
+                    entity, source_unit
+                )
+                if heading is not None:
+                    result.extend(
+                        self._records(
+                            phase="entity",
+                            entity=entity.name,
+                            attribute=None,
+                            unit=source_unit,
+                            rows=(
+                                {
+                                    "identity": heading,
+                                    "value": heading,
+                                    "exact_span": heading,
+                                    "unit": None,
+                                },
+                            ),
+                        )
+                    )
+                    continue
                 unit = self._focused_unit(source_unit, lead_only=True)
                 prompt = self._entity_prompt(entity, unit)
                 contexts.append((entity, unit))
@@ -1180,6 +1274,7 @@ class ContractExtractor:
                         attribute=attribute.name,
                         unit=unit,
                         rows=rows,
+                        known_identities=known,
                     )
                 )
         return tuple(result)
@@ -1218,15 +1313,51 @@ class ContractExtractor:
         if self._budget_exhausted:
             return ()
         identities: Dict[str, List[str]] = defaultdict(list)
+        local_identities: Dict[Tuple[str, str], List[str]] = defaultdict(list)
         for record in entity_records:
             key = _symbol_key(record.entity)
             if record.identity not in identities[key]:
                 identities[key].append(record.identity)
+            local_key = (key, record.document_id)
+            if record.identity not in local_identities[local_key]:
+                local_identities[local_key].append(record.identity)
+
+        def identities_for_unit(
+            entity: str,
+            unit: DocumentUnit,
+        ) -> Tuple[str, ...]:
+            key = _symbol_key(entity)
+            selected = list(
+                local_identities.get((key, unit.document_id), ())
+            )
+            text_key = _symbol_key(unit.text)
+            for identity in identities.get(key, ()):
+                identity_key = _symbol_key(identity)
+                identity_tokens = identity_key.split("_")
+                if (
+                    identity not in selected
+                    and (
+                        identity_key in text_key
+                        or any(
+                            len(token) >= 4 and token in text_key
+                            for token in identity_tokens
+                        )
+                    )
+                ):
+                    selected.append(identity)
+                if len(selected) >= 24:
+                    break
+            return tuple(selected)
 
         result: List[RelationshipRecord] = []
         jobs: List[dict] = []
         contexts: List[
-            Tuple[RelationshipContract, DocumentUnit]
+            Tuple[
+                RelationshipContract,
+                DocumentUnit,
+                Tuple[str, ...],
+                Tuple[str, ...],
+            ]
         ] = []
         for relationship in contract.relationships:
             terms = (
@@ -1242,17 +1373,26 @@ class ContractExtractor:
                 relationship, contract
             ):
                 unit = self._focused_unit(source_unit, terms=terms)
+                left_identities = identities_for_unit(
+                    relationship.left_entity, unit
+                )
+                right_identities = identities_for_unit(
+                    relationship.right_entity, unit
+                )
                 prompt = self._relationship_prompt(
                     relationship,
                     unit,
-                    identities.get(
-                        _symbol_key(relationship.left_entity), ()
-                    ),
-                    identities.get(
-                        _symbol_key(relationship.right_entity), ()
-                    ),
+                    left_identities,
+                    right_identities,
                 )
-                contexts.append((relationship, unit))
+                contexts.append(
+                    (
+                        relationship,
+                        unit,
+                        left_identities,
+                        right_identities,
+                    )
+                )
                 jobs.append(
                     {
                         "target": (
@@ -1265,7 +1405,12 @@ class ContractExtractor:
                         "max_tokens": self.max_attribute_tokens,
                     }
                 )
-        for (relationship, unit), rows in zip(
+        for (
+            relationship,
+            unit,
+            left_identities,
+            right_identities,
+        ), rows in zip(
             contexts, self._run_row_jobs(jobs)
         ):
             if rows is not None:
@@ -1274,6 +1419,8 @@ class ContractExtractor:
                         relationship=relationship,
                         unit=unit,
                         rows=rows,
+                        left_identities=left_identities,
+                        right_identities=right_identities,
                     )
                 )
         return tuple(result)
@@ -1619,6 +1766,7 @@ class ContractExtractor:
                     attribute=attribute.name,
                     unit=unit,
                     rows=rows,
+                    known_identities=identities,
                 )
                 if rows is not None
                 else ()
@@ -1681,6 +1829,12 @@ class ContractExtractor:
                     relationship=relationship,
                     unit=unit,
                     rows=rows,
+                    left_identities=by_entity[
+                        _symbol_key(relationship.left_entity)
+                    ],
+                    right_identities=by_entity[
+                        _symbol_key(relationship.right_entity)
+                    ],
                 )
                 if rows is not None
                 else ()

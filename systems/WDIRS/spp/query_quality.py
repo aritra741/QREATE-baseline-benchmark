@@ -1033,8 +1033,14 @@ def assess_query_quality(
         if execution.rows
         else evidence.precision
     )
+    contract_coverage = (
+        1.0
+        if evidence.required_attributes == evidence.covered_attributes
+        else 0.0
+    )
     validity_components = {
         **relational_components,
+        "required_attribute_coverage": contract_coverage,
         "query_executes": 1.0,
         "output_stability": stability,
         "metamorphic_consistency": metamorphic,

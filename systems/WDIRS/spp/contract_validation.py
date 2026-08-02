@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
 from collections import defaultdict
 from dataclasses import asdict, dataclass, field
@@ -233,6 +234,36 @@ def _grounded_in_span(
             ):
                 if _decimal(match.group(0)) == expected:
                     return True
+            number_words = {
+                "zero": 0,
+                "one": 1,
+                "two": 2,
+                "three": 3,
+                "four": 4,
+                "five": 5,
+                "six": 6,
+                "seven": 7,
+                "eight": 8,
+                "nine": 9,
+                "ten": 10,
+                "first": 1,
+                "second": 2,
+                "third": 3,
+                "fourth": 4,
+                "fifth": 5,
+                "sixth": 6,
+                "seventh": 7,
+                "eighth": 8,
+                "ninth": 9,
+                "tenth": 10,
+                "single": 1,
+            }
+            if expected is not None and any(
+                _decimal(number) == expected
+                for token, number in number_words.items()
+                if re.search(rf"\b{token}\b", span, re.IGNORECASE)
+            ):
+                return True
         elif semantic_type == "date":
             expected_date = _date_key(value)
             if expected_date in _date_candidates(span):
@@ -250,6 +281,46 @@ def _grounded_in_span(
                 for token in equivalents
             ):
                 return True
+    return False
+
+
+def _stem_token(token: str) -> str:
+    if len(token) > 4 and token.endswith("ies"):
+        return token[:-3] + "y"
+    if len(token) > 3 and token.endswith("s"):
+        return token[:-1]
+    if len(token) > 4 and token.endswith("ed"):
+        return token[:-2]
+    return token
+
+
+def _semantic_attribute_grounded(
+    record: object,
+    span: str,
+    semantic_types: Sequence[str],
+) -> bool:
+    """Recognize explicit boolean predicates and singular counted events."""
+
+    attribute_tokens = [
+        _stem_token(token)
+        for token in _symbol_key(_value(record, "attribute", "")).split("_")
+        if token and token not in {"is", "has"}
+    ]
+    if not attribute_tokens:
+        return False
+    span_tokens = {
+        _stem_token(token) for token in _text_key(span).split() if token
+    }
+    overlap = set(attribute_tokens) & span_tokens
+    value = _value(record, "value")
+    if "boolean" in semantic_types and value is True:
+        return bool(overlap)
+    numeric = _decimal(value)
+    if (
+        numeric == Decimal(1)
+        and set(semantic_types) & {"integer", "real"}
+    ):
+        return len(overlap) >= max(1, math.ceil(len(set(attribute_tokens)) / 2))
     return False
 
 
@@ -302,8 +373,17 @@ def validate_field_local_span(
             )
         )
     value = _value(record, "value")
-    if value not in (None, "") and not _grounded_in_span(
-        value, span, semantic_types or ("text", "integer", "real", "date", "boolean")
+    expected_types = semantic_types or (
+        "text",
+        "integer",
+        "real",
+        "date",
+        "boolean",
+    )
+    if (
+        value not in (None, "")
+        and not _grounded_in_span(value, span, expected_types)
+        and not _semantic_attribute_grounded(record, span, expected_types)
     ):
         issues.append(
             _issue(
@@ -477,6 +557,19 @@ def validate_identity(
         )
     issues: List[ValidationIssue] = []
     known = {_text_key(value) for value in known_identities if _text_key(value)}
+    identity_key = _text_key(identity)
+    identity_tokens = {
+        token for token in identity_key.split() if len(token) >= 3
+    }
+    compatible_known = {
+        candidate
+        for candidate in known
+        if identity_tokens
+        and (
+            set(identity_key.split()) <= set(candidate.split())
+            or set(candidate.split()) <= set(identity_key.split())
+        )
+    }
     if require_discovered and not known:
         issues.append(
             _issue(
@@ -486,7 +579,11 @@ def validate_identity(
                 evidence=identity,
             )
         )
-    elif known and _text_key(identity) not in known:
+    elif (
+        known
+        and identity_key not in known
+        and len(compatible_known) != 1
+    ):
         issues.append(
             _issue(
                 record,
@@ -496,11 +593,24 @@ def validate_identity(
             )
         )
     span = str(_value(record, "exact_span", "") or "")
-    if (
-        require_span_support
-        and _text_key(identity)
-        and _text_key(identity) not in _text_key(span)
-    ):
+    span_key = _text_key(span)
+    span_tokens = set(span_key.split())
+    other_tokens = {
+        token
+        for candidate in known
+        if candidate != identity_key
+        for token in candidate.split()
+        if len(token) >= 3
+    }
+    locally_identifying_tokens = identity_tokens - other_tokens
+    identity_supported = (
+        bool(identity_key)
+        and (
+            identity_key in span_key
+            or bool(locally_identifying_tokens & span_tokens)
+        )
+    )
+    if require_span_support and identity_key and not identity_supported:
         issues.append(
             _issue(
                 record,
@@ -572,6 +682,20 @@ def validate_relationship_endpoints(
             ("right", relationship.right_entity),
         ):
             identity = str(_value(record, f"{side}_identity", "") or "").strip()
+            identity_key = _text_key(identity)
+            known_for_entity = identity_map.get(_symbol_key(entity), set())
+            identity_tokens = {
+                token for token in identity_key.split() if len(token) >= 3
+            }
+            compatible_known = {
+                candidate
+                for candidate in known_for_entity
+                if identity_tokens
+                and (
+                    set(identity_key.split()) <= set(candidate.split())
+                    or set(candidate.split()) <= set(identity_key.split())
+                )
+            }
             if not identity:
                 issues.append(
                     ValidationIssue(
@@ -590,9 +714,11 @@ def validate_relationship_endpoints(
             elif (
                 known_identities is not None
                 and (
-                    not identity_map.get(_symbol_key(entity))
-                    or _text_key(identity)
-                    not in identity_map[_symbol_key(entity)]
+                    not known_for_entity
+                    or (
+                        identity_key not in known_for_entity
+                        and len(compatible_known) != 1
+                    )
                 )
             ):
                 issues.append(
@@ -613,11 +739,24 @@ def validate_relationship_endpoints(
                         relationship=relationship.name,
                     )
                 )
-            if (
-                identity
-                and _text_key(identity)
-                and _text_key(identity) not in _text_key(span)
-            ):
+            span_key = _text_key(span)
+            span_tokens = set(span_key.split())
+            other_tokens = {
+                token
+                for candidate in known_for_entity
+                if candidate != identity_key
+                for token in candidate.split()
+                if len(token) >= 3
+            }
+            local_tokens = identity_tokens - other_tokens
+            endpoint_supported = (
+                bool(identity_key)
+                and (
+                    identity_key in span_key
+                    or bool(local_tokens & span_tokens)
+                )
+            )
+            if identity and identity_key and not endpoint_supported:
                 issues.append(
                     ValidationIssue(
                         code="relationship_endpoint_not_in_span",

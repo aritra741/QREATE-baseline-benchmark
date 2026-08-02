@@ -16,7 +16,9 @@ from spp.budget_ledger import GlobalBudgetLedger
 from spp.contract_backend import (
     ContractBackend,
     ContractDocument,
+    RelationEdge,
     SharedExtraction,
+    WorkloadRelationGraph,
     build_workload_relation_graph,
 )
 from spp.contract_validation import (
@@ -25,6 +27,7 @@ from spp.contract_validation import (
     validate_count_date,
     validate_extraction,
     validate_field_local_span,
+    validate_identity,
     validate_units_and_conflicts,
     targeted_repair_targets,
 )
@@ -46,6 +49,8 @@ from spp.query_quality import QueryAssessment, assess_query_quality
 from spp.schema_materializer import write_sqlite_database
 from spp.workload_contract import (
     AttributeContract,
+    EntityContract,
+    WorkloadContract,
     compile_workload_contract,
 )
 from spp.workload_intent import WorkloadIntent
@@ -179,6 +184,79 @@ def test_contract_response_parser_accepts_envelopes_and_mixed_arrays():
         )
         == []
     )
+
+
+def test_partition_heading_provides_source_grounded_entity_identity(tmp_path):
+    class NoLLM:
+        def generate(self, *_args, **_kwargs):
+            raise AssertionError("partition heading should avoid an LLM call")
+
+    document = type(
+        "Document",
+        (),
+        {
+            "document_id": "record/1.txt",
+            "text": "\nExample Subject\n\nExample Subject has a value.",
+            "metadata": {},
+        },
+    )()
+    contract = WorkloadContract(
+        entities=(EntityContract("record"),),
+        attributes=(),
+        relationships=(),
+    )
+    with EvidenceStore(tmp_path / "heading.sqlite") as evidence:
+        extractor = ContractExtractor(
+            (document,),
+            NoLLM(),
+            evidence,
+            max_workers=1,
+        )
+        records = extractor.extract_entities(contract)
+    assert len(records) == 1
+    assert records[0].identity == "Example Subject"
+    assert records[0].exact_span == "Example Subject"
+
+
+def test_identity_validation_accepts_unique_source_local_name_surface():
+    record = {
+        "entity": "person",
+        "attribute": "value",
+        "identity": "Jaden Ivey",
+        "exact_span": "Ivey was selected with the fifth overall pick.",
+    }
+    assert validate_identity(
+        record,
+        ("Jaden Ivey",),
+        require_span_support=True,
+    ) == ()
+
+
+def test_field_grounding_accepts_explicit_boolean_and_singular_event():
+    boolean_record = {
+        "entity": "item",
+        "attribute": "verified",
+        "identity": "Item",
+        "value": True,
+        "exact_span": "Item was verified.",
+    }
+    assert validate_field_local_span(
+        boolean_record,
+        "Item was verified.",
+        semantic_types=("boolean",),
+    ) == ()
+    count_record = {
+        "entity": "item",
+        "attribute": "awards",
+        "identity": "Item",
+        "value": 1,
+        "exact_span": "Item received an award.",
+    }
+    assert validate_field_local_span(
+        count_record,
+        "Item received an award.",
+        semantic_types=("integer",),
+    ) == ()
 
 
 def test_contract_extraction_retries_bad_shape_without_aborting(tmp_path):
@@ -503,6 +581,7 @@ def test_executed_quality_reports_ground_truth_free_metamorphic_signals(
         {"category": "B", "avg_amount": 5.0},
     )
     for signal in (
+        "required_attribute_coverage",
         "output_stability",
         "metamorphic_consistency",
         "predicate_monotonicity",
@@ -511,6 +590,52 @@ def test_executed_quality_reports_ground_truth_free_metamorphic_signals(
         "bootstrap_stability",
     ):
         assert signal in assessment.estimate.components
+    assert assessment.estimate.components["required_attribute_coverage"] == 1.0
+
+
+def test_query_quality_rejects_missing_required_attribute_evidence(
+    tmp_path: Path,
+):
+    category = AttributeRef("record", "category", "text")
+    amount = AttributeRef("record", "amount", "real")
+    requirement = QueryRequirement(
+        query_id="q0",
+        text="Average amount for each category.",
+        entities=("record",),
+        plan=QueryPlan(
+            group_by=(category,),
+            aggregates=(AggregateSpec("avg", amount, alias="avg_amount"),),
+        ),
+    )
+    schema = SchemaDesign(
+        "snowflake",
+        (
+            RelationSpec(
+                "record",
+                ("category", "amount"),
+                semantic_types=(("category", "text"), ("amount", "real")),
+            ),
+        ),
+        ("q0",),
+    )
+    config = SynthesisConfig(
+        schema,
+        PopulationConfig(),
+        PreprocessingPolicy("whole_document"),
+    )
+    database = write_sqlite_database(
+        tmp_path / "missing.sqlite",
+        {"record": [{"category": "A", "amount": None}]},
+        schema,
+    )
+    assessment = assess_query_quality(
+        requirement,
+        config,
+        database,
+        None,
+    )
+    assert assessment.estimate.components["required_attribute_coverage"] == 0.0
+    assert assessment.estimate.validity == 0.0
 
 
 def test_contract_backend_materializes_explicit_relationship_edges(
@@ -609,6 +734,62 @@ def test_contract_backend_materializes_explicit_relationship_edges(
     assert assessment.execution.rows == (
         {"id": "Account Alpha", "sum_amount": 10},
     )
+
+
+def test_contract_backend_rebinds_join_only_from_observed_overlap(tmp_path):
+    team_id = AttributeRef("team", "id", "integer")
+    player_team_id = AttributeRef("player", "team_id", "integer")
+    requirement = QueryRequirement(
+        "q0",
+        "List players for each team.",
+        entities=("team", "player"),
+        plan=QueryPlan(joins=(JoinSpec(team_id, player_team_id),)),
+    )
+    backend = ContractBackend(
+        (ContractDocument("record/1.txt", "Example"),),
+        object(),
+        scratch_dir=tmp_path,
+    )
+    backend.relation_graph = WorkloadRelationGraph(
+        relations=(
+            RelationSpec(
+                "team",
+                ("id", "name"),
+                semantic_types=(("id", "integer"), ("name", "text")),
+            ),
+            RelationSpec(
+                "player",
+                ("team_id", "team_name"),
+                semantic_types=(
+                    ("team_id", "integer"),
+                    ("team_name", "text"),
+                ),
+            ),
+        ),
+        edges=(RelationEdge("team", "id", "player", "team_id"),),
+        covered_query_ids=("q0",),
+    )
+    backend._shared = SharedExtraction(
+        raw_tables={
+            "team": (
+                {"id": None, "name": "A"},
+                {"id": None, "name": "B"},
+            ),
+            "player": (
+                {"team_id": None, "team_name": "A"},
+                {"team_id": None, "team_name": "B"},
+            ),
+        },
+        evidence=(),
+    )
+    refined = backend.refine_intent(_intent(requirement))
+    join = refined.requirements[0].plan.joins[0]
+    assert (join.left.attribute, join.right.attribute) == (
+        "name",
+        "team_name",
+    )
+    assert join.left.semantic_type == "text"
+    assert join.right.semantic_type == "text"
 
 
 def test_raw_candidate_cannot_ignore_an_explicit_query_mapping():
