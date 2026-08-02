@@ -5,6 +5,7 @@ Implements LLM-based extraction with schema stabilization and batching.
 
 import json
 import logging
+import re
 import threading
 import time
 from typing import Dict, List, Optional, Any, Set
@@ -493,11 +494,40 @@ class ConstrainedExtractor:
         has_count = any(
             schema.get(c, "OTHER") in self._COUNT_SEM_TYPES for c in keys_to_use
         )
+        observed_unit_scales = {
+            unit.lower()
+            for text in chunk_texts
+            for unit in re.findall(
+                r"\b(k|m|b|thousand|million|billion)\b",
+                text,
+                re.IGNORECASE,
+            )
+        }
+        unit_rank = {
+            "k": (1, "thousands"),
+            "thousand": (1, "thousands"),
+            "m": (2, "millions"),
+            "million": (2, "millions"),
+            "b": (3, "billions"),
+            "billion": (3, "billions"),
+        }
+        common_unit = (
+            min(
+                (unit_rank[unit] for unit in observed_unit_scales),
+                default=None,
+            )
+        )
+        unit_rule = (
+            "- This passage batch uses magnitude suffixes. Normalize all "
+            f"suffixed numeric values to {common_unit[1]} so values from "
+            "different passages use one scale; return only the scaled "
+            "coefficient as the JSON number.\n"
+            if common_unit is not None
+            else ""
+        )
         numeric_rule = (
             "- Numeric columns: always return a JSON number (e.g. 1000000), "
-            "NEVER a text string (e.g. NOT \"one million\", NOT \"£1.2m\"). "
-            "Convert magnitude suffixes to their numeric value "
-            "(e.g. 1.2m means 1200000).\n"
+            "NEVER a text string (e.g. NOT \"one million\", NOT \"£1.2m\").\n"
             if has_numeric else ""
         )
         count_rule = (
@@ -532,6 +562,7 @@ class ConstrainedExtractor:
             f"- Use null (never empty string) for any absent value.\n"
             f"- For any value that requires time-relative calculation, use reference year 2025.\n"
             f"{numeric_rule}"
+            f"{unit_rule}"
             f"{count_rule}"
             f"{scalar_rule}"
             f"- If a passage discusses multiple entities, return one record per entity.\n\n"

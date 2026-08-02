@@ -11,7 +11,13 @@ import pytest
 WDIRS_ROOT = Path(__file__).resolve().parent
 SYNTHESIS_MODULES = (
     WDIRS_ROOT / "diagnostics" / "run_offline_spp.py",
+    WDIRS_ROOT / "diagnostics" / "run_contract_spp.py",
     WDIRS_ROOT / "spp" / "system.py",
+    WDIRS_ROOT / "spp" / "workload_contract.py",
+    WDIRS_ROOT / "spp" / "contract_extractor.py",
+    WDIRS_ROOT / "spp" / "contract_validation.py",
+    WDIRS_ROOT / "spp" / "contract_backend.py",
+    WDIRS_ROOT / "spp" / "query_quality.py",
     WDIRS_ROOT / "spp" / "workload_intent.py",
     WDIRS_ROOT / "spp" / "schema_design.py",
     WDIRS_ROOT / "spp" / "wdirs_backend.py",
@@ -57,7 +63,40 @@ def test_synthesis_modules_do_not_import_evaluation_or_ground_truth(
 
 
 def test_synthesis_entrypoint_does_not_name_reference_answer_artifacts() -> None:
-    source = SYNTHESIS_MODULES[0].read_text(encoding="utf-8").lower()
-    assert "query_manifest.json" not in source
-    assert "evaluation.json" not in source
-    assert "load_ground_truth" not in source
+    for path in SYNTHESIS_MODULES[:2]:
+        source = path.read_text(encoding="utf-8").lower()
+        assert "query_manifest.json" not in source
+        assert "evaluation.json" not in source
+        assert "load_ground_truth" not in source
+
+
+def test_contract_runtime_loader_rejects_reference_channels(
+    tmp_path: Path,
+) -> None:
+    from diagnostics.run_contract_spp import _load_documents, _load_queries
+
+    source = tmp_path / "source"
+    (source / "entity").mkdir(parents=True)
+    (source / "entity" / "one.txt").write_text(
+        "An evidence-backed entity.", encoding="utf-8"
+    )
+    workload = tmp_path / "workload.json"
+    workload.write_text(
+        '{"queries":[{"query_id":"q0","text":"List the entities."}]}',
+        encoding="utf-8",
+    )
+    assert len(_load_documents(source)) == 1
+    assert _load_queries(workload)[0]["text"] == "List the entities."
+
+    forbidden = tmp_path / "Data"
+    forbidden.mkdir()
+    with pytest.raises(ValueError, match="forbidden"):
+        _load_documents(forbidden)
+
+    workload.write_text(
+        '{"queries":[{"query_id":"q0","text":"List them.",'
+        '"sql":"SELECT secret FROM answers"}]}',
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="forbidden fields"):
+        _load_queries(workload)

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the deployable offline SPP track on a SQL workload manifest."""
+"""Run contract-centric NL synthesis, or the legacy SQL ablation."""
 
 from __future__ import annotations
 
@@ -12,10 +12,8 @@ from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
 
-import sqlglot
-
 WDIRS_ROOT = Path(__file__).resolve().parents[1]
-INTENT_CACHE_VERSION = 4
+INTENT_CACHE_VERSION = 5
 if str(WDIRS_ROOT) not in sys.path:
     sys.path.insert(0, str(WDIRS_ROOT))
 
@@ -37,7 +35,6 @@ from spp.workload_intent import (  # noqa: E402
     workload_intent_from_payload,
     workload_intent_to_payload,
 )
-from wdirs_runner import WDIRSRunner  # noqa: E402
 
 
 def _load_queries(path: Path) -> list[dict]:
@@ -79,12 +76,24 @@ def _source_entity_vocabulary(dataset_path: Path) -> tuple[str, ...]:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", required=True)
+    parser.add_argument(
+        "--pipeline",
+        choices=("contract", "legacy-wdirs"),
+        default="contract",
+        help=(
+            "Contract-centric shared extraction is the deployable default; "
+            "legacy-wdirs is retained only for ablations."
+        ),
+    )
     parser.add_argument("--workload", type=Path, required=True)
     parser.add_argument(
         "--schema-workload",
         type=Path,
         default=None,
-        help="Optional SQL training workload used by WDIRS for canonical extraction schema.",
+        help=(
+            "Legacy ablation only: SQL workload used by WDIRS for its "
+            "extraction schema. Rejected by the default contract pipeline."
+        ),
     )
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument(
@@ -138,6 +147,18 @@ def main() -> int:
         help="Analyze and save workload plans without extraction/materialization.",
     )
     args = parser.parse_args()
+    if args.pipeline == "contract":
+        if args.schema_workload is not None:
+            raise ValueError(
+                "--schema-workload is disabled for the NL-only contract "
+                "pipeline"
+            )
+        from diagnostics.run_contract_spp import run_contract_pipeline
+
+        return run_contract_pipeline(args)
+    import sqlglot
+    from wdirs_runner import WDIRSRunner
+
     started_at = datetime.now(timezone.utc)
     started_monotonic = time.monotonic()
 

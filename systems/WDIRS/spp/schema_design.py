@@ -149,11 +149,22 @@ def generate_schema_designs(intent: WorkloadIntent) -> List[SchemaDesign]:
             semantic_types=relation_types(None, flat_attributes),
         ),
     )
+    flat_requirements = tuple(
+        requirement
+        for requirement in requirements
+        if not requirement.relationships
+        and not (
+            requirement.plan is not None
+            and requirement.plan.joins
+        )
+    )
     designs.append(
         SchemaDesign(
             pattern="denormalized",
             relations=flat_relations,
-            covered_query_ids=_covered_queries(flat_relations, requirements),
+            covered_query_ids=_covered_queries(
+                flat_relations, flat_requirements
+            ),
             description="One relation containing the union of workload-required symbols.",
         )
     )

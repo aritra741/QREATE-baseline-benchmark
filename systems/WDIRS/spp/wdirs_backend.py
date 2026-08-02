@@ -38,7 +38,6 @@ from spp.spec import (
 )
 from spp.workload_intent import (
     WorkloadIntent,
-    _attribute_alias_tokens,
     _plan_contract_score,
 )
 
@@ -601,35 +600,10 @@ class WDIRSPrimitiveBackend:
 
     def refine_intent(self, intent: WorkloadIntent) -> WorkloadIntent:
         """Bind typed plans to populated source evidence before schema search."""
-        ignored_columns = {
-            "row_id",
-            "created_at",
-            "updated_at",
-            "source_doc_id",
-        }
         rows_by_table = {
             table: self._records_for_table(table)
             for table in self._table_names
         }
-        columns_by_table = {
-            table: sorted(
-                {
-                    column
-                    for row in rows
-                    for column in row
-                    if column not in ignored_columns
-                }
-            )
-            for table, rows in rows_by_table.items()
-        }
-
-        def coverage(table: str, column: str) -> float:
-            rows = rows_by_table.get(table, [])
-            if not rows:
-                return 0.0
-            return sum(
-                row.get(column) not in (None, "") for row in rows
-            ) / len(rows)
 
         diagnostics: Dict[str, Any] = {}
         rewritten_requirements: List[QueryRequirement] = []
@@ -639,68 +613,10 @@ class WDIRSPrimitiveBackend:
             if plan is None:
                 rewritten_requirements.append(requirement)
                 continue
-            query_tokens = set(
-                re.findall(r"[a-z0-9]+", requirement.text.lower())
-            )
-            query_tokens = {
-                (
-                    token[:-1]
-                    if len(token) > 3
-                    and token.endswith("s")
-                    and not token.endswith(("ss", "us", "is"))
-                    else token
-                )
-                for token in query_tokens
-            }
-            attribute_changes: List[dict] = []
             join_changes: List[dict] = []
 
             def bind_reference(reference: AttributeRef) -> AttributeRef:
-                candidates = columns_by_table.get(reference.entity, [])
-                original_tokens = set(
-                    _attribute_alias_tokens(
-                        reference.entity, reference.attribute
-                    )
-                )
-                ranked = []
-                for candidate in candidates:
-                    candidate_coverage = coverage(
-                        reference.entity, candidate
-                    )
-                    if candidate_coverage <= 0:
-                        continue
-                    candidate_tokens = set(
-                        _attribute_alias_tokens(
-                            reference.entity, candidate
-                        )
-                    )
-                    overlap = len(original_tokens & candidate_tokens)
-                    if not overlap:
-                        continue
-                    union = len(original_tokens | candidate_tokens)
-                    ranked.append(
-                        (
-                            len(candidate_tokens & query_tokens),
-                            overlap / max(union, 1),
-                            candidate_coverage,
-                            candidate == reference.attribute,
-                            -len(candidate_tokens),
-                            candidate,
-                        )
-                    )
-                if not ranked:
-                    return reference
-                candidate = max(ranked)[-1]
-                if candidate == reference.attribute:
-                    return reference
-                attribute_changes.append(
-                    {
-                        "entity": reference.entity,
-                        "from": reference.attribute,
-                        "to": candidate,
-                    }
-                )
-                return replace(reference, attribute=candidate)
+                return reference
 
             def bind_join(join: Any) -> Any:
                 left_rows = rows_by_table.get(join.left.entity, [])
@@ -790,9 +706,8 @@ class WDIRSPrimitiveBackend:
                     plan=rewritten_plan,
                 )
             )
-            if attribute_changes or join_changes:
+            if join_changes:
                 diagnostics[requirement.query_id] = {
-                    "attribute_changes": attribute_changes,
                     "join_changes": join_changes,
                 }
 
@@ -860,7 +775,7 @@ class WDIRSPrimitiveBackend:
     ) -> Sequence[SynthesisConfig]:
         """Reject physically unsupported coverage and collapse inert axes."""
         representatives: Dict[
-            tuple[str, str, str, str], SynthesisConfig
+            tuple[str, str, str, str, str], SynthesisConfig
         ] = {}
         lattice_tables = getattr(
             self.runner.lattice_planner.lattice, "tables", {}
@@ -891,14 +806,6 @@ class WDIRSPrimitiveBackend:
 
         physical_issues: Dict[str, List[str]] = {}
         active_intent = getattr(self, "intent", None)
-        prefer_semantic_normalization = bool(
-            active_intent
-            and any(
-                requirement.plan is not None
-                and requirement.plan.group_by
-                for requirement in active_intent.requirements
-            )
-        )
         if active_intent is not None:
             for requirement in active_intent.requirements:
                 issues: List[str] = []
@@ -1032,29 +939,20 @@ class WDIRSPrimitiveBackend:
             key = (
                 config.schema.schema_id,
                 config.population.er_strategy,
+                config.population.norm_strategy,
                 config.population.unit_strategy,
                 config.population.type_coercion,
             )
             current = representatives.get(key)
             rank = (
                 config.preprocessing.strategy == "whole_document",
-                config.population.norm_strategy
-                == (
-                    "llm"
-                    if prefer_semantic_normalization
-                    else "dictionary"
-                ),
+                config.population.norm_strategy == "dictionary",
                 config.population.miss_strategy == "drop",
             )
             current_rank = (
                 (
                     current.preprocessing.strategy == "whole_document",
-                    current.population.norm_strategy
-                    == (
-                        "llm"
-                        if prefer_semantic_normalization
-                        else "dictionary"
-                    ),
+                    current.population.norm_strategy == "dictionary",
                     current.population.miss_strategy == "drop",
                 )
                 if current is not None

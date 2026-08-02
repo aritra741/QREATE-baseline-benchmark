@@ -5,9 +5,10 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
+import threading
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, List, Optional
+from typing import Iterable, List, Optional, Tuple
 
 
 @dataclass(frozen=True)
@@ -55,17 +56,78 @@ class CellProvenance:
     span_restored: bool
 
 
+@dataclass(frozen=True)
+class ContractEvidence:
+    """A raw, configuration-independent value admitted by a contract."""
+
+    contract_id: str
+    relation: str
+    row_identity: str
+    column: str
+    raw_value_json: str
+    raw_surface: str
+    source_unit: Optional[str]
+    anchor_id: str
+    accepted: bool
+    validation_status: str
+    metadata: dict
+
+
+@dataclass(frozen=True)
+class ConflictRecord:
+    """Competing source-backed values retained without silent resolution."""
+
+    contract_id: str
+    relation: str
+    row_identity: str
+    column: str
+    values_json: str
+    anchor_ids: Tuple[str, ...]
+    resolution: Optional[str] = None
+
+
+@dataclass(frozen=True)
+class ValidationOutcome:
+    """Auditable result of a hard contract check."""
+
+    contract_id: str
+    scope: str
+    scope_key: str
+    code: str
+    passed: bool
+    severity: str
+    details: dict
+
+
+@dataclass(frozen=True)
+class DerivationLineage:
+    """A reversible candidate-specific unit or taxonomy mapping."""
+
+    config_id: str
+    relation: str
+    column: str
+    source_value_json: str
+    derived_value_json: str
+    mapping_kind: str
+    evidence_anchor_ids: Tuple[str, ...]
+
+
 class EvidenceStore:
     """SQLite store shared by all candidate materializations in one run."""
 
     def __init__(self, path: Path, *, readonly: bool = False):
         self.path = Path(path).expanduser().resolve()
+        self._lock = threading.RLock()
         if readonly:
             uri = f"file:{self.path}?mode=ro"
-            self.conn = sqlite3.connect(uri, uri=True)
+            self.conn = sqlite3.connect(
+                uri, uri=True, check_same_thread=False
+            )
         else:
             self.path.parent.mkdir(parents=True, exist_ok=True)
-            self.conn = sqlite3.connect(self.path)
+            self.conn = sqlite3.connect(
+                self.path, check_same_thread=False
+            )
             self._initialize()
         self.conn.row_factory = sqlite3.Row
 
@@ -107,6 +169,59 @@ class EvidenceStore:
                 stage TEXT NOT NULL,
                 payload_json TEXT NOT NULL,
                 producer_tokens INTEGER NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS contract_evidence (
+                contract_id TEXT NOT NULL,
+                relation_name TEXT NOT NULL,
+                row_identity TEXT NOT NULL,
+                column_name TEXT NOT NULL,
+                raw_value_json TEXT NOT NULL,
+                raw_surface TEXT NOT NULL,
+                source_unit TEXT,
+                anchor_id TEXT NOT NULL,
+                accepted INTEGER NOT NULL,
+                validation_status TEXT NOT NULL,
+                metadata_json TEXT NOT NULL,
+                PRIMARY KEY (
+                    contract_id, relation_name, row_identity, column_name,
+                    anchor_id, raw_value_json
+                ),
+                FOREIGN KEY(anchor_id) REFERENCES anchors(anchor_id)
+            );
+            CREATE TABLE IF NOT EXISTS conflict_sets (
+                contract_id TEXT NOT NULL,
+                relation_name TEXT NOT NULL,
+                row_identity TEXT NOT NULL,
+                column_name TEXT NOT NULL,
+                values_json TEXT NOT NULL,
+                anchor_ids_json TEXT NOT NULL,
+                resolution TEXT,
+                PRIMARY KEY (
+                    contract_id, relation_name, row_identity, column_name
+                )
+            );
+            CREATE TABLE IF NOT EXISTS validation_outcomes (
+                contract_id TEXT NOT NULL,
+                scope TEXT NOT NULL,
+                scope_key TEXT NOT NULL,
+                code TEXT NOT NULL,
+                passed INTEGER NOT NULL,
+                severity TEXT NOT NULL,
+                details_json TEXT NOT NULL,
+                PRIMARY KEY (contract_id, scope, scope_key, code)
+            );
+            CREATE TABLE IF NOT EXISTS derivation_lineage (
+                config_id TEXT NOT NULL,
+                relation_name TEXT NOT NULL,
+                column_name TEXT NOT NULL,
+                source_value_json TEXT NOT NULL,
+                derived_value_json TEXT NOT NULL,
+                mapping_kind TEXT NOT NULL,
+                evidence_anchor_ids_json TEXT NOT NULL,
+                PRIMARY KEY (
+                    config_id, relation_name, column_name,
+                    source_value_json, derived_value_json, mapping_kind
+                )
             );
             """
         )
@@ -194,27 +309,180 @@ class EvidenceStore:
             for row in rows
         ]
 
+    def add_contract_evidence(
+        self, rows: Iterable[ContractEvidence]
+    ) -> None:
+        self.conn.executemany(
+            """
+            INSERT OR REPLACE INTO contract_evidence
+            (contract_id, relation_name, row_identity, column_name,
+             raw_value_json, raw_surface, source_unit, anchor_id, accepted,
+             validation_status, metadata_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            [
+                (
+                    row.contract_id,
+                    row.relation,
+                    row.row_identity,
+                    row.column,
+                    row.raw_value_json,
+                    row.raw_surface,
+                    row.source_unit,
+                    row.anchor_id,
+                    int(row.accepted),
+                    row.validation_status,
+                    json.dumps(row.metadata, sort_keys=True),
+                )
+                for row in rows
+            ],
+        )
+        self.conn.commit()
+
+    def accepted_contract_evidence(
+        self,
+        *,
+        contract_id: Optional[str] = None,
+        relation: Optional[str] = None,
+    ) -> List[ContractEvidence]:
+        sql = "SELECT * FROM contract_evidence WHERE accepted = 1"
+        params: List[object] = []
+        if contract_id is not None:
+            sql += " AND contract_id = ?"
+            params.append(contract_id)
+        if relation is not None:
+            sql += " AND relation_name = ?"
+            params.append(relation)
+        rows = self.conn.execute(sql, params).fetchall()
+        return [
+            ContractEvidence(
+                contract_id=row["contract_id"],
+                relation=row["relation_name"],
+                row_identity=row["row_identity"],
+                column=row["column_name"],
+                raw_value_json=row["raw_value_json"],
+                raw_surface=row["raw_surface"],
+                source_unit=row["source_unit"],
+                anchor_id=row["anchor_id"],
+                accepted=bool(row["accepted"]),
+                validation_status=row["validation_status"],
+                metadata=json.loads(row["metadata_json"]),
+            )
+            for row in rows
+        ]
+
+    def add_conflicts(self, rows: Iterable[ConflictRecord]) -> None:
+        self.conn.executemany(
+            """
+            INSERT OR REPLACE INTO conflict_sets
+            (contract_id, relation_name, row_identity, column_name,
+             values_json, anchor_ids_json, resolution)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            [
+                (
+                    row.contract_id,
+                    row.relation,
+                    row.row_identity,
+                    row.column,
+                    row.values_json,
+                    json.dumps(row.anchor_ids),
+                    row.resolution,
+                )
+                for row in rows
+            ],
+        )
+        self.conn.commit()
+
+    def add_validation_outcomes(
+        self, rows: Iterable[ValidationOutcome]
+    ) -> None:
+        self.conn.executemany(
+            """
+            INSERT OR REPLACE INTO validation_outcomes
+            (contract_id, scope, scope_key, code, passed, severity,
+             details_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            [
+                (
+                    row.contract_id,
+                    row.scope,
+                    row.scope_key,
+                    row.code,
+                    int(row.passed),
+                    row.severity,
+                    json.dumps(row.details, sort_keys=True),
+                )
+                for row in rows
+            ],
+        )
+        self.conn.commit()
+
+    def add_derivation_lineage(
+        self, rows: Iterable[DerivationLineage]
+    ) -> None:
+        self.conn.executemany(
+            """
+            INSERT OR REPLACE INTO derivation_lineage
+            (config_id, relation_name, column_name, source_value_json,
+             derived_value_json, mapping_kind, evidence_anchor_ids_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            [
+                (
+                    row.config_id,
+                    row.relation,
+                    row.column,
+                    row.source_value_json,
+                    row.derived_value_json,
+                    row.mapping_kind,
+                    json.dumps(row.evidence_anchor_ids),
+                )
+                for row in rows
+            ],
+        )
+        self.conn.commit()
+
     def put_shared_artifact(
         self, key: str, *, stage: str, payload: object, producer_tokens: int
     ) -> bool:
-        cursor = self.conn.execute(
-            "INSERT OR IGNORE INTO shared_artifacts VALUES (?, ?, ?, ?)",
-            (key, stage, json.dumps(payload, sort_keys=True), int(producer_tokens)),
-        )
-        self.conn.commit()
-        return cursor.rowcount > 0
+        with self._lock:
+            cursor = self.conn.execute(
+                "INSERT OR IGNORE INTO shared_artifacts VALUES (?, ?, ?, ?)",
+                (
+                    key,
+                    stage,
+                    json.dumps(payload, sort_keys=True),
+                    int(producer_tokens),
+                ),
+            )
+            self.conn.commit()
+            return cursor.rowcount > 0
 
     def get_shared_artifact(self, key: str) -> Optional[object]:
-        row = self.conn.execute(
-            "SELECT payload_json FROM shared_artifacts WHERE artifact_key = ?", (key,)
-        ).fetchone()
-        return json.loads(row[0]) if row else None
+        with self._lock:
+            row = self.conn.execute(
+                "SELECT payload_json FROM shared_artifacts "
+                "WHERE artifact_key = ?",
+                (key,),
+            ).fetchone()
+            return json.loads(row[0]) if row else None
 
     def manifest(self) -> dict:
         self.conn.commit()
         self.conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
         counts = {}
-        for table in ("documents", "anchors", "cell_provenance", "shared_artifacts"):
+        for table in (
+            "documents",
+            "anchors",
+            "cell_provenance",
+            "shared_artifacts",
+            "contract_evidence",
+            "conflict_sets",
+            "validation_outcomes",
+            "derivation_lineage",
+        ):
             counts[table] = self.conn.execute(
                 f"SELECT COUNT(*) FROM {table}"  # table is fixed above
             ).fetchone()[0]

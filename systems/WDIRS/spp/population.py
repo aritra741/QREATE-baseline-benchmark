@@ -645,6 +645,57 @@ def apply_population(
     # --- 2. Value normalization ----------------------------------------------
     all_columns = {k for r in working for k in r.keys()}
     data_columns = all_columns - _BOOKKEEPING_COLUMNS
+    taxonomy_by_column: Dict[str, Dict[str, str]] = {}
+    if llm_client is not None:
+        cache_root = llm_cache if llm_cache is not None else {}
+        taxonomy_cache = cache_root.setdefault("taxonomy", {})
+        for column in set(abstraction_columns) & data_columns:
+            values = [
+                str(row[column])
+                for row in working
+                if isinstance(row.get(column), str) and row.get(column)
+            ]
+            unique = sorted(set(values))
+            if len(unique) < 3:
+                continue
+            lowered_values = {
+                value.casefold() for value in unique[:100]
+            }
+            context_lines = [
+                line.strip()
+                for line in source_context.splitlines()
+                if any(
+                    value in line.casefold()
+                    for value in lowered_values
+                )
+            ]
+            relevant_context = "\n".join(context_lines)[:4000]
+            workload_hint = abstraction_hints.get(column, "")
+            payload = json.dumps(
+                unique, ensure_ascii=False, separators=(",", ":")
+            )
+            cache_key = (
+                f"{table_name}.{column}:"
+                f"{hashlib.sha256((payload + workload_hint + relevant_context).encode()).hexdigest()}"
+            )
+            if cache_key not in taxonomy_cache:
+                taxonomy_cache[cache_key] = _llm_normalize_values(
+                    values,
+                    llm_client,
+                    table_name=table_name,
+                    column=column,
+                    allow_abstraction=True,
+                    workload_hint=workload_hint,
+                    source_context=relevant_context,
+                )
+            candidate = dict(taxonomy_cache[cache_key])
+            outputs = {
+                str(candidate.get(value, value)).strip().casefold()
+                for value in unique
+            }
+            if 2 <= len(outputs) <= math.floor(len(unique) * 0.7):
+                taxonomy_by_column[column] = candidate
+
     normalized_by_column: Dict[str, Dict[str, str]] = {}
     if config.norm_strategy == "llm" and llm_normalize_fn is None and llm_client is not None:
         cache_root = llm_cache if llm_cache is not None else {}
@@ -658,22 +709,9 @@ def apply_population(
             payload = json.dumps(
                 sorted(set(values)), ensure_ascii=False, separators=(",", ":")
             )
-            relevant_context = ""
-            workload_hint = abstraction_hints.get(column, "")
-            if column in abstraction_columns and source_context:
-                lowered_values = {
-                    str(value).casefold() for value in values[:100]
-                }
-                context_lines = [
-                    line.strip()
-                    for line in source_context.splitlines()
-                    if any(value in line.casefold() for value in lowered_values)
-                ]
-                relevant_context = "\n".join(context_lines)[:4000]
             cache_key = (
                 f"{table_name}.{column}:"
-                f"abstract={column in abstraction_columns}:"
-                f"{hashlib.sha256((payload + workload_hint + relevant_context).encode()).hexdigest()}"
+                f"{hashlib.sha256(payload.encode()).hexdigest()}"
             )
             if cache_key not in normalization_cache:
                 normalization_cache[cache_key] = _llm_normalize_values(
@@ -681,9 +719,6 @@ def apply_population(
                     llm_client,
                     table_name=table_name,
                     column=column,
-                    allow_abstraction=column in abstraction_columns,
-                    workload_hint=workload_hint,
-                    source_context=relevant_context,
                 )
             normalized_by_column[column] = dict(normalization_cache[cache_key])
     for row in working:
@@ -691,7 +726,10 @@ def apply_population(
             value = row.get(column)
             if not isinstance(value, str) or not value:
                 continue
-            if (
+            taxonomy_value = taxonomy_by_column.get(column, {}).get(value)
+            if taxonomy_value:
+                normalized = taxonomy_value
+            elif (
                 column in protected_columns
                 and column not in abstraction_columns
             ):
@@ -715,6 +753,33 @@ def apply_population(
             if normalized != value:
                 diag.n_values_normalized += 1
                 row[column] = normalized
+
+    for column in set(abstraction_columns) & data_columns:
+        observed = [
+            _dictionary_normalize(row[column])
+            for row in working
+            if isinstance(row.get(column), str) and row.get(column)
+        ]
+        by_casefold: Dict[str, Counter[str]] = {}
+        for value in observed:
+            by_casefold.setdefault(value.casefold(), Counter())[value] += 1
+        canonical_case = {
+            key: max(
+                counts,
+                key=lambda value: (counts[value], -len(value), value),
+            )
+            for key, counts in by_casefold.items()
+        }
+        for row in working:
+            value = row.get(column)
+            if not isinstance(value, str) or not value:
+                continue
+            canonical = canonical_case.get(
+                _dictionary_normalize(value).casefold()
+            )
+            if canonical is not None and canonical != value:
+                row[column] = canonical
+                diag.n_values_normalized += 1
 
     # --- 3. Unit standardization -----------------------------------------------
     if config.unit_strategy == "unit":

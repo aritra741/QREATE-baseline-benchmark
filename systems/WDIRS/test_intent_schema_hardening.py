@@ -267,6 +267,24 @@ def test_normalization_corrects_explicit_comparator_and_join_literal():
     assert cleaned.predicate is None
 
 
+def test_bare_grouped_year_is_contextualized_by_source_event():
+    year = AttributeRef("record", "year", "integer")
+    normalized = _normalize_plan_with_schema(
+        QueryPlan(
+            group_by=(year,),
+            aggregates=(AggregateSpec("count", alias="count_all"),),
+            predicate=PredicateSpec(year, ">", 2010),
+        ),
+        "How many records were published in each year after 2010?",
+    )
+    contextual = AttributeRef("record", "publish_year", "date")
+    assert normalized is not None
+    assert normalized.group_by == (contextual,)
+    assert normalized.predicate == PredicateSpec(
+        contextual, ">", 2010
+    )
+
+
 def test_unqualified_group_dimension_stays_with_mentioned_measure_entity():
     normalized = _normalize_plan_with_schema(
         QueryPlan(
@@ -372,6 +390,23 @@ def test_numeric_grounding_accepts_source_magnitude_suffixes():
         ["The reported GDP was $1.2m."],
         "row_id",
     ) == {"gdp": 1_200_000}
+
+
+def test_count_grounding_rejects_calendar_year_contamination():
+    assert _validate_record(
+        {"awards": 2024},
+        {"awards": "REAL"},
+        ["The 2024 season included three awards."],
+        "row_id",
+        semantic_schema={"awards": "QUANTITY_COUNT"},
+    ) == {}
+    assert _validate_record(
+        {"awards": 3},
+        {"awards": "REAL"},
+        ["The record lists 3 awards."],
+        "row_id",
+        semantic_schema={"awards": "QUANTITY_COUNT"},
+    ) == {"awards": 3}
 
 
 def test_canonicalization_does_not_merge_unrelated_single_field_entities():
@@ -629,7 +664,7 @@ def test_backend_retries_all_null_required_columns_once(tmp_path):
     assert tables["event"][0]["amount"] == 7
 
 
-def test_backend_refines_attributes_and_joins_from_populated_evidence(
+def test_backend_refines_only_joins_from_populated_evidence(
     tmp_path,
 ):
     account_name = AttributeRef("account", "name")
@@ -675,9 +710,7 @@ def test_backend_refines_attributes_and_joins_from_populated_evidence(
             AttributeRef("group", "name"),
         ),
     )
-    assert plan.aggregates[0].attribute == AttributeRef(
-        "group", "total_amount", "real"
-    )
+    assert plan.aggregates[0].attribute == amount
     assert plan.group_by == (account_name,)
 
 
@@ -778,7 +811,9 @@ def test_physical_gate_removes_unbindable_multi_relation_plan(tmp_path):
     }
 
 
-def test_grouped_workload_prefers_semantic_normalization_candidate(tmp_path):
+def test_grouped_workload_keeps_raw_and_semantic_normalization_candidates(
+    tmp_path,
+):
     category = AttributeRef("event", "category")
     requirement = QueryRequirement(
         "q",
@@ -814,8 +849,9 @@ def test_grouped_workload_prefers_semantic_normalization_candidate(tmp_path):
         tmp_path,
     )
     retained = backend.prune_configs(configs)
-    assert len(retained) == 1
-    assert retained[0].population.norm_strategy == "llm"
+    assert {
+        config.population.norm_strategy for config in retained
+    } == {"dictionary", "llm"}
 
 
 def test_cache_fingerprint_rejects_different_canonical_workload(tmp_path):

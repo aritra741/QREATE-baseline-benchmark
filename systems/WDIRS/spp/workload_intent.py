@@ -2272,12 +2272,76 @@ def _normalize_plan_with_schema(
         for aggregate in aggregates
     ]
 
+    temporal_replacements: Dict[Tuple[str, str], AttributeRef] = {}
+    temporal_context = re.search(
+        r"\b([a-z][a-z0-9_-]+)\s+(?:in|during)\s+each\s+"
+        r"(year|date)\b",
+        lowered,
+    )
+    if temporal_context:
+        modifier, temporal_noun = temporal_context.groups()
+        if modifier.endswith("ied") and len(modifier) > 4:
+            modifier = modifier[:-3] + "y"
+        elif modifier.endswith("ed") and len(modifier) > 4:
+            modifier = modifier[:-2]
+        if modifier not in _STOPWORDS:
+            for reference in group_by:
+                if reference.attribute == temporal_noun:
+                    temporal_replacements[
+                        (reference.entity, reference.attribute)
+                    ] = replace(
+                        reference,
+                        attribute=f"{modifier}_{temporal_noun}",
+                        semantic_type="date",
+                    )
+
+    def contextual_reference(reference: AttributeRef) -> AttributeRef:
+        return temporal_replacements.get(
+            (reference.entity, reference.attribute), reference
+        )
+
+    def contextual_predicate(
+        value: Optional[PredicateSpec],
+    ) -> Optional[PredicateSpec]:
+        if value is None:
+            return None
+        if value.kind == "predicate":
+            return replace(
+                value,
+                attribute=(
+                    contextual_reference(value.attribute)
+                    if value.attribute is not None
+                    else None
+                ),
+            )
+        return replace(
+            value,
+            children=tuple(
+                contextual_predicate(child) for child in value.children
+            ),
+        )
+
     return replace(
         plan,
-        projections=projections,
-        group_by=tuple(group_by),
-        aggregates=tuple(aggregates),
-        predicate=predicate,
+        projections=tuple(
+            contextual_reference(reference)
+            for reference in projections
+        ),
+        group_by=tuple(
+            contextual_reference(reference) for reference in group_by
+        ),
+        aggregates=tuple(
+            replace(
+                aggregate,
+                attribute=(
+                    contextual_reference(aggregate.attribute)
+                    if aggregate.attribute is not None
+                    else None
+                ),
+            )
+            for aggregate in aggregates
+        ),
+        predicate=contextual_predicate(predicate),
         joins=tuple(normalized_joins),
     )
 

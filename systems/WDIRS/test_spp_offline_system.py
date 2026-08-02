@@ -16,7 +16,14 @@ from extractor import ConstrainedExtractor, ExtractionResult
 from spp.budget_ledger import BudgetExhausted, GlobalBudgetLedger
 from spp.budgeted_llm import BudgetedLLMClient
 from spp.corpus_subset import build_representative_subset
-from spp.evidence_store import CellProvenance, EvidenceAnchor, EvidenceStore
+from spp.evidence_store import (
+    CellProvenance,
+    ContractEvidence,
+    DerivationLineage,
+    EvidenceAnchor,
+    EvidenceStore,
+    ValidationOutcome,
+)
 from spp.experiment import (
     docetl_relative_budgets,
     evaluate_frozen_bundle,
@@ -271,7 +278,7 @@ def test_progressive_search_preserves_escrowed_completion_candidate():
     assert ledger.available == 70
 
 
-def test_sql_workload_intent_and_schema_patterns_are_full_cover():
+def test_join_workload_requires_a_relationship_preserving_schema():
     intent = analyze_workload(
         [
             {
@@ -291,7 +298,12 @@ def test_sql_workload_intent_and_schema_patterns_are_full_cover():
         "star",
         "snowflake",
     }
-    assert all(design.covers(intent.requirements[0]) for design in designs)
+    by_pattern = {design.pattern: design for design in designs}
+    assert not by_pattern["denormalized"].covers(
+        intent.requirements[0]
+    )
+    assert by_pattern["star"].covers(intent.requirements[0])
+    assert by_pattern["snowflake"].covers(intent.requirements[0])
     pruned = generate_synthesis_configs(intent, observed_document_lengths=[500])
     exhaustive = generate_synthesis_configs(
         intent, observed_document_lengths=[500], exhaustive=True
@@ -622,6 +634,37 @@ def test_portfolio_selection_obeys_budget_and_routes_by_lcb():
     assert portfolio.construction_tokens <= 25
 
 
+def test_portfolio_selects_multiple_shared_databases_only_for_coverage_gain():
+    first = _player_requirement()
+    second = QueryRequirement(
+        query_id="q1",
+        text="SELECT name FROM player",
+        entities=("player",),
+        attributes=("name",),
+    )
+    first_only = _config("first", first)
+    second_only = _config("second", second)
+    estimates = {
+        ("q0", first_only.config_id): _estimate(first, first_only, 0.9),
+        ("q1", second_only.config_id): _estimate(second, second_only, 0.9),
+    }
+    portfolio = select_budgeted_portfolio(
+        [first_only, second_only],
+        [first, second],
+        estimates,
+        {first_only.config_id: 10, second_only.config_id: 10},
+        token_budget=20,
+    )
+    assert set(portfolio.selected_config_ids) == {
+        first_only.config_id,
+        second_only.config_id,
+    }
+    assert portfolio.query_to_config == {
+        "q0": first_only.config_id,
+        "q1": second_only.config_id,
+    }
+
+
 def test_evidence_store_round_trip(tmp_path: Path):
     path = tmp_path / "evidence.sqlite"
     with EvidenceStore(path) as store:
@@ -655,6 +698,57 @@ def test_evidence_store_round_trip(tmp_path: Path):
         assert not store.put_shared_artifact(
             "anchors:d1", stage="anchor", payload=["Alice"], producer_tokens=4
         )
+        store.add_contract_evidence(
+            [
+                ContractEvidence(
+                    contract_id="attribute:age",
+                    relation="player",
+                    row_identity="alice",
+                    column="age",
+                    raw_value_json="30",
+                    raw_surface="30",
+                    source_unit="year",
+                    anchor_id=anchor.anchor_id,
+                    accepted=True,
+                    validation_status="accepted",
+                    metadata={"source": "extractor"},
+                )
+            ]
+        )
+        accepted = store.accepted_contract_evidence(
+            contract_id="attribute:age"
+        )
+        assert accepted[0].raw_surface == "30"
+        store.add_validation_outcomes(
+            [
+                ValidationOutcome(
+                    contract_id="attribute:age",
+                    scope="cell",
+                    scope_key="alice:age",
+                    code="exact_span",
+                    passed=True,
+                    severity="error",
+                    details={},
+                )
+            ]
+        )
+        store.add_derivation_lineage(
+            [
+                DerivationLineage(
+                    config_id="c",
+                    relation="player",
+                    column="age",
+                    source_value_json="30",
+                    derived_value_json="30",
+                    mapping_kind="identity",
+                    evidence_anchor_ids=(anchor.anchor_id,),
+                )
+            ]
+        )
+        manifest = store.manifest()
+        assert manifest["counts"]["contract_evidence"] == 1
+        assert manifest["counts"]["validation_outcomes"] == 1
+        assert manifest["counts"]["derivation_lineage"] == 1
 
 
 def test_frozen_bundle_executes_only_known_readonly_query(tmp_path: Path):
@@ -822,6 +916,18 @@ def test_evaluation_reads_ground_truth_only_after_bundle_is_sealed(tmp_path: Pat
 
 def test_end_to_end_system_freezes_routing_sql_and_database(tmp_path: Path):
     class Backend:
+        generated_configs = False
+
+        def generate_configs(
+            self, intent, *, observed_document_lengths=None
+        ):
+            self.generated_configs = True
+            return generate_synthesis_configs(
+                intent,
+                observed_document_lengths=observed_document_lengths,
+                exhaustive=False,
+            )[:1]
+
         def prepare(self, intent, evidence_store, ledger):
             self.requirements = intent.requirements
 
@@ -877,7 +983,8 @@ def test_end_to_end_system_freezes_routing_sql_and_database(tmp_path: Path):
         )
         return f'SELECT name FROM "{relation.name}"'
 
-    system = OfflineSynthesisSystem(Backend(), compiler)
+    backend = Backend()
+    system = OfflineSynthesisSystem(backend, compiler)
     result = system.synthesize(
         queries=[{"query_id": "q0", "sql": "SELECT name FROM player"}],
         token_budget=0,
@@ -887,6 +994,7 @@ def test_end_to_end_system_freezes_routing_sql_and_database(tmp_path: Path):
     )
     server = OfflineQueryServer(result.serving_manifest.parent)
     assert server.execute("q0") == [{"name": "Alice"}]
+    assert backend.generated_configs
     assert (tmp_path / "run" / "synthesis_manifest.json").exists()
 
 

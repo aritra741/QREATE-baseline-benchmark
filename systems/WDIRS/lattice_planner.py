@@ -574,7 +574,27 @@ class LatticePlanner:
                 ):
                     semantic_type = "DATE"
                 elif "numeric" in col_info.type_evidence:
-                    semantic_type = "QUANTITY"
+                    semantic_type = (
+                        self._llm_semantic_type(
+                            col_name,
+                            table_name,
+                            workload_predicates=list(
+                                col_info.predicates
+                            ),
+                            is_aggregated=col_info.is_aggregated,
+                            is_group_by=col_info.is_group_by,
+                            is_join_key=col_info.is_join_key,
+                        )
+                        if self.llm_client
+                        else "QUANTITY"
+                    )
+                    if semantic_type not in {
+                        "MONEY",
+                        "QUANTITY",
+                        "QUANTITY_COUNT",
+                        "DATE",
+                    }:
+                        semantic_type = "QUANTITY"
                 elif self.llm_client:
                     semantic_type = self._llm_semantic_type(
                         col_name,

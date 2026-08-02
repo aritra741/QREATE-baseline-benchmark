@@ -134,7 +134,7 @@ def test_grouped_categorical_column_can_use_source_observed_abstraction():
             {"role": "Right Wing"},
             {"role": "Goalkeeper"},
         ],
-        PopulationConfig(norm_strategy="llm", miss_strategy="drop"),
+        PopulationConfig(norm_strategy="dictionary", miss_strategy="drop"),
         table_name="person",
         protected_columns=["role"],
         abstraction_columns=["role"],

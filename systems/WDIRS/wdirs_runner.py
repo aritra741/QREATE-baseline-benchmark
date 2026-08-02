@@ -166,21 +166,39 @@ def _validate_record(
             except (ValueError, TypeError):
                 logger.debug(f"[Validate] Dropped '{col}'={val!r}: expected numeric")
                 continue
+            semantic_type = (semantic_schema or {}).get(col)
+            is_count = semantic_type == "QUANTITY_COUNT"
+            if (
+                is_count
+                and numeric_value.is_integer()
+                and 1800 <= numeric_value <= 2100
+            ):
+                logger.debug(
+                    "[Validate] Dropped count %r=%r: looks like a "
+                    "calendar year",
+                    col,
+                    val,
+                )
+                continue
             span = spans.get(col, "")
-            if span and span.lower() in corpus:
+            if span and span.lower() in corpus and not is_count:
                 validated[col] = val
                 continue
-            source_numbers = []
+            source_number_matches = []
             for match in re.finditer(
                 r"(?<![\w.])-?\d[\d,]*(?:\.\d+)?%?(?![\w.])",
                 corpus,
             ):
                 try:
-                    source_numbers.append(
-                        float(
+                    source_number_matches.append(
+                        (
+                            float(
                             match.group(0)
                             .replace(",", "")
                             .replace("%", "")
+                            ),
+                            match.start(),
+                            match.end(),
                         )
                     )
                 except ValueError:
@@ -192,14 +210,48 @@ def _validate_record(
                 re.IGNORECASE,
             ):
                 try:
-                    source_numbers.append(
-                        float(match.group(1).replace(",", ""))
-                        * _SOURCE_UNIT_MULTIPLIERS[
-                            match.group(2).lower()
-                        ]
+                    coefficient = float(
+                        match.group(1).replace(",", "")
                     )
+                    multiplier = _SOURCE_UNIT_MULTIPLIERS[
+                        match.group(2).lower()
+                    ]
+                    for candidate in {
+                        coefficient,
+                        coefficient * multiplier,
+                        *(
+                            coefficient * multiplier / base
+                            for base in (1e3, 1e6, 1e9)
+                        ),
+                    }:
+                        source_number_matches.append(
+                            (candidate, match.start(), match.end())
+                        )
                 except (ValueError, KeyError):
                     continue
+            if is_count:
+                column_tokens = {
+                    token[:-1]
+                    if len(token) > 3 and token.endswith("s")
+                    else token
+                    for token in re.findall(r"[a-z0-9]+", col.lower())
+                    if token
+                    not in {"count", "number", "num", "total", "value"}
+                }
+                if column_tokens:
+                    source_number_matches = [
+                        (source_value, start, end)
+                        for source_value, start, end
+                        in source_number_matches
+                        if any(
+                            token
+                            in corpus[
+                                max(0, start - 96) :
+                                min(len(corpus), end + 96)
+                            ]
+                            for token in column_tokens
+                        )
+                    ]
             if any(
                 math.isclose(
                     numeric_value,
@@ -207,7 +259,7 @@ def _validate_record(
                     rel_tol=1e-9,
                     abs_tol=1e-9,
                 )
-                for source_value in source_numbers
+                for source_value, _start, _end in source_number_matches
             ):
                 validated[col] = val
             else:

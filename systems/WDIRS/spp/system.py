@@ -150,11 +150,33 @@ class OfflineSynthesisSystem:
                 for query_id, violations in sorted(contract_failures.items())
             )
             raise ValueError(f"workload plan contract failed: {rendered}")
-        configs = generate_synthesis_configs(
-            intent,
-            observed_document_lengths=observed_document_lengths,
-            exhaustive=False,
-        )
+
+        def generate_configs(
+            active_intent: WorkloadIntent,
+        ) -> list[SynthesisConfig]:
+            backend_generator = getattr(
+                self.backend, "generate_configs", None
+            )
+            if callable(backend_generator):
+                return list(
+                    backend_generator(
+                        active_intent,
+                        observed_document_lengths=(
+                            observed_document_lengths
+                        ),
+                    )
+                )
+            return list(
+                generate_synthesis_configs(
+                    active_intent,
+                    observed_document_lengths=(
+                        observed_document_lengths
+                    ),
+                    exhaustive=False,
+                )
+            )
+
+        configs = generate_configs(intent)
         if not configs:
             raise ValueError("workload pruning produced no valid configurations")
 
@@ -222,13 +244,7 @@ class OfflineSynthesisSystem:
                             "physically bound workload plan contract "
                             f"failed: {rendered}"
                         )
-                    configs = generate_synthesis_configs(
-                        intent,
-                        observed_document_lengths=(
-                            observed_document_lengths
-                        ),
-                        exhaustive=False,
-                    )
+                    configs = generate_configs(intent)
                     if not configs:
                         raise ValueError(
                             "physical intent binding produced no valid "
