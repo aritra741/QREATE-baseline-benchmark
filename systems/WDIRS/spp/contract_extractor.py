@@ -33,7 +33,7 @@ from spp.workload_contract import (
 from token_counter import count_tokens
 
 
-_PROMPT_VERSION = 3
+_PROMPT_VERSION = 4
 _ENTITY_ARTIFACT_VERSION = 3
 _CONTEXT_ROUTING_VERSION = 3
 _CONTEXT_STOPWORDS = frozenset(
@@ -1680,6 +1680,51 @@ class ContractExtractor:
                 )
         return tuple(result)
 
+    @staticmethod
+    def _casefold_taxonomy_mappings(
+        attribute: AttributeContract,
+        candidates: Sequence[ExtractionRecord],
+    ) -> Tuple[DerivationMapping, ...]:
+        """Collapse pure case/whitespace variants without an LLM call."""
+
+        surfaces: Dict[str, List[str]] = {}
+        documents: Dict[str, set[str]] = {}
+        for record in candidates:
+            value = str(record.value).strip()
+            key = " ".join(value.casefold().split())
+            if not key:
+                continue
+            surfaces.setdefault(key, []).append(value)
+            documents.setdefault(key, set()).add(record.document_id)
+        mappings: List[DerivationMapping] = []
+        for key, variants in surfaces.items():
+            if len(set(variants)) < 2:
+                continue
+            # Prefer the most frequent surface, then lexicographically stable.
+            counts: Dict[str, int] = {}
+            for value in variants:
+                counts[value] = counts.get(value, 0) + 1
+            canonical = sorted(
+                counts,
+                key=lambda value: (-counts[value], value),
+            )[0]
+            for source in sorted(set(variants)):
+                if source == canonical:
+                    continue
+                mappings.append(
+                    DerivationMapping(
+                        entity=attribute.entity,
+                        attribute=attribute.name,
+                        source_value=source,
+                        target_value=canonical,
+                        mapping_kind="taxonomy",
+                        supporting_document_ids=tuple(
+                            sorted(documents.get(key, ()))
+                        ),
+                    )
+                )
+        return tuple(mappings)
+
     def _taxonomy_mappings(
         self,
         contract: WorkloadContract,
@@ -1715,25 +1760,39 @@ class ContractExtractor:
             )
             if len(values) < 2:
                 continue
+            result.extend(
+                self._casefold_taxonomy_mappings(attribute, candidates)
+            )
+            case_variants = len(
+                {" ".join(value.casefold().split()) for value in values}
+            )
+            if case_variants < 2:
+                continue
             prompt = (
                 "Choose the categorical representation that most directly "
                 "answers the natural-language workload. When observed values "
-                "are aliases, labels for instances, or finer subcategories of "
-                "the concept requested by the query, map them to consistent "
-                "canonical values at the requested semantic level. Preserve "
-                "distinct values when the query asks for that detailed level; "
-                "do not reduce cardinality merely for convenience. If no "
-                "semantic mapping is justified, return []. Otherwise return "
-                "only a JSON array whose objects "
-                "have exactly source_value and target_value. source_value must "
-                "be copied exactly from observed_values. target_value must be "
-                "justified solely by the NL workload, observed labels, and "
-                "ordinary language meaning; it must not encode an expected "
-                "benchmark answer.\n\n"
+                "are aliases, labels for instances, spelling/case variants, "
+                "compound labels, or finer subcategories of the concept "
+                "requested by the query, map them to consistent canonical "
+                "values at the requested semantic level. If the workload "
+                "groups by a concept that is naturally coarser than the "
+                "observed instance labels, map every observed value onto that "
+                "coarser mutually exclusive taxonomy. Preserve distinct values "
+                "only when the query asks for that detailed level; do not "
+                "reduce cardinality merely for convenience. If no semantic "
+                "mapping is justified, return []. Otherwise return only a "
+                "JSON array whose objects have exactly source_value and "
+                "target_value. source_value must be copied exactly from "
+                "observed_values. Every observed_value should appear at most "
+                "once as source_value. target_value must be justified solely "
+                "by the NL workload, observed labels, and ordinary language "
+                "meaning; it must not encode an expected benchmark answer.\n\n"
                 f"Entity: {attribute.entity}\n"
                 f"Attribute: {attribute.name}\n"
                 "Natural-language workload hints: "
                 f"{json.dumps(dict(attribute.query_hints), sort_keys=True)}\n"
+                f"Observed value count: {len(values)}\n"
+                f"Case-insensitive unique count: {case_variants}\n"
                 f"Observed values: {json.dumps(values)}"
             )
             supporting_documents = {
@@ -1773,8 +1832,18 @@ class ContractExtractor:
                 ):
                     continue
                 mapping[source] = target.strip()
+            # Propagate case-insensitive targets to every observed surface form.
+            by_case = {
+                source.casefold(): target
+                for source, target in mapping.items()
+            }
+            for value in values:
+                target = by_case.get(value.casefold())
+                if target is not None:
+                    mapping[value] = target
             if not mapping or all(
-                source == target for source, target in mapping.items()
+                source.casefold() == target.casefold()
+                for source, target in mapping.items()
             ):
                 continue
             for source, target in sorted(mapping.items()):
@@ -1790,7 +1859,7 @@ class ContractExtractor:
                                 {
                                     record.document_id
                                     for record in candidates
-                                    if record.value == source
+                                    if str(record.value).strip() == source
                                 }
                             )
                         ),

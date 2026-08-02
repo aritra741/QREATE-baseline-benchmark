@@ -22,6 +22,7 @@ from spp.contract_backend import (
     SharedExtraction,
     WorkloadRelationGraph,
     _contract_extraction_parts,
+    _merge_shared_extractions,
     build_workload_relation_graph,
 )
 from spp.contract_validation import (
@@ -161,6 +162,63 @@ def test_count_contract_rejects_calendar_year_contamination():
     }
     issues = validate_count_date(record, field)
     assert "calendar_year_as_count" in {issue.code for issue in issues}
+
+
+def test_award_count_rejects_bare_calendar_year():
+    field = AttributeContract(
+        entity="person",
+        name="mvp_awards",
+        semantic_types=("integer",),
+    )
+    record = {
+        "entity": "person",
+        "attribute": "mvp_awards",
+        "identity": "Example",
+        "value": 2021,
+        "exact_span": "2021",
+    }
+    issues = validate_count_date(record, field)
+    assert "calendar_year_as_count" in {issue.code for issue in issues}
+
+
+def test_casefold_taxonomy_collapses_surface_variants():
+    attribute = AttributeContract(
+        "person", "role", semantic_types=("text",)
+    )
+    records = (
+        ExtractionRecord(
+            "person",
+            "role",
+            "A",
+            "Guard",
+            "Guard",
+            None,
+            "person/1.txt",
+            "u1",
+            0,
+            5,
+        ),
+        ExtractionRecord(
+            "person",
+            "role",
+            "B",
+            "guard",
+            "guard",
+            None,
+            "person/2.txt",
+            "u2",
+            0,
+            5,
+        ),
+    )
+    mappings = ContractExtractor._casefold_taxonomy_mappings(
+        attribute, records
+    )
+    assert len(mappings) == 1
+    assert {mappings[0].source_value, mappings[0].target_value} == {
+        "Guard",
+        "guard",
+    }
 
 
 def test_contract_response_parser_accepts_envelopes_and_mixed_arrays():
@@ -1182,6 +1240,47 @@ def test_bulk_values_participate_in_contract_taxonomy_induction(tmp_path):
         bulk,
     )
     assert result.derivation_mappings[0].target_value == "Broad"
+
+
+def test_supported_contract_cell_overrides_conflicting_bulk_value():
+    primary = SharedExtraction(
+        raw_tables={"entity": ({"row_id": "r1", "name": "Wrong"},)},
+        evidence=(),
+    )
+    secondary = SharedExtraction(
+        raw_tables={"entity": ({"row_id": "r1", "name": "Canonical"},)},
+        evidence=(
+            SharedCellEvidence(
+                relation="entity",
+                row_identity="r1",
+                column="name",
+                value="Canonical",
+                anchor_id="a1",
+                document_id="entity/1.txt",
+                anchor_text="Canonical",
+                start=0,
+                end=9,
+                entailed=True,
+                span_restored=True,
+            ),
+        ),
+    )
+    merged = _merge_shared_extractions(primary, secondary)
+    assert merged.raw_tables["entity"][0]["name"] == "Canonical"
+
+
+def test_bulk_numeric_validation_rejects_years_as_counts_and_implausible_ages():
+    relation = RelationSpec(
+        "entity",
+        ("awards", "age"),
+        semantic_types=(("awards", "integer"), ("age", "real")),
+    )
+    assert not ContractBackend._bulk_value_plausible(
+        relation, "awards", 2023
+    )
+    assert ContractBackend._bulk_value_plausible(relation, "awards", 18)
+    assert not ContractBackend._bulk_value_plausible(relation, "age", 136)
+    assert ContractBackend._bulk_value_plausible(relation, "age", 86)
 
 
 def test_raw_candidate_cannot_ignore_an_explicit_query_mapping():

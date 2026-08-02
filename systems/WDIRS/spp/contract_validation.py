@@ -455,7 +455,21 @@ def validate_count_date(
         if count is None:
             tokens = set(_symbol_key(expected.name).split("_"))
             count = bool(
-                tokens & {"count", "number", "quantity"}
+                tokens
+                & {
+                    "count",
+                    "number",
+                    "quantity",
+                    "award",
+                    "awards",
+                    "championship",
+                    "championships",
+                    "medal",
+                    "medals",
+                    "title",
+                    "titles",
+                    "mvp",
+                }
                 and set(semantic_types) <= {"integer", "real"}
             )
     elif isinstance(expected, str):
@@ -513,9 +527,9 @@ def validate_calendar_year_as_count(
 ) -> Tuple[ValidationIssue, ...]:
     """Reject a four-digit calendar year misread as an entity count.
 
-    A four-digit count is not rejected merely because it resembles a modern
-    year. The local span must also present it in temporal syntax (for example,
-    ``in 2020``, ``the 2020 season``, or a full calendar date).
+    Count-like attributes (awards, championships, medals, titles) reject any
+    value in the modern year range. Other count fields still require temporal
+    syntax in the local span, or a bare year-only span.
     """
 
     numeric = _decimal(_value(record, "value"))
@@ -528,6 +542,24 @@ def validate_calendar_year_as_count(
         return ()
     year = str(int(numeric))
     span = str(_value(record, "exact_span", "") or "")
+    attribute_tokens = set(
+        _symbol_key(_value(record, "attribute", "")).split("_")
+    )
+    count_like = bool(
+        attribute_tokens
+        & {
+            "award",
+            "awards",
+            "championship",
+            "championships",
+            "medal",
+            "medals",
+            "title",
+            "titles",
+            "mvp",
+            "won",
+        }
+    )
     temporal_prefix = re.search(
         rf"\b(?:in|during|since|until|through|from|year|dated|date|"
         rf"calendar|as\s+of)\b(?:\W+\w+){{0,3}}\W+{re.escape(year)}\b",
@@ -545,16 +577,19 @@ def validate_calendar_year_as_count(
         and candidate[2] is not None
         for candidate in _date_candidates(span)
     )
-    if not (temporal_prefix or temporal_suffix or full_date):
-        return ()
-    return (
-        _issue(
-            record,
-            "calendar_year_as_count",
-            "a calendar year cannot serve as an entity count",
-            evidence=span,
-        ),
+    bare_year = bool(
+        re.fullmatch(rf"\W*{re.escape(year)}\W*", span.strip())
     )
+    if count_like or temporal_prefix or temporal_suffix or full_date or bare_year:
+        return (
+            _issue(
+                record,
+                "calendar_year_as_count",
+                "a calendar year cannot serve as an entity count",
+                evidence=span,
+            ),
+        )
+    return ()
 
 
 def validate_identity(

@@ -80,8 +80,8 @@ from spp.workload_contract import (
 )
 
 
-BACKEND_VERSION = 8
-HYBRID_BULK_VERSION = 1
+BACKEND_VERSION = 10
+HYBRID_BULK_VERSION = 2
 
 logger = logging.getLogger(__name__)
 
@@ -1680,14 +1680,26 @@ def _merge_shared_extractions(
 ) -> SharedExtraction:
     """Fill high-recall bulk rows with validated contract-only evidence."""
 
+    secondary_supported = {
+        (
+            cell.relation,
+            cell.row_identity,
+            cell.column,
+            json.dumps(_jsonable(cell.value), sort_keys=True),
+        )
+        for cell in secondary.evidence
+        if cell.supported
+    }
     names = set(primary.raw_tables) | set(secondary.raw_tables)
     raw: Dict[str, Tuple[Mapping[str, object], ...]] = {}
     for name in sorted(names):
         rows: List[dict] = []
         by_identity: Dict[str, dict] = {}
-        for source_rows in (
-            primary.raw_tables.get(name, ()),
-            secondary.raw_tables.get(name, ()),
+        for source_index, source_rows in enumerate(
+            (
+                primary.raw_tables.get(name, ()),
+                secondary.raw_tables.get(name, ()),
+            )
         ):
             for source_row in source_rows:
                 row = dict(source_row)
@@ -1703,6 +1715,20 @@ def _merge_shared_extractions(
                         None,
                         "",
                     ):
+                        target[column] = value
+                    elif (
+                        source_index == 1
+                        and value not in (None, "")
+                        and (
+                            name,
+                            identity,
+                            column,
+                            json.dumps(_jsonable(value), sort_keys=True),
+                        )
+                        in secondary_supported
+                    ):
+                        # Bulk extraction supplies recall; a source-restored
+                        # contract cell is the precision authority on conflict.
                         target[column] = value
         raw[name] = tuple(rows)
 
@@ -2079,6 +2105,34 @@ class ContractBackend:
             return "ORG"
         return "OTHER"
 
+    @classmethod
+    def _bulk_value_plausible(
+        cls,
+        relation: RelationSpec,
+        column: str,
+        value: object,
+    ) -> bool:
+        """Reject generic numeric contaminations before they reach raw tables."""
+
+        if value in (None, "") or isinstance(value, bool):
+            return True
+        try:
+            numeric = float(str(value).replace(",", ""))
+        except (TypeError, ValueError):
+            return True
+        key = _symbol_key(column)
+        semantic_type = cls._bulk_semantic_type(relation, column)
+        if (
+            semantic_type == "QUANTITY_COUNT"
+            and numeric.is_integer()
+            and 1800 <= numeric <= 2100
+            and not any(token in key for token in ("date", "year"))
+        ):
+            return False
+        if key in {"age", "current_age"} and not 0 <= numeric <= 125:
+            return False
+        return math.isfinite(numeric)
+
     def _bulk_documents_for_relation(
         self,
         relation: RelationSpec,
@@ -2275,6 +2329,16 @@ class ContractBackend:
                     if entity_contract is not None
                     else None
                 ) or Path(document_id).stem
+                heading_name = (
+                    identity.split(",", 1)[0].strip()
+                    if "," in identity
+                    else identity.strip()
+                )
+                heading_region = (
+                    identity.rsplit(",", 1)[1].strip()
+                    if "," in identity
+                    else ""
+                )
                 for variant, record in enumerate(
                     records_by_document[document_id]
                 ):
@@ -2291,8 +2355,25 @@ class ContractBackend:
                         else {}
                     )
                     for column in relation.attributes:
+                        column_key = _symbol_key(column)
                         value = record.get(column)
+                        if (
+                            column_key
+                            in {"name", "label", "title", "city", "location"}
+                            and heading_name
+                        ):
+                            value = heading_name
+                        elif (
+                            column_key
+                            in {"state", "province", "region", "state_name"}
+                            and heading_region
+                        ):
+                            value = heading_region
                         if value in (None, ""):
+                            continue
+                        if not self._bulk_value_plausible(
+                            relation, column, value
+                        ):
                             continue
                         row[column] = value
                         explicit_span = record_spans.get(column)
@@ -3322,6 +3403,7 @@ class ContractBackend:
             relation.name: relation for relation in self.relation_graph.relations
         }
         mappings: Dict[Tuple[str, str, str], object] = {}
+        casefold_mappings: Dict[Tuple[str, str, str], object] = {}
         for mapping in (
             self._shared.metadata.get("derivation_mappings", ())
             if isinstance(self._shared.metadata, Mapping)
@@ -3331,17 +3413,19 @@ class ContractBackend:
             column = str(
                 _member(mapping, "attribute", default="")
             )
+            source_value = _member(mapping, "source_value", default=None)
             source = json.dumps(
-                _jsonable(
-                    _member(mapping, "source_value", default=None)
-                ),
+                _jsonable(source_value),
                 sort_keys=True,
                 separators=(",", ":"),
             )
+            target = _member(mapping, "target_value", default=None)
             if entity and column:
-                mappings[(entity, column, source)] = _member(
-                    mapping, "target_value", default=None
-                )
+                mappings[(entity, column, source)] = target
+                if isinstance(source_value, str):
+                    casefold_mappings[
+                        (entity, column, source_value.casefold())
+                    ] = target
         result: Dict[str, List[dict]] = {}
         for name, rows in raw_tables.items():
             relation = relations[name]
@@ -3359,10 +3443,24 @@ class ContractBackend:
                             sort_keys=True,
                             separators=(",", ":"),
                         )
-                        output[column] = mappings.get(
-                            (name, column, source_key),
-                            coerced,
-                        )
+                        if (name, column, source_key) in mappings:
+                            output[column] = mappings[
+                                (name, column, source_key)
+                            ]
+                        elif (
+                            isinstance(coerced, str)
+                            and (
+                                name,
+                                column,
+                                coerced.casefold(),
+                            )
+                            in casefold_mappings
+                        ):
+                            output[column] = casefold_mappings[
+                                (name, column, coerced.casefold())
+                            ]
+                        else:
+                            output[column] = coerced
                 transformed.append(output)
             result[name] = transformed
         return result
