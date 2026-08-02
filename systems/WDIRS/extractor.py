@@ -387,7 +387,8 @@ class ConstrainedExtractor:
                 if is_count:
                     hint_note = (
                         f" — total count examples: [{quoted}]. "
-                        f"Extract the TOTAL cumulative count of discrete items/events."
+                        f"Extract a total count only when the source states it "
+                        f"explicitly."
                     )
                 elif is_numeric:
                     hint_note = (
@@ -408,8 +409,8 @@ class ConstrainedExtractor:
             else:
                 if is_count:
                     hint_note = (
-                        " — extract the TOTAL cumulative count of discrete items/events "
-                        "as a number."
+                        " — extract a total count only when the source states it "
+                        "explicitly."
                     )
                 else:
                     hint_note = ""
@@ -531,10 +532,9 @@ class ConstrainedExtractor:
             if has_numeric else ""
         )
         count_rule = (
-            "- Count columns (marked 'numeric, count'): extract the TOTAL cumulative "
-            "count of discrete items or events. If the text lists individual items "
-            "(e.g., 'products A, B, and C'), count them and return the total (3). "
-            "Return the count, not individual identifiers or timestamps.\n"
+            "- Count columns (marked 'numeric, count'): extract a total only "
+            "when it is stated explicitly. Do not count listed items; return "
+            "null so the downstream derivation tool phase can decide it.\n"
             if has_count else ""
         )
         scalar_rule = (
@@ -545,8 +545,7 @@ class ConstrainedExtractor:
             "(e.g. 'currently', 'is with', 'as of now'); if no current cue "
             "exists, choose the most recent value mentioned; if still ambiguous, choose "
             "the first clear canonical value. "
-            "For 'numeric, count' fields: see the count rule above — return "
-            "the total count, not individual identifiers.\n"
+            "For 'numeric, count' fields: follow the count rule above.\n"
         )
 
         return (
@@ -560,7 +559,8 @@ class ConstrainedExtractor:
             f"- Each value is a JSON array of record objects ([] if nothing found).\n"
             f"- Record fields must be plain scalar values (string/number/null), not nested objects.\n"
             f"- Use null (never empty string) for any absent value.\n"
-            f"- For any value that requires time-relative calculation, use reference year 2025.\n"
+            f"- Do not calculate or infer a value that is not stated directly; "
+            f"return null so the downstream derivation tool phase can decide it.\n"
             f"{numeric_rule}"
             f"{unit_rule}"
             f"{count_rule}"
@@ -1270,9 +1270,9 @@ class ConstrainedExtractor:
             if has_numeric else ""
         )
         count_rule = (
-            "- Count columns (marked 'numeric, count'): extract the TOTAL cumulative "
-            "count of discrete items/events. If the text lists individual items, "
-            "count them and return the total. Return the count, not identifiers.\n"
+            "- Count columns (marked 'numeric, count'): extract a total only "
+            "when it is stated explicitly. Do not count listed items; return "
+            "null so the downstream derivation tool phase can decide it.\n"
             if has_count else ""
         )
         entity_section = self._build_entity_section(entity_col)
@@ -1292,7 +1292,8 @@ class ConstrainedExtractor:
             f"- Return a JSON array of objects, one per entity found.\n"
             f"- Use null (not empty string) for any absent value.\n"
             f"- If no matching data is found, return [].\n"
-            f"- For any value that requires time-relative calculation, use reference year 2025.\n"
+            f"- Do not calculate or infer a value that is not stated directly; "
+            f"return null so the downstream derivation tool phase can decide it.\n"
             f"{numeric_rule}"
             f"{count_rule}"
             f"\nText:\n{chunk}\n\n"
@@ -1562,7 +1563,8 @@ class ConstrainedExtractor:
             "Rules:\n"
             "- Return ONLY a JSON object (or {} if no updates).\n"
             "- Every value must be a single scalar (string/number/null), never lists.\n"
-            "- For any value that requires time-relative calculation, use reference year 2025.\n"
+            "- Do not calculate or infer a value that is not stated directly; "
+            "return null so the downstream derivation tool phase can decide it.\n"
             "- If normalization hints are provided for a key, use the same output convention "
             "(including numeric unit/scale convention) as those examples.\n"
             "- Prefer present-tense/current statements over historical lists.\n\n"
@@ -1716,9 +1718,9 @@ class ConstrainedExtractor:
             if has_numeric else ""
         )
         count_rule = (
-            "- Count columns (marked 'numeric, count'): extract the TOTAL cumulative "
-            "count of discrete items/events. If the text lists individual items, "
-            "count them and return the total. Return the count, not identifiers.\n"
+            "- Count columns (marked 'numeric, count'): extract a total only "
+            "when it is stated explicitly. Do not count listed items; return "
+            "null so the downstream derivation tool phase can decide it.\n"
             if has_count else ""
         )
         scalar_rule = (
@@ -1729,8 +1731,7 @@ class ConstrainedExtractor:
             "(e.g. 'currently', 'is with', 'plays for', 'as of now'); if no current cue "
             "exists, choose the most recent value mentioned; if still ambiguous, choose "
             "the first clear canonical value. "
-            "For 'numeric, count' fields: see the count rule above — return "
-            "the total count, not individual identifiers.\n"
+            "For 'numeric, count' fields: follow the count rule above.\n"
         )
         entity_section = self._build_entity_section(entity_col)
 
@@ -1748,7 +1749,8 @@ class ConstrainedExtractor:
             f"- Return a JSON array of objects, one per entity found.\n"
             f"- Use null (not empty string) for any value that is not present.\n"
             f"- If no matching data is found, return an empty array [].\n"
-            f"- For any value that requires time-relative calculation, use reference year 2025.\n"
+            f"- Do not calculate or infer a value that is not stated directly; "
+            f"return null so the downstream derivation tool phase can decide it.\n"
             f"{numeric_rule}"
             f"{count_rule}"
             f"{scalar_rule}"
@@ -2056,7 +2058,7 @@ class ConstrainedExtractor:
         and permanently leave newly requested columns empty.
         """
         payload = {
-            "format_version": 2,
+            "format_version": 3,
             "chunk_id": chunk_id,
             "table_name": table_name,
             "schema": sorted((schema or {}).items()),

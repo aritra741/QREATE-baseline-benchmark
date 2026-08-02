@@ -80,7 +80,7 @@ from spp.workload_contract import (
 )
 
 
-BACKEND_VERSION = 10
+BACKEND_VERSION = 12
 HYBRID_BULK_VERSION = 2
 
 logger = logging.getLogger(__name__)
@@ -3831,6 +3831,9 @@ class ContractBackend:
                 if isinstance(self._shared.metadata, Mapping)
                 else ()
             )
+            if str(
+                _member(mapping, "mapping_kind", default="")
+            ) == "taxonomy"
         }
         if not mapped_fields:
             return dict(assessments)

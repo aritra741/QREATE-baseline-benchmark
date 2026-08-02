@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from spp.calculation_tools import operands_are_grounded
 from spp.evidence_store import CellProvenance, EvidenceAnchor, EvidenceStore
 from spp.contract_extractor import (
     ContractExtraction,
@@ -221,6 +222,64 @@ def test_casefold_taxonomy_collapses_surface_variants():
     }
 
 
+def test_partial_llm_taxonomy_is_rejected(tmp_path):
+    class PartialTaxonomyClient:
+        model = "fixture"
+
+        def __init__(self):
+            self.ledger = type("Ledger", (), {"actual_spent": 0})()
+
+        def generate(self, *_args, **_kwargs):
+            return json.dumps(
+                [{"source_value": "A", "target_value": "Broad"}]
+            )
+
+    document = type(
+        "Document",
+        (),
+        {
+            "document_id": "item/1.txt",
+            "text": "\nItem\n\nA B",
+            "metadata": {},
+        },
+    )()
+    attribute = AttributeContract(
+        "item",
+        "category",
+        semantic_types=("text",),
+        contexts=(("q0", ("group_by",)),),
+        query_hints=(("q0", "Group each item by category."),),
+    )
+    contract = WorkloadContract(
+        entities=(EntityContract("item"),),
+        attributes=(attribute,),
+        relationships=(),
+    )
+    records = tuple(
+        ExtractionRecord(
+            "item",
+            "category",
+            "Item",
+            value,
+            value,
+            None,
+            "item/1.txt",
+            "u1",
+            index,
+            index + 1,
+        )
+        for index, value in enumerate(("A", "B"))
+    )
+    with EvidenceStore(tmp_path / "partial-taxonomy.sqlite") as evidence:
+        extractor = ContractExtractor(
+            (document,),
+            PartialTaxonomyClient(),
+            evidence,
+            max_workers=1,
+        )
+        assert extractor._taxonomy_mappings(contract, records) == ()
+
+
 def test_contract_response_parser_accepts_envelopes_and_mixed_arrays():
     row = {
         "identity": "Example",
@@ -320,7 +379,34 @@ def test_field_grounding_accepts_explicit_boolean_and_singular_event():
     ) == ()
 
 
-def test_age_derivation_uses_birth_year_and_corpus_reference_year(tmp_path):
+def test_model_requested_calculation_uses_allowlisted_tools(tmp_path):
+    class CalculationClient:
+        model = "fixture"
+
+        def __init__(self):
+            self.ledger = type("Ledger", (), {"actual_spent": 0})()
+
+        def generate(self, prompt, **_kwargs):
+            if "Decide whether any missing numeric attribute" not in prompt:
+                return "[]"
+            return json.dumps(
+                [
+                    {
+                        "identity": "Example Person",
+                        "attribute": "age",
+                        "tool": "calculator",
+                        "operation": "subtract",
+                        "operands": [2026, 2000],
+                        "source_operands": [2000],
+                        "exact_span": (
+                            "Example Person (born January 2, 2000) "
+                            "is documented here."
+                        ),
+                        "unit": "years",
+                    }
+                ]
+            )
+
     document = type(
         "Document",
         (),
@@ -348,20 +434,36 @@ def test_age_derivation_uses_birth_year_and_corpus_reference_year(tmp_path):
     with EvidenceStore(tmp_path / "age.sqlite") as evidence:
         extractor = ContractExtractor(
             (document,),
-            object(),
+            CalculationClient(),
             evidence,
             max_workers=1,
         )
         extraction = extractor.extract(contract)
+    assert extractor.reference_year == 2026
     assert len(extraction.attribute_records) == 1
     age = extraction.attribute_records[0]
-    assert age.value == 24
-    assert age.derivation_kind == "age_from_birth_year"
+    assert age.value == 26
+    assert age.derivation_kind == "tool_calculation"
     assert validate_extraction(
         extraction,
         contract,
         {"person/1.txt": document.text},
     ) == ()
+
+
+def test_calculation_tool_rejects_unprovenanced_operands():
+    assert not operands_are_grounded(
+        [20, 5],
+        [5],
+        "The source explicitly states 5.",
+        corpus_reference_year=2026,
+    )
+    assert operands_are_grounded(
+        [2026, 5],
+        [5],
+        "The source explicitly states 5.",
+        corpus_reference_year=2026,
+    )
 
 
 def test_heading_derivation_separates_entity_name_and_region(tmp_path):

@@ -23,6 +23,7 @@ from json_repair import repair_json
 
 from spp.budget_ledger import BudgetExhausted
 from spp.budgeted_llm import BudgetedLLMClient
+from spp.calculation_tools import calculate, operands_are_grounded
 from spp.evidence_store import EvidenceAnchor, EvidenceStore
 from spp.workload_contract import (
     AttributeContract,
@@ -33,9 +34,10 @@ from spp.workload_contract import (
 from token_counter import count_tokens
 
 
-_PROMPT_VERSION = 4
+_PROMPT_VERSION = 7
 _ENTITY_ARTIFACT_VERSION = 3
 _CONTEXT_ROUTING_VERSION = 3
+CORPUS_REFERENCE_YEAR = 2026
 _CONTEXT_STOPWORDS = frozenset(
     {
         "about",
@@ -347,15 +349,10 @@ class ContractExtractor:
         self._document_text = {
             document.document_id: document.text for document in self.documents
         }
-        source_years = [
-            int(match.group(0))
-            for document in self.documents
-            for match in re.finditer(
-                r"\b(?:18|19|20)\d{2}\b",
-                document.text,
-            )
-        ]
-        self.reference_year = max(source_years, default=None)
+        # Fixed corpus clock for time-relative tool calculations. This is not
+        # attribute-specific; the model still decides whether any derivation
+        # is warranted and must request the calculator explicitly.
+        self.reference_year = CORPUS_REFERENCE_YEAR
         for document in self.documents:
             self.evidence_store.add_document(
                 document.document_id,
@@ -1254,8 +1251,6 @@ class ContractExtractor:
             ]
         ] = []
         for attribute in sorted(contract.attributes, key=priority):
-            if self._is_age_contract(attribute):
-                continue
             owners = attribute.owners or ("",)
             for owner in owners:
                 owner_contract = contract.entity(owner) if owner else None
@@ -1316,75 +1311,189 @@ class ContractExtractor:
                 )
         return tuple(result)
 
-    @staticmethod
-    def _is_age_contract(attribute: AttributeContract) -> bool:
-        symbols = {
-            _symbol_key(value) for value in attribute.symbols
-        }
-        return bool(
-            symbols & {"age", "current_age"}
-            and set(attribute.semantic_types) & {"integer", "real"}
-        )
-
-    def _derive_ages(
+    def _derive_calculated_attributes(
         self,
         contract: WorkloadContract,
         entity_records: Sequence[ExtractionRecord],
+        attribute_records: Sequence[ExtractionRecord],
     ) -> Tuple[ExtractionRecord, ...]:
-        """Derive requested ages from explicit birth years and corpus time."""
+        """Let the model request deterministic tools for missing numeric fields."""
 
-        if self.reference_year is None:
+        if self._budget_exhausted:
             return ()
-        attributes = [
+        existing = {
+            (
+                _symbol_key(record.entity),
+                _symbol_key(record.attribute),
+                record.document_id,
+            )
+            for record in attribute_records
+            if record.attribute is not None
+            and record.value not in (None, "")
+        }
+        numeric = tuple(
             attribute
             for attribute in contract.attributes
-            if self._is_age_contract(attribute)
-        ]
+            if set(attribute.semantic_types) & {"integer", "real"}
+        )
         result: List[ExtractionRecord] = []
-        for attribute in attributes:
-            owner_keys = {_symbol_key(owner) for owner in attribute.owners}
-            for entity_record in entity_records:
-                if _symbol_key(entity_record.entity) not in owner_keys:
-                    continue
-                source = self._document_text.get(
-                    entity_record.document_id, ""
+        for entity_record in entity_records:
+            owner = _symbol_key(entity_record.entity)
+            missing = [
+                attribute
+                for attribute in numeric
+                if owner
+                in {_symbol_key(value) for value in attribute.owners}
+                and (
+                    owner,
+                    _symbol_key(attribute.name),
+                    entity_record.document_id,
                 )
-                match = re.search(
-                    r"\bborn\b[^\r\n().;]{0,80}?"
-                    r"\b((?:18|19|20)\d{2})\b",
-                    source,
-                    flags=re.IGNORECASE,
+                not in existing
+            ]
+            if not missing:
+                continue
+            source_unit = next(
+                (
+                    unit
+                    for unit in self.units
+                    if unit.document_id == entity_record.document_id
+                ),
+                None,
+            )
+            if source_unit is None:
+                continue
+            terms = tuple(
+                value
+                for attribute in missing
+                for value in (
+                    attribute.name,
+                    *attribute.alternatives,
+                    *dict(attribute.query_hints).values(),
                 )
-                if match is None:
+            )
+            unit = self._focused_unit(source_unit, terms=terms)
+            contracts = [
+                {
+                    "attribute": attribute.name,
+                    "semantic_types": list(attribute.semantic_types),
+                    "units": list(attribute.units),
+                    "query_hints": dict(attribute.query_hints),
+                }
+                for attribute in missing
+            ]
+            prompt = (
+                "Decide whether any missing numeric attribute below can be "
+                "calculated exactly from explicit facts in the source. Do not "
+                "guess and do not perform arithmetic yourself. Request a tool "
+                "only when all required source operands and their association "
+                "with the known identity are explicit.\n\n"
+                "Available tools:\n"
+                "1. calculator(operation, operands), where operation is one of "
+                "add, subtract, multiply, divide, minimum, maximum, count.\n"
+                "2. corpus_reference_year(), whose current result is "
+                f"{self.reference_year}. This is the fixed corpus clock "
+                "for time-relative attributes; use it only when the "
+                "requested attribute is explicitly time-relative and the "
+                "source provides the other temporal operand.\n\n"
+                "Return only a JSON array. Each tool request must have exactly "
+                "identity, attribute, tool, operation, operands, "
+                "source_operands, exact_span, and unit. tool must be "
+                "\"calculator\". operands are passed to the calculator in "
+                "order. source_operands lists only operands copied from "
+                "exact_span; a corpus_reference_year operand is not a source "
+                "operand. exact_span must be one verbatim case-sensitive source "
+                "substring supporting the identity and every source operand. "
+                "Return [] when no exact derivation is warranted.\n\n"
+                f"Known identity: {entity_record.identity}\n"
+                f"Missing attribute contracts: {json.dumps(contracts, sort_keys=True)}"
+                "\n\nVerbatim source evidence excerpt(s):\n"
+                f"{unit.text}"
+            )
+            rows = self._budgeted_rows(
+                target=f"calculation:{entity_record.entity}:{unit.document_id}",
+                phase="calculation",
+                prompt=prompt,
+                unit=unit,
+                max_tokens=max(self.max_attribute_tokens, 768),
+            )
+            if rows is None:
+                break
+            allowed = {
+                _symbol_key(attribute.name): attribute
+                for attribute in missing
+            }
+            for row in rows:
+                if set(row) != {
+                    "identity",
+                    "attribute",
+                    "tool",
+                    "operation",
+                    "operands",
+                    "source_operands",
+                    "exact_span",
+                    "unit",
+                }:
                     continue
-                birth_year = int(match.group(1))
-                age = self.reference_year - birth_year
-                if age < 0 or age > 150:
+                attribute = allowed.get(
+                    _symbol_key(row.get("attribute", ""))
+                )
+                operands = row.get("operands")
+                source_operands = row.get("source_operands")
+                exact_span = row.get("exact_span")
+                if (
+                    attribute is None
+                    or row.get("tool") != "calculator"
+                    or not isinstance(operands, list)
+                    or not isinstance(source_operands, list)
+                    or not isinstance(exact_span, str)
+                    or not operands_are_grounded(
+                        operands,
+                        source_operands,
+                        exact_span,
+                        corpus_reference_year=self.reference_year,
+                    )
+                ):
                     continue
-                start = source.rfind("\n", 0, match.start()) + 1
-                end = source.find("\n", match.end())
-                if end < 0:
-                    end = len(source)
-                exact_span = source[start:end].strip()
-                start = source.find(exact_span, start, end)
-                if not exact_span or start < 0:
+                offset = self._locate_exact_span(unit, exact_span)
+                if offset is None:
                     continue
+                try:
+                    value = calculate(str(row.get("operation")), operands)
+                except ValueError:
+                    continue
+                if (
+                    set(attribute.semantic_types) == {"integer"}
+                    and not isinstance(value, int)
+                ):
+                    continue
+                identity = _canonical_identity(
+                    str(row.get("identity", "")),
+                    (entity_record.identity,),
+                )
                 result.append(
                     ExtractionRecord(
                         entity=entity_record.entity,
                         attribute=attribute.name,
-                        identity=entity_record.identity,
-                        value=age,
+                        identity=identity,
+                        value=value,
                         exact_span=exact_span,
-                        unit="years",
-                        document_id=entity_record.document_id,
-                        unit_id=entity_record.unit_id,
-                        span_start=start,
-                        span_end=start + len(exact_span),
-                        derivation_kind="age_from_birth_year",
+                        unit=(
+                            str(row["unit"])
+                            if row.get("unit") is not None
+                            else None
+                        ),
+                        document_id=unit.document_id,
+                        unit_id=unit.unit_id,
+                        span_start=offset,
+                        span_end=offset + len(exact_span),
+                        derivation_kind="tool_calculation",
                         derivation_inputs={
-                            "birth_year": birth_year,
-                            "reference_year": self.reference_year,
+                            "tool": "calculator",
+                            "operation": str(row.get("operation")),
+                            "operands": list(operands),
+                            "source_operands": list(source_operands),
+                            "corpus_reference_year": self.reference_year,
                         },
                     )
                 )
@@ -1784,7 +1893,11 @@ class ContractExtractor:
                 "JSON array whose objects have exactly source_value and "
                 "target_value. source_value must be copied exactly from "
                 "observed_values. Every observed_value should appear at most "
-                "once as source_value. target_value must be justified solely "
+                "once as source_value. Include every observed value when a "
+                "coarser taxonomy is proposed; a partial taxonomy is invalid. "
+                "target_value must be a canonical string, or null when the "
+                "source label is not actually a value of the requested "
+                "attribute. target_value must be justified solely "
                 "by the NL workload, observed labels, and ordinary language "
                 "meaning; it must not encode an expected benchmark answer.\n\n"
                 f"Entity: {attribute.entity}\n"
@@ -1814,11 +1927,14 @@ class ContractExtractor:
                 phase="taxonomy",
                 prompt=prompt,
                 unit=representative,
-                max_tokens=self.max_attribute_tokens,
+                max_tokens=max(
+                    self.max_attribute_tokens,
+                    min(2_048, 96 * len(values)),
+                ),
             )
             if rows is None:
                 break
-            mapping: Dict[str, str] = {}
+            mapping: Dict[str, object] = {}
             for row in rows:
                 if set(row) != {"source_value", "target_value"}:
                     continue
@@ -1827,22 +1943,33 @@ class ContractExtractor:
                 if (
                     not isinstance(source, str)
                     or source not in values
-                    or not isinstance(target, str)
-                    or not target.strip()
+                    or (
+                        target is not None
+                        and (
+                            not isinstance(target, str)
+                            or not target.strip()
+                        )
+                    )
                 ):
                     continue
-                mapping[source] = target.strip()
+                mapping[source] = (
+                    target.strip() if isinstance(target, str) else None
+                )
             # Propagate case-insensitive targets to every observed surface form.
             by_case = {
                 source.casefold(): target
                 for source, target in mapping.items()
             }
             for value in values:
-                target = by_case.get(value.casefold())
-                if target is not None:
-                    mapping[value] = target
-            if not mapping or all(
-                source.casefold() == target.casefold()
+                if value.casefold() in by_case:
+                    mapping[value] = by_case[value.casefold()]
+            # Mixed raw/canonical values are worse than no taxonomy because
+            # they create incompatible grouping levels.
+            if set(mapping) != set(values):
+                continue
+            if all(
+                isinstance(target, str)
+                and source.casefold() == target.casefold()
                 for source, target in mapping.items()
             ):
                 continue
@@ -2120,10 +2247,17 @@ class ContractExtractor:
             )
             not in heading_keys
         )
-        attribute_records = (
+        direct_attribute_records = (
             *heading_records,
             *extracted_attributes,
-            *self._derive_ages(contract, entity_records),
+        )
+        attribute_records = (
+            *direct_attribute_records,
+            *self._derive_calculated_attributes(
+                contract,
+                entity_records,
+                direct_attribute_records,
+            ),
         )
         derivation_mappings = self.derive_mappings(
             contract, attribute_records

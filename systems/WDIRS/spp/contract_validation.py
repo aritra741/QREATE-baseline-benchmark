@@ -24,6 +24,7 @@ from spp.workload_contract import (
     RelationshipContract,
     WorkloadContract,
 )
+from spp.calculation_tools import calculate, operands_are_grounded
 
 
 @dataclass(frozen=True)
@@ -301,22 +302,30 @@ def _semantic_attribute_grounded(
 ) -> bool:
     """Recognize explicit boolean predicates and singular counted events."""
 
-    if _value(record, "derivation_kind") == "age_from_birth_year":
+    if _value(record, "derivation_kind") == "tool_calculation":
         inputs = _value(record, "derivation_inputs", {}) or {}
         if isinstance(inputs, Mapping):
-            birth_year = _decimal(inputs.get("birth_year"))
-            reference_year = _decimal(inputs.get("reference_year"))
-            value = _decimal(_value(record, "value"))
-            if (
-                birth_year is not None
-                and reference_year is not None
-                and value == reference_year - birth_year
-                and re.search(
-                    rf"\b{re.escape(str(int(birth_year)))}\b",
-                    span,
-                )
-            ):
-                return True
+            operands = inputs.get("operands")
+            source_operands = inputs.get("source_operands")
+            if isinstance(operands, list) and isinstance(source_operands, list):
+                try:
+                    expected = calculate(
+                        str(inputs.get("operation")), operands
+                    )
+                except ValueError:
+                    expected = None
+                if (
+                    expected == _value(record, "value")
+                    and operands_are_grounded(
+                        operands,
+                        source_operands,
+                        span,
+                        corpus_reference_year=inputs.get(
+                            "corpus_reference_year"
+                        ),
+                    )
+                ):
+                    return True
     attribute_tokens = [
         _stem_token(token)
         for token in _symbol_key(_value(record, "attribute", "")).split("_")
