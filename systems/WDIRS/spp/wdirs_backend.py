@@ -882,6 +882,10 @@ class WDIRSPrimitiveBackend:
             if active_intent is not None
             else {}
         )
+        normalization_active = bool(lattice_tables) or any(
+            requirement.plan is not None and requirement.plan.group_by
+            for requirement in requirements_by_id.values()
+        )
         config_issues: Dict[str, Dict[str, str]] = {}
 
         for original_config in configs:
@@ -939,7 +943,11 @@ class WDIRSPrimitiveBackend:
             key = (
                 config.schema.schema_id,
                 config.population.er_strategy,
-                config.population.norm_strategy,
+                (
+                    config.population.norm_strategy
+                    if normalization_active
+                    else "inert_without_evidence"
+                ),
                 config.population.unit_strategy,
                 config.population.type_coercion,
             )

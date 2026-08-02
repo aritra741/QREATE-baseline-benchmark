@@ -273,7 +273,11 @@ def test_bare_grouped_year_is_contextualized_by_source_event():
         QueryPlan(
             group_by=(year,),
             aggregates=(AggregateSpec("count", alias="count_all"),),
-            predicate=PredicateSpec(year, ">", 2010),
+            predicate=PredicateSpec(
+                attribute=year,
+                operator=">",
+                value=2010,
+            ),
         ),
         "How many records were published in each year after 2010?",
     )
@@ -281,7 +285,9 @@ def test_bare_grouped_year_is_contextualized_by_source_event():
     assert normalized is not None
     assert normalized.group_by == (contextual,)
     assert normalized.predicate == PredicateSpec(
-        contextual, ">", 2010
+        attribute=contextual,
+        operator=">",
+        value=2010,
     )
 
 
