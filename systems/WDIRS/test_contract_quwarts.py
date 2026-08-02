@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from spp.evidence_store import CellProvenance, EvidenceAnchor, EvidenceStore
@@ -152,6 +153,59 @@ def test_count_contract_rejects_calendar_year_contamination():
     }
     issues = validate_count_date(record, field)
     assert "calendar_year_as_count" in {issue.code for issue in issues}
+
+
+def test_contract_response_parser_accepts_envelopes_and_mixed_arrays():
+    row = {
+        "identity": "Example",
+        "value": "Example",
+        "exact_span": "Example",
+        "unit": None,
+    }
+    assert ContractExtractor._parse_response(
+        f"```json\n{json.dumps({'records': [row]})}\n```"
+    ) == [row]
+    assert ContractExtractor._parse_response(
+        json.dumps([row, "discard this commentary", None])
+    ) == [row]
+
+
+def test_contract_extraction_retries_bad_shape_without_aborting(tmp_path):
+    class FormatRetryClient:
+        def __init__(self):
+            self.responses = iter(('["not an object"]', "[null]"))
+            self.ledger = type("Ledger", (), {"actual_spent": 0})()
+            self.calls = 0
+
+        def generate(self, *_args, **_kwargs):
+            self.calls += 1
+            return next(self.responses)
+
+    client = FormatRetryClient()
+    document = type(
+        "Document",
+        (),
+        {
+            "document_id": "record/1.txt",
+            "text": "Example",
+            "metadata": {},
+        },
+    )()
+    with EvidenceStore(tmp_path / "malformed.sqlite") as evidence:
+        extractor = ContractExtractor(
+            (document,),
+            client,
+            evidence,
+            max_workers=1,
+        )
+        rows = extractor._rows(
+            phase="entity",
+            prompt="Return the entity row.",
+            unit=extractor.units[0],
+            max_tokens=32,
+        )
+    assert rows == []
+    assert client.calls == 2
 
 
 def test_conflicts_are_retained_as_validation_outcomes():

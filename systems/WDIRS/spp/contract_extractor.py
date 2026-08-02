@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import math
 import os
 import re
@@ -33,6 +34,7 @@ from token_counter import count_tokens
 
 
 _PROMPT_VERSION = 2
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -418,27 +420,92 @@ class ContractExtractor:
 
     @staticmethod
     def _parse_response(response: str) -> List[Mapping[str, object]]:
-        """Parse a model array without positional or schema coercion."""
+        """Parse object rows without inventing positional field assignments."""
 
         rendered = str(response or "").strip()
+        if not rendered:
+            raise ValueError("contract extraction response is empty")
+
+        candidates: List[str] = []
+        candidates.extend(
+            match.strip()
+            for match in re.findall(
+                r"```(?:json)?\s*(.*?)```",
+                rendered,
+                flags=re.IGNORECASE | re.DOTALL,
+            )
+            if match.strip()
+        )
         start, end = rendered.find("["), rendered.rfind("]")
-        if start < 0 or end < start:
-            raise ValueError("contract extraction response contains no JSON array")
-        candidate = rendered[start : end + 1]
-        try:
-            payload = json.loads(candidate)
-        except json.JSONDecodeError:
+        if start >= 0 and end >= start:
+            candidates.append(rendered[start : end + 1])
+        candidates.append(rendered)
+
+        payload: object = None
+        parse_error: Optional[Exception] = None
+        for candidate in dict.fromkeys(candidates):
             try:
-                payload = repair_json(candidate, return_objects=True)
-            except Exception as exc:
-                raise ValueError(
-                    "contract extraction response is not valid JSON"
-                ) from exc
-        if not isinstance(payload, list) or any(
-            not isinstance(item, Mapping) for item in payload
+                payload = json.loads(candidate)
+                parse_error = None
+                break
+            except json.JSONDecodeError as exc:
+                parse_error = exc
+                try:
+                    payload = repair_json(candidate, return_objects=True)
+                except Exception as repair_exc:
+                    parse_error = repair_exc
+                    continue
+                if isinstance(payload, (list, Mapping)):
+                    parse_error = None
+                    break
+        if parse_error is not None or not isinstance(
+            payload, (list, Mapping)
         ):
-            raise ValueError("contract extraction response must be an object array")
-        return list(payload)
+            raise ValueError(
+                "contract extraction response is not valid JSON"
+            ) from parse_error
+
+        if isinstance(payload, Mapping):
+            for key in (
+                "records",
+                "results",
+                "rows",
+                "data",
+                "entities",
+                "attributes",
+                "relationships",
+                "extractions",
+            ):
+                nested = payload.get(key)
+                if isinstance(nested, list):
+                    payload = nested
+                    break
+            else:
+                if any(
+                    key in payload
+                    for key in ("identity", "left_identity", "exact_span")
+                ):
+                    payload = [payload]
+                else:
+                    raise ValueError(
+                        "contract extraction object contains no row array"
+                    )
+
+        rows: List[Mapping[str, object]] = []
+        for item in payload:
+            if isinstance(item, Mapping):
+                rows.append(dict(item))
+            elif isinstance(item, list):
+                rows.extend(
+                    dict(nested)
+                    for nested in item
+                    if isinstance(nested, Mapping)
+                )
+        if payload and not rows:
+            raise ValueError(
+                "contract extraction response must contain object rows"
+            )
+        return rows
 
     def _artifact_key(
         self,
@@ -489,7 +556,41 @@ class ContractExtractor:
             operation=f"contract_{phase}_extraction",
             shared_key=key,
         )
-        rows = self._parse_response(response)
+        try:
+            rows = self._parse_response(response)
+        except ValueError as first_error:
+            repair_prompt = (
+                f"{prompt}\n\n"
+                "FORMAT CORRECTION: The previous answer below did not contain "
+                "a valid JSON array of objects. Re-read the source and return "
+                "only the requested JSON object array. Do not add commentary "
+                "or infer any unsupported value. Return [] when no row is "
+                "supported.\n\nPrevious invalid answer:\n"
+                f"{response}"
+            )
+            repaired = self.llm_client.generate(
+                repair_prompt,
+                max_tokens=max_tokens,
+                temperature=0.0,
+                system_prompt=(
+                    "You are a source-grounded extraction engine. Output JSON "
+                    "only; all exact_span values must be copied verbatim from "
+                    "the supplied source document."
+                ),
+                operation=f"contract_{phase}_format_retry",
+                shared_key=f"{key}:format-retry",
+            )
+            try:
+                rows = self._parse_response(repaired)
+            except ValueError:
+                logger.warning(
+                    "Rejecting malformed contract extraction after one format "
+                    "retry: phase=%s document=%s error=%s",
+                    phase,
+                    unit.document_id,
+                    first_error,
+                )
+                rows = []
         produced = max(0, int(getattr(ledger, "actual_spent", before)) - before)
         self.evidence_store.put_shared_artifact(
             key,
