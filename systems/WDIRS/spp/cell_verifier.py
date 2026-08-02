@@ -13,7 +13,7 @@ from spp.budgeted_llm import BudgetedLLMClient
 
 logger = logging.getLogger(__name__)
 
-_VERIFIER_VERSION = 2
+_VERIFIER_VERSION = 3
 _ALLOWED_STATUSES = {
     "entailed",
     "contradicted",
@@ -84,6 +84,14 @@ class VerificationDecision:
     def accepted(self) -> bool:
         return self.status == "entailed"
 
+    def should_quarantine(self, *, minimum_confidence: float = 0.90) -> bool:
+        """Quarantine only a confident negative judgment, never uncertainty."""
+
+        return (
+            self.status in {"contradicted", "unsupported"}
+            and self.confidence >= minimum_confidence
+        )
+
 
 @dataclass(frozen=True)
 class VerificationReport:
@@ -132,6 +140,7 @@ class BudgetAwareCellVerifier:
         nli_model: Optional[str] = None,
         nli_local_only: Optional[bool] = None,
         llm_confidence_threshold: Optional[float] = None,
+        llm_token_budget: Optional[int] = None,
     ):
         self.ledger = ledger
         self.client = BudgetedLLMClient(
@@ -181,6 +190,18 @@ class BudgetAwareCellVerifier:
             raise ValueError(
                 "cell verifier LLM confidence threshold must be in [0, 1]"
             )
+        self.llm_token_budget = max(
+            0,
+            int(
+                llm_token_budget
+                if llm_token_budget is not None
+                else os.getenv(
+                    "SPP_CELL_VERIFIER_LLM_BUDGET",
+                    str(max(100_000, ledger.total_tokens // 20)),
+                )
+            ),
+        )
+        self._llm_started_at = ledger.actual_spent
         self._nli = None
         self._nli_unavailable = False
 
@@ -216,6 +237,9 @@ class BudgetAwareCellVerifier:
         prompt = self._prompt(claims)
         max_tokens = max(256, 96 * len(claims))
         conservative_cost = (len(prompt.encode("utf-8")) + 1) // 2 + max_tokens
+        verifier_spent = self.ledger.actual_spent - self._llm_started_at
+        if verifier_spent + conservative_cost > self.llm_token_budget:
+            return {}
         if self.ledger.available - self.completion_reserve < conservative_cost:
             return {}
         try:

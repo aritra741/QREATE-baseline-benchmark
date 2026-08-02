@@ -548,7 +548,7 @@ def test_calculation_tool_rejects_unprovenanced_operands():
     )
 
 
-def test_budget_aware_verifier_uses_llm_and_quarantines_low_confidence():
+def test_budget_aware_verifier_uses_llm_and_preserves_low_confidence():
     class VerificationClient:
         model = "fixture"
 
@@ -633,6 +633,18 @@ def test_cell_claim_exposes_checked_derivation_lineage_to_verifiers():
     )
 
 
+def test_quarantine_requires_a_confident_negative_decision():
+    assert VerificationDecision(
+        "bad", "contradicted", 0.95, "fixture"
+    ).should_quarantine()
+    assert not VerificationDecision(
+        "uncertain", "abstain", 0.99, "fixture"
+    ).should_quarantine()
+    assert not VerificationDecision(
+        "weak", "unsupported", 0.50, "fixture"
+    ).should_quarantine()
+
+
 def test_budget_aware_verifier_falls_back_to_nli_without_llm_budget():
     class NoCallClient:
         model = "fixture"
@@ -662,8 +674,9 @@ def test_budget_aware_verifier_falls_back_to_nli_without_llm_budget():
 
     verifier = BudgetAwareCellVerifier(
         NoCallClient(),
-        GlobalBudgetLedger(0),
+        GlobalBudgetLedger(100_000),
         completion_reserve=0,
+        llm_token_budget=0,
     )
     verifier._nli = FakeNLI()
     claims = tuple(
@@ -690,10 +703,15 @@ def test_budget_aware_verifier_falls_back_to_nli_without_llm_budget():
 
 def test_backend_quarantines_only_verifier_rejections():
     class SelectiveVerifier:
+        seen_attributes = ()
+
         def __init__(self, _client, _ledger):
             pass
 
         def verify(self, claims):
+            type(self).seen_attributes = tuple(
+                claim.attribute for claim in claims
+            )
             return VerificationReport(
                 decisions=tuple(
                     VerificationDecision(
@@ -701,7 +719,7 @@ def test_backend_quarantines_only_verifier_rejections():
                         (
                             "unsupported"
                             if claim.attribute == "awards"
-                            else "entailed"
+                            else "abstain"
                         ),
                         0.99,
                         "fixture",
@@ -715,10 +733,11 @@ def test_backend_quarantines_only_verifier_rejections():
 
     relation = RelationSpec(
         "item",
-        ("name", "awards", "amount"),
+        ("name", "category", "awards", "amount"),
         primary_key="name",
         semantic_types=(
             ("name", "text"),
+            ("category", "text"),
             ("awards", "integer"),
             ("amount", "integer"),
         ),
@@ -734,6 +753,9 @@ def test_backend_quarantines_only_verifier_rejections():
         attributes=(
             AttributeContract(
                 "item", "awards", semantic_types=("integer",)
+            ),
+            AttributeContract(
+                "item", "category", semantic_types=("text",)
             ),
             AttributeContract(
                 "item", "amount", semantic_types=("integer",)
@@ -752,12 +774,26 @@ def test_backend_quarantines_only_verifier_rejections():
                 {
                     "row_id": "r1",
                     "name": "Item",
+                    "category": "Example",
                     "awards": 2023,
                     "amount": 5,
                 },
             )
         },
         evidence=(
+            SharedCellEvidence(
+                "item",
+                "r1",
+                "category",
+                "Example",
+                "a0",
+                "item/1.txt",
+                "Item",
+                0,
+                4,
+                True,
+                True,
+            ),
             SharedCellEvidence(
                 "item",
                 "r1",
@@ -790,11 +826,20 @@ def test_backend_quarantines_only_verifier_rejections():
         shared, GlobalBudgetLedger(10_000)
     )
     assert verified.raw_tables["item"] == (
-        {"row_id": "r1", "name": "Item", "amount": 5},
+        {
+            "row_id": "r1",
+            "name": "Item",
+            "category": "Example",
+            "amount": 5,
+        },
     )
     assert {
         cell.column for cell in verified.evidence
-    } == {"amount"}
+    } == {"category", "amount"}
+    assert set(SelectiveVerifier.seen_attributes) == {"awards", "amount"}
+    verification = verified.metadata["cell_verification"]
+    assert verification["skipped_low_risk_count"] == 1
+    assert verification["preserved_uncertain_count"] == 1
 
 
 def test_verification_summary_does_not_change_shared_cache_key():

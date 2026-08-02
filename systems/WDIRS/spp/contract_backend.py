@@ -81,7 +81,7 @@ from spp.workload_contract import (
 )
 
 
-BACKEND_VERSION = 14
+BACKEND_VERSION = 15
 HYBRID_BULK_VERSION = 3
 
 logger = logging.getLogger(__name__)
@@ -2249,7 +2249,7 @@ class ContractBackend:
         )
         if (
             isinstance(previous, Mapping)
-            and int(previous.get("verifier_version", 0) or 0) >= 2
+            and int(previous.get("verifier_version", 0) or 0) >= 3
         ):
             return shared
 
@@ -2313,6 +2313,8 @@ class ContractBackend:
         claims: List[CellClaim] = []
         claim_keys: Dict[str, Tuple[str, str, str]] = {}
         priorities: Dict[str, Tuple[int, int, str]] = {}
+        populated_cell_count = 0
+        skipped_low_risk_count = 0
         for relation_name, rows in shared.raw_tables.items():
             relation = relations.get(relation_name)
             if relation is None:
@@ -2332,6 +2334,7 @@ class ContractBackend:
                         or value in (None, "")
                     ):
                         continue
+                    populated_cell_count += 1
                     candidates = evidence_by_cell.get(
                         (relation_name, row_identity, column), ()
                     )
@@ -2370,6 +2373,29 @@ class ContractBackend:
                         (_symbol_key(relation_name), _symbol_key(column)),
                         ((relation.semantic_type(column),), ()),
                     )
+                    declared_types = {
+                        str(item).strip().lower()
+                        for item in declaration[0]
+                    }
+                    numeric_value = isinstance(value, (int, float)) and not (
+                        isinstance(value, bool)
+                    )
+                    if not numeric_value and declared_types & {
+                        "integer",
+                        "real",
+                        "quantity",
+                        "quantity_count",
+                        "date",
+                    }:
+                        try:
+                            float(str(value).replace(",", ""))
+                        except (TypeError, ValueError):
+                            pass
+                        else:
+                            numeric_value = True
+                    if supported and not numeric_value:
+                        skipped_low_risk_count += 1
+                        continue
                     claim_id = _fingerprint(
                         (
                             relation_name,
@@ -2410,10 +2436,7 @@ class ContractBackend:
                     )
                     priorities[claim_id] = (
                         0 if not supported else 1,
-                        0
-                        if isinstance(value, (int, float))
-                        and not isinstance(value, bool)
-                        else 1,
+                        0 if numeric_value else 1,
                         claim_id,
                     )
 
@@ -2422,11 +2445,22 @@ class ContractBackend:
         claims.sort(key=lambda claim: priorities[claim.claim_id])
         factory = self.cell_verifier_factory or BudgetAwareCellVerifier
         verifier = factory(self.llm_client, ledger)
+        verification_tokens_before = ledger.actual_spent
         report = verifier.verify(claims)
+        verification_tokens = ledger.actual_spent - verification_tokens_before
+        quarantine_confidence = float(
+            os.getenv("SPP_CELL_VERIFIER_QUARANTINE_CONFIDENCE", "0.90")
+        )
+        if not 0.0 <= quarantine_confidence <= 1.0:
+            raise ValueError(
+                "cell verifier quarantine confidence must be in [0, 1]"
+            )
         rejected = {
             claim_keys[decision.claim_id]
             for decision in report.decisions
-            if not decision.accepted
+            if decision.should_quarantine(
+                minimum_confidence=quarantine_confidence
+            )
             and decision.claim_id in claim_keys
         }
 
@@ -2470,13 +2504,26 @@ class ContractBackend:
         metadata["cell_verification"] = {
             "verifier_version": report.verifier_version,
             "claim_count": len(claims),
+            "populated_cell_count": populated_cell_count,
+            "skipped_low_risk_count": skipped_low_risk_count,
             "accepted_count": sum(
                 decision.accepted for decision in report.decisions
+            ),
+            "preserved_uncertain_count": sum(
+                decision.status == "abstain"
+                or (
+                    decision.status in {"contradicted", "unsupported"}
+                    and not decision.should_quarantine(
+                        minimum_confidence=quarantine_confidence
+                    )
+                )
+                for decision in report.decisions
             ),
             "rejected_or_quarantined_count": len(rejected),
             "llm_claims": report.llm_claims,
             "nli_claims": report.nli_claims,
             "unverified_claims": report.unverified_claims,
+            "llm_verification_tokens": verification_tokens,
             "decisions": [
                 {
                     "claim_id": decision.claim_id,
@@ -3031,7 +3078,7 @@ class ContractBackend:
             },
             "cell_verification": {
                 "enabled": self.verify_extracted_cells,
-                "version": 2,
+                "version": 3,
                 "nli_model": os.getenv(
                     "SPP_NLI_MODEL",
                     "cross-encoder/nli-deberta-v3-small",
@@ -3047,6 +3094,12 @@ class ContractBackend:
                 ),
                 "llm_confidence_threshold": os.getenv(
                     "SPP_CELL_VERIFIER_LLM_CONFIDENCE", "0.70"
+                ),
+                "llm_token_budget": os.getenv(
+                    "SPP_CELL_VERIFIER_LLM_BUDGET", ""
+                ),
+                "quarantine_confidence_threshold": os.getenv(
+                    "SPP_CELL_VERIFIER_QUARANTINE_CONFIDENCE", "0.90"
                 ),
             },
             "contract": _fingerprint(self.contract),
@@ -4555,7 +4608,7 @@ class ContractBackend:
             },
             "cell_verification": {
                 "enabled": self.verify_extracted_cells,
-                "version": 2,
+                "version": 3,
                 "summary": (
                     _jsonable(
                         self._shared.metadata.get(
