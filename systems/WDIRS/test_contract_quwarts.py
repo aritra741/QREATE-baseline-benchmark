@@ -896,6 +896,61 @@ def test_executed_quality_reports_ground_truth_free_metamorphic_signals(
     assert assessment.estimate.components["required_attribute_coverage"] == 1.0
 
 
+def test_aggregate_additivity_rejects_non_numeric_group_without_crashing(
+    tmp_path: Path,
+):
+    category = AttributeRef("record", "category", "text")
+    amount = AttributeRef("record", "amount", "real")
+    requirement = QueryRequirement(
+        query_id="q0",
+        text="Minimum amount for each category.",
+        entities=("record",),
+        plan=QueryPlan(
+            projections=(category,),
+            group_by=(category,),
+            aggregates=(
+                AggregateSpec("min", amount, alias="min_amount"),
+            ),
+        ),
+    )
+    schema = SchemaDesign(
+        "snowflake",
+        (
+            RelationSpec(
+                "record",
+                ("category", "amount"),
+                semantic_types=(("category", "text"), ("amount", "real")),
+            ),
+        ),
+        ("q0",),
+    )
+    config = SynthesisConfig(
+        schema,
+        PopulationConfig(),
+        PreprocessingPolicy("whole_document"),
+    )
+    database = write_sqlite_database(
+        tmp_path / "mixed-aggregate.sqlite",
+        {
+            "record": [
+                {"category": "A", "amount": 1},
+                {"category": "B", "amount": "Second-Round"},
+            ]
+        },
+        schema,
+    )
+
+    assessment = assess_query_quality(
+        requirement,
+        config,
+        database,
+        None,
+    )
+
+    assert assessment.error is None
+    assert assessment.estimate.components["aggregate_additivity"] == 0.0
+
+
 def test_query_quality_rejects_missing_required_attribute_evidence(
     tmp_path: Path,
 ):

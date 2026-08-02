@@ -621,7 +621,13 @@ def _aggregate_additivity(
         if global_value is None:
             checks.append(float(not grouped_values))
             continue
-        if not isinstance(global_value, (int, float)):
+        numeric_values = (global_value, *grouped_values)
+        if not all(
+            isinstance(value, (int, float))
+            and not isinstance(value, bool)
+            and math.isfinite(float(value))
+            for value in numeric_values
+        ):
             checks.append(0.0)
             continue
         if aggregate.function in {"count", "sum"}:
