@@ -6,6 +6,12 @@ import json
 from pathlib import Path
 
 from spp.calculation_tools import operands_are_grounded
+from spp.cell_verifier import (
+    BudgetAwareCellVerifier,
+    CellClaim,
+    VerificationDecision,
+    VerificationReport,
+)
 from spp.evidence_store import CellProvenance, EvidenceAnchor, EvidenceStore
 from spp.contract_extractor import (
     ContractExtraction,
@@ -163,9 +169,14 @@ def test_count_contract_rejects_calendar_year_contamination():
     }
     issues = validate_count_date(record, field)
     assert "calendar_year_as_count" in {issue.code for issue in issues}
+    assert next(
+        issue
+        for issue in issues
+        if issue.code == "calendar_year_as_count"
+    ).severity == "warning"
 
 
-def test_award_count_rejects_bare_calendar_year():
+def test_award_count_flags_bare_calendar_year_for_semantic_verification():
     field = AttributeContract(
         entity="person",
         name="mvp_awards",
@@ -180,6 +191,11 @@ def test_award_count_rejects_bare_calendar_year():
     }
     issues = validate_count_date(record, field)
     assert "calendar_year_as_count" in {issue.code for issue in issues}
+    assert next(
+        issue
+        for issue in issues
+        if issue.code == "calendar_year_as_count"
+    ).severity == "warning"
 
 
 def test_casefold_taxonomy_collapses_surface_variants():
@@ -530,6 +546,295 @@ def test_calculation_tool_rejects_unprovenanced_operands():
         "The source explicitly states 5.",
         corpus_reference_year=2026,
     )
+
+
+def test_budget_aware_verifier_uses_llm_and_quarantines_low_confidence():
+    class VerificationClient:
+        model = "fixture"
+
+        def generate(self, _prompt, **_kwargs):
+            return json.dumps(
+                [
+                    {
+                        "claim_id": "accepted",
+                        "status": "entailed",
+                        "confidence": 0.95,
+                        "reason": "direct support",
+                    },
+                    {
+                        "claim_id": "uncertain",
+                        "status": "entailed",
+                        "confidence": 0.40,
+                        "reason": "weak support",
+                    },
+                ]
+            )
+
+    verifier = BudgetAwareCellVerifier(
+        VerificationClient(),
+        GlobalBudgetLedger(100_000),
+        completion_reserve=0,
+        batch_size=2,
+        nli_local_only=True,
+    )
+    claims = (
+        CellClaim(
+            "accepted",
+            "item",
+            "r1",
+            "Item",
+            "amount",
+            5,
+            ("integer",),
+            (),
+            "Item has amount 5.",
+        ),
+        CellClaim(
+            "uncertain",
+            "item",
+            "r1",
+            "Item",
+            "count",
+            2023,
+            ("integer",),
+            (),
+            "Item received an award in 2023.",
+        ),
+    )
+    report = verifier.verify(claims)
+    decisions = {decision.claim_id: decision for decision in report.decisions}
+    assert decisions["accepted"].status == "entailed"
+    assert decisions["uncertain"].status == "abstain"
+    assert report.llm_claims == 2
+
+
+def test_cell_claim_exposes_checked_derivation_lineage_to_verifiers():
+    claim = CellClaim(
+        "derived",
+        "person",
+        "r1",
+        "Example Person",
+        "elapsed",
+        26,
+        ("integer",),
+        (),
+        "Example Person began in 2000.",
+        derivation_lineage={
+            "kind": "tool_calculation",
+            "inputs": {
+                "operation": "subtract",
+                "operands": [2026, 2000],
+            },
+        },
+    )
+    assert "tool_calculation" in claim.nli_premise
+    assert claim.prompt_payload()["derivation_lineage"]["kind"] == (
+        "tool_calculation"
+    )
+
+
+def test_budget_aware_verifier_falls_back_to_nli_without_llm_budget():
+    class NoCallClient:
+        model = "fixture"
+
+        def generate(self, *_args, **_kwargs):
+            raise AssertionError("LLM must not run without budget")
+
+    class Config:
+        id2label = {
+            0: "contradiction",
+            1: "entailment",
+            2: "neutral",
+        }
+
+    class Model:
+        config = Config()
+
+    class FakeNLI:
+        model = Model()
+
+        def predict(self, pairs, **_kwargs):
+            assert len(pairs) == 2
+            return (
+                (8.0, 0.0, 0.0),
+                (0.0, 8.0, 0.0),
+            )
+
+    verifier = BudgetAwareCellVerifier(
+        NoCallClient(),
+        GlobalBudgetLedger(0),
+        completion_reserve=0,
+    )
+    verifier._nli = FakeNLI()
+    claims = tuple(
+        CellClaim(
+            claim_id,
+            "item",
+            "r1",
+            "Item",
+            "amount",
+            value,
+            ("integer",),
+            (),
+            f"Item has amount {value}.",
+        )
+        for claim_id, value in (("bad", 9), ("good", 5))
+    )
+    report = verifier.verify(claims)
+    decisions = {decision.claim_id: decision for decision in report.decisions}
+    assert decisions["bad"].status == "contradicted"
+    assert decisions["good"].status == "entailed"
+    assert report.llm_claims == 0
+    assert report.nli_claims == 2
+
+
+def test_backend_quarantines_only_verifier_rejections():
+    class SelectiveVerifier:
+        def __init__(self, _client, _ledger):
+            pass
+
+        def verify(self, claims):
+            return VerificationReport(
+                decisions=tuple(
+                    VerificationDecision(
+                        claim.claim_id,
+                        (
+                            "unsupported"
+                            if claim.attribute == "awards"
+                            else "entailed"
+                        ),
+                        0.99,
+                        "fixture",
+                    )
+                    for claim in claims
+                ),
+                llm_claims=len(claims),
+                nli_claims=0,
+                unverified_claims=0,
+            )
+
+    relation = RelationSpec(
+        "item",
+        ("name", "awards", "amount"),
+        primary_key="name",
+        semantic_types=(
+            ("name", "text"),
+            ("awards", "integer"),
+            ("amount", "integer"),
+        ),
+    )
+    backend = ContractBackend(
+        (ContractDocument("item/1.txt", "Item has amount 5 in 2023."),),
+        object(),
+        verify_extracted_cells=True,
+        cell_verifier_factory=SelectiveVerifier,
+    )
+    backend.contract = WorkloadContract(
+        entities=(EntityContract("item"),),
+        attributes=(
+            AttributeContract(
+                "item", "awards", semantic_types=("integer",)
+            ),
+            AttributeContract(
+                "item", "amount", semantic_types=("integer",)
+            ),
+        ),
+        relationships=(),
+    )
+    backend.relation_graph = WorkloadRelationGraph(
+        relations=(relation,),
+        edges=(),
+        covered_query_ids=("q0",),
+    )
+    shared = SharedExtraction(
+        raw_tables={
+            "item": (
+                {
+                    "row_id": "r1",
+                    "name": "Item",
+                    "awards": 2023,
+                    "amount": 5,
+                },
+            )
+        },
+        evidence=(
+            SharedCellEvidence(
+                "item",
+                "r1",
+                "awards",
+                2023,
+                "a1",
+                "item/1.txt",
+                "2023",
+                21,
+                25,
+                True,
+                True,
+            ),
+            SharedCellEvidence(
+                "item",
+                "r1",
+                "amount",
+                5,
+                "a2",
+                "item/1.txt",
+                "5",
+                16,
+                17,
+                True,
+                True,
+            ),
+        ),
+    )
+    verified = backend._verify_shared_values(
+        shared, GlobalBudgetLedger(10_000)
+    )
+    assert verified.raw_tables["item"] == (
+        {"row_id": "r1", "name": "Item", "amount": 5},
+    )
+    assert {
+        cell.column for cell in verified.evidence
+    } == {"amount"}
+
+
+def test_verification_summary_does_not_change_shared_cache_key():
+    backend = ContractBackend(
+        (ContractDocument("item/1.txt", "Item has amount 5."),),
+        object(),
+        verify_extracted_cells=True,
+    )
+    backend.contract = WorkloadContract(
+        entities=(EntityContract("item"),),
+        attributes=(
+            AttributeContract(
+                "item", "amount", semantic_types=("integer",)
+            ),
+        ),
+        relationships=(),
+    )
+    backend.relation_graph = WorkloadRelationGraph(
+        relations=(
+            RelationSpec(
+                "item",
+                ("amount",),
+                semantic_types=(("amount", "integer"),),
+            ),
+        ),
+        edges=(),
+        covered_query_ids=("q0",),
+    )
+    before = backend._shared_key()
+    backend._shared = SharedExtraction(
+        raw_tables={"item": ()},
+        evidence=(),
+        metadata={
+            "cell_verification": {
+                "verifier_version": 2,
+                "accepted_count": 10,
+            }
+        },
+    )
+    assert backend._shared_key() == before
 
 
 def test_heading_derivation_separates_entity_name_and_region(tmp_path):
@@ -1492,7 +1797,7 @@ def test_supported_contract_cell_overrides_conflicting_bulk_value():
     assert merged.raw_tables["entity"][0]["name"] == "Canonical"
 
 
-def test_bulk_numeric_validation_rejects_years_as_counts_and_implausible_ages():
+def test_bulk_numeric_gate_is_domain_neutral_and_rejects_only_nonfinite_values():
     relation = RelationSpec(
         "entity",
         ("awards", "titles", "age"),
@@ -1502,18 +1807,17 @@ def test_bulk_numeric_validation_rejects_years_as_counts_and_implausible_ages():
             ("age", "real"),
         ),
     )
-    assert not ContractBackend._bulk_value_plausible(
-        relation, "awards", 2023
-    )
-    assert not ContractBackend._bulk_value_plausible(
-        relation, "titles", 2023
-    )
+    assert ContractBackend._bulk_value_plausible(relation, "awards", 2023)
+    assert ContractBackend._bulk_value_plausible(relation, "titles", 2023)
     assert ContractBackend._bulk_value_plausible(relation, "awards", 18)
-    assert not ContractBackend._bulk_value_plausible(relation, "age", 136)
+    assert ContractBackend._bulk_value_plausible(relation, "age", 136)
     assert ContractBackend._bulk_value_plausible(relation, "age", 86)
+    assert not ContractBackend._bulk_value_plausible(
+        relation, "age", float("inf")
+    )
 
 
-def test_post_merge_plausibility_gate_removes_invalid_cells():
+def test_post_merge_finite_gate_removes_only_nonfinite_cells():
     relation = RelationSpec(
         "entity",
         ("name", "awards", "age"),
@@ -1539,7 +1843,7 @@ def test_post_merge_plausibility_gate_removes_invalid_cells():
                 {
                     "row_id": "r1",
                     "name": "Example",
-                    "awards": 2023,
+                    "awards": float("inf"),
                     "age": 681,
                 },
             )
@@ -1549,7 +1853,7 @@ def test_post_merge_plausibility_gate_removes_invalid_cells():
                 relation="entity",
                 row_identity="r1",
                 column="awards",
-                value=2023,
+                value=float("inf"),
                 anchor_id="a",
                 document_id="entity/1.txt",
                 anchor_text="2023",
@@ -1562,7 +1866,7 @@ def test_post_merge_plausibility_gate_removes_invalid_cells():
     )
     cleaned = backend._sanitize_shared_values(shared)
     assert cleaned.raw_tables["entity"] == (
-        {"row_id": "r1", "name": "Example"},
+        {"row_id": "r1", "name": "Example", "age": 681},
     )
     assert cleaned.evidence == ()
 
@@ -1706,6 +2010,7 @@ def test_contract_modules_do_not_contain_benchmark_path_literals():
     for name in (
         "workload_contract.py",
         "contract_extractor.py",
+        "cell_verifier.py",
         "contract_validation.py",
         "contract_backend.py",
         "query_quality.py",

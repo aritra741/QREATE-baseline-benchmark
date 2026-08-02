@@ -23,6 +23,7 @@ from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Seque
 
 from spp.budget_ledger import BudgetExhausted, GlobalBudgetLedger
 from spp.budgeted_llm import BudgetedLLMClient
+from spp.cell_verifier import BudgetAwareCellVerifier, CellClaim
 from spp.contract_extractor import (
     ContractExtractor,
     DocumentUnit,
@@ -80,7 +81,7 @@ from spp.workload_contract import (
 )
 
 
-BACKEND_VERSION = 13
+BACKEND_VERSION = 14
 HYBRID_BULK_VERSION = 3
 
 logger = logging.getLogger(__name__)
@@ -1558,6 +1559,12 @@ def _normalize_extraction(
             invalid_relationship_indexes,
         )
         explicit = explicit_records
+        extraction_records = tuple(
+            (
+                *(_member(result, "entity_records", default=()) or ()),
+                *(_member(result, "attribute_records", default=()) or ()),
+            )
+        )
         metadata = {
             "validation_issues": [
                 _jsonable(issue) for issue in validation_issues
@@ -1576,6 +1583,34 @@ def _normalize_extraction(
                     )
                     or ()
                 )
+            ],
+            "cell_derivations": [
+                {
+                    "entity": str(
+                        _member(record, "entity", default="") or ""
+                    ),
+                    "identity": str(
+                        _member(record, "identity", default="") or ""
+                    ),
+                    "attribute": str(
+                        _member(record, "attribute", default="") or ""
+                    ),
+                    "value": _jsonable(
+                        _member(record, "value", default=None)
+                    ),
+                    "document_id": str(
+                        _member(record, "document_id", default="") or ""
+                    ),
+                    "derivation_kind": str(
+                        _member(record, "derivation_kind", default="") or ""
+                    ),
+                    "derivation_inputs": _jsonable(
+                        _member(record, "derivation_inputs", default={}) or {}
+                    ),
+                }
+                for record in extraction_records
+                if _member(record, "attribute", default=None) is not None
+                and _member(record, "derivation_kind", default=None)
             ],
         }
     normalized_raw = _normalize_table_identities(raw, graph)
@@ -1780,6 +1815,8 @@ class ContractBackend:
         bulk_extractor_factory: Optional[Callable[[object, Path], object]] = None,
         bulk_min_column_coverage: float = 0.0,
         bulk_column_batch_size: Optional[int] = None,
+        verify_extracted_cells: Optional[bool] = None,
+        cell_verifier_factory: Optional[Callable[..., object]] = None,
     ):
         self.documents = _normalize_documents(documents)
         self.llm_client = llm_client
@@ -1795,6 +1832,15 @@ class ContractBackend:
         self.use_bulk_extraction = bool(use_bulk_extraction)
         self.bulk_extractor_factory = bulk_extractor_factory
         self.bulk_min_column_coverage = float(bulk_min_column_coverage)
+        self.verify_extracted_cells = (
+            bool(verify_extracted_cells)
+            if verify_extracted_cells is not None
+            else os.getenv("SPP_VERIFY_EXTRACTED_CELLS", "1")
+            .strip()
+            .lower()
+            not in {"0", "false", "no"}
+        )
+        self.cell_verifier_factory = cell_verifier_factory
         self.bulk_column_batch_size = int(
             bulk_column_batch_size
             if bulk_column_batch_size is not None
@@ -2112,7 +2158,7 @@ class ContractBackend:
         column: str,
         value: object,
     ) -> bool:
-        """Reject generic numeric contaminations before they reach raw tables."""
+        """Reject only non-finite scalars; semantics belong to the verifier."""
 
         if value in (None, "") or isinstance(value, bool):
             return True
@@ -2120,34 +2166,13 @@ class ContractBackend:
             numeric = float(str(value).replace(",", ""))
         except (TypeError, ValueError):
             return True
-        key = _symbol_key(column)
-        semantic_type = cls._bulk_semantic_type(relation, column)
-        count_like = any(
-            token in key
-            for token in (
-                "count",
-                "championship",
-                "award",
-                "medal",
-                "title",
-            )
-        )
-        if (
-            (semantic_type == "QUANTITY_COUNT" or count_like)
-            and numeric.is_integer()
-            and 1000 <= numeric <= 2999
-            and not any(token in key for token in ("date", "year"))
-        ):
-            return False
-        if key in {"age", "current_age"} and not 0 <= numeric <= 125:
-            return False
         return math.isfinite(numeric)
 
     def _sanitize_shared_values(
         self,
         shared: SharedExtraction,
     ) -> SharedExtraction:
-        """Apply semantic plausibility gates after every extraction merge/cache."""
+        """Apply domain-neutral finite-value gates after merge/cache."""
 
         if self.relation_graph is None:
             return shared
@@ -2197,6 +2222,272 @@ class ContractBackend:
         )
         metadata = dict(shared.metadata)
         metadata["plausibility_rejected_cell_count"] = len(rejected)
+        return SharedExtraction(
+            raw_tables=raw,
+            semantic_tables=semantic,
+            evidence=evidence,
+            metadata=metadata,
+        )
+
+    def _verify_shared_values(
+        self,
+        shared: SharedExtraction,
+        ledger: GlobalBudgetLedger,
+    ) -> SharedExtraction:
+        """Semantically verify cells without benchmark- or attribute-specific rules."""
+
+        if (
+            not self.verify_extracted_cells
+            or self.relation_graph is None
+            or self.contract is None
+        ):
+            return shared
+        previous = (
+            shared.metadata.get("cell_verification", {})
+            if isinstance(shared.metadata, Mapping)
+            else {}
+        )
+        if (
+            isinstance(previous, Mapping)
+            and int(previous.get("verifier_version", 0) or 0) >= 2
+        ):
+            return shared
+
+        document_text = {
+            document.document_id: document.text for document in self.documents
+        }
+        relations = {
+            relation.name: relation for relation in self.relation_graph.relations
+        }
+        declarations: Dict[
+            Tuple[str, str], Tuple[Tuple[str, ...], Tuple[Tuple[str, str], ...]]
+        ] = {}
+        for attribute in getattr(self.contract, "attributes", ()):
+            semantic_types = tuple(
+                str(value)
+                for value in getattr(attribute, "semantic_types", ())
+            )
+            query_hints = tuple(
+                (str(query_id), str(text))
+                for query_id, text in getattr(
+                    attribute, "query_hints", ()
+                )
+            )
+            for owner in getattr(attribute, "owners", ()):
+                declarations[
+                    (_symbol_key(owner), _symbol_key(attribute.name))
+                ] = (semantic_types, query_hints)
+
+        evidence_by_cell: Dict[
+            Tuple[str, str, str], List[SharedCellEvidence]
+        ] = {}
+        for cell in shared.evidence:
+            evidence_by_cell.setdefault(
+                (cell.relation, cell.row_identity, cell.column), []
+            ).append(cell)
+        derivations: Dict[Tuple[str, str, str, str], Mapping[str, object]] = {}
+        for item in (
+            shared.metadata.get("cell_derivations", ())
+            if isinstance(shared.metadata, Mapping)
+            else ()
+        ):
+            if not isinstance(item, Mapping):
+                continue
+            key = (
+                _symbol_key(item.get("entity", "")),
+                str(item.get("identity", "")).strip().casefold(),
+                _symbol_key(item.get("attribute", "")),
+                json.dumps(
+                    _jsonable(item.get("value")),
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ),
+            )
+            derivations[key] = {
+                "kind": str(item.get("derivation_kind", "") or ""),
+                "inputs": _jsonable(
+                    item.get("derivation_inputs", {}) or {}
+                ),
+            }
+
+        claims: List[CellClaim] = []
+        claim_keys: Dict[str, Tuple[str, str, str]] = {}
+        priorities: Dict[str, Tuple[int, int, str]] = {}
+        for relation_name, rows in shared.raw_tables.items():
+            relation = relations.get(relation_name)
+            if relation is None:
+                continue
+            identity_column = relation.primary_key
+            for row in rows:
+                row_identity = str(row.get("row_id", ""))
+                identity = str(
+                    row.get(identity_column, row_identity)
+                    if identity_column
+                    else row_identity
+                )
+                for column, value in row.items():
+                    if (
+                        column == "row_id"
+                        or column == identity_column
+                        or value in (None, "")
+                    ):
+                        continue
+                    candidates = evidence_by_cell.get(
+                        (relation_name, row_identity, column), ()
+                    )
+                    matching = [
+                        cell
+                        for cell in candidates
+                        if json.dumps(
+                            _jsonable(cell.value), sort_keys=True
+                        )
+                        == json.dumps(_jsonable(value), sort_keys=True)
+                    ]
+                    evidence = next(
+                        (
+                            cell
+                            for cell in matching
+                            if cell.supported
+                        ),
+                        matching[0] if matching else None,
+                    )
+                    excerpt = ""
+                    supported = False
+                    if evidence is not None:
+                        source = document_text.get(evidence.document_id, "")
+                        if source and evidence.span_restored:
+                            center_start = max(0, int(evidence.start) - 450)
+                            center_end = min(
+                                len(source), int(evidence.end) + 450
+                            )
+                            excerpt = source[center_start:center_end]
+                        elif source:
+                            excerpt = source[:900]
+                        else:
+                            excerpt = evidence.anchor_text[:900]
+                        supported = evidence.supported
+                    declaration = declarations.get(
+                        (_symbol_key(relation_name), _symbol_key(column)),
+                        ((relation.semantic_type(column),), ()),
+                    )
+                    claim_id = _fingerprint(
+                        (
+                            relation_name,
+                            row_identity,
+                            column,
+                            _jsonable(value),
+                        )
+                    )
+                    claim = CellClaim(
+                        claim_id=claim_id,
+                        relation=relation_name,
+                        row_identity=row_identity,
+                        identity=identity,
+                        attribute=column,
+                        value=value,
+                        semantic_types=declaration[0],
+                        query_hints=declaration[1],
+                        evidence_excerpt=excerpt,
+                        derivation_lineage=derivations.get(
+                            (
+                                _symbol_key(relation_name),
+                                identity.strip().casefold(),
+                                _symbol_key(column),
+                                json.dumps(
+                                    _jsonable(value),
+                                    sort_keys=True,
+                                    separators=(",", ":"),
+                                ),
+                            ),
+                            {},
+                        ),
+                    )
+                    claims.append(claim)
+                    claim_keys[claim_id] = (
+                        relation_name,
+                        row_identity,
+                        column,
+                    )
+                    priorities[claim_id] = (
+                        0 if not supported else 1,
+                        0
+                        if isinstance(value, (int, float))
+                        and not isinstance(value, bool)
+                        else 1,
+                        claim_id,
+                    )
+
+        if not claims:
+            return shared
+        claims.sort(key=lambda claim: priorities[claim.claim_id])
+        factory = self.cell_verifier_factory or BudgetAwareCellVerifier
+        verifier = factory(self.llm_client, ledger)
+        report = verifier.verify(claims)
+        rejected = {
+            claim_keys[decision.claim_id]
+            for decision in report.decisions
+            if not decision.accepted
+            and decision.claim_id in claim_keys
+        }
+
+        def filter_tables(
+            tables: Optional[
+                Mapping[str, Sequence[Mapping[str, object]]]
+            ],
+        ) -> Optional[Dict[str, Tuple[Mapping[str, object], ...]]]:
+            if tables is None:
+                return None
+            result: Dict[str, Tuple[Mapping[str, object], ...]] = {}
+            for relation_name, rows in tables.items():
+                cleaned: List[Mapping[str, object]] = []
+                for source_row in rows:
+                    row = dict(source_row)
+                    row_identity = str(row.get("row_id", ""))
+                    for column in tuple(row):
+                        if (
+                            relation_name,
+                            row_identity,
+                            column,
+                        ) in rejected:
+                            row.pop(column, None)
+                    cleaned.append(row)
+                result[relation_name] = tuple(cleaned)
+            return result
+
+        raw = filter_tables(shared.raw_tables) or {}
+        semantic = filter_tables(shared.semantic_tables)
+        evidence = tuple(
+            cell
+            for cell in shared.evidence
+            if (
+                cell.relation,
+                cell.row_identity,
+                cell.column,
+            )
+            not in rejected
+        )
+        metadata = dict(shared.metadata)
+        metadata["cell_verification"] = {
+            "verifier_version": report.verifier_version,
+            "claim_count": len(claims),
+            "accepted_count": sum(
+                decision.accepted for decision in report.decisions
+            ),
+            "rejected_or_quarantined_count": len(rejected),
+            "llm_claims": report.llm_claims,
+            "nli_claims": report.nli_claims,
+            "unverified_claims": report.unverified_claims,
+            "decisions": [
+                {
+                    "claim_id": decision.claim_id,
+                    "status": decision.status,
+                    "confidence": decision.confidence,
+                    "method": decision.method,
+                    "reason": decision.reason,
+                }
+                for decision in report.decisions
+            ],
+        }
         return SharedExtraction(
             raw_tables=raw,
             semantic_tables=semantic,
@@ -2737,6 +3028,26 @@ class ContractBackend:
                 "version": HYBRID_BULK_VERSION,
                 "min_column_coverage": self.bulk_min_column_coverage,
                 "column_batch_size": self.bulk_column_batch_size,
+            },
+            "cell_verification": {
+                "enabled": self.verify_extracted_cells,
+                "version": 2,
+                "nli_model": os.getenv(
+                    "SPP_NLI_MODEL",
+                    "cross-encoder/nli-deberta-v3-small",
+                ),
+                "nli_local_only": os.getenv(
+                    "SPP_NLI_LOCAL_ONLY", "1"
+                ),
+                "batch_size": os.getenv(
+                    "SPP_CELL_VERIFIER_BATCH_SIZE", "12"
+                ),
+                "completion_reserve": os.getenv(
+                    "SPP_CELL_VERIFIER_RESERVE", ""
+                ),
+                "llm_confidence_threshold": os.getenv(
+                    "SPP_CELL_VERIFIER_LLM_CONFIDENCE", "0.70"
+                ),
             },
             "contract": _fingerprint(self.contract),
             "graph": self.relation_graph.fingerprint,
@@ -3370,6 +3681,9 @@ class ContractBackend:
             self._shared = self._sanitize_shared_values(
                 _shared_from_payload(cached)
             )
+            self._shared = self._verify_shared_values(
+                self._shared, ledger
+            )
         else:
             before = ledger.actual_spent
             bulk_shared = (
@@ -3404,6 +3718,9 @@ class ContractBackend:
                 else contract_shared
             )
             self._shared = self._sanitize_shared_values(self._shared)
+            self._shared = self._verify_shared_values(
+                self._shared, ledger
+            )
             if not any(self._shared.raw_tables.values()):
                 if bool(
                     _member(
@@ -4231,6 +4548,20 @@ class ContractBackend:
                 "minimum_column_coverage": self.bulk_min_column_coverage,
                 "summary": (
                     _jsonable(self._shared.metadata.get("bulk", {}))
+                    if self._shared is not None
+                    and isinstance(self._shared.metadata, Mapping)
+                    else {}
+                ),
+            },
+            "cell_verification": {
+                "enabled": self.verify_extracted_cells,
+                "version": 2,
+                "summary": (
+                    _jsonable(
+                        self._shared.metadata.get(
+                            "cell_verification", {}
+                        )
+                    )
                     if self._shared is not None
                     and isinstance(self._shared.metadata, Mapping)
                     else {}

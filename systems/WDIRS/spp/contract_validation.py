@@ -594,7 +594,9 @@ def validate_calendar_year_as_count(
             _issue(
                 record,
                 "calendar_year_as_count",
-                "a calendar year cannot serve as an entity count",
+                "value resembles a calendar year in a count-like context; "
+                "semantic verification is required",
+                severity="warning",
                 evidence=span,
             ),
         )
