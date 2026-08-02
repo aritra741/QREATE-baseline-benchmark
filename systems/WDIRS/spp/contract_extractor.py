@@ -34,6 +34,7 @@ from token_counter import count_tokens
 
 
 _PROMPT_VERSION = 2
+_ENTITY_ARTIFACT_VERSION = 3
 logger = logging.getLogger(__name__)
 
 
@@ -216,7 +217,7 @@ class ContractExtractor:
     documents and all accepted exact spans in ``evidence_store``.
     """
 
-    version = _PROMPT_VERSION
+    version = f"{_PROMPT_VERSION}.entity-{_ENTITY_ARTIFACT_VERSION}"
 
     def __init__(
         self,
@@ -507,6 +508,43 @@ class ContractExtractor:
             )
         return rows
 
+    @staticmethod
+    def _recover_scalar_entity_response(
+        response: str,
+        source_text: str,
+    ) -> List[Mapping[str, object]]:
+        """Recover one source-exact identity from a scalar-only entity array."""
+
+        rendered = str(response or "").strip()
+        start, end = rendered.find("["), rendered.rfind("]")
+        if start < 0 or end < start:
+            return []
+        candidate = rendered[start : end + 1]
+        try:
+            payload = json.loads(candidate)
+        except json.JSONDecodeError:
+            try:
+                payload = repair_json(candidate, return_objects=True)
+            except Exception:
+                return []
+        if (
+            not isinstance(payload, list)
+            or len(payload) != 1
+            or not isinstance(payload[0], str)
+        ):
+            return []
+        identity = payload[0].strip()
+        if not identity or identity not in source_text:
+            return []
+        return [
+            {
+                "identity": identity,
+                "value": identity,
+                "exact_span": identity,
+                "unit": None,
+            }
+        ]
+
     def _artifact_key(
         self,
         *,
@@ -519,8 +557,13 @@ class ContractExtractor:
             "model",
             type(getattr(self.llm_client, "client", self.llm_client)).__name__,
         )
+        artifact_version = (
+            f"{_PROMPT_VERSION}.entity-{_ENTITY_ARTIFACT_VERSION}"
+            if phase == "entity"
+            else str(_PROMPT_VERSION)
+        )
         payload = (
-            f"workload-contract-extraction-v{_PROMPT_VERSION}\0{phase}\0"
+            f"workload-contract-extraction-v{artifact_version}\0{phase}\0"
             f"{model}\0{unit.unit_id}\0{prompt}"
         )
         return hashlib.sha256(payload.encode("utf-8")).hexdigest()
@@ -556,6 +599,7 @@ class ContractExtractor:
             operation=f"contract_{phase}_extraction",
             shared_key=key,
         )
+        cacheable = True
         try:
             rows = self._parse_response(response)
         except ValueError as first_error:
@@ -583,21 +627,39 @@ class ContractExtractor:
             try:
                 rows = self._parse_response(repaired)
             except ValueError:
-                logger.warning(
-                    "Rejecting malformed contract extraction after one format "
-                    "retry: phase=%s document=%s error=%s",
-                    phase,
-                    unit.document_id,
-                    first_error,
+                rows = (
+                    self._recover_scalar_entity_response(
+                        repaired, unit.text
+                    )
+                    or self._recover_scalar_entity_response(
+                        response, unit.text
+                    )
+                    if phase == "entity"
+                    else []
                 )
-                rows = []
+                if rows:
+                    logger.info(
+                        "Recovered source-exact scalar entity response: "
+                        "document=%s",
+                        unit.document_id,
+                    )
+                else:
+                    cacheable = False
+                    logger.warning(
+                        "Rejecting malformed contract extraction after one "
+                        "format retry: phase=%s document=%s error=%s",
+                        phase,
+                        unit.document_id,
+                        first_error,
+                    )
         produced = max(0, int(getattr(ledger, "actual_spent", before)) - before)
-        self.evidence_store.put_shared_artifact(
-            key,
-            stage="contract_extraction",
-            payload=rows,
-            producer_tokens=produced,
-        )
+        if cacheable:
+            self.evidence_store.put_shared_artifact(
+                key,
+                stage="contract_extraction",
+                payload=rows,
+                producer_tokens=produced,
+            )
         return rows
 
     def _budgeted_rows(

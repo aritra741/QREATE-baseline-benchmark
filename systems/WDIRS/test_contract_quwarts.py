@@ -168,6 +168,17 @@ def test_contract_response_parser_accepts_envelopes_and_mixed_arrays():
     assert ContractExtractor._parse_response(
         json.dumps([row, "discard this commentary", None])
     ) == [row]
+    assert ContractExtractor._recover_scalar_entity_response(
+        '["Example"]',
+        "Example is the primary subject.",
+    ) == [row]
+    assert (
+        ContractExtractor._recover_scalar_entity_response(
+            '["Example", "Related"]',
+            "Example is the primary subject. Related is mentioned.",
+        )
+        == []
+    )
 
 
 def test_contract_extraction_retries_bad_shape_without_aborting(tmp_path):

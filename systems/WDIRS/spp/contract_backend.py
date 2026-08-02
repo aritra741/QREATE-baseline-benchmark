@@ -71,7 +71,7 @@ from spp.workload_contract import (
 )
 
 
-BACKEND_VERSION = 2
+BACKEND_VERSION = 3
 
 
 class ContractIntegrationError(RuntimeError):
@@ -1877,6 +1877,7 @@ class ContractBackend:
             "extractor": {
                 "module": ContractExtractor.__module__,
                 "class": ContractExtractor.__qualname__,
+                "version": str(getattr(ContractExtractor, "version", "")),
                 "model": str(
                     getattr(
                         self.llm_client,
