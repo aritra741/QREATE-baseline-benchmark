@@ -74,7 +74,7 @@ from spp.workload_contract import (
 )
 
 
-BACKEND_VERSION = 4
+BACKEND_VERSION = 5
 
 
 class ContractIntegrationError(RuntimeError):
@@ -1679,6 +1679,115 @@ class ContractBackend:
         self._shared_artifact_key: Optional[str] = None
         self._repair_summary: Dict[str, object] = {}
         self._intent_rebindings: Dict[str, Tuple[Tuple[str, str], ...]] = {}
+        self._preparation_unbound_query_ids: Tuple[str, ...] = ()
+
+    def _connecting_joins(self, plan: object) -> Optional[Tuple[JoinSpec, ...]]:
+        """Find a deterministic shared-graph path for the plan's data entities."""
+
+        if self.relation_graph is None:
+            return None
+        references: List[AttributeRef] = [
+            *getattr(plan, "projections", ()),
+            *getattr(plan, "group_by", ()),
+        ]
+        references.extend(
+            aggregate.attribute
+            for aggregate in getattr(plan, "aggregates", ())
+            if aggregate.attribute is not None
+        )
+        references.extend(
+            condition.aggregate.attribute
+            for condition in getattr(plan, "having", ())
+            if condition.aggregate.attribute is not None
+        )
+
+        def predicate_references(predicate: object) -> None:
+            if predicate is None:
+                return
+            attribute = getattr(predicate, "attribute", None)
+            if attribute is not None:
+                references.append(attribute)
+            for child in getattr(predicate, "children", ()):
+                predicate_references(child)
+
+        predicate_references(getattr(plan, "predicate", None))
+        targets = {reference.entity for reference in references}
+        if len(targets) <= 1:
+            return ()
+        relations = {
+            relation.name: relation for relation in self.relation_graph.relations
+        }
+        edges = [
+            edge
+            for edge in self.relation_graph.edges
+            if edge.left_relation in relations
+            and edge.right_relation in relations
+            and edge.left_column
+            in relations[edge.left_relation].attributes
+            and edge.right_column
+            in relations[edge.right_relation].attributes
+        ]
+        adjacency: Dict[str, List[RelationEdge]] = {}
+        for edge in edges:
+            adjacency.setdefault(edge.left_relation, []).append(edge)
+            adjacency.setdefault(edge.right_relation, []).append(edge)
+        included = {next(reference.entity for reference in references)}
+        selected: List[RelationEdge] = []
+        while targets - included:
+            queue = list(sorted(included))
+            parent: Dict[str, Tuple[str, RelationEdge]] = {}
+            seen = set(queue)
+            reached: Optional[str] = None
+            while queue and reached is None:
+                entity = queue.pop(0)
+                for edge in sorted(adjacency.get(entity, ())):
+                    neighbor = (
+                        edge.right_relation
+                        if edge.left_relation == entity
+                        else edge.left_relation
+                    )
+                    if neighbor in seen:
+                        continue
+                    seen.add(neighbor)
+                    parent[neighbor] = (entity, edge)
+                    if neighbor in targets - included:
+                        reached = neighbor
+                        break
+                    queue.append(neighbor)
+            if reached is None:
+                return None
+            path: List[RelationEdge] = []
+            cursor = reached
+            while cursor not in included:
+                previous, edge = parent[cursor]
+                path.append(edge)
+                cursor = previous
+            for edge in reversed(path):
+                if edge not in selected:
+                    selected.append(edge)
+                included.update(
+                    (edge.left_relation, edge.right_relation)
+                )
+        return tuple(
+            JoinSpec(
+                AttributeRef(
+                    edge.left_relation,
+                    edge.left_column,
+                    relations[edge.left_relation].semantic_type(
+                        edge.left_column
+                    ),
+                ),
+                AttributeRef(
+                    edge.right_relation,
+                    edge.right_column,
+                    relations[edge.right_relation].semantic_type(
+                        edge.right_column
+                    ),
+                ),
+                edge.join_type,
+            )
+            for edge in selected
+        )
 
     def refine_intent(self, intent: WorkloadIntent) -> WorkloadIntent:
         """Rebind unsupported joins only when extracted values prove overlap."""
@@ -1690,13 +1799,33 @@ class ContractBackend:
         }
         rebindings: Dict[str, Tuple[Tuple[str, str], ...]] = {}
         requirements = []
+        probe = SynthesisConfig(
+            schema=self.relation_graph.schema,
+            population=PopulationConfig(),
+            preprocessing=self.preprocessing_policy,
+        )
         for requirement in intent.requirements:
             plan = requirement.plan
-            if plan is None or not plan.joins:
+            if plan is None:
                 requirements.append(requirement)
                 continue
-            joins = []
+            original_plan = plan
             changed: List[Tuple[str, str]] = []
+            if compile_query_plan(plan, probe) is None:
+                connected = self._connecting_joins(plan)
+                if connected is not None:
+                    plan = replace(plan, joins=connected)
+                    changed.append(
+                        (
+                            "disconnected_typed_plan",
+                            ";".join(
+                                f"{join.left.entity}.{join.left.attribute}="
+                                f"{join.right.entity}.{join.right.attribute}"
+                                for join in connected
+                            ),
+                        )
+                    )
+            joins = []
             for join in plan.joins:
                 left_rows = [
                     dict(row)
@@ -1755,7 +1884,7 @@ class ContractBackend:
                         f"{join.right.entity}.{right_column}",
                     )
                 )
-            if changed:
+            if changed or plan != original_plan or tuple(joins) != plan.joins:
                 rebindings[requirement.query_id] = tuple(changed)
                 requirement = replace(
                     requirement,
@@ -1829,23 +1958,26 @@ class ContractBackend:
             ),
             preprocessing=self.preprocessing_policy,
         )
-        covered = tuple(
+        symbol_covered = tuple(
             requirement.query_id
             for requirement in intent.requirements
             if requirement.required_symbols() <= schema.symbols()
-            and (
-                requirement.plan is None
-                or compile_query_plan(requirement.plan, probe) is not None
+        )
+        missing = sorted(set(intent.query_ids()) - set(symbol_covered))
+        if missing:
+            raise ValueError(
+                "contract relation graph does not own the complete typed "
+                "workload: " + ", ".join(missing)
             )
+        self._preparation_unbound_query_ids = tuple(
+            requirement.query_id
+            for requirement in intent.requirements
+            if requirement.plan is not None
+            and compile_query_plan(requirement.plan, probe) is None
         )
-        if set(covered) == set(intent.query_ids()):
-            return replace(schema, covered_query_ids=covered)
-
-        missing = sorted(set(intent.query_ids()) - set(covered))
-        raise ValueError(
-            "contract relation graph cannot bind the complete typed workload: "
-            + ", ".join(missing)
-        )
+        # Connectivity may require evidence-backed join repair after shared
+        # extraction. Symbol ownership is the only sound pre-extraction gate.
+        return replace(schema, covered_query_ids=symbol_covered)
 
     def _semantic_candidate_relevant(
         self,
@@ -3405,6 +3537,9 @@ class ContractBackend:
             ),
             "preprocessing_policy": asdict(self.preprocessing_policy),
             "candidate_semantics": dict(sorted(self._candidate_kind.items())),
+            "preparation_unbound_query_ids": list(
+                self._preparation_unbound_query_ids
+            ),
             "intent_join_rebindings": {
                 query_id: list(changes)
                 for query_id, changes in sorted(

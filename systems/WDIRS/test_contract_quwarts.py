@@ -738,12 +738,18 @@ def test_contract_backend_materializes_explicit_relationship_edges(
 
 def test_contract_backend_rebinds_join_only_from_observed_overlap(tmp_path):
     team_id = AttributeRef("team", "id", "integer")
+    team_name = AttributeRef("team", "name", "text")
     player_team_id = AttributeRef("player", "team_id", "integer")
+    player_name = AttributeRef("player", "name", "text")
     requirement = QueryRequirement(
         "q0",
         "List players for each team.",
         entities=("team", "player"),
-        plan=QueryPlan(joins=(JoinSpec(team_id, player_team_id),)),
+        plan=QueryPlan(
+            group_by=(team_name,),
+            aggregates=(AggregateSpec("count", player_name),),
+            joins=(JoinSpec(team_id, player_team_id),),
+        ),
     )
     backend = ContractBackend(
         (ContractDocument("record/1.txt", "Example"),),
@@ -759,8 +765,9 @@ def test_contract_backend_rebinds_join_only_from_observed_overlap(tmp_path):
             ),
             RelationSpec(
                 "player",
-                ("team_id", "team_name"),
+                ("name", "team_id", "team_name"),
                 semantic_types=(
+                    ("name", "text"),
                     ("team_id", "integer"),
                     ("team_name", "text"),
                 ),
@@ -776,8 +783,8 @@ def test_contract_backend_rebinds_join_only_from_observed_overlap(tmp_path):
                 {"id": None, "name": "B"},
             ),
             "player": (
-                {"team_id": None, "team_name": "A"},
-                {"team_id": None, "team_name": "B"},
+                {"name": "P1", "team_id": None, "team_name": "A"},
+                {"name": "P2", "team_id": None, "team_name": "B"},
             ),
         },
         evidence=(),
@@ -790,6 +797,25 @@ def test_contract_backend_rebinds_join_only_from_observed_overlap(tmp_path):
     )
     assert join.left.semantic_type == "text"
     assert join.right.semantic_type == "text"
+    disconnected = QueryRequirement(
+        "q1",
+        "List players for each team.",
+        entities=("team", "player"),
+        plan=QueryPlan(
+            group_by=(team_name,),
+            aggregates=(AggregateSpec("count", player_name),),
+        ),
+    )
+    disconnected_intent = _intent(disconnected)
+    schema = backend._validated_schema(disconnected_intent)
+    assert schema.covered_query_ids == ("q1",)
+    assert backend._preparation_unbound_query_ids == ("q1",)
+    repaired = backend.refine_intent(disconnected_intent)
+    repaired_join = repaired.requirements[0].plan.joins[0]
+    assert (repaired_join.left.attribute, repaired_join.right.attribute) == (
+        "name",
+        "team_name",
+    )
 
 
 def test_raw_candidate_cannot_ignore_an_explicit_query_mapping():
