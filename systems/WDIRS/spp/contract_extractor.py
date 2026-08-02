@@ -35,6 +35,34 @@ from token_counter import count_tokens
 
 _PROMPT_VERSION = 2
 _ENTITY_ARTIFACT_VERSION = 3
+_CONTEXT_ROUTING_VERSION = 1
+_CONTEXT_STOPWORDS = frozenset(
+    {
+        "about",
+        "after",
+        "before",
+        "between",
+        "count",
+        "each",
+        "every",
+        "from",
+        "have",
+        "many",
+        "most",
+        "only",
+        "over",
+        "show",
+        "that",
+        "their",
+        "these",
+        "those",
+        "what",
+        "when",
+        "where",
+        "which",
+        "with",
+    }
+)
 logger = logging.getLogger(__name__)
 
 
@@ -60,6 +88,7 @@ class DocumentUnit:
     text: str
     start: int
     end: int
+    source_ranges: Tuple[Tuple[int, int], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -205,6 +234,7 @@ def _document_unit(document: SourceDocument) -> DocumentUnit:
         text=document.text,
         start=0,
         end=len(document.text),
+        source_ranges=((0, len(document.text)),),
     )
 
 
@@ -217,7 +247,10 @@ class ContractExtractor:
     documents and all accepted exact spans in ``evidence_store``.
     """
 
-    version = f"{_PROMPT_VERSION}.entity-{_ENTITY_ARTIFACT_VERSION}"
+    version = (
+        f"{_PROMPT_VERSION}.entity-{_ENTITY_ARTIFACT_VERSION}."
+        f"context-{_CONTEXT_ROUTING_VERSION}"
+    )
 
     def __init__(
         self,
@@ -228,6 +261,7 @@ class ContractExtractor:
         max_entity_tokens: int = 768,
         max_attribute_tokens: int = 512,
         max_workers: Optional[int] = None,
+        max_context_characters: Optional[int] = None,
     ):
         if not documents:
             raise ValueError("contract extraction requires source documents")
@@ -265,8 +299,19 @@ class ContractExtractor:
                 else os.getenv("SPP_CONTRACT_MAX_WORKERS", "4")
             ),
         )
+        self.max_context_characters = max(
+            1200,
+            int(
+                max_context_characters
+                if max_context_characters is not None
+                else os.getenv("SPP_CONTRACT_CONTEXT_CHARS", "3600")
+            ),
+        )
         self._budget_exhausted = False
         self._pending_target: Optional[str] = None
+        self._document_text = {
+            document.document_id: document.text for document in self.documents
+        }
         for document in self.documents:
             self.evidence_store.add_document(
                 document.document_id,
@@ -303,6 +348,121 @@ class ContractExtractor:
         return matched or self.units
 
     @staticmethod
+    def _search_phrases(values: Iterable[object]) -> Tuple[str, ...]:
+        phrases: List[str] = []
+        for value in values:
+            rendered = re.sub(
+                r"[_\W]+",
+                " ",
+                str(value or "").lower(),
+            ).strip()
+            if not rendered:
+                continue
+            candidates = [rendered]
+            candidates.extend(
+                token
+                for token in rendered.split()
+                if len(token) >= 3 and token not in _CONTEXT_STOPWORDS
+            )
+            for candidate in candidates:
+                if candidate not in phrases:
+                    phrases.append(candidate)
+        return tuple(phrases)
+
+    def _focused_unit(
+        self,
+        unit: DocumentUnit,
+        *,
+        terms: Iterable[object] = (),
+        lead_only: bool = False,
+    ) -> DocumentUnit:
+        """Select bounded, verbatim source windows for one contract call."""
+
+        source = self._document_text[unit.document_id]
+        limit = self.max_context_characters
+        if len(source) <= limit:
+            return _document_unit(
+                SourceDocument(unit.document_id, source)
+            )
+
+        lead_size = min(limit if lead_only else max(800, limit // 3), len(source))
+        ranges: List[Tuple[int, int]] = [(0, lead_size)]
+        phrases = self._search_phrases(terms)
+        if not lead_only and phrases:
+            remaining = max(0, limit - lead_size)
+            window_size = max(600, remaining // 2)
+            candidates: Dict[Tuple[int, int], float] = {}
+            for rank, phrase in enumerate(phrases):
+                weight = 1.0 + 1.0 / (rank + 1)
+                for match in re.finditer(
+                    re.escape(phrase),
+                    source,
+                    flags=re.IGNORECASE,
+                ):
+                    start = max(0, match.start() - window_size // 2)
+                    end = min(len(source), start + window_size)
+                    start = max(0, end - window_size)
+                    key = (start, end)
+                    candidates[key] = candidates.get(key, 0.0) + weight
+            for candidate, _score in sorted(
+                candidates.items(),
+                key=lambda item: (
+                    -item[1],
+                    item[0][0],
+                    item[0][1],
+                ),
+            ):
+                if sum(end - start for start, end in ranges) >= limit:
+                    break
+                if any(
+                    max(start, candidate[0]) < min(end, candidate[1])
+                    for start, end in ranges
+                ):
+                    continue
+                available = limit - sum(
+                    end - start for start, end in ranges
+                )
+                if available <= 0:
+                    break
+                start, end = candidate
+                if end - start > available:
+                    if end == len(source):
+                        start = end - available
+                    else:
+                        end = start + available
+                ranges.append((start, end))
+
+        ranges = sorted(ranges)
+        text = "\n\n".join(source[start:end] for start, end in ranges)
+        digest = hashlib.sha256(
+            (
+                f"contract-context-v{_CONTEXT_ROUTING_VERSION}\0"
+                f"{unit.unit_id}\0{ranges}\0{text}"
+            ).encode("utf-8")
+        ).hexdigest()
+        return DocumentUnit(
+            unit_id=digest,
+            document_id=unit.document_id,
+            text=text,
+            start=ranges[0][0],
+            end=ranges[-1][1],
+            source_ranges=tuple(ranges),
+        )
+
+    def _locate_exact_span(
+        self,
+        unit: DocumentUnit,
+        exact_span: str,
+    ) -> Optional[int]:
+        source = self._document_text.get(unit.document_id, "")
+        ranges = unit.source_ranges or ((unit.start, unit.end),)
+        for start, end in ranges:
+            offset = source.find(exact_span, start, end)
+            if offset >= 0 and offset + len(exact_span) <= end:
+                return offset
+        return None
+
+    @staticmethod
     def _entity_prompt(entity: EntityContract, unit: DocumentUnit) -> str:
         contract = {
             "entity": entity.name,
@@ -331,7 +491,7 @@ class ContractExtractor:
             "identity; unit must be null. Return [] when no instance is stated."
             "\n\nEntity contract:\n"
             f"{json.dumps(contract, sort_keys=True)}"
-            "\n\nSource document:\n"
+            "\n\nVerbatim source evidence excerpt(s):\n"
             f"{unit.text}"
         )
 
@@ -374,7 +534,7 @@ class ContractExtractor:
             "edge is stated."
             "\n\nRelationship contract:\n"
             f"{json.dumps(contract, sort_keys=True)}"
-            "\n\nSource document:\n"
+            "\n\nVerbatim source evidence excerpt(s):\n"
             f"{unit.text}"
         )
 
@@ -415,7 +575,7 @@ class ContractExtractor:
             "null. Return [] when this field is absent."
             "\n\nAttribute contract:\n"
             f"{json.dumps(contract, sort_keys=True)}"
-            "\n\nSource document:\n"
+            "\n\nVerbatim source evidence excerpt(s):\n"
             f"{unit.text}"
         )
 
@@ -784,8 +944,8 @@ class ContractExtractor:
                 continue
             if phase == "attribute" and value in (None, ""):
                 continue
-            start = unit.text.find(exact_span)
-            if start < 0:
+            start = self._locate_exact_span(unit, exact_span)
+            if start is None:
                 # A case-insensitive or normalized match is not an exact span.
                 continue
             record = ExtractionRecord(
@@ -801,8 +961,8 @@ class ContractExtractor:
                 ),
                 document_id=unit.document_id,
                 unit_id=unit.unit_id,
-                span_start=unit.start + start,
-                span_end=unit.start + start + len(exact_span),
+                span_start=start,
+                span_end=start + len(exact_span),
             )
             accepted.append(record)
             anchors.append(
@@ -853,8 +1013,8 @@ class ContractExtractor:
                 or not exact_span
             ):
                 continue
-            start = unit.text.find(exact_span)
-            if start < 0:
+            start = self._locate_exact_span(unit, exact_span)
+            if start is None:
                 continue
             record = RelationshipRecord(
                 relationship=relationship.name,
@@ -865,8 +1025,8 @@ class ContractExtractor:
                 exact_span=exact_span,
                 document_id=unit.document_id,
                 unit_id=unit.unit_id,
-                span_start=unit.start + start,
-                span_end=unit.start + start + len(exact_span),
+                span_start=start,
+                span_end=start + len(exact_span),
             )
             accepted.append(record)
             anchors.append(
@@ -899,7 +1059,8 @@ class ContractExtractor:
         jobs: List[dict] = []
         contexts: List[Tuple[EntityContract, DocumentUnit]] = []
         for entity in contract.entities:
-            for unit in self.documents_for_entity(entity):
+            for source_unit in self.documents_for_entity(entity):
+                unit = self._focused_unit(source_unit, lead_only=True)
                 prompt = self._entity_prompt(entity, unit)
                 contexts.append((entity, unit))
                 jobs.append(
@@ -981,7 +1142,14 @@ class ContractExtractor:
                     if owner
                     else self.units
                 )
-                for unit in units:
+                terms = (
+                    attribute.name,
+                    *attribute.alternatives,
+                    *attribute.units,
+                    *dict(attribute.query_hints).values(),
+                )
+                for source_unit in units:
+                    unit = self._focused_unit(source_unit, terms=terms)
                     known = identities.get(
                         (_symbol_key(owner), unit.document_id), []
                     )
@@ -1061,9 +1229,19 @@ class ContractExtractor:
             Tuple[RelationshipContract, DocumentUnit]
         ] = []
         for relationship in contract.relationships:
-            for unit in self.documents_for_relationship(
+            terms = (
+                relationship.name,
+                *relationship.alternatives,
+                relationship.left_entity,
+                relationship.right_entity,
+                *relationship.left_attributes,
+                *relationship.right_attributes,
+                *dict(relationship.query_hints).values(),
+            )
+            for source_unit in self.documents_for_relationship(
                 relationship, contract
             ):
+                unit = self._focused_unit(source_unit, terms=terms)
                 prompt = self._relationship_prompt(
                     relationship,
                     unit,
@@ -1366,6 +1544,7 @@ class ContractExtractor:
             entity_contract = contract.entity(entity)
             if entity_contract is None:
                 raise ValueError(f"unknown repair entity: {entity}")
+            unit = self._focused_unit(unit, lead_only=True)
             prompt = self._entity_prompt(entity_contract, unit) + correction
             rows = self._budgeted_rows(
                 target=f"repair:entity:{entity}:{document_id}",
@@ -1405,6 +1584,15 @@ class ContractExtractor:
                 raise ValueError(
                     f"unknown repair attribute: {entity}.{attribute_name}"
                 )
+            unit = self._focused_unit(
+                unit,
+                terms=(
+                    attribute.name,
+                    *attribute.alternatives,
+                    *attribute.units,
+                    *dict(attribute.query_hints).values(),
+                ),
+            )
             identities = tuple(
                 record.identity
                 for record in entity_records
@@ -1455,6 +1643,18 @@ class ContractExtractor:
                 raise ValueError(
                     f"unknown repair relationship: {relationship_name}"
                 )
+            unit = self._focused_unit(
+                unit,
+                terms=(
+                    relationship.name,
+                    *relationship.alternatives,
+                    relationship.left_entity,
+                    relationship.right_entity,
+                    *relationship.left_attributes,
+                    *relationship.right_attributes,
+                    *dict(relationship.query_hints).values(),
+                ),
+            )
             by_entity: Dict[str, List[str]] = defaultdict(list)
             for record in entity_records:
                 by_entity[_symbol_key(record.entity)].append(record.identity)

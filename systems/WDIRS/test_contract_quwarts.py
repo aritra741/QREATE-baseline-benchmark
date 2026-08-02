@@ -219,6 +219,51 @@ def test_contract_extraction_retries_bad_shape_without_aborting(tmp_path):
     assert client.calls == 2
 
 
+def test_attribute_context_is_bounded_and_preserves_source_offsets(tmp_path):
+    relevant = "Subject has rare metric 42."
+    text = "Subject\n" + ("irrelevant material " * 1500) + relevant
+    document = type(
+        "Document",
+        (),
+        {
+            "document_id": "record/1.txt",
+            "text": text,
+            "metadata": {},
+        },
+    )()
+    with EvidenceStore(tmp_path / "focused.sqlite") as evidence:
+        extractor = ContractExtractor(
+            (document,),
+            object(),
+            evidence,
+            max_workers=1,
+            max_context_characters=1200,
+        )
+        focused = extractor._focused_unit(
+            extractor.units[0],
+            terms=("rare_metric",),
+        )
+        assert len(focused.text) <= 1202
+        assert relevant in focused.text
+        records = extractor._records(
+            phase="attribute",
+            entity="record",
+            attribute="rare_metric",
+            unit=focused,
+            rows=(
+                {
+                    "identity": "Subject",
+                    "value": 42,
+                    "exact_span": relevant,
+                    "unit": None,
+                },
+            ),
+        )
+    assert len(records) == 1
+    assert records[0].span_start == text.index(relevant)
+    assert text[records[0].span_start : records[0].span_end] == relevant
+
+
 def test_conflicts_are_retained_as_validation_outcomes():
     field = AttributeContract(
         entity="account",

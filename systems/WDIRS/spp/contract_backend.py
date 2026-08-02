@@ -3286,6 +3286,11 @@ class ContractBackend:
                 if extractor is not None
                 else None
             ),
+            "max_context_characters": (
+                int(getattr(extractor, "max_context_characters", 0))
+                if extractor is not None
+                else None
+            ),
         }
         return {
             "backend": type(self).__name__,
