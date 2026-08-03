@@ -81,8 +81,8 @@ from spp.workload_contract import (
 )
 
 
-BACKEND_VERSION = 18
-HYBRID_BULK_VERSION = 3
+BACKEND_VERSION = 19
+HYBRID_BULK_VERSION = 4
 
 logger = logging.getLogger(__name__)
 
@@ -2117,38 +2117,54 @@ class ContractBackend:
         )
         return self.extractor
 
-    @staticmethod
     def _bulk_semantic_type(
+        self,
         relation: RelationSpec,
         column: str,
     ) -> str:
         semantic_type = relation.semantic_type(column)
-        key = _symbol_key(column)
-        if semantic_type == "date" or any(
-            token in key for token in ("date", "year")
-        ):
+        if semantic_type == "date":
             return "DATE"
         if semantic_type == "boolean":
             return "OTHER"
         if semantic_type in {"integer", "real"}:
-            if any(
-                token in key
-                for token in (
-                    "count",
-                    "championship",
-                    "award",
-                    "medal",
-                    "title",
-                )
-            ):
-                return "QUANTITY_COUNT"
+            attributes = (
+                getattr(self.contract, "attributes", ())
+                if self.contract is not None
+                else ()
+            )
+            for attribute in attributes:
+                if (
+                    _symbol_key(column) != _symbol_key(attribute.name)
+                    or _symbol_key(relation.name)
+                    not in {
+                        _symbol_key(owner)
+                        for owner in getattr(attribute, "owners", ())
+                    }
+                ):
+                    continue
+                roles = {
+                    role
+                    for _query_id, query_roles in getattr(
+                        attribute, "contexts", ()
+                    )
+                    for role in query_roles
+                }
+                hints = " ".join(
+                    str(text)
+                    for _query_id, text in getattr(
+                        attribute, "query_hints", ()
+                    )
+                ).lower()
+                if (
+                    any(role.startswith("aggregate:") for role in roles)
+                    and re.search(
+                        r"\b(?:number of|how many|count of)\b",
+                        hints,
+                    )
+                ):
+                    return "QUANTITY_COUNT"
             return "QUANTITY"
-        if any(token in key for token in ("city", "state", "country")):
-            return "GPE"
-        if any(token in key for token in ("owner", "player", "person")):
-            return "PERSON"
-        if any(token in key for token in ("team", "college", "organization")):
-            return "ORG"
         return "OTHER"
 
     @classmethod
@@ -2160,11 +2176,15 @@ class ContractBackend:
     ) -> bool:
         """Enforce declared scalar types without attribute-specific ranges."""
 
-        if value in (None, "") or isinstance(value, bool):
+        if value in (None, ""):
             return True
+        semantic_type = relation.semantic_type(column)
+        if isinstance(value, bool):
+            return semantic_type == "boolean"
+        if isinstance(value, (Mapping, list, tuple, set, frozenset, bytes)):
+            return False
         if isinstance(value, str) and value.strip().casefold() == "null":
             return False
-        semantic_type = relation.semantic_type(column)
         rendered = str(value).strip().replace(",", "")
         try:
             numeric = float(rendered)
@@ -2191,7 +2211,7 @@ class ContractBackend:
         self,
         shared: SharedExtraction,
     ) -> SharedExtraction:
-        """Apply domain-neutral finite-value gates after merge/cache."""
+        """Record scalar-gate failures without mutating raw extraction."""
 
         if self.relation_graph is None:
             return shared
@@ -2200,7 +2220,24 @@ class ContractBackend:
         }
         rejected: set[Tuple[str, str, str]] = set()
 
-        def sanitize_tables(
+        def rejected_cells(
+            tables: Mapping[str, Sequence[Mapping[str, object]]],
+        ) -> None:
+            for name, rows in tables.items():
+                relation = relations.get(name)
+                if relation is None:
+                    continue
+                for source_row in rows:
+                    identity = str(source_row.get("row_id", ""))
+                    for column, value in source_row.items():
+                        if column == "row_id":
+                            continue
+                        if not self._bulk_value_plausible(
+                            relation, column, value
+                        ):
+                            rejected.add((name, identity, column))
+
+        def sanitize_overlay(
             tables: Optional[
                 Mapping[str, Sequence[Mapping[str, object]]]
             ],
@@ -2227,24 +2264,27 @@ class ContractBackend:
                 result[name] = tuple(cleaned_rows)
             return result
 
-        raw = sanitize_tables(shared.raw_tables) or {}
-        semantic = sanitize_tables(shared.semantic_tables)
-        evidence = tuple(
-            cell
-            for cell in shared.evidence
-            if (
-                cell.relation,
-                cell.row_identity,
-                cell.column,
-            )
-            not in rejected
-        )
+        rejected_cells(shared.raw_tables)
+        if shared.semantic_tables is not None:
+            rejected_cells(shared.semantic_tables)
+        semantic = sanitize_overlay(shared.semantic_tables)
         metadata = dict(shared.metadata)
         metadata["plausibility_rejected_cell_count"] = len(rejected)
+        metadata["scalar_gate_rejections"] = [
+            {
+                "relation": relation,
+                "row_identity": identity,
+                "column": column,
+            }
+            for relation, identity, column in sorted(rejected)
+        ]
         return SharedExtraction(
-            raw_tables=raw,
+            raw_tables={
+                name: tuple(dict(row) for row in rows)
+                for name, rows in shared.raw_tables.items()
+            },
             semantic_tables=semantic,
-            evidence=evidence,
+            evidence=shared.evidence,
             metadata=metadata,
         )
 
@@ -2268,7 +2308,7 @@ class ContractBackend:
         )
         if (
             isinstance(previous, Mapping)
-            and int(previous.get("verifier_version", 0) or 0) >= 4
+            and int(previous.get("policy_version", 0) or 0) >= 5
         ):
             return shared
 
@@ -2334,6 +2374,7 @@ class ContractBackend:
         priorities: Dict[str, Tuple[int, int, str]] = {}
         populated_cell_count = 0
         skipped_low_risk_count = 0
+        skipped_scalar_gate_count = 0
         for relation_name, rows in shared.raw_tables.items():
             relation = relations.get(relation_name)
             if relation is None:
@@ -2354,6 +2395,11 @@ class ContractBackend:
                     ):
                         continue
                     populated_cell_count += 1
+                    if not self._bulk_value_plausible(
+                        relation, column, value
+                    ):
+                        skipped_scalar_gate_count += 1
+                        continue
                     candidates = evidence_by_cell.get(
                         (relation_name, row_identity, column), ()
                     )
@@ -2508,24 +2554,15 @@ class ContractBackend:
                 result[relation_name] = tuple(cleaned)
             return result
 
-        raw = filter_tables(shared.raw_tables) or {}
         semantic = filter_tables(shared.semantic_tables)
-        evidence = tuple(
-            cell
-            for cell in shared.evidence
-            if (
-                cell.relation,
-                cell.row_identity,
-                cell.column,
-            )
-            not in rejected
-        )
         metadata = dict(shared.metadata)
         metadata["cell_verification"] = {
+            "policy_version": 5,
             "verifier_version": report.verifier_version,
             "claim_count": len(claims),
             "populated_cell_count": populated_cell_count,
             "skipped_low_risk_count": skipped_low_risk_count,
+            "skipped_scalar_gate_count": skipped_scalar_gate_count,
             "accepted_count": sum(
                 decision.accepted for decision in report.decisions
             ),
@@ -2574,11 +2611,22 @@ class ContractBackend:
                 }
                 for decision in report.decisions
             ],
+            "quarantined_cells": [
+                {
+                    "relation": relation,
+                    "row_identity": row_identity,
+                    "column": column,
+                }
+                for relation, row_identity, column in sorted(rejected)
+            ],
         }
         return SharedExtraction(
-            raw_tables=raw,
+            raw_tables={
+                name: tuple(dict(row) for row in rows)
+                for name, rows in shared.raw_tables.items()
+            },
             semantic_tables=semantic,
-            evidence=evidence,
+            evidence=shared.evidence,
             metadata=metadata,
         )
 
@@ -2617,6 +2665,51 @@ class ContractBackend:
 
         return ConstrainedExtractor(client, cache_dir=cache_dir)
 
+    def _bulk_coverage_floor(
+        self,
+        relation: RelationSpec,
+        column: str,
+    ) -> float:
+        """Choose a workload-role coverage floor without external labels."""
+
+        floor = self.bulk_min_column_coverage
+        if relation.primary_key == column:
+            floor = max(floor, 0.95)
+        attributes = (
+            getattr(self.contract, "attributes", ())
+            if self.contract is not None
+            else ()
+        )
+        for attribute in attributes:
+            if (
+                _symbol_key(attribute.name) != _symbol_key(column)
+                or _symbol_key(relation.name)
+                not in {
+                    _symbol_key(owner)
+                    for owner in getattr(attribute, "owners", ())
+                }
+            ):
+                continue
+            roles = {
+                role
+                for _query_id, query_roles in getattr(
+                    attribute, "contexts", ()
+                )
+                for role in query_roles
+            }
+            if "group_by" in roles or any(
+                role.startswith("join:") for role in roles
+            ):
+                floor = max(floor, 0.75)
+            elif "projection" in roles or "binding" in roles:
+                floor = max(floor, 0.50)
+            elif any(
+                role.startswith(("aggregate:", "filter:"))
+                for role in roles
+            ):
+                floor = max(floor, 0.10)
+        return min(1.0, max(0.0, floor))
+
     def _bulk_extract_shared(
         self,
         ledger: GlobalBudgetLedger,
@@ -2631,6 +2724,7 @@ class ContractBackend:
         raw_tables: Dict[str, Tuple[Mapping[str, object], ...]] = {}
         evidence: List[SharedCellEvidence] = []
         coverage_manifest: Dict[str, Dict[str, float]] = {}
+        coverage_targets: Dict[str, Dict[str, float]] = {}
         error_manifest: Dict[str, List[str]] = {}
 
         for relation in self.relation_graph.relations:
@@ -2654,7 +2748,7 @@ class ContractBackend:
                 schema,
                 set(schema),
                 normalization_hints={},
-                entity_col=None,
+                entity_col=relation.primary_key,
                 col_batch_size_override=self.bulk_column_batch_size,
             )
             records_by_document: Dict[str, List[dict]] = {
@@ -2712,6 +2806,7 @@ class ContractBackend:
                 absorb(result, fill_only=False)
 
             coverage: Dict[str, float] = {}
+            targets: Dict[str, float] = {}
             for column in relation.attributes:
                 covered = [
                     document_id
@@ -2722,7 +2817,10 @@ class ContractBackend:
                     )
                 ]
                 coverage[column] = len(covered) / max(len(document_ids), 1)
-                if coverage[column] >= self.bulk_min_column_coverage:
+                targets[column] = self._bulk_coverage_floor(
+                    relation, column
+                )
+                if coverage[column] >= targets[column]:
                     continue
                 missing = [
                     document
@@ -2806,24 +2904,31 @@ class ContractBackend:
                     for column in relation.attributes:
                         column_key = _symbol_key(column)
                         value = record.get(column)
+                        identity_column = relation.primary_key
                         if (
-                            column_key
-                            in {"name", "label", "title", "city", "location"}
+                            (
+                                column == identity_column
+                                or (
+                                    identity_column is None
+                                    and column_key
+                                    in {"name", "label", "title"}
+                                )
+                            )
                             and heading_name
                         ):
                             value = heading_name
                         elif (
                             column_key
                             in {"state", "province", "region", "state_name"}
+                            and identity_column is not None
                             and heading_region
                         ):
                             value = heading_region
                         if value in (None, ""):
                             continue
-                        if not self._bulk_value_plausible(
-                            relation, column, value
-                        ):
-                            continue
+                        # Preserve the extractor's complete high-recall output.
+                        # Declared-type projection is applied only when building
+                        # a physical candidate; raw evidence remains immutable.
                         row[column] = value
                         explicit_span = record_spans.get(column)
                         exact_span, start, end = _source_span(
@@ -2862,6 +2967,7 @@ class ContractBackend:
                         rows.append(row)
             raw_tables[relation.name] = tuple(rows)
             coverage_manifest[relation.name] = coverage
+            coverage_targets[relation.name] = targets
             error_manifest[relation.name] = errors
             logger.info(
                 "WDIRS bulk extraction relation=%s documents=%d rows=%d "
@@ -2889,6 +2995,7 @@ class ContractBackend:
                 "version": HYBRID_BULK_VERSION,
                 "extractor": "wdirs_constrained_bulk",
                 "column_coverage": coverage_manifest,
+                "column_coverage_targets": coverage_targets,
                 "errors": error_manifest,
             },
         )
@@ -3118,7 +3225,7 @@ class ContractBackend:
             },
             "cell_verification": {
                 "enabled": self.verify_extracted_cells,
-                "version": 4,
+                "version": 5,
                 "nli_model": os.getenv(
                     "SPP_NLI_MODEL",
                     "cross-encoder/nli-deberta-v3-small",
@@ -3886,6 +3993,24 @@ class ContractBackend:
         relations = {
             relation.name: relation for relation in self.relation_graph.relations
         }
+        verification = (
+            self._shared.metadata.get("cell_verification", {})
+            if isinstance(self._shared.metadata, Mapping)
+            else {}
+        )
+        quarantined = {
+            (
+                str(item.get("relation", "")),
+                str(item.get("row_identity", "")),
+                str(item.get("column", "")),
+            )
+            for item in (
+                verification.get("quarantined_cells", ())
+                if isinstance(verification, Mapping)
+                else ()
+            )
+            if isinstance(item, Mapping)
+        }
         mappings: Dict[Tuple[str, str, str], object] = {}
         casefold_mappings: Dict[Tuple[str, str, str], object] = {}
         for mapping in (
@@ -3921,6 +4046,17 @@ class ContractBackend:
                 identity = str(row.get("row_id", ""))
                 for column, semantic_type in relation.semantic_types:
                     value = output.get(column)
+                    if (
+                        value not in (None, "")
+                        and (
+                            not self._bulk_value_plausible(
+                                relation, column, value
+                            )
+                            or (name, identity, column) in quarantined
+                        )
+                    ):
+                        output.pop(column, None)
+                        continue
                     coerced = self._coerce_value(value, semantic_type)
                     source_key = json.dumps(
                         _jsonable(value),
@@ -3947,11 +4083,42 @@ class ContractBackend:
                         and casefold_key in casefold_mappings
                     ):
                         output[column] = casefold_mappings[casefold_key]
-                    elif (name, identity, column) in supported:
+                    elif (
+                        (name, identity, column) in supported
+                        or coerced != value
+                    ):
                         output[column] = coerced
                 transformed.append(output)
             result[name] = transformed
         return result
+
+    def _materializable_raw_tables(
+        self,
+        raw_tables: Mapping[str, Sequence[Mapping[str, object]]],
+    ) -> Dict[str, List[dict]]:
+        """Project immutable raw evidence through declared scalar gates."""
+
+        assert self.relation_graph is not None
+        relations = {
+            relation.name: relation for relation in self.relation_graph.relations
+        }
+        projected: Dict[str, List[dict]] = {}
+        for name, rows in raw_tables.items():
+            relation = relations.get(name)
+            output_rows = []
+            for source in rows:
+                row = dict(source)
+                if relation is not None:
+                    for column in tuple(row):
+                        if column == "row_id":
+                            continue
+                        if not self._bulk_value_plausible(
+                            relation, column, row[column]
+                        ):
+                            row.pop(column, None)
+                output_rows.append(row)
+            projected[name] = output_rows
+        return projected
 
     def _sample_raw_tables(
         self,
@@ -3979,25 +4146,9 @@ class ContractBackend:
         raw_tables: Mapping[str, Sequence[Mapping[str, object]]],
     ) -> Dict[str, List[dict]]:
         assert self._shared is not None
-        if self._shared.semantic_tables is None:
-            return self._derived_semantic_tables(raw_tables)
-        selected_ids = {
-            name: {str(row.get("row_id", "")) for row in rows}
-            for name, rows in raw_tables.items()
-        }
-        filtered = {
-            name: [
-                dict(row)
-                for row in rows
-                if str(row.get("row_id", "")) in selected_ids.get(name, set())
-            ]
-            for name, rows in self._shared.semantic_tables.items()
-        }
-        return _normalize_table_identities(
-            filtered,
-            self.relation_graph,
-            raw_tables=raw_tables,
-        )
+        # Always derive from the complete raw layer. A sparse contract-only
+        # semantic table must never replace high-recall bulk rows.
+        return self._derived_semantic_tables(raw_tables)
 
     def _reshape(
         self,
@@ -4033,7 +4184,7 @@ class ContractBackend:
         source = (
             self._semantic_tables_for_sample(raw)
             if kind == "evidence_semantic"
-            else raw
+            else self._materializable_raw_tables(raw)
         )
         return self._reshape(source, config.schema)
 
@@ -4087,6 +4238,39 @@ class ContractBackend:
             for relation, rows in self._shared.raw_tables.items()
             for row in rows
         }
+        relations = (
+            {
+                relation.name: relation
+                for relation in self.relation_graph.relations
+            }
+            if self.relation_graph is not None
+            else {}
+        )
+        mapped_changes = {
+            (
+                _symbol_key(_member(mapping, "entity", default="")),
+                _symbol_key(_member(mapping, "attribute", default="")),
+                json.dumps(
+                    _jsonable(
+                        _member(mapping, "source_value", default=None)
+                    ),
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ),
+                json.dumps(
+                    _jsonable(
+                        _member(mapping, "target_value", default=None)
+                    ),
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ),
+            )
+            for mapping in (
+                self._shared.metadata.get("derivation_mappings", ())
+                if isinstance(self._shared.metadata, Mapping)
+                else ()
+            )
+        }
         changed = False
         for relation, rows in tables.items():
             for row in rows:
@@ -4098,7 +4282,35 @@ class ContractBackend:
                     if column == "row_id" or value == original.get(column):
                         continue
                     changed = True
-                    if (relation, identity, column) not in supported:
+                    original_value = original.get(column)
+                    mapped = (
+                        _symbol_key(relation),
+                        _symbol_key(column),
+                        json.dumps(
+                            _jsonable(original_value),
+                            sort_keys=True,
+                            separators=(",", ":"),
+                        ),
+                        json.dumps(
+                            _jsonable(value),
+                            sort_keys=True,
+                            separators=(",", ":"),
+                        ),
+                    ) in mapped_changes
+                    relation_spec = relations.get(relation)
+                    deterministic = (
+                        relation_spec is not None
+                        and self._coerce_value(
+                            original_value,
+                            relation_spec.semantic_type(column),
+                        )
+                        == value
+                    )
+                    if (
+                        not mapped
+                        and not deterministic
+                        and (relation, identity, column) not in supported
+                    ):
                         return False
         return changed
 
@@ -4352,19 +4564,199 @@ class ContractBackend:
             estimate = assessment.estimate
             components = dict(estimate.components)
             components["contract_mapping_alignment"] = float(semantic)
-            if semantic:
-                updated_estimate = replace(
-                    estimate, components=components
-                )
-            else:
-                updated_estimate = replace(
-                    estimate,
-                    validity=0.0,
-                    uncertainty=1.0,
-                    components=components,
-                )
+            components["contract_mapping_available"] = 1.0
+            # A learned taxonomy is an optional derived view, not proof that
+            # the immutable raw surface is invalid. Let evidence coverage and
+            # output checks rank both candidates without hard-disqualifying raw.
+            updated_estimate = replace(
+                estimate,
+                components=components,
+            )
             adjusted[query_id] = replace(
                 assessment, estimate=updated_estimate
+            )
+        return adjusted
+
+    @staticmethod
+    def _candidate_location(
+        reference: AttributeRef,
+        config: SynthesisConfig,
+    ) -> Optional[Tuple[str, str]]:
+        direct = [
+            relation
+            for relation in config.schema.relations
+            if relation.name == reference.entity
+            and reference.attribute in relation.attributes
+        ]
+        if len(direct) == 1:
+            return direct[0].name, reference.attribute
+        candidates = [
+            relation
+            for relation in config.schema.relations
+            if reference.attribute in relation.attributes
+        ]
+        if len(candidates) == 1:
+            return candidates[0].name, reference.attribute
+        return None
+
+    @staticmethod
+    def _nonnull_values(
+        tables: Mapping[str, Sequence[Mapping[str, object]]],
+        location: Tuple[str, str],
+    ) -> Tuple[object, ...]:
+        relation, column = location
+        return tuple(
+            row.get(column)
+            for row in tables.get(relation, ())
+            if row.get(column) not in (None, "")
+        )
+
+    def _apply_candidate_retention_contract(
+        self,
+        config: SynthesisConfig,
+        tables: Mapping[str, Sequence[Mapping[str, object]]],
+        raw_tables: Mapping[str, Sequence[Mapping[str, object]]],
+        assessments: Mapping[str, QueryAssessment],
+    ) -> Dict[str, QueryAssessment]:
+        """Prevent derived overlays from winning by silently losing evidence."""
+
+        if self.intent is None:
+            return dict(assessments)
+        semantic = (
+            self._candidate_kind.get(config.config_id)
+            == "evidence_semantic"
+        )
+        requirements = {
+            requirement.query_id: requirement
+            for requirement in self.intent.requirements
+        }
+        adjusted: Dict[str, QueryAssessment] = {}
+        for query_id, assessment in assessments.items():
+            requirement = requirements.get(query_id)
+            plan = requirement.plan if requirement is not None else None
+            if plan is None:
+                adjusted[query_id] = assessment
+                continue
+
+            cell_ratios: List[float] = []
+            type_checks: List[float] = []
+            locations: Dict[AttributeRef, Tuple[str, str]] = {}
+            relation_specs = {
+                relation.name: relation for relation in config.schema.relations
+            }
+            for reference in plan.attributes():
+                location = self._candidate_location(reference, config)
+                if location is None:
+                    cell_ratios.append(0.0)
+                    continue
+                locations[reference] = location
+                raw_values = self._nonnull_values(raw_tables, location)
+                candidate_values = self._nonnull_values(tables, location)
+                if raw_values:
+                    cell_ratios.append(
+                        min(1.0, len(candidate_values) / len(raw_values))
+                    )
+                relation = relation_specs.get(location[0])
+                if relation is not None and candidate_values:
+                    type_checks.append(
+                        sum(
+                            self._bulk_value_plausible(
+                                relation, location[1], value
+                            )
+                            for value in candidate_values
+                        )
+                        / len(candidate_values)
+                    )
+
+            referenced_relations = {
+                location[0] for location in locations.values()
+            }
+            entity_ratios = []
+            for relation in referenced_relations:
+                raw_count = len(raw_tables.get(relation, ()))
+                candidate_count = len(tables.get(relation, ()))
+                if raw_count:
+                    entity_ratios.append(
+                        min(1.0, candidate_count / raw_count)
+                    )
+
+            join_ratios = []
+            for join in plan.joins:
+                left = locations.get(join.left)
+                right = locations.get(join.right)
+                if left is None or right is None:
+                    join_ratios.append(0.0)
+                    continue
+                raw_overlap = len(
+                    set(self._nonnull_values(raw_tables, left))
+                    & set(self._nonnull_values(raw_tables, right))
+                )
+                candidate_overlap = len(
+                    set(self._nonnull_values(tables, left))
+                    & set(self._nonnull_values(tables, right))
+                )
+                if raw_overlap:
+                    join_ratios.append(
+                        min(1.0, candidate_overlap / raw_overlap)
+                    )
+
+            group_ratios = []
+            for reference in plan.group_by:
+                location = locations.get(reference)
+                if location is None:
+                    continue
+                raw_groups = set(self._nonnull_values(raw_tables, location))
+                candidate_groups = set(
+                    self._nonnull_values(tables, location)
+                )
+                if raw_groups:
+                    group_ratios.append(
+                        len(candidate_groups) / len(raw_groups)
+                    )
+
+            required_cell_retention = (
+                min(cell_ratios) if cell_ratios else 1.0
+            )
+            entity_retention = (
+                min(entity_ratios) if entity_ratios else 1.0
+            )
+            join_retention = min(join_ratios) if join_ratios else 1.0
+            type_validity = min(type_checks) if type_checks else 1.0
+            overall = min(
+                required_cell_retention,
+                entity_retention,
+                join_retention,
+                type_validity,
+            )
+            estimate = assessment.estimate
+            components = dict(estimate.components)
+            components.update(
+                {
+                    "raw_required_cell_retention": required_cell_retention,
+                    "raw_entity_retention": entity_retention,
+                    "raw_join_overlap_retention": join_retention,
+                    "declared_type_validity": type_validity,
+                    "group_distinct_ratio": (
+                        min(group_ratios) if group_ratios else 1.0
+                    ),
+                    "non_destructive_overlay": float(overall >= 1.0),
+                }
+            )
+            if semantic and overall < 1.0:
+                updated = replace(
+                    estimate,
+                    recall_proxy=min(estimate.recall_proxy, overall),
+                    validity=0.0,
+                    uncertainty=max(
+                        estimate.uncertainty, 1.0 - overall
+                    ),
+                    components=components,
+                )
+            else:
+                updated = replace(estimate, components=components)
+            adjusted[query_id] = replace(
+                assessment,
+                estimate=updated,
             )
         return adjusted
 
@@ -4513,6 +4905,18 @@ class ContractBackend:
             assessments = self._apply_mapping_contract(
                 config, assessments
             )
+            raw_baseline = self._reshape(
+                self._materializable_raw_tables(
+                    self._sample_raw_tables(sample_fraction)
+                ),
+                config.schema,
+            )
+            assessments = self._apply_candidate_retention_contract(
+                config,
+                tables,
+                raw_baseline,
+                assessments,
+            )
         outputs = {
             query_id: (
                 assessment.execution.rows
@@ -4587,6 +4991,18 @@ class ContractBackend:
         assessments = self._apply_mapping_contract(
             config, assessments
         )
+        raw_baseline = self._reshape(
+            self._materializable_raw_tables(
+                self._sample_raw_tables(1.0)
+            ),
+            config.schema,
+        )
+        assessments = self._apply_candidate_retention_contract(
+            config,
+            tables,
+            raw_baseline,
+            assessments,
+        )
         return {
             query_id: assessment.estimate
             for query_id, assessment in assessments.items()
@@ -4639,6 +5055,8 @@ class ContractBackend:
                 "version": HYBRID_BULK_VERSION,
                 "column_batch_size": self.bulk_column_batch_size,
                 "minimum_column_coverage": self.bulk_min_column_coverage,
+                "raw_layer_immutable": True,
+                "physical_scalar_gate": "declared_types_only",
                 "summary": (
                     _jsonable(self._shared.metadata.get("bulk", {}))
                     if self._shared is not None
@@ -4648,7 +5066,8 @@ class ContractBackend:
             },
             "cell_verification": {
                 "enabled": self.verify_extracted_cells,
-                "version": 4,
+                "version": 5,
+                "quarantine_scope": "derived_overlay_only",
                 "summary": (
                     _jsonable(
                         self._shared.metadata.get(

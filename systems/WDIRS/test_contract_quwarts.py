@@ -884,14 +884,21 @@ def test_backend_quarantines_only_verifier_rejections():
             "row_id": "r1",
             "name": "Item",
             "category": "Example",
+            "awards": 2023,
             "amount": 5,
         },
     )
     assert {
         cell.column for cell in verified.evidence
-    } == {"category", "amount"}
+    } == {"category", "awards", "amount"}
+    backend._shared = verified
+    semantic = backend._derived_semantic_tables(verified.raw_tables)
+    assert "awards" not in semantic["item"][0]
+    assert semantic["item"][0]["amount"] == 5
     assert set(SelectiveVerifier.seen_attributes) == {"awards", "amount"}
     verification = verified.metadata["cell_verification"]
+    assert verification["policy_version"] == 5
+    assert verification["rejected_or_quarantined_count"] == 1
     assert verification["skipped_low_risk_count"] == 1
     assert verification["preserved_uncertain_count"] == 1
 
@@ -978,6 +985,75 @@ def test_heading_derivation_separates_entity_name_and_region(tmp_path):
         contract,
         {"place/1.txt": document.text},
     ) == ()
+
+
+def test_bulk_heading_fallback_never_overwrites_nonidentity_location(
+    tmp_path,
+):
+    class FakeBulkExtractor:
+        def extract_batch(
+            self,
+            _texts,
+            document_ids,
+            _relation,
+            _schema,
+            _keys,
+            **_kwargs,
+        ):
+            return [
+                type(
+                    "Result",
+                    (),
+                    {
+                        "chunk_id": document_id,
+                        "records": (
+                            {
+                                "name": "Model Name",
+                                "location": "Actual Place",
+                            },
+                        ),
+                        "spans": (),
+                        "error": None,
+                    },
+                )()
+                for document_id in document_ids
+            ]
+
+    backend = ContractBackend(
+        (
+            ContractDocument(
+                "group/1.txt",
+                "\nHeading Name\n\nThe group is based in Actual Place.",
+            ),
+        ),
+        type("Client", (), {})(),
+        scratch_dir=tmp_path,
+        use_bulk_extraction=True,
+        bulk_extractor_factory=lambda _client, _cache: FakeBulkExtractor(),
+        verify_extracted_cells=False,
+    )
+    backend.contract = WorkloadContract(
+        entities=(EntityContract("group"),),
+        attributes=(
+            AttributeContract("group", "name"),
+            AttributeContract("group", "location"),
+        ),
+        relationships=(),
+    )
+    backend.relation_graph = WorkloadRelationGraph(
+        relations=(
+            RelationSpec(
+                "group",
+                ("name", "location"),
+                primary_key="name",
+            ),
+        ),
+        edges=(),
+        covered_query_ids=("q0",),
+    )
+    shared = backend._bulk_extract_shared(GlobalBudgetLedger(10_000))
+    assert shared.raw_tables["group"][0]["name"] == "Heading Name"
+    assert shared.raw_tables["group"][0]["location"] == "Actual Place"
 
 
 def test_attribute_canonicalization_uses_each_documents_identity(tmp_path):
@@ -1927,9 +2003,60 @@ def test_bulk_scalar_gate_enforces_declared_types_without_semantic_ranges():
     assert not ContractBackend._bulk_value_plausible(
         relation, "age", float("inf")
     )
+    assert not ContractBackend._bulk_value_plausible(
+        relation, "awards", True
+    )
+    assert not ContractBackend._bulk_value_plausible(
+        relation, "titles", ["not", "a", "scalar"]
+    )
 
 
-def test_post_merge_finite_gate_removes_only_nonfinite_cells():
+def test_bulk_count_type_comes_from_workload_role_not_column_name():
+    backend = ContractBackend(
+        (ContractDocument("record/1.txt", "Example"),),
+        object(),
+    )
+    backend.contract = WorkloadContract(
+        entities=(EntityContract("record"),),
+        attributes=(
+            AttributeContract(
+                "record",
+                "metric",
+                semantic_types=("integer",),
+                contexts=(("q0", ("aggregate:sum",)),),
+                query_hints=(
+                    ("q0", "What is the total number of metrics?"),
+                ),
+            ),
+            AttributeContract(
+                "record",
+                "period",
+                semantic_types=("integer",),
+                contexts=(("q1", ("group_by",)),),
+                query_hints=(
+                    ("q1", "How many records occurred in each period?"),
+                ),
+            ),
+        ),
+        relationships=(),
+    )
+    relation = RelationSpec(
+        "record",
+        ("metric", "period"),
+        semantic_types=(
+            ("metric", "integer"),
+            ("period", "integer"),
+        ),
+    )
+    assert backend._bulk_semantic_type(relation, "metric") == (
+        "QUANTITY_COUNT"
+    )
+    assert backend._bulk_semantic_type(relation, "period") == "QUANTITY"
+    assert backend._bulk_coverage_floor(relation, "metric") == 0.10
+    assert backend._bulk_coverage_floor(relation, "period") == 0.75
+
+
+def test_post_merge_scalar_gate_preserves_raw_and_filters_projection():
     relation = RelationSpec(
         "entity",
         ("name", "awards", "age"),
@@ -1978,9 +2105,19 @@ def test_post_merge_finite_gate_removes_only_nonfinite_cells():
     )
     cleaned = backend._sanitize_shared_values(shared)
     assert cleaned.raw_tables["entity"] == (
-        {"row_id": "r1", "name": "Example", "age": 681},
+        {
+            "row_id": "r1",
+            "name": "Example",
+            "awards": float("inf"),
+            "age": 681,
+        },
     )
-    assert cleaned.evidence == ()
+    assert cleaned.evidence == shared.evidence
+    projected = backend._materializable_raw_tables(cleaned.raw_tables)
+    assert projected["entity"] == [
+        {"row_id": "r1", "name": "Example", "age": 681}
+    ]
+    assert cleaned.metadata["plausibility_rejected_cell_count"] == 1
 
 
 def test_semantic_mapping_applies_to_same_unsupported_surface():
@@ -2042,7 +2179,7 @@ def test_semantic_mapping_applies_to_same_unsupported_surface():
     ]
 
 
-def test_raw_candidate_cannot_ignore_an_explicit_query_mapping():
+def test_optional_query_mapping_does_not_invalidate_raw_candidate():
     category = AttributeRef("item", "category", "text")
     requirement = QueryRequirement(
         query_id="q0",
@@ -2110,10 +2247,60 @@ def test_raw_candidate_cannot_ignore_an_explicit_query_mapping():
     semantic_result = backend._apply_mapping_contract(
         semantic, {"q0": assessment(semantic)}
     )["q0"].estimate
-    assert raw_result.validity == 0.0
+    assert raw_result.validity == 1.0
     assert raw_result.components["contract_mapping_alignment"] == 0.0
+    assert raw_result.components["contract_mapping_available"] == 1.0
     assert semantic_result.validity == 1.0
     assert semantic_result.components["contract_mapping_alignment"] == 1.0
+
+
+def test_semantic_overlay_cannot_win_by_dropping_required_cells():
+    category = AttributeRef("item", "category", "text")
+    requirement = QueryRequirement(
+        query_id="q0",
+        text="Count records for each category.",
+        entities=("item",),
+        attributes=("category",),
+        attribute_bindings=(("item", "category"),),
+        plan=QueryPlan(
+            projections=(category,),
+            group_by=(category,),
+            aggregates=(AggregateSpec("count"),),
+        ),
+    )
+    intent = _intent(requirement)
+    backend = ContractBackend(
+        (ContractDocument("item/1.txt", "An item."),),
+        object(),
+    )
+    semantic = next(
+        config
+        for config in backend.generate_configs(intent)
+        if config.population.norm_strategy == "contract_mapping"
+    )
+    backend.intent = intent
+    assessment = QueryAssessment(
+        QualityEstimate(
+            "q0",
+            semantic.config_id,
+            1.0,
+            1.0,
+            1.0,
+            0.0,
+            1,
+        ),
+        None,
+        None,
+    )
+    adjusted = backend._apply_candidate_retention_contract(
+        semantic,
+        {"item": [{"row_id": "r1"}]},
+        {"item": [{"row_id": "r1", "category": "Detailed"}]},
+        {"q0": assessment},
+    )["q0"].estimate
+    assert adjusted.validity == 0.0
+    assert adjusted.recall_proxy == 0.0
+    assert adjusted.components["non_destructive_overlay"] == 0.0
 
 
 def test_contract_modules_do_not_contain_benchmark_path_literals():

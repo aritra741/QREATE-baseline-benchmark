@@ -504,26 +504,13 @@ class ConstrainedExtractor:
                 re.IGNORECASE,
             )
         }
-        unit_rank = {
-            "k": (1, "thousands"),
-            "thousand": (1, "thousands"),
-            "m": (2, "millions"),
-            "million": (2, "millions"),
-            "b": (3, "billions"),
-            "billion": (3, "billions"),
-        }
-        common_unit = (
-            min(
-                (unit_rank[unit] for unit in observed_unit_scales),
-                default=None,
-            )
-        )
         unit_rule = (
-            "- This passage batch uses magnitude suffixes. Normalize all "
-            f"suffixed numeric values to {common_unit[1]} so values from "
-            "different passages use one scale; return only the scaled "
-            "coefficient as the JSON number.\n"
-            if common_unit is not None
+            "- Expand magnitude suffixes to base-unit JSON numbers: "
+            "1.2k means 1200, 1.2m or 1.2 million means 1200000, and "
+            "1.2b or 1.2 billion means 1200000000. Never return only the "
+            "coefficient unless the source explicitly states that the field "
+            "itself is measured in those scaled units.\n"
+            if observed_unit_scales
             else ""
         )
         numeric_rule = (
@@ -2058,7 +2045,7 @@ class ConstrainedExtractor:
         and permanently leave newly requested columns empty.
         """
         payload = {
-            "format_version": 3,
+            "format_version": 4,
             "chunk_id": chunk_id,
             "table_name": table_name,
             "schema": sorted((schema or {}).items()),

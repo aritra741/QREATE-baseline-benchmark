@@ -8,6 +8,7 @@ The analyzer never reads UDA-Bench tables or attributes metadata.
 from __future__ import annotations
 
 import json
+import math
 import re
 from collections import Counter
 from dataclasses import asdict, dataclass, field, replace
@@ -663,6 +664,83 @@ def _expects_group_cardinality_having(text: str) -> bool:
             text.lower(),
         )
     )
+
+
+_NUMBER_WORD_VALUES = {
+    word: value
+    for value, word in enumerate(
+        (
+            "zero one two three four five six seven eight nine ten "
+            "eleven twelve thirteen fourteen fifteen sixteen seventeen "
+            "eighteen nineteen twenty"
+        ).split()
+    )
+}
+
+
+def _group_cardinality_having(
+    text: str,
+) -> Optional[Tuple[str, int]]:
+    match = re.search(
+        r"\bwith\s+(more|fewer|less)\s+than\s+"
+        r"(one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+"
+        r"(?!(?:hundred|thousand|million|billion)\b)[a-z][a-z0-9_-]*",
+        text.lower(),
+    )
+    if not match:
+        return None
+    rendered = match.group(2)
+    value = (
+        int(rendered)
+        if rendered.isdigit()
+        else _NUMBER_WORD_VALUES[rendered]
+    )
+    return (">" if match.group(1) == "more" else "<", value)
+
+
+def _magnitude_comparisons(
+    text: str,
+) -> Tuple[Tuple[str, float, float], ...]:
+    multipliers = {
+        "hundred": 100.0,
+        "thousand": 1_000.0,
+        "million": 1_000_000.0,
+        "billion": 1_000_000_000.0,
+    }
+    operators = {
+        "more than": ">",
+        "greater than": ">",
+        "above": ">",
+        "over": ">",
+        "at least": ">=",
+        "fewer than": "<",
+        "less than": "<",
+        "below": "<",
+        "under": "<",
+        "at most": "<=",
+    }
+    number_words = "|".join(_NUMBER_WORD_VALUES)
+    pattern = (
+        rf"\b({'|'.join(re.escape(value) for value in operators)})\s+"
+        rf"(\d+(?:\.\d+)?|{number_words})\s+"
+        r"(hundred|thousand|million|billion)\b"
+    )
+    result = []
+    for match in re.finditer(pattern, text.lower()):
+        rendered = match.group(2)
+        base = (
+            float(rendered)
+            if re.fullmatch(r"\d+(?:\.\d+)?", rendered)
+            else float(_NUMBER_WORD_VALUES[rendered])
+        )
+        result.append(
+            (
+                operators[match.group(1)],
+                base,
+                base * multipliers[match.group(3)],
+            )
+        )
+    return tuple(result)
 
 
 def _repair_plan_aggregate(
@@ -2388,6 +2466,37 @@ def _normalize_plan_with_schema(
             (reference.entity, reference.attribute), reference
         )
 
+    magnitude_replacements: Dict[int, object] = {}
+    predicate_leaves: List[PredicateSpec] = []
+
+    def collect_predicate_leaves(
+        value: Optional[PredicateSpec],
+    ) -> None:
+        if value is None:
+            return
+        if value.kind == "predicate":
+            predicate_leaves.append(value)
+            return
+        for child in value.children:
+            collect_predicate_leaves(child)
+
+    collect_predicate_leaves(predicate)
+    for operator, base, scaled in _magnitude_comparisons(text):
+        matches = []
+        for leaf in predicate_leaves:
+            if leaf.operator != operator:
+                continue
+            try:
+                numeric = float(leaf.value)
+            except (TypeError, ValueError):
+                continue
+            if math.isclose(numeric, base):
+                matches.append(leaf)
+        if len(matches) == 1:
+            magnitude_replacements[id(matches[0])] = (
+                int(scaled) if scaled.is_integer() else scaled
+            )
+
     def contextual_predicate(
         value: Optional[PredicateSpec],
     ) -> Optional[PredicateSpec]:
@@ -2401,6 +2510,7 @@ def _normalize_plan_with_schema(
                     if value.attribute is not None
                     else None
                 ),
+                value=magnitude_replacements.get(id(value), value.value),
             )
         return replace(
             value,
@@ -2408,6 +2518,31 @@ def _normalize_plan_with_schema(
                 contextual_predicate(child) for child in value.children
             ),
         )
+
+    normalized_having = list(plan.having)
+    cardinality = _group_cardinality_having(text)
+    if cardinality is not None and group_by:
+        operator, threshold = cardinality
+        canonical = HavingSpec(
+            aggregate=AggregateSpec(
+                "count",
+                attribute=None,
+                alias="count_all",
+            ),
+            operator=operator,
+            value=threshold,
+        )
+        count_indexes = [
+            index
+            for index, condition in enumerate(normalized_having)
+            if condition.aggregate.function == "count"
+        ]
+        if count_indexes:
+            normalized_having[count_indexes[0]] = canonical
+        elif len(normalized_having) <= 1:
+            normalized_having = [canonical]
+        else:
+            normalized_having.append(canonical)
 
     return replace(
         plan,
@@ -2431,6 +2566,20 @@ def _normalize_plan_with_schema(
         ),
         predicate=contextual_predicate(predicate),
         joins=tuple(normalized_joins),
+        having=tuple(
+            replace(
+                condition,
+                aggregate=replace(
+                    condition.aggregate,
+                    attribute=(
+                        contextual_reference(condition.aggregate.attribute)
+                        if condition.aggregate.attribute is not None
+                        else None
+                    ),
+                ),
+            )
+            for condition in normalized_having
+        ),
     )
 
 

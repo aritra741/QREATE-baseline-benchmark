@@ -157,8 +157,9 @@ def main() -> int:
         type=float,
         default=float(os.getenv("SPP_BULK_MIN_COLUMN_COVERAGE", "0.0")),
         help=(
-            "Coverage below which WDIRS retries a contract column; zero keeps "
-            "the contract gap-fill budget intact."
+            "Minimum coverage below which WDIRS retries a contract column. "
+            "Workload-critical identity, join, and grouping fields retain "
+            "higher automatic floors even when this value is zero."
         ),
     )
     args = parser.parse_args()

@@ -2664,6 +2664,69 @@ def test_normalization_treats_comma_number_as_one_literal():
     assert [leaf.value for leaf in leaves] == [1_603_797]
 
 
+def test_normalization_expands_worded_magnitude_threshold():
+    population = AttributeRef("place", "population", "integer")
+    region = AttributeRef("place", "region")
+    measure = AttributeRef("place", "measure", "real")
+    plan = _normalize_plan_with_schema(
+        QueryPlan(
+            group_by=(region,),
+            aggregates=(AggregateSpec("max", measure, "max_measure"),),
+            predicate=PredicateSpec(
+                attribute=population,
+                operator=">",
+                value=1,
+            ),
+        ),
+        (
+            "Among places with more than one million residents, "
+            "what is the highest measure in each region?"
+        ),
+        attribute_vocabulary={
+            "place": ("measure", "population", "region"),
+        },
+    )
+    assert plan is not None
+    assert plan.predicate == PredicateSpec(
+        attribute=population,
+        operator=">",
+        value=1_000_000,
+    )
+
+
+def test_normalization_canonicalizes_group_cardinality_having():
+    category = AttributeRef("record", "category")
+    score = AttributeRef("record", "score", "integer")
+    plan = _normalize_plan_with_schema(
+        QueryPlan(
+            group_by=(category,),
+            aggregates=(AggregateSpec("max", score, "max_score"),),
+            having=(
+                HavingSpec(
+                    AggregateSpec("max", score, "max_score"),
+                    ">",
+                    1,
+                ),
+            ),
+        ),
+        (
+            "Among categories with more than one record, "
+            "what is the highest score in each category?"
+        ),
+        attribute_vocabulary={
+            "record": ("category", "score"),
+        },
+    )
+    assert plan is not None
+    assert plan.having == (
+        HavingSpec(
+            AggregateSpec("count", None, "count_all"),
+            ">",
+            1,
+        ),
+    )
+
+
 def test_semantic_validator_accepts_inner_join_equivalent_group_key():
     player_team = AttributeRef("player", "team")
     team_name = AttributeRef("team", "team_name")

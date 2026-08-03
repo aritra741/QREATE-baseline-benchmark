@@ -209,6 +209,17 @@ class TestExtractor:
         assert "disease_name" in prompt
         assert "status" in prompt
 
+    def test_magnitude_prompt_expands_values_to_base_units(self):
+        extractor = ConstrainedExtractor()
+        prompt = extractor._build_multi_chunk_prompt(
+            ["The reported measure was 1.2 million."],
+            "record",
+            {"measure": "QUANTITY"},
+            {"measure"},
+        )
+        assert "1.2 million means 1200000" in prompt
+        assert "return only the scaled coefficient" not in prompt
+
 
 # ============================================================================
 # Entity Resolver Tests
