@@ -1229,6 +1229,80 @@ def _normalize_plan_with_schema(
         )
 
     predicate = replace_derived_presence_filter(predicate)
+
+    def event_tokens(attribute: str) -> set[str]:
+        tokens = set(_symbol_tokens(attribute))
+        normalized = set(tokens)
+        for token in tokens:
+            if len(token) > 4 and token.endswith("ed"):
+                normalized.add(token[:-2])
+            if len(token) > 5 and token.endswith("ing"):
+                normalized.add(token[:-3])
+        return normalized
+
+    def remove_redundant_event_presence(
+        value: Optional[PredicateSpec],
+    ) -> Optional[PredicateSpec]:
+        """Drop a true event flag already proven by a filtered event property."""
+
+        if value is None or value.kind != "and":
+            return value
+        leaves: List[PredicateSpec] = []
+
+        def collect(item: PredicateSpec) -> None:
+            if item.kind == "and":
+                for child in item.children:
+                    collect(child)
+            elif item.kind == "predicate":
+                leaves.append(item)
+
+        collect(value)
+        redundant: set[PredicateSpec] = set()
+        for candidate in leaves:
+            attribute = candidate.attribute
+            if (
+                attribute is None
+                or attribute.semantic_type != "boolean"
+                or candidate.operator != "="
+                or str(candidate.value).strip().lower()
+                not in {"1", "true", "yes"}
+            ):
+                continue
+            candidate_tokens = event_tokens(attribute.attribute)
+            if any(
+                other is not candidate
+                and other.attribute is not None
+                and other.attribute.entity == attribute.entity
+                and other.attribute.semantic_type != "boolean"
+                and bool(
+                    candidate_tokens
+                    & event_tokens(other.attribute.attribute)
+                )
+                for other in leaves
+            ):
+                redundant.add(candidate)
+        if not redundant:
+            return value
+
+        def rebuild(item: PredicateSpec) -> Optional[PredicateSpec]:
+            if item in redundant:
+                return None
+            if item.kind != "and":
+                return item
+            children = tuple(
+                child
+                for child in (rebuild(value) for value in item.children)
+                if child is not None
+            )
+            if not children:
+                return None
+            if len(children) == 1:
+                return children[0]
+            return replace(item, children=children)
+
+        return rebuild(value)
+
+    predicate = remove_redundant_event_presence(predicate)
     context_pool = list(
         dict.fromkeys((*plan.attributes(), *context_references))
     )
@@ -3629,6 +3703,10 @@ def analyze_workload(
                 "each must appear in exactly one correctly scoped predicate. Preserve "
                 "literals and comparison directions exactly. 'No <numeric measure>' "
                 "means that measure equals zero.\n"
+            "Do not add a separate Boolean event-presence predicate when another "
+            "filtered property of that same event already proves it occurred "
+            "(for example, filtering an event year or rank already excludes "
+            "records without that event).\n"
                 "4. Preserve AND/OR/NOT scope. A relationship equality belongs in "
                 "joins, never as a literal-valued predicate.\n"
                 "5. Use only the supplied source entity types. Do not invent ID "

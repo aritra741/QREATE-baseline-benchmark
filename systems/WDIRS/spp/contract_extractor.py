@@ -1320,7 +1320,13 @@ class ContractExtractor:
         """Let the model request deterministic tools for missing numeric fields."""
 
         if self._budget_exhausted:
-            return ()
+            ledger = getattr(self.llm_client, "ledger", None)
+            if ledger is None or int(getattr(ledger, "available", 0)) <= 0:
+                return ()
+            # A failed concurrent reservation is only a boundary for that
+            # extraction wave. Reconciled calls may leave enough budget for
+            # this later, sequential quality phase.
+            self._budget_exhausted = False
         existing = {
             (
                 _symbol_key(record.entity),
@@ -1839,8 +1845,6 @@ class ContractExtractor:
         contract: WorkloadContract,
         records: Sequence[ExtractionRecord],
     ) -> Tuple[DerivationMapping, ...]:
-        if self._budget_exhausted:
-            return ()
         result: List[DerivationMapping] = []
         for attribute in contract.attributes:
             roles = {

@@ -2452,6 +2452,42 @@ def test_schema_normalization_repairs_measure_and_leaked_projection():
     assert repaired.projections == (college,)
 
 
+def test_schema_normalization_removes_redundant_event_presence_filter():
+    process_year = AttributeRef("record", "process_year", "integer")
+    processed = AttributeRef("record", "processed", "boolean")
+    plan = _normalize_plan_with_schema(
+        QueryPlan(
+            group_by=(process_year,),
+            aggregates=(AggregateSpec("count", None, "count_all"),),
+            predicate=PredicateSpec(
+                kind="and",
+                children=(
+                    PredicateSpec(
+                        attribute=process_year,
+                        operator=">",
+                        value=2020,
+                    ),
+                    PredicateSpec(
+                        attribute=processed,
+                        operator="=",
+                        value=True,
+                    ),
+                ),
+            ),
+        ),
+        "How many records were processed in each year after 2020?",
+        attribute_vocabulary={
+            "record": ("process_year", "processed"),
+        },
+    )
+    assert plan is not None
+    assert plan.predicate == PredicateSpec(
+        attribute=process_year,
+        operator=">",
+        value=2020,
+    )
+
+
 def test_semantic_validator_rejects_artifact_style_contract_violations():
     branch = AttributeRef("transaction", "branch")
     amount = AttributeRef("transaction", "amount", "real")

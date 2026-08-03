@@ -238,6 +238,59 @@ def test_casefold_taxonomy_collapses_surface_variants():
     }
 
 
+def test_casefold_taxonomy_runs_after_an_llm_budget_boundary(tmp_path):
+    class NoCallClient:
+        model = "fixture"
+        ledger = type("Ledger", (), {"actual_spent": 0})()
+
+        def generate(self, *_args, **_kwargs):
+            raise AssertionError("casefold mapping must not call the LLM")
+
+    attribute = AttributeContract(
+        "person",
+        "role",
+        semantic_types=("text",),
+        contexts=(("q0", ("group_by",)),),
+    )
+    contract = WorkloadContract(
+        entities=(EntityContract("person"),),
+        attributes=(attribute,),
+        relationships=(),
+    )
+    records = tuple(
+        ExtractionRecord(
+            "person",
+            "role",
+            identity,
+            value,
+            value,
+            None,
+            f"person/{identity}.txt",
+            identity,
+            0,
+            len(value),
+        )
+        for identity, value in (("a", "Guard"), ("b", "guard"))
+    )
+    documents = tuple(
+        type(
+            "Document",
+            (),
+            {
+                "document_id": record.document_id,
+                "text": record.exact_span,
+                "metadata": {},
+            },
+        )()
+        for record in records
+    )
+    with EvidenceStore(tmp_path / "evidence.sqlite") as store:
+        extractor = ContractExtractor(documents, NoCallClient(), store)
+        extractor._budget_exhausted = True
+        mappings = extractor._taxonomy_mappings(contract, records)
+    assert len(mappings) == 1
+
+
 def test_partial_llm_taxonomy_is_rejected(tmp_path):
     class PartialTaxonomyClient:
         model = "fixture"
@@ -628,6 +681,7 @@ def test_cell_claim_exposes_checked_derivation_lineage_to_verifiers():
         },
     )
     assert "tool_calculation" in claim.nli_premise
+    assert "not a nearby date" in claim.hypothesis
     assert claim.prompt_payload()["derivation_lineage"]["kind"] == (
         "tool_calculation"
     )
@@ -1857,6 +1911,9 @@ def test_bulk_numeric_gate_is_domain_neutral_and_rejects_only_nonfinite_values()
     assert ContractBackend._bulk_value_plausible(relation, "awards", 18)
     assert ContractBackend._bulk_value_plausible(relation, "age", 136)
     assert ContractBackend._bulk_value_plausible(relation, "age", 86)
+    assert not ContractBackend._bulk_value_plausible(
+        relation, "titles", "null"
+    )
     assert not ContractBackend._bulk_value_plausible(
         relation, "age", float("inf")
     )

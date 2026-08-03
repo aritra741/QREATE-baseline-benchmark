@@ -81,7 +81,7 @@ from spp.workload_contract import (
 )
 
 
-BACKEND_VERSION = 15
+BACKEND_VERSION = 16
 HYBRID_BULK_VERSION = 3
 
 logger = logging.getLogger(__name__)
@@ -2158,10 +2158,12 @@ class ContractBackend:
         column: str,
         value: object,
     ) -> bool:
-        """Reject only non-finite scalars; semantics belong to the verifier."""
+        """Reject serialization null markers and non-finite numeric scalars."""
 
         if value in (None, "") or isinstance(value, bool):
             return True
+        if isinstance(value, str) and value.strip().casefold() == "null":
+            return False
         try:
             numeric = float(str(value).replace(",", ""))
         except (TypeError, ValueError):
@@ -2249,7 +2251,7 @@ class ContractBackend:
         )
         if (
             isinstance(previous, Mapping)
-            and int(previous.get("verifier_version", 0) or 0) >= 3
+            and int(previous.get("verifier_version", 0) or 0) >= 4
         ):
             return shared
 
@@ -3078,7 +3080,7 @@ class ContractBackend:
             },
             "cell_verification": {
                 "enabled": self.verify_extracted_cells,
-                "version": 3,
+                "version": 4,
                 "nli_model": os.getenv(
                     "SPP_NLI_MODEL",
                     "cross-encoder/nli-deberta-v3-small",
@@ -4608,7 +4610,7 @@ class ContractBackend:
             },
             "cell_verification": {
                 "enabled": self.verify_extracted_cells,
-                "version": 3,
+                "version": 4,
                 "summary": (
                     _jsonable(
                         self._shared.metadata.get(

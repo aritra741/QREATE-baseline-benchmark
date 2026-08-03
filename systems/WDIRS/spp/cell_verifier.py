@@ -13,7 +13,7 @@ from spp.budgeted_llm import BudgetedLLMClient
 
 logger = logging.getLogger(__name__)
 
-_VERIFIER_VERSION = 3
+_VERIFIER_VERSION = 4
 _ALLOWED_STATUSES = {
     "entailed",
     "contradicted",
@@ -38,9 +38,35 @@ class CellClaim:
     @property
     def hypothesis(self) -> str:
         attribute = self.attribute.replace("_", " ")
+        hints = " ".join(
+            text for _query_id, text in self.query_hints
+        ).strip()
+        semantic_types = {
+            value.strip().lower() for value in self.semantic_types
+        }
+        role_guard = (
+            "The value is the date or year represented by this field."
+            if semantic_types == {"date"}
+            else (
+                "The value is the quantity represented by this field itself, "
+                "not a nearby date, year, identifier, rank, measurement for a "
+                "different field, or a number that merely co-occurs with it."
+                if semantic_types & {"integer", "real"}
+                else (
+                    "The value is a genuine category value for this field, "
+                    "not a free-form description or missing-value marker."
+                )
+            )
+        )
+        workload = (
+            f" Workload meaning: {hints}."
+            if hints
+            else ""
+        )
         return (
-            f"{self.identity}'s {attribute} is "
-            f"{json.dumps(self.value, ensure_ascii=False)}."
+            f"For {self.identity}, the semantic value of the field "
+            f"'{attribute}' is {json.dumps(self.value, ensure_ascii=False)}. "
+            f"{role_guard}{workload}"
         )
 
     def prompt_payload(self) -> dict:
@@ -211,7 +237,9 @@ class BudgetAwareCellVerifier:
             "Verify proposed structured-data cells against their source "
             "evidence. This is verification, not extraction. For each claim, "
             "decide whether the excerpt supports the exact identity, attribute "
-            "role, and value. A nearby number belonging to another field, an "
+            "role, and value. Mere occurrence of the same surface number is not "
+            "entailment: the number must play the field's stated semantic role. "
+            "A nearby number belonging to another field, an "
             "event year used as a count, a historical value used as a current "
             "value, or a value supported only by world knowledge is not "
             "entailed. Calculations are valid only when the excerpt explicitly "
