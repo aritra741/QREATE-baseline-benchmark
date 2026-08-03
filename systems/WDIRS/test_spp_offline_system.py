@@ -2454,7 +2454,7 @@ def test_schema_normalization_repairs_measure_and_leaked_projection():
 
 def test_schema_normalization_removes_redundant_event_presence_filter():
     process_year = AttributeRef("record", "process_year", "integer")
-    processed = AttributeRef("record", "processed", "boolean")
+    processed = AttributeRef("record", "processed", "integer")
     plan = _normalize_plan_with_schema(
         QueryPlan(
             group_by=(process_year,),

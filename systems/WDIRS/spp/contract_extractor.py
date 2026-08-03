@@ -34,7 +34,7 @@ from spp.workload_contract import (
 from token_counter import count_tokens
 
 
-_PROMPT_VERSION = 8
+_PROMPT_VERSION = 9
 _ENTITY_ARTIFACT_VERSION = 3
 _CONTEXT_ROUTING_VERSION = 3
 CORPUS_REFERENCE_YEAR = 2026
@@ -1854,7 +1854,12 @@ class ContractExtractor:
             }
             if (
                 "group_by" not in roles
-                or any(role.startswith("filter:") for role in roles)
+                or any(
+                    role.startswith("filter:")
+                    and role
+                    not in {"filter:is_null", "filter:is_not_null"}
+                    for role in roles
+                )
                 or set(attribute.semantic_types) != {"text"}
             ):
                 continue

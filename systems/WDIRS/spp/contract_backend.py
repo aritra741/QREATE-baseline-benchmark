@@ -81,7 +81,7 @@ from spp.workload_contract import (
 )
 
 
-BACKEND_VERSION = 16
+BACKEND_VERSION = 18
 HYBRID_BULK_VERSION = 3
 
 logger = logging.getLogger(__name__)
@@ -2158,17 +2158,34 @@ class ContractBackend:
         column: str,
         value: object,
     ) -> bool:
-        """Reject serialization null markers and non-finite numeric scalars."""
+        """Enforce declared scalar types without attribute-specific ranges."""
 
         if value in (None, "") or isinstance(value, bool):
             return True
         if isinstance(value, str) and value.strip().casefold() == "null":
             return False
+        semantic_type = relation.semantic_type(column)
+        rendered = str(value).strip().replace(",", "")
         try:
-            numeric = float(str(value).replace(",", ""))
+            numeric = float(rendered)
         except (TypeError, ValueError):
+            if semantic_type == "boolean":
+                return rendered.casefold() in {
+                    "true",
+                    "false",
+                    "yes",
+                    "no",
+                }
+            if semantic_type in {"integer", "real"}:
+                return False
             return True
-        return math.isfinite(numeric)
+        if not math.isfinite(numeric):
+            return False
+        if semantic_type == "boolean":
+            return numeric in {0.0, 1.0}
+        if semantic_type == "integer":
+            return numeric.is_integer()
+        return True
 
     def _sanitize_shared_values(
         self,
@@ -2445,6 +2462,7 @@ class ContractBackend:
         if not claims:
             return shared
         claims.sort(key=lambda claim: priorities[claim.claim_id])
+        claims_by_id = {claim.claim_id: claim for claim in claims}
         factory = self.cell_verifier_factory or BudgetAwareCellVerifier
         verifier = factory(self.llm_client, ledger)
         verification_tokens_before = ledger.actual_spent
@@ -2529,6 +2547,26 @@ class ContractBackend:
             "decisions": [
                 {
                     "claim_id": decision.claim_id,
+                    "relation": (
+                        claims_by_id[decision.claim_id].relation
+                        if decision.claim_id in claims_by_id
+                        else None
+                    ),
+                    "row_identity": (
+                        claims_by_id[decision.claim_id].row_identity
+                        if decision.claim_id in claims_by_id
+                        else None
+                    ),
+                    "attribute": (
+                        claims_by_id[decision.claim_id].attribute
+                        if decision.claim_id in claims_by_id
+                        else None
+                    ),
+                    "value": (
+                        _jsonable(claims_by_id[decision.claim_id].value)
+                        if decision.claim_id in claims_by_id
+                        else None
+                    ),
                     "status": decision.status,
                     "confidence": decision.confidence,
                     "method": decision.method,

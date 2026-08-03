@@ -175,6 +175,28 @@ def test_sparse_join_columns_are_rebound_by_populated_value_overlap():
     assert [row["id"] for row in right] == ["Alpha", "Beta"]
 
 
+def test_tiny_exact_id_overlap_does_not_override_broad_name_overlap():
+    left = [
+        {"foreign_id": 1, "organization_name": "Alpha"},
+        {"foreign_id": 20, "organization_name": "Beta"},
+        {"foreign_id": 30, "organization_name": "Gamma"},
+    ]
+    right = [
+        {"id": 1, "name": "Alpha"},
+        {"id": 2, "name": "Beta"},
+        {"id": 3, "name": "Gamma"},
+    ]
+    repaired = repair_join_columns_from_overlap(
+        left,
+        "foreign_id",
+        right,
+        "id",
+        left_table="member",
+        right_table="organization",
+    )
+    assert repaired == ("organization_name", "name")
+
+
 def test_workload_columns_are_not_fabricated_by_imputation():
     populated, _ = apply_population(
         [

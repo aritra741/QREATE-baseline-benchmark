@@ -148,8 +148,6 @@ def repair_join_columns_from_overlap(
         values(left_rows, left_column),
         values(right_rows, right_column),
     )
-    if current_overlap and current_score >= 0.25:
-        return None
 
     candidates = []
     for candidate_left in columns(left_rows):
@@ -170,8 +168,8 @@ def repair_join_columns_from_overlap(
             overlap_score, overlap_count = score(left_values, right_values)
             candidates.append(
                 (
-                    overlap_score,
                     overlap_count,
+                    overlap_score,
                     candidate_left == left_column,
                     candidate_right == right_column,
                     candidate_left,
@@ -179,10 +177,15 @@ def repair_join_columns_from_overlap(
                 )
             )
     best = max(candidates, default=None)
-    if best is None or best[0] < 0.5 or best[1] < 2:
+    if best is None or best[0] < 2 or best[1] < 0.5:
         return None
-    _, _, _, _, source_left, source_right = best
+    best_overlap, best_score, _, _, source_left, source_right = best
     if (source_left, source_right) == (left_column, right_column):
+        return None
+    if (
+        current_overlap >= best_overlap
+        and current_score >= best_score
+    ):
         return None
     for row in left_rows:
         if row.get(source_left) not in (None, ""):

@@ -250,7 +250,7 @@ def test_casefold_taxonomy_runs_after_an_llm_budget_boundary(tmp_path):
         "person",
         "role",
         semantic_types=("text",),
-        contexts=(("q0", ("group_by",)),),
+        contexts=(("q0", ("group_by", "filter:is_not_null")),),
     )
     contract = WorkloadContract(
         entities=(EntityContract("person"),),
@@ -1896,14 +1896,15 @@ def test_supported_contract_cell_overrides_conflicting_bulk_value():
     assert merged.raw_tables["entity"][0]["name"] == "Canonical"
 
 
-def test_bulk_numeric_gate_is_domain_neutral_and_rejects_only_nonfinite_values():
+def test_bulk_scalar_gate_enforces_declared_types_without_semantic_ranges():
     relation = RelationSpec(
         "entity",
-        ("awards", "titles", "age"),
+        ("awards", "titles", "age", "active"),
         semantic_types=(
             ("awards", "integer"),
             ("titles", "text"),
             ("age", "real"),
+            ("active", "boolean"),
         ),
     )
     assert ContractBackend._bulk_value_plausible(relation, "awards", 2023)
@@ -1913,6 +1914,15 @@ def test_bulk_numeric_gate_is_domain_neutral_and_rejects_only_nonfinite_values()
     assert ContractBackend._bulk_value_plausible(relation, "age", 86)
     assert not ContractBackend._bulk_value_plausible(
         relation, "titles", "null"
+    )
+    assert not ContractBackend._bulk_value_plausible(
+        relation, "awards", "event description"
+    )
+    assert not ContractBackend._bulk_value_plausible(
+        relation, "active", "organization name"
+    )
+    assert ContractBackend._bulk_value_plausible(
+        relation, "active", "true"
     )
     assert not ContractBackend._bulk_value_plausible(
         relation, "age", float("inf")

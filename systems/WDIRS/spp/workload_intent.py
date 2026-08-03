@@ -1260,9 +1260,23 @@ def _normalize_plan_with_schema(
         redundant: set[PredicateSpec] = set()
         for candidate in leaves:
             attribute = candidate.attribute
+            attribute_tokens = _symbol_tokens(
+                attribute.attribute if attribute is not None else ""
+            )
+            presence_shaped = (
+                attribute is not None
+                and (
+                    attribute.semantic_type == "boolean"
+                    or (
+                        len(attribute_tokens) == 1
+                        and attribute_tokens[0].endswith("ed")
+                    )
+                    or attribute.attribute.startswith(("is_", "has_"))
+                )
+            )
             if (
                 attribute is None
-                or attribute.semantic_type != "boolean"
+                or not presence_shaped
                 or candidate.operator != "="
                 or str(candidate.value).strip().lower()
                 not in {"1", "true", "yes"}
