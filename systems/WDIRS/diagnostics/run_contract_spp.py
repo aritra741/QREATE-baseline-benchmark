@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import time
@@ -14,7 +15,7 @@ import config as config_module
 from extractor import OllamaClient
 from spp.budget_ledger import GlobalBudgetLedger
 from spp.contract_backend import ContractBackend
-from spp.native_backend import SourceDocument, infer_source_entity_vocabulary
+from spp.native_backend import SourceDocument
 from spp.nl2sql import make_nl2sql_compiler
 from spp.system import OfflineSynthesisSystem
 from spp.workload_intent import (
@@ -48,15 +49,27 @@ def _assert_allowed_input(path: Path, *, kind: str) -> Path:
 
 
 def _load_documents(root: Path) -> list[SourceDocument]:
+    """Load text without exposing filesystem names to synthesis."""
+
     root = _assert_allowed_input(root, kind="source corpus")
-    documents = [
-        SourceDocument(
-            document_id=str(path.relative_to(root)),
-            text=path.read_text(encoding="utf-8", errors="replace"),
-            metadata={"source_file": str(path)},
+    payloads = []
+    for path in root.glob("**/*.txt"):
+        text = path.read_text(encoding="utf-8", errors="replace")
+        digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
+        payloads.append((digest, text))
+    payloads.sort()
+    occurrences: dict[str, int] = {}
+    documents = []
+    for digest, text in payloads:
+        occurrence = occurrences.get(digest, 0)
+        occurrences[digest] = occurrence + 1
+        documents.append(
+            SourceDocument(
+                document_id=f"doc-{digest[:24]}-{occurrence}",
+                text=text,
+                metadata={"content_sha256": digest},
+            )
         )
-        for path in sorted(root.glob("**/*.txt"))
-    ]
     if not documents:
         raise ValueError(f"no source documents found under {root}")
     return documents
@@ -111,7 +124,7 @@ def _representative_documents(
     limit: int,
     character_limit: int,
 ) -> list[SourceDocument]:
-    """Build a deterministic, workload-ranked in-memory smoke subset."""
+    """Build a path-agnostic, workload-ranked in-memory smoke subset."""
     if limit < 1 or character_limit < 1:
         raise ValueError("smoke subset limits must be positive")
     terms = {
@@ -120,28 +133,21 @@ def _representative_documents(
         for token in re.findall(r"[A-Za-z][A-Za-z0-9'-]*", query["text"])
         if len(token) > 2
     }
-    by_partition: dict[str, list[SourceDocument]] = {}
-    for document in documents:
-        partition = document.document_id.replace("\\", "/").split("/", 1)[0]
-        by_partition.setdefault(partition, []).append(document)
-    selected: list[SourceDocument] = []
-    for partition in sorted(by_partition):
-        ranked = sorted(
-            by_partition[partition],
-            key=lambda document: (
-                -sum(term in document.text.lower() for term in terms),
-                document.document_id,
-            ),
+    ranked = sorted(
+        documents,
+        key=lambda document: (
+            -sum(term in document.text.lower() for term in terms),
+            document.document_id,
+        ),
+    )
+    return [
+        SourceDocument(
+            document.document_id,
+            document.text[:character_limit],
+            document.metadata,
         )
-        selected.extend(
-            SourceDocument(
-                document.document_id,
-                document.text[:character_limit],
-                document.metadata,
-            )
-            for document in ranked[:limit]
-        )
-    return selected
+        for document in ranked[:limit]
+    ]
 
 
 def run_contract_pipeline(args: Any) -> int:
@@ -170,7 +176,7 @@ def run_contract_pipeline(args: Any) -> int:
     client = OllamaClient(**client_kwargs)
     intent_analyzer = make_budgeted_intent_analyzer(
         client,
-        entity_vocabulary=infer_source_entity_vocabulary(documents),
+        entity_vocabulary=(),
         attribute_vocabulary=None,
         join_vocabulary=(),
         intent_max_workers=args.intent_workers,

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import hashlib
 from pathlib import Path
 
 import pytest
@@ -86,7 +87,15 @@ def test_contract_runtime_loader_rejects_reference_channels(
         '{"queries":[{"query_id":"q0","text":"List the entities."}]}',
         encoding="utf-8",
     )
-    assert len(_load_documents(source)) == 1
+    documents = _load_documents(source)
+    assert len(documents) == 1
+    assert documents[0].document_id.startswith("doc-")
+    assert "/" not in documents[0].document_id
+    assert documents[0].metadata == {
+        "content_sha256": hashlib.sha256(
+            b"An evidence-backed entity."
+        ).hexdigest()
+    }
     assert _load_queries(workload)[0]["text"] == "List the entities."
 
     forbidden = tmp_path / "Data"
@@ -101,3 +110,11 @@ def test_contract_runtime_loader_rejects_reference_channels(
     )
     with pytest.raises(ValueError, match="forbidden fields"):
         _load_queries(workload)
+
+
+def test_contract_entrypoint_does_not_derive_schema_from_paths() -> None:
+    path = WDIRS_ROOT / "diagnostics" / "run_contract_spp.py"
+    source = path.read_text(encoding="utf-8")
+    assert "infer_source_entity_vocabulary" not in source
+    assert '"source_file"' not in source
+    assert "relative_to(root)" not in source

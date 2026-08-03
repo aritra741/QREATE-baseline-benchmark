@@ -14,7 +14,7 @@ import logging
 import math
 import os
 import re
-from collections import defaultdict
+from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
@@ -36,7 +36,7 @@ from token_counter import count_tokens
 
 _PROMPT_VERSION = 9
 _ENTITY_ARTIFACT_VERSION = 3
-_CONTEXT_ROUTING_VERSION = 3
+_CONTEXT_ROUTING_VERSION = 4
 CORPUS_REFERENCE_YEAR = 2026
 _CONTEXT_STOPWORDS = frozenset(
     {
@@ -63,6 +63,19 @@ _CONTEXT_STOPWORDS = frozenset(
         "where",
         "which",
         "with",
+    }
+)
+_ROUTING_STOPWORDS = _CONTEXT_STOPWORDS | frozenset(
+    {
+        "attribute",
+        "entity",
+        "id",
+        "identifier",
+        "name",
+        "number",
+        "record",
+        "text",
+        "value",
     }
 )
 logger = logging.getLogger(__name__)
@@ -226,6 +239,97 @@ def _symbol_key(value: object) -> str:
     return re.sub(r"[^a-z0-9]+", "_", str(value or "").lower()).strip("_")
 
 
+def _routing_token(value: object) -> str:
+    token = _symbol_key(value)
+    if token.endswith("ies") and len(token) > 4:
+        return f"{token[:-3]}y"
+    if token.endswith("s") and not token.endswith("ss") and len(token) > 3:
+        return token[:-1]
+    return token
+
+
+def route_documents_by_content(
+    documents: Sequence[object],
+    contract: WorkloadContract,
+) -> Dict[str, Tuple[str, ...]]:
+    """Route documents from source text and NL-derived contract terms only.
+
+    Filesystem paths, partition names, and document identifiers are deliberately
+    excluded. Ambiguous documents are retained for every near-tied entity, and
+    documents with no contract-term evidence remain available to every entity.
+    """
+
+    profiles: Dict[str, Dict[str, float]] = {}
+    for entity in contract.entities:
+        weights: Dict[str, float] = defaultdict(float)
+        for symbol in entity.symbols:
+            for token in _symbol_key(symbol).split("_"):
+                normalized = _routing_token(token)
+                if normalized and normalized not in _ROUTING_STOPWORDS:
+                    weights[normalized] += 5.0
+        for attribute in contract.attributes_for(entity.name):
+            for symbol in attribute.symbols:
+                for token in _symbol_key(symbol).split("_"):
+                    normalized = _routing_token(token)
+                    if normalized and normalized not in _ROUTING_STOPWORDS:
+                        weights[normalized] += 1.0
+        profiles[entity.name] = dict(weights)
+
+    document_tokens: Dict[str, Counter[str]] = {}
+    document_frequency: Counter[str] = Counter()
+    for document in documents:
+        document_id = str(getattr(document, "document_id"))
+        tokens = Counter(
+            normalized
+            for token in re.findall(
+                r"[A-Za-z][A-Za-z0-9'-]*",
+                str(getattr(document, "text", "")),
+            )
+            if (
+                normalized := _routing_token(token)
+            )
+            and normalized not in _ROUTING_STOPWORDS
+        )
+        document_tokens[document_id] = tokens
+        document_frequency.update(tokens.keys())
+
+    routes: Dict[str, List[str]] = {
+        entity.name: [] for entity in contract.entities
+    }
+    document_count = max(1, len(document_tokens))
+    for document_id, tokens in document_tokens.items():
+        scores = {}
+        for entity_name, profile in profiles.items():
+            scores[entity_name] = sum(
+                weight
+                * (1.0 + math.log1p(tokens[token]))
+                * (
+                    1.0
+                    + math.log(
+                        (document_count + 1)
+                        / (document_frequency[token] + 1)
+                    )
+                )
+                for token, weight in profile.items()
+                if tokens[token]
+            )
+        best = max(scores.values(), default=0.0)
+        if best <= 0.0:
+            selected = tuple(scores)
+        else:
+            selected = tuple(
+                entity_name
+                for entity_name, score in scores.items()
+                if score >= best * 0.92
+            )
+        for entity_name in selected:
+            routes[entity_name].append(document_id)
+    return {
+        entity_name: tuple(document_ids)
+        for entity_name, document_ids in routes.items()
+    }
+
+
 def _canonical_identity(
     surface: object,
     known_identities: Sequence[str],
@@ -349,6 +453,7 @@ class ContractExtractor:
         self._document_text = {
             document.document_id: document.text for document in self.documents
         }
+        self._entity_document_ids: Dict[str, Tuple[str, ...]] = {}
         # Fixed corpus clock for time-relative tool calculations. This is not
         # attribute-specific; the model still decides whether any derivation
         # is warranted and must request the calculator explicitly.
@@ -360,33 +465,31 @@ class ContractExtractor:
                 metadata=dict(document.metadata),
             )
 
-    @staticmethod
-    def _prefix(document_id: str) -> str:
-        normalized = str(document_id).replace("\\", "/").strip("/")
-        return _symbol_key(normalized.split("/", 1)[0])
-
     def documents_for_entity(
         self, entity: EntityContract | str
     ) -> Tuple[DocumentUnit, ...]:
-        """Route a partitioned corpus by observed document-id prefixes.
-
-        Prefix routing is enabled only when at least one prefix matches the
-        requested entity or one of its aliases.  Otherwise all documents are
-        retained, which is the safe behavior for flat or partially named
-        corpora.  No corpus name or benchmark table is hard-coded.
-        """
+        """Return content-routed units without inspecting document identifiers."""
 
         if isinstance(entity, EntityContract):
-            names = entity.symbols
+            entity_name = entity.name
         else:
-            names = (str(entity),)
-        target_keys = {_symbol_key(name) for name in names if _symbol_key(name)}
-        matched = tuple(
+            entity_name = str(entity)
+        matched_key = next(
+            (
+                name
+                for name in self._entity_document_ids
+                if _symbol_key(name) == _symbol_key(entity_name)
+            ),
+            None,
+        )
+        if matched_key is None:
+            return self.units
+        routed_ids = set(self._entity_document_ids[matched_key])
+        return tuple(
             unit
             for unit in self.units
-            if self._prefix(unit.document_id) in target_keys
+            if unit.document_id in routed_ids
         )
-        return matched or self.units
 
     @staticmethod
     def _search_phrases(values: Iterable[object]) -> Tuple[str, ...]:
@@ -504,15 +607,9 @@ class ContractExtractor:
         return None
 
     @staticmethod
-    def _partition_heading_identity(
-        entity: EntityContract,
-        unit: DocumentUnit,
-    ) -> Optional[str]:
-        entity_keys = {
-            _symbol_key(value) for value in entity.symbols if _symbol_key(value)
-        }
-        if ContractExtractor._prefix(unit.document_id) not in entity_keys:
-            return None
+    def _content_heading_identity(unit: DocumentUnit) -> Optional[str]:
+        """Return a plausible primary-subject heading from document text."""
+
         match = re.search(r"(?m)^[ \t]*(\S[^\r\n]*)[ \t]*$", unit.text)
         if match is None:
             return None
@@ -1141,9 +1238,7 @@ class ContractExtractor:
         contexts: List[Tuple[EntityContract, DocumentUnit]] = []
         for entity in contract.entities:
             for source_unit in self.documents_for_entity(entity):
-                heading = self._partition_heading_identity(
-                    entity, source_unit
-                )
+                heading = self._content_heading_identity(source_unit)
                 if heading is not None:
                     result.extend(
                         self._records(
@@ -1259,6 +1354,14 @@ class ContractExtractor:
                     if owner
                     else self.units
                 )
+                if owner:
+                    units = tuple(
+                        unit
+                        for unit in units
+                        if identities.get(
+                            (_symbol_key(owner), unit.document_id)
+                        )
+                    )
                 terms = (
                     attribute.name,
                     *attribute.alternatives,
@@ -1572,24 +1675,23 @@ class ContractExtractor:
         relationship: RelationshipContract,
         contract: Optional[WorkloadContract] = None,
     ) -> Tuple[DocumentUnit, ...]:
-        """Route edge extraction to either endpoint's available partition."""
+        """Route edge extraction to content-selected endpoint documents."""
 
-        endpoint_keys: set[str] = set()
+        document_ids: set[str] = set()
         for endpoint in (
             relationship.left_entity,
             relationship.right_entity,
         ):
             entity = contract.entity(endpoint) if contract is not None else None
-            endpoint_keys.update(
-                _symbol_key(value)
-                for value in (entity.symbols if entity is not None else (endpoint,))
+            document_ids.update(
+                unit.document_id
+                for unit in self.documents_for_entity(entity or endpoint)
             )
-        matched = tuple(
+        return tuple(
             unit
             for unit in self.units
-            if self._prefix(unit.document_id) in endpoint_keys
+            if unit.document_id in document_ids
         )
-        return matched or self.units
 
     def extract_relationships(
         self,
@@ -2290,6 +2392,10 @@ class ContractExtractor:
 
         self._budget_exhausted = False
         self._pending_target = None
+        self._entity_document_ids = route_documents_by_content(
+            self.documents,
+            contract,
+        )
         entity_records = self.extract_entities(contract)
         relationship_records = self.extract_relationships(
             contract, entity_records

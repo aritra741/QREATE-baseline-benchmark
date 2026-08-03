@@ -28,6 +28,7 @@ from spp.contract_extractor import (
     ContractExtractor,
     DocumentUnit,
     ExtractionRecord,
+    route_documents_by_content,
 )
 from spp.contract_validation import (
     AdaptiveRepairAdmission,
@@ -81,8 +82,8 @@ from spp.workload_contract import (
 )
 
 
-BACKEND_VERSION = 19
-HYBRID_BULK_VERSION = 4
+BACKEND_VERSION = 20
+HYBRID_BULK_VERSION = 5
 
 logger = logging.getLogger(__name__)
 
@@ -1867,6 +1868,9 @@ class ContractBackend:
         self._repair_summary: Dict[str, object] = {}
         self._intent_rebindings: Dict[str, Tuple[Tuple[str, str], ...]] = {}
         self._preparation_unbound_query_ids: Tuple[str, ...] = ()
+        self._content_document_routes: Optional[
+            Dict[str, Tuple[str, ...]]
+        ] = None
 
     def _connecting_joins(self, plan: object) -> Optional[Tuple[JoinSpec, ...]]:
         """Find a deterministic shared-graph path for the plan's data entities."""
@@ -2634,15 +2638,23 @@ class ContractBackend:
         self,
         relation: RelationSpec,
     ) -> Tuple[ContractDocument, ...]:
-        relation_key = _symbol_key(relation.name).rstrip("s")
-        matched = []
-        for document in self.documents:
-            normalized = document.document_id.replace("\\", "/").strip("/")
-            partition = normalized.split("/", 1)[0] if "/" in normalized else ""
-            partition_key = _symbol_key(partition).rstrip("s")
-            if partition_key == relation_key:
-                matched.append(document)
-        return tuple(matched)
+        if self.contract is None:
+            return self.documents
+        if self._content_document_routes is None:
+            self._content_document_routes = route_documents_by_content(
+                self.documents,
+                self.contract,
+            )
+        entity = self.contract.entity(relation.name)
+        route_name = entity.name if entity is not None else relation.name
+        document_ids = set(
+            self._content_document_routes.get(route_name, ())
+        )
+        return tuple(
+            document
+            for document in self.documents
+            if document.document_id in document_ids
+        )
 
     def _bulk_extractor(
         self,
@@ -2863,19 +2875,8 @@ class ContractBackend:
                     end=len(document.text),
                     source_ranges=((0, len(document.text)),),
                 )
-                entity_contract = (
-                    self.contract.entity(relation.name)
-                    if isinstance(self.contract, WorkloadContract)
-                    else None
-                )
-                identity = (
-                    ContractExtractor._partition_heading_identity(
-                        entity_contract,
-                        unit,
-                    )
-                    if entity_contract is not None
-                    else None
-                ) or Path(document_id).stem
+                identity = ContractExtractor._content_heading_identity(unit)
+                identity = identity or ""
                 heading_name = (
                     identity.split(",", 1)[0].strip()
                     if "," in identity
@@ -2994,6 +2995,16 @@ class ContractBackend:
             metadata={
                 "version": HYBRID_BULK_VERSION,
                 "extractor": "wdirs_constrained_bulk",
+                "document_routing": {
+                    "policy": "content_contract_terms",
+                    "uses_document_identifiers": False,
+                    "document_counts": {
+                        name: len(document_ids)
+                        for name, document_ids in (
+                            self._content_document_routes or {}
+                        ).items()
+                    },
+                },
                 "column_coverage": coverage_manifest,
                 "column_coverage_targets": coverage_targets,
                 "errors": error_manifest,
@@ -3063,6 +3074,7 @@ class ContractBackend:
         self.relation_graph = build_workload_relation_graph(
             intent, self.contract
         )
+        self._content_document_routes = None
         self._intent_fingerprint = fingerprint
         self._shared = None
         self._shared_artifact_key = None

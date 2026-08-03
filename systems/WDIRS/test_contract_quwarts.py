@@ -19,6 +19,8 @@ from spp.contract_extractor import (
     DerivationMapping,
     ExtractionRecord,
     RelationshipRecord,
+    SourceDocument,
+    route_documents_by_content,
 )
 from spp.budget_ledger import GlobalBudgetLedger
 from spp.contract_backend import (
@@ -74,6 +76,35 @@ def _intent(*requirements: QueryRequirement) -> WorkloadIntent:
         attribute_frequency={},
         operator_frequency={},
     )
+
+
+def test_content_routing_ignores_misleading_document_paths():
+    contract = WorkloadContract(
+        entities=(
+            EntityContract("vehicle"),
+            EntityContract("place"),
+        ),
+        attributes=(
+            AttributeContract("vehicle", "wheel_count"),
+            AttributeContract("place", "population"),
+        ),
+        relationships=(),
+    )
+    documents = (
+        SourceDocument(
+            "place/misleading.txt",
+            "Roadster\nThis vehicle has four wheels.",
+        ),
+        SourceDocument(
+            "vehicle/misleading.txt",
+            "Northbank\nIts population is 12000 residents.",
+        ),
+    )
+
+    routes = route_documents_by_content(documents, contract)
+
+    assert routes["vehicle"] == ("place/misleading.txt",)
+    assert routes["place"] == ("vehicle/misleading.txt",)
 
 
 def test_workload_contract_preserves_shared_query_roles_and_join_edges():
@@ -441,10 +472,10 @@ def test_contract_response_parser_accepts_envelopes_and_mixed_arrays():
     )
 
 
-def test_partition_heading_provides_source_grounded_entity_identity(tmp_path):
+def test_content_heading_provides_source_grounded_entity_identity(tmp_path):
     class NoLLM:
         def generate(self, *_args, **_kwargs):
-            raise AssertionError("partition heading should avoid an LLM call")
+            raise AssertionError("content heading should avoid an LLM call")
 
     document = type(
         "Document",
