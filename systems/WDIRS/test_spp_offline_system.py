@@ -91,6 +91,7 @@ from spp.spec import (
 )
 from spp.workload_intent import (
     WorkloadIntent,
+    _canonicalize_workload_requirements,
     _normalize_plan_with_schema,
     _parse_llm_payload,
     _plan_contract_score,
@@ -109,6 +110,44 @@ def _player_requirement() -> QueryRequirement:
         entities=("player",),
         attributes=("name",),
     )
+
+
+def test_workload_canonicalization_unifies_inflectional_plan_entities():
+    singular_position = AttributeRef("record", "category")
+    plural_measure = AttributeRef("records", "amount", "real")
+    requirement = QueryRequirement(
+        query_id="q0",
+        text="Average amount by record category.",
+        entities=("record", "records"),
+        attributes=("category", "amount"),
+        attribute_bindings=(
+            ("record", "category"),
+            ("records", "amount"),
+        ),
+        operators=("avg", "group_by", "filter"),
+        plan=QueryPlan(
+            group_by=(singular_position,),
+            aggregates=(
+                AggregateSpec("avg", plural_measure, "avg_amount"),
+            ),
+            predicate=PredicateSpec(
+                attribute=singular_position,
+                operator="is_not_null",
+                value=None,
+            ),
+        ),
+    )
+
+    canonical, metadata = _canonicalize_workload_requirements((requirement,))
+
+    normalized = canonical[0]
+    assert normalized.entities == ("record",)
+    assert {reference.entity for reference in normalized.plan.attributes()} == {
+        "record"
+    }
+    assert {
+        item["alias"] for item in metadata["alias_evidence"]
+    } == {"records"}
 
 
 def test_representative_subset_is_partitioned_and_relevance_ranked(
