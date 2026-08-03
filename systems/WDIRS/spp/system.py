@@ -182,6 +182,40 @@ class OfflineSynthesisSystem:
 
         evidence_path = output_dir / "evidence.sqlite"
         with EvidenceStore(evidence_path) as evidence_store:
+            # SQL compilation is the terminal LLM-dependent stage. Keep an
+            # escrow that extraction, repair, pilots, and materialization cannot
+            # consume, then release it immediately before compilation.
+            default_sql_reserve = min(
+                32_768 * max(1, len(intent.requirements)),
+                max(0, token_budget // 10),
+            )
+            sql_compile_reserve = max(
+                0,
+                int(
+                    os.getenv(
+                        "SPP_SQL_COMPILE_RESERVE",
+                        str(default_sql_reserve),
+                    )
+                ),
+            )
+            if not ledger.can_complete(sql_compile_reserve):
+                raise BudgetExhausted(
+                    "budget cannot reserve the final SQL compilation path"
+                )
+            sql_compile_escrow = (
+                ledger.reserve(
+                    stage="sql_compilation_escrow",
+                    operation="reserve_before_synthesis",
+                    input_tokens=sql_compile_reserve,
+                    max_output_tokens=0,
+                )
+                if sql_compile_reserve
+                else None
+            )
+            if sql_compile_reserve and sql_compile_escrow is None:
+                raise AssertionError(
+                    "SQL compilation escrow unexpectedly deduplicated"
+                )
             # Reserve a completion path before shared extraction. Extraction
             # and coverage repair may otherwise consume the entire budget
             # before the system learns the final per-config costs.
@@ -418,6 +452,12 @@ class OfflineSynthesisSystem:
                 intent.requirements, config_by_id, token_budget
             )
 
+            if sql_compile_escrow is not None:
+                ledger.cancel(
+                    sql_compile_escrow,
+                    reason="released for final SQL compilation",
+                )
+                sql_compile_escrow = None
             compiled = compile_workload_sql(
                 intent.requirements,
                 final_portfolio,
