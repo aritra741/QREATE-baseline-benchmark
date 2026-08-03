@@ -548,7 +548,7 @@ def analyze(
             row.update(
                 {
                     "error": "generated or reference plan is unavailable",
-                    "query_score": 0.0,
+                    "query_score": None,
                 }
             )
             plan_ceiling[query_id] = row
@@ -565,7 +565,7 @@ def analyze(
             row.update(
                 {
                     "error": "role-aligned plan cannot bind canonical schema",
-                    "query_score": 0.0,
+                    "query_score": None,
                 }
             )
             plan_ceiling[query_id] = row
@@ -586,7 +586,7 @@ def analyze(
             row["row_count"] = len(predicted)
         except Exception as exc:
             row["error"] = str(exc)
-            row["query_score"] = 0.0
+            row["query_score"] = None
         plan_ceiling[query_id] = row
 
     ground_truth_connection.close()
@@ -596,27 +596,29 @@ def analyze(
         query_ids,
         tau=tau,
     )
-    plan_scores = [
-        float(plan_ceiling[query_id].get("query_score", 0.0))
-        for query_id in query_ids
-    ]
     shape_scores = [
         float(plan_ceiling[query_id]["shape_score"])
         for query_id in query_ids
     ]
-    plan_bindable = sum(
-        not bool(plan_ceiling[query_id].get("error"))
+    bindable_query_ids = [
+        query_id
         for query_id in query_ids
-    )
+        if not bool(plan_ceiling[query_id].get("error"))
+        and plan_ceiling[query_id].get("query_score") is not None
+    ]
+    plan_scores = [
+        float(plan_ceiling[query_id]["query_score"])
+        for query_id in bindable_query_ids
+    ]
+    plan_bindable = len(bindable_query_ids)
     plan_mean = _mean(plan_scores)
-    candidate_mean = float(
-        routing["materialized_oracle_mean_query_score"]
-    )
-    selected_mean = float(routing["selected_mean_query_score"])
     per_query_decomposition = {}
     for query_id in query_ids:
-        plan_score = float(
-            plan_ceiling[query_id].get("query_score", 0.0)
+        raw_plan_score = plan_ceiling[query_id].get("query_score")
+        plan_score = (
+            float(raw_plan_score)
+            if raw_plan_score is not None
+            else None
         )
         oracle_score = float(routing["oracle_per_query"][query_id])
         routed_score = float(routing["selected_per_query"][query_id])
@@ -624,8 +626,16 @@ def analyze(
             "plan_role_aligned_score": plan_score,
             "materialized_oracle_score": oracle_score,
             "selected_route_score": routed_score,
-            "plan_semantic_loss": max(0.0, 1.0 - plan_score),
-            "materialization_loss": max(0.0, plan_score - oracle_score),
+            "plan_semantic_loss": (
+                max(0.0, 1.0 - plan_score)
+                if plan_score is not None
+                else None
+            ),
+            "materialization_loss": (
+                max(0.0, plan_score - oracle_score)
+                if plan_score is not None
+                else None
+            ),
             "routing_loss": max(0.0, oracle_score - routed_score),
             "selected_config_id": str(
                 manifest["portfolio"]["query_to_config"].get(query_id, "")
@@ -634,12 +644,42 @@ def analyze(
                 routing["oracle_query_to_config"].get(query_id, "")
             ),
         }
-    losses = {
-        "plan_semantic_loss": max(0.0, 1.0 - plan_mean),
-        "materialization_loss": max(0.0, plan_mean - candidate_mean),
-        "routing_loss": max(0.0, candidate_mean - selected_mean),
-    }
-    dominant = max(losses, key=lambda key: (losses[key], key))
+    bindable_materialization_losses = [
+        max(
+            0.0,
+            float(plan_ceiling[query_id]["query_score"])
+            - float(routing["oracle_per_query"][query_id]),
+        )
+        for query_id in bindable_query_ids
+    ]
+    bindable_routing_losses = [
+        max(
+            0.0,
+            float(routing["oracle_per_query"][query_id])
+            - float(routing["selected_per_query"][query_id]),
+        )
+        for query_id in bindable_query_ids
+    ]
+    losses: Mapping[str, Optional[float]]
+    if bindable_query_ids:
+        losses = {
+            "plan_semantic_loss": max(0.0, 1.0 - plan_mean),
+            "materialization_loss": _mean(
+                bindable_materialization_losses
+            ),
+            "routing_loss": _mean(bindable_routing_losses),
+        }
+        dominant = max(
+            losses,
+            key=lambda key: (float(losses[key] or 0.0), key),
+        )
+    else:
+        losses = {
+            "plan_semantic_loss": None,
+            "materialization_loss": None,
+            "routing_loss": None,
+        }
+        dominant = "insufficient_plan_coverage"
     return {
         "method": "sealed_spp_posthoc_decomposition",
         "evaluation_only": True,
@@ -662,12 +702,23 @@ def analyze(
             "role_aligned_mean_query_score": plan_mean,
             "mean_shape_score": _mean(shape_scores),
             "bindable_query_count": plan_bindable,
+            "coverage_fraction": (
+                plan_bindable / len(query_ids) if query_ids else 0.0
+            ),
+            "unbound_query_ids": sorted(
+                set(query_ids) - set(bindable_query_ids)
+            ),
             "per_query": plan_ceiling,
         },
         "candidate_matrix": matrix,
         "routing": routing,
         "decomposition": {
             **losses,
+            "basis": (
+                "Loss components are means over role-aligned, bindable plan "
+                "queries only. Unbindable checks are unknown, not zero."
+            ),
+            "overall_routing_regret": routing["routing_regret"],
             "dominant_observed_bottleneck": dominant,
             "per_query": per_query_decomposition,
             "scope_note": (
