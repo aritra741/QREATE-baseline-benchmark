@@ -24,6 +24,7 @@ from json_repair import repair_json
 from spp.budget_ledger import BudgetExhausted
 from spp.budgeted_llm import BudgetedLLMClient
 from spp.calculation_tools import calculate, operands_are_grounded
+from spp.count_memory import COUNT_MEMORY_VERSION, EvidenceCountMemory
 from spp.evidence_store import EvidenceAnchor, EvidenceStore
 from spp.workload_contract import (
     AttributeContract,
@@ -403,6 +404,7 @@ class ContractExtractor:
         max_attribute_tokens: int = 512,
         max_workers: Optional[int] = None,
         max_context_characters: Optional[int] = None,
+        count_context_characters: Optional[int] = None,
     ):
         if not documents:
             raise ValueError("contract extraction requires source documents")
@@ -446,6 +448,14 @@ class ContractExtractor:
                 max_context_characters
                 if max_context_characters is not None
                 else os.getenv("SPP_CONTRACT_CONTEXT_CHARS", "3600")
+            ),
+        )
+        self.count_context_characters = max(
+            1200,
+            int(
+                count_context_characters
+                if count_context_characters is not None
+                else os.getenv("SPP_COUNT_MEMORY_CHARS", "3000")
             ),
         )
         self._budget_exhausted = False
@@ -883,11 +893,16 @@ class ContractExtractor:
             "model",
             type(getattr(self.llm_client, "client", self.llm_client)).__name__,
         )
-        artifact_version = (
-            f"{_PROMPT_VERSION}.entity-{_ENTITY_ARTIFACT_VERSION}"
-            if phase == "entity"
-            else str(_PROMPT_VERSION)
-        )
+        if phase == "entity":
+            artifact_version = (
+                f"{_PROMPT_VERSION}.entity-{_ENTITY_ARTIFACT_VERSION}"
+            )
+        elif phase.startswith("count_"):
+            artifact_version = (
+                f"{_PROMPT_VERSION}.count-{COUNT_MEMORY_VERSION}"
+            )
+        else:
+            artifact_version = str(_PROMPT_VERSION)
         payload = (
             f"workload-contract-extraction-v{artifact_version}\0{phase}\0"
             f"{model}\0{unit.unit_id}\0{prompt}"
@@ -1413,6 +1428,386 @@ class ContractExtractor:
                     )
                 )
         return tuple(result)
+
+    def _count_attribute_contracts(
+        self,
+        contract: WorkloadContract,
+    ) -> Tuple[AttributeContract, ...]:
+        """Let the model select cardinality fields from NL contracts alone."""
+
+        numeric = tuple(
+            attribute
+            for attribute in contract.attributes
+            if set(attribute.semantic_types) & {"integer", "real"}
+        )
+        if not numeric or not self.units:
+            return ()
+        if self._budget_exhausted:
+            ledger = getattr(self.llm_client, "ledger", None)
+            if ledger is None or int(getattr(ledger, "available", 0)) <= 0:
+                return ()
+            self._budget_exhausted = False
+        payload = [
+            {
+                "entity_owners": list(attribute.owners),
+                "attribute": attribute.name,
+                "semantic_types": list(attribute.semantic_types),
+                "units": list(attribute.units),
+                "query_roles": {
+                    query_id: list(roles)
+                    for query_id, roles in attribute.contexts
+                },
+                "natural_language_query_hints": dict(
+                    attribute.query_hints
+                ),
+            }
+            for attribute in numeric
+        ]
+        prompt = (
+            "Classify which numeric workload attributes represent a cardinality "
+            "of repeatable, countable facts or events. Use only the supplied "
+            "NL-derived contracts. Do not use source documents, benchmark "
+            "knowledge, attribute-specific rules, or outside knowledge. A count "
+            "field can be accumulated from distinct evidenced entries, where an "
+            "entry may contribute any explicit nonnegative integer quantity. "
+            "Dates, years, ranks, identifiers, ages, measurements, and monetary "
+            "amounts are not count fields merely because they are numeric.\n\n"
+            "Return only a JSON array with one object per supplied attribute. "
+            "Every object must have exactly entity, attribute, and countable. "
+            "entity must be one supplied owner, attribute must be copied exactly, "
+            "and countable must be a JSON boolean.\n\n"
+            f"Numeric attribute contracts:\n{json.dumps(payload, sort_keys=True)}"
+        )
+        rows = self._budgeted_rows(
+            target=f"count-classification:{contract.fingerprint}",
+            phase="count_classification",
+            prompt=prompt,
+            unit=self.units[0],
+            max_tokens=max(self.max_attribute_tokens, 768),
+        )
+        if rows is None:
+            return ()
+        allowed = {
+            (_symbol_key(owner), _symbol_key(attribute.name)): attribute
+            for attribute in numeric
+            for owner in attribute.owners
+        }
+        selected: Dict[str, AttributeContract] = {}
+        for row in rows:
+            if (
+                set(row) != {"entity", "attribute", "countable"}
+                or row.get("countable") is not True
+            ):
+                continue
+            attribute = allowed.get(
+                (
+                    _symbol_key(row.get("entity", "")),
+                    _symbol_key(row.get("attribute", "")),
+                )
+            )
+            if attribute is not None:
+                selected[attribute.contract_id] = attribute
+        return tuple(selected[key] for key in sorted(selected))
+
+    def _count_chunks(
+        self,
+        unit: DocumentUnit,
+    ) -> Tuple[DocumentUnit, ...]:
+        """Cover a complete document with bounded, overlapping count windows."""
+
+        source = self._document_text[unit.document_id]
+        limit = self.count_context_characters
+        if len(source) <= limit:
+            return (_document_unit(SourceDocument(unit.document_id, source)),)
+        overlap = min(400, max(120, limit // 10))
+        chunks: List[DocumentUnit] = []
+        start = 0
+        while start < len(source):
+            end = min(len(source), start + limit)
+            if end < len(source):
+                minimum = start + limit // 2
+                boundaries = [
+                    source.rfind(marker, minimum, end)
+                    for marker in ("\n\n", "\n", ". ", "; ")
+                ]
+                boundary = max(boundaries, default=-1)
+                if boundary > minimum:
+                    end = boundary + (
+                        2 if source[boundary : boundary + 2] in {". ", "; "} else 1
+                    )
+            text = source[start:end]
+            digest = hashlib.sha256(
+                (
+                    f"count-chunk-v{COUNT_MEMORY_VERSION}\0"
+                    f"{unit.document_id}\0{start}\0{end}\0{text}"
+                ).encode("utf-8")
+            ).hexdigest()
+            chunks.append(
+                DocumentUnit(
+                    unit_id=digest,
+                    document_id=unit.document_id,
+                    text=text,
+                    start=start,
+                    end=end,
+                    source_ranges=((start, end),),
+                )
+            )
+            if end >= len(source):
+                break
+            start = max(start + 1, end - overlap)
+        return tuple(chunks)
+
+    def _derive_counted_attributes(
+        self,
+        contract: WorkloadContract,
+        entity_records: Sequence[ExtractionRecord],
+    ) -> Tuple[ExtractionRecord, ...]:
+        """Scan complete documents and execute weighted count-memory calls."""
+
+        count_attributes = self._count_attribute_contracts(contract)
+        if not count_attributes:
+            return ()
+        groups: Dict[Tuple[str, str], List[ExtractionRecord]] = defaultdict(list)
+        for record in entity_records:
+            key = (_symbol_key(record.entity), record.identity)
+            if all(
+                known.document_id != record.document_id
+                for known in groups[key]
+            ):
+                groups[key].append(record)
+
+        derived: List[ExtractionRecord] = []
+        stop = False
+        required_keys = {
+            "identity",
+            "attribute",
+            "tool",
+            "operation",
+            "quantity",
+            "quantity_surface",
+            "fact_key",
+            "exact_span",
+            "unit",
+        }
+        for (entity_key, identity), records in groups.items():
+            selected = tuple(
+                attribute
+                for attribute in count_attributes
+                if entity_key
+                in {_symbol_key(owner) for owner in attribute.owners}
+            )
+            if not selected:
+                continue
+            producer = str(
+                getattr(
+                    getattr(self.llm_client, "client", self.llm_client),
+                    "model",
+                    type(
+                        getattr(self.llm_client, "client", self.llm_client)
+                    ).__name__,
+                )
+            )
+            memories = {
+                attribute.contract_id: EvidenceCountMemory(
+                    self.evidence_store,
+                    contract_fingerprint=contract.fingerprint,
+                    entity=records[0].entity,
+                    identity=identity,
+                    attribute=attribute.name,
+                    producer=producer,
+                )
+                for attribute in selected
+            }
+            allowed = {
+                _symbol_key(attribute.name): attribute
+                for attribute in selected
+            }
+            contracts = [
+                {
+                    "attribute": attribute.name,
+                    "semantic_types": list(attribute.semantic_types),
+                    "units": list(attribute.units),
+                    "query_hints": dict(attribute.query_hints),
+                }
+                for attribute in selected
+            ]
+            for entity_record in records:
+                source_unit = next(
+                    (
+                        unit
+                        for unit in self.units
+                        if unit.document_id == entity_record.document_id
+                    ),
+                    None,
+                )
+                if source_unit is None:
+                    continue
+                for chunk_index, chunk in enumerate(
+                    self._count_chunks(source_unit)
+                ):
+                    state = {
+                        attribute.name: list(
+                            memories[attribute.contract_id].prompt_state()
+                        )
+                        for attribute in selected
+                    }
+                    prompt = (
+                        "Act as a source-grounded count-memory controller. "
+                        "Inspect this document chunk for the known identity and "
+                        "the countable attributes selected from the NL workload. "
+                        "Do not calculate a total yourself and do not use outside "
+                        "knowledge. Request only these deterministic memory "
+                        "operations:\n"
+                        "- set_total: the span explicitly states the overall "
+                        "total for the attribute.\n"
+                        "- add_distinct: the span states a distinct countable "
+                        "item, event, or non-overlapping group. quantity is its "
+                        "explicit contribution and may be greater than one; for "
+                        "example, a statement of two items contributes 2, not 1.\n"
+                        "Never use a date, year, rank, identifier, or nearby "
+                        "number as quantity. For a singular item with no numeric "
+                        "surface, use quantity 1 and quantity_surface null. For "
+                        "quantity greater than one and for every set_total call, "
+                        "quantity_surface must be the exact verbatim number text "
+                        "from exact_span. fact_key must identify the evidenced "
+                        "item/group. For a new fact it must be a verbatim "
+                        "substring of exact_span. If this chunk repeats a fact "
+                        "already in memory, reuse its existing fact_key so the "
+                        "tool remains idempotent. If an explicit total and its "
+                        "component items appear together, emit set_total only. "
+                        "Ignore incomplete, hypothetical, comparative, or "
+                        "unrelated mentions.\n\n"
+                        "Return only a JSON array. Every tool request must have "
+                        "exactly identity, attribute, tool, operation, quantity, "
+                        "quantity_surface, fact_key, exact_span, and unit. tool "
+                        "must be \"count_memory\". operation must be set_total or "
+                        "add_distinct. quantity must be a JSON integer. "
+                        "exact_span must be one verbatim case-sensitive substring "
+                        "of this chunk. Return [] when no operation is warranted."
+                        "\n\n"
+                        f"Known identity: {identity}\n"
+                        f"Countable contracts: {json.dumps(contracts, sort_keys=True)}\n"
+                        f"Current persistent memory: {json.dumps(state, sort_keys=True)}"
+                        "\n\nVerbatim source chunk:\n"
+                        f"{chunk.text}"
+                    )
+                    rows = self._budgeted_rows(
+                        target=(
+                            f"count-memory:{records[0].entity}:{identity}:"
+                            f"{chunk.document_id}:{chunk_index}"
+                        ),
+                        phase="count_memory",
+                        prompt=prompt,
+                        unit=chunk,
+                        max_tokens=max(self.max_attribute_tokens, 1024),
+                    )
+                    if rows is None:
+                        stop = True
+                        break
+                    for row in rows:
+                        if set(row) != required_keys:
+                            continue
+                        attribute = allowed.get(
+                            _symbol_key(row.get("attribute", ""))
+                        )
+                        exact_span = row.get("exact_span")
+                        if (
+                            attribute is None
+                            or row.get("tool") != "count_memory"
+                            or not isinstance(exact_span, str)
+                            or _canonical_identity(
+                                row.get("identity", ""),
+                                (identity,),
+                            )
+                            != identity
+                        ):
+                            continue
+                        offset = self._locate_exact_span(chunk, exact_span)
+                        if offset is None:
+                            continue
+                        memories[attribute.contract_id].remember(
+                            operation=str(row.get("operation", "")),
+                            fact_key=str(row.get("fact_key", "")),
+                            quantity=row.get("quantity"),
+                            quantity_surface=row.get("quantity_surface"),
+                            exact_span=exact_span,
+                            document_id=chunk.document_id,
+                            start=offset,
+                            end=offset + len(exact_span),
+                            unit=(
+                                str(row["unit"])
+                                if row.get("unit") is not None
+                                else None
+                            ),
+                        )
+                if stop:
+                    break
+            if stop:
+                break
+            for attribute in selected:
+                reduced = memories[attribute.contract_id].reduce()
+                if reduced is None:
+                    continue
+                evidence = sorted(
+                    (
+                        item
+                        for fact in reduced.facts
+                        for item in fact.get("evidence", ())
+                    ),
+                    key=lambda item: (
+                        str(item.get("document_id", "")),
+                        int(item.get("start", -1)),
+                    ),
+                )
+                if not evidence:
+                    continue
+                primary = evidence[0]
+                unit_values = {
+                    str(fact["unit"])
+                    for fact in reduced.facts
+                    if fact.get("unit") is not None
+                }
+                if len(unit_values) > 1:
+                    continue
+                lineage_facts = [
+                    {
+                        "operation": fact["operation"],
+                        "fact_key": fact["fact_key"],
+                        "quantity": fact["quantity"],
+                        "quantity_surface": fact["quantity_surface"],
+                        "unit": fact["unit"],
+                        "evidence": list(fact.get("evidence", ())),
+                    }
+                    for fact in reduced.facts
+                ]
+                derived.append(
+                    ExtractionRecord(
+                        entity=records[0].entity,
+                        attribute=attribute.name,
+                        identity=identity,
+                        value=reduced.value,
+                        exact_span=str(primary["exact_span"]),
+                        unit=next(iter(unit_values), None),
+                        document_id=str(primary["document_id"]),
+                        unit_id=f"count-memory:{memories[attribute.contract_id].memory_key}",
+                        span_start=int(primary["start"]),
+                        span_end=int(primary["end"]),
+                        derivation_kind="count_memory",
+                        derivation_inputs={
+                            "tool": "count_memory",
+                            "version": COUNT_MEMORY_VERSION,
+                            "mode": reduced.mode,
+                            "reducer": (
+                                "calculator.add"
+                                if reduced.mode == "distinct_sum"
+                                else "explicit_total"
+                            ),
+                            "facts": lineage_facts,
+                            "anchor_ids": list(reduced.anchor_ids),
+                        },
+                    )
+                )
+        return tuple(derived)
 
     def _derive_calculated_attributes(
         self,
@@ -2427,12 +2822,20 @@ class ContractExtractor:
             *heading_records,
             *extracted_attributes,
         )
+        counted_attribute_records = self._derive_counted_attributes(
+            contract,
+            entity_records,
+        )
         attribute_records = (
+            *counted_attribute_records,
             *direct_attribute_records,
             *self._derive_calculated_attributes(
                 contract,
                 entity_records,
-                direct_attribute_records,
+                (
+                    *counted_attribute_records,
+                    *direct_attribute_records,
+                ),
             ),
         )
         derivation_mappings = self.derive_mappings(

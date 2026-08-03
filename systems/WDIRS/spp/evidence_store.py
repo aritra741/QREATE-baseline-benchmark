@@ -223,6 +223,19 @@ class EvidenceStore:
                     source_value_json, derived_value_json, mapping_kind
                 )
             );
+            CREATE TABLE IF NOT EXISTS count_memory_facts (
+                fact_id TEXT PRIMARY KEY,
+                memory_key TEXT NOT NULL,
+                operation TEXT NOT NULL,
+                fact_key TEXT NOT NULL,
+                quantity INTEGER NOT NULL,
+                quantity_surface TEXT,
+                unit TEXT,
+                anchor_ids_json TEXT NOT NULL,
+                conflicted INTEGER NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS count_memory_scope_idx
+                ON count_memory_facts(memory_key);
             """
         )
         self.conn.commit()
@@ -444,6 +457,125 @@ class EvidenceStore:
         )
         self.conn.commit()
 
+    def remember_count_fact(
+        self,
+        *,
+        fact_id: str,
+        memory_key: str,
+        operation: str,
+        fact_key: str,
+        quantity: int,
+        quantity_surface: Optional[str],
+        unit: Optional[str],
+        anchor_id: str,
+    ) -> None:
+        """Persist one idempotent count-memory operation and its evidence."""
+
+        with self._lock:
+            row = self.conn.execute(
+                """
+                SELECT quantity, quantity_surface, unit, anchor_ids_json,
+                       conflicted
+                FROM count_memory_facts
+                WHERE fact_id = ?
+                """,
+                (fact_id,),
+            ).fetchone()
+            if row is None:
+                self.conn.execute(
+                    """
+                    INSERT INTO count_memory_facts
+                    (fact_id, memory_key, operation, fact_key, quantity,
+                     quantity_surface, unit, anchor_ids_json, conflicted)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)
+                    """,
+                    (
+                        fact_id,
+                        memory_key,
+                        operation,
+                        fact_key,
+                        int(quantity),
+                        quantity_surface,
+                        unit,
+                        json.dumps((anchor_id,)),
+                    ),
+                )
+            else:
+                anchors = list(json.loads(row["anchor_ids_json"]))
+                if anchor_id not in anchors:
+                    anchors.append(anchor_id)
+                conflicted = bool(row["conflicted"]) or (
+                    int(row["quantity"]) != int(quantity)
+                    or row["unit"] != unit
+                )
+                self.conn.execute(
+                    """
+                    UPDATE count_memory_facts
+                    SET anchor_ids_json = ?, conflicted = ?
+                    WHERE fact_id = ?
+                    """,
+                    (
+                        json.dumps(tuple(sorted(anchors))),
+                        int(conflicted),
+                        fact_id,
+                    ),
+                )
+            self.conn.commit()
+
+    def count_facts(self, *, memory_key: str) -> List[dict]:
+        """Return deterministic count-memory state for one entity field."""
+
+        with self._lock:
+            rows = self.conn.execute(
+                """
+                SELECT fact_id, memory_key, operation, fact_key, quantity,
+                       quantity_surface, unit, anchor_ids_json, conflicted
+                FROM count_memory_facts
+                WHERE memory_key = ?
+                ORDER BY operation, fact_key, fact_id
+                """,
+                (memory_key,),
+            ).fetchall()
+        result = []
+        for row in rows:
+            anchor_ids = tuple(json.loads(row["anchor_ids_json"]))
+            anchors = []
+            for anchor_id in anchor_ids:
+                anchor = self.conn.execute(
+                    """
+                    SELECT anchor_id, document_id, text, start_offset,
+                           end_offset
+                    FROM anchors
+                    WHERE anchor_id = ?
+                    """,
+                    (anchor_id,),
+                ).fetchone()
+                if anchor is not None:
+                    anchors.append(
+                        {
+                            "anchor_id": anchor["anchor_id"],
+                            "document_id": anchor["document_id"],
+                            "exact_span": anchor["text"],
+                            "start": int(anchor["start_offset"]),
+                            "end": int(anchor["end_offset"]),
+                        }
+                    )
+            result.append(
+                {
+                    "fact_id": row["fact_id"],
+                    "memory_key": row["memory_key"],
+                    "operation": row["operation"],
+                    "fact_key": row["fact_key"],
+                    "quantity": int(row["quantity"]),
+                    "quantity_surface": row["quantity_surface"],
+                    "unit": row["unit"],
+                    "anchor_ids": anchor_ids,
+                    "evidence": tuple(anchors),
+                    "conflicted": bool(row["conflicted"]),
+                }
+            )
+        return result
+
     def put_shared_artifact(
         self, key: str, *, stage: str, payload: object, producer_tokens: int
     ) -> bool:
@@ -482,6 +614,7 @@ class EvidenceStore:
             "conflict_sets",
             "validation_outcomes",
             "derivation_lineage",
+            "count_memory_facts",
         ):
             counts[table] = self.conn.execute(
                 f"SELECT COUNT(*) FROM {table}"  # table is fixed above

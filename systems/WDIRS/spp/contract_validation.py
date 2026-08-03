@@ -25,6 +25,7 @@ from spp.workload_contract import (
     WorkloadContract,
 )
 from spp.calculation_tools import calculate, operands_are_grounded
+from spp.count_memory import count_derivation_is_grounded
 
 
 @dataclass(frozen=True)
@@ -326,6 +327,12 @@ def _semantic_attribute_grounded(
                     )
                 ):
                     return True
+    if _value(record, "derivation_kind") == "count_memory":
+        if count_derivation_is_grounded(
+            _value(record, "value"),
+            _value(record, "derivation_inputs", {}),
+        ):
+            return True
     attribute_tokens = [
         _stem_token(token)
         for token in _symbol_key(_value(record, "attribute", "")).split("_")
@@ -1105,6 +1112,22 @@ def validate_extraction(
                 semantic_types=semantic_types,
             )
         )
+        if (
+            _value(record, "derivation_kind") == "count_memory"
+            and not count_derivation_is_grounded(
+                _value(record, "value"),
+                _value(record, "derivation_inputs", {}),
+                sources,
+            )
+        ):
+            issues.append(
+                _issue(
+                    record,
+                    "count_memory_lineage_invalid",
+                    "count-memory facts do not deterministically reproduce "
+                    "the value from restored source spans",
+                )
+            )
         issues.extend(validate_semantic_type(record, semantic_types))
         for candidate in candidates:
             issues.extend(validate_count_date(record, candidate))
@@ -1118,7 +1141,9 @@ def validate_extraction(
                     ),
                     (),
                 ),
-                require_span_support=True,
+                require_span_support=(
+                    _value(record, "derivation_kind") != "count_memory"
+                ),
             )
         )
 
