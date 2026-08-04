@@ -82,8 +82,8 @@ from spp.workload_contract import (
 )
 
 
-BACKEND_VERSION = 20
-HYBRID_BULK_VERSION = 5
+BACKEND_VERSION = 21
+HYBRID_BULK_VERSION = 6
 
 logger = logging.getLogger(__name__)
 
@@ -2832,27 +2832,45 @@ class ContractBackend:
                 targets[column] = self._bulk_coverage_floor(
                     relation, column
                 )
-                if coverage[column] >= targets[column]:
-                    continue
+            repair_columns = [
+                column
+                for column in relation.attributes
+                if coverage[column] < targets[column]
+            ]
+            if repair_columns:
+                repair_column_set = set(repair_columns)
                 missing = [
                     document
                     for document in documents
-                    if document.document_id not in set(covered)
+                    if any(
+                        not any(
+                            record.get(column) not in (None, "")
+                            for record in records_by_document[
+                                document.document_id
+                            ]
+                        )
+                        for column in repair_column_set
+                    )
                 ]
-                if not missing:
-                    continue
+            else:
+                missing = []
+            if missing:
+                repair_schema = {
+                    column: schema[column] for column in repair_columns
+                }
                 repair_results = extractor.extract_batch(
                     [document.text for document in missing],
                     [document.document_id for document in missing],
                     relation.name,
-                    {column: schema[column]},
-                    {column},
+                    repair_schema,
+                    set(repair_schema),
                     normalization_hints={},
                     entity_col=None,
-                    col_batch_size_override=1,
+                    col_batch_size_override=self.bulk_column_batch_size,
                 )
                 for result in repair_results:
                     absorb(result, fill_only=True)
+            for column in relation.attributes:
                 coverage[column] = sum(
                     any(
                         record.get(column) not in (None, "")
@@ -2995,6 +3013,10 @@ class ContractBackend:
             metadata={
                 "version": HYBRID_BULK_VERSION,
                 "extractor": "wdirs_constrained_bulk",
+                "coverage_repair": {
+                    "policy": "batch_undercovered_columns",
+                    "column_batch_size": self.bulk_column_batch_size,
+                },
                 "document_routing": {
                     "policy": "content_contract_terms",
                     "uses_document_identifiers": False,
