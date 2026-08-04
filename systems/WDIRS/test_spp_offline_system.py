@@ -930,6 +930,19 @@ def test_end_to_end_system_freezes_routing_sql_and_database(tmp_path: Path):
 
         def prepare(self, intent, evidence_store, ledger):
             self.requirements = intent.requirements
+            available = ledger.available
+            reservation = ledger.reserve(
+                stage="test_prepare",
+                operation="consume_unescrowed_budget",
+                input_tokens=available,
+                max_output_tokens=0,
+            )
+            assert reservation is not None
+            ledger.reconcile(
+                reservation,
+                input_tokens=available,
+                output_tokens=0,
+            )
 
         def completion_reserve(self, configs, requirements):
             return 0
@@ -976,6 +989,18 @@ def test_end_to_end_system_freezes_routing_sql_and_database(tmp_path: Path):
             return {"backend": "test"}
 
     def compiler(requirement, config, database_path, ledger):
+        reservation = ledger.reserve(
+            stage="test_compile",
+            operation="compile_after_escrow_release",
+            input_tokens=900,
+            max_output_tokens=0,
+        )
+        assert reservation is not None
+        ledger.reconcile(
+            reservation,
+            input_tokens=900,
+            output_tokens=0,
+        )
         relation = next(
             relation
             for relation in config.schema.relations
@@ -987,7 +1012,7 @@ def test_end_to_end_system_freezes_routing_sql_and_database(tmp_path: Path):
     system = OfflineSynthesisSystem(backend, compiler)
     result = system.synthesize(
         queries=[{"query_id": "q0", "sql": "SELECT name FROM player"}],
-        token_budget=0,
+        token_budget=10_000,
         output_dir=tmp_path / "run",
         observed_document_lengths=[100],
         sample_fractions=(0.1,),
