@@ -16,7 +16,6 @@ SYNTHESIS_MODULES = (
     WDIRS_ROOT / "spp" / "system.py",
     WDIRS_ROOT / "spp" / "workload_contract.py",
     WDIRS_ROOT / "spp" / "contract_extractor.py",
-    WDIRS_ROOT / "spp" / "count_memory.py",
     WDIRS_ROOT / "spp" / "cell_verifier.py",
     WDIRS_ROOT / "spp" / "contract_validation.py",
     WDIRS_ROOT / "spp" / "contract_backend.py",

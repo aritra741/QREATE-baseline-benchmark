@@ -30,7 +30,6 @@ from spp.contract_extractor import (
     ExtractionRecord,
     route_documents_by_content,
 )
-from spp.count_memory import COUNT_MEMORY_VERSION
 from spp.contract_validation import (
     AdaptiveRepairAdmission,
     ValidationIssue,
@@ -83,8 +82,8 @@ from spp.workload_contract import (
 )
 
 
-BACKEND_VERSION = 21
-HYBRID_BULK_VERSION = 6
+BACKEND_VERSION = 20
+HYBRID_BULK_VERSION = 5
 
 logger = logging.getLogger(__name__)
 
@@ -3236,15 +3235,6 @@ class ContractBackend:
                 "min_column_coverage": self.bulk_min_column_coverage,
                 "column_batch_size": self.bulk_column_batch_size,
             },
-            "count_memory": {
-                "version": COUNT_MEMORY_VERSION,
-                "routing": "nl_contract_classification",
-                "source_coverage": "overlapping_full_document_chunks",
-                "reducer": "explicit_total_or_distinct_weighted_sum",
-                "chunk_characters": os.getenv(
-                    "SPP_COUNT_MEMORY_CHARS", "3000"
-                ),
-            },
             "cell_verification": {
                 "enabled": self.verify_extracted_cells,
                 "version": 5,
@@ -5063,11 +5053,6 @@ class ContractBackend:
                 if extractor is not None
                 else None
             ),
-            "count_context_characters": (
-                int(getattr(extractor, "count_context_characters", 0))
-                if extractor is not None
-                else None
-            ),
         }
         return {
             "backend": type(self).__name__,
@@ -5105,14 +5090,6 @@ class ContractBackend:
                     and isinstance(self._shared.metadata, Mapping)
                     else {}
                 ),
-            },
-            "count_memory": {
-                "version": COUNT_MEMORY_VERSION,
-                "attribute_selection": "llm_from_nl_contract_only",
-                "source_scan": "complete_overlapping_chunks",
-                "supports_weighted_increments": True,
-                "deduplication": "fact_key_and_evidence_anchor",
-                "external_labels_used": False,
             },
             "contract_sha256": (
                 _fingerprint(self.contract)

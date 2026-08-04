@@ -5,16 +5,13 @@ from __future__ import annotations
 import json
 import re
 import sqlite3
-from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
 from json_repair import repair_json
-from sqlglot import exp, parse_one
 
 from spp.budget_ledger import GlobalBudgetLedger
 from spp.budgeted_llm import BudgetedLLMClient
-from spp.population import repair_join_columns_from_overlap
 from spp.query_plan_compiler import compile_query_plan
 from spp.sql_validator import validate_sql
 from spp.spec import AttributeRef, QueryRequirement, SynthesisConfig
@@ -377,123 +374,6 @@ def _candidate_validation_error(
     return "semantic mismatch: " + "; ".join(errors) if errors else None
 
 
-def _repair_sql_joins_from_database(
-    sql: str,
-    requirement: QueryRequirement,
-    config: SynthesisConfig,
-    database_path: Path,
-) -> str | None:
-    """Rebind invalid join columns using strongest synthesized-data overlap."""
-
-    try:
-        expression = parse_one(sql, read="sqlite")
-    except Exception:
-        return None
-    aliases = {
-        table.alias_or_name: table.name
-        for table in expression.find_all(exp.Table)
-    }
-    if not aliases:
-        return None
-
-    def quoted(identifier: str) -> str:
-        return '"' + identifier.replace('"', '""') + '"'
-
-    rows_by_table = {}
-    try:
-        with sqlite3.connect(database_path) as connection:
-            connection.row_factory = sqlite3.Row
-            for table_name in set(aliases.values()):
-                rows_by_table[table_name] = [
-                    dict(row)
-                    for row in connection.execute(
-                        f"SELECT * FROM {quoted(table_name)}"
-                    ).fetchall()
-                ]
-    except sqlite3.Error:
-        return None
-
-    rebindings = {}
-    changed = False
-    for join in expression.find_all(exp.Join):
-        predicate = join.args.get("on")
-        if predicate is None:
-            continue
-        for equality in predicate.find_all(exp.EQ):
-            left = equality.left
-            right = equality.right
-            if not isinstance(left, exp.Column) or not isinstance(
-                right, exp.Column
-            ):
-                continue
-            left_table = aliases.get(left.table)
-            right_table = aliases.get(right.table)
-            if (
-                not left_table
-                or not right_table
-                or left_table == right_table
-            ):
-                continue
-            rebound = repair_join_columns_from_overlap(
-                [dict(row) for row in rows_by_table.get(left_table, ())],
-                left.name,
-                [dict(row) for row in rows_by_table.get(right_table, ())],
-                right.name,
-                left_table=left_table,
-                right_table=right_table,
-            )
-            if rebound is None:
-                continue
-            left_column, right_column = rebound
-            rebindings[(left_table, left.name)] = left_column
-            rebindings[(right_table, right.name)] = right_column
-            left.set("this", exp.to_identifier(left_column))
-            right.set("this", exp.to_identifier(right_column))
-            changed = True
-    if not changed:
-        return None
-
-    rebound_requirement = requirement
-    if requirement.plan is not None:
-        joins = []
-        for join in requirement.plan.joins:
-            joins.append(
-                replace(
-                    join,
-                    left=replace(
-                        join.left,
-                        attribute=rebindings.get(
-                            (join.left.entity, join.left.attribute),
-                            join.left.attribute,
-                        ),
-                    ),
-                    right=replace(
-                        join.right,
-                        attribute=rebindings.get(
-                            (join.right.entity, join.right.attribute),
-                            join.right.attribute,
-                        ),
-                    ),
-                )
-            )
-        rebound_requirement = replace(
-            requirement,
-            plan=replace(requirement.plan, joins=tuple(joins)),
-        )
-    repaired = expression.sql(dialect="sqlite")
-    return (
-        repaired
-        if _candidate_validation_error(
-            rebound_requirement,
-            config,
-            database_path,
-            repaired,
-        )
-        is None
-        else None
-    )
-
-
 def make_nl2sql_compiler(llm_client: Any):
     """Return an ``OfflineSynthesisSystem`` compiler callback."""
 
@@ -607,15 +487,6 @@ def make_nl2sql_compiler(llm_client: Any):
         initial_error = _candidate_validation_error(
             requirement, config, database_path, sql
         )
-        if initial_error is not None:
-            physically_repaired = _repair_sql_joins_from_database(
-                sql,
-                requirement,
-                config,
-                database_path,
-            )
-            if physically_repaired is not None:
-                return physically_repaired
         verification_prompt = (
             "Check whether the SQLite query exactly answers the stated "
             "analytical intent using the supplied schema. Verify requested "
@@ -721,17 +592,6 @@ def make_nl2sql_compiler(llm_client: Any):
             ):
                 return sql
             return repaired_sql
-        for candidate in (repaired_sql, corrected_sql, sql):
-            if not candidate:
-                continue
-            physically_repaired = _repair_sql_joins_from_database(
-                candidate,
-                requirement,
-                config,
-                database_path,
-            )
-            if physically_repaired is not None:
-                return physically_repaired
         if initial_error is None:
             return sql
         raise ValueError(

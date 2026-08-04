@@ -47,7 +47,6 @@ from spp.native_backend import (
     preprocess_documents,
 )
 from spp.nl2sql import (
-    _repair_sql_joins_from_database,
     _semantic_validation_errors,
     _verification_payload,
     make_nl2sql_compiler,
@@ -92,7 +91,6 @@ from spp.spec import (
 )
 from spp.workload_intent import (
     WorkloadIntent,
-    _canonicalize_workload_requirements,
     _normalize_plan_with_schema,
     _parse_llm_payload,
     _plan_contract_score,
@@ -111,44 +109,6 @@ def _player_requirement() -> QueryRequirement:
         entities=("player",),
         attributes=("name",),
     )
-
-
-def test_workload_canonicalization_unifies_inflectional_plan_entities():
-    singular_position = AttributeRef("record", "category")
-    plural_measure = AttributeRef("records", "amount", "real")
-    requirement = QueryRequirement(
-        query_id="q0",
-        text="Average amount by record category.",
-        entities=("record", "records"),
-        attributes=("category", "amount"),
-        attribute_bindings=(
-            ("record", "category"),
-            ("records", "amount"),
-        ),
-        operators=("avg", "group_by", "filter"),
-        plan=QueryPlan(
-            group_by=(singular_position,),
-            aggregates=(
-                AggregateSpec("avg", plural_measure, "avg_amount"),
-            ),
-            predicate=PredicateSpec(
-                attribute=singular_position,
-                operator="is_not_null",
-                value=None,
-            ),
-        ),
-    )
-
-    canonical, metadata = _canonicalize_workload_requirements((requirement,))
-
-    normalized = canonical[0]
-    assert normalized.entities == ("record",)
-    assert {reference.entity for reference in normalized.plan.attributes()} == {
-        "record"
-    }
-    assert {
-        item["alias"] for item in metadata["alias_evidence"]
-    } == {"records"}
 
 
 def test_representative_subset_is_partitioned_and_relevance_ranked(
@@ -865,90 +825,6 @@ def test_compile_failure_aborts_before_bundle_can_be_sealed(
         )
 
 
-def test_nl2sql_repairs_missing_join_columns_from_database_overlap(
-    tmp_path: Path,
-):
-    category_name = AttributeRef("category", "name")
-    amount = AttributeRef("account", "amount", "real")
-    requirement = QueryRequirement(
-        query_id="q0",
-        text="Average account amount by category.",
-        entities=("account", "category"),
-        attributes=("amount", "name"),
-        operators=("avg", "group_by", "join"),
-        plan=QueryPlan(
-            group_by=(category_name,),
-            aggregates=(AggregateSpec("avg", amount, "avg_amount"),),
-            joins=(
-                JoinSpec(
-                    AttributeRef("account", "category_id"),
-                    AttributeRef("category", "category_id"),
-                ),
-            ),
-        ),
-    )
-    config = SynthesisConfig(
-        schema=SchemaDesign(
-            "snowflake",
-            (
-                RelationSpec(
-                    "account",
-                    ("name", "category_name", "amount"),
-                    primary_key="name",
-                    semantic_types=(("amount", "real"),),
-                ),
-                RelationSpec(
-                    "category",
-                    ("name",),
-                    primary_key="name",
-                ),
-            ),
-            ("q0",),
-        ),
-        population=PopulationConfig(),
-        preprocessing=PreprocessingPolicy("whole_document"),
-    )
-    database = tmp_path / "join-repair.sqlite"
-    with sqlite3.connect(database) as connection:
-        connection.execute(
-            "CREATE TABLE account"
-            "(name TEXT, category_name TEXT, amount REAL)"
-        )
-        connection.execute("CREATE TABLE category(name TEXT)")
-        connection.executemany(
-            "INSERT INTO account VALUES (?, ?, ?)",
-            (
-                ("A", "North", 10),
-                ("B", "South", 20),
-                ("C", "North", 30),
-            ),
-        )
-        connection.executemany(
-            "INSERT INTO category VALUES (?)",
-            (("North",), ("South",)),
-        )
-    broken = (
-        "SELECT c.name, AVG(a.amount) AS avg_amount "
-        "FROM account AS a JOIN category AS c "
-        "ON a.category_id = c.category_id GROUP BY c.name"
-    )
-
-    repaired = _repair_sql_joins_from_database(
-        broken,
-        requirement,
-        config,
-        database,
-    )
-
-    assert repaired is not None
-    assert "a.category_name = c.name" in repaired
-    with sqlite3.connect(database) as connection:
-        assert connection.execute(repaired).fetchall() == [
-            ("North", 20.0),
-            ("South", 20.0),
-        ]
-
-
 def test_exact_budgeted_oracle_respects_selected_construction_cost():
     results = [
         OracleConfigResult("a", 5, {"q0": 0.0, "q1": 1.0}),
@@ -1054,19 +930,6 @@ def test_end_to_end_system_freezes_routing_sql_and_database(tmp_path: Path):
 
         def prepare(self, intent, evidence_store, ledger):
             self.requirements = intent.requirements
-            available = ledger.available
-            reservation = ledger.reserve(
-                stage="test_prepare",
-                operation="consume_unescrowed_budget",
-                input_tokens=available,
-                max_output_tokens=0,
-            )
-            assert reservation is not None
-            ledger.reconcile(
-                reservation,
-                input_tokens=available,
-                output_tokens=0,
-            )
 
         def completion_reserve(self, configs, requirements):
             return 0
@@ -1113,18 +976,6 @@ def test_end_to_end_system_freezes_routing_sql_and_database(tmp_path: Path):
             return {"backend": "test"}
 
     def compiler(requirement, config, database_path, ledger):
-        reservation = ledger.reserve(
-            stage="test_compile",
-            operation="compile_after_escrow_release",
-            input_tokens=900,
-            max_output_tokens=0,
-        )
-        assert reservation is not None
-        ledger.reconcile(
-            reservation,
-            input_tokens=900,
-            output_tokens=0,
-        )
         relation = next(
             relation
             for relation in config.schema.relations
@@ -1136,7 +987,7 @@ def test_end_to_end_system_freezes_routing_sql_and_database(tmp_path: Path):
     system = OfflineSynthesisSystem(backend, compiler)
     result = system.synthesize(
         queries=[{"query_id": "q0", "sql": "SELECT name FROM player"}],
-        token_budget=10_000,
+        token_budget=0,
         output_dir=tmp_path / "run",
         observed_document_lengths=[100],
         sample_fractions=(0.1,),
