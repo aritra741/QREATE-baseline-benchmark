@@ -47,6 +47,7 @@ from spp.native_backend import (
     preprocess_documents,
 )
 from spp.nl2sql import (
+    _repair_sql_joins_from_database,
     _semantic_validation_errors,
     _verification_payload,
     make_nl2sql_compiler,
@@ -862,6 +863,90 @@ def test_compile_failure_aborts_before_bundle_can_be_sealed(
             failing_compiler,
             GlobalBudgetLedger(0),
         )
+
+
+def test_nl2sql_repairs_missing_join_columns_from_database_overlap(
+    tmp_path: Path,
+):
+    category_name = AttributeRef("category", "name")
+    amount = AttributeRef("account", "amount", "real")
+    requirement = QueryRequirement(
+        query_id="q0",
+        text="Average account amount by category.",
+        entities=("account", "category"),
+        attributes=("amount", "name"),
+        operators=("avg", "group_by", "join"),
+        plan=QueryPlan(
+            group_by=(category_name,),
+            aggregates=(AggregateSpec("avg", amount, "avg_amount"),),
+            joins=(
+                JoinSpec(
+                    AttributeRef("account", "category_id"),
+                    AttributeRef("category", "category_id"),
+                ),
+            ),
+        ),
+    )
+    config = SynthesisConfig(
+        schema=SchemaDesign(
+            "snowflake",
+            (
+                RelationSpec(
+                    "account",
+                    ("name", "category_name", "amount"),
+                    primary_key="name",
+                    semantic_types=(("amount", "real"),),
+                ),
+                RelationSpec(
+                    "category",
+                    ("name",),
+                    primary_key="name",
+                ),
+            ),
+            ("q0",),
+        ),
+        population=PopulationConfig(),
+        preprocessing=PreprocessingPolicy("whole_document"),
+    )
+    database = tmp_path / "join-repair.sqlite"
+    with sqlite3.connect(database) as connection:
+        connection.execute(
+            "CREATE TABLE account"
+            "(name TEXT, category_name TEXT, amount REAL)"
+        )
+        connection.execute("CREATE TABLE category(name TEXT)")
+        connection.executemany(
+            "INSERT INTO account VALUES (?, ?, ?)",
+            (
+                ("A", "North", 10),
+                ("B", "South", 20),
+                ("C", "North", 30),
+            ),
+        )
+        connection.executemany(
+            "INSERT INTO category VALUES (?)",
+            (("North",), ("South",)),
+        )
+    broken = (
+        "SELECT c.name, AVG(a.amount) AS avg_amount "
+        "FROM account AS a JOIN category AS c "
+        "ON a.category_id = c.category_id GROUP BY c.name"
+    )
+
+    repaired = _repair_sql_joins_from_database(
+        broken,
+        requirement,
+        config,
+        database,
+    )
+
+    assert repaired is not None
+    assert "a.category_name = c.name" in repaired
+    with sqlite3.connect(database) as connection:
+        assert connection.execute(repaired).fetchall() == [
+            ("North", 20.0),
+            ("South", 20.0),
+        ]
 
 
 def test_exact_budgeted_oracle_respects_selected_construction_cost():
