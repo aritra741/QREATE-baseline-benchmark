@@ -2753,10 +2753,10 @@ def _canonicalize_workload_requirements(
 ) -> Tuple[Tuple[QueryRequirement, ...], Mapping[str, Any]]:
     """Rewrite independently inferred symbols into one evidenced namespace.
 
-    Alias edges require normalized identity, conservative inflectional identity,
-    or corroboration from both lexical overlap and shared attributes. A strong
-    multi-attribute overlap can also corroborate aliases whose surface forms
-    have no common token.
+    Alias edges require either normalized identity or corroboration from both
+    lexical token overlap and shared attributes. A strong multi-attribute
+    overlap can also corroborate aliases whose surface forms have no common
+    token. No stemming or singular/plural suffix manipulation is performed.
     """
     entity_frequency: Counter[str] = Counter()
     entity_attributes: Dict[str, set[str]] = {}
@@ -2846,21 +2846,9 @@ def _canonicalize_workload_requirements(
         if left_root != right_root:
             parent[max(left_root, right_root)] = min(left_root, right_root)
 
-    def inflection_key(value: str) -> Tuple[str, ...]:
-        result = []
-        for token in _symbol_tokens(value):
-            if token.endswith("ies") and len(token) > 4:
-                token = f"{token[:-3]}y"
-            elif (
-                token.endswith("s")
-                and len(token) > 3
-                and not token.endswith(("ss", "us", "is"))
-            ):
-                token = token[:-1]
-            result.append(token)
-        return tuple(result)
-
-    # An explicit caller-provided vocabulary, when present, bounds aliases.
+    # Source partitions are observed input metadata, not evaluation schema.
+    # They form the authoritative entity namespace for every intent candidate,
+    # including independently generated SQL-shadow candidates.
     for entity in entities:
         canonical_source = _canonical_entity(
             entity,
@@ -2890,9 +2878,6 @@ def _canonicalize_workload_requirements(
             shared_attributes = left_attrs & right_attrs
             attribute_union = left_attrs | right_attrs
             normalized_exact = bool(left_tokens) and left_tokens == right_tokens
-            inflection_exact = bool(inflection_key(left)) and (
-                inflection_key(left) == inflection_key(right)
-            )
             lexical_overlap = bool(left_tokens & right_tokens)
             explicitly_distinct = (
                 frozenset((left, right)) in entity_cooccurrences
@@ -2909,7 +2894,6 @@ def _canonicalize_workload_requirements(
             )
             if (
                 normalized_exact
-                or inflection_exact
                 or corroborated_lexical
                 or strong_attribute_overlap
             ):
