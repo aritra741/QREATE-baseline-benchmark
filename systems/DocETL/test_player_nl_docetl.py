@@ -15,6 +15,7 @@ DOCETL_DIR = Path(__file__).resolve().parent
 if str(DOCETL_DIR) not in sys.path:
     sys.path.insert(0, str(DOCETL_DIR))
 
+import run_player_nl_only_docetl as nl_runner
 from evaluate_player_nl_docetl_bundle import verify_bundle
 from run_player_nl_only_docetl import (
     FilterPlan,
@@ -162,6 +163,57 @@ def test_independent_plan_validation_is_generic() -> None:
     assert plan.filters == (
         FilterPlan("amount", "number", ">", "10", ""),
     )
+
+
+def test_planner_retries_omitted_queries_individually(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    queries = [
+        {"query_id": "q0", "text": "Count records by category."},
+        {"query_id": "q1", "text": "Average amount by category."},
+    ]
+
+    def fake_run(name, rows, prompt, schema, work, **runtime):
+        selected = rows if name.startswith("plan_retry_") else rows[:1]
+        output = []
+        for row in selected:
+            output.append(
+                {
+                    **row,
+                    "record_entity": "record",
+                    "group_field": "category",
+                    "group_type": "string",
+                    "group_alias": "category",
+                    "aggregate": "count" if row["query_id"] == "q0" else "avg",
+                    "measure_field": (
+                        "record" if row["query_id"] == "q0" else "amount"
+                    ),
+                    "measure_type": "number",
+                    "measure_alias": (
+                        "record_count"
+                        if row["query_id"] == "q0"
+                        else "avg_amount"
+                    ),
+                    "filter_1_field": "",
+                    "filter_1_type": "",
+                    "filter_1_operator": "",
+                    "filter_1_value": "",
+                    "filter_1_upper_value": "",
+                    "filter_2_field": "",
+                    "filter_2_type": "",
+                    "filter_2_operator": "",
+                    "filter_2_value": "",
+                    "filter_2_upper_value": "",
+                    "having_operator": "",
+                    "having_value": 0,
+                }
+            )
+        return output
+
+    monkeypatch.setattr(nl_runner, "_run_map", fake_run)
+    plans = nl_runner.infer_plans(queries, tmp_path)
+    assert [plan.query_id for plan in plans] == ["q0", "q1"]
 
 
 @pytest.mark.parametrize(

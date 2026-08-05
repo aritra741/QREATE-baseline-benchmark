@@ -241,6 +241,30 @@ def _filters(value: Any) -> Tuple[FilterPlan, ...]:
     return tuple(output)
 
 
+def _plan_filters(row: Mapping[str, Any]) -> Tuple[FilterPlan, ...]:
+    nested = _filters(row.get("filters"))
+    if nested:
+        return nested
+    output = []
+    for index in (1, 2):
+        field = _symbol(row.get(f"filter_{index}_field"))
+        operator = str(row.get(f"filter_{index}_operator") or "").lower()
+        semantic_type = str(
+            row.get(f"filter_{index}_type") or "string"
+        ).lower()
+        if field and operator in OPERATORS:
+            output.append(
+                FilterPlan(
+                    field,
+                    semantic_type if semantic_type in TYPES else "string",
+                    operator,
+                    str(row.get(f"filter_{index}_value") or ""),
+                    str(row.get(f"filter_{index}_upper_value") or ""),
+                )
+            )
+    return tuple(output)
+
+
 def validate_plan(row: Mapping[str, Any]) -> QueryPlan:
     aggregate = str(row.get("aggregate") or "").lower()
     if aggregate not in AGGREGATES:
@@ -270,7 +294,7 @@ def validate_plan(row: Mapping[str, Any]) -> QueryPlan:
         aggregate, measure_field,
         measure_type if measure_type in TYPES else "number",
         _symbol(row.get("measure_alias")) or f"{aggregate}_{measure_field}",
-        _filters(row.get("filters")), having, having_value,
+        _plan_filters(row), having, having_value,
     )
 
 
@@ -284,26 +308,50 @@ is_not_null. Filter values are strings; IN is comma-separated and BETWEEN uses
 value plus upper_value. Types are string or number. HAVING is only a grouped
 record-count restriction. Infer concise snake_case aliases. Do not assume a
 database schema. Use 2026 only for an explicitly required date calculation.
+Represent at most two filters in the numbered scalar filter fields. Fill every
+unused filter field with an empty string.
 
 Question: {{ input.text }}
 """.strip()
+    schema = {
+        "record_entity": "string", "group_field": "string",
+        "group_type": "string", "group_alias": "string",
+        "aggregate": "string", "measure_field": "string",
+        "measure_type": "string", "measure_alias": "string",
+        "filter_1_field": "string", "filter_1_type": "string",
+        "filter_1_operator": "string", "filter_1_value": "string",
+        "filter_1_upper_value": "string",
+        "filter_2_field": "string", "filter_2_type": "string",
+        "filter_2_operator": "string", "filter_2_value": "string",
+        "filter_2_upper_value": "string",
+        "having_operator": "string", "having_value": "number",
+    }
     rows = _run_map(
-        "plan_nl_query", queries, prompt, {
-            "record_entity": "string", "group_field": "string",
-            "group_type": "string", "group_alias": "string",
-            "aggregate": "string", "measure_field": "string",
-            "measure_type": "string", "measure_alias": "string",
-            "filters": (
-                "list[{field: string, semantic_type: string, operator: string, "
-                "value: string, upper_value: string}]"
-            ),
-            "having_operator": "string", "having_value": "number",
-        }, work, **runtime,
+        "plan_nl_query", queries, prompt, schema, work, **runtime,
     )
     by_id = {str(row.get("query_id")): row for row in rows}
     missing = [query["query_id"] for query in queries if query["query_id"] not in by_id]
-    if missing:
-        raise RuntimeError(f"DocETL planner omitted queries: {missing}")
+    for query_id in missing:
+        query = next(row for row in queries if row["query_id"] == query_id)
+        retry_rows = _run_map(
+            f"plan_retry_{_symbol(query_id)}",
+            [query],
+            prompt,
+            schema,
+            work / "focused_retries" / query_id,
+            **runtime,
+        )
+        if retry_rows:
+            by_id[query_id] = {**query, **retry_rows[0]}
+    still_missing = [
+        query["query_id"]
+        for query in queries
+        if query["query_id"] not in by_id
+    ]
+    if still_missing:
+        raise RuntimeError(
+            f"DocETL planner omitted queries after focused retry: {still_missing}"
+        )
     return [validate_plan(by_id[query["query_id"]]) for query in queries]
 
 
