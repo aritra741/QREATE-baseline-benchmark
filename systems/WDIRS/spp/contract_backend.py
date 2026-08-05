@@ -1988,6 +1988,113 @@ class ContractBackend:
         relations = {
             relation.name: relation for relation in self.relation_graph.relations
         }
+
+        def inflection_key(value: str) -> Tuple[str, ...]:
+            result = []
+            for token in _symbol_key(value).split("_"):
+                if token.endswith("ies") and len(token) > 4:
+                    token = f"{token[:-3]}y"
+                elif (
+                    token.endswith("s")
+                    and len(token) > 3
+                    and not token.endswith(("ss", "us", "is"))
+                ):
+                    token = token[:-1]
+                if token:
+                    result.append(token)
+            return tuple(result)
+
+        def physical_entity(entity: str, attribute: str = "") -> str:
+            if entity in relations:
+                return entity
+            candidates = [
+                relation.name
+                for relation in self.relation_graph.relations
+                if inflection_key(relation.name) == inflection_key(entity)
+                and (
+                    not attribute
+                    or attribute in relation.attributes
+                )
+            ]
+            return candidates[0] if len(candidates) == 1 else entity
+
+        def bind_reference(reference: AttributeRef) -> AttributeRef:
+            entity = physical_entity(
+                reference.entity,
+                reference.attribute,
+            )
+            return (
+                replace(reference, entity=entity)
+                if entity != reference.entity
+                else reference
+            )
+
+        def bind_predicate(predicate: object) -> object:
+            if predicate is None:
+                return None
+            attribute = getattr(predicate, "attribute", None)
+            return replace(
+                predicate,
+                attribute=(
+                    bind_reference(attribute)
+                    if attribute is not None
+                    else None
+                ),
+                children=tuple(
+                    bind_predicate(child)
+                    for child in getattr(predicate, "children", ())
+                ),
+            )
+
+        def bind_plan(plan: object) -> object:
+            return replace(
+                plan,
+                projections=tuple(
+                    bind_reference(reference)
+                    for reference in plan.projections
+                ),
+                group_by=tuple(
+                    bind_reference(reference)
+                    for reference in plan.group_by
+                ),
+                aggregates=tuple(
+                    replace(
+                        aggregate,
+                        attribute=(
+                            bind_reference(aggregate.attribute)
+                            if aggregate.attribute is not None
+                            else None
+                        ),
+                    )
+                    for aggregate in plan.aggregates
+                ),
+                predicate=bind_predicate(plan.predicate),
+                joins=tuple(
+                    replace(
+                        join,
+                        left=bind_reference(join.left),
+                        right=bind_reference(join.right),
+                    )
+                    for join in plan.joins
+                ),
+                having=tuple(
+                    replace(
+                        condition,
+                        aggregate=replace(
+                            condition.aggregate,
+                            attribute=(
+                                bind_reference(
+                                    condition.aggregate.attribute
+                                )
+                                if condition.aggregate.attribute is not None
+                                else None
+                            ),
+                        ),
+                    )
+                    for condition in plan.having
+                ),
+            )
+
         rebindings: Dict[str, Tuple[Tuple[str, str], ...]] = {}
         requirements = []
         probe = SynthesisConfig(
@@ -2002,6 +2109,18 @@ class ContractBackend:
                 continue
             original_plan = plan
             changed: List[Tuple[str, str]] = []
+            plan = bind_plan(plan)
+            for before, after in zip(
+                original_plan.attributes(),
+                plan.attributes(),
+            ):
+                if before.entity != after.entity:
+                    changed.append(
+                        (
+                            f"entity_alias:{before.entity}",
+                            after.entity,
+                        )
+                    )
             if compile_query_plan(plan, probe) is None:
                 connected = self._connecting_joins(plan)
                 if connected is not None:
@@ -2079,6 +2198,31 @@ class ContractBackend:
                 rebindings[requirement.query_id] = tuple(changed)
                 requirement = replace(
                     requirement,
+                    entities=tuple(
+                        dict.fromkeys(
+                            physical_entity(entity)
+                            for entity in requirement.entities
+                        )
+                    ),
+                    attribute_bindings=tuple(
+                        dict.fromkeys(
+                            (
+                                physical_entity(entity, attribute),
+                                attribute,
+                            )
+                            for entity, attribute
+                            in requirement.attribute_bindings
+                        )
+                    ),
+                    relationships=tuple(
+                        (
+                            physical_entity(left),
+                            relationship,
+                            physical_entity(right),
+                        )
+                        for left, relationship, right
+                        in requirement.relationships
+                    ),
                     plan=replace(plan, joins=tuple(joins)),
                 )
             requirements.append(requirement)

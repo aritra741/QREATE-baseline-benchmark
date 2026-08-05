@@ -58,6 +58,7 @@ from spp.spec import (
     SynthesisConfig,
 )
 from spp.population_config import PopulationConfig
+from spp.query_plan_compiler import compile_query_plan
 from spp.query_quality import QueryAssessment, assess_query_quality
 from spp.schema_materializer import write_sqlite_database
 from spp.workload_contract import (
@@ -1755,6 +1756,65 @@ def test_contract_backend_rebinds_join_only_from_observed_overlap(tmp_path):
         "name",
         "team_name",
     )
+
+
+def test_contract_backend_physically_binds_inflectional_plan_entities(
+    tmp_path,
+):
+    category = AttributeRef("record", "category")
+    amount = AttributeRef("records", "amount", "real")
+    requirement = QueryRequirement(
+        "q0",
+        "Average amount by record category.",
+        entities=("record", "records"),
+        attribute_bindings=(
+            ("record", "category"),
+            ("records", "amount"),
+        ),
+        operators=("avg", "group_by"),
+        plan=QueryPlan(
+            group_by=(category,),
+            aggregates=(AggregateSpec("avg", amount, "avg_amount"),),
+        ),
+    )
+    backend = ContractBackend(
+        (ContractDocument("opaque", "Example"),),
+        object(),
+        scratch_dir=tmp_path,
+    )
+    backend.relation_graph = WorkloadRelationGraph(
+        relations=(
+            RelationSpec(
+                "record",
+                ("category", "amount"),
+                semantic_types=(("amount", "real"),),
+            ),
+        ),
+        edges=(),
+        covered_query_ids=("q0",),
+    )
+    backend._shared = SharedExtraction(
+        raw_tables={"record": ({"category": "A", "amount": 10},)},
+        evidence=(),
+    )
+
+    refined = backend.refine_intent(_intent(requirement))
+
+    bound = refined.requirements[0]
+    assert bound.entities == ("record",)
+    assert set(bound.attribute_bindings) == {
+        ("record", "category"),
+        ("record", "amount"),
+    }
+    assert {
+        reference.entity for reference in bound.plan.attributes()
+    } == {"record"}
+    probe = SynthesisConfig(
+        backend.relation_graph.schema,
+        PopulationConfig(),
+        PreprocessingPolicy("whole_document"),
+    )
+    assert compile_query_plan(bound.plan, probe) is not None
 
 
 def test_relationship_materialization_cannot_create_unknown_endpoint_rows():
