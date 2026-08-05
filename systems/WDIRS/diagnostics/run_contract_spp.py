@@ -20,8 +20,11 @@ from spp.nl2sql import make_nl2sql_compiler
 from spp.system import OfflineSynthesisSystem
 from spp.workload_intent import (
     make_budgeted_intent_analyzer,
+    workload_intent_from_payload,
     workload_intent_to_payload,
 )
+
+CONTRACT_INTENT_CACHE_VERSION = 1
 
 _FORBIDDEN_INPUT_PARTS = {
     "answers",
@@ -174,7 +177,7 @@ def run_contract_pipeline(args: Any) -> int:
     if args.model:
         client_kwargs["model"] = args.model
     client = OllamaClient(**client_kwargs)
-    intent_analyzer = make_budgeted_intent_analyzer(
+    analyze_uncached_intent = make_budgeted_intent_analyzer(
         client,
         entity_vocabulary=(),
         attribute_vocabulary=None,
@@ -184,7 +187,7 @@ def run_contract_pipeline(args: Any) -> int:
     if args.intent_only:
         output.mkdir(parents=True, exist_ok=True)
         ledger = GlobalBudgetLedger(args.token_budget)
-        intent = intent_analyzer(queries, ledger)
+        intent = analyze_uncached_intent(queries, ledger)
         (output / "workload_intent.json").write_text(
             json.dumps(
                 workload_intent_to_payload(intent),
@@ -215,6 +218,47 @@ def run_contract_pipeline(args: Any) -> int:
     )
     scratch_dir = scratch_parent / f".{output.name}_contract"
     scratch_dir.mkdir(parents=True, exist_ok=True)
+    intent_cache = scratch_dir / "canonical_workload_intent.json"
+    intent_fingerprint = hashlib.sha256(
+        json.dumps(
+            {
+                "cache_version": CONTRACT_INTENT_CACHE_VERSION,
+                "queries": queries,
+                "model": args.model,
+                "intent_workers": args.intent_workers,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()
+
+    def intent_analyzer(workload, ledger):
+        if intent_cache.exists():
+            cached = json.loads(intent_cache.read_text(encoding="utf-8"))
+            if (
+                cached.get("cache_version")
+                == CONTRACT_INTENT_CACHE_VERSION
+                and cached.get("fingerprint") == intent_fingerprint
+            ):
+                return workload_intent_from_payload(cached["intent"])
+        intent = analyze_uncached_intent(workload, ledger)
+        temporary = intent_cache.with_suffix(".tmp")
+        temporary.write_text(
+            json.dumps(
+                {
+                    "cache_version": CONTRACT_INTENT_CACHE_VERSION,
+                    "fingerprint": intent_fingerprint,
+                    "intent": workload_intent_to_payload(intent),
+                },
+                indent=2,
+                sort_keys=True,
+                default=str,
+            ),
+            encoding="utf-8",
+        )
+        temporary.replace(intent_cache)
+        return intent
+
     backend = ContractBackend(
         documents,
         client,
@@ -247,6 +291,11 @@ def run_contract_pipeline(args: Any) -> int:
         "selected_config_ids": list(result.portfolio.selected_config_ids),
         "candidate_count": result.candidate_count,
         "tokens": result.token_summary,
+        "intent_cache": {
+            "version": CONTRACT_INTENT_CACHE_VERSION,
+            "fingerprint": intent_fingerprint,
+            "path": str(intent_cache),
+        },
         "started_at_utc": started_at.isoformat(),
         "finished_at_utc": finished_at.isoformat(),
         "wall_clock_seconds": time.monotonic() - started_monotonic,
