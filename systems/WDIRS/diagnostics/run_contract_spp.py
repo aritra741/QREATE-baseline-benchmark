@@ -22,13 +22,14 @@ from spp.system import OfflineSynthesisSystem
 from spp.workload_intent import (
     WorkloadIntent,
     _plan_contract_diagnostics,
+    analyze_sql_contract_workload,
     make_budgeted_intent_analyzer,
     workload_intent_from_payload,
     workload_intent_to_payload,
 )
 from spp.workload_contract import compile_workload_contract
 
-CONTRACT_INTENT_CACHE_VERSION = 3
+CONTRACT_INTENT_CACHE_VERSION = 4
 
 _FORBIDDEN_INPUT_PARTS = {
     "answers",
@@ -124,6 +125,58 @@ def _load_queries(path: Path) -> list[dict[str, str]]:
     return queries
 
 
+def _load_sql_contract_queries(path: Path) -> list[dict[str, str]]:
+    """Load benchmark query semantics without loading expected result data."""
+
+    path = _assert_allowed_input(path, kind="SQL contract workload")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    rows = payload.get("queries", []) if isinstance(payload, dict) else payload
+    if not isinstance(rows, list):
+        raise ValueError(
+            "SQL contract workload must be a list or {'queries': [...]}"
+        )
+    queries = []
+    forbidden_names = {
+        "answer",
+        "answers",
+        "expected",
+        "expected_answer",
+        "expected_rows",
+        "gold",
+        "ground_truth",
+        "oracle",
+        "result",
+        "results",
+    }
+    for index, row in enumerate(rows):
+        if isinstance(row, str):
+            query_id, sql, text = f"q{index}", row, row
+        elif isinstance(row, dict):
+            forbidden_keys = {
+                str(key)
+                for key in row
+                if str(key).lower() in forbidden_names
+            }
+            if forbidden_keys:
+                raise ValueError(
+                    "SQL contract workload contains answer-bearing fields: "
+                    + ", ".join(sorted(forbidden_keys))
+                )
+            query_id = str(row.get("query_id", f"q{index}"))
+            sql = str(row.get("sql") or row.get("sql_query") or "")
+            text = str(row.get("text") or row.get("nl_query") or sql)
+        else:
+            raise ValueError(
+                "SQL contract workload entries must be strings or objects"
+            )
+        if not sql.strip():
+            raise ValueError(f"SQL contract query {query_id!r} is empty")
+        queries.append({"query_id": query_id, "text": text, "sql": sql})
+    if not queries:
+        raise ValueError("SQL contract workload is empty")
+    return queries
+
+
 def _content_supported_entity_vocabulary(
     documents: list[SourceDocument],
     intent: WorkloadIntent,
@@ -173,16 +226,23 @@ def _representative_documents(
 
 
 def run_contract_pipeline(args: Any) -> int:
-    """Execute using only NL workload, source corpus, model, and budget."""
+    """Execute NL-only or explicit SQL-contract native-interface synthesis."""
     started_at = datetime.now(timezone.utc)
     started_monotonic = time.monotonic()
     output = Path(args.output).expanduser().resolve()
     if output.exists() and any(output.iterdir()):
         raise FileExistsError(output)
 
+    intent_source = str(getattr(args, "intent_source", "nl"))
+    if intent_source not in {"nl", "sql-contract"}:
+        raise ValueError(f"unsupported contract intent source: {intent_source}")
     source_root = Path(config_module.SOURCE_DATA_DIR) / str(args.dataset)
     documents = _load_documents(source_root)
-    queries = _load_queries(args.workload)
+    queries = (
+        _load_sql_contract_queries(args.workload)
+        if intent_source == "sql-contract"
+        else _load_queries(args.workload)
+    )
     if args.max_documents_per_entity is not None:
         documents = _representative_documents(
             documents,
@@ -196,55 +256,64 @@ def run_contract_pipeline(args: Any) -> int:
     if args.model:
         client_kwargs["model"] = args.model
     client = OllamaClient(**client_kwargs)
-    analyze_uncached_intent = make_budgeted_intent_analyzer(
-        client,
-        entity_vocabulary=(),
-        attribute_vocabulary=None,
-        join_vocabulary=(),
-        intent_max_workers=args.intent_workers,
-    )
+    if intent_source == "sql-contract":
+        exact_sql_intent = analyze_sql_contract_workload(queries)
 
-    def analyze_content_bounded_intent(workload, ledger):
-        draft = analyze_uncached_intent(workload, ledger)
-        content_entities = _content_supported_entity_vocabulary(
-            documents,
-            draft,
+        def analyze_selected_intent(_workload, _ledger):
+            return exact_sql_intent
+
+    else:
+        analyze_uncached_intent = make_budgeted_intent_analyzer(
+            client,
+            entity_vocabulary=(),
+            attribute_vocabulary=None,
+            join_vocabulary=(),
+            intent_max_workers=args.intent_workers,
         )
-        draft_entities = tuple(
-            dict.fromkeys(
-                entity
-                for requirement in draft.requirements
-                for entity in requirement.entities
+
+        def analyze_selected_intent(workload, ledger):
+            draft = analyze_uncached_intent(workload, ledger)
+            content_entities = _content_supported_entity_vocabulary(
+                documents,
+                draft,
             )
-        )
-        if content_entities and set(content_entities) != set(draft_entities):
-            analyze_bounded_intent = make_budgeted_intent_analyzer(
-                client,
-                entity_vocabulary=content_entities,
-                attribute_vocabulary=None,
-                join_vocabulary=(),
-                intent_max_workers=args.intent_workers,
+            draft_entities = tuple(
+                dict.fromkeys(
+                    entity
+                    for requirement in draft.requirements
+                    for entity in requirement.entities
+                )
             )
-            intent = analyze_bounded_intent(workload, ledger)
-        else:
-            intent = draft
-        return replace(
-            intent,
-            analysis_diagnostics={
-                **dict(intent.analysis_diagnostics),
-                "content_entity_vocabulary": {
-                    "policy": "candidate_contract_content_support",
-                    "uses_document_identifiers": False,
-                    "draft_entities": list(draft_entities),
-                    "supported_entities": list(content_entities),
+            if content_entities and set(content_entities) != set(
+                draft_entities
+            ):
+                analyze_bounded_intent = make_budgeted_intent_analyzer(
+                    client,
+                    entity_vocabulary=content_entities,
+                    attribute_vocabulary=None,
+                    join_vocabulary=(),
+                    intent_max_workers=args.intent_workers,
+                )
+                intent = analyze_bounded_intent(workload, ledger)
+            else:
+                intent = draft
+            return replace(
+                intent,
+                analysis_diagnostics={
+                    **dict(intent.analysis_diagnostics),
+                    "content_entity_vocabulary": {
+                        "policy": "candidate_contract_content_support",
+                        "uses_document_identifiers": False,
+                        "draft_entities": list(draft_entities),
+                        "supported_entities": list(content_entities),
+                    },
                 },
-            },
-        )
+            )
 
     if args.intent_only:
         output.mkdir(parents=True, exist_ok=True)
         ledger = GlobalBudgetLedger(args.token_budget)
-        intent = analyze_content_bounded_intent(queries, ledger)
+        intent = analyze_selected_intent(queries, ledger)
         (output / "workload_intent.json").write_text(
             json.dumps(
                 workload_intent_to_payload(intent),
@@ -265,6 +334,7 @@ def run_contract_pipeline(args: Any) -> int:
             json.dumps(
                 {
                     "pipeline": "contract",
+                    "intent_source": intent_source,
                     "intent_only": True,
                     "requirements": len(intent.requirements),
                     "output": str(output),
@@ -297,6 +367,7 @@ def run_contract_pipeline(args: Any) -> int:
         json.dumps(
             {
                 "cache_version": CONTRACT_INTENT_CACHE_VERSION,
+                "intent_source": intent_source,
                 "queries": queries,
                 "model": args.model,
                 "intent_workers": args.intent_workers,
@@ -315,7 +386,7 @@ def run_contract_pipeline(args: Any) -> int:
                 and cached.get("fingerprint") == intent_fingerprint
             ):
                 return workload_intent_from_payload(cached["intent"])
-        intent = analyze_content_bounded_intent(workload, ledger)
+        intent = analyze_selected_intent(workload, ledger)
         temporary = intent_cache.with_suffix(".tmp")
         temporary.write_text(
             json.dumps(
@@ -359,6 +430,7 @@ def run_contract_pipeline(args: Any) -> int:
     finished_at = datetime.now(timezone.utc)
     summary = {
         "pipeline": "contract",
+        "intent_source": intent_source,
         "dataset": args.dataset,
         "workload": str(Path(args.workload).resolve()),
         "serving_manifest": str(result.serving_manifest),

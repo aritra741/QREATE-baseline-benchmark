@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run contract-centric NL synthesis, or the legacy SQL ablation."""
+"""Run contract-centric synthesis, or the legacy WDIRS ablation."""
 
 from __future__ import annotations
 
@@ -87,6 +87,15 @@ def main() -> int:
     )
     parser.add_argument("--workload", type=Path, required=True)
     parser.add_argument(
+        "--intent-source",
+        choices=("nl", "sql-contract"),
+        default="nl",
+        help=(
+            "nl infers plans from questions; sql-contract parses benchmark SQL "
+            "into exact query contracts without opening answer data."
+        ),
+    )
+    parser.add_argument(
         "--schema-workload",
         type=Path,
         default=None,
@@ -166,8 +175,8 @@ def main() -> int:
     if args.pipeline == "contract":
         if args.schema_workload is not None:
             raise ValueError(
-                "--schema-workload is disabled for the NL-only contract "
-                "pipeline"
+                "--schema-workload is disabled for the contract pipeline; use "
+                "--intent-source sql-contract with the primary workload"
             )
         from diagnostics.run_contract_spp import run_contract_pipeline
 

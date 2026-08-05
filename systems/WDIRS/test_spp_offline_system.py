@@ -97,6 +97,7 @@ from spp.workload_intent import (
     _parse_llm_payload,
     _plan_contract_score,
     _plan_from_clause_ledger,
+    analyze_sql_contract_workload,
     analyze_workload,
     schema_vocabulary_from_sql,
 )
@@ -349,6 +350,102 @@ def test_join_workload_requires_a_relationship_preserving_schema():
         intent, observed_document_lengths=[500], exhaustive=True
     )
     assert len(pruned) < len(exhaustive)
+
+
+def test_sql_contract_workload_preserves_exact_plan():
+    intent = analyze_sql_contract_workload(
+        [
+            {
+                "query_id": "q0",
+                "sql_query": (
+                    "SELECT team.name, AVG(player.age) AS avg_player_age "
+                    "FROM team JOIN player ON team.name = player.team "
+                    "WHERE player.age >= 21 GROUP BY team.name"
+                ),
+                "nl_query": (
+                    "For each team, what is the average age of players aged "
+                    "at least 21?"
+                ),
+            }
+        ]
+    )
+
+    requirement = intent.requirements[0]
+    assert requirement.text.startswith("SELECT team.name")
+    assert requirement.entities == ("team", "player")
+    assert requirement.plan == QueryPlan(
+        projections=(AttributeRef("team", "name"),),
+        group_by=(AttributeRef("team", "name"),),
+        aggregates=(
+            AggregateSpec(
+                "avg",
+                AttributeRef("player", "age", "real"),
+                "avg_player_age",
+            ),
+        ),
+        predicate=PredicateSpec(
+            attribute=AttributeRef("player", "age", "integer"),
+            operator=">=",
+            value=21,
+        ),
+        joins=(
+            JoinSpec(
+                AttributeRef("team", "name"),
+                AttributeRef("player", "team"),
+            ),
+        ),
+    )
+    assert intent.analysis_diagnostics["_workload"]["input_mode"] == (
+        "sql_contract"
+    )
+
+
+def test_sql_contract_workload_rejects_non_sql_and_duplicate_ids():
+    with pytest.raises(ValueError, match="SELECT/WITH"):
+        analyze_sql_contract_workload(
+            [{"query_id": "q0", "sql_query": "Count records."}]
+        )
+    with pytest.raises(ValueError, match="duplicate"):
+        analyze_sql_contract_workload(
+            [
+                {"query_id": "q0", "sql_query": "SELECT name FROM record"},
+                {"query_id": "q0", "sql_query": "SELECT value FROM record"},
+            ]
+        )
+
+
+def test_sql_contract_expands_in_and_between_predicates():
+    intent = analyze_sql_contract_workload(
+        [
+            {
+                "query_id": "in",
+                "sql_query": (
+                    "SELECT category, COUNT(*) AS count_all FROM record "
+                    "WHERE category IN ('A', 'B') GROUP BY category"
+                ),
+            },
+            {
+                "query_id": "between",
+                "sql_query": (
+                    "SELECT category, AVG(value) AS avg_value FROM record "
+                    "WHERE value BETWEEN 20 AND 40 GROUP BY category"
+                ),
+            },
+        ]
+    )
+
+    in_predicate = intent.requirements[0].plan.predicate
+    assert in_predicate is not None
+    assert in_predicate.kind == "or"
+    assert tuple(child.value for child in in_predicate.children) == ("A", "B")
+
+    between_predicate = intent.requirements[1].plan.predicate
+    assert between_predicate is not None
+    assert between_predicate.kind == "and"
+    assert tuple(
+        (child.operator, child.value)
+        for child in between_predicate.children
+    ) == ((">=", 20), ("<=", 40))
 
 
 def test_qwen_null_intent_fields_are_treated_as_empty():

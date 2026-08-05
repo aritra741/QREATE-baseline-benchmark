@@ -3543,6 +3543,32 @@ def _sql_requirement(query_id: str, sql: str) -> QueryRequirement:
             return None
         if isinstance(node, exp.Paren):
             return predicate(node.this)
+        if isinstance(node, exp.Not):
+            child = predicate(node.this)
+            if child is None:
+                return None
+
+            def negate(value: PredicateSpec) -> PredicateSpec:
+                if value.kind in {"and", "or"}:
+                    return PredicateSpec(
+                        kind="or" if value.kind == "and" else "and",
+                        children=tuple(negate(item) for item in value.children),
+                    )
+                inverse = {
+                    "=": "!=",
+                    "!=": "=",
+                    "<": ">=",
+                    "<=": ">",
+                    ">": "<=",
+                    ">=": "<",
+                    "is_null": "is_not_null",
+                    "is_not_null": "is_null",
+                }.get(value.operator)
+                if inverse is None:
+                    return value
+                return replace(value, operator=inverse)
+
+            return negate(child)
         if isinstance(node, (exp.And, exp.Or)):
             children = tuple(
                 child
@@ -3556,6 +3582,50 @@ def _sql_requirement(query_id: str, sql: str) -> QueryRequirement:
             return PredicateSpec(
                 kind="and" if isinstance(node, exp.And) else "or",
                 children=children,
+            )
+        if isinstance(node, exp.In) and isinstance(node.this, exp.Column):
+            values = tuple(literal_value(item) for item in node.expressions)
+            children = tuple(
+                PredicateSpec(
+                    attribute=column_ref(node.this),
+                    operator="=",
+                    value=value,
+                )
+                for value in values
+            )
+            if not children:
+                return None
+            if len(children) == 1:
+                return children[0]
+            return PredicateSpec(kind="or", children=children)
+        if isinstance(node, exp.Between) and isinstance(
+            node.this, exp.Column
+        ):
+            low = literal_value(node.args["low"])
+            high = literal_value(node.args["high"])
+            semantic_type = (
+                "integer"
+                if isinstance(low, int) and isinstance(high, int)
+                else "real"
+                if isinstance(low, (int, float))
+                and isinstance(high, (int, float))
+                else "text"
+            )
+            reference = column_ref(node.this, semantic_type)
+            return PredicateSpec(
+                kind="and",
+                children=(
+                    PredicateSpec(
+                        attribute=reference,
+                        operator=">=",
+                        value=low,
+                    ),
+                    PredicateSpec(
+                        attribute=reference,
+                        operator="<=",
+                        value=high,
+                    ),
+                ),
             )
         if isinstance(node, exp.Is) and isinstance(node.this, exp.Column):
             if isinstance(node.expression, exp.Null):
@@ -3674,6 +3744,75 @@ def _sql_requirement(query_id: str, sql: str) -> QueryRequirement:
         operators=tuple(operators),
         units=tuple(sorted({m.group(1).lower() for m in _UNIT_RE.finditer(sql)})),
         plan=plan,
+    )
+
+
+def analyze_sql_contract_workload(
+    queries: Sequence[Mapping[str, Any] | str],
+) -> WorkloadIntent:
+    """Build an exact workload contract from benchmark query SQL.
+
+    This is an explicit native-interface benchmark mode: SQL supplies query
+    semantics and schema symbols, but no corpus rows, expected results, or
+    evaluation metadata are read. The exact SQL remains the requirement text so
+    NL-specific repair heuristics cannot mutate or reject the parsed contract.
+    """
+
+    requirements: List[QueryRequirement] = []
+    seen_query_ids: set[str] = set()
+    for index, query in enumerate(queries):
+        if isinstance(query, str):
+            query_id = f"q{index}"
+            sql = query
+        else:
+            query_id = str(query.get("query_id", f"q{index}"))
+            sql = str(query.get("sql") or query.get("sql_query") or "")
+        if query_id in seen_query_ids:
+            raise ValueError(f"duplicate workload query_id: {query_id}")
+        seen_query_ids.add(query_id)
+        if not _is_sql(sql):
+            raise ValueError(
+                f"SQL contract query {query_id!r} must contain SELECT/WITH SQL"
+            )
+        requirement = _sql_requirement(query_id, sql)
+        if not requirement.entities or requirement.plan is None:
+            raise ValueError(
+                f"SQL contract query {query_id!r} has no relational SELECT plan"
+            )
+        requirements.append(requirement)
+    if not requirements:
+        raise ValueError("SQL contract workload is empty")
+
+    ordered = tuple(requirements)
+    contract_diagnostics = {
+        requirement.query_id: {
+            "valid": not violations,
+            "violations": list(violations),
+        }
+        for requirement in ordered
+        if (violations := _plan_contract_diagnostics(requirement))
+    }
+    return WorkloadIntent(
+        requirements=ordered,
+        entity_frequency=dict(
+            Counter(entity for item in ordered for entity in item.entities)
+        ),
+        attribute_frequency=dict(
+            Counter(
+                attribute for item in ordered for attribute in item.attributes
+            )
+        ),
+        operator_frequency=dict(
+            Counter(operator for item in ordered for operator in item.operators)
+        ),
+        analysis_diagnostics={
+            "_workload": {
+                "input_mode": "sql_contract",
+                "parser": "sqlglot",
+                "plan_contracts": contract_diagnostics,
+                "rejected_query_ids": sorted(contract_diagnostics),
+            }
+        },
     )
 
 

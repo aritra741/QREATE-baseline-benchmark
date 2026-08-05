@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import ast
 import hashlib
+import json
 from pathlib import Path
 
 import pytest
@@ -75,7 +76,11 @@ def test_synthesis_entrypoint_does_not_name_reference_answer_artifacts() -> None
 def test_contract_runtime_loader_rejects_reference_channels(
     tmp_path: Path,
 ) -> None:
-    from diagnostics.run_contract_spp import _load_documents, _load_queries
+    from diagnostics.run_contract_spp import (
+        _load_documents,
+        _load_queries,
+        _load_sql_contract_queries,
+    )
 
     source = tmp_path / "source"
     (source / "entity").mkdir(parents=True)
@@ -97,6 +102,35 @@ def test_contract_runtime_loader_rejects_reference_channels(
         ).hexdigest()
     }
     assert _load_queries(workload)[0]["text"] == "List the entities."
+
+    sql_workload = tmp_path / "contracts.json"
+    sql_workload.write_text(
+        json.dumps(
+            [
+                {
+                    "query_id": "q0",
+                    "sql_query": "SELECT name FROM entity",
+                    "nl_query": "List entity names.",
+                    "metadata": {"source_file": "hidden/path/entity.sql"},
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+    assert _load_sql_contract_queries(sql_workload) == [
+        {
+            "query_id": "q0",
+            "text": "List entity names.",
+            "sql": "SELECT name FROM entity",
+        }
+    ]
+    sql_workload.write_text(
+        '{"queries":[{"query_id":"q0","sql":"SELECT name FROM entity",'
+        '"expected_rows":[{"name":"secret"}]}]}',
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="answer-bearing"):
+        _load_sql_contract_queries(sql_workload)
 
     forbidden = tmp_path / "Data"
     forbidden.mkdir()
