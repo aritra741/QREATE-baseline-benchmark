@@ -6,7 +6,7 @@ import hashlib
 import json
 import re
 import time
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -15,16 +15,19 @@ import config as config_module
 from extractor import OllamaClient
 from spp.budget_ledger import GlobalBudgetLedger
 from spp.contract_backend import ContractBackend
+from spp.contract_extractor import route_documents_by_content
 from spp.native_backend import SourceDocument
 from spp.nl2sql import make_nl2sql_compiler
 from spp.system import OfflineSynthesisSystem
 from spp.workload_intent import (
+    WorkloadIntent,
     make_budgeted_intent_analyzer,
     workload_intent_from_payload,
     workload_intent_to_payload,
 )
+from spp.workload_contract import compile_workload_contract
 
-CONTRACT_INTENT_CACHE_VERSION = 1
+CONTRACT_INTENT_CACHE_VERSION = 2
 
 _FORBIDDEN_INPUT_PARTS = {
     "answers",
@@ -120,6 +123,21 @@ def _load_queries(path: Path) -> list[dict[str, str]]:
     return queries
 
 
+def _content_supported_entity_vocabulary(
+    documents: list[SourceDocument],
+    intent: WorkloadIntent,
+) -> tuple[str, ...]:
+    """Retain candidate entities independently supported by source content."""
+
+    contract = compile_workload_contract(intent)
+    routes = route_documents_by_content(documents, contract)
+    return tuple(
+        entity.name
+        for entity in contract.entities
+        if routes.get(entity.name)
+    )
+
+
 def _representative_documents(
     documents: list[SourceDocument],
     queries: list[dict[str, str]],
@@ -184,10 +202,48 @@ def run_contract_pipeline(args: Any) -> int:
         join_vocabulary=(),
         intent_max_workers=args.intent_workers,
     )
+
+    def analyze_content_bounded_intent(workload, ledger):
+        draft = analyze_uncached_intent(workload, ledger)
+        content_entities = _content_supported_entity_vocabulary(
+            documents,
+            draft,
+        )
+        draft_entities = tuple(
+            dict.fromkeys(
+                entity
+                for requirement in draft.requirements
+                for entity in requirement.entities
+            )
+        )
+        if content_entities and set(content_entities) != set(draft_entities):
+            analyze_bounded_intent = make_budgeted_intent_analyzer(
+                client,
+                entity_vocabulary=content_entities,
+                attribute_vocabulary=None,
+                join_vocabulary=(),
+                intent_max_workers=args.intent_workers,
+            )
+            intent = analyze_bounded_intent(workload, ledger)
+        else:
+            intent = draft
+        return replace(
+            intent,
+            analysis_diagnostics={
+                **dict(intent.analysis_diagnostics),
+                "content_entity_vocabulary": {
+                    "policy": "candidate_contract_content_support",
+                    "uses_document_identifiers": False,
+                    "draft_entities": list(draft_entities),
+                    "supported_entities": list(content_entities),
+                },
+            },
+        )
+
     if args.intent_only:
         output.mkdir(parents=True, exist_ok=True)
         ledger = GlobalBudgetLedger(args.token_budget)
-        intent = analyze_uncached_intent(queries, ledger)
+        intent = analyze_content_bounded_intent(queries, ledger)
         (output / "workload_intent.json").write_text(
             json.dumps(
                 workload_intent_to_payload(intent),
@@ -241,7 +297,7 @@ def run_contract_pipeline(args: Any) -> int:
                 and cached.get("fingerprint") == intent_fingerprint
             ):
                 return workload_intent_from_payload(cached["intent"])
-        intent = analyze_uncached_intent(workload, ledger)
+        intent = analyze_content_bounded_intent(workload, ledger)
         temporary = intent_cache.with_suffix(".tmp")
         temporary.write_text(
             json.dumps(

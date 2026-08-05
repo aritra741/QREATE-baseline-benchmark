@@ -112,6 +112,52 @@ def test_contract_runtime_loader_rejects_reference_channels(
         _load_queries(workload)
 
 
+def test_contract_entity_vocabulary_is_supported_by_content() -> None:
+    from diagnostics.run_contract_spp import (
+        _content_supported_entity_vocabulary,
+    )
+    from spp.native_backend import SourceDocument
+    from spp.spec import QueryRequirement
+    from spp.workload_intent import WorkloadIntent
+
+    documents = [
+        SourceDocument(
+            "opaque-1",
+            "Roadster vehicle with four wheels.",
+            {},
+        ),
+        SourceDocument(
+            "opaque-2",
+            "Harbor place with a large population.",
+            {},
+        ),
+    ]
+    intent = WorkloadIntent(
+        requirements=(
+            QueryRequirement(
+                "q0",
+                "List vehicle wheel counts.",
+                entities=("vehicle", "accolade"),
+                attributes=("wheel_count",),
+            ),
+            QueryRequirement(
+                "q1",
+                "List place populations.",
+                entities=("place",),
+                attributes=("population",),
+            ),
+        ),
+        entity_frequency={},
+        attribute_frequency={},
+        operator_frequency={},
+    )
+
+    assert _content_supported_entity_vocabulary(documents, intent) == (
+        "place",
+        "vehicle",
+    )
+
+
 def test_contract_entrypoint_does_not_derive_schema_from_paths() -> None:
     path = WDIRS_ROOT / "diagnostics" / "run_contract_spp.py"
     source = path.read_text(encoding="utf-8")

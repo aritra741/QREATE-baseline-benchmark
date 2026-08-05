@@ -368,6 +368,14 @@ def test_qwen_null_intent_fields_are_treated_as_empty():
     assert malformed[0].entities == ("player",)
     assert malformed[0].attributes == ("name",)
 
+    object_entity = _parse_llm_payload(
+        '[{"query_id":"q0","entities":'
+        '[{"name":"player","semantic_type":"text"}],'
+        '"attributes":["name"]}]',
+        {"q0": "List player names."},
+    )
+    assert object_entity[0].entities == ("player",)
+
 
 def test_preprocessing_policy_changes_actual_document_units():
     documents = [SourceDocument("d", "abcdefghij", {})]

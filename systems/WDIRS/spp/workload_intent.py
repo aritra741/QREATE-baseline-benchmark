@@ -223,6 +223,15 @@ def _canonical_entity(
     entity_vocabulary: Sequence[str],
     default_entity: str = "",
 ) -> str:
+    if isinstance(value, Mapping):
+        value = next(
+            (
+                value.get(key)
+                for key in ("name", "entity", "table")
+                if value.get(key) not in (None, "")
+            ),
+            "",
+        )
     entity = str(value or "").strip().lower()
     allowed = tuple(
         dict.fromkeys(str(item).strip().lower() for item in entity_vocabulary)
