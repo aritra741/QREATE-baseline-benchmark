@@ -2195,6 +2195,18 @@ def test_bulk_scalar_gate_enforces_declared_types_without_semantic_ranges():
     assert ContractBackend._bulk_value_plausible(relation, "awards", 2023)
     assert ContractBackend._bulk_value_plausible(relation, "titles", 2023)
     assert ContractBackend._bulk_value_plausible(relation, "awards", 18)
+    assert ContractBackend._bulk_value_plausible(
+        relation, "awards", (1 << 63) - 1
+    )
+    assert ContractBackend._bulk_value_plausible(
+        relation, "awards", -(1 << 63)
+    )
+    assert not ContractBackend._bulk_value_plausible(
+        relation, "awards", 1 << 63
+    )
+    assert not ContractBackend._bulk_value_plausible(
+        relation, "awards", str(1 << 80)
+    )
     assert ContractBackend._bulk_value_plausible(relation, "age", 136)
     assert ContractBackend._bulk_value_plausible(relation, "age", 86)
     assert not ContractBackend._bulk_value_plausible(

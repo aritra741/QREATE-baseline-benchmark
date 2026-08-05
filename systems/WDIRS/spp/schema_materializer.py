@@ -15,6 +15,8 @@ from spp.spec import RelationSpec, SchemaDesign
 
 
 JoinPair = Tuple[str, str, str, str]
+SQLITE_INTEGER_MIN = -(1 << 63)
+SQLITE_INTEGER_MAX = (1 << 63) - 1
 
 
 @contextmanager
@@ -41,10 +43,27 @@ def _quote(identifier: str) -> str:
     return '"' + identifier.replace('"', '""') + '"'
 
 
-def _sqlite_value(value: object) -> object:
+def _sqlite_value(
+    value: object,
+    *,
+    semantic_type: str = "text",
+) -> object:
     """Return a deterministic value supported by Python's SQLite bindings."""
-    if value is None or isinstance(value, (str, int, bytes)):
+    if value is None or isinstance(value, (str, bytes)):
         return value
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int):
+        if SQLITE_INTEGER_MIN <= value <= SQLITE_INTEGER_MAX:
+            return value
+        # Python's sqlite3 binder raises OverflowError before SQLite can apply
+        # column affinity. Preserve identifiers/text losslessly, but quarantine
+        # impossible numeric cells as NULL instead of crashing the candidate.
+        return (
+            str(value)
+            if semantic_type not in {"integer", "real", "boolean"}
+            else None
+        )
     if isinstance(value, float):
         return value if math.isfinite(value) else None
     if isinstance(value, (dict, list, tuple)):
@@ -211,7 +230,10 @@ def write_sqlite_database(
                     f"VALUES ({placeholders})",
                     [
                         tuple(
-                            _sqlite_value(row.get(column))
+                            _sqlite_value(
+                                row.get(column),
+                                semantic_type=relation.semantic_type(column),
+                            )
                             for column in relation.attributes
                         )
                         for row in rows

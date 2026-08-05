@@ -721,6 +721,43 @@ def test_sqlite_materializer_serializes_nested_values(tmp_path: Path):
     )
 
 
+def test_sqlite_materializer_quarantines_out_of_range_integers(
+    tmp_path: Path,
+):
+    relation = RelationSpec(
+        name="record",
+        attributes=("amount", "label"),
+        semantic_types=(("amount", "integer"), ("label", "text")),
+    )
+    schema = SchemaDesign(
+        pattern="denormalized",
+        relations=(relation,),
+        covered_query_ids=("q0",),
+    )
+    oversized = 1 << 80
+    path = write_sqlite_database(
+        tmp_path / "integer-range.sqlite",
+        {
+            "record": [
+                {"amount": (1 << 63) - 1, "label": "maximum"},
+                {"amount": -(1 << 63), "label": "minimum"},
+                {"amount": oversized, "label": oversized},
+            ]
+        },
+        schema,
+    )
+
+    with sqlite3.connect(path) as connection:
+        rows = connection.execute(
+            "SELECT amount, label FROM record ORDER BY rowid"
+        ).fetchall()
+    assert rows == [
+        ((1 << 63) - 1, "maximum"),
+        (-(1 << 63), "minimum"),
+        (None, str(oversized)),
+    ]
+
+
 def test_risk_proxy_requires_grounded_cells_and_coverage():
     observation = PilotObservation(
         query_id="q0",

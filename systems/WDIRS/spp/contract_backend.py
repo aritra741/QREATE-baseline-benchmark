@@ -18,6 +18,7 @@ import os
 import re
 import sqlite3
 from dataclasses import asdict, dataclass, field, is_dataclass, replace
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
@@ -61,6 +62,8 @@ from spp.query_quality import (
 )
 from spp.schema_design import generate_schema_designs
 from spp.schema_materializer import (
+    SQLITE_INTEGER_MAX,
+    SQLITE_INTEGER_MIN,
     reshape_tables,
     temporary_work_dir,
     write_sqlite_database,
@@ -2366,8 +2369,8 @@ class ContractBackend:
             return False
         rendered = str(value).strip().replace(",", "")
         try:
-            numeric = float(rendered)
-        except (TypeError, ValueError):
+            numeric = Decimal(rendered)
+        except (InvalidOperation, TypeError, ValueError):
             if semantic_type == "boolean":
                 return rendered.casefold() in {
                     "true",
@@ -2378,12 +2381,20 @@ class ContractBackend:
             if semantic_type in {"integer", "real"}:
                 return False
             return True
-        if not math.isfinite(numeric):
+        if not numeric.is_finite():
             return False
         if semantic_type == "boolean":
-            return numeric in {0.0, 1.0}
+            return numeric in {Decimal(0), Decimal(1)}
         if semantic_type == "integer":
-            return numeric.is_integer()
+            return (
+                numeric == numeric.to_integral_value()
+                and SQLITE_INTEGER_MIN <= numeric <= SQLITE_INTEGER_MAX
+            )
+        if semantic_type == "real":
+            try:
+                return math.isfinite(float(numeric))
+            except (OverflowError, ValueError):
+                return False
         return True
 
     def _sanitize_shared_values(
