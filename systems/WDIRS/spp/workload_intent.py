@@ -335,6 +335,102 @@ def _bind_plan_to_entity_vocabulary(
         return None
 
 
+def _bind_plan_to_single_mentioned_entity(
+    plan: Optional[QueryPlan],
+    text: str,
+    entity_vocabulary: Sequence[str],
+) -> Optional[QueryPlan]:
+    """Bind a plan when NL explicitly names one available entity."""
+
+    if plan is None or not entity_vocabulary:
+        return plan
+
+    def inflection_key(value: str) -> str:
+        token = re.sub(r"[^a-z0-9]+", "", value.lower())
+        if token.endswith("ies") and len(token) > 4:
+            return f"{token[:-3]}y"
+        if (
+            token.endswith("s")
+            and len(token) > 3
+            and not token.endswith(("ss", "us", "is"))
+        ):
+            return token[:-1]
+        return token
+
+    text_tokens = {
+        inflection_key(token)
+        for token in re.findall(r"[A-Za-z][A-Za-z0-9_-]*", text)
+    }
+    mentioned = tuple(
+        entity
+        for entity in entity_vocabulary
+        if inflection_key(entity) in text_tokens
+    )
+    if len(mentioned) != 1:
+        return plan
+    target = mentioned[0]
+
+    def reference(value: AttributeRef) -> AttributeRef:
+        return (
+            replace(value, entity=target)
+            if value.entity != target
+            else value
+        )
+
+    def predicate(value: Optional[PredicateSpec]) -> Optional[PredicateSpec]:
+        if value is None:
+            return None
+        return replace(
+            value,
+            attribute=(
+                reference(value.attribute)
+                if value.attribute is not None
+                else None
+            ),
+            children=tuple(predicate(child) for child in value.children),
+        )
+
+    return replace(
+        plan,
+        projections=tuple(reference(value) for value in plan.projections),
+        group_by=tuple(reference(value) for value in plan.group_by),
+        aggregates=tuple(
+            replace(
+                aggregate,
+                attribute=(
+                    reference(aggregate.attribute)
+                    if aggregate.attribute is not None
+                    else None
+                ),
+            )
+            for aggregate in plan.aggregates
+        ),
+        predicate=predicate(plan.predicate),
+        joins=tuple(
+            replace(
+                join,
+                left=reference(join.left),
+                right=reference(join.right),
+            )
+            for join in plan.joins
+        ),
+        having=tuple(
+            replace(
+                condition,
+                aggregate=replace(
+                    condition.aggregate,
+                    attribute=(
+                        reference(condition.aggregate.attribute)
+                        if condition.aggregate.attribute is not None
+                        else None
+                    ),
+                ),
+            )
+            for condition in plan.having
+        ),
+    )
+
+
 def _attribute_ref(
     payload: object,
     entity_vocabulary: Sequence[str] = (),
@@ -3634,6 +3730,11 @@ def _parse_llm_payload(
             queries_by_id[query_id],
             context_references=context_references,
             attribute_vocabulary=attribute_vocabulary,
+        )
+        plan = _bind_plan_to_single_mentioned_entity(
+            plan,
+            queries_by_id[query_id],
+            entity_vocabulary,
         )
         plan_references = plan.attributes() if plan else ()
         if plan and plan_references:

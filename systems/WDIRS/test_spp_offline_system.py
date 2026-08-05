@@ -417,6 +417,53 @@ def test_typed_plan_prunes_unused_top_level_schema_symbols():
     assert requirement.relationships == ()
 
 
+def test_single_mentioned_entity_owns_all_typed_plan_attributes():
+    requirement = _parse_llm_payload(
+        """
+        [{
+          "query_id": "q0",
+          "entities": ["record", "group"],
+          "attribute_bindings": [
+            {"entity": "record", "attribute": "category"},
+            {"entity": "group", "attribute": "amount"}
+          ],
+          "operators": ["avg", "group_by"],
+          "plan": {
+            "projections": [
+              {"entity": "record", "attribute": "category"}
+            ],
+            "group_by": [
+              {"entity": "record", "attribute": "category"}
+            ],
+            "aggregates": [{
+              "function": "avg",
+              "attribute": {
+                "entity": "group",
+                "attribute": "amount",
+                "semantic_type": "real"
+              },
+              "alias": "avg_amount"
+            }],
+            "predicate": null,
+            "joins": [],
+            "having": []
+          }
+        }]
+        """,
+        {"q0": "What is the average record amount for each category?"},
+        entity_vocabulary=("record", "group"),
+    )[0]
+
+    assert requirement.entities == ("record",)
+    assert {
+        reference.entity for reference in requirement.plan.attributes()
+    } == {"record"}
+    assert requirement.attribute_bindings == (
+        ("record", "category"),
+        ("record", "amount"),
+    )
+
+
 def test_preprocessing_policy_changes_actual_document_units():
     documents = [SourceDocument("d", "abcdefghij", {})]
     whole = preprocess_documents(
