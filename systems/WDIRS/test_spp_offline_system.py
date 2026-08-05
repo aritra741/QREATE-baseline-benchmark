@@ -92,6 +92,7 @@ from spp.spec import (
 from spp.workload_intent import (
     WorkloadIntent,
     _canonicalize_workload_requirements,
+    _finalize_requirement_plan,
     _normalize_plan_with_schema,
     _parse_llm_payload,
     _plan_contract_score,
@@ -462,6 +463,36 @@ def test_single_mentioned_entity_owns_all_typed_plan_attributes():
         ("record", "category"),
         ("record", "amount"),
     )
+
+
+def test_final_plan_boundary_repairs_overwritten_aggregate():
+    position = AttributeRef("record", "category")
+    measure = AttributeRef("record", "award_count", "integer")
+    requirement = QueryRequirement(
+        "q0",
+        "What is the total number of awards at each category?",
+        entities=("record",),
+        operators=(),
+        plan=QueryPlan(
+            projections=(position,),
+            group_by=(position,),
+            aggregates=(
+                AggregateSpec(
+                    "count",
+                    measure,
+                    "count_awards",
+                ),
+            ),
+        ),
+    )
+
+    finalized = _finalize_requirement_plan(requirement)
+
+    assert finalized.plan.aggregates == (
+        AggregateSpec("sum", measure, "sum_award_count"),
+    )
+    assert finalized.operators == ("sum", "group_by")
+    assert _plan_contract_score(finalized.plan, finalized.text) > 0
 
 
 def test_preprocessing_policy_changes_actual_document_units():

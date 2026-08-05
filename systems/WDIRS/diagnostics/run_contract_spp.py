@@ -21,13 +21,14 @@ from spp.nl2sql import make_nl2sql_compiler
 from spp.system import OfflineSynthesisSystem
 from spp.workload_intent import (
     WorkloadIntent,
+    _plan_contract_diagnostics,
     make_budgeted_intent_analyzer,
     workload_intent_from_payload,
     workload_intent_to_payload,
 )
 from spp.workload_contract import compile_workload_contract
 
-CONTRACT_INTENT_CACHE_VERSION = 2
+CONTRACT_INTENT_CACHE_VERSION = 3
 
 _FORBIDDEN_INPUT_PARTS = {
     "answers",
@@ -253,6 +254,13 @@ def run_contract_pipeline(args: Any) -> int:
             encoding="utf-8",
         )
         ledger.save(output / "budget_ledger.json")
+        contract_failures = {
+            requirement.query_id: list(violations)
+            for requirement in intent.requirements
+            if (
+                violations := _plan_contract_diagnostics(requirement)
+            )
+        }
         print(
             json.dumps(
                 {
@@ -261,11 +269,21 @@ def run_contract_pipeline(args: Any) -> int:
                     "requirements": len(intent.requirements),
                     "output": str(output),
                     "tokens": ledger.summary(),
+                    "plan_contract_failures": contract_failures,
                 },
                 indent=2,
                 default=str,
             )
         )
+        if contract_failures:
+            raise ValueError(
+                "intent-only workload plan contract failed: "
+                + "; ".join(
+                    f"{query_id}: {', '.join(violations)}"
+                    for query_id, violations
+                    in sorted(contract_failures.items())
+                )
+            )
         return 0
     scratch_parent = (
         Path(args.scratch_dir).expanduser().resolve()

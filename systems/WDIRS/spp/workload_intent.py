@@ -3333,6 +3333,82 @@ def _plan_contract_diagnostics(
     return tuple(dict.fromkeys(diagnostics))
 
 
+def _finalize_requirement_plan(
+    requirement: QueryRequirement,
+    *,
+    attribute_vocabulary: Optional[
+        Mapping[str, Sequence[str]]
+    ] = None,
+) -> QueryRequirement:
+    """Apply deterministic NL contracts after all candidate selection."""
+
+    plan = _repair_plan_aggregate(
+        requirement.plan,
+        requirement.text,
+        context_references=(
+            requirement.plan.attributes()
+            if requirement.plan is not None
+            else ()
+        ),
+        attribute_vocabulary=attribute_vocabulary,
+    )
+    if plan is None:
+        return requirement
+    references = plan.attributes()
+    aggregate_functions = tuple(
+        dict.fromkeys(aggregate.function for aggregate in plan.aggregates)
+    )
+    operators = [
+        operator
+        for operator in requirement.operators
+        if operator not in {"count", "sum", "avg", "min", "max"}
+    ]
+    operators.extend(aggregate_functions)
+    if plan.group_by and "group_by" not in operators:
+        operators.append("group_by")
+    if plan.predicate and "filter" not in operators:
+        operators.append("filter")
+    if plan.having and "having" not in operators:
+        operators.append("having")
+    if plan.joins and "join" not in operators:
+        operators.append("join")
+    entities = tuple(
+        dict.fromkeys(reference.entity for reference in references)
+    )
+    attributes = tuple(
+        dict.fromkeys(reference.attribute for reference in references)
+    )
+    bindings = tuple(
+        dict.fromkeys(
+            (reference.entity, reference.attribute)
+            for reference in references
+        )
+    )
+    relationships = [
+        relationship
+        for relationship in requirement.relationships
+        if relationship[0] in set(entities)
+        and relationship[2] in set(entities)
+    ]
+    relationships.extend(
+        (
+            join.left.entity,
+            f"{join.left.attribute}={join.right.attribute}",
+            join.right.entity,
+        )
+        for join in plan.joins
+    )
+    return replace(
+        requirement,
+        entities=entities or requirement.entities,
+        attributes=attributes or requirement.attributes,
+        attribute_bindings=bindings or requirement.attribute_bindings,
+        relationships=tuple(dict.fromkeys(relationships)),
+        operators=tuple(dict.fromkeys(operators)),
+        plan=plan,
+    )
+
+
 def _sql_requirement(query_id: str, sql: str) -> QueryRequirement:
     if sqlglot is None or exp is None:
         raise RuntimeError("sqlglot is required to analyze SQL workloads")
@@ -4610,6 +4686,13 @@ def analyze_workload(
             raw_ordered,
             entity_vocabulary=entity_vocabulary,
         )
+    )
+    ordered = tuple(
+        _finalize_requirement_plan(
+            requirement,
+            attribute_vocabulary=attribute_vocabulary,
+        )
+        for requirement in ordered
     )
     if entity_vocabulary:
         allowed_entities = {
