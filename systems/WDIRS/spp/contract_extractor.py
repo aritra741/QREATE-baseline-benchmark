@@ -36,7 +36,7 @@ from token_counter import count_tokens
 
 _PROMPT_VERSION = 9
 _ENTITY_ARTIFACT_VERSION = 3
-_CONTEXT_ROUTING_VERSION = 4
+_CONTEXT_ROUTING_VERSION = 5
 CORPUS_REFERENCE_YEAR = 2026
 _CONTEXT_STOPWORDS = frozenset(
     {
@@ -260,13 +260,16 @@ def route_documents_by_content(
     """
 
     profiles: Dict[str, Dict[str, float]] = {}
+    entity_tokens: Dict[str, set[str]] = {}
     for entity in contract.entities:
         weights: Dict[str, float] = defaultdict(float)
+        primary_tokens: set[str] = set()
         for symbol in entity.symbols:
             for token in _symbol_key(symbol).split("_"):
                 normalized = _routing_token(token)
                 if normalized and normalized not in _ROUTING_STOPWORDS:
                     weights[normalized] += 5.0
+                    primary_tokens.add(normalized)
         for attribute in contract.attributes_for(entity.name):
             for symbol in attribute.symbols:
                 for token in _symbol_key(symbol).split("_"):
@@ -274,12 +277,14 @@ def route_documents_by_content(
                     if normalized and normalized not in _ROUTING_STOPWORDS:
                         weights[normalized] += 1.0
         profiles[entity.name] = dict(weights)
+        entity_tokens[entity.name] = primary_tokens
 
     document_tokens: Dict[str, Counter[str]] = {}
+    document_token_order: Dict[str, Tuple[str, ...]] = {}
     document_frequency: Counter[str] = Counter()
     for document in documents:
         document_id = str(getattr(document, "document_id"))
-        tokens = Counter(
+        ordered_tokens = tuple(
             normalized
             for token in re.findall(
                 r"[A-Za-z][A-Za-z0-9'-]*",
@@ -290,7 +295,9 @@ def route_documents_by_content(
             )
             and normalized not in _ROUTING_STOPWORDS
         )
+        tokens = Counter(ordered_tokens)
         document_tokens[document_id] = tokens
+        document_token_order[document_id] = ordered_tokens
         document_frequency.update(tokens.keys())
 
     routes: Dict[str, List[str]] = {
@@ -298,6 +305,28 @@ def route_documents_by_content(
     }
     document_count = max(1, len(document_tokens))
     for document_id, tokens in document_tokens.items():
+        token_positions: Dict[str, int] = {}
+        for position, token in enumerate(document_token_order[document_id]):
+            token_positions.setdefault(token, position)
+        explicit_positions = {
+            entity_name: min(
+                (
+                    token_positions[token]
+                    for token in primary_tokens
+                    if token in token_positions
+                ),
+                default=None,
+            )
+            for entity_name, primary_tokens in entity_tokens.items()
+        }
+        earliest_explicit = min(
+            (
+                position
+                for position in explicit_positions.values()
+                if position is not None
+            ),
+            default=None,
+        )
         scores = {}
         for entity_name, profile in profiles.items():
             scores[entity_name] = sum(
@@ -313,15 +342,25 @@ def route_documents_by_content(
                 for token, weight in profile.items()
                 if tokens[token]
             )
-        best = max(scores.values(), default=0.0)
-        if best <= 0.0:
-            selected = tuple(scores)
-        else:
+        if earliest_explicit is not None:
+            # The first explicit entity type normally describes the document's
+            # primary subject; later entity mentions are commonly relationships.
+            # Attribute evidence only handles documents with no explicit type.
             selected = tuple(
                 entity_name
-                for entity_name, score in scores.items()
-                if score >= best * 0.92
+                for entity_name, position in explicit_positions.items()
+                if position == earliest_explicit
             )
+        else:
+            best = max(scores.values(), default=0.0)
+            if best <= 0.0:
+                selected = tuple(scores)
+            else:
+                selected = tuple(
+                    entity_name
+                    for entity_name, score in scores.items()
+                    if score >= best * 0.92
+                )
         for entity_name in selected:
             routes[entity_name].append(document_id)
     return {

@@ -108,6 +108,37 @@ def test_content_routing_ignores_misleading_document_paths():
     assert routes["place"] == ("vehicle/misleading.txt",)
 
 
+def test_content_routing_uses_primary_subject_before_related_entities():
+    contract = WorkloadContract(
+        entities=(
+            EntityContract("member"),
+            EntityContract("organization"),
+        ),
+        attributes=(
+            AttributeContract("member", "organization_name"),
+            AttributeContract("member", "score"),
+            AttributeContract("organization", "score"),
+            AttributeContract("organization", "member_count"),
+        ),
+        relationships=(),
+    )
+    documents = (
+        SourceDocument(
+            "opaque-1",
+            "Alice is a member of the North organization and has score 4.",
+        ),
+        SourceDocument(
+            "opaque-2",
+            "North is an organization whose members have a combined score of 8.",
+        ),
+    )
+
+    routes = route_documents_by_content(documents, contract)
+
+    assert routes["member"] == ("opaque-1",)
+    assert routes["organization"] == ("opaque-2",)
+
+
 def test_workload_contract_preserves_shared_query_roles_and_join_edges():
     account_id = AttributeRef("account", "account_id", "text")
     amount = AttributeRef("transaction", "amount", "real")
@@ -1753,6 +1784,93 @@ def test_contract_backend_rebinds_join_only_from_observed_overlap(tmp_path):
     repaired = backend.refine_intent(disconnected_intent)
     repaired_join = repaired.requirements[0].plan.joins[0]
     assert (repaired_join.left.attribute, repaired_join.right.attribute) == (
+        "name",
+        "team_name",
+    )
+
+
+def test_contract_backend_never_uses_analytical_measures_as_join_keys(
+    tmp_path,
+):
+    team_name = AttributeRef("team", "name")
+    team_measure = AttributeRef("team", "championships", "integer")
+    player_team = AttributeRef("player", "team_name")
+    player_measure = AttributeRef(
+        "player", "championships_won", "integer"
+    )
+    requirements = (
+        QueryRequirement(
+            "q0",
+            "Average championships won by players for each team.",
+            entities=("team", "player"),
+            plan=QueryPlan(
+                group_by=(team_name,),
+                aggregates=(AggregateSpec("avg", player_measure),),
+                joins=(JoinSpec(team_measure, player_measure),),
+            ),
+        ),
+        QueryRequirement(
+            "q1",
+            "Total championships for each team.",
+            entities=("team",),
+            plan=QueryPlan(
+                group_by=(team_name,),
+                aggregates=(AggregateSpec("sum", team_measure),),
+            ),
+        ),
+    )
+    backend = ContractBackend(
+        (ContractDocument("opaque", "Example"),),
+        object(),
+        scratch_dir=tmp_path,
+    )
+    backend.relation_graph = WorkloadRelationGraph(
+        relations=(
+            RelationSpec(
+                "team",
+                ("name", "championships"),
+                semantic_types=(
+                    ("name", "text"),
+                    ("championships", "integer"),
+                ),
+            ),
+            RelationSpec(
+                "player",
+                ("team_name", "championships_won"),
+                semantic_types=(
+                    ("team_name", "text"),
+                    ("championships_won", "integer"),
+                ),
+            ),
+        ),
+        edges=(
+            RelationEdge(
+                "team",
+                "championships",
+                "player",
+                "championships_won",
+            ),
+        ),
+        covered_query_ids=("q0", "q1"),
+    )
+    backend._shared = SharedExtraction(
+        raw_tables={
+            "team": (
+                {"name": "A", "championships": 1},
+                {"name": "B", "championships": 2},
+            ),
+            "player": (
+                {"team_name": "A", "championships_won": 1},
+                {"team_name": "B", "championships_won": 2},
+            ),
+        },
+        evidence=(),
+    )
+
+    refined = backend.refine_intent(_intent(*requirements))
+
+    join = refined.requirements[0].plan.joins[0]
+    assert (join.left.attribute, join.right.attribute) == (
         "name",
         "team_name",
     )

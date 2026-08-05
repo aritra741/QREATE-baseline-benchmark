@@ -31,7 +31,7 @@ import statistics
 from collections import Counter
 from dataclasses import dataclass, field
 from difflib import SequenceMatcher
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, Iterable, List, Optional
 
 from json_repair import repair_json
 
@@ -114,6 +114,8 @@ def repair_join_columns_from_overlap(
     *,
     left_table: str = "",
     right_table: str = "",
+    excluded_left_columns: Iterable[str] = (),
+    excluded_right_columns: Iterable[str] = (),
 ) -> Optional[tuple[str, str]]:
     """Repair a non-overlapping join using populated source columns.
 
@@ -144,17 +146,31 @@ def repair_join_columns_from_overlap(
             overlap,
         )
 
-    current_score, current_overlap = score(
-        values(left_rows, left_column),
-        values(right_rows, right_column),
+    excluded_left = set(excluded_left_columns)
+    excluded_right = set(excluded_right_columns)
+    current_is_eligible = (
+        left_column not in excluded_left
+        and right_column not in excluded_right
+    )
+    current_score, current_overlap = (
+        score(
+            values(left_rows, left_column),
+            values(right_rows, right_column),
+        )
+        if current_is_eligible
+        else (0.0, 0)
     )
 
     candidates = []
     for candidate_left in columns(left_rows):
+        if candidate_left in excluded_left:
+            continue
         left_values = values(left_rows, candidate_left)
         if not left_values:
             continue
         for candidate_right in columns(right_rows):
+            if candidate_right in excluded_right:
+                continue
             left_tokens = set(candidate_left.casefold().split("_"))
             right_tokens = set(candidate_right.casefold().split("_"))
             names_align = bool(

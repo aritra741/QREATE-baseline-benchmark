@@ -2829,6 +2829,31 @@ def test_normalization_treats_comma_number_as_one_literal():
     assert [leaf.value for leaf in leaves] == [1_603_797]
 
 
+def test_normalization_repairs_or_later_comparison_direction():
+    year = AttributeRef("record", "acquisition_year", "integer")
+    plan = _normalize_plan_with_schema(
+        QueryPlan(
+            projections=(AttributeRef("record", "name"),),
+            predicate=PredicateSpec(
+                attribute=year,
+                operator="=",
+                value=2000,
+            ),
+        ),
+        "Show records acquired in 2000 or later.",
+        attribute_vocabulary={
+            "record": ("name", "acquisition_year"),
+        },
+    )
+
+    assert plan is not None
+    assert plan.predicate == PredicateSpec(
+        attribute=year,
+        operator=">=",
+        value=2000,
+    )
+
+
 def test_normalization_expands_worded_magnitude_threshold():
     population = AttributeRef("place", "population", "integer")
     region = AttributeRef("place", "region")

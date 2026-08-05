@@ -2095,6 +2095,31 @@ class ContractBackend:
                 ),
             )
 
+        analytical_measure_columns: Dict[str, set[str]] = {}
+        for requirement in intent.requirements:
+            if requirement.plan is None:
+                continue
+            measures = [
+                aggregate.attribute
+                for aggregate in requirement.plan.aggregates
+                if aggregate.attribute is not None
+                and aggregate.function.lower() != "count"
+            ]
+            measures.extend(
+                condition.aggregate.attribute
+                for condition in requirement.plan.having
+                if condition.aggregate.attribute is not None
+                and condition.aggregate.function.lower() != "count"
+            )
+            for reference in measures:
+                entity = physical_entity(
+                    reference.entity,
+                    reference.attribute,
+                )
+                analytical_measure_columns.setdefault(entity, set()).add(
+                    reference.attribute
+                )
+
         rebindings: Dict[str, Tuple[Tuple[str, str], ...]] = {}
         requirements = []
         probe = SynthesisConfig(
@@ -2156,6 +2181,12 @@ class ContractBackend:
                     join.right.attribute,
                     left_table=join.left.entity,
                     right_table=join.right.entity,
+                    excluded_left_columns=analytical_measure_columns.get(
+                        join.left.entity, ()
+                    ),
+                    excluded_right_columns=analytical_measure_columns.get(
+                        join.right.entity, ()
+                    ),
                 )
                 if rebound is None:
                     joins.append(join)

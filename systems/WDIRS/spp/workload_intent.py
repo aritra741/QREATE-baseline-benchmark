@@ -1340,7 +1340,8 @@ def _normalize_plan_with_schema(
         ):
             operator = ">"
         elif re.search(
-            r"\b(at least|no fewer than)\b", context + suffix_context
+            r"\b(at least|no fewer than|or later)\b",
+            context + suffix_context,
         ):
             operator = ">="
         elif re.search(
