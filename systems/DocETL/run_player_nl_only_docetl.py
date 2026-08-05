@@ -298,7 +298,70 @@ def validate_plan(row: Mapping[str, Any]) -> QueryPlan:
     )
 
 
-def infer_plans(queries: Sequence[Mapping[str, str]], work: Path, **runtime) -> List[QueryPlan]:
+def _direct_plan(
+    query: Mapping[str, str],
+    *,
+    model: str,
+    base_url: str,
+    timeout: int,
+    tracker: Optional[TokenTracker],
+) -> Mapping[str, Any]:
+    from json_repair import repair_json
+    from litellm import completion
+    from token_counter import GLOBAL_COUNTER
+
+    prompt = f"""
+Plan this analytical question using only natural language. Return one JSON
+object and no prose with these keys:
+record_entity, group_field, group_type, group_alias, aggregate, measure_field,
+measure_type, measure_alias, filters, having_operator, having_value.
+
+aggregate is count, sum, avg, min, or max. Types are string or number. filters
+is an array of at most two objects with field, semantic_type, operator, value,
+and upper_value. Allowed operators are =, !=, >, >=, <, <=, between, in, and
+is_not_null. COUNT uses measure_field "record". HAVING is only a grouped record
+count restriction. Use concise snake_case names, no assumed database schema,
+and reference year 2026 only if the question requires a date calculation.
+
+Question: {query["text"]}
+""".strip()
+    last_error: Optional[Exception] = None
+    for _attempt in range(2):
+        try:
+            response = completion(
+                model=model,
+                api_base=base_url,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.0,
+                timeout=timeout,
+            )
+            usage = _usage(response)
+            if usage is not None and tracker is not None:
+                tracker.add(*usage)
+                GLOBAL_COUNTER.record(
+                    input_tokens=usage[0],
+                    output_tokens=usage[1],
+                    operation="docetl_nl_plan_fallback",
+                )
+            content = response.choices[0].message.content or ""
+            payload = json.loads(repair_json(content))
+            if not isinstance(payload, Mapping):
+                raise ValueError("planner response is not a JSON object")
+            return {**query, **payload}
+        except Exception as exc:  # provider and malformed-output retry
+            last_error = exc
+    raise RuntimeError(
+        f"tolerant planner failed for {query['query_id']}: {last_error}"
+    )
+
+
+def infer_plans(
+    queries: Sequence[Mapping[str, str]],
+    work: Path,
+    *,
+    tracker: Optional[TokenTracker] = None,
+    **runtime,
+) -> List[QueryPlan]:
     prompt = """
 Independently plan this analytical question using only its natural-language
 text. Choose the primary record entity whose documents contribute one record,
@@ -348,11 +411,33 @@ Question: {{ input.text }}
         for query in queries
         if query["query_id"] not in by_id
     ]
-    if still_missing:
-        raise RuntimeError(
-            f"DocETL planner omitted queries after focused retry: {still_missing}"
+    for query_id in still_missing:
+        query = next(row for row in queries if row["query_id"] == query_id)
+        by_id[query_id] = _direct_plan(
+            query,
+            model=runtime["model"],
+            base_url=runtime["base_url"],
+            timeout=runtime["timeout"],
+            tracker=tracker,
         )
-    return [validate_plan(by_id[query["query_id"]]) for query in queries]
+    plans = []
+    for query in queries:
+        query_id = query["query_id"]
+        try:
+            plans.append(validate_plan(by_id[query_id]))
+        except ValueError:
+            plans.append(
+                validate_plan(
+                    _direct_plan(
+                        query,
+                        model=runtime["model"],
+                        base_url=runtime["base_url"],
+                        timeout=runtime["timeout"],
+                        tracker=tracker,
+                    )
+                )
+            )
+    return plans
 
 
 def classify_documents(
@@ -632,7 +717,12 @@ def main() -> int:
     _patch_tokens(tracker)
     queries = load_nl_workload(args.workload)
     documents = load_opaque_documents(args.source)
-    plans = infer_plans(queries, output / "work" / "planning", **runtime)
+    plans = infer_plans(
+        queries,
+        output / "work" / "planning",
+        tracker=tracker,
+        **runtime,
+    )
     entities = tuple(dict.fromkeys(plan.record_entity for plan in plans))
     classifications = classify_documents(
         documents, entities, output / "work" / "classification", **runtime

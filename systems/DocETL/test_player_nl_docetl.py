@@ -216,6 +216,40 @@ def test_planner_retries_omitted_queries_individually(
     assert [plan.query_id for plan in plans] == ["q0", "q1"]
 
 
+def test_planner_uses_tolerant_fallback_after_docetl_omission(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    query = {"query_id": "q0", "text": "Count records by category."}
+    monkeypatch.setattr(nl_runner, "_run_map", lambda *args, **kwargs: [])
+    monkeypatch.setattr(
+        nl_runner,
+        "_direct_plan",
+        lambda item, **kwargs: {
+            **item,
+            "record_entity": "record",
+            "group_field": "category",
+            "group_type": "string",
+            "group_alias": "category",
+            "aggregate": "count",
+            "measure_field": "record",
+            "measure_type": "number",
+            "measure_alias": "record_count",
+            "filters": [],
+            "having_operator": "",
+            "having_value": 0,
+        },
+    )
+    plans = nl_runner.infer_plans(
+        [query],
+        tmp_path,
+        model="ollama/example",
+        base_url="http://localhost",
+        timeout=1,
+    )
+    assert plans[0].measure_alias == "record_count"
+
+
 @pytest.mark.parametrize(
     ("aggregate", "alias", "expected"),
     [
