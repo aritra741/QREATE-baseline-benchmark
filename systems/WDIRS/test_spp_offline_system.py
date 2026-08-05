@@ -377,6 +377,46 @@ def test_qwen_null_intent_fields_are_treated_as_empty():
     assert object_entity[0].entities == ("player",)
 
 
+def test_typed_plan_prunes_unused_top_level_schema_symbols():
+    requirement = _parse_llm_payload(
+        """
+        [{
+          "query_id": "q0",
+          "entities": ["account", "place"],
+          "attributes": ["category", "name"],
+          "attribute_bindings": [
+            {"entity": "account", "attribute": "category"},
+            {"entity": "place", "attribute": "name"}
+          ],
+          "relationships": [
+            {"left": "account", "relation": "join", "right": "place"}
+          ],
+          "operators": ["count", "group_by"],
+          "plan": {
+            "projections": [
+              {"entity": "account", "attribute": "category"}
+            ],
+            "group_by": [
+              {"entity": "account", "attribute": "category"}
+            ],
+            "aggregates": [
+              {"function": "count", "attribute": null, "alias": "count_all"}
+            ],
+            "predicate": null,
+            "joins": [],
+            "having": []
+          }
+        }]
+        """,
+        {"q0": "How many accounts are there for each category?"},
+    )[0]
+
+    assert requirement.entities == ("account",)
+    assert requirement.attributes == ("category",)
+    assert requirement.attribute_bindings == (("account", "category"),)
+    assert requirement.relationships == ()
+
+
 def test_preprocessing_policy_changes_actual_document_units():
     documents = [SourceDocument("d", "abcdefghij", {})]
     whole = preprocess_documents(

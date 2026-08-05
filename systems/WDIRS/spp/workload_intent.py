@@ -3636,34 +3636,63 @@ def _parse_llm_payload(
             attribute_vocabulary=attribute_vocabulary,
         )
         plan_references = plan.attributes() if plan else ()
-        entities = list(
-            dict.fromkeys(
-                [
-                    *canonical_entities,
-                    *(reference.entity for reference in plan_references),
-                ]
-            )
-        )
-        attributes = (
-            list(
+        if plan and plan_references:
+            entities = list(
                 dict.fromkeys(
-                    reference.attribute
-                    for reference in (*plan_references, *context_references)
+                    reference.entity for reference in plan_references
                 )
             )
-            if plan
-            else list(
+            attributes = list(
+                dict.fromkeys(
+                    reference.attribute for reference in plan_references
+                )
+            )
+            bindings = list(
+                dict.fromkeys(
+                    (reference.entity, reference.attribute)
+                    for reference in plan_references
+                )
+            )
+            entity_set = set(entities)
+            relationships = [
+                relationship
+                for relationship in relationships
+                if relationship[0] in entity_set
+                and relationship[2] in entity_set
+            ]
+            relationships.extend(
+                (
+                    join.left.entity,
+                    (
+                        f"{join.left.attribute}="
+                        f"{join.right.attribute}"
+                    ),
+                    join.right.entity,
+                )
+                for join in plan.joins
+            )
+            relationships = list(dict.fromkeys(relationships))
+        else:
+            entities = list(
+                dict.fromkeys(
+                    [
+                        *canonical_entities,
+                        *(reference.entity for reference in plan_references),
+                    ]
+                )
+            )
+            attributes = list(
                 dict.fromkeys(
                     str(value).lower()
                     for value in list_field("attributes")
                 )
             )
-        )
-        bindings = list(
-            (reference.entity, reference.attribute)
-            for reference in (*plan_references, *context_references)
-        )
-        bindings = list(dict.fromkeys(bindings))
+            bindings = list(
+                dict.fromkeys(
+                    (reference.entity, reference.attribute)
+                    for reference in context_references
+                )
+            )
         operators = list(
             dict.fromkeys(str(v).lower() for v in list_field("operators"))
         )
