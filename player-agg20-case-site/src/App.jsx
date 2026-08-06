@@ -339,6 +339,14 @@ export default function App() {
             <strong>{pct(data.means.docetl.structure_f2)}</strong>
           </div>
           <div>
+            <span className="metric-label">QuWARTS cell accuracy @20% error</span>
+            <strong>{pct(data.means.quwarts.cell_f1["0.2"])}</strong>
+          </div>
+          <div>
+            <span className="metric-label">DocETL cell accuracy @20% error</span>
+            <strong>{pct(data.means.docetl.cell_f1["0.2"])}</strong>
+          </div>
+          <div>
             <span className="metric-label">QuWARTS main score @20% error</span>
             <strong>{pct(data.means.quwarts.query_score["0.2"])}</strong>
           </div>
