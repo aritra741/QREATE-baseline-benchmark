@@ -34,7 +34,7 @@ ANALYSIS: dict[str, dict[str, dict[str, str]]] = {
         "quwarts": q(
             "Position names",
             "QuWARTS kept detailed positions but the question needed two broad position groups.",
-            "The selected working table used the raw position text. It did not include a step that maps each detailed position to one of the two groups.",
+            "The selected working table kept the position text as extracted. It did not include a step that maps each detailed position to one of the two groups.",
             "The checks accept normal text values. They do not test whether every position matches one of the values used by the question.",
             "The question accepts only Frontcourt or Backcourt. Neither name was present, so no player reached the average calculation.",
         ),
@@ -50,8 +50,8 @@ ANALYSIS: dict[str, dict[str, dict[str, str]]] = {
         "quwarts": q(
             "Nationality names and missing values",
             "QuWARTS did not use one clear set of nationality names. It also missed many nationality values.",
-            "This question used the mapped QuWARTS table, but that table had no fixed list of allowed nationality names. The mapping changed some values and left other forms separate.",
-            "Names such as Azerbaijan and Azerbaijani are both valid text. A text and type check cannot prove that they belong to the same benchmark group.",
+            "The table chosen for this question was meant to use name mapping, but its nationality column is identical to the table without mapping. No nationality value changed.",
+            "Names such as Azerbaijan and American-born naturalized Azerbaijani are both valid text. A text and type check cannot determine which benchmark label should be used.",
             "The same nationality appears under several names, while missing values make the American group too small. The question counts each name as a separate group.",
         ),
         "docetl": q(
@@ -67,8 +67,8 @@ ANALYSIS: dict[str, dict[str, dict[str, str]]] = {
             "Teams and title counts",
             "The QuWARTS working table was missing many team and NBA title values, and some retained values did not match the benchmark rows.",
             "The selected table stores one team name and one title count, but it stores no date or event that could be used to check what each value describes.",
-            "The raw-value checks test text and number types. A real team name or number can pass even when it refers to the wrong part of a player's history.",
-            "The average used only a small and unfair set of players. The calculation was correct, but the input rows were wrong.",
+            "The basic checks test text and number types. A real team name or number can pass even when it refers to the wrong part of a player's history.",
+            "The average used an incomplete set of player values. The saved query is correct, but it ran on incomplete and incorrect input rows.",
         ),
         "docetl": q(
             "Missing numbers and team names",
@@ -82,14 +82,14 @@ ANALYSIS: dict[str, dict[str, dict[str, str]]] = {
         "quwarts": q(
             "College names and MVP counts",
             "QuWARTS used several names for the same college and missed most MVP counts.",
-            "It kept the college name found in each document. It had no shared list that joined short names, full names, and mascot names.",
-            "The checks did not know that UCLA and UCLA Bruins mean the same college.",
+            "The selected working table did not run a name-cleaning step that joins short names, full names, and mascot names.",
+            "UCLA and UCLA Bruins are both valid text. The basic type check does not test whether two labels refer to the same college.",
             "Players from one college were split into several groups. This changed which colleges had more than one player and changed the highest MVP value.",
         ),
         "docetl": q(
             "College names and missing numbers",
             "DocETL used several names for the same college and used -1 for missing MVP counts.",
-            "The instruction asked for short names but did not give one shared list of college names.",
+            "The instruction said to keep names concise and normalized, but it did not provide a shared college-name mapping.",
             "Short college names and -1 both matched the expected format, so they passed.",
             "College groups were split. A group with no real MVP count could also return -1 as its highest value.",
         ),
@@ -98,8 +98,8 @@ ANALYSIS: dict[str, dict[str, dict[str, str]]] = {
         "quwarts": q(
             "Position names",
             "QuWARTS did not change detailed positions into Frontcourt and Backcourt.",
-            "It kept the position names found in the documents.",
-            "The names were real positions and appeared in the source text, so the checks accepted them.",
+            "The selected working table contains detailed position labels and no Frontcourt or Backcourt values.",
+            "The basic check accepts text values without testing them against the two labels used by the query.",
             "No row matched Frontcourt or Backcourt, so there were no MVP values to add.",
         ),
         "docetl": q(
@@ -113,25 +113,25 @@ ANALYSIS: dict[str, dict[str, dict[str, str]]] = {
     "q5": {
         "quwarts": q(
             "Meaning of title counts",
-            "QuWARTS treated numbers from other sports and nearby years as NBA title counts.",
-            "The selected raw table checks that this field contains a number. It does not apply an NBA-specific meaning or range check.",
-            "A count of six and year-like numbers fit the numeric type, so the raw table could keep them even when they described another event.",
+            "QuWARTS retained wrong NBA title counts, including a value of 6 linked to a hockey player's Stanley Cups.",
+            "The selected working table checks that this field contains a number. It does not apply an NBA-specific meaning or range check.",
+            "A count of six fits the numeric type even when it counts titles from another sport.",
             "Wrong title counts became the highest value for some nationalities. Different nationality names created more group errors. One error also comes from an unusual empty value in the scoring data.",
         ),
         "docetl": q(
             "Missing rows, names, and a scoring edge case",
-            "DocETL skipped some player rows and split nationality names. Its American value of 9 matches Steve Kerr's source row, but the benchmark result for that group is an empty string because of mixed text and number handling.",
-            "The map step is allowed to skip a document after an extraction error. It also uses one free-text nationality field with no shared list of names.",
+            "The DocETL output omitted 25 of the 141 input player documents and split nationality names. Its American value of 9 matches Steve Kerr's source row, but the benchmark result for that group is an empty string because of mixed text and number handling.",
+            "The map step is configured to skip a document after an extraction error, and it uses one free-text nationality field with no shared mapping. The saved output does not record the reason for each omitted document.",
             "The output checks cannot recover a skipped player or join two nationality spellings. The score also treats the empty benchmark value as different from the valid number 9.",
-            "Skipped or incomplete rows removed groups, name differences added other groups, and the benchmark edge case marks the American value as wrong even though 9 is present in the source table.",
+            "Omitted or incomplete rows removed groups, name differences added other groups, and the benchmark edge case marks the American value as wrong even though 9 is present in the source table.",
         ),
     },
     "q6": {
         "quwarts": q(
             "Meaning of years",
             "QuWARTS used a year from a draft discussion as the player's draft year, even when the player was not drafted.",
-            "The selected raw table checks the value type, but it does not require evidence that the year is the player's own draft year.",
-            "The saved verifier record says Max Fiedler's 2024 value was not supported as his draft year, but the selected raw table still retained it.",
+            "The selected working table checks the value type, but it does not require evidence that the year is the player's own draft year.",
+            "A saved validation record says Max Fiedler's 2024 value was not supported as his draft year, but the working table still retained it.",
             "Players moved into the wrong year groups and a false 2024 group appeared. Other players had no draft year.",
         ),
         "docetl": q(
@@ -146,14 +146,14 @@ ANALYSIS: dict[str, dict[str, dict[str, str]]] = {
         "quwarts": q(
             "Current teams",
             "The QuWARTS working table missed many team and draft-pick values, and some retained team groups did not match the benchmark.",
-            "The player row stores a team name but no date or status. The selected raw table has no rule that can choose a current team over another team mention.",
+            "The player row stores a team name but no date or status. After extraction, the working table has no check that confirms the value is the current team requested by the question.",
             "A team name can be valid text and still be the wrong team for the benchmark row.",
             "Players were placed under missing or wrong teams. The lowest draft pick was then calculated from the wrong players.",
         ),
         "docetl": q(
             "Team name matching",
             "DocETL built player team names and official team names separately. It also kept some old team links.",
-            "The two sets of names were not cleaned together, and there was no clear rule to choose only the current team.",
+            "The prompt asks for the current team, but the output stores only the team name. The two tables are not cleaned together, and there is no later check of team identity or date.",
             "Both sides contained normal text, even when the names differed or the team link was old.",
             "Valid players failed to match their teams, while other players were sent to the wrong team. This changed the lowest draft pick.",
         ),
@@ -162,8 +162,8 @@ ANALYSIS: dict[str, dict[str, dict[str, str]]] = {
         "quwarts": q(
             "Position names",
             "QuWARTS did not change detailed positions into Frontcourt and Backcourt.",
-            "It kept the detailed names found in the documents.",
-            "The names and medal counts looked valid on their own. The checks did not know that the empty result came from missing position groups.",
+            "The selected working table contains detailed position labels and no Frontcourt or Backcourt values.",
+            "The basic checks accept valid text and number types without testing the position labels against the query filter.",
             "The position rule removed every row before the medal average could be calculated.",
         ),
         "docetl": q(
@@ -178,8 +178,8 @@ ANALYSIS: dict[str, dict[str, dict[str, str]]] = {
         "quwarts": q(
             "College names and title counts",
             "QuWARTS used several names for the same college and accepted some wrong NBA title counts.",
-            "It kept names and numbers that appeared in the documents so that it would not lose possible facts.",
-            "The checks did not know that two college names meant the same place or that a title number described the wrong event.",
+            "The selected working table does not clean college names and only checks that the title field is a number.",
+            "Two college labels and an incorrect title count can all pass those text and number checks.",
             "College groups were split, and some players wrongly passed the NBA title rule.",
         ),
         "docetl": q(
@@ -194,8 +194,8 @@ ANALYSIS: dict[str, dict[str, dict[str, str]]] = {
         "quwarts": q(
             "Meaning of title counts",
             "QuWARTS accepted years as FIBA title counts and often missed current team links.",
-            "It checked that the title field held a number, but it did not check that the number was a sensible count.",
-            "Values such as 1986 and 2024 appeared in the documents and had the right number format.",
+            "The selected working table checked that the title field held a number, but it did not apply a sensible count range.",
+            "Saved validation records mark Rik Smits's 1986 value as contradicted and Bam Adebayo's 2024 value as unsupported. The working table still retained both numbers.",
             "These years passed the at-least-one rule and made the totals extremely large. Missing or wrong teams also changed the groups.",
         ),
         "docetl": q(
@@ -209,15 +209,15 @@ ANALYSIS: dict[str, dict[str, dict[str, str]]] = {
     "q11": {
         "quwarts": q(
             "Age calculation",
-            "QuWARTS copied ages mentioned in articles instead of calculating age in 2026 from birth information.",
-            "The working schema stores age, but it does not store birth date or the date used for the age calculation. The selected raw table could therefore keep an age stated in an older article.",
+            "The QuWARTS table contains old age values instead of the players' ages in 2026.",
+            "The working table stores age, but it does not store birth date or the date used for the age calculation. It can therefore keep an age stated in an older article.",
             "An old age from an article is still a normal number. A type check cannot tell whether it is the person's age in 2026.",
             "Old ages let some older players pass the 20 to 40 rule. Missing ages removed other players, and nationality names split more groups.",
         ),
         "docetl": q(
             "Age calculation and missing values",
-            "DocETL copied ages from articles and left many other ages unknown.",
-            "The instruction did not require age to be calculated from birth information.",
+            "The DocETL table contains old age values and leaves many other ages unknown.",
+            "The instruction requests one age number but does not require a birth-date calculation or store the date used for that calculation.",
             "The old ages looked like normal numbers. Players with an unknown age did not appear in the displayed result.",
             "The final table has no -1 age. The 20 to 40 rule removed those rows. Wrong ages still changed which players passed, and different nationality names caused more errors.",
         ),
@@ -226,8 +226,8 @@ ANALYSIS: dict[str, dict[str, dict[str, str]]] = {
         "quwarts": q(
             "Team records and current facts",
             "The QuWARTS team table contains historical team names, person names, and a year as separate team rows.",
-            "The extraction can create more than one row from a document, and the selected raw table has no final rule that keeps one current row for each team.",
-            "Each row can contain real words and numbers from the source, even when the row does not describe a current team.",
+            "The selected team table has 42 rows, while the benchmark has 30 teams. It has no final rule that limits the result to one current row for each benchmark team.",
+            "Person names and years still pass the table's text and number type checks even when the row identity is not a current team.",
             "Old and false rows added locations. Some years were also used as title counts, which changed the highest values.",
         ),
         "docetl": q(
@@ -241,9 +241,9 @@ ANALYSIS: dict[str, dict[str, dict[str, str]]] = {
     "q13": {
         "quwarts": q(
             "Team rows, cities, and years",
-            "QuWARTS kept old and repeated team rows, different city names, and wrong founding years.",
-            "It did not reduce several possible team rows to one current team row.",
-            "An old city or year can appear in the source and look correct on its own.",
+            "QuWARTS kept extra historical or non-current team rows, different city names, and wrong founding years.",
+            "The selected team table has 42 rows for a 30-team benchmark and no final step that keeps one current row per team.",
+            "A historical city or wrong year still passes the text or number type check.",
             "Different city names split the groups. Wrong founding years also removed Houston and Philadelphia.",
         ),
         "docetl": q(
@@ -258,9 +258,9 @@ ANALYSIS: dict[str, dict[str, dict[str, str]]] = {
         "quwarts": q(
             "Owner names used for scoring",
             "The scoring data changes team owner names by using a separate owner table, but the question does not ask either system to use that table.",
-            "The requested schema has a team ownership field but no owner lookup table. QuWARTS therefore uses ownership text from its team rows, including old, legal, and short names.",
-            "Those values are valid owner text. The working contract contains no link to the separate owner-name list used while building the gold table.",
-            "Related owner names became separate groups. Extra team rows added more owners. Part of this error comes from a scoring rule that was hidden from both systems.",
+            "The requested table has a team ownership field but no owner lookup table. QuWARTS therefore uses ownership text from its team rows, including old, legal, and short names.",
+            "Those values are valid owner text. The query setup contains no link to the separate owner-name list used while building the gold table.",
+            "Related owner names became separate groups. Extra team rows added more owners. Part of this error comes from a gold-table rewrite that is not present in the query.",
         ),
         "docetl": q(
             "Owner names used for scoring",
@@ -273,9 +273,9 @@ ANALYSIS: dict[str, dict[str, dict[str, str]]] = {
     "q15": {
         "quwarts": q(
             "Current locations and title totals",
-            "QuWARTS kept historical location names and wrong title totals instead of one benchmark row for each team.",
+            "QuWARTS kept location variants and wrong title totals instead of one benchmark row for each team.",
             "The working table stores a location and title number, but it stores no date that could identify the current version of each fact.",
-            "Historical cities and wrong totals still have valid text and number types. The checks could not tell which time period the benchmark expected.",
+            "Location variants and wrong totals still have valid text and number types. The checks could not identify the benchmark version from type alone.",
             "The question kept the wrong versions of teams. Different city names split groups, and wrong totals changed the averages.",
         ),
         "docetl": q(
@@ -289,9 +289,9 @@ ANALYSIS: dict[str, dict[str, dict[str, str]]] = {
     "q16": {
         "quwarts": q(
             "Owner coverage and age calculation",
-            "QuWARTS built rows for only some owners and did not calculate age from birth information.",
-            "The selected owner table has 11 rows while the benchmark owner table has 16. The pipeline accepts partial tables, and it also accepts ages stated directly in articles.",
-            "A stated age is a normal number. There was no required check against birth information and 2026.",
+            "The QuWARTS table has only 11 owner rows, and several saved ages do not match the 2026 benchmark values.",
+            "The working table stores age but not birth date or the date used for the calculation, so the saved age cannot be recalculated or checked for 2026.",
+            "A wrong age is still a valid number. The basic type check does not compare it with birth information and 2026.",
             "The average used too few owners. Missing ages gave empty results for some groups, and different nationality wording created extra groups.",
         ),
         "docetl": q(
@@ -305,15 +305,15 @@ ANALYSIS: dict[str, dict[str, dict[str, str]]] = {
     "q17": {
         "quwarts": q(
             "Owner coverage and purchase years",
-            "QuWARTS missed an important owner and confused other years with the year a team was bought.",
-            "The owner table stores one year but no event text that proves the year is a team purchase. The selected raw table can keep a numeric year without that proof.",
-            "A wrong year can still have the correct number format. The saved verifier record says Joseph Tsai's 1996 value was not supported as an ownership year.",
+            "The QuWARTS owner table lacks the American purchase year 2000 and contains an unsupported 1996 year for the Taiwanese-Canadian row.",
+            "The owner table stores one year but no event text that proves the year is a team purchase. The working table can keep a numeric year without that proof.",
+            "A wrong year can still have the correct number format. A saved validation record says Joseph Tsai's 1996 value was not supported as an ownership year.",
             "The missing 2000 purchase changed the American minimum. A wrong 1996 year removed the Taiwanese-Canadian row.",
         ),
         "docetl": q(
             "Purchase years and nationality",
             "DocETL left most nationality values empty and used a company job year as a team purchase year.",
-            "The field name was the main guide. The output did not include proof that the year described buying the team.",
+            "The extraction output stores only the year value. It does not store a quote or event label that proves the year describes buying the team.",
             "The job year is still a number, and an empty nationality was allowed.",
             "Empty nationalities joined unrelated owners into one group. The wrong year could also pass the date rule.",
         ),
@@ -323,14 +323,14 @@ ANALYSIS: dict[str, dict[str, dict[str, str]]] = {
             "Population date and area",
             "QuWARTS used population numbers from different years or different areas.",
             "It saved one population number without also saving the date or whether it covered the city or the larger metro area.",
-            "All the values looked like reasonable population numbers and appeared in the source text.",
+            "The basic check validates the number type but does not validate the population date or geographic area.",
             "Every state group was present, but the wrong population version changed six averages.",
         ),
         "docetl": q(
             "Missing states and populations",
             "DocETL left many state names empty and marked some populations as unknown.",
             "Inside the city table, DocETL used -1 to mark an unknown population. It did not remove that marker before calculating averages.",
-            "The final table shows averages, not the original -1 values. The checks did not notice that an average included a missing-value marker.",
+            "The output rule accepts -1 because the prompt defines it as the missing marker. The later average then treats it as a real number.",
             "Empty state names removed groups. In Florida, a hidden -1 marker lowered the displayed average.",
         ),
     },
@@ -338,8 +338,8 @@ ANALYSIS: dict[str, dict[str, dict[str, str]]] = {
         "quwarts": q(
             "GDP units and population area",
             "QuWARTS mixed GDP values written in dollars, millions, and billions.",
-            "It kept the number found in each document without changing all values to one unit.",
-            "Each value was a number and appeared in the source text. The checks did not compare the units.",
+            "The working table stores one GDP number but no unit, so values cannot be converted to a common scale after extraction.",
+            "The basic check validates the number type but does not compare or convert GDP units.",
             "The maximum was chosen from values that used different units. A metro population also caused Utah to pass a rule meant for city population.",
         ),
         "docetl": q(

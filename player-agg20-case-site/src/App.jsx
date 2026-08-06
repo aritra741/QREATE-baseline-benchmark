@@ -144,15 +144,15 @@ function ReasonPanel({ system, reason }) {
           <dd>{reason.root_cause}</dd>
         </div>
         <div>
-          <dt>Why the system made this choice</dt>
+          <dt>Pipeline behavior behind it</dt>
           <dd>{reason.design_choice}</dd>
         </div>
         <div>
-          <dt>Why the checks did not catch it</dt>
+          <dt>Why validation allowed it</dt>
           <dd>{reason.why_checks_missed}</dd>
         </div>
         <div>
-          <dt>Why this query failed</dt>
+          <dt>How it affected the result</dt>
           <dd>{reason.failure_path}</dd>
         </div>
       </dl>
