@@ -8,7 +8,7 @@ fraction of the gold column's span (percentage points of the range), not
 |pred-true|/|true|. That avoids blowing up on zero gold values.
 
 Per-query rank score is the product of:
-  structure_score × cell_f1@tau
+  structure_fbeta_score × cell_f1@tau
 
 Pipeline order is mandatory:
   1. Column alignment
@@ -58,6 +58,7 @@ class MetricConfig:
     theta: float = 0.9
     epsilon: float = 1e-9
     tau_sweep: Tuple[float, ...] = (0.01, 0.05, 0.20)
+    structure_beta: float = 2.0
     merge_value_tol: float = 0.05
     abbreviation_map: Mapping[str, str] = field(
         default_factory=lambda: {
@@ -69,6 +70,10 @@ class MetricConfig:
             "u.k.": "united kingdom",
         }
     )
+
+    def __post_init__(self) -> None:
+        if not math.isfinite(self.structure_beta) or self.structure_beta <= 0:
+            raise ValueError("structure_beta must be finite and positive")
 
 
 @dataclass(frozen=True)
@@ -324,7 +329,13 @@ def composite_key_sim(
 # ---------------------------------------------------------------------------
 
 
-def _prf(tp: int, pred_total: int, gold_total: int) -> Dict[str, float]:
+def _prf(
+    tp: int,
+    pred_total: int,
+    gold_total: int,
+    *,
+    beta: float = 1.0,
+) -> Dict[str, float]:
     precision = tp / pred_total if pred_total else (1.0 if gold_total == 0 else 0.0)
     recall = tp / gold_total if gold_total else (1.0 if pred_total == 0 else 0.0)
     f1 = (
@@ -332,7 +343,20 @@ def _prf(tp: int, pred_total: int, gold_total: int) -> Dict[str, float]:
         if (precision + recall)
         else 0.0
     )
-    return {"P": precision, "R": recall, "F1": f1}
+    beta_squared = beta * beta
+    denominator = beta_squared * precision + recall
+    fbeta = (
+        (1.0 + beta_squared) * precision * recall / denominator
+        if denominator
+        else 0.0
+    )
+    return {
+        "P": precision,
+        "R": recall,
+        "F1": f1,
+        "F_beta": fbeta,
+        "beta": beta,
+    }
 
 
 def align_columns(
@@ -465,11 +489,24 @@ def align_columns(
         "missing_key_columns": missing_key_columns,
         "key_alignment_failed": key_alignment_failed,
         "metrics": {
-            "key": _prf(matched_key, pred_key_count, len(key_gold)),
-            "measure": _prf(
-                matched_measure, pred_measure_count, len(measure_gold)
+            "key": _prf(
+                matched_key,
+                pred_key_count,
+                len(key_gold),
+                beta=config.structure_beta,
             ),
-            "all": _prf(len(matches), len(pred_cols), len(gold_cols)),
+            "measure": _prf(
+                matched_measure,
+                pred_measure_count,
+                len(measure_gold),
+                beta=config.structure_beta,
+            ),
+            "all": _prf(
+                len(matches),
+                len(pred_cols),
+                len(gold_cols),
+                beta=config.structure_beta,
+            ),
         },
     }
 
@@ -528,7 +565,7 @@ def align_rows(
             "matched_pairs": [],
             "spurious_pred": [],
             "missing_gold": [],
-            "metrics": _prf(0, 0, 0),
+            "metrics": _prf(0, 0, 0, beta=config.structure_beta),
             "key_columns_used": [c.name for _, c in key_columns],
         }
 
@@ -564,7 +601,12 @@ def align_rows(
         "matched_pairs": pairs,
         "spurious_pred": spurious,
         "missing_gold": missing,
-        "metrics": _prf(len(pairs), n_pred, n_gold),
+        "metrics": _prf(
+            len(pairs),
+            n_pred,
+            n_gold,
+            beta=config.structure_beta,
+        ),
         "key_columns_used": [c.name for _, c in key_columns],
     }
 
@@ -1149,14 +1191,23 @@ def evaluate_aggregation_tables(
         for tau in config.tau_sweep
     }
 
-    # Structure score: row F1 (primary tier) × mean of key/measure column F1.
+    # Structure score favors recall: row F-beta × mean column F-beta.
+    # Keep the historical F1 score beside it for auditability.
     row_f1 = float(primary_rows["metrics"]["F1"])
+    row_fbeta = float(primary_rows["metrics"]["F_beta"])
     col_metrics = column_alignment["metrics"]
     col_f1s = [
         float(col_metrics["key"]["F1"]),
         float(col_metrics["measure"]["F1"]),
     ]
-    structure_score = row_f1 * (sum(col_f1s) / len(col_f1s))
+    col_fbetas = [
+        float(col_metrics["key"]["F_beta"]),
+        float(col_metrics["measure"]["F_beta"]),
+    ]
+    structure_f1_score = row_f1 * (sum(col_f1s) / len(col_f1s))
+    structure_score = row_fbeta * (
+        sum(col_fbetas) / len(col_fbetas)
+    )
     query_score = {
         tau: structure_score * cell_f1[tau] for tau in config.tau_sweep
     }
@@ -1164,6 +1215,9 @@ def evaluate_aggregation_tables(
     result: Dict[str, Any] = {
         "rank": {
             "structure_score": structure_score,
+            "structure_fbeta_score": structure_score,
+            "structure_f1_score": structure_f1_score,
+            "structure_beta": config.structure_beta,
             "cell_f1": cell_f1,
             "query_score": query_score,
         },
@@ -1176,6 +1230,9 @@ def evaluate_aggregation_tables(
             "key_alignment_failed": column_alignment["key_alignment_failed"],
             "missing_key_columns": column_alignment["missing_key_columns"],
             "structure_score": structure_score,
+            "structure_fbeta_score": structure_score,
+            "structure_f1_score": structure_f1_score,
+            "structure_beta": config.structure_beta,
         },
         "value": {
             "row_recall_context": value["row_recall_context"],

@@ -132,13 +132,83 @@ def test_junk_rows_penalize_cell_f1_but_not_matched_value_scores():
     assert result["value"]["pass_at_tau"][0.05] == 1.0
     # 4 TP measure cells, 12 FP junk cells → P=4/16, R=1, F1=0.4
     assert result["rank"]["cell_f1"][0.05] == 0.4
-    # structure = row_F1 * col_F1 = (2*P*R/(P+R)) * 1 = 2*(4/16)*1/(4/16+1) = 0.4
-    row_f1 = result["structure"]["row"]["semantic"]["F1"]
-    assert abs(result["rank"]["structure_score"] - row_f1) < 1e-9
+    # Structure uses F2 by default, favoring complete coverage:
+    # (1+2²)*P*R/(2²*P+R) = 5*(4/16)*1/(4*(4/16)+1) = 0.625.
+    row_fbeta = result["structure"]["row"]["semantic"]["F_beta"]
+    assert row_fbeta == 0.625
+    assert result["rank"]["structure_score"] == 0.625
+    assert result["rank"]["structure_f1_score"] == 0.4
+    assert result["rank"]["structure_beta"] == 2.0
     assert abs(
         result["rank"]["query_score"][0.05]
         - result["rank"]["structure_score"] * 0.4
     ) < 1e-9
+
+
+def test_structure_fbeta_prefers_full_recall_over_sparse_precision():
+    gold = table_from_rows(
+        [{"k": "a", "v": 1}, {"k": "b", "v": 2}],
+        key_columns=["k"],
+        measure_columns=["v"],
+    )
+    complete_with_extras = table_from_rows(
+        [
+            {"k": "a", "v": 1},
+            {"k": "b", "v": 2},
+            {"k": "junk-1", "v": 9},
+            {"k": "junk-2", "v": 9},
+        ],
+        key_columns=["k"],
+        measure_columns=["v"],
+    )
+    sparse_exact = table_from_rows(
+        [{"k": "a", "v": 1}],
+        key_columns=["k"],
+        measure_columns=["v"],
+    )
+
+    complete = evaluate_aggregation_tables(complete_with_extras, gold)
+    sparse = evaluate_aggregation_tables(sparse_exact, gold)
+
+    # Both had the same row F1 (2/3). F2 distinguishes them by preferring
+    # recall=1 over precision=1, matching the coverage-first requirement.
+    assert complete["structure"]["row"]["semantic"]["F1"] == 2 / 3
+    assert sparse["structure"]["row"]["semantic"]["F1"] == 2 / 3
+    assert abs(complete["rank"]["structure_score"] - (5 / 6)) < 1e-9
+    assert abs(sparse["rank"]["structure_score"] - (5 / 9)) < 1e-9
+    assert (
+        complete["rank"]["structure_score"]
+        > sparse["rank"]["structure_score"]
+    )
+
+
+def test_structure_beta_is_configurable_and_must_be_positive():
+    gold = table_from_rows(
+        [{"k": "a", "v": 1}, {"k": "b", "v": 2}],
+        key_columns=["k"],
+        measure_columns=["v"],
+    )
+    pred = table_from_rows(
+        [
+            {"k": "a", "v": 1},
+            {"k": "b", "v": 2},
+            {"k": "junk-1", "v": 9},
+            {"k": "junk-2", "v": 9},
+        ],
+        key_columns=["k"],
+        measure_columns=["v"],
+    )
+    f1_result = evaluate_aggregation_tables(
+        pred,
+        gold,
+        config=MetricConfig(structure_beta=1.0),
+    )
+    assert abs(f1_result["rank"]["structure_score"] - (2 / 3)) < 1e-9
+
+    import pytest
+
+    with pytest.raises(ValueError, match="structure_beta"):
+        MetricConfig(structure_beta=0)
 
 
 def test_synonym_keys_one_to_one_no_double_count():

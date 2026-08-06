@@ -127,6 +127,11 @@ def _score_query(
     row["value"] = ready["value"]
     row["grouping"] = ready["grouping"]
     row["structure_score"] = ready["rank"]["structure_score"]
+    row["structure_fbeta_score"] = ready["rank"][
+        "structure_fbeta_score"
+    ]
+    row["structure_f1_score"] = ready["rank"]["structure_f1_score"]
+    row["structure_beta"] = ready["rank"]["structure_beta"]
     row["cell_f1"] = ready["rank"]["cell_f1"]
     row["query_score"] = ready["rank"]["query_score"]
     return row
@@ -163,6 +168,12 @@ def main() -> int:
         nargs="+",
         default=list(MetricConfig().tau_sweep),
     )
+    parser.add_argument(
+        "--structure-beta",
+        type=float,
+        default=MetricConfig().structure_beta,
+        help="Recall weight for structure F-beta (default: 2.0).",
+    )
     args = parser.parse_args()
 
     # This must remain the first operation involving either side of the
@@ -179,7 +190,10 @@ def main() -> int:
             f"reference_only={sorted(set(references) - set(frozen_ids))}"
         )
 
-    config = MetricConfig(tau_sweep=tuple(float(tau) for tau in args.tau))
+    config = MetricConfig(
+        tau_sweep=tuple(float(tau) for tau in args.tau),
+        structure_beta=float(args.structure_beta),
+    )
     ground_truth = load_ground_truth(args.dataset)
     attributes = load_attributes(args.dataset)
     connection = _build_in_memory_db(ground_truth)
@@ -214,6 +228,10 @@ def main() -> int:
     structure_scores = [
         float(row["structure_score"]) for row in aggregation_rows.values()
     ]
+    structure_f1_scores = [
+        float(row["structure_f1_score"])
+        for row in aggregation_rows.values()
+    ]
     report = {
         "method": "docetl_independent_nl",
         "dataset": args.dataset,
@@ -222,10 +240,19 @@ def main() -> int:
         "mean_structure_score": (
             statistics.mean(structure_scores) if structure_scores else None
         ),
+        "mean_structure_fbeta_score": (
+            statistics.mean(structure_scores) if structure_scores else None
+        ),
+        "mean_structure_f1_score": (
+            statistics.mean(structure_f1_scores)
+            if structure_f1_scores
+            else None
+        ),
         "mean_cell_f1": _mean_tau_map(aggregation_rows, "cell_f1"),
         "mean_query_score": _mean_tau_map(aggregation_rows, "query_score"),
         "mean_official_query_error": statistics.mean(official_errors),
         "mean_official_accuracy": 1.0 - statistics.mean(official_errors),
+        "structure_beta": config.structure_beta,
         "construction_tokens": int(manifest["construction_tokens"]),
         "per_query": per_query,
         "bundle_manifest_sha256": _sha256(bundle / "manifest.json"),
@@ -240,6 +267,13 @@ def main() -> int:
         json.dumps(
             {
                 "mean_structure_score": report["mean_structure_score"],
+                "mean_structure_fbeta_score": report[
+                    "mean_structure_fbeta_score"
+                ],
+                "mean_structure_f1_score": report[
+                    "mean_structure_f1_score"
+                ],
+                "structure_beta": report["structure_beta"],
                 "mean_cell_f1": report["mean_cell_f1"],
                 "mean_query_score": report["mean_query_score"],
                 "mean_official_accuracy": report[

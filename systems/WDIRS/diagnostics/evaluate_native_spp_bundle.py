@@ -123,6 +123,11 @@ def _score_query(
     row["value"] = ready["value"]
     row["grouping"] = ready["grouping"]
     row["structure_score"] = ready["rank"]["structure_score"]
+    row["structure_fbeta_score"] = ready["rank"][
+        "structure_fbeta_score"
+    ]
+    row["structure_f1_score"] = ready["rank"]["structure_f1_score"]
+    row["structure_beta"] = ready["rank"]["structure_beta"]
     row["cell_f1"] = ready["rank"]["cell_f1"]
     row["query_score"] = ready["rank"]["query_score"]
     return row
@@ -146,6 +151,12 @@ def main() -> int:
         default=list(MetricConfig().tau_sweep),
         help="Cell-F1 / query_score thresholds (default: 0.01 0.05 0.20)",
     )
+    parser.add_argument(
+        "--structure-beta",
+        type=float,
+        default=MetricConfig().structure_beta,
+        help="Recall weight for structure F-beta (default: 2.0).",
+    )
     args = parser.parse_args()
 
     bundle = args.bundle.expanduser().resolve()
@@ -166,7 +177,10 @@ def main() -> int:
             f"reference/frozen query IDs differ; missing={missing}, extra={extra}"
         )
 
-    config = MetricConfig(tau_sweep=tuple(float(tau) for tau in args.tau))
+    config = MetricConfig(
+        tau_sweep=tuple(float(tau) for tau in args.tau),
+        structure_beta=float(args.structure_beta),
+    )
     ground_truth = load_ground_truth(args.dataset)
     attributes = load_attributes(args.dataset)
     connection = _build_in_memory_db(ground_truth)
@@ -198,6 +212,9 @@ def main() -> int:
     structure_scores = [
         float(row["structure_score"]) for row in agg_rows.values()
     ]
+    structure_f1_scores = [
+        float(row["structure_f1_score"]) for row in agg_rows.values()
+    ]
 
     report = {
         "method": "native_spp",
@@ -208,6 +225,14 @@ def main() -> int:
         "mean_structure_score": (
             statistics.mean(structure_scores) if structure_scores else None
         ),
+        "mean_structure_fbeta_score": (
+            statistics.mean(structure_scores) if structure_scores else None
+        ),
+        "mean_structure_f1_score": (
+            statistics.mean(structure_f1_scores)
+            if structure_f1_scores
+            else None
+        ),
         "mean_cell_f1": _mean_tau_map(agg_rows, "cell_f1"),
         "mean_query_score": _mean_tau_map(agg_rows, "query_score"),
         "mean_official_query_error": statistics.mean(official_errors),
@@ -216,6 +241,7 @@ def main() -> int:
         "mean_query_error": statistics.mean(official_errors),
         "mean_accuracy": 1.0 - statistics.mean(official_errors),
         "tau_sweep": [float(tau) for tau in config.tau_sweep],
+        "structure_beta": config.structure_beta,
         "per_query": per_query,
         "selected_database_count": len(manifest["databases"]),
         "storage_bytes": sum(
@@ -239,6 +265,11 @@ def main() -> int:
 
     summary = {
         "mean_structure_score": report["mean_structure_score"],
+        "mean_structure_fbeta_score": report[
+            "mean_structure_fbeta_score"
+        ],
+        "mean_structure_f1_score": report["mean_structure_f1_score"],
+        "structure_beta": report["structure_beta"],
         "mean_cell_f1": report["mean_cell_f1"],
         "mean_query_score": report["mean_query_score"],
         "mean_official_accuracy": report["mean_official_accuracy"],
