@@ -2,6 +2,12 @@
 
 Static site that compares QuWARTS and DocETL on 20 Player questions.
 
+## Comments
+
+Select any text to add a Google Docs-style comment. The first time you comment,
+the site asks for your name and remembers it in this browser. Later comments and
+replies use that name. Threads are saved in the browser.
+
 ## Local
 
 ```bash

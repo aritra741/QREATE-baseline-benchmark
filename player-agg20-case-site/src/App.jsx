@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import CommentsSystem from "./Comments.jsx";
 import data from "./data.json";
 
 const ERROR_LEVELS = data.error_levels || ["0.01", "0.05", "0.2"];
@@ -320,96 +321,99 @@ export default function App() {
   }, [filter]);
 
   return (
-    <div className="page">
-      <div className="atmosphere" aria-hidden="true" />
-      <header className="hero">
-        <h1>QuWARTS case study Aug 6, 2026</h1>
-        <p className="lede">
-          Compare QuWARTS and DocETL on 20 Player questions. The main score is structure F2 times
-          cell accuracy, shown at 1%, 5%, and 20% error. Open a question to see the ground truth,
-          both answers, and a plain explanation of what went wrong.
-        </p>
-        <div className="hero-metrics">
-          <div>
-            <span className="metric-label">QuWARTS structure F2</span>
-            <strong>{pct(data.means.quwarts.structure_f2)}</strong>
+    <CommentsSystem>
+      <div className="page">
+        <div className="atmosphere" aria-hidden="true" />
+        <header className="hero">
+          <h1>QuWARTS case study Aug 6, 2026</h1>
+          <p className="lede">
+            Compare QuWARTS and DocETL on 20 Player questions. The main score is structure F2 times
+            cell accuracy, shown at 1%, 5%, and 20% error. Open a question to see the ground truth,
+            both answers, and a plain explanation of what went wrong. Select any text to leave a
+            comment.
+          </p>
+          <div className="hero-metrics">
+            <div>
+              <span className="metric-label">QuWARTS structure F2</span>
+              <strong>{pct(data.means.quwarts.structure_f2)}</strong>
+            </div>
+            <div>
+              <span className="metric-label">DocETL structure F2</span>
+              <strong>{pct(data.means.docetl.structure_f2)}</strong>
+            </div>
+            <div>
+              <span className="metric-label">QuWARTS cell accuracy @20% error</span>
+              <strong>{pct(data.means.quwarts.cell_f1["0.2"])}</strong>
+            </div>
+            <div>
+              <span className="metric-label">DocETL cell accuracy @20% error</span>
+              <strong>{pct(data.means.docetl.cell_f1["0.2"])}</strong>
+            </div>
+            <div>
+              <span className="metric-label">QuWARTS main score @20% error</span>
+              <strong>{pct(data.means.quwarts.query_score["0.2"])}</strong>
+            </div>
+            <div>
+              <span className="metric-label">DocETL main score @20% error</span>
+              <strong>{pct(data.means.docetl.query_score["0.2"])}</strong>
+            </div>
+            <div>
+              <span className="metric-label">Total tokens</span>
+              <strong>{formatTokens(data.tokens.total)}</strong>
+            </div>
           </div>
-          <div>
-            <span className="metric-label">DocETL structure F2</span>
-            <strong>{pct(data.means.docetl.structure_f2)}</strong>
+          <div className="token-breakdown">
+            <span>QuWARTS {formatTokens(data.tokens.quwarts)} tokens</span>
+            <span>DocETL {formatTokens(data.tokens.docetl)} tokens</span>
           </div>
-          <div>
-            <span className="metric-label">QuWARTS cell accuracy @20% error</span>
-            <strong>{pct(data.means.quwarts.cell_f1["0.2"])}</strong>
-          </div>
-          <div>
-            <span className="metric-label">DocETL cell accuracy @20% error</span>
-            <strong>{pct(data.means.docetl.cell_f1["0.2"])}</strong>
-          </div>
-          <div>
-            <span className="metric-label">QuWARTS main score @20% error</span>
-            <strong>{pct(data.means.quwarts.query_score["0.2"])}</strong>
-          </div>
-          <div>
-            <span className="metric-label">DocETL main score @20% error</span>
-            <strong>{pct(data.means.docetl.query_score["0.2"])}</strong>
-          </div>
-          <div>
-            <span className="metric-label">Total tokens</span>
-            <strong>{formatTokens(data.tokens.total)}</strong>
-          </div>
-        </div>
-        <div className="token-breakdown">
-          <span>QuWARTS {formatTokens(data.tokens.quwarts)} tokens</span>
-          <span>DocETL {formatTokens(data.tokens.docetl)} tokens</span>
-        </div>
-        <a className="cta" href="#queries">
-          See the questions
-        </a>
-      </header>
+          <a className="cta" href="#queries">
+            See the questions
+          </a>
+        </header>
 
-      <main id="queries" className="main">
-        <div className="toolbar">
-          <h2>Questions</h2>
-          <div className="filters" role="tablist" aria-label="Filter questions">
-            {[
-              ["all", "All"],
-              ["quwarts", "QuWARTS better"],
-              ["docetl", "DocETL better"],
-              ["zero", "Both scored 0"],
-            ].map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                className={filter === id ? "active" : ""}
-                onClick={() => setFilter(id)}
-              >
-                {label}
-              </button>
+        <main id="queries" className="main">
+          <div className="toolbar">
+            <h2>Questions</h2>
+            <div className="filters" role="tablist" aria-label="Filter questions">
+              {[
+                ["all", "All"],
+                ["quwarts", "QuWARTS better"],
+                ["docetl", "DocETL better"],
+                ["zero", "Both scored 0"],
+              ].map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  className={filter === id ? "active" : ""}
+                  onClick={() => setFilter(id)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="query-list">
+            {queries.map((query) => (
+              <QueryPanel
+                key={query.query_id}
+                query={query}
+                open={openId === query.query_id}
+                onToggle={() =>
+                  setOpenId((current) => (current === query.query_id ? null : query.query_id))
+                }
+              />
             ))}
           </div>
-        </div>
+        </main>
 
-        <div className="query-list">
-          {queries.map((query) => (
-            <QueryPanel
-              key={query.query_id}
-              query={query}
-              open={openId === query.query_id}
-              onToggle={() =>
-                setOpenId((current) => (current === query.query_id ? null : query.query_id))
-              }
-            />
-          ))}
-        </div>
-      </main>
-
-      <footer className="footer">
-        <p>
-          Built from the QuWARTS and DocETL Player runs. Open a question to see where each system
-          missed a group, added a group, or got a value wrong, and why.
-        </p>
-      </footer>
-    </div>
+        <footer className="footer">
+          <p>
+            Built from the QuWARTS and DocETL Player runs. Open a question to see where each system
+            missed a group, added a group, or got a value wrong, and why.
+          </p>
+        </footer>
+      </div>
+    </CommentsSystem>
   );
 }
