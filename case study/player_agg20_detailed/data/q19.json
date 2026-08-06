@@ -1,6 +1,6 @@
 {
   "query_id": "q19",
-  "natural_language_query": "Among cities with more than one million people, what is the highest GDP in each state?",
+  "natural_language_query": "For each state, what is the highest city GDP among cities in that state with more than one million people?",
   "reference_sql": "SELECT state_name, MAX(gdp) AS max_gdp FROM city WHERE population > 1000000 AND state_name != '' GROUP BY state_name",
   "quwarts_sql": "SELECT state_name, MAX(gdp) AS max_gdp FROM city WHERE population > 1000000 AND state_name != '' GROUP BY state_name",
   "quwarts_config_id": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",

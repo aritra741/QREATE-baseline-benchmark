@@ -356,7 +356,7 @@ def test_group_cardinality_having_is_not_confused_with_scalar_magnitude():
         "Among categories with more than one event, show the maximum amount."
     )
     assert not _expects_group_cardinality_having(
-        "Among cities with more than one million people, show the maximum GDP."
+        "For each state, what is the highest city GDP among cities in that state with more than one million people?"
     )
 
 
