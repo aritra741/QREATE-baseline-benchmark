@@ -1,0 +1,514 @@
+{
+  "query_id": "q5",
+  "natural_language_query": "Among players with at least one NBA championship, what is the most championships won by any player of each nationality?",
+  "reference_sql": "SELECT nationality, MAX(nba_championships) AS max_championships FROM player WHERE nba_championships >= 1 AND nationality != '' GROUP BY nationality",
+  "quwarts_sql": "SELECT nationality, MAX(nba_championships) AS max_championships FROM player WHERE nba_championships >= 1 AND nationality != '' GROUP BY nationality",
+  "quwarts_config_id": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+  "schema": {
+    "key_columns": [
+      "nationality"
+    ],
+    "measure_columns": [
+      "max_championships"
+    ],
+    "operators": {
+      "max_championships": "MAX"
+    },
+    "is_aggregation": true,
+    "has_groupby": true
+  },
+  "gold": [
+    {
+      "nationality": "American",
+      "max_championships": ""
+    },
+    {
+      "nationality": "British",
+      "max_championships": 1
+    },
+    {
+      "nationality": "Canadian",
+      "max_championships": 1
+    },
+    {
+      "nationality": "Congolese",
+      "max_championships": 1
+    },
+    {
+      "nationality": "Dominican",
+      "max_championships": 1
+    },
+    {
+      "nationality": "Greek and Nigerian",
+      "max_championships": 1
+    },
+    {
+      "nationality": "Nigerian-American",
+      "max_championships": 1
+    }
+  ],
+  "quwarts": [
+    {
+      "nationality": "American",
+      "max_championships": 6
+    },
+    {
+      "nationality": "British",
+      "max_championships": 1
+    },
+    {
+      "nationality": "Canadian",
+      "max_championships": 6
+    },
+    {
+      "nationality": "Congolese",
+      "max_championships": 1
+    },
+    {
+      "nationality": "Dominican Republic",
+      "max_championships": 2
+    },
+    {
+      "nationality": "Greek and Nigerian",
+      "max_championships": 1
+    },
+    {
+      "nationality": "Nigerian",
+      "max_championships": 1
+    },
+    {
+      "nationality": "Yugoslav",
+      "max_championships": 2
+    }
+  ],
+  "docetl": [
+    {
+      "nationality": "American",
+      "max_championships": 9
+    },
+    {
+      "nationality": "Canadian",
+      "max_championships": 1
+    },
+    {
+      "nationality": "Congolese",
+      "max_championships": 1
+    },
+    {
+      "nationality": "Croatian",
+      "max_championships": 1
+    },
+    {
+      "nationality": "Dominican",
+      "max_championships": 1
+    },
+    {
+      "nationality": "Dutch",
+      "max_championships": 2
+    },
+    {
+      "nationality": "Greek",
+      "max_championships": 1
+    },
+    {
+      "nationality": "Nigerian-American",
+      "max_championships": 2
+    },
+    {
+      "nationality": "Slovenian",
+      "max_championships": 1
+    }
+  ],
+  "quwarts_metrics": {
+    "official_query_error": 0.4555555555555556,
+    "official_accuracy": 0.5444444444444444,
+    "gold_row_count": 7,
+    "predicted_row_count": 8,
+    "schema": {
+      "key_columns": [
+        "nationality"
+      ],
+      "measure_columns": [
+        "max_championships"
+      ],
+      "operators": {
+        "max_championships": "MAX"
+      },
+      "is_aggregation": true,
+      "has_groupby": true
+    },
+    "rank": {
+      "structure_score": 0.8333333333333333,
+      "structure_fbeta_score": 0.8333333333333333,
+      "structure_f1_score": 0.7999999999999999,
+      "structure_beta": 2.0,
+      "cell_f1": {
+        "0.01": 0.39999999999999997,
+        "0.05": 0.39999999999999997,
+        "0.2": 0.39999999999999997
+      },
+      "query_score": {
+        "0.01": 0.33333333333333326,
+        "0.05": 0.33333333333333326,
+        "0.2": 0.33333333333333326
+      }
+    },
+    "structure": {
+      "column": {
+        "key": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "measure": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "all": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        }
+      },
+      "row": {
+        "exact": {
+          "P": 0.625,
+          "R": 0.7142857142857143,
+          "F1": 0.6666666666666666,
+          "F_beta": 0.6944444444444444,
+          "beta": 2.0
+        },
+        "normalized": {
+          "P": 0.625,
+          "R": 0.7142857142857143,
+          "F1": 0.6666666666666666,
+          "F_beta": 0.6944444444444444,
+          "beta": 2.0
+        },
+        "semantic": {
+          "P": 0.75,
+          "R": 0.8571428571428571,
+          "F1": 0.7999999999999999,
+          "F_beta": 0.8333333333333333,
+          "beta": 2.0
+        }
+      },
+      "key_alignment_failed": false,
+      "missing_key_columns": [],
+      "structure_score": 0.8333333333333333,
+      "structure_fbeta_score": 0.8333333333333333,
+      "structure_f1_score": 0.7999999999999999,
+      "structure_beta": 2.0
+    },
+    "value": {
+      "row_recall_context": 0.8571428571428571,
+      "rel_err_histogram": {
+        "exact_or_le_1pct": 0.6,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 0.0,
+        "20_to_100pct": 0.4,
+        "gt_100pct": 0.0
+      },
+      "range_err_histogram": {
+        "exact_or_le_1pct": 0.6,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 0.0,
+        "20_to_100pct": 0.4,
+        "gt_100pct": 0.0
+      },
+      "pass_at_tau": {
+        "0.01": 0.6,
+        "0.05": 0.6,
+        "0.2": 0.6
+      },
+      "pass_by_operator": {
+        "MAX": {
+          "0.01": 0.6,
+          "0.05": 0.6,
+          "0.2": 0.6
+        }
+      },
+      "frac_catastrophic": 0.0,
+      "zero_true_count": 0,
+      "column_ranges": {
+        "max_championships": {
+          "min": 1.0,
+          "max": 1.0
+        }
+      }
+    },
+    "grouping": {
+      "merge_rate": 0.0,
+      "split_rate": 0.0
+    },
+    "structure_score": 0.8333333333333333,
+    "structure_fbeta_score": 0.8333333333333333,
+    "structure_f1_score": 0.7999999999999999,
+    "structure_beta": 2.0,
+    "cell_f1": {
+      "0.01": 0.39999999999999997,
+      "0.05": 0.39999999999999997,
+      "0.2": 0.39999999999999997
+    },
+    "query_score": {
+      "0.01": 0.33333333333333326,
+      "0.05": 0.33333333333333326,
+      "0.2": 0.33333333333333326
+    }
+  },
+  "docetl_metrics": {
+    "official_query_error": 0.4687499999999999,
+    "official_accuracy": 0.5312500000000001,
+    "gold_row_count": 7,
+    "predicted_row_count": 9,
+    "schema": {
+      "key_columns": [
+        "nationality"
+      ],
+      "measure_columns": [
+        "max_championships"
+      ],
+      "operators": {
+        "max_championships": "MAX"
+      },
+      "is_aggregation": true,
+      "has_groupby": true
+    },
+    "rank": {
+      "structure_score": 0.8108108108108107,
+      "structure_fbeta_score": 0.8108108108108107,
+      "structure_f1_score": 0.75,
+      "structure_beta": 2.0,
+      "cell_f1": {
+        "0.01": 0.5,
+        "0.05": 0.5,
+        "0.2": 0.5
+      },
+      "query_score": {
+        "0.01": 0.4054054054054054,
+        "0.05": 0.4054054054054054,
+        "0.2": 0.4054054054054054
+      }
+    },
+    "structure": {
+      "column": {
+        "key": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "measure": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "all": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        }
+      },
+      "row": {
+        "exact": {
+          "P": 0.5555555555555556,
+          "R": 0.7142857142857143,
+          "F1": 0.6250000000000001,
+          "F_beta": 0.6756756756756757,
+          "beta": 2.0
+        },
+        "normalized": {
+          "P": 0.5555555555555556,
+          "R": 0.7142857142857143,
+          "F1": 0.6250000000000001,
+          "F_beta": 0.6756756756756757,
+          "beta": 2.0
+        },
+        "semantic": {
+          "P": 0.6666666666666666,
+          "R": 0.8571428571428571,
+          "F1": 0.75,
+          "F_beta": 0.8108108108108107,
+          "beta": 2.0
+        }
+      },
+      "key_alignment_failed": false,
+      "missing_key_columns": [],
+      "structure_score": 0.8108108108108107,
+      "structure_fbeta_score": 0.8108108108108107,
+      "structure_f1_score": 0.75,
+      "structure_beta": 2.0
+    },
+    "value": {
+      "row_recall_context": 0.8571428571428571,
+      "rel_err_histogram": {
+        "exact_or_le_1pct": 0.8,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 0.0,
+        "20_to_100pct": 0.2,
+        "gt_100pct": 0.0
+      },
+      "range_err_histogram": {
+        "exact_or_le_1pct": 0.8,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 0.0,
+        "20_to_100pct": 0.2,
+        "gt_100pct": 0.0
+      },
+      "pass_at_tau": {
+        "0.01": 0.8,
+        "0.05": 0.8,
+        "0.2": 0.8
+      },
+      "pass_by_operator": {
+        "MAX": {
+          "0.01": 0.8,
+          "0.05": 0.8,
+          "0.2": 0.8
+        }
+      },
+      "frac_catastrophic": 0.0,
+      "zero_true_count": 0,
+      "column_ranges": {
+        "max_championships": {
+          "min": 1.0,
+          "max": 1.0
+        }
+      }
+    },
+    "grouping": {
+      "merge_rate": 0.0,
+      "split_rate": 0.0
+    },
+    "structure_score": 0.8108108108108107,
+    "structure_fbeta_score": 0.8108108108108107,
+    "structure_f1_score": 0.75,
+    "structure_beta": 2.0,
+    "cell_f1": {
+      "0.01": 0.5,
+      "0.05": 0.5,
+      "0.2": 0.5
+    },
+    "query_score": {
+      "0.01": 0.4054054054054054,
+      "0.05": 0.4054054054054054,
+      "0.2": 0.4054054054054054
+    }
+  },
+  "quwarts_differences": {
+    "missing_rows": [
+      {
+        "nationality": "Dominican",
+        "max_championships": 1
+      },
+      {
+        "nationality": "Nigerian-American",
+        "max_championships": 1
+      }
+    ],
+    "extra_rows": [
+      {
+        "nationality": "Dominican Republic",
+        "max_championships": 2
+      },
+      {
+        "nationality": "Nigerian",
+        "max_championships": 1
+      },
+      {
+        "nationality": "Yugoslav",
+        "max_championships": 2
+      }
+    ],
+    "wrong_values": [
+      {
+        "key": {
+          "nationality": "American"
+        },
+        "differences": {
+          "max_championships": {
+            "gold": "",
+            "predicted": 6
+          }
+        }
+      },
+      {
+        "key": {
+          "nationality": "Canadian"
+        },
+        "differences": {
+          "max_championships": {
+            "gold": 1,
+            "predicted": 6
+          }
+        }
+      }
+    ]
+  },
+  "docetl_differences": {
+    "missing_rows": [
+      {
+        "nationality": "British",
+        "max_championships": 1
+      },
+      {
+        "nationality": "Greek and Nigerian",
+        "max_championships": 1
+      }
+    ],
+    "extra_rows": [
+      {
+        "nationality": "Croatian",
+        "max_championships": 1
+      },
+      {
+        "nationality": "Dutch",
+        "max_championships": 2
+      },
+      {
+        "nationality": "Greek",
+        "max_championships": 1
+      },
+      {
+        "nationality": "Slovenian",
+        "max_championships": 1
+      }
+    ],
+    "wrong_values": [
+      {
+        "key": {
+          "nationality": "American"
+        },
+        "differences": {
+          "max_championships": {
+            "gold": "",
+            "predicted": 9
+          }
+        }
+      },
+      {
+        "key": {
+          "nationality": "Nigerian-American"
+        },
+        "differences": {
+          "max_championships": {
+            "gold": 1,
+            "predicted": 2
+          }
+        }
+      }
+    ]
+  }
+}

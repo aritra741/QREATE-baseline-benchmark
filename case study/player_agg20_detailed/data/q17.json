@@ -1,0 +1,388 @@
+{
+  "query_id": "q17",
+  "natural_language_query": "Among owners who acquired their team in 2000 or later, what is the earliest acquisition year for each nationality?",
+  "reference_sql": "SELECT nationality, MIN(own_year) AS earliest_own_year FROM owner WHERE own_year >= 2000 GROUP BY nationality",
+  "quwarts_sql": "SELECT nationality, MIN(own_year) AS earliest_own_year FROM owner WHERE own_year >= 2000 GROUP BY nationality",
+  "quwarts_config_id": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+  "schema": {
+    "key_columns": [
+      "nationality"
+    ],
+    "measure_columns": [
+      "earliest_own_year"
+    ],
+    "operators": {
+      "earliest_own_year": "MIN"
+    },
+    "is_aggregation": true,
+    "has_groupby": true
+  },
+  "gold": [
+    {
+      "nationality": "American",
+      "earliest_own_year": 2000
+    },
+    {
+      "nationality": "Taiwanese-Canadian",
+      "earliest_own_year": 2019
+    }
+  ],
+  "quwarts": [
+    {
+      "nationality": "American",
+      "earliest_own_year": 2008
+    },
+    {
+      "nationality": "Sicilian descent",
+      "earliest_own_year": 2017
+    },
+    {
+      "nationality": "U.S.",
+      "earliest_own_year": 2005
+    }
+  ],
+  "docetl": [
+    {
+      "nationality": "",
+      "earliest_own_year": 2000
+    },
+    {
+      "nationality": "American",
+      "earliest_own_year": 2000
+    }
+  ],
+  "quwarts_metrics": {
+    "official_query_error": 0.600796812749004,
+    "official_accuracy": 0.399203187250996,
+    "gold_row_count": 2,
+    "predicted_row_count": 3,
+    "schema": {
+      "key_columns": [
+        "nationality"
+      ],
+      "measure_columns": [
+        "earliest_own_year"
+      ],
+      "operators": {
+        "earliest_own_year": "MIN"
+      },
+      "is_aggregation": true,
+      "has_groupby": true
+    },
+    "rank": {
+      "structure_score": 0.45454545454545453,
+      "structure_fbeta_score": 0.45454545454545453,
+      "structure_f1_score": 0.4,
+      "structure_beta": 2.0,
+      "cell_f1": {
+        "0.01": 0.0,
+        "0.05": 0.0,
+        "0.2": 0.0
+      },
+      "query_score": {
+        "0.01": 0.0,
+        "0.05": 0.0,
+        "0.2": 0.0
+      }
+    },
+    "structure": {
+      "column": {
+        "key": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "measure": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "all": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        }
+      },
+      "row": {
+        "exact": {
+          "P": 0.3333333333333333,
+          "R": 0.5,
+          "F1": 0.4,
+          "F_beta": 0.45454545454545453,
+          "beta": 2.0
+        },
+        "normalized": {
+          "P": 0.3333333333333333,
+          "R": 0.5,
+          "F1": 0.4,
+          "F_beta": 0.45454545454545453,
+          "beta": 2.0
+        },
+        "semantic": {
+          "P": 0.3333333333333333,
+          "R": 0.5,
+          "F1": 0.4,
+          "F_beta": 0.45454545454545453,
+          "beta": 2.0
+        }
+      },
+      "key_alignment_failed": false,
+      "missing_key_columns": [],
+      "structure_score": 0.45454545454545453,
+      "structure_fbeta_score": 0.45454545454545453,
+      "structure_f1_score": 0.4,
+      "structure_beta": 2.0
+    },
+    "value": {
+      "row_recall_context": 0.5,
+      "rel_err_histogram": {
+        "exact_or_le_1pct": 0.0,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 0.0,
+        "20_to_100pct": 1.0,
+        "gt_100pct": 0.0
+      },
+      "range_err_histogram": {
+        "exact_or_le_1pct": 0.0,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 0.0,
+        "20_to_100pct": 1.0,
+        "gt_100pct": 0.0
+      },
+      "pass_at_tau": {
+        "0.01": 0.0,
+        "0.05": 0.0,
+        "0.2": 0.0
+      },
+      "pass_by_operator": {
+        "MIN": {
+          "0.01": 0.0,
+          "0.05": 0.0,
+          "0.2": 0.0
+        }
+      },
+      "frac_catastrophic": 0.0,
+      "zero_true_count": 0,
+      "column_ranges": {
+        "earliest_own_year": {
+          "min": 2000.0,
+          "max": 2019.0
+        }
+      }
+    },
+    "grouping": {
+      "merge_rate": 0.0,
+      "split_rate": 0.0
+    },
+    "structure_score": 0.45454545454545453,
+    "structure_fbeta_score": 0.45454545454545453,
+    "structure_f1_score": 0.4,
+    "structure_beta": 2.0,
+    "cell_f1": {
+      "0.01": 0.0,
+      "0.05": 0.0,
+      "0.2": 0.0
+    },
+    "query_score": {
+      "0.01": 0.0,
+      "0.05": 0.0,
+      "0.2": 0.0
+    }
+  },
+  "docetl_metrics": {
+    "official_query_error": 0.5,
+    "official_accuracy": 0.5,
+    "gold_row_count": 2,
+    "predicted_row_count": 2,
+    "schema": {
+      "key_columns": [
+        "nationality"
+      ],
+      "measure_columns": [
+        "earliest_own_year"
+      ],
+      "operators": {
+        "earliest_own_year": "MIN"
+      },
+      "is_aggregation": true,
+      "has_groupby": true
+    },
+    "rank": {
+      "structure_score": 0.5,
+      "structure_fbeta_score": 0.5,
+      "structure_f1_score": 0.5,
+      "structure_beta": 2.0,
+      "cell_f1": {
+        "0.01": 0.5,
+        "0.05": 0.5,
+        "0.2": 0.5
+      },
+      "query_score": {
+        "0.01": 0.25,
+        "0.05": 0.25,
+        "0.2": 0.25
+      }
+    },
+    "structure": {
+      "column": {
+        "key": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "measure": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "all": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        }
+      },
+      "row": {
+        "exact": {
+          "P": 0.5,
+          "R": 0.5,
+          "F1": 0.5,
+          "F_beta": 0.5,
+          "beta": 2.0
+        },
+        "normalized": {
+          "P": 0.5,
+          "R": 0.5,
+          "F1": 0.5,
+          "F_beta": 0.5,
+          "beta": 2.0
+        },
+        "semantic": {
+          "P": 0.5,
+          "R": 0.5,
+          "F1": 0.5,
+          "F_beta": 0.5,
+          "beta": 2.0
+        }
+      },
+      "key_alignment_failed": false,
+      "missing_key_columns": [],
+      "structure_score": 0.5,
+      "structure_fbeta_score": 0.5,
+      "structure_f1_score": 0.5,
+      "structure_beta": 2.0
+    },
+    "value": {
+      "row_recall_context": 0.5,
+      "rel_err_histogram": {
+        "exact_or_le_1pct": 1.0,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 0.0,
+        "20_to_100pct": 0.0,
+        "gt_100pct": 0.0
+      },
+      "range_err_histogram": {
+        "exact_or_le_1pct": 1.0,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 0.0,
+        "20_to_100pct": 0.0,
+        "gt_100pct": 0.0
+      },
+      "pass_at_tau": {
+        "0.01": 1.0,
+        "0.05": 1.0,
+        "0.2": 1.0
+      },
+      "pass_by_operator": {
+        "MIN": {
+          "0.01": 1.0,
+          "0.05": 1.0,
+          "0.2": 1.0
+        }
+      },
+      "frac_catastrophic": 0.0,
+      "zero_true_count": 0,
+      "column_ranges": {
+        "earliest_own_year": {
+          "min": 2000.0,
+          "max": 2019.0
+        }
+      }
+    },
+    "grouping": {
+      "merge_rate": 0.0,
+      "split_rate": 0.0
+    },
+    "structure_score": 0.5,
+    "structure_fbeta_score": 0.5,
+    "structure_f1_score": 0.5,
+    "structure_beta": 2.0,
+    "cell_f1": {
+      "0.01": 0.5,
+      "0.05": 0.5,
+      "0.2": 0.5
+    },
+    "query_score": {
+      "0.01": 0.25,
+      "0.05": 0.25,
+      "0.2": 0.25
+    }
+  },
+  "quwarts_differences": {
+    "missing_rows": [
+      {
+        "nationality": "Taiwanese-Canadian",
+        "earliest_own_year": 2019
+      }
+    ],
+    "extra_rows": [
+      {
+        "nationality": "Sicilian descent",
+        "earliest_own_year": 2017
+      },
+      {
+        "nationality": "U.S.",
+        "earliest_own_year": 2005
+      }
+    ],
+    "wrong_values": [
+      {
+        "key": {
+          "nationality": "American"
+        },
+        "differences": {
+          "earliest_own_year": {
+            "gold": 2000,
+            "predicted": 2008
+          }
+        }
+      }
+    ]
+  },
+  "docetl_differences": {
+    "missing_rows": [
+      {
+        "nationality": "Taiwanese-Canadian",
+        "earliest_own_year": 2019
+      }
+    ],
+    "extra_rows": [
+      {
+        "nationality": "",
+        "earliest_own_year": 2000
+      }
+    ],
+    "wrong_values": []
+  }
+}

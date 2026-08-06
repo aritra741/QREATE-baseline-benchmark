@@ -1,0 +1,761 @@
+{
+  "query_id": "q15",
+  "natural_language_query": "Among teams with at least one championship, what is the average number of championships for teams in each city?",
+  "reference_sql": "SELECT location, AVG(championship) AS avg_championships FROM team WHERE championship >= 1 AND location != '' GROUP BY location",
+  "quwarts_sql": "SELECT location, AVG(championship) AS avg_championships FROM team WHERE championship >= 1 AND location != '' GROUP BY location",
+  "quwarts_config_id": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+  "schema": {
+    "key_columns": [
+      "location"
+    ],
+    "measure_columns": [
+      "avg_championships"
+    ],
+    "operators": {
+      "avg_championships": "AVG"
+    },
+    "is_aggregation": true,
+    "has_groupby": true
+  },
+  "gold": [
+    {
+      "location": "Atlanta",
+      "avg_championships": 1.0
+    },
+    {
+      "location": "Boston",
+      "avg_championships": 18.0
+    },
+    {
+      "location": "Chicago",
+      "avg_championships": 6.0
+    },
+    {
+      "location": "Cleveland",
+      "avg_championships": 1.0
+    },
+    {
+      "location": "Dallas",
+      "avg_championships": 1.0
+    },
+    {
+      "location": "Denver",
+      "avg_championships": 1.0
+    },
+    {
+      "location": "Detroit",
+      "avg_championships": 3.0
+    },
+    {
+      "location": "Houston",
+      "avg_championships": 2.0
+    },
+    {
+      "location": "Indianapolis",
+      "avg_championships": 3.0
+    },
+    {
+      "location": "Los Angeles",
+      "avg_championships": 17.0
+    },
+    {
+      "location": "Miami",
+      "avg_championships": 3.0
+    },
+    {
+      "location": "Milwaukee",
+      "avg_championships": 2.0
+    },
+    {
+      "location": "New York City",
+      "avg_championships": 2.0
+    },
+    {
+      "location": "Philadelphia",
+      "avg_championships": 3.0
+    },
+    {
+      "location": "Portland",
+      "avg_championships": 1.0
+    },
+    {
+      "location": "Sacramento",
+      "avg_championships": 1.0
+    },
+    {
+      "location": "San Antonio",
+      "avg_championships": 5.0
+    },
+    {
+      "location": "San Francisco",
+      "avg_championships": 7.0
+    },
+    {
+      "location": "Toronto",
+      "avg_championships": 1.0
+    },
+    {
+      "location": "Washington",
+      "avg_championships": 1.0
+    }
+  ],
+  "quwarts": [
+    {
+      "location": "Auburn Hills",
+      "avg_championships": 3.0
+    },
+    {
+      "location": "Boston",
+      "avg_championships": 18.0
+    },
+    {
+      "location": "Chicago",
+      "avg_championships": 6.0
+    },
+    {
+      "location": "Cleveland",
+      "avg_championships": 6.0
+    },
+    {
+      "location": "Dallas",
+      "avg_championships": 1.0
+    },
+    {
+      "location": "Denver",
+      "avg_championships": 1.0
+    },
+    {
+      "location": "Houston",
+      "avg_championships": 2.0
+    },
+    {
+      "location": "Indianapolis",
+      "avg_championships": 3.0
+    },
+    {
+      "location": "Los Angeles",
+      "avg_championships": 17.0
+    },
+    {
+      "location": "Manhattan",
+      "avg_championships": 2.0
+    },
+    {
+      "location": "Miami",
+      "avg_championships": 3.0
+    },
+    {
+      "location": "Milwaukee",
+      "avg_championships": 2.0
+    },
+    {
+      "location": "Orlando, Florida",
+      "avg_championships": 2.0
+    },
+    {
+      "location": "Philadelphia metropolitan area",
+      "avg_championships": 5.0
+    },
+    {
+      "location": "Portland, Oregon",
+      "avg_championships": 1977.0
+    },
+    {
+      "location": "San Antonio",
+      "avg_championships": 7.0
+    },
+    {
+      "location": "San Francisco",
+      "avg_championships": 6.0
+    },
+    {
+      "location": "Toronto",
+      "avg_championships": 1.0
+    },
+    {
+      "location": "Washington, D.C.",
+      "avg_championships": 1.0
+    }
+  ],
+  "docetl": [
+    {
+      "location": "Charlotte, North Carolina",
+      "avg_championships": 1.0
+    },
+    {
+      "location": "Chicago",
+      "avg_championships": 6.0
+    },
+    {
+      "location": "Cleveland",
+      "avg_championships": 1.0
+    },
+    {
+      "location": "Dallas",
+      "avg_championships": 1.0
+    },
+    {
+      "location": "Denver",
+      "avg_championships": 1.0
+    },
+    {
+      "location": "Detroit",
+      "avg_championships": 3.0
+    },
+    {
+      "location": "Houston",
+      "avg_championships": 2.0
+    },
+    {
+      "location": "Indianapolis",
+      "avg_championships": 3.0
+    },
+    {
+      "location": "Kansas City",
+      "avg_championships": 1.0
+    },
+    {
+      "location": "Los Angeles",
+      "avg_championships": 3.0
+    },
+    {
+      "location": "Memphis, Tennessee",
+      "avg_championships": 1.0
+    },
+    {
+      "location": "Miami",
+      "avg_championships": 3.0
+    },
+    {
+      "location": "Milwaukee",
+      "avg_championships": 2.0
+    },
+    {
+      "location": "Minneapolis",
+      "avg_championships": 1.0
+    },
+    {
+      "location": "New Jersey",
+      "avg_championships": 2.0
+    },
+    {
+      "location": "New Orleans",
+      "avg_championships": 1.0
+    },
+    {
+      "location": "Oklahoma City",
+      "avg_championships": 1.0
+    },
+    {
+      "location": "Orlando, Florida",
+      "avg_championships": 2.0
+    },
+    {
+      "location": "Philadelphia",
+      "avg_championships": 3.0
+    },
+    {
+      "location": "Phoenix",
+      "avg_championships": 3.0
+    },
+    {
+      "location": "Portland",
+      "avg_championships": 1.0
+    },
+    {
+      "location": "Salt Lake City",
+      "avg_championships": 2.0
+    },
+    {
+      "location": "San Antonio",
+      "avg_championships": 5.0
+    },
+    {
+      "location": "San Francisco",
+      "avg_championships": 4.0
+    },
+    {
+      "location": "St. Louis",
+      "avg_championships": 1.0
+    },
+    {
+      "location": "Toronto",
+      "avg_championships": 1.0
+    }
+  ],
+  "quwarts_metrics": {
+    "official_query_error": 0.36523199023199027,
+    "official_accuracy": 0.6347680097680097,
+    "gold_row_count": 20,
+    "predicted_row_count": 19,
+    "schema": {
+      "key_columns": [
+        "location"
+      ],
+      "measure_columns": [
+        "avg_championships"
+      ],
+      "operators": {
+        "avg_championships": "AVG"
+      },
+      "is_aggregation": true,
+      "has_groupby": true
+    },
+    "rank": {
+      "structure_score": 0.7070707070707071,
+      "structure_fbeta_score": 0.7070707070707071,
+      "structure_f1_score": 0.717948717948718,
+      "structure_beta": 2.0,
+      "cell_f1": {
+        "0.01": 0.5128205128205129,
+        "0.05": 0.5128205128205129,
+        "0.2": 0.6666666666666667
+      },
+      "query_score": {
+        "0.01": 0.36260036260036266,
+        "0.05": 0.36260036260036266,
+        "0.2": 0.47138047138047146
+      }
+    },
+    "structure": {
+      "column": {
+        "key": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "measure": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "all": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        }
+      },
+      "row": {
+        "exact": {
+          "P": 0.6842105263157895,
+          "R": 0.65,
+          "F1": 0.6666666666666667,
+          "F_beta": 0.6565656565656566,
+          "beta": 2.0
+        },
+        "normalized": {
+          "P": 0.6842105263157895,
+          "R": 0.65,
+          "F1": 0.6666666666666667,
+          "F_beta": 0.6565656565656566,
+          "beta": 2.0
+        },
+        "semantic": {
+          "P": 0.7368421052631579,
+          "R": 0.7,
+          "F1": 0.717948717948718,
+          "F_beta": 0.7070707070707071,
+          "beta": 2.0
+        }
+      },
+      "key_alignment_failed": false,
+      "missing_key_columns": [],
+      "structure_score": 0.7070707070707071,
+      "structure_fbeta_score": 0.7070707070707071,
+      "structure_f1_score": 0.717948717948718,
+      "structure_beta": 2.0
+    },
+    "value": {
+      "row_recall_context": 0.7,
+      "rel_err_histogram": {
+        "exact_or_le_1pct": 0.7142857142857143,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 0.21428571428571427,
+        "20_to_100pct": 0.07142857142857142,
+        "gt_100pct": 0.0
+      },
+      "range_err_histogram": {
+        "exact_or_le_1pct": 0.7142857142857143,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 0.21428571428571427,
+        "20_to_100pct": 0.07142857142857142,
+        "gt_100pct": 0.0
+      },
+      "pass_at_tau": {
+        "0.01": 0.7142857142857143,
+        "0.05": 0.7142857142857143,
+        "0.2": 0.9285714285714286
+      },
+      "pass_by_operator": {
+        "AVG": {
+          "0.01": 0.7142857142857143,
+          "0.05": 0.7142857142857143,
+          "0.2": 0.9285714285714286
+        }
+      },
+      "frac_catastrophic": 0.0,
+      "zero_true_count": 0,
+      "column_ranges": {
+        "avg_championships": {
+          "min": 1.0,
+          "max": 18.0
+        }
+      }
+    },
+    "grouping": {
+      "merge_rate": 0.0,
+      "split_rate": 0.0
+    },
+    "structure_score": 0.7070707070707071,
+    "structure_fbeta_score": 0.7070707070707071,
+    "structure_f1_score": 0.717948717948718,
+    "structure_beta": 2.0,
+    "cell_f1": {
+      "0.01": 0.5128205128205129,
+      "0.05": 0.5128205128205129,
+      "0.2": 0.6666666666666667
+    },
+    "query_score": {
+      "0.01": 0.36260036260036266,
+      "0.05": 0.36260036260036266,
+      "0.2": 0.47138047138047146
+    }
+  },
+  "docetl_metrics": {
+    "official_query_error": 0.3641654978962132,
+    "official_accuracy": 0.6358345021037868,
+    "gold_row_count": 20,
+    "predicted_row_count": 26,
+    "schema": {
+      "key_columns": [
+        "location"
+      ],
+      "measure_columns": [
+        "avg_championships"
+      ],
+      "operators": {
+        "avg_championships": "AVG"
+      },
+      "is_aggregation": true,
+      "has_groupby": true
+    },
+    "rank": {
+      "structure_score": 0.7075471698113207,
+      "structure_fbeta_score": 0.7075471698113207,
+      "structure_f1_score": 0.6521739130434783,
+      "structure_beta": 2.0,
+      "cell_f1": {
+        "0.01": 0.5652173913043479,
+        "0.05": 0.5652173913043479,
+        "0.2": 0.608695652173913
+      },
+      "query_score": {
+        "0.01": 0.39991796554552916,
+        "0.05": 0.39991796554552916,
+        "0.2": 0.4306808859721082
+      }
+    },
+    "structure": {
+      "column": {
+        "key": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "measure": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "all": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        }
+      },
+      "row": {
+        "exact": {
+          "P": 0.5769230769230769,
+          "R": 0.75,
+          "F1": 0.6521739130434783,
+          "F_beta": 0.7075471698113207,
+          "beta": 2.0
+        },
+        "normalized": {
+          "P": 0.5769230769230769,
+          "R": 0.75,
+          "F1": 0.6521739130434783,
+          "F_beta": 0.7075471698113207,
+          "beta": 2.0
+        },
+        "semantic": {
+          "P": 0.5769230769230769,
+          "R": 0.75,
+          "F1": 0.6521739130434783,
+          "F_beta": 0.7075471698113207,
+          "beta": 2.0
+        }
+      },
+      "key_alignment_failed": false,
+      "missing_key_columns": [],
+      "structure_score": 0.7075471698113207,
+      "structure_fbeta_score": 0.7075471698113207,
+      "structure_f1_score": 0.6521739130434783,
+      "structure_beta": 2.0
+    },
+    "value": {
+      "row_recall_context": 0.75,
+      "rel_err_histogram": {
+        "exact_or_le_1pct": 0.8666666666666667,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 0.06666666666666667,
+        "20_to_100pct": 0.06666666666666667,
+        "gt_100pct": 0.0
+      },
+      "range_err_histogram": {
+        "exact_or_le_1pct": 0.8666666666666667,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 0.06666666666666667,
+        "20_to_100pct": 0.06666666666666667,
+        "gt_100pct": 0.0
+      },
+      "pass_at_tau": {
+        "0.01": 0.8666666666666667,
+        "0.05": 0.8666666666666667,
+        "0.2": 0.9333333333333333
+      },
+      "pass_by_operator": {
+        "AVG": {
+          "0.01": 0.8666666666666667,
+          "0.05": 0.8666666666666667,
+          "0.2": 0.9333333333333333
+        }
+      },
+      "frac_catastrophic": 0.0,
+      "zero_true_count": 0,
+      "column_ranges": {
+        "avg_championships": {
+          "min": 1.0,
+          "max": 18.0
+        }
+      }
+    },
+    "grouping": {
+      "merge_rate": 0.0,
+      "split_rate": 0.0
+    },
+    "structure_score": 0.7075471698113207,
+    "structure_fbeta_score": 0.7075471698113207,
+    "structure_f1_score": 0.6521739130434783,
+    "structure_beta": 2.0,
+    "cell_f1": {
+      "0.01": 0.5652173913043479,
+      "0.05": 0.5652173913043479,
+      "0.2": 0.608695652173913
+    },
+    "query_score": {
+      "0.01": 0.39991796554552916,
+      "0.05": 0.39991796554552916,
+      "0.2": 0.4306808859721082
+    }
+  },
+  "quwarts_differences": {
+    "missing_rows": [
+      {
+        "location": "Atlanta",
+        "avg_championships": 1.0
+      },
+      {
+        "location": "Detroit",
+        "avg_championships": 3.0
+      },
+      {
+        "location": "New York City",
+        "avg_championships": 2.0
+      },
+      {
+        "location": "Philadelphia",
+        "avg_championships": 3.0
+      },
+      {
+        "location": "Portland",
+        "avg_championships": 1.0
+      },
+      {
+        "location": "Sacramento",
+        "avg_championships": 1.0
+      },
+      {
+        "location": "Washington",
+        "avg_championships": 1.0
+      }
+    ],
+    "extra_rows": [
+      {
+        "location": "Auburn Hills",
+        "avg_championships": 3.0
+      },
+      {
+        "location": "Manhattan",
+        "avg_championships": 2.0
+      },
+      {
+        "location": "Orlando, Florida",
+        "avg_championships": 2.0
+      },
+      {
+        "location": "Philadelphia metropolitan area",
+        "avg_championships": 5.0
+      },
+      {
+        "location": "Portland, Oregon",
+        "avg_championships": 1977.0
+      },
+      {
+        "location": "Washington, D.C.",
+        "avg_championships": 1.0
+      }
+    ],
+    "wrong_values": [
+      {
+        "key": {
+          "location": "Cleveland"
+        },
+        "differences": {
+          "avg_championships": {
+            "gold": 1.0,
+            "predicted": 6.0
+          }
+        }
+      },
+      {
+        "key": {
+          "location": "San Antonio"
+        },
+        "differences": {
+          "avg_championships": {
+            "gold": 5.0,
+            "predicted": 7.0
+          }
+        }
+      },
+      {
+        "key": {
+          "location": "San Francisco"
+        },
+        "differences": {
+          "avg_championships": {
+            "gold": 7.0,
+            "predicted": 6.0
+          }
+        }
+      }
+    ]
+  },
+  "docetl_differences": {
+    "missing_rows": [
+      {
+        "location": "Atlanta",
+        "avg_championships": 1.0
+      },
+      {
+        "location": "Boston",
+        "avg_championships": 18.0
+      },
+      {
+        "location": "New York City",
+        "avg_championships": 2.0
+      },
+      {
+        "location": "Sacramento",
+        "avg_championships": 1.0
+      },
+      {
+        "location": "Washington",
+        "avg_championships": 1.0
+      }
+    ],
+    "extra_rows": [
+      {
+        "location": "Charlotte, North Carolina",
+        "avg_championships": 1.0
+      },
+      {
+        "location": "Kansas City",
+        "avg_championships": 1.0
+      },
+      {
+        "location": "Memphis, Tennessee",
+        "avg_championships": 1.0
+      },
+      {
+        "location": "Minneapolis",
+        "avg_championships": 1.0
+      },
+      {
+        "location": "New Jersey",
+        "avg_championships": 2.0
+      },
+      {
+        "location": "New Orleans",
+        "avg_championships": 1.0
+      },
+      {
+        "location": "Oklahoma City",
+        "avg_championships": 1.0
+      },
+      {
+        "location": "Orlando, Florida",
+        "avg_championships": 2.0
+      },
+      {
+        "location": "Phoenix",
+        "avg_championships": 3.0
+      },
+      {
+        "location": "Salt Lake City",
+        "avg_championships": 2.0
+      },
+      {
+        "location": "St. Louis",
+        "avg_championships": 1.0
+      }
+    ],
+    "wrong_values": [
+      {
+        "key": {
+          "location": "Los Angeles"
+        },
+        "differences": {
+          "avg_championships": {
+            "gold": 17.0,
+            "predicted": 3.0
+          }
+        }
+      },
+      {
+        "key": {
+          "location": "San Francisco"
+        },
+        "differences": {
+          "avg_championships": {
+            "gold": 7.0,
+            "predicted": 4.0
+          }
+        }
+      }
+    ]
+  }
+}

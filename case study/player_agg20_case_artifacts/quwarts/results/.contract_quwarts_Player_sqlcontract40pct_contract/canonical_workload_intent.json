@@ -1,0 +1,1692 @@
+{
+  "cache_version": 4,
+  "fingerprint": "cee86acceffb234f7c8d2aeed37053a5bc75ad648f1a8329d778fc1c20c7ab4a",
+  "intent": {
+    "analysis_diagnostics": {
+      "_workload": {
+        "input_mode": "sql_contract",
+        "parser": "sqlglot",
+        "plan_contracts": {},
+        "rejected_query_ids": []
+      }
+    },
+    "attribute_frequency": {
+      "age": 3,
+      "championship": 3,
+      "college": 2,
+      "draft_pick": 1,
+      "draft_year": 1,
+      "fiba_world_cup": 1,
+      "founded_year": 1,
+      "gdp": 1,
+      "location": 3,
+      "mvp_awards": 2,
+      "nationality": 5,
+      "nba_championships": 3,
+      "olympic_gold_medals": 1,
+      "own_year": 1,
+      "ownership": 1,
+      "population": 2,
+      "position": 3,
+      "state_name": 2,
+      "team": 3,
+      "team_name": 3
+    },
+    "entity_frequency": {
+      "city": 2,
+      "owner": 2,
+      "player": 12,
+      "team": 7
+    },
+    "operator_frequency": {
+      "avg": 6,
+      "count": 6,
+      "filter": 18,
+      "group_by": 20,
+      "having": 1,
+      "join": 3,
+      "max": 4,
+      "min": 2,
+      "sum": 3
+    },
+    "requirements": [
+      {
+        "attribute_bindings": [
+          [
+            "player",
+            "position"
+          ],
+          [
+            "player",
+            "age"
+          ]
+        ],
+        "attributes": [
+          "position",
+          "age"
+        ],
+        "entities": [
+          "player"
+        ],
+        "operators": [
+          "avg",
+          "group_by",
+          "filter"
+        ],
+        "plan": {
+          "aggregates": [
+            {
+              "alias": "avg_age",
+              "attribute": {
+                "attribute": "age",
+                "entity": "player",
+                "semantic_type": "real"
+              },
+              "distinct": false,
+              "function": "avg"
+            }
+          ],
+          "group_by": [
+            {
+              "attribute": "position",
+              "entity": "player",
+              "semantic_type": "text"
+            }
+          ],
+          "having": [],
+          "joins": [],
+          "predicate": {
+            "attribute": null,
+            "children": [
+              {
+                "attribute": {
+                  "attribute": "position",
+                  "entity": "player",
+                  "semantic_type": "text"
+                },
+                "children": [],
+                "kind": "predicate",
+                "operator": "=",
+                "value": "Frontcourt"
+              },
+              {
+                "attribute": {
+                  "attribute": "position",
+                  "entity": "player",
+                  "semantic_type": "text"
+                },
+                "children": [],
+                "kind": "predicate",
+                "operator": "=",
+                "value": "Backcourt"
+              }
+            ],
+            "kind": "or",
+            "operator": "=",
+            "value": null
+          },
+          "projections": [
+            {
+              "attribute": "position",
+              "entity": "player",
+              "semantic_type": "text"
+            }
+          ]
+        },
+        "query_id": "q0",
+        "relationships": [],
+        "text": "SELECT position, AVG(age) AS avg_age FROM player WHERE position IN ('Frontcourt', 'Backcourt') GROUP BY position",
+        "units": []
+      },
+      {
+        "attribute_bindings": [
+          [
+            "player",
+            "nationality"
+          ]
+        ],
+        "attributes": [
+          "nationality"
+        ],
+        "entities": [
+          "player"
+        ],
+        "operators": [
+          "count",
+          "group_by",
+          "filter"
+        ],
+        "plan": {
+          "aggregates": [
+            {
+              "alias": "player_count",
+              "attribute": null,
+              "distinct": false,
+              "function": "count"
+            }
+          ],
+          "group_by": [
+            {
+              "attribute": "nationality",
+              "entity": "player",
+              "semantic_type": "text"
+            }
+          ],
+          "having": [],
+          "joins": [],
+          "predicate": {
+            "attribute": {
+              "attribute": "nationality",
+              "entity": "player",
+              "semantic_type": "text"
+            },
+            "children": [],
+            "kind": "predicate",
+            "operator": "!=",
+            "value": ""
+          },
+          "projections": [
+            {
+              "attribute": "nationality",
+              "entity": "player",
+              "semantic_type": "text"
+            }
+          ]
+        },
+        "query_id": "q1",
+        "relationships": [],
+        "text": "SELECT nationality, COUNT(*) AS player_count FROM player WHERE nationality != '' GROUP BY nationality",
+        "units": []
+      },
+      {
+        "attribute_bindings": [
+          [
+            "player",
+            "team"
+          ],
+          [
+            "player",
+            "nba_championships"
+          ],
+          [
+            "team",
+            "team_name"
+          ]
+        ],
+        "attributes": [
+          "team",
+          "nba_championships",
+          "team_name"
+        ],
+        "entities": [
+          "player",
+          "team"
+        ],
+        "operators": [
+          "avg",
+          "group_by",
+          "join"
+        ],
+        "plan": {
+          "aggregates": [
+            {
+              "alias": "avg_championships",
+              "attribute": {
+                "attribute": "nba_championships",
+                "entity": "player",
+                "semantic_type": "real"
+              },
+              "distinct": false,
+              "function": "avg"
+            }
+          ],
+          "group_by": [
+            {
+              "attribute": "team",
+              "entity": "player",
+              "semantic_type": "text"
+            }
+          ],
+          "having": [],
+          "joins": [
+            {
+              "join_type": "inner",
+              "left": {
+                "attribute": "team",
+                "entity": "player",
+                "semantic_type": "text"
+              },
+              "right": {
+                "attribute": "team_name",
+                "entity": "team",
+                "semantic_type": "text"
+              }
+            }
+          ],
+          "predicate": null,
+          "projections": [
+            {
+              "attribute": "team",
+              "entity": "player",
+              "semantic_type": "text"
+            }
+          ]
+        },
+        "query_id": "q2",
+        "relationships": [
+          [
+            "player",
+            "team=team_name",
+            "team"
+          ]
+        ],
+        "text": "SELECT p.team, AVG(p.nba_championships) AS avg_championships FROM player p JOIN team t ON p.team = t.team_name GROUP BY p.team",
+        "units": []
+      },
+      {
+        "attribute_bindings": [
+          [
+            "player",
+            "college"
+          ],
+          [
+            "player",
+            "mvp_awards"
+          ]
+        ],
+        "attributes": [
+          "college",
+          "mvp_awards"
+        ],
+        "entities": [
+          "player"
+        ],
+        "operators": [
+          "count",
+          "max",
+          "group_by",
+          "filter",
+          "having"
+        ],
+        "plan": {
+          "aggregates": [
+            {
+              "alias": "max_mvp_awards",
+              "attribute": {
+                "attribute": "mvp_awards",
+                "entity": "player",
+                "semantic_type": "real"
+              },
+              "distinct": false,
+              "function": "max"
+            }
+          ],
+          "group_by": [
+            {
+              "attribute": "college",
+              "entity": "player",
+              "semantic_type": "text"
+            }
+          ],
+          "having": [
+            {
+              "aggregate": {
+                "alias": "",
+                "attribute": null,
+                "distinct": false,
+                "function": "count"
+              },
+              "operator": ">",
+              "value": 1
+            }
+          ],
+          "joins": [],
+          "predicate": {
+            "attribute": {
+              "attribute": "college",
+              "entity": "player",
+              "semantic_type": "text"
+            },
+            "children": [],
+            "kind": "predicate",
+            "operator": "!=",
+            "value": ""
+          },
+          "projections": [
+            {
+              "attribute": "college",
+              "entity": "player",
+              "semantic_type": "text"
+            }
+          ]
+        },
+        "query_id": "q3",
+        "relationships": [],
+        "text": "SELECT college, MAX(mvp_awards) AS max_mvp_awards FROM player WHERE college != '' GROUP BY college HAVING COUNT(*) > 1",
+        "units": []
+      },
+      {
+        "attribute_bindings": [
+          [
+            "player",
+            "position"
+          ],
+          [
+            "player",
+            "mvp_awards"
+          ]
+        ],
+        "attributes": [
+          "position",
+          "mvp_awards"
+        ],
+        "entities": [
+          "player"
+        ],
+        "operators": [
+          "sum",
+          "group_by",
+          "filter"
+        ],
+        "plan": {
+          "aggregates": [
+            {
+              "alias": "total_mvp_awards",
+              "attribute": {
+                "attribute": "mvp_awards",
+                "entity": "player",
+                "semantic_type": "integer"
+              },
+              "distinct": false,
+              "function": "sum"
+            }
+          ],
+          "group_by": [
+            {
+              "attribute": "position",
+              "entity": "player",
+              "semantic_type": "text"
+            }
+          ],
+          "having": [],
+          "joins": [],
+          "predicate": {
+            "attribute": null,
+            "children": [
+              {
+                "attribute": {
+                  "attribute": "position",
+                  "entity": "player",
+                  "semantic_type": "text"
+                },
+                "children": [],
+                "kind": "predicate",
+                "operator": "=",
+                "value": "Frontcourt"
+              },
+              {
+                "attribute": {
+                  "attribute": "position",
+                  "entity": "player",
+                  "semantic_type": "text"
+                },
+                "children": [],
+                "kind": "predicate",
+                "operator": "=",
+                "value": "Backcourt"
+              }
+            ],
+            "kind": "or",
+            "operator": "=",
+            "value": null
+          },
+          "projections": [
+            {
+              "attribute": "position",
+              "entity": "player",
+              "semantic_type": "text"
+            }
+          ]
+        },
+        "query_id": "q4",
+        "relationships": [],
+        "text": "SELECT position, SUM(mvp_awards) AS total_mvp_awards FROM player WHERE position IN ('Frontcourt', 'Backcourt') GROUP BY position",
+        "units": []
+      },
+      {
+        "attribute_bindings": [
+          [
+            "player",
+            "nationality"
+          ],
+          [
+            "player",
+            "nba_championships"
+          ]
+        ],
+        "attributes": [
+          "nationality",
+          "nba_championships"
+        ],
+        "entities": [
+          "player"
+        ],
+        "operators": [
+          "max",
+          "group_by",
+          "filter"
+        ],
+        "plan": {
+          "aggregates": [
+            {
+              "alias": "max_championships",
+              "attribute": {
+                "attribute": "nba_championships",
+                "entity": "player",
+                "semantic_type": "real"
+              },
+              "distinct": false,
+              "function": "max"
+            }
+          ],
+          "group_by": [
+            {
+              "attribute": "nationality",
+              "entity": "player",
+              "semantic_type": "text"
+            }
+          ],
+          "having": [],
+          "joins": [],
+          "predicate": {
+            "attribute": null,
+            "children": [
+              {
+                "attribute": {
+                  "attribute": "nba_championships",
+                  "entity": "player",
+                  "semantic_type": "integer"
+                },
+                "children": [],
+                "kind": "predicate",
+                "operator": ">=",
+                "value": 1
+              },
+              {
+                "attribute": {
+                  "attribute": "nationality",
+                  "entity": "player",
+                  "semantic_type": "text"
+                },
+                "children": [],
+                "kind": "predicate",
+                "operator": "!=",
+                "value": ""
+              }
+            ],
+            "kind": "and",
+            "operator": "=",
+            "value": null
+          },
+          "projections": [
+            {
+              "attribute": "nationality",
+              "entity": "player",
+              "semantic_type": "text"
+            }
+          ]
+        },
+        "query_id": "q5",
+        "relationships": [],
+        "text": "SELECT nationality, MAX(nba_championships) AS max_championships FROM player WHERE nba_championships >= 1 AND nationality != '' GROUP BY nationality",
+        "units": []
+      },
+      {
+        "attribute_bindings": [
+          [
+            "player",
+            "draft_year"
+          ]
+        ],
+        "attributes": [
+          "draft_year"
+        ],
+        "entities": [
+          "player"
+        ],
+        "operators": [
+          "count",
+          "group_by",
+          "filter"
+        ],
+        "plan": {
+          "aggregates": [
+            {
+              "alias": "player_count",
+              "attribute": null,
+              "distinct": false,
+              "function": "count"
+            }
+          ],
+          "group_by": [
+            {
+              "attribute": "draft_year",
+              "entity": "player",
+              "semantic_type": "text"
+            }
+          ],
+          "having": [],
+          "joins": [],
+          "predicate": {
+            "attribute": {
+              "attribute": "draft_year",
+              "entity": "player",
+              "semantic_type": "integer"
+            },
+            "children": [],
+            "kind": "predicate",
+            "operator": ">",
+            "value": 2010
+          },
+          "projections": [
+            {
+              "attribute": "draft_year",
+              "entity": "player",
+              "semantic_type": "text"
+            }
+          ]
+        },
+        "query_id": "q6",
+        "relationships": [],
+        "text": "SELECT draft_year, COUNT(*) AS player_count FROM player WHERE draft_year > 2010 GROUP BY draft_year",
+        "units": []
+      },
+      {
+        "attribute_bindings": [
+          [
+            "player",
+            "team"
+          ],
+          [
+            "player",
+            "draft_pick"
+          ],
+          [
+            "team",
+            "team_name"
+          ]
+        ],
+        "attributes": [
+          "team",
+          "draft_pick",
+          "team_name"
+        ],
+        "entities": [
+          "player",
+          "team"
+        ],
+        "operators": [
+          "min",
+          "group_by",
+          "filter",
+          "join"
+        ],
+        "plan": {
+          "aggregates": [
+            {
+              "alias": "earliest_draft_pick",
+              "attribute": {
+                "attribute": "draft_pick",
+                "entity": "player",
+                "semantic_type": "real"
+              },
+              "distinct": false,
+              "function": "min"
+            }
+          ],
+          "group_by": [
+            {
+              "attribute": "team",
+              "entity": "player",
+              "semantic_type": "text"
+            }
+          ],
+          "having": [],
+          "joins": [
+            {
+              "join_type": "inner",
+              "left": {
+                "attribute": "team",
+                "entity": "player",
+                "semantic_type": "text"
+              },
+              "right": {
+                "attribute": "team_name",
+                "entity": "team",
+                "semantic_type": "text"
+              }
+            }
+          ],
+          "predicate": {
+            "attribute": {
+              "attribute": "draft_pick",
+              "entity": "player",
+              "semantic_type": "integer"
+            },
+            "children": [],
+            "kind": "predicate",
+            "operator": ">",
+            "value": 0
+          },
+          "projections": [
+            {
+              "attribute": "team",
+              "entity": "player",
+              "semantic_type": "text"
+            }
+          ]
+        },
+        "query_id": "q7",
+        "relationships": [
+          [
+            "player",
+            "team=team_name",
+            "team"
+          ]
+        ],
+        "text": "SELECT p.team, MIN(p.draft_pick) AS earliest_draft_pick FROM player p JOIN team t ON p.team = t.team_name WHERE p.draft_pick > 0 GROUP BY p.team",
+        "units": []
+      },
+      {
+        "attribute_bindings": [
+          [
+            "player",
+            "position"
+          ],
+          [
+            "player",
+            "olympic_gold_medals"
+          ]
+        ],
+        "attributes": [
+          "position",
+          "olympic_gold_medals"
+        ],
+        "entities": [
+          "player"
+        ],
+        "operators": [
+          "avg",
+          "group_by",
+          "filter"
+        ],
+        "plan": {
+          "aggregates": [
+            {
+              "alias": "avg_olympic_golds",
+              "attribute": {
+                "attribute": "olympic_gold_medals",
+                "entity": "player",
+                "semantic_type": "real"
+              },
+              "distinct": false,
+              "function": "avg"
+            }
+          ],
+          "group_by": [
+            {
+              "attribute": "position",
+              "entity": "player",
+              "semantic_type": "text"
+            }
+          ],
+          "having": [],
+          "joins": [],
+          "predicate": {
+            "attribute": null,
+            "children": [
+              {
+                "attribute": {
+                  "attribute": "olympic_gold_medals",
+                  "entity": "player",
+                  "semantic_type": "integer"
+                },
+                "children": [],
+                "kind": "predicate",
+                "operator": ">=",
+                "value": 1
+              },
+              {
+                "attribute": null,
+                "children": [
+                  {
+                    "attribute": {
+                      "attribute": "position",
+                      "entity": "player",
+                      "semantic_type": "text"
+                    },
+                    "children": [],
+                    "kind": "predicate",
+                    "operator": "=",
+                    "value": "Frontcourt"
+                  },
+                  {
+                    "attribute": {
+                      "attribute": "position",
+                      "entity": "player",
+                      "semantic_type": "text"
+                    },
+                    "children": [],
+                    "kind": "predicate",
+                    "operator": "=",
+                    "value": "Backcourt"
+                  }
+                ],
+                "kind": "or",
+                "operator": "=",
+                "value": null
+              }
+            ],
+            "kind": "and",
+            "operator": "=",
+            "value": null
+          },
+          "projections": [
+            {
+              "attribute": "position",
+              "entity": "player",
+              "semantic_type": "text"
+            }
+          ]
+        },
+        "query_id": "q8",
+        "relationships": [],
+        "text": "SELECT position, AVG(olympic_gold_medals) AS avg_olympic_golds FROM player WHERE olympic_gold_medals >= 1 AND position IN ('Frontcourt', 'Backcourt') GROUP BY position",
+        "units": []
+      },
+      {
+        "attribute_bindings": [
+          [
+            "player",
+            "college"
+          ],
+          [
+            "player",
+            "nba_championships"
+          ]
+        ],
+        "attributes": [
+          "college",
+          "nba_championships"
+        ],
+        "entities": [
+          "player"
+        ],
+        "operators": [
+          "count",
+          "group_by",
+          "filter"
+        ],
+        "plan": {
+          "aggregates": [
+            {
+              "alias": "champion_count",
+              "attribute": null,
+              "distinct": false,
+              "function": "count"
+            }
+          ],
+          "group_by": [
+            {
+              "attribute": "college",
+              "entity": "player",
+              "semantic_type": "text"
+            }
+          ],
+          "having": [],
+          "joins": [],
+          "predicate": {
+            "attribute": null,
+            "children": [
+              {
+                "attribute": {
+                  "attribute": "nba_championships",
+                  "entity": "player",
+                  "semantic_type": "integer"
+                },
+                "children": [],
+                "kind": "predicate",
+                "operator": ">=",
+                "value": 1
+              },
+              {
+                "attribute": {
+                  "attribute": "college",
+                  "entity": "player",
+                  "semantic_type": "text"
+                },
+                "children": [],
+                "kind": "predicate",
+                "operator": "!=",
+                "value": ""
+              }
+            ],
+            "kind": "and",
+            "operator": "=",
+            "value": null
+          },
+          "projections": [
+            {
+              "attribute": "college",
+              "entity": "player",
+              "semantic_type": "text"
+            }
+          ]
+        },
+        "query_id": "q9",
+        "relationships": [],
+        "text": "SELECT college, COUNT(*) AS champion_count FROM player WHERE nba_championships >= 1 AND college != '' GROUP BY college",
+        "units": []
+      },
+      {
+        "attribute_bindings": [
+          [
+            "player",
+            "team"
+          ],
+          [
+            "player",
+            "fiba_world_cup"
+          ],
+          [
+            "team",
+            "team_name"
+          ]
+        ],
+        "attributes": [
+          "team",
+          "fiba_world_cup",
+          "team_name"
+        ],
+        "entities": [
+          "player",
+          "team"
+        ],
+        "operators": [
+          "sum",
+          "group_by",
+          "filter",
+          "join"
+        ],
+        "plan": {
+          "aggregates": [
+            {
+              "alias": "total_fiba_titles",
+              "attribute": {
+                "attribute": "fiba_world_cup",
+                "entity": "player",
+                "semantic_type": "integer"
+              },
+              "distinct": false,
+              "function": "sum"
+            }
+          ],
+          "group_by": [
+            {
+              "attribute": "team",
+              "entity": "player",
+              "semantic_type": "text"
+            }
+          ],
+          "having": [],
+          "joins": [
+            {
+              "join_type": "inner",
+              "left": {
+                "attribute": "team",
+                "entity": "player",
+                "semantic_type": "text"
+              },
+              "right": {
+                "attribute": "team_name",
+                "entity": "team",
+                "semantic_type": "text"
+              }
+            }
+          ],
+          "predicate": {
+            "attribute": {
+              "attribute": "fiba_world_cup",
+              "entity": "player",
+              "semantic_type": "integer"
+            },
+            "children": [],
+            "kind": "predicate",
+            "operator": ">=",
+            "value": 1
+          },
+          "projections": [
+            {
+              "attribute": "team",
+              "entity": "player",
+              "semantic_type": "text"
+            }
+          ]
+        },
+        "query_id": "q10",
+        "relationships": [
+          [
+            "player",
+            "team=team_name",
+            "team"
+          ]
+        ],
+        "text": "SELECT p.team, SUM(p.fiba_world_cup) AS total_fiba_titles FROM player p JOIN team t ON p.team = t.team_name WHERE p.fiba_world_cup >= 1 GROUP BY p.team",
+        "units": []
+      },
+      {
+        "attribute_bindings": [
+          [
+            "player",
+            "nationality"
+          ],
+          [
+            "player",
+            "age"
+          ]
+        ],
+        "attributes": [
+          "nationality",
+          "age"
+        ],
+        "entities": [
+          "player"
+        ],
+        "operators": [
+          "count",
+          "group_by",
+          "filter"
+        ],
+        "plan": {
+          "aggregates": [
+            {
+              "alias": "player_count",
+              "attribute": null,
+              "distinct": false,
+              "function": "count"
+            }
+          ],
+          "group_by": [
+            {
+              "attribute": "nationality",
+              "entity": "player",
+              "semantic_type": "text"
+            }
+          ],
+          "having": [],
+          "joins": [],
+          "predicate": {
+            "attribute": null,
+            "children": [
+              {
+                "attribute": null,
+                "children": [
+                  {
+                    "attribute": {
+                      "attribute": "age",
+                      "entity": "player",
+                      "semantic_type": "integer"
+                    },
+                    "children": [],
+                    "kind": "predicate",
+                    "operator": ">=",
+                    "value": 20
+                  },
+                  {
+                    "attribute": {
+                      "attribute": "age",
+                      "entity": "player",
+                      "semantic_type": "integer"
+                    },
+                    "children": [],
+                    "kind": "predicate",
+                    "operator": "<=",
+                    "value": 40
+                  }
+                ],
+                "kind": "and",
+                "operator": "=",
+                "value": null
+              },
+              {
+                "attribute": {
+                  "attribute": "nationality",
+                  "entity": "player",
+                  "semantic_type": "text"
+                },
+                "children": [],
+                "kind": "predicate",
+                "operator": "!=",
+                "value": ""
+              }
+            ],
+            "kind": "and",
+            "operator": "=",
+            "value": null
+          },
+          "projections": [
+            {
+              "attribute": "nationality",
+              "entity": "player",
+              "semantic_type": "text"
+            }
+          ]
+        },
+        "query_id": "q11",
+        "relationships": [],
+        "text": "SELECT nationality, COUNT(*) AS player_count FROM player WHERE age BETWEEN 20 AND 40 AND nationality != '' GROUP BY nationality",
+        "units": []
+      },
+      {
+        "attribute_bindings": [
+          [
+            "team",
+            "location"
+          ],
+          [
+            "team",
+            "championship"
+          ]
+        ],
+        "attributes": [
+          "location",
+          "championship"
+        ],
+        "entities": [
+          "team"
+        ],
+        "operators": [
+          "max",
+          "group_by",
+          "filter"
+        ],
+        "plan": {
+          "aggregates": [
+            {
+              "alias": "max_championships",
+              "attribute": {
+                "attribute": "championship",
+                "entity": "team",
+                "semantic_type": "real"
+              },
+              "distinct": false,
+              "function": "max"
+            }
+          ],
+          "group_by": [
+            {
+              "attribute": "location",
+              "entity": "team",
+              "semantic_type": "text"
+            }
+          ],
+          "having": [],
+          "joins": [],
+          "predicate": {
+            "attribute": {
+              "attribute": "location",
+              "entity": "team",
+              "semantic_type": "text"
+            },
+            "children": [],
+            "kind": "predicate",
+            "operator": "!=",
+            "value": ""
+          },
+          "projections": [
+            {
+              "attribute": "location",
+              "entity": "team",
+              "semantic_type": "text"
+            }
+          ]
+        },
+        "query_id": "q12",
+        "relationships": [],
+        "text": "SELECT location, MAX(championship) AS max_championships FROM team WHERE location != '' GROUP BY location",
+        "units": []
+      },
+      {
+        "attribute_bindings": [
+          [
+            "team",
+            "location"
+          ],
+          [
+            "team",
+            "founded_year"
+          ]
+        ],
+        "attributes": [
+          "location",
+          "founded_year"
+        ],
+        "entities": [
+          "team"
+        ],
+        "operators": [
+          "count",
+          "group_by",
+          "filter"
+        ],
+        "plan": {
+          "aggregates": [
+            {
+              "alias": "team_count",
+              "attribute": null,
+              "distinct": false,
+              "function": "count"
+            }
+          ],
+          "group_by": [
+            {
+              "attribute": "location",
+              "entity": "team",
+              "semantic_type": "text"
+            }
+          ],
+          "having": [],
+          "joins": [],
+          "predicate": {
+            "attribute": null,
+            "children": [
+              {
+                "attribute": {
+                  "attribute": "founded_year",
+                  "entity": "team",
+                  "semantic_type": "integer"
+                },
+                "children": [],
+                "kind": "predicate",
+                "operator": "<",
+                "value": 1970
+              },
+              {
+                "attribute": {
+                  "attribute": "location",
+                  "entity": "team",
+                  "semantic_type": "text"
+                },
+                "children": [],
+                "kind": "predicate",
+                "operator": "!=",
+                "value": ""
+              }
+            ],
+            "kind": "and",
+            "operator": "=",
+            "value": null
+          },
+          "projections": [
+            {
+              "attribute": "location",
+              "entity": "team",
+              "semantic_type": "text"
+            }
+          ]
+        },
+        "query_id": "q13",
+        "relationships": [],
+        "text": "SELECT location, COUNT(*) AS team_count FROM team WHERE founded_year < 1970 AND location != '' GROUP BY location",
+        "units": []
+      },
+      {
+        "attribute_bindings": [
+          [
+            "team",
+            "ownership"
+          ],
+          [
+            "team",
+            "championship"
+          ]
+        ],
+        "attributes": [
+          "ownership",
+          "championship"
+        ],
+        "entities": [
+          "team"
+        ],
+        "operators": [
+          "sum",
+          "group_by",
+          "filter"
+        ],
+        "plan": {
+          "aggregates": [
+            {
+              "alias": "total_championships",
+              "attribute": {
+                "attribute": "championship",
+                "entity": "team",
+                "semantic_type": "integer"
+              },
+              "distinct": false,
+              "function": "sum"
+            }
+          ],
+          "group_by": [
+            {
+              "attribute": "ownership",
+              "entity": "team",
+              "semantic_type": "text"
+            }
+          ],
+          "having": [],
+          "joins": [],
+          "predicate": {
+            "attribute": {
+              "attribute": "ownership",
+              "entity": "team",
+              "semantic_type": "text"
+            },
+            "children": [],
+            "kind": "predicate",
+            "operator": "!=",
+            "value": ""
+          },
+          "projections": [
+            {
+              "attribute": "ownership",
+              "entity": "team",
+              "semantic_type": "text"
+            }
+          ]
+        },
+        "query_id": "q14",
+        "relationships": [],
+        "text": "SELECT ownership, SUM(championship) AS total_championships FROM team WHERE ownership != '' GROUP BY ownership",
+        "units": []
+      },
+      {
+        "attribute_bindings": [
+          [
+            "team",
+            "location"
+          ],
+          [
+            "team",
+            "championship"
+          ]
+        ],
+        "attributes": [
+          "location",
+          "championship"
+        ],
+        "entities": [
+          "team"
+        ],
+        "operators": [
+          "avg",
+          "group_by",
+          "filter"
+        ],
+        "plan": {
+          "aggregates": [
+            {
+              "alias": "avg_championships",
+              "attribute": {
+                "attribute": "championship",
+                "entity": "team",
+                "semantic_type": "real"
+              },
+              "distinct": false,
+              "function": "avg"
+            }
+          ],
+          "group_by": [
+            {
+              "attribute": "location",
+              "entity": "team",
+              "semantic_type": "text"
+            }
+          ],
+          "having": [],
+          "joins": [],
+          "predicate": {
+            "attribute": null,
+            "children": [
+              {
+                "attribute": {
+                  "attribute": "championship",
+                  "entity": "team",
+                  "semantic_type": "integer"
+                },
+                "children": [],
+                "kind": "predicate",
+                "operator": ">=",
+                "value": 1
+              },
+              {
+                "attribute": {
+                  "attribute": "location",
+                  "entity": "team",
+                  "semantic_type": "text"
+                },
+                "children": [],
+                "kind": "predicate",
+                "operator": "!=",
+                "value": ""
+              }
+            ],
+            "kind": "and",
+            "operator": "=",
+            "value": null
+          },
+          "projections": [
+            {
+              "attribute": "location",
+              "entity": "team",
+              "semantic_type": "text"
+            }
+          ]
+        },
+        "query_id": "q15",
+        "relationships": [],
+        "text": "SELECT location, AVG(championship) AS avg_championships FROM team WHERE championship >= 1 AND location != '' GROUP BY location",
+        "units": []
+      },
+      {
+        "attribute_bindings": [
+          [
+            "owner",
+            "nationality"
+          ],
+          [
+            "owner",
+            "age"
+          ]
+        ],
+        "attributes": [
+          "nationality",
+          "age"
+        ],
+        "entities": [
+          "owner"
+        ],
+        "operators": [
+          "avg",
+          "group_by"
+        ],
+        "plan": {
+          "aggregates": [
+            {
+              "alias": "avg_age",
+              "attribute": {
+                "attribute": "age",
+                "entity": "owner",
+                "semantic_type": "real"
+              },
+              "distinct": false,
+              "function": "avg"
+            }
+          ],
+          "group_by": [
+            {
+              "attribute": "nationality",
+              "entity": "owner",
+              "semantic_type": "text"
+            }
+          ],
+          "having": [],
+          "joins": [],
+          "predicate": null,
+          "projections": [
+            {
+              "attribute": "nationality",
+              "entity": "owner",
+              "semantic_type": "text"
+            }
+          ]
+        },
+        "query_id": "q16",
+        "relationships": [],
+        "text": "SELECT nationality, AVG(age) AS avg_age FROM owner GROUP BY nationality",
+        "units": []
+      },
+      {
+        "attribute_bindings": [
+          [
+            "owner",
+            "nationality"
+          ],
+          [
+            "owner",
+            "own_year"
+          ]
+        ],
+        "attributes": [
+          "nationality",
+          "own_year"
+        ],
+        "entities": [
+          "owner"
+        ],
+        "operators": [
+          "min",
+          "group_by",
+          "filter"
+        ],
+        "plan": {
+          "aggregates": [
+            {
+              "alias": "earliest_own_year",
+              "attribute": {
+                "attribute": "own_year",
+                "entity": "owner",
+                "semantic_type": "real"
+              },
+              "distinct": false,
+              "function": "min"
+            }
+          ],
+          "group_by": [
+            {
+              "attribute": "nationality",
+              "entity": "owner",
+              "semantic_type": "text"
+            }
+          ],
+          "having": [],
+          "joins": [],
+          "predicate": {
+            "attribute": {
+              "attribute": "own_year",
+              "entity": "owner",
+              "semantic_type": "integer"
+            },
+            "children": [],
+            "kind": "predicate",
+            "operator": ">=",
+            "value": 2000
+          },
+          "projections": [
+            {
+              "attribute": "nationality",
+              "entity": "owner",
+              "semantic_type": "text"
+            }
+          ]
+        },
+        "query_id": "q17",
+        "relationships": [],
+        "text": "SELECT nationality, MIN(own_year) AS earliest_own_year FROM owner WHERE own_year >= 2000 GROUP BY nationality",
+        "units": []
+      },
+      {
+        "attribute_bindings": [
+          [
+            "city",
+            "state_name"
+          ],
+          [
+            "city",
+            "population"
+          ]
+        ],
+        "attributes": [
+          "state_name",
+          "population"
+        ],
+        "entities": [
+          "city"
+        ],
+        "operators": [
+          "avg",
+          "group_by",
+          "filter"
+        ],
+        "plan": {
+          "aggregates": [
+            {
+              "alias": "avg_population",
+              "attribute": {
+                "attribute": "population",
+                "entity": "city",
+                "semantic_type": "real"
+              },
+              "distinct": false,
+              "function": "avg"
+            }
+          ],
+          "group_by": [
+            {
+              "attribute": "state_name",
+              "entity": "city",
+              "semantic_type": "text"
+            }
+          ],
+          "having": [],
+          "joins": [],
+          "predicate": {
+            "attribute": {
+              "attribute": "state_name",
+              "entity": "city",
+              "semantic_type": "text"
+            },
+            "children": [],
+            "kind": "predicate",
+            "operator": "!=",
+            "value": ""
+          },
+          "projections": [
+            {
+              "attribute": "state_name",
+              "entity": "city",
+              "semantic_type": "text"
+            }
+          ]
+        },
+        "query_id": "q18",
+        "relationships": [],
+        "text": "SELECT state_name, AVG(population) AS avg_population FROM city WHERE state_name != '' GROUP BY state_name",
+        "units": []
+      },
+      {
+        "attribute_bindings": [
+          [
+            "city",
+            "state_name"
+          ],
+          [
+            "city",
+            "gdp"
+          ],
+          [
+            "city",
+            "population"
+          ]
+        ],
+        "attributes": [
+          "state_name",
+          "gdp",
+          "population"
+        ],
+        "entities": [
+          "city"
+        ],
+        "operators": [
+          "max",
+          "group_by",
+          "filter"
+        ],
+        "plan": {
+          "aggregates": [
+            {
+              "alias": "max_gdp",
+              "attribute": {
+                "attribute": "gdp",
+                "entity": "city",
+                "semantic_type": "real"
+              },
+              "distinct": false,
+              "function": "max"
+            }
+          ],
+          "group_by": [
+            {
+              "attribute": "state_name",
+              "entity": "city",
+              "semantic_type": "text"
+            }
+          ],
+          "having": [],
+          "joins": [],
+          "predicate": {
+            "attribute": null,
+            "children": [
+              {
+                "attribute": {
+                  "attribute": "population",
+                  "entity": "city",
+                  "semantic_type": "integer"
+                },
+                "children": [],
+                "kind": "predicate",
+                "operator": ">",
+                "value": 1000000
+              },
+              {
+                "attribute": {
+                  "attribute": "state_name",
+                  "entity": "city",
+                  "semantic_type": "text"
+                },
+                "children": [],
+                "kind": "predicate",
+                "operator": "!=",
+                "value": ""
+              }
+            ],
+            "kind": "and",
+            "operator": "=",
+            "value": null
+          },
+          "projections": [
+            {
+              "attribute": "state_name",
+              "entity": "city",
+              "semantic_type": "text"
+            }
+          ]
+        },
+        "query_id": "q19",
+        "relationships": [],
+        "text": "SELECT state_name, MAX(gdp) AS max_gdp FROM city WHERE population > 1000000 AND state_name != '' GROUP BY state_name",
+        "units": []
+      }
+    ],
+    "version": 1
+  }
+}

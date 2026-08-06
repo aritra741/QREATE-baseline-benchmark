@@ -1,0 +1,657 @@
+{
+  "query_id": "q10",
+  "natural_language_query": "Among players with at least one FIBA World Cup title, what is the total number of FIBA titles for each current NBA team?",
+  "reference_sql": "SELECT p.team, SUM(p.fiba_world_cup) AS total_fiba_titles FROM player p JOIN team t ON p.team = t.team_name WHERE p.fiba_world_cup >= 1 GROUP BY p.team",
+  "quwarts_sql": "SELECT p.team, SUM(p.fiba_world_cup) AS total_fiba_titles FROM player p JOIN team t ON p.team = t.team_name WHERE p.fiba_world_cup >= 1 GROUP BY p.team",
+  "quwarts_config_id": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+  "schema": {
+    "key_columns": [
+      "team"
+    ],
+    "measure_columns": [
+      "total_fiba_titles"
+    ],
+    "operators": {
+      "total_fiba_titles": "SUM"
+    },
+    "is_aggregation": true,
+    "has_groupby": true
+  },
+  "gold": [
+    {
+      "team": "Boston Celtics",
+      "total_fiba_titles": 1
+    },
+    {
+      "team": "Brooklyn Nets",
+      "total_fiba_titles": 1
+    },
+    {
+      "team": "Dallas Mavericks",
+      "total_fiba_titles": 1
+    },
+    {
+      "team": "Detroit Pistons",
+      "total_fiba_titles": 2
+    },
+    {
+      "team": "Golden State Warriors",
+      "total_fiba_titles": 4
+    },
+    {
+      "team": "Indiana Pacers",
+      "total_fiba_titles": 1
+    },
+    {
+      "team": "Los Angeles Clippers",
+      "total_fiba_titles": 0.0
+    },
+    {
+      "team": "Los Angeles Lakers",
+      "total_fiba_titles": 2
+    },
+    {
+      "team": "Miami Heat",
+      "total_fiba_titles": 1
+    },
+    {
+      "team": "Orlando Magic",
+      "total_fiba_titles": 1
+    },
+    {
+      "team": "Philadelphia 76ers",
+      "total_fiba_titles": 1
+    },
+    {
+      "team": "Phoenix Suns",
+      "total_fiba_titles": 1
+    },
+    {
+      "team": "Toronto Raptors",
+      "total_fiba_titles": 1
+    }
+  ],
+  "quwarts": [
+    {
+      "team": "Boston Celtics",
+      "total_fiba_titles": 2
+    },
+    {
+      "team": "Dallas Mavericks",
+      "total_fiba_titles": 1
+    },
+    {
+      "team": "Detroit Pistons",
+      "total_fiba_titles": 2
+    },
+    {
+      "team": "Golden State Warriors",
+      "total_fiba_titles": 3
+    },
+    {
+      "team": "Indiana Pacers",
+      "total_fiba_titles": 1986
+    },
+    {
+      "team": "Los Angeles Lakers",
+      "total_fiba_titles": 2010
+    },
+    {
+      "team": "Memphis Grizzlies",
+      "total_fiba_titles": 1
+    },
+    {
+      "team": "Miami Heat",
+      "total_fiba_titles": 2025
+    },
+    {
+      "team": "Minnesota Timberwolves",
+      "total_fiba_titles": 1
+    },
+    {
+      "team": "New York Knicks",
+      "total_fiba_titles": 1
+    },
+    {
+      "team": "Philadelphia 76ers",
+      "total_fiba_titles": 1
+    },
+    {
+      "team": "Phoenix Suns",
+      "total_fiba_titles": 2
+    },
+    {
+      "team": "San Antonio Spurs",
+      "total_fiba_titles": 9
+    }
+  ],
+  "docetl": [
+    {
+      "team": "Atlanta Hawks",
+      "total_fiba_titles": 2
+    },
+    {
+      "team": "Brooklyn Nets",
+      "total_fiba_titles": 5
+    },
+    {
+      "team": "Charlotte Hornets",
+      "total_fiba_titles": 3
+    },
+    {
+      "team": "Detroit Pistons",
+      "total_fiba_titles": 2
+    },
+    {
+      "team": "Golden State Warriors",
+      "total_fiba_titles": 3
+    },
+    {
+      "team": "Houston Rockets",
+      "total_fiba_titles": 1
+    },
+    {
+      "team": "Indiana Pacers",
+      "total_fiba_titles": 1
+    },
+    {
+      "team": "Minnesota Timberwolves",
+      "total_fiba_titles": 1
+    },
+    {
+      "team": "Philadelphia 76ers",
+      "total_fiba_titles": 3
+    },
+    {
+      "team": "San Antonio Spurs",
+      "total_fiba_titles": 3
+    },
+    {
+      "team": "Toronto Raptors",
+      "total_fiba_titles": 1
+    }
+  ],
+  "quwarts_metrics": {
+    "official_query_error": 0.46915413935735295,
+    "official_accuracy": 0.530845860642647,
+    "gold_row_count": 13,
+    "predicted_row_count": 13,
+    "schema": {
+      "key_columns": [
+        "team"
+      ],
+      "measure_columns": [
+        "total_fiba_titles"
+      ],
+      "operators": {
+        "total_fiba_titles": "SUM"
+      },
+      "is_aggregation": true,
+      "has_groupby": true
+    },
+    "rank": {
+      "structure_score": 0.6923076923076923,
+      "structure_fbeta_score": 0.6923076923076923,
+      "structure_f1_score": 0.6923076923076923,
+      "structure_beta": 2.0,
+      "cell_f1": {
+        "0.01": 0.23076923076923078,
+        "0.05": 0.23076923076923078,
+        "0.2": 0.23076923076923078
+      },
+      "query_score": {
+        "0.01": 0.15976331360946747,
+        "0.05": 0.15976331360946747,
+        "0.2": 0.15976331360946747
+      }
+    },
+    "structure": {
+      "column": {
+        "key": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "measure": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "all": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        }
+      },
+      "row": {
+        "exact": {
+          "P": 0.6923076923076923,
+          "R": 0.6923076923076923,
+          "F1": 0.6923076923076923,
+          "F_beta": 0.6923076923076923,
+          "beta": 2.0
+        },
+        "normalized": {
+          "P": 0.6923076923076923,
+          "R": 0.6923076923076923,
+          "F1": 0.6923076923076923,
+          "F_beta": 0.6923076923076923,
+          "beta": 2.0
+        },
+        "semantic": {
+          "P": 0.6923076923076923,
+          "R": 0.6923076923076923,
+          "F1": 0.6923076923076923,
+          "F_beta": 0.6923076923076923,
+          "beta": 2.0
+        }
+      },
+      "key_alignment_failed": false,
+      "missing_key_columns": [],
+      "structure_score": 0.6923076923076923,
+      "structure_fbeta_score": 0.6923076923076923,
+      "structure_f1_score": 0.6923076923076923,
+      "structure_beta": 2.0
+    },
+    "value": {
+      "row_recall_context": 0.6923076923076923,
+      "rel_err_histogram": {
+        "exact_or_le_1pct": 0.3333333333333333,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 0.0,
+        "20_to_100pct": 0.3333333333333333,
+        "gt_100pct": 0.3333333333333333
+      },
+      "range_err_histogram": {
+        "exact_or_le_1pct": 0.3333333333333333,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 0.0,
+        "20_to_100pct": 0.3333333333333333,
+        "gt_100pct": 0.3333333333333333
+      },
+      "pass_at_tau": {
+        "0.01": 0.3333333333333333,
+        "0.05": 0.3333333333333333,
+        "0.2": 0.3333333333333333
+      },
+      "pass_by_operator": {
+        "SUM": {
+          "0.01": 0.3333333333333333,
+          "0.05": 0.3333333333333333,
+          "0.2": 0.3333333333333333
+        }
+      },
+      "frac_catastrophic": 0.3333333333333333,
+      "zero_true_count": 0,
+      "column_ranges": {
+        "total_fiba_titles": {
+          "min": 0.0,
+          "max": 4.0
+        }
+      }
+    },
+    "grouping": {
+      "merge_rate": 0.0,
+      "split_rate": 0.0
+    },
+    "structure_score": 0.6923076923076923,
+    "structure_fbeta_score": 0.6923076923076923,
+    "structure_f1_score": 0.6923076923076923,
+    "structure_beta": 2.0,
+    "cell_f1": {
+      "0.01": 0.23076923076923078,
+      "0.05": 0.23076923076923078,
+      "0.2": 0.23076923076923078
+    },
+    "query_score": {
+      "0.01": 0.15976331360946747,
+      "0.05": 0.15976331360946747,
+      "0.2": 0.15976331360946747
+    }
+  },
+  "docetl_metrics": {
+    "official_query_error": 0.5694444444444444,
+    "official_accuracy": 0.4305555555555556,
+    "gold_row_count": 13,
+    "predicted_row_count": 11,
+    "schema": {
+      "key_columns": [
+        "team"
+      ],
+      "measure_columns": [
+        "total_fiba_titles"
+      ],
+      "operators": {
+        "total_fiba_titles": "SUM"
+      },
+      "is_aggregation": true,
+      "has_groupby": true
+    },
+    "rank": {
+      "structure_score": 0.4761904761904762,
+      "structure_fbeta_score": 0.4761904761904762,
+      "structure_f1_score": 0.4999999999999999,
+      "structure_beta": 2.0,
+      "cell_f1": {
+        "0.01": 0.24999999999999994,
+        "0.05": 0.24999999999999994,
+        "0.2": 0.24999999999999994
+      },
+      "query_score": {
+        "0.01": 0.11904761904761903,
+        "0.05": 0.11904761904761903,
+        "0.2": 0.11904761904761903
+      }
+    },
+    "structure": {
+      "column": {
+        "key": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "measure": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "all": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        }
+      },
+      "row": {
+        "exact": {
+          "P": 0.5454545454545454,
+          "R": 0.46153846153846156,
+          "F1": 0.4999999999999999,
+          "F_beta": 0.4761904761904762,
+          "beta": 2.0
+        },
+        "normalized": {
+          "P": 0.5454545454545454,
+          "R": 0.46153846153846156,
+          "F1": 0.4999999999999999,
+          "F_beta": 0.4761904761904762,
+          "beta": 2.0
+        },
+        "semantic": {
+          "P": 0.5454545454545454,
+          "R": 0.46153846153846156,
+          "F1": 0.4999999999999999,
+          "F_beta": 0.4761904761904762,
+          "beta": 2.0
+        }
+      },
+      "key_alignment_failed": false,
+      "missing_key_columns": [],
+      "structure_score": 0.4761904761904762,
+      "structure_fbeta_score": 0.4761904761904762,
+      "structure_f1_score": 0.4999999999999999,
+      "structure_beta": 2.0
+    },
+    "value": {
+      "row_recall_context": 0.46153846153846156,
+      "rel_err_histogram": {
+        "exact_or_le_1pct": 0.5,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 0.0,
+        "20_to_100pct": 0.5,
+        "gt_100pct": 0.0
+      },
+      "range_err_histogram": {
+        "exact_or_le_1pct": 0.5,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 0.0,
+        "20_to_100pct": 0.5,
+        "gt_100pct": 0.0
+      },
+      "pass_at_tau": {
+        "0.01": 0.5,
+        "0.05": 0.5,
+        "0.2": 0.5
+      },
+      "pass_by_operator": {
+        "SUM": {
+          "0.01": 0.5,
+          "0.05": 0.5,
+          "0.2": 0.5
+        }
+      },
+      "frac_catastrophic": 0.0,
+      "zero_true_count": 0,
+      "column_ranges": {
+        "total_fiba_titles": {
+          "min": 0.0,
+          "max": 4.0
+        }
+      }
+    },
+    "grouping": {
+      "merge_rate": 0.0,
+      "split_rate": 0.0
+    },
+    "structure_score": 0.4761904761904762,
+    "structure_fbeta_score": 0.4761904761904762,
+    "structure_f1_score": 0.4999999999999999,
+    "structure_beta": 2.0,
+    "cell_f1": {
+      "0.01": 0.24999999999999994,
+      "0.05": 0.24999999999999994,
+      "0.2": 0.24999999999999994
+    },
+    "query_score": {
+      "0.01": 0.11904761904761903,
+      "0.05": 0.11904761904761903,
+      "0.2": 0.11904761904761903
+    }
+  },
+  "quwarts_differences": {
+    "missing_rows": [
+      {
+        "team": "Brooklyn Nets",
+        "total_fiba_titles": 1
+      },
+      {
+        "team": "Los Angeles Clippers",
+        "total_fiba_titles": 0.0
+      },
+      {
+        "team": "Orlando Magic",
+        "total_fiba_titles": 1
+      },
+      {
+        "team": "Toronto Raptors",
+        "total_fiba_titles": 1
+      }
+    ],
+    "extra_rows": [
+      {
+        "team": "Memphis Grizzlies",
+        "total_fiba_titles": 1
+      },
+      {
+        "team": "Minnesota Timberwolves",
+        "total_fiba_titles": 1
+      },
+      {
+        "team": "New York Knicks",
+        "total_fiba_titles": 1
+      },
+      {
+        "team": "San Antonio Spurs",
+        "total_fiba_titles": 9
+      }
+    ],
+    "wrong_values": [
+      {
+        "key": {
+          "team": "Boston Celtics"
+        },
+        "differences": {
+          "total_fiba_titles": {
+            "gold": 1,
+            "predicted": 2
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "Golden State Warriors"
+        },
+        "differences": {
+          "total_fiba_titles": {
+            "gold": 4,
+            "predicted": 3
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "Indiana Pacers"
+        },
+        "differences": {
+          "total_fiba_titles": {
+            "gold": 1,
+            "predicted": 1986
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "Los Angeles Lakers"
+        },
+        "differences": {
+          "total_fiba_titles": {
+            "gold": 2,
+            "predicted": 2010
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "Miami Heat"
+        },
+        "differences": {
+          "total_fiba_titles": {
+            "gold": 1,
+            "predicted": 2025
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "Phoenix Suns"
+        },
+        "differences": {
+          "total_fiba_titles": {
+            "gold": 1,
+            "predicted": 2
+          }
+        }
+      }
+    ]
+  },
+  "docetl_differences": {
+    "missing_rows": [
+      {
+        "team": "Boston Celtics",
+        "total_fiba_titles": 1
+      },
+      {
+        "team": "Dallas Mavericks",
+        "total_fiba_titles": 1
+      },
+      {
+        "team": "Los Angeles Clippers",
+        "total_fiba_titles": 0.0
+      },
+      {
+        "team": "Los Angeles Lakers",
+        "total_fiba_titles": 2
+      },
+      {
+        "team": "Miami Heat",
+        "total_fiba_titles": 1
+      },
+      {
+        "team": "Orlando Magic",
+        "total_fiba_titles": 1
+      },
+      {
+        "team": "Phoenix Suns",
+        "total_fiba_titles": 1
+      }
+    ],
+    "extra_rows": [
+      {
+        "team": "Atlanta Hawks",
+        "total_fiba_titles": 2
+      },
+      {
+        "team": "Charlotte Hornets",
+        "total_fiba_titles": 3
+      },
+      {
+        "team": "Houston Rockets",
+        "total_fiba_titles": 1
+      },
+      {
+        "team": "Minnesota Timberwolves",
+        "total_fiba_titles": 1
+      },
+      {
+        "team": "San Antonio Spurs",
+        "total_fiba_titles": 3
+      }
+    ],
+    "wrong_values": [
+      {
+        "key": {
+          "team": "Brooklyn Nets"
+        },
+        "differences": {
+          "total_fiba_titles": {
+            "gold": 1,
+            "predicted": 5
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "Golden State Warriors"
+        },
+        "differences": {
+          "total_fiba_titles": {
+            "gold": 4,
+            "predicted": 3
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "Philadelphia 76ers"
+        },
+        "differences": {
+          "total_fiba_titles": {
+            "gold": 1,
+            "predicted": 3
+          }
+        }
+      }
+    ]
+  }
+}

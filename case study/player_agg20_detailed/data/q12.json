@@ -1,0 +1,988 @@
+{
+  "query_id": "q12",
+  "natural_language_query": "For each city that hosts an NBA team, what is the most championships won by any team there?",
+  "reference_sql": "SELECT location, MAX(championship) AS max_championships FROM team WHERE location != '' GROUP BY location",
+  "quwarts_sql": "SELECT location, MAX(championship) AS max_championships FROM team WHERE location != '' GROUP BY location",
+  "quwarts_config_id": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+  "schema": {
+    "key_columns": [
+      "location"
+    ],
+    "measure_columns": [
+      "max_championships"
+    ],
+    "operators": {
+      "max_championships": "MAX"
+    },
+    "is_aggregation": true,
+    "has_groupby": true
+  },
+  "gold": [
+    {
+      "location": "Atlanta",
+      "max_championships": 1
+    },
+    {
+      "location": "Boston",
+      "max_championships": 18
+    },
+    {
+      "location": "Brooklyn",
+      "max_championships": 0
+    },
+    {
+      "location": "Charlotte",
+      "max_championships": 0
+    },
+    {
+      "location": "Chicago",
+      "max_championships": 6
+    },
+    {
+      "location": "Cleveland",
+      "max_championships": 1
+    },
+    {
+      "location": "Dallas",
+      "max_championships": 1
+    },
+    {
+      "location": "Denver",
+      "max_championships": 1
+    },
+    {
+      "location": "Detroit",
+      "max_championships": 3
+    },
+    {
+      "location": "Houston",
+      "max_championships": 2
+    },
+    {
+      "location": "Indianapolis",
+      "max_championships": 3
+    },
+    {
+      "location": "Los Angeles",
+      "max_championships": 17
+    },
+    {
+      "location": "Memphis",
+      "max_championships": 0
+    },
+    {
+      "location": "Miami",
+      "max_championships": 3
+    },
+    {
+      "location": "Milwaukee",
+      "max_championships": 2
+    },
+    {
+      "location": "Minneapolis",
+      "max_championships": 0
+    },
+    {
+      "location": "New Orleans",
+      "max_championships": 0
+    },
+    {
+      "location": "New York City",
+      "max_championships": 2
+    },
+    {
+      "location": "Oklahoma City",
+      "max_championships": 0
+    },
+    {
+      "location": "Orlando",
+      "max_championships": 0
+    },
+    {
+      "location": "Philadelphia",
+      "max_championships": 3
+    },
+    {
+      "location": "Phoenix",
+      "max_championships": 0
+    },
+    {
+      "location": "Portland",
+      "max_championships": 1
+    },
+    {
+      "location": "Sacramento",
+      "max_championships": 1
+    },
+    {
+      "location": "Salt Lake City",
+      "max_championships": 0
+    },
+    {
+      "location": "San Antonio",
+      "max_championships": 5
+    },
+    {
+      "location": "San Francisco",
+      "max_championships": 7
+    },
+    {
+      "location": "Toronto",
+      "max_championships": 1
+    },
+    {
+      "location": "Washington",
+      "max_championships": 1
+    }
+  ],
+  "quwarts": [
+    {
+      "location": "Auburn Hills",
+      "max_championships": 3
+    },
+    {
+      "location": "Boston",
+      "max_championships": 18
+    },
+    {
+      "location": "Brooklyn",
+      "max_championships": 0
+    },
+    {
+      "location": "Charlotte",
+      "max_championships": null
+    },
+    {
+      "location": "Charlotte, North Carolina",
+      "max_championships": null
+    },
+    {
+      "location": "Chicago",
+      "max_championships": 6
+    },
+    {
+      "location": "Cleveland",
+      "max_championships": 6
+    },
+    {
+      "location": "Dallas",
+      "max_championships": 1
+    },
+    {
+      "location": "Denver",
+      "max_championships": 1
+    },
+    {
+      "location": "Greater Los Angeles area",
+      "max_championships": null
+    },
+    {
+      "location": "Houston",
+      "max_championships": 2
+    },
+    {
+      "location": "Indianapolis",
+      "max_championships": 3
+    },
+    {
+      "location": "Los Angeles",
+      "max_championships": 17
+    },
+    {
+      "location": "Manhattan",
+      "max_championships": 2
+    },
+    {
+      "location": "Memphis",
+      "max_championships": null
+    },
+    {
+      "location": "Memphis, Tennessee",
+      "max_championships": null
+    },
+    {
+      "location": "Miami",
+      "max_championships": 3
+    },
+    {
+      "location": "Milwaukee",
+      "max_championships": 2
+    },
+    {
+      "location": "Minneapolis",
+      "max_championships": null
+    },
+    {
+      "location": "New Orleans",
+      "max_championships": null
+    },
+    {
+      "location": "New York metropolitan area",
+      "max_championships": null
+    },
+    {
+      "location": "Orlando, Florida",
+      "max_championships": 2
+    },
+    {
+      "location": "Philadelphia metropolitan area",
+      "max_championships": 5
+    },
+    {
+      "location": "Philadelphia, Pennsylvania, U.S.",
+      "max_championships": null
+    },
+    {
+      "location": "Phoenix, Arizona",
+      "max_championships": null
+    },
+    {
+      "location": "Portland, Oregon",
+      "max_championships": 1977
+    },
+    {
+      "location": "Salt Lake City",
+      "max_championships": null
+    },
+    {
+      "location": "San Antonio",
+      "max_championships": 7
+    },
+    {
+      "location": "San Francisco",
+      "max_championships": 6
+    },
+    {
+      "location": "Toronto",
+      "max_championships": 1
+    },
+    {
+      "location": "Washington, D.C.",
+      "max_championships": 1
+    }
+  ],
+  "docetl": [
+    {
+      "location": "Atlanta",
+      "max_championships": 1
+    },
+    {
+      "location": "Boston",
+      "max_championships": 18
+    },
+    {
+      "location": "Charlotte",
+      "max_championships": 4
+    },
+    {
+      "location": "Chicago",
+      "max_championships": 6
+    },
+    {
+      "location": "Cleveland",
+      "max_championships": 1
+    },
+    {
+      "location": "Dallas",
+      "max_championships": 1
+    },
+    {
+      "location": "Denver",
+      "max_championships": 1
+    },
+    {
+      "location": "Detroit",
+      "max_championships": 3
+    },
+    {
+      "location": "Houston",
+      "max_championships": 2
+    },
+    {
+      "location": "Indianapolis",
+      "max_championships": 3
+    },
+    {
+      "location": "Los Angeles",
+      "max_championships": 17
+    },
+    {
+      "location": "Memphis",
+      "max_championships": -1
+    },
+    {
+      "location": "Miami",
+      "max_championships": 3
+    },
+    {
+      "location": "Minneapolis",
+      "max_championships": 1
+    },
+    {
+      "location": "New Jersey",
+      "max_championships": 2
+    },
+    {
+      "location": "New Orleans",
+      "max_championships": -1
+    },
+    {
+      "location": "Oklahoma City",
+      "max_championships": 1
+    },
+    {
+      "location": "Orlando",
+      "max_championships": 2
+    },
+    {
+      "location": "Philadelphia",
+      "max_championships": 3
+    },
+    {
+      "location": "Phoenix",
+      "max_championships": 1
+    },
+    {
+      "location": "Portland",
+      "max_championships": 1
+    },
+    {
+      "location": "Sacramento",
+      "max_championships": -1
+    },
+    {
+      "location": "San Antonio",
+      "max_championships": 5
+    },
+    {
+      "location": "San Francisco",
+      "max_championships": 6
+    },
+    {
+      "location": "Toronto",
+      "max_championships": 5
+    },
+    {
+      "location": "Washington, D.C.",
+      "max_championships": 4
+    }
+  ],
+  "quwarts_metrics": {
+    "official_query_error": 0.470734126984127,
+    "official_accuracy": 0.529265873015873,
+    "gold_row_count": 29,
+    "predicted_row_count": 31,
+    "schema": {
+      "key_columns": [
+        "location"
+      ],
+      "measure_columns": [
+        "max_championships"
+      ],
+      "operators": {
+        "max_championships": "MAX"
+      },
+      "is_aggregation": true,
+      "has_groupby": true
+    },
+    "rank": {
+      "structure_score": 0.6802721088435374,
+      "structure_fbeta_score": 0.6802721088435374,
+      "structure_f1_score": 0.6666666666666667,
+      "structure_beta": 2.0,
+      "cell_f1": {
+        "0.01": 0.33333333333333337,
+        "0.05": 0.33333333333333337,
+        "0.2": 0.4333333333333333
+      },
+      "query_score": {
+        "0.01": 0.22675736961451248,
+        "0.05": 0.22675736961451248,
+        "0.2": 0.2947845804988662
+      }
+    },
+    "structure": {
+      "column": {
+        "key": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "measure": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "all": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        }
+      },
+      "row": {
+        "exact": {
+          "P": 0.6129032258064516,
+          "R": 0.6551724137931034,
+          "F1": 0.6333333333333333,
+          "F_beta": 0.6462585034013605,
+          "beta": 2.0
+        },
+        "normalized": {
+          "P": 0.6129032258064516,
+          "R": 0.6551724137931034,
+          "F1": 0.6333333333333333,
+          "F_beta": 0.6462585034013605,
+          "beta": 2.0
+        },
+        "semantic": {
+          "P": 0.6451612903225806,
+          "R": 0.6896551724137931,
+          "F1": 0.6666666666666667,
+          "F_beta": 0.6802721088435374,
+          "beta": 2.0
+        }
+      },
+      "key_alignment_failed": false,
+      "missing_key_columns": [],
+      "structure_score": 0.6802721088435374,
+      "structure_fbeta_score": 0.6802721088435374,
+      "structure_f1_score": 0.6666666666666667,
+      "structure_beta": 2.0
+    },
+    "value": {
+      "row_recall_context": 0.6896551724137931,
+      "rel_err_histogram": {
+        "exact_or_le_1pct": 0.7142857142857143,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 0.21428571428571427,
+        "20_to_100pct": 0.07142857142857142,
+        "gt_100pct": 0.0
+      },
+      "range_err_histogram": {
+        "exact_or_le_1pct": 0.7142857142857143,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 0.21428571428571427,
+        "20_to_100pct": 0.07142857142857142,
+        "gt_100pct": 0.0
+      },
+      "pass_at_tau": {
+        "0.01": 0.7142857142857143,
+        "0.05": 0.7142857142857143,
+        "0.2": 0.9285714285714286
+      },
+      "pass_by_operator": {
+        "MAX": {
+          "0.01": 0.7142857142857143,
+          "0.05": 0.7142857142857143,
+          "0.2": 0.9285714285714286
+        }
+      },
+      "frac_catastrophic": 0.0,
+      "zero_true_count": 1,
+      "column_ranges": {
+        "max_championships": {
+          "min": 0.0,
+          "max": 18.0
+        }
+      }
+    },
+    "grouping": {
+      "merge_rate": 0.0,
+      "split_rate": 0.034482758620689655
+    },
+    "structure_score": 0.6802721088435374,
+    "structure_fbeta_score": 0.6802721088435374,
+    "structure_f1_score": 0.6666666666666667,
+    "structure_beta": 2.0,
+    "cell_f1": {
+      "0.01": 0.33333333333333337,
+      "0.05": 0.33333333333333337,
+      "0.2": 0.4333333333333333
+    },
+    "query_score": {
+      "0.01": 0.22675736961451248,
+      "0.05": 0.22675736961451248,
+      "0.2": 0.2947845804988662
+    }
+  },
+  "docetl_metrics": {
+    "official_query_error": 0.28348484848484856,
+    "official_accuracy": 0.7165151515151514,
+    "gold_row_count": 29,
+    "predicted_row_count": 26,
+    "schema": {
+      "key_columns": [
+        "location"
+      ],
+      "measure_columns": [
+        "max_championships"
+      ],
+      "operators": {
+        "max_championships": "MAX"
+      },
+      "is_aggregation": true,
+      "has_groupby": true
+    },
+    "rank": {
+      "structure_score": 0.8450704225352114,
+      "structure_fbeta_score": 0.8450704225352114,
+      "structure_f1_score": 0.8727272727272727,
+      "structure_beta": 2.0,
+      "cell_f1": {
+        "0.01": 0.509090909090909,
+        "0.05": 0.509090909090909,
+        "0.2": 0.8
+      },
+      "query_score": {
+        "0.01": 0.43021766965428937,
+        "0.05": 0.43021766965428937,
+        "0.2": 0.6760563380281691
+      }
+    },
+    "structure": {
+      "column": {
+        "key": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "measure": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "all": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        }
+      },
+      "row": {
+        "exact": {
+          "P": 0.9230769230769231,
+          "R": 0.8275862068965517,
+          "F1": 0.8727272727272727,
+          "F_beta": 0.8450704225352114,
+          "beta": 2.0
+        },
+        "normalized": {
+          "P": 0.9230769230769231,
+          "R": 0.8275862068965517,
+          "F1": 0.8727272727272727,
+          "F_beta": 0.8450704225352114,
+          "beta": 2.0
+        },
+        "semantic": {
+          "P": 0.9230769230769231,
+          "R": 0.8275862068965517,
+          "F1": 0.8727272727272727,
+          "F_beta": 0.8450704225352114,
+          "beta": 2.0
+        }
+      },
+      "key_alignment_failed": false,
+      "missing_key_columns": [],
+      "structure_score": 0.8450704225352114,
+      "structure_fbeta_score": 0.8450704225352114,
+      "structure_f1_score": 0.8727272727272727,
+      "structure_beta": 2.0
+    },
+    "value": {
+      "row_recall_context": 0.8275862068965517,
+      "rel_err_histogram": {
+        "exact_or_le_1pct": 0.5833333333333334,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 0.3333333333333333,
+        "20_to_100pct": 0.08333333333333333,
+        "gt_100pct": 0.0
+      },
+      "range_err_histogram": {
+        "exact_or_le_1pct": 0.5833333333333334,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 0.3333333333333333,
+        "20_to_100pct": 0.08333333333333333,
+        "gt_100pct": 0.0
+      },
+      "pass_at_tau": {
+        "0.01": 0.5833333333333334,
+        "0.05": 0.5833333333333334,
+        "0.2": 0.9166666666666666
+      },
+      "pass_by_operator": {
+        "MAX": {
+          "0.01": 0.5833333333333334,
+          "0.05": 0.5833333333333334,
+          "0.2": 0.9166666666666666
+        }
+      },
+      "frac_catastrophic": 0.0,
+      "zero_true_count": 7,
+      "column_ranges": {
+        "max_championships": {
+          "min": 0.0,
+          "max": 18.0
+        }
+      }
+    },
+    "grouping": {
+      "merge_rate": 0.0,
+      "split_rate": 0.0
+    },
+    "structure_score": 0.8450704225352114,
+    "structure_fbeta_score": 0.8450704225352114,
+    "structure_f1_score": 0.8727272727272727,
+    "structure_beta": 2.0,
+    "cell_f1": {
+      "0.01": 0.509090909090909,
+      "0.05": 0.509090909090909,
+      "0.2": 0.8
+    },
+    "query_score": {
+      "0.01": 0.43021766965428937,
+      "0.05": 0.43021766965428937,
+      "0.2": 0.6760563380281691
+    }
+  },
+  "quwarts_differences": {
+    "missing_rows": [
+      {
+        "location": "Atlanta",
+        "max_championships": 1
+      },
+      {
+        "location": "Detroit",
+        "max_championships": 3
+      },
+      {
+        "location": "New York City",
+        "max_championships": 2
+      },
+      {
+        "location": "Oklahoma City",
+        "max_championships": 0
+      },
+      {
+        "location": "Orlando",
+        "max_championships": 0
+      },
+      {
+        "location": "Philadelphia",
+        "max_championships": 3
+      },
+      {
+        "location": "Phoenix",
+        "max_championships": 0
+      },
+      {
+        "location": "Portland",
+        "max_championships": 1
+      },
+      {
+        "location": "Sacramento",
+        "max_championships": 1
+      },
+      {
+        "location": "Washington",
+        "max_championships": 1
+      }
+    ],
+    "extra_rows": [
+      {
+        "location": "Auburn Hills",
+        "max_championships": 3
+      },
+      {
+        "location": "Charlotte, North Carolina",
+        "max_championships": null
+      },
+      {
+        "location": "Greater Los Angeles area",
+        "max_championships": null
+      },
+      {
+        "location": "Manhattan",
+        "max_championships": 2
+      },
+      {
+        "location": "Memphis, Tennessee",
+        "max_championships": null
+      },
+      {
+        "location": "New York metropolitan area",
+        "max_championships": null
+      },
+      {
+        "location": "Orlando, Florida",
+        "max_championships": 2
+      },
+      {
+        "location": "Philadelphia metropolitan area",
+        "max_championships": 5
+      },
+      {
+        "location": "Philadelphia, Pennsylvania, U.S.",
+        "max_championships": null
+      },
+      {
+        "location": "Phoenix, Arizona",
+        "max_championships": null
+      },
+      {
+        "location": "Portland, Oregon",
+        "max_championships": 1977
+      },
+      {
+        "location": "Washington, D.C.",
+        "max_championships": 1
+      }
+    ],
+    "wrong_values": [
+      {
+        "key": {
+          "location": "Charlotte"
+        },
+        "differences": {
+          "max_championships": {
+            "gold": 0,
+            "predicted": null
+          }
+        }
+      },
+      {
+        "key": {
+          "location": "Cleveland"
+        },
+        "differences": {
+          "max_championships": {
+            "gold": 1,
+            "predicted": 6
+          }
+        }
+      },
+      {
+        "key": {
+          "location": "Memphis"
+        },
+        "differences": {
+          "max_championships": {
+            "gold": 0,
+            "predicted": null
+          }
+        }
+      },
+      {
+        "key": {
+          "location": "Minneapolis"
+        },
+        "differences": {
+          "max_championships": {
+            "gold": 0,
+            "predicted": null
+          }
+        }
+      },
+      {
+        "key": {
+          "location": "New Orleans"
+        },
+        "differences": {
+          "max_championships": {
+            "gold": 0,
+            "predicted": null
+          }
+        }
+      },
+      {
+        "key": {
+          "location": "Salt Lake City"
+        },
+        "differences": {
+          "max_championships": {
+            "gold": 0,
+            "predicted": null
+          }
+        }
+      },
+      {
+        "key": {
+          "location": "San Antonio"
+        },
+        "differences": {
+          "max_championships": {
+            "gold": 5,
+            "predicted": 7
+          }
+        }
+      },
+      {
+        "key": {
+          "location": "San Francisco"
+        },
+        "differences": {
+          "max_championships": {
+            "gold": 7,
+            "predicted": 6
+          }
+        }
+      }
+    ]
+  },
+  "docetl_differences": {
+    "missing_rows": [
+      {
+        "location": "Brooklyn",
+        "max_championships": 0
+      },
+      {
+        "location": "Milwaukee",
+        "max_championships": 2
+      },
+      {
+        "location": "New York City",
+        "max_championships": 2
+      },
+      {
+        "location": "Salt Lake City",
+        "max_championships": 0
+      },
+      {
+        "location": "Washington",
+        "max_championships": 1
+      }
+    ],
+    "extra_rows": [
+      {
+        "location": "New Jersey",
+        "max_championships": 2
+      },
+      {
+        "location": "Washington, D.C.",
+        "max_championships": 4
+      }
+    ],
+    "wrong_values": [
+      {
+        "key": {
+          "location": "Charlotte"
+        },
+        "differences": {
+          "max_championships": {
+            "gold": 0,
+            "predicted": 4
+          }
+        }
+      },
+      {
+        "key": {
+          "location": "Memphis"
+        },
+        "differences": {
+          "max_championships": {
+            "gold": 0,
+            "predicted": -1
+          }
+        }
+      },
+      {
+        "key": {
+          "location": "Minneapolis"
+        },
+        "differences": {
+          "max_championships": {
+            "gold": 0,
+            "predicted": 1
+          }
+        }
+      },
+      {
+        "key": {
+          "location": "New Orleans"
+        },
+        "differences": {
+          "max_championships": {
+            "gold": 0,
+            "predicted": -1
+          }
+        }
+      },
+      {
+        "key": {
+          "location": "Oklahoma City"
+        },
+        "differences": {
+          "max_championships": {
+            "gold": 0,
+            "predicted": 1
+          }
+        }
+      },
+      {
+        "key": {
+          "location": "Orlando"
+        },
+        "differences": {
+          "max_championships": {
+            "gold": 0,
+            "predicted": 2
+          }
+        }
+      },
+      {
+        "key": {
+          "location": "Phoenix"
+        },
+        "differences": {
+          "max_championships": {
+            "gold": 0,
+            "predicted": 1
+          }
+        }
+      },
+      {
+        "key": {
+          "location": "Sacramento"
+        },
+        "differences": {
+          "max_championships": {
+            "gold": 1,
+            "predicted": -1
+          }
+        }
+      },
+      {
+        "key": {
+          "location": "San Francisco"
+        },
+        "differences": {
+          "max_championships": {
+            "gold": 7,
+            "predicted": 6
+          }
+        }
+      },
+      {
+        "key": {
+          "location": "Toronto"
+        },
+        "differences": {
+          "max_championships": {
+            "gold": 1,
+            "predicted": 5
+          }
+        }
+      }
+    ]
+  }
+}

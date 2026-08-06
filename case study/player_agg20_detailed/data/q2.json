@@ -1,0 +1,986 @@
+{
+  "query_id": "q2",
+  "natural_language_query": "For each current NBA team, what is the average number of NBA championships won by its listed players?",
+  "reference_sql": "SELECT p.team, AVG(p.nba_championships) AS avg_championships FROM player p JOIN team t ON p.team = t.team_name GROUP BY p.team",
+  "quwarts_sql": "SELECT p.team, AVG(p.nba_championships) AS avg_championships FROM player p JOIN team t ON p.team = t.team_name GROUP BY p.team",
+  "quwarts_config_id": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+  "schema": {
+    "key_columns": [
+      "team"
+    ],
+    "measure_columns": [
+      "avg_championships"
+    ],
+    "operators": {
+      "avg_championships": "AVG"
+    },
+    "is_aggregation": true,
+    "has_groupby": true
+  },
+  "gold": [
+    {
+      "team": "Boston Celtics",
+      "avg_championships": 1.2857142857142858
+    },
+    {
+      "team": "Brooklyn Nets",
+      "avg_championships": 0.0
+    },
+    {
+      "team": "Chicago Bulls",
+      "avg_championships": 0.3333333333333333
+    },
+    {
+      "team": "Cleveland Cavaliers",
+      "avg_championships": 0.0
+    },
+    {
+      "team": "Dallas Mavericks",
+      "avg_championships": 1.0
+    },
+    {
+      "team": "Detroit Pistons",
+      "avg_championships": 0.3333333333333333
+    },
+    {
+      "team": "Golden State Warriors",
+      "avg_championships": 2.0
+    },
+    {
+      "team": "Houston Rockets",
+      "avg_championships": 0.0
+    },
+    {
+      "team": "Indiana Pacers",
+      "avg_championships": 0.5
+    },
+    {
+      "team": "Los Angeles Clippers",
+      "avg_championships": 0.0
+    },
+    {
+      "team": "Los Angeles Lakers",
+      "avg_championships": 3.111111111111111
+    },
+    {
+      "team": "Memphis Grizzlies",
+      "avg_championships": 0.0
+    },
+    {
+      "team": "Miami Heat",
+      "avg_championships": 0.16666666666666666
+    },
+    {
+      "team": "Milwaukee Bucks",
+      "avg_championships": 0.3333333333333333
+    },
+    {
+      "team": "Minnesota Timberwolves",
+      "avg_championships": 0.0
+    },
+    {
+      "team": "New York Knicks",
+      "avg_championships": 0.14285714285714285
+    },
+    {
+      "team": "Orlando Magic",
+      "avg_championships": 0.0
+    },
+    {
+      "team": "Philadelphia 76ers",
+      "avg_championships": 0.125
+    },
+    {
+      "team": "Phoenix Suns",
+      "avg_championships": 1.0
+    },
+    {
+      "team": "Portland Trail Blazers",
+      "avg_championships": 0.0
+    },
+    {
+      "team": "Sacramento Kings",
+      "avg_championships": 0.0
+    },
+    {
+      "team": "San Antonio Spurs",
+      "avg_championships": 1.2
+    },
+    {
+      "team": "Toronto Raptors",
+      "avg_championships": 0.0
+    },
+    {
+      "team": "Utah Jazz",
+      "avg_championships": 0.0
+    }
+  ],
+  "quwarts": [
+    {
+      "team": "Boston Celtics",
+      "avg_championships": 2.0
+    },
+    {
+      "team": "Charlotte Hornets",
+      "avg_championships": null
+    },
+    {
+      "team": "Chicago Bulls",
+      "avg_championships": 3.0
+    },
+    {
+      "team": "Cleveland Cavaliers",
+      "avg_championships": null
+    },
+    {
+      "team": "Dallas Mavericks",
+      "avg_championships": 1.0
+    },
+    {
+      "team": "Detroit Pistons",
+      "avg_championships": 0.6666666666666666
+    },
+    {
+      "team": "Golden State Warriors",
+      "avg_championships": 3.0
+    },
+    {
+      "team": "Houston Rockets",
+      "avg_championships": 2.0
+    },
+    {
+      "team": "Indiana Pacers",
+      "avg_championships": null
+    },
+    {
+      "team": "Los Angeles Lakers",
+      "avg_championships": 3.0
+    },
+    {
+      "team": "Memphis Grizzlies",
+      "avg_championships": 1.0
+    },
+    {
+      "team": "Miami Heat",
+      "avg_championships": 0.5
+    },
+    {
+      "team": "Milwaukee Bucks",
+      "avg_championships": null
+    },
+    {
+      "team": "Minnesota Timberwolves",
+      "avg_championships": 1.0
+    },
+    {
+      "team": "New York Knicks",
+      "avg_championships": 0.5
+    },
+    {
+      "team": "Philadelphia 76ers",
+      "avg_championships": 0.0
+    },
+    {
+      "team": "Phoenix Suns",
+      "avg_championships": 1.5
+    },
+    {
+      "team": "Portland Trail Blazers",
+      "avg_championships": null
+    },
+    {
+      "team": "San Antonio Spurs",
+      "avg_championships": 2.3333333333333335
+    },
+    {
+      "team": "Utah Jazz",
+      "avg_championships": null
+    }
+  ],
+  "docetl": [
+    {
+      "team": "Brooklyn Nets",
+      "avg_championships": -1.0
+    },
+    {
+      "team": "Bucks",
+      "avg_championships": 0.0
+    },
+    {
+      "team": "Cleveland Cavaliers",
+      "avg_championships": -0.3333333333333333
+    },
+    {
+      "team": "Detroit Pistons",
+      "avg_championships": -0.4
+    },
+    {
+      "team": "Golden State Warriors",
+      "avg_championships": 1.2222222222222223
+    },
+    {
+      "team": "Houston Rockets",
+      "avg_championships": 0.0
+    },
+    {
+      "team": "Indiana Pacers",
+      "avg_championships": 0.0
+    },
+    {
+      "team": "Los Angeles Lakers",
+      "avg_championships": 0.6
+    },
+    {
+      "team": "Memphis Grizzlies",
+      "avg_championships": -1.0
+    },
+    {
+      "team": "Miami Heat",
+      "avg_championships": -1.0
+    },
+    {
+      "team": "Minnesota Timberwolves",
+      "avg_championships": -1.0
+    },
+    {
+      "team": "Philadelphia 76ers",
+      "avg_championships": -1.0
+    },
+    {
+      "team": "Phoenix Suns",
+      "avg_championships": -1.0
+    },
+    {
+      "team": "Portland Trail Blazers",
+      "avg_championships": -1.0
+    },
+    {
+      "team": "San Antonio Spurs",
+      "avg_championships": 0.75
+    },
+    {
+      "team": "Toronto Raptors",
+      "avg_championships": 0.0
+    },
+    {
+      "team": "Utah Jazz",
+      "avg_championships": -1.0
+    }
+  ],
+  "quwarts_metrics": {
+    "official_query_error": 0.42758745086331307,
+    "official_accuracy": 0.5724125491366869,
+    "gold_row_count": 24,
+    "predicted_row_count": 20,
+    "schema": {
+      "key_columns": [
+        "team"
+      ],
+      "measure_columns": [
+        "avg_championships"
+      ],
+      "operators": {
+        "avg_championships": "AVG"
+      },
+      "is_aggregation": true,
+      "has_groupby": true
+    },
+    "rank": {
+      "structure_score": 0.8189655172413792,
+      "structure_fbeta_score": 0.8189655172413792,
+      "structure_f1_score": 0.8636363636363635,
+      "structure_beta": 2.0,
+      "cell_f1": {
+        "0.01": 0.04545454545454545,
+        "0.05": 0.13636363636363635,
+        "0.2": 0.31818181818181823
+      },
+      "query_score": {
+        "0.01": 0.0372257053291536,
+        "0.05": 0.1116771159874608,
+        "0.2": 0.26057993730407525
+      }
+    },
+    "structure": {
+      "column": {
+        "key": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "measure": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "all": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        }
+      },
+      "row": {
+        "exact": {
+          "P": 0.95,
+          "R": 0.7916666666666666,
+          "F1": 0.8636363636363635,
+          "F_beta": 0.8189655172413792,
+          "beta": 2.0
+        },
+        "normalized": {
+          "P": 0.95,
+          "R": 0.7916666666666666,
+          "F1": 0.8636363636363635,
+          "F_beta": 0.8189655172413792,
+          "beta": 2.0
+        },
+        "semantic": {
+          "P": 0.95,
+          "R": 0.7916666666666666,
+          "F1": 0.8636363636363635,
+          "F_beta": 0.8189655172413792,
+          "beta": 2.0
+        }
+      },
+      "key_alignment_failed": false,
+      "missing_key_columns": [],
+      "structure_score": 0.8189655172413792,
+      "structure_fbeta_score": 0.8189655172413792,
+      "structure_f1_score": 0.8636363636363635,
+      "structure_beta": 2.0
+    },
+    "value": {
+      "row_recall_context": 0.7916666666666666,
+      "rel_err_histogram": {
+        "exact_or_le_1pct": 0.07142857142857142,
+        "1_to_5pct": 0.14285714285714285,
+        "5_to_20pct": 0.2857142857142857,
+        "20_to_100pct": 0.5,
+        "gt_100pct": 0.0
+      },
+      "range_err_histogram": {
+        "exact_or_le_1pct": 0.07142857142857142,
+        "1_to_5pct": 0.14285714285714285,
+        "5_to_20pct": 0.2857142857142857,
+        "20_to_100pct": 0.5,
+        "gt_100pct": 0.0
+      },
+      "pass_at_tau": {
+        "0.01": 0.07142857142857142,
+        "0.05": 0.21428571428571427,
+        "0.2": 0.5
+      },
+      "pass_by_operator": {
+        "AVG": {
+          "0.01": 0.07142857142857142,
+          "0.05": 0.21428571428571427,
+          "0.2": 0.5
+        }
+      },
+      "frac_catastrophic": 0.0,
+      "zero_true_count": 3,
+      "column_ranges": {
+        "avg_championships": {
+          "min": 0.0,
+          "max": 3.111111111111111
+        }
+      }
+    },
+    "grouping": {
+      "merge_rate": 0.0,
+      "split_rate": 0.0
+    },
+    "structure_score": 0.8189655172413792,
+    "structure_fbeta_score": 0.8189655172413792,
+    "structure_f1_score": 0.8636363636363635,
+    "structure_beta": 2.0,
+    "cell_f1": {
+      "0.01": 0.04545454545454545,
+      "0.05": 0.13636363636363635,
+      "0.2": 0.31818181818181823
+    },
+    "query_score": {
+      "0.01": 0.0372257053291536,
+      "0.05": 0.1116771159874608,
+      "0.2": 0.26057993730407525
+    }
+  },
+  "docetl_metrics": {
+    "official_query_error": 0.47874473794145056,
+    "official_accuracy": 0.5212552620585494,
+    "gold_row_count": 24,
+    "predicted_row_count": 17,
+    "schema": {
+      "key_columns": [
+        "team"
+      ],
+      "measure_columns": [
+        "avg_championships"
+      ],
+      "operators": {
+        "avg_championships": "AVG"
+      },
+      "is_aggregation": true,
+      "has_groupby": true
+    },
+    "rank": {
+      "structure_score": 0.752212389380531,
+      "structure_fbeta_score": 0.752212389380531,
+      "structure_f1_score": 0.8292682926829268,
+      "structure_beta": 2.0,
+      "cell_f1": {
+        "0.01": 0.09756097560975609,
+        "0.05": 0.09756097560975609,
+        "0.2": 0.2926829268292683
+      },
+      "query_score": {
+        "0.01": 0.07338657457371034,
+        "0.05": 0.07338657457371034,
+        "0.2": 0.22015972372113102
+      }
+    },
+    "structure": {
+      "column": {
+        "key": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "measure": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "all": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        }
+      },
+      "row": {
+        "exact": {
+          "P": 0.9411764705882353,
+          "R": 0.6666666666666666,
+          "F1": 0.7804878048780487,
+          "F_beta": 0.7079646017699115,
+          "beta": 2.0
+        },
+        "normalized": {
+          "P": 0.9411764705882353,
+          "R": 0.6666666666666666,
+          "F1": 0.7804878048780487,
+          "F_beta": 0.7079646017699115,
+          "beta": 2.0
+        },
+        "semantic": {
+          "P": 1.0,
+          "R": 0.7083333333333334,
+          "F1": 0.8292682926829268,
+          "F_beta": 0.752212389380531,
+          "beta": 2.0
+        }
+      },
+      "key_alignment_failed": false,
+      "missing_key_columns": [],
+      "structure_score": 0.752212389380531,
+      "structure_fbeta_score": 0.752212389380531,
+      "structure_f1_score": 0.8292682926829268,
+      "structure_beta": 2.0
+    },
+    "value": {
+      "row_recall_context": 0.7083333333333334,
+      "rel_err_histogram": {
+        "exact_or_le_1pct": 0.11764705882352941,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 0.23529411764705882,
+        "20_to_100pct": 0.6470588235294118,
+        "gt_100pct": 0.0
+      },
+      "range_err_histogram": {
+        "exact_or_le_1pct": 0.11764705882352941,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 0.23529411764705882,
+        "20_to_100pct": 0.6470588235294118,
+        "gt_100pct": 0.0
+      },
+      "pass_at_tau": {
+        "0.01": 0.11764705882352941,
+        "0.05": 0.11764705882352941,
+        "0.2": 0.35294117647058826
+      },
+      "pass_by_operator": {
+        "AVG": {
+          "0.01": 0.11764705882352941,
+          "0.05": 0.11764705882352941,
+          "0.2": 0.35294117647058826
+        }
+      },
+      "frac_catastrophic": 0.0,
+      "zero_true_count": 8,
+      "column_ranges": {
+        "avg_championships": {
+          "min": 0.0,
+          "max": 3.111111111111111
+        }
+      }
+    },
+    "grouping": {
+      "merge_rate": 0.0,
+      "split_rate": 0.0
+    },
+    "structure_score": 0.752212389380531,
+    "structure_fbeta_score": 0.752212389380531,
+    "structure_f1_score": 0.8292682926829268,
+    "structure_beta": 2.0,
+    "cell_f1": {
+      "0.01": 0.09756097560975609,
+      "0.05": 0.09756097560975609,
+      "0.2": 0.2926829268292683
+    },
+    "query_score": {
+      "0.01": 0.07338657457371034,
+      "0.05": 0.07338657457371034,
+      "0.2": 0.22015972372113102
+    }
+  },
+  "quwarts_differences": {
+    "missing_rows": [
+      {
+        "team": "Brooklyn Nets",
+        "avg_championships": 0.0
+      },
+      {
+        "team": "Los Angeles Clippers",
+        "avg_championships": 0.0
+      },
+      {
+        "team": "Orlando Magic",
+        "avg_championships": 0.0
+      },
+      {
+        "team": "Sacramento Kings",
+        "avg_championships": 0.0
+      },
+      {
+        "team": "Toronto Raptors",
+        "avg_championships": 0.0
+      }
+    ],
+    "extra_rows": [
+      {
+        "team": "Charlotte Hornets",
+        "avg_championships": null
+      }
+    ],
+    "wrong_values": [
+      {
+        "key": {
+          "team": "Boston Celtics"
+        },
+        "differences": {
+          "avg_championships": {
+            "gold": 1.2857142857142858,
+            "predicted": 2.0
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "Chicago Bulls"
+        },
+        "differences": {
+          "avg_championships": {
+            "gold": 0.3333333333333333,
+            "predicted": 3.0
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "Cleveland Cavaliers"
+        },
+        "differences": {
+          "avg_championships": {
+            "gold": 0.0,
+            "predicted": null
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "Detroit Pistons"
+        },
+        "differences": {
+          "avg_championships": {
+            "gold": 0.3333333333333333,
+            "predicted": 0.6666666666666666
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "Golden State Warriors"
+        },
+        "differences": {
+          "avg_championships": {
+            "gold": 2.0,
+            "predicted": 3.0
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "Houston Rockets"
+        },
+        "differences": {
+          "avg_championships": {
+            "gold": 0.0,
+            "predicted": 2.0
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "Indiana Pacers"
+        },
+        "differences": {
+          "avg_championships": {
+            "gold": 0.5,
+            "predicted": null
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "Los Angeles Lakers"
+        },
+        "differences": {
+          "avg_championships": {
+            "gold": 3.111111111111111,
+            "predicted": 3.0
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "Memphis Grizzlies"
+        },
+        "differences": {
+          "avg_championships": {
+            "gold": 0.0,
+            "predicted": 1.0
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "Miami Heat"
+        },
+        "differences": {
+          "avg_championships": {
+            "gold": 0.16666666666666666,
+            "predicted": 0.5
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "Milwaukee Bucks"
+        },
+        "differences": {
+          "avg_championships": {
+            "gold": 0.3333333333333333,
+            "predicted": null
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "Minnesota Timberwolves"
+        },
+        "differences": {
+          "avg_championships": {
+            "gold": 0.0,
+            "predicted": 1.0
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "New York Knicks"
+        },
+        "differences": {
+          "avg_championships": {
+            "gold": 0.14285714285714285,
+            "predicted": 0.5
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "Philadelphia 76ers"
+        },
+        "differences": {
+          "avg_championships": {
+            "gold": 0.125,
+            "predicted": 0.0
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "Phoenix Suns"
+        },
+        "differences": {
+          "avg_championships": {
+            "gold": 1.0,
+            "predicted": 1.5
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "Portland Trail Blazers"
+        },
+        "differences": {
+          "avg_championships": {
+            "gold": 0.0,
+            "predicted": null
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "San Antonio Spurs"
+        },
+        "differences": {
+          "avg_championships": {
+            "gold": 1.2,
+            "predicted": 2.3333333333333335
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "Utah Jazz"
+        },
+        "differences": {
+          "avg_championships": {
+            "gold": 0.0,
+            "predicted": null
+          }
+        }
+      }
+    ]
+  },
+  "docetl_differences": {
+    "missing_rows": [
+      {
+        "team": "Boston Celtics",
+        "avg_championships": 1.2857142857142858
+      },
+      {
+        "team": "Chicago Bulls",
+        "avg_championships": 0.3333333333333333
+      },
+      {
+        "team": "Dallas Mavericks",
+        "avg_championships": 1.0
+      },
+      {
+        "team": "Los Angeles Clippers",
+        "avg_championships": 0.0
+      },
+      {
+        "team": "Milwaukee Bucks",
+        "avg_championships": 0.3333333333333333
+      },
+      {
+        "team": "New York Knicks",
+        "avg_championships": 0.14285714285714285
+      },
+      {
+        "team": "Orlando Magic",
+        "avg_championships": 0.0
+      },
+      {
+        "team": "Sacramento Kings",
+        "avg_championships": 0.0
+      }
+    ],
+    "extra_rows": [
+      {
+        "team": "Bucks",
+        "avg_championships": 0.0
+      }
+    ],
+    "wrong_values": [
+      {
+        "key": {
+          "team": "Brooklyn Nets"
+        },
+        "differences": {
+          "avg_championships": {
+            "gold": 0.0,
+            "predicted": -1.0
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "Cleveland Cavaliers"
+        },
+        "differences": {
+          "avg_championships": {
+            "gold": 0.0,
+            "predicted": -0.3333333333333333
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "Detroit Pistons"
+        },
+        "differences": {
+          "avg_championships": {
+            "gold": 0.3333333333333333,
+            "predicted": -0.4
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "Golden State Warriors"
+        },
+        "differences": {
+          "avg_championships": {
+            "gold": 2.0,
+            "predicted": 1.2222222222222223
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "Indiana Pacers"
+        },
+        "differences": {
+          "avg_championships": {
+            "gold": 0.5,
+            "predicted": 0.0
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "Los Angeles Lakers"
+        },
+        "differences": {
+          "avg_championships": {
+            "gold": 3.111111111111111,
+            "predicted": 0.6
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "Memphis Grizzlies"
+        },
+        "differences": {
+          "avg_championships": {
+            "gold": 0.0,
+            "predicted": -1.0
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "Miami Heat"
+        },
+        "differences": {
+          "avg_championships": {
+            "gold": 0.16666666666666666,
+            "predicted": -1.0
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "Minnesota Timberwolves"
+        },
+        "differences": {
+          "avg_championships": {
+            "gold": 0.0,
+            "predicted": -1.0
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "Philadelphia 76ers"
+        },
+        "differences": {
+          "avg_championships": {
+            "gold": 0.125,
+            "predicted": -1.0
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "Phoenix Suns"
+        },
+        "differences": {
+          "avg_championships": {
+            "gold": 1.0,
+            "predicted": -1.0
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "Portland Trail Blazers"
+        },
+        "differences": {
+          "avg_championships": {
+            "gold": 0.0,
+            "predicted": -1.0
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "San Antonio Spurs"
+        },
+        "differences": {
+          "avg_championships": {
+            "gold": 1.2,
+            "predicted": 0.75
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "Utah Jazz"
+        },
+        "differences": {
+          "avg_championships": {
+            "gold": 0.0,
+            "predicted": -1.0
+          }
+        }
+      }
+    ]
+  }
+}

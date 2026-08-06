@@ -1,0 +1,679 @@
+{
+  "query_id": "q18",
+  "natural_language_query": "What is the average city population for each state?",
+  "reference_sql": "SELECT state_name, AVG(population) AS avg_population FROM city WHERE state_name != '' GROUP BY state_name",
+  "quwarts_sql": "SELECT state_name, AVG(population) AS avg_population FROM city WHERE state_name != '' GROUP BY state_name",
+  "quwarts_config_id": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+  "schema": {
+    "key_columns": [
+      "state_name"
+    ],
+    "measure_columns": [
+      "avg_population"
+    ],
+    "operators": {
+      "avg_population": "AVG"
+    },
+    "is_aggregation": true,
+    "has_groupby": true
+  },
+  "gold": [
+    {
+      "state_name": "Arizona",
+      "avg_population": 1662607.0
+    },
+    {
+      "state_name": "California",
+      "avg_population": 1315651.75
+    },
+    {
+      "state_name": "Colorado",
+      "avg_population": 715522.0
+    },
+    {
+      "state_name": "Florida",
+      "avg_population": 374907.0
+    },
+    {
+      "state_name": "Georgia",
+      "avg_population": 510823.0
+    },
+    {
+      "state_name": "Illinois",
+      "avg_population": 2746388.0
+    },
+    {
+      "state_name": "Indiana",
+      "avg_population": 887642.0
+    },
+    {
+      "state_name": "Louisiana",
+      "avg_population": 383997.0
+    },
+    {
+      "state_name": "Massachusetts",
+      "avg_population": 675647.0
+    },
+    {
+      "state_name": "Michigan",
+      "avg_population": 639111.0
+    },
+    {
+      "state_name": "Minnesota",
+      "avg_population": 429954.0
+    },
+    {
+      "state_name": "New York",
+      "avg_population": 8258035.0
+    },
+    {
+      "state_name": "North Carolina",
+      "avg_population": 874579.0
+    },
+    {
+      "state_name": "Ohio",
+      "avg_population": 372624.0
+    },
+    {
+      "state_name": "Oklahoma",
+      "avg_population": 681054.0
+    },
+    {
+      "state_name": "Ontario",
+      "avg_population": 2794356.0
+    },
+    {
+      "state_name": "Oregon",
+      "avg_population": 652503.0
+    },
+    {
+      "state_name": "Pennsylvania",
+      "avg_population": 1603797.0
+    },
+    {
+      "state_name": "Tennessee",
+      "avg_population": 633104.0
+    },
+    {
+      "state_name": "Texas",
+      "avg_population": 1684387.0
+    },
+    {
+      "state_name": "Utah",
+      "avg_population": 200133.0
+    },
+    {
+      "state_name": "Wisconsin",
+      "avg_population": 577222.0
+    }
+  ],
+  "quwarts": [
+    {
+      "state_name": "Arizona",
+      "avg_population": 1608139.0
+    },
+    {
+      "state_name": "California",
+      "avg_population": 1324822.75
+    },
+    {
+      "state_name": "Colorado",
+      "avg_population": 715522.0
+    },
+    {
+      "state_name": "Florida",
+      "avg_population": 374907.0
+    },
+    {
+      "state_name": "Georgia",
+      "avg_population": 510823.0
+    },
+    {
+      "state_name": "Illinois",
+      "avg_population": 2746388.0
+    },
+    {
+      "state_name": "Indiana",
+      "avg_population": 880621.0
+    },
+    {
+      "state_name": "Louisiana",
+      "avg_population": 383997.0
+    },
+    {
+      "state_name": "Massachusetts",
+      "avg_population": 675647.0
+    },
+    {
+      "state_name": "Michigan",
+      "avg_population": 639111.0
+    },
+    {
+      "state_name": "Minnesota",
+      "avg_population": 429954.0
+    },
+    {
+      "state_name": "New York",
+      "avg_population": 8804190.0
+    },
+    {
+      "state_name": "North Carolina",
+      "avg_population": 874579.0
+    },
+    {
+      "state_name": "Ohio",
+      "avg_population": 372624.0
+    },
+    {
+      "state_name": "Oklahoma",
+      "avg_population": 681054.0
+    },
+    {
+      "state_name": "Ontario",
+      "avg_population": 2794356.0
+    },
+    {
+      "state_name": "Oregon",
+      "avg_population": 652503.0
+    },
+    {
+      "state_name": "Pennsylvania",
+      "avg_population": 1603797.0
+    },
+    {
+      "state_name": "Tennessee",
+      "avg_population": 633104.0
+    },
+    {
+      "state_name": "Texas",
+      "avg_population": 2072845.3333333333
+    },
+    {
+      "state_name": "Utah",
+      "avg_population": 1257936.0
+    },
+    {
+      "state_name": "Wisconsin",
+      "avg_population": 577222.0
+    }
+  ],
+  "docetl": [
+    {
+      "state_name": "California",
+      "avg_population": 1315651.75
+    },
+    {
+      "state_name": "Colorado",
+      "avg_population": 715522.0
+    },
+    {
+      "state_name": "Florida",
+      "avg_population": 221120.0
+    },
+    {
+      "state_name": "Georgia",
+      "avg_population": 510823.0
+    },
+    {
+      "state_name": "Indiana",
+      "avg_population": 887642.0
+    },
+    {
+      "state_name": "Louisiana",
+      "avg_population": 383997.0
+    },
+    {
+      "state_name": "Michigan",
+      "avg_population": 639111.0
+    },
+    {
+      "state_name": "Minnesota",
+      "avg_population": 429954.0
+    },
+    {
+      "state_name": "North Carolina",
+      "avg_population": 874579.0
+    },
+    {
+      "state_name": "Ohio",
+      "avg_population": 372624.0
+    },
+    {
+      "state_name": "Oklahoma",
+      "avg_population": 681054.0
+    },
+    {
+      "state_name": "Pennsylvania",
+      "avg_population": 1603797.0
+    },
+    {
+      "state_name": "Tennessee",
+      "avg_population": 633104.0
+    },
+    {
+      "state_name": "Texas",
+      "avg_population": 2314157.0
+    },
+    {
+      "state_name": "Utah",
+      "avg_population": 200133.0
+    },
+    {
+      "state_name": "Wisconsin",
+      "avg_population": 577222.0
+    }
+  ],
+  "quwarts_metrics": {
+    "official_query_error": 0.025837093322605198,
+    "official_accuracy": 0.9741629066773948,
+    "gold_row_count": 22,
+    "predicted_row_count": 22,
+    "schema": {
+      "key_columns": [
+        "state_name"
+      ],
+      "measure_columns": [
+        "avg_population"
+      ],
+      "operators": {
+        "avg_population": "AVG"
+      },
+      "is_aggregation": true,
+      "has_groupby": true
+    },
+    "rank": {
+      "structure_score": 1.0,
+      "structure_fbeta_score": 1.0,
+      "structure_f1_score": 1.0,
+      "structure_beta": 2.0,
+      "cell_f1": {
+        "0.01": 0.8636363636363636,
+        "0.05": 0.9090909090909091,
+        "0.2": 1.0
+      },
+      "query_score": {
+        "0.01": 0.8636363636363636,
+        "0.05": 0.9090909090909091,
+        "0.2": 1.0
+      }
+    },
+    "structure": {
+      "column": {
+        "key": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "measure": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "all": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        }
+      },
+      "row": {
+        "exact": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "normalized": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "semantic": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        }
+      },
+      "key_alignment_failed": false,
+      "missing_key_columns": [],
+      "structure_score": 1.0,
+      "structure_fbeta_score": 1.0,
+      "structure_f1_score": 1.0,
+      "structure_beta": 2.0
+    },
+    "value": {
+      "row_recall_context": 1.0,
+      "rel_err_histogram": {
+        "exact_or_le_1pct": 0.8636363636363636,
+        "1_to_5pct": 0.045454545454545456,
+        "5_to_20pct": 0.09090909090909091,
+        "20_to_100pct": 0.0,
+        "gt_100pct": 0.0
+      },
+      "range_err_histogram": {
+        "exact_or_le_1pct": 0.8636363636363636,
+        "1_to_5pct": 0.045454545454545456,
+        "5_to_20pct": 0.09090909090909091,
+        "20_to_100pct": 0.0,
+        "gt_100pct": 0.0
+      },
+      "pass_at_tau": {
+        "0.01": 0.8636363636363636,
+        "0.05": 0.9090909090909091,
+        "0.2": 1.0
+      },
+      "pass_by_operator": {
+        "AVG": {
+          "0.01": 0.8636363636363636,
+          "0.05": 0.9090909090909091,
+          "0.2": 1.0
+        }
+      },
+      "frac_catastrophic": 0.0,
+      "zero_true_count": 0,
+      "column_ranges": {
+        "avg_population": {
+          "min": 200133.0,
+          "max": 8258035.0
+        }
+      }
+    },
+    "grouping": {
+      "merge_rate": 0.0,
+      "split_rate": 0.0
+    },
+    "structure_score": 1.0,
+    "structure_fbeta_score": 1.0,
+    "structure_f1_score": 1.0,
+    "structure_beta": 2.0,
+    "cell_f1": {
+      "0.01": 0.8636363636363636,
+      "0.05": 0.9090909090909091,
+      "0.2": 1.0
+    },
+    "query_score": {
+      "0.01": 0.8636363636363636,
+      "0.05": 0.9090909090909091,
+      "0.2": 1.0
+    }
+  },
+  "docetl_metrics": {
+    "official_query_error": 0.17271102369819658,
+    "official_accuracy": 0.8272889763018034,
+    "gold_row_count": 22,
+    "predicted_row_count": 16,
+    "schema": {
+      "key_columns": [
+        "state_name"
+      ],
+      "measure_columns": [
+        "avg_population"
+      ],
+      "operators": {
+        "avg_population": "AVG"
+      },
+      "is_aggregation": true,
+      "has_groupby": true
+    },
+    "rank": {
+      "structure_score": 0.7692307692307693,
+      "structure_fbeta_score": 0.7692307692307693,
+      "structure_f1_score": 0.8421052631578948,
+      "structure_beta": 2.0,
+      "cell_f1": {
+        "0.01": 0.7368421052631579,
+        "0.05": 0.7894736842105263,
+        "0.2": 0.8421052631578948
+      },
+      "query_score": {
+        "0.01": 0.5668016194331984,
+        "0.05": 0.6072874493927126,
+        "0.2": 0.6477732793522268
+      }
+    },
+    "structure": {
+      "column": {
+        "key": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "measure": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "all": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        }
+      },
+      "row": {
+        "exact": {
+          "P": 1.0,
+          "R": 0.7272727272727273,
+          "F1": 0.8421052631578948,
+          "F_beta": 0.7692307692307693,
+          "beta": 2.0
+        },
+        "normalized": {
+          "P": 1.0,
+          "R": 0.7272727272727273,
+          "F1": 0.8421052631578948,
+          "F_beta": 0.7692307692307693,
+          "beta": 2.0
+        },
+        "semantic": {
+          "P": 1.0,
+          "R": 0.7272727272727273,
+          "F1": 0.8421052631578948,
+          "F_beta": 0.7692307692307693,
+          "beta": 2.0
+        }
+      },
+      "key_alignment_failed": false,
+      "missing_key_columns": [],
+      "structure_score": 0.7692307692307693,
+      "structure_fbeta_score": 0.7692307692307693,
+      "structure_f1_score": 0.8421052631578948,
+      "structure_beta": 2.0
+    },
+    "value": {
+      "row_recall_context": 0.7272727272727273,
+      "rel_err_histogram": {
+        "exact_or_le_1pct": 0.875,
+        "1_to_5pct": 0.0625,
+        "5_to_20pct": 0.0625,
+        "20_to_100pct": 0.0,
+        "gt_100pct": 0.0
+      },
+      "range_err_histogram": {
+        "exact_or_le_1pct": 0.875,
+        "1_to_5pct": 0.0625,
+        "5_to_20pct": 0.0625,
+        "20_to_100pct": 0.0,
+        "gt_100pct": 0.0
+      },
+      "pass_at_tau": {
+        "0.01": 0.875,
+        "0.05": 0.9375,
+        "0.2": 1.0
+      },
+      "pass_by_operator": {
+        "AVG": {
+          "0.01": 0.875,
+          "0.05": 0.9375,
+          "0.2": 1.0
+        }
+      },
+      "frac_catastrophic": 0.0,
+      "zero_true_count": 0,
+      "column_ranges": {
+        "avg_population": {
+          "min": 200133.0,
+          "max": 8258035.0
+        }
+      }
+    },
+    "grouping": {
+      "merge_rate": 0.0,
+      "split_rate": 0.0
+    },
+    "structure_score": 0.7692307692307693,
+    "structure_fbeta_score": 0.7692307692307693,
+    "structure_f1_score": 0.8421052631578948,
+    "structure_beta": 2.0,
+    "cell_f1": {
+      "0.01": 0.7368421052631579,
+      "0.05": 0.7894736842105263,
+      "0.2": 0.8421052631578948
+    },
+    "query_score": {
+      "0.01": 0.5668016194331984,
+      "0.05": 0.6072874493927126,
+      "0.2": 0.6477732793522268
+    }
+  },
+  "quwarts_differences": {
+    "missing_rows": [],
+    "extra_rows": [],
+    "wrong_values": [
+      {
+        "key": {
+          "state_name": "Arizona"
+        },
+        "differences": {
+          "avg_population": {
+            "gold": 1662607.0,
+            "predicted": 1608139.0
+          }
+        }
+      },
+      {
+        "key": {
+          "state_name": "California"
+        },
+        "differences": {
+          "avg_population": {
+            "gold": 1315651.75,
+            "predicted": 1324822.75
+          }
+        }
+      },
+      {
+        "key": {
+          "state_name": "Indiana"
+        },
+        "differences": {
+          "avg_population": {
+            "gold": 887642.0,
+            "predicted": 880621.0
+          }
+        }
+      },
+      {
+        "key": {
+          "state_name": "New York"
+        },
+        "differences": {
+          "avg_population": {
+            "gold": 8258035.0,
+            "predicted": 8804190.0
+          }
+        }
+      },
+      {
+        "key": {
+          "state_name": "Texas"
+        },
+        "differences": {
+          "avg_population": {
+            "gold": 1684387.0,
+            "predicted": 2072845.3333333333
+          }
+        }
+      },
+      {
+        "key": {
+          "state_name": "Utah"
+        },
+        "differences": {
+          "avg_population": {
+            "gold": 200133.0,
+            "predicted": 1257936.0
+          }
+        }
+      }
+    ]
+  },
+  "docetl_differences": {
+    "missing_rows": [
+      {
+        "state_name": "Arizona",
+        "avg_population": 1662607.0
+      },
+      {
+        "state_name": "Illinois",
+        "avg_population": 2746388.0
+      },
+      {
+        "state_name": "Massachusetts",
+        "avg_population": 675647.0
+      },
+      {
+        "state_name": "New York",
+        "avg_population": 8258035.0
+      },
+      {
+        "state_name": "Ontario",
+        "avg_population": 2794356.0
+      },
+      {
+        "state_name": "Oregon",
+        "avg_population": 652503.0
+      }
+    ],
+    "extra_rows": [],
+    "wrong_values": [
+      {
+        "key": {
+          "state_name": "Florida"
+        },
+        "differences": {
+          "avg_population": {
+            "gold": 374907.0,
+            "predicted": 221120.0
+          }
+        }
+      },
+      {
+        "key": {
+          "state_name": "Texas"
+        },
+        "differences": {
+          "avg_population": {
+            "gold": 1684387.0,
+            "predicted": 2314157.0
+          }
+        }
+      }
+    ]
+  }
+}

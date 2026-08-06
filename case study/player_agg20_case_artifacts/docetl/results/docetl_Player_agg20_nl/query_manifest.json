@@ -1,0 +1,82 @@
+[
+  {
+    "query_id": "q0",
+    "sql": "SELECT position, AVG(age) AS avg_age FROM player WHERE position IN ('Frontcourt', 'Backcourt') GROUP BY position"
+  },
+  {
+    "query_id": "q1",
+    "sql": "SELECT nationality, COUNT(*) AS player_count FROM player WHERE nationality != '' GROUP BY nationality"
+  },
+  {
+    "query_id": "q2",
+    "sql": "SELECT p.team, AVG(p.nba_championships) AS avg_championships FROM player p JOIN team t ON p.team = t.team_name GROUP BY p.team"
+  },
+  {
+    "query_id": "q3",
+    "sql": "SELECT college, MAX(mvp_awards) AS max_mvp_awards FROM player WHERE college != '' GROUP BY college HAVING COUNT(*) > 1"
+  },
+  {
+    "query_id": "q4",
+    "sql": "SELECT position, SUM(mvp_awards) AS total_mvp_awards FROM player WHERE position IN ('Frontcourt', 'Backcourt') GROUP BY position"
+  },
+  {
+    "query_id": "q5",
+    "sql": "SELECT nationality, MAX(nba_championships) AS max_championships FROM player WHERE nba_championships >= 1 AND nationality != '' GROUP BY nationality"
+  },
+  {
+    "query_id": "q6",
+    "sql": "SELECT draft_year, COUNT(*) AS player_count FROM player WHERE draft_year > 2010 GROUP BY draft_year"
+  },
+  {
+    "query_id": "q7",
+    "sql": "SELECT p.team, MIN(p.draft_pick) AS earliest_draft_pick FROM player p JOIN team t ON p.team = t.team_name WHERE p.draft_pick > 0 GROUP BY p.team"
+  },
+  {
+    "query_id": "q8",
+    "sql": "SELECT position, AVG(olympic_gold_medals) AS avg_olympic_golds FROM player WHERE olympic_gold_medals >= 1 AND position IN ('Frontcourt', 'Backcourt') GROUP BY position"
+  },
+  {
+    "query_id": "q9",
+    "sql": "SELECT college, COUNT(*) AS champion_count FROM player WHERE nba_championships >= 1 AND college != '' GROUP BY college"
+  },
+  {
+    "query_id": "q10",
+    "sql": "SELECT p.team, SUM(p.fiba_world_cup) AS total_fiba_titles FROM player p JOIN team t ON p.team = t.team_name WHERE p.fiba_world_cup >= 1 GROUP BY p.team"
+  },
+  {
+    "query_id": "q11",
+    "sql": "SELECT nationality, COUNT(*) AS player_count FROM player WHERE age BETWEEN 20 AND 40 AND nationality != '' GROUP BY nationality"
+  },
+  {
+    "query_id": "q12",
+    "sql": "SELECT location, MAX(championship) AS max_championships FROM team WHERE location != '' GROUP BY location"
+  },
+  {
+    "query_id": "q13",
+    "sql": "SELECT location, COUNT(*) AS team_count FROM team WHERE founded_year < 1970 AND location != '' GROUP BY location"
+  },
+  {
+    "query_id": "q14",
+    "sql": "SELECT ownership, SUM(championship) AS total_championships FROM team WHERE ownership != '' GROUP BY ownership"
+  },
+  {
+    "query_id": "q15",
+    "sql": "SELECT location, AVG(championship) AS avg_championships FROM team WHERE championship >= 1 AND location != '' GROUP BY location"
+  },
+  {
+    "query_id": "q16",
+    "sql": "SELECT nationality, AVG(age) AS avg_age FROM owner GROUP BY nationality"
+  },
+  {
+    "query_id": "q17",
+    "sql": "SELECT nationality, MIN(own_year) AS earliest_own_year FROM owner WHERE own_year >= 2000 GROUP BY nationality"
+  },
+  {
+    "query_id": "q18",
+    "sql": "SELECT state_name, AVG(population) AS avg_population FROM city WHERE state_name != '' GROUP BY state_name"
+  },
+  {
+    "query_id": "q19",
+    "sql": "SELECT state_name, MAX(gdp) AS max_gdp FROM city WHERE population > 1000000 AND state_name != '' GROUP BY state_name"
+  }
+]

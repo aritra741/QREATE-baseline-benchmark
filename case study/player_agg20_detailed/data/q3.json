@@ -1,0 +1,861 @@
+{
+  "query_id": "q3",
+  "natural_language_query": "Among colleges with more than one player in the league, what is the highest number of MVP awards won by any of its players?",
+  "reference_sql": "SELECT college, MAX(mvp_awards) AS max_mvp_awards FROM player WHERE college != '' GROUP BY college HAVING COUNT(*) > 1",
+  "quwarts_sql": "SELECT college, MAX(mvp_awards) AS max_mvp_awards FROM player WHERE college != '' GROUP BY college HAVING COUNT(*) > 1",
+  "quwarts_config_id": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+  "schema": {
+    "key_columns": [
+      "college"
+    ],
+    "measure_columns": [
+      "max_mvp_awards"
+    ],
+    "operators": {
+      "max_mvp_awards": "MAX"
+    },
+    "is_aggregation": true,
+    "has_groupby": true
+  },
+  "gold": [
+    {
+      "college": "Duke University",
+      "max_mvp_awards": 1
+    },
+    {
+      "college": "Georgia Tech",
+      "max_mvp_awards": 0
+    },
+    {
+      "college": "Indiana Hoosiers",
+      "max_mvp_awards": 1
+    },
+    {
+      "college": "Kansas State University",
+      "max_mvp_awards": 0
+    },
+    {
+      "college": "Kentucky",
+      "max_mvp_awards": 1
+    },
+    {
+      "college": "Michigan State",
+      "max_mvp_awards": 3
+    },
+    {
+      "college": "Michigan State University",
+      "max_mvp_awards": 0
+    },
+    {
+      "college": "New York University",
+      "max_mvp_awards": 0
+    },
+    {
+      "college": "Oregon State University",
+      "max_mvp_awards": 0
+    },
+    {
+      "college": "Temple University",
+      "max_mvp_awards": 0
+    },
+    {
+      "college": "UCLA",
+      "max_mvp_awards": 1
+    },
+    {
+      "college": "University of Arizona",
+      "max_mvp_awards": 0
+    },
+    {
+      "college": "University of Connecticut",
+      "max_mvp_awards": 0
+    },
+    {
+      "college": "University of Florida",
+      "max_mvp_awards": 0
+    },
+    {
+      "college": "University of Kentucky",
+      "max_mvp_awards": 0
+    },
+    {
+      "college": "University of Minnesota",
+      "max_mvp_awards": 0
+    },
+    {
+      "college": "University of Missouri",
+      "max_mvp_awards": 0
+    },
+    {
+      "college": "University of North Carolina at Chapel Hill",
+      "max_mvp_awards": 0
+    },
+    {
+      "college": "Wake Forest University",
+      "max_mvp_awards": 2
+    }
+  ],
+  "quwarts": [
+    {
+      "college": "Bradley University",
+      "max_mvp_awards": null
+    },
+    {
+      "college": "Duke Blue Devils",
+      "max_mvp_awards": 1
+    },
+    {
+      "college": "Florida Gators",
+      "max_mvp_awards": 0
+    },
+    {
+      "college": "Georgia",
+      "max_mvp_awards": null
+    },
+    {
+      "college": "Georgia Tech",
+      "max_mvp_awards": null
+    },
+    {
+      "college": "Indiana Hoosiers",
+      "max_mvp_awards": null
+    },
+    {
+      "college": "Indiana University",
+      "max_mvp_awards": 0
+    },
+    {
+      "college": "Kentucky",
+      "max_mvp_awards": 1
+    },
+    {
+      "college": "Kentucky Wildcats",
+      "max_mvp_awards": 3
+    },
+    {
+      "college": "Lansing Community College",
+      "max_mvp_awards": 1
+    },
+    {
+      "college": "Marquette",
+      "max_mvp_awards": null
+    },
+    {
+      "college": "Michigan State",
+      "max_mvp_awards": null
+    },
+    {
+      "college": "Michigan State University",
+      "max_mvp_awards": null
+    },
+    {
+      "college": "New York University",
+      "max_mvp_awards": null
+    },
+    {
+      "college": "North Carolina Tar Heels",
+      "max_mvp_awards": 2
+    },
+    {
+      "college": "St. John's University",
+      "max_mvp_awards": null
+    },
+    {
+      "college": "UCLA Bruins",
+      "max_mvp_awards": 2
+    },
+    {
+      "college": "UNC Wilmington",
+      "max_mvp_awards": null
+    },
+    {
+      "college": "University of Florida",
+      "max_mvp_awards": 2
+    },
+    {
+      "college": "University of Minnesota",
+      "max_mvp_awards": null
+    },
+    {
+      "college": "University of North Carolina at Chapel Hill",
+      "max_mvp_awards": 1
+    }
+  ],
+  "docetl": [
+    {
+      "college": "Duke",
+      "max_mvp_awards": 1
+    },
+    {
+      "college": "Florida",
+      "max_mvp_awards": -1
+    },
+    {
+      "college": "Georgia Tech",
+      "max_mvp_awards": -1
+    },
+    {
+      "college": "Indiana",
+      "max_mvp_awards": -1
+    },
+    {
+      "college": "Kansas State University",
+      "max_mvp_awards": -1
+    },
+    {
+      "college": "Kentucky",
+      "max_mvp_awards": 1
+    },
+    {
+      "college": "Marquette",
+      "max_mvp_awards": -1
+    },
+    {
+      "college": "Michigan State",
+      "max_mvp_awards": 3
+    },
+    {
+      "college": "North Carolina",
+      "max_mvp_awards": 6
+    },
+    {
+      "college": "Temple",
+      "max_mvp_awards": -1
+    },
+    {
+      "college": "UCLA",
+      "max_mvp_awards": -1
+    },
+    {
+      "college": "UTEP",
+      "max_mvp_awards": -1
+    },
+    {
+      "college": "University of Connecticut",
+      "max_mvp_awards": -1
+    },
+    {
+      "college": "University of Florida",
+      "max_mvp_awards": -1
+    },
+    {
+      "college": "Villanova",
+      "max_mvp_awards": -1
+    }
+  ],
+  "quwarts_metrics": {
+    "official_query_error": 0.75,
+    "official_accuracy": 0.25,
+    "gold_row_count": 19,
+    "predicted_row_count": 21,
+    "schema": {
+      "key_columns": [
+        "college"
+      ],
+      "measure_columns": [
+        "max_mvp_awards"
+      ],
+      "operators": {
+        "max_mvp_awards": "MAX"
+      },
+      "is_aggregation": true,
+      "has_groupby": true
+    },
+    "rank": {
+      "structure_score": 0.46391752577319584,
+      "structure_fbeta_score": 0.46391752577319584,
+      "structure_f1_score": 0.45,
+      "structure_beta": 2.0,
+      "cell_f1": {
+        "0.01": 0.0,
+        "0.05": 0.0,
+        "0.2": 0.0
+      },
+      "query_score": {
+        "0.01": 0.0,
+        "0.05": 0.0,
+        "0.2": 0.0
+      }
+    },
+    "structure": {
+      "column": {
+        "key": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "measure": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "all": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        }
+      },
+      "row": {
+        "exact": {
+          "P": 0.42857142857142855,
+          "R": 0.47368421052631576,
+          "F1": 0.45,
+          "F_beta": 0.46391752577319584,
+          "beta": 2.0
+        },
+        "normalized": {
+          "P": 0.42857142857142855,
+          "R": 0.47368421052631576,
+          "F1": 0.45,
+          "F_beta": 0.46391752577319584,
+          "beta": 2.0
+        },
+        "semantic": {
+          "P": 0.42857142857142855,
+          "R": 0.47368421052631576,
+          "F1": 0.45,
+          "F_beta": 0.46391752577319584,
+          "beta": 2.0
+        }
+      },
+      "key_alignment_failed": false,
+      "missing_key_columns": [],
+      "structure_score": 0.46391752577319584,
+      "structure_fbeta_score": 0.46391752577319584,
+      "structure_f1_score": 0.45,
+      "structure_beta": 2.0
+    },
+    "value": {
+      "row_recall_context": 0.47368421052631576,
+      "rel_err_histogram": {
+        "exact_or_le_1pct": 0.0,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 0.0,
+        "20_to_100pct": 1.0,
+        "gt_100pct": 0.0
+      },
+      "range_err_histogram": {
+        "exact_or_le_1pct": 0.0,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 0.0,
+        "20_to_100pct": 1.0,
+        "gt_100pct": 0.0
+      },
+      "pass_at_tau": {
+        "0.01": 0.0,
+        "0.05": 0.0,
+        "0.2": 0.0
+      },
+      "pass_by_operator": {
+        "MAX": {
+          "0.01": 0.0,
+          "0.05": 0.0,
+          "0.2": 0.0
+        }
+      },
+      "frac_catastrophic": 0.0,
+      "zero_true_count": 0,
+      "column_ranges": {
+        "max_mvp_awards": {
+          "min": 0.0,
+          "max": 3.0
+        }
+      }
+    },
+    "grouping": {
+      "merge_rate": 0.047619047619047616,
+      "split_rate": 0.10526315789473684
+    },
+    "structure_score": 0.46391752577319584,
+    "structure_fbeta_score": 0.46391752577319584,
+    "structure_f1_score": 0.45,
+    "structure_beta": 2.0,
+    "cell_f1": {
+      "0.01": 0.0,
+      "0.05": 0.0,
+      "0.2": 0.0
+    },
+    "query_score": {
+      "0.01": 0.0,
+      "0.05": 0.0,
+      "0.2": 0.0
+    }
+  },
+  "docetl_metrics": {
+    "official_query_error": 0.7254901960784313,
+    "official_accuracy": 0.27450980392156865,
+    "gold_row_count": 19,
+    "predicted_row_count": 15,
+    "schema": {
+      "key_columns": [
+        "college"
+      ],
+      "measure_columns": [
+        "max_mvp_awards"
+      ],
+      "operators": {
+        "max_mvp_awards": "MAX"
+      },
+      "is_aggregation": true,
+      "has_groupby": true
+    },
+    "rank": {
+      "structure_score": 0.6043956043956044,
+      "structure_fbeta_score": 0.6043956043956044,
+      "structure_f1_score": 0.6470588235294117,
+      "structure_beta": 2.0,
+      "cell_f1": {
+        "0.01": 0.058823529411764705,
+        "0.05": 0.058823529411764705,
+        "0.2": 0.058823529411764705
+      },
+      "query_score": {
+        "0.01": 0.03555268261150614,
+        "0.05": 0.03555268261150614,
+        "0.2": 0.03555268261150614
+      }
+    },
+    "structure": {
+      "column": {
+        "key": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "measure": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "all": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        }
+      },
+      "row": {
+        "exact": {
+          "P": 0.4666666666666667,
+          "R": 0.3684210526315789,
+          "F1": 0.4117647058823529,
+          "F_beta": 0.38461538461538464,
+          "beta": 2.0
+        },
+        "normalized": {
+          "P": 0.4666666666666667,
+          "R": 0.3684210526315789,
+          "F1": 0.4117647058823529,
+          "F_beta": 0.38461538461538464,
+          "beta": 2.0
+        },
+        "semantic": {
+          "P": 0.7333333333333333,
+          "R": 0.5789473684210527,
+          "F1": 0.6470588235294117,
+          "F_beta": 0.6043956043956044,
+          "beta": 2.0
+        }
+      },
+      "key_alignment_failed": false,
+      "missing_key_columns": [],
+      "structure_score": 0.6043956043956044,
+      "structure_fbeta_score": 0.6043956043956044,
+      "structure_f1_score": 0.6470588235294117,
+      "structure_beta": 2.0
+    },
+    "value": {
+      "row_recall_context": 0.5789473684210527,
+      "rel_err_histogram": {
+        "exact_or_le_1pct": 0.1111111111111111,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 0.0,
+        "20_to_100pct": 0.7777777777777778,
+        "gt_100pct": 0.1111111111111111
+      },
+      "range_err_histogram": {
+        "exact_or_le_1pct": 0.1111111111111111,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 0.0,
+        "20_to_100pct": 0.7777777777777778,
+        "gt_100pct": 0.1111111111111111
+      },
+      "pass_at_tau": {
+        "0.01": 0.1111111111111111,
+        "0.05": 0.1111111111111111,
+        "0.2": 0.1111111111111111
+      },
+      "pass_by_operator": {
+        "MAX": {
+          "0.01": 0.1111111111111111,
+          "0.05": 0.1111111111111111,
+          "0.2": 0.1111111111111111
+        }
+      },
+      "frac_catastrophic": 0.1111111111111111,
+      "zero_true_count": 6,
+      "column_ranges": {
+        "max_mvp_awards": {
+          "min": 0.0,
+          "max": 3.0
+        }
+      }
+    },
+    "grouping": {
+      "merge_rate": 0.13333333333333333,
+      "split_rate": 0.0
+    },
+    "structure_score": 0.6043956043956044,
+    "structure_fbeta_score": 0.6043956043956044,
+    "structure_f1_score": 0.6470588235294117,
+    "structure_beta": 2.0,
+    "cell_f1": {
+      "0.01": 0.058823529411764705,
+      "0.05": 0.058823529411764705,
+      "0.2": 0.058823529411764705
+    },
+    "query_score": {
+      "0.01": 0.03555268261150614,
+      "0.05": 0.03555268261150614,
+      "0.2": 0.03555268261150614
+    }
+  },
+  "quwarts_differences": {
+    "missing_rows": [
+      {
+        "college": "Duke University",
+        "max_mvp_awards": 1
+      },
+      {
+        "college": "Kansas State University",
+        "max_mvp_awards": 0
+      },
+      {
+        "college": "Oregon State University",
+        "max_mvp_awards": 0
+      },
+      {
+        "college": "Temple University",
+        "max_mvp_awards": 0
+      },
+      {
+        "college": "UCLA",
+        "max_mvp_awards": 1
+      },
+      {
+        "college": "University of Arizona",
+        "max_mvp_awards": 0
+      },
+      {
+        "college": "University of Connecticut",
+        "max_mvp_awards": 0
+      },
+      {
+        "college": "University of Kentucky",
+        "max_mvp_awards": 0
+      },
+      {
+        "college": "University of Missouri",
+        "max_mvp_awards": 0
+      },
+      {
+        "college": "Wake Forest University",
+        "max_mvp_awards": 2
+      }
+    ],
+    "extra_rows": [
+      {
+        "college": "Bradley University",
+        "max_mvp_awards": null
+      },
+      {
+        "college": "Duke Blue Devils",
+        "max_mvp_awards": 1
+      },
+      {
+        "college": "Florida Gators",
+        "max_mvp_awards": 0
+      },
+      {
+        "college": "Georgia",
+        "max_mvp_awards": null
+      },
+      {
+        "college": "Indiana University",
+        "max_mvp_awards": 0
+      },
+      {
+        "college": "Kentucky Wildcats",
+        "max_mvp_awards": 3
+      },
+      {
+        "college": "Lansing Community College",
+        "max_mvp_awards": 1
+      },
+      {
+        "college": "Marquette",
+        "max_mvp_awards": null
+      },
+      {
+        "college": "North Carolina Tar Heels",
+        "max_mvp_awards": 2
+      },
+      {
+        "college": "St. John's University",
+        "max_mvp_awards": null
+      },
+      {
+        "college": "UCLA Bruins",
+        "max_mvp_awards": 2
+      },
+      {
+        "college": "UNC Wilmington",
+        "max_mvp_awards": null
+      }
+    ],
+    "wrong_values": [
+      {
+        "key": {
+          "college": "Georgia Tech"
+        },
+        "differences": {
+          "max_mvp_awards": {
+            "gold": 0,
+            "predicted": null
+          }
+        }
+      },
+      {
+        "key": {
+          "college": "Indiana Hoosiers"
+        },
+        "differences": {
+          "max_mvp_awards": {
+            "gold": 1,
+            "predicted": null
+          }
+        }
+      },
+      {
+        "key": {
+          "college": "Michigan State"
+        },
+        "differences": {
+          "max_mvp_awards": {
+            "gold": 3,
+            "predicted": null
+          }
+        }
+      },
+      {
+        "key": {
+          "college": "Michigan State University"
+        },
+        "differences": {
+          "max_mvp_awards": {
+            "gold": 0,
+            "predicted": null
+          }
+        }
+      },
+      {
+        "key": {
+          "college": "New York University"
+        },
+        "differences": {
+          "max_mvp_awards": {
+            "gold": 0,
+            "predicted": null
+          }
+        }
+      },
+      {
+        "key": {
+          "college": "University of Florida"
+        },
+        "differences": {
+          "max_mvp_awards": {
+            "gold": 0,
+            "predicted": 2
+          }
+        }
+      },
+      {
+        "key": {
+          "college": "University of Minnesota"
+        },
+        "differences": {
+          "max_mvp_awards": {
+            "gold": 0,
+            "predicted": null
+          }
+        }
+      },
+      {
+        "key": {
+          "college": "University of North Carolina at Chapel Hill"
+        },
+        "differences": {
+          "max_mvp_awards": {
+            "gold": 0,
+            "predicted": 1
+          }
+        }
+      }
+    ]
+  },
+  "docetl_differences": {
+    "missing_rows": [
+      {
+        "college": "Duke University",
+        "max_mvp_awards": 1
+      },
+      {
+        "college": "Indiana Hoosiers",
+        "max_mvp_awards": 1
+      },
+      {
+        "college": "Michigan State University",
+        "max_mvp_awards": 0
+      },
+      {
+        "college": "New York University",
+        "max_mvp_awards": 0
+      },
+      {
+        "college": "Oregon State University",
+        "max_mvp_awards": 0
+      },
+      {
+        "college": "Temple University",
+        "max_mvp_awards": 0
+      },
+      {
+        "college": "University of Arizona",
+        "max_mvp_awards": 0
+      },
+      {
+        "college": "University of Kentucky",
+        "max_mvp_awards": 0
+      },
+      {
+        "college": "University of Minnesota",
+        "max_mvp_awards": 0
+      },
+      {
+        "college": "University of Missouri",
+        "max_mvp_awards": 0
+      },
+      {
+        "college": "University of North Carolina at Chapel Hill",
+        "max_mvp_awards": 0
+      },
+      {
+        "college": "Wake Forest University",
+        "max_mvp_awards": 2
+      }
+    ],
+    "extra_rows": [
+      {
+        "college": "Duke",
+        "max_mvp_awards": 1
+      },
+      {
+        "college": "Florida",
+        "max_mvp_awards": -1
+      },
+      {
+        "college": "Indiana",
+        "max_mvp_awards": -1
+      },
+      {
+        "college": "Marquette",
+        "max_mvp_awards": -1
+      },
+      {
+        "college": "North Carolina",
+        "max_mvp_awards": 6
+      },
+      {
+        "college": "Temple",
+        "max_mvp_awards": -1
+      },
+      {
+        "college": "UTEP",
+        "max_mvp_awards": -1
+      },
+      {
+        "college": "Villanova",
+        "max_mvp_awards": -1
+      }
+    ],
+    "wrong_values": [
+      {
+        "key": {
+          "college": "Georgia Tech"
+        },
+        "differences": {
+          "max_mvp_awards": {
+            "gold": 0,
+            "predicted": -1
+          }
+        }
+      },
+      {
+        "key": {
+          "college": "Kansas State University"
+        },
+        "differences": {
+          "max_mvp_awards": {
+            "gold": 0,
+            "predicted": -1
+          }
+        }
+      },
+      {
+        "key": {
+          "college": "UCLA"
+        },
+        "differences": {
+          "max_mvp_awards": {
+            "gold": 1,
+            "predicted": -1
+          }
+        }
+      },
+      {
+        "key": {
+          "college": "University of Connecticut"
+        },
+        "differences": {
+          "max_mvp_awards": {
+            "gold": 0,
+            "predicted": -1
+          }
+        }
+      },
+      {
+        "key": {
+          "college": "University of Florida"
+        },
+        "differences": {
+          "max_mvp_awards": {
+            "gold": 0,
+            "predicted": -1
+          }
+        }
+      }
+    ]
+  }
+}

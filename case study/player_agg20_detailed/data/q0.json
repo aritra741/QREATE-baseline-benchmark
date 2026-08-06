@@ -1,0 +1,330 @@
+{
+  "query_id": "q0",
+  "natural_language_query": "Among players with a known position, what is the average age at each position?",
+  "reference_sql": "SELECT position, AVG(age) AS avg_age FROM player WHERE position IN ('Frontcourt', 'Backcourt') GROUP BY position",
+  "quwarts_sql": "SELECT \"t2\".\"position\", AVG(\"t2\".\"age\") AS \"avg_age\"\nFROM \"player\" AS \"t2\"\nWHERE (\"t2\".\"position\" = 'Frontcourt' OR \"t2\".\"position\" = 'Backcourt')\nGROUP BY \"t2\".\"position\"",
+  "quwarts_config_id": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+  "schema": {
+    "key_columns": [
+      "position"
+    ],
+    "measure_columns": [
+      "avg_age"
+    ],
+    "operators": {
+      "avg_age": "AVG"
+    },
+    "is_aggregation": true,
+    "has_groupby": true
+  },
+  "gold": [
+    {
+      "position": "Backcourt",
+      "avg_age": 49.096774193548384
+    },
+    {
+      "position": "Frontcourt",
+      "avg_age": 58.644444444444446
+    }
+  ],
+  "quwarts": [],
+  "docetl": [],
+  "quwarts_metrics": {
+    "official_query_error": 1.0,
+    "official_accuracy": 0.0,
+    "gold_row_count": 2,
+    "predicted_row_count": 0,
+    "schema": {
+      "key_columns": [
+        "position"
+      ],
+      "measure_columns": [
+        "avg_age"
+      ],
+      "operators": {
+        "avg_age": "AVG"
+      },
+      "is_aggregation": true,
+      "has_groupby": true
+    },
+    "rank": {
+      "structure_score": 0.0,
+      "structure_fbeta_score": 0.0,
+      "structure_f1_score": 0.0,
+      "structure_beta": 2.0,
+      "cell_f1": {
+        "0.01": 0.0,
+        "0.05": 0.0,
+        "0.2": 0.0
+      },
+      "query_score": {
+        "0.01": 0.0,
+        "0.05": 0.0,
+        "0.2": 0.0
+      }
+    },
+    "structure": {
+      "column": {
+        "key": {
+          "P": 0.0,
+          "R": 0.0,
+          "F1": 0.0,
+          "F_beta": 0.0,
+          "beta": 2.0
+        },
+        "measure": {
+          "P": 0.0,
+          "R": 0.0,
+          "F1": 0.0,
+          "F_beta": 0.0,
+          "beta": 2.0
+        },
+        "all": {
+          "P": 0.0,
+          "R": 0.0,
+          "F1": 0.0,
+          "F_beta": 0.0,
+          "beta": 2.0
+        }
+      },
+      "row": {
+        "exact": {
+          "P": 0.0,
+          "R": 0.0,
+          "F1": 0.0,
+          "F_beta": 0.0,
+          "beta": 2.0
+        },
+        "normalized": {
+          "P": 0.0,
+          "R": 0.0,
+          "F1": 0.0,
+          "F_beta": 0.0,
+          "beta": 2.0
+        },
+        "semantic": {
+          "P": 0.0,
+          "R": 0.0,
+          "F1": 0.0,
+          "F_beta": 0.0,
+          "beta": 2.0
+        }
+      },
+      "key_alignment_failed": true,
+      "missing_key_columns": [
+        "position"
+      ],
+      "structure_score": 0.0,
+      "structure_fbeta_score": 0.0,
+      "structure_f1_score": 0.0,
+      "structure_beta": 2.0
+    },
+    "value": {
+      "row_recall_context": 0.0,
+      "rel_err_histogram": {
+        "exact_or_le_1pct": 0.0,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 0.0,
+        "20_to_100pct": 0.0,
+        "gt_100pct": 0.0
+      },
+      "range_err_histogram": {
+        "exact_or_le_1pct": 0.0,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 0.0,
+        "20_to_100pct": 0.0,
+        "gt_100pct": 0.0
+      },
+      "pass_at_tau": {
+        "0.01": 1.0,
+        "0.05": 1.0,
+        "0.2": 1.0
+      },
+      "pass_by_operator": {},
+      "frac_catastrophic": 0.0,
+      "zero_true_count": 0,
+      "column_ranges": {}
+    },
+    "grouping": {
+      "merge_rate": 0.0,
+      "split_rate": 0.0
+    },
+    "structure_score": 0.0,
+    "structure_fbeta_score": 0.0,
+    "structure_f1_score": 0.0,
+    "structure_beta": 2.0,
+    "cell_f1": {
+      "0.01": 0.0,
+      "0.05": 0.0,
+      "0.2": 0.0
+    },
+    "query_score": {
+      "0.01": 0.0,
+      "0.05": 0.0,
+      "0.2": 0.0
+    }
+  },
+  "docetl_metrics": {
+    "official_query_error": 1.0,
+    "official_accuracy": 0.0,
+    "gold_row_count": 2,
+    "predicted_row_count": 0,
+    "schema": {
+      "key_columns": [
+        "position"
+      ],
+      "measure_columns": [
+        "avg_age"
+      ],
+      "operators": {
+        "avg_age": "AVG"
+      },
+      "is_aggregation": true,
+      "has_groupby": true
+    },
+    "rank": {
+      "structure_score": 0.0,
+      "structure_fbeta_score": 0.0,
+      "structure_f1_score": 0.0,
+      "structure_beta": 2.0,
+      "cell_f1": {
+        "0.01": 0.0,
+        "0.05": 0.0,
+        "0.2": 0.0
+      },
+      "query_score": {
+        "0.01": 0.0,
+        "0.05": 0.0,
+        "0.2": 0.0
+      }
+    },
+    "structure": {
+      "column": {
+        "key": {
+          "P": 0.0,
+          "R": 0.0,
+          "F1": 0.0,
+          "F_beta": 0.0,
+          "beta": 2.0
+        },
+        "measure": {
+          "P": 0.0,
+          "R": 0.0,
+          "F1": 0.0,
+          "F_beta": 0.0,
+          "beta": 2.0
+        },
+        "all": {
+          "P": 0.0,
+          "R": 0.0,
+          "F1": 0.0,
+          "F_beta": 0.0,
+          "beta": 2.0
+        }
+      },
+      "row": {
+        "exact": {
+          "P": 0.0,
+          "R": 0.0,
+          "F1": 0.0,
+          "F_beta": 0.0,
+          "beta": 2.0
+        },
+        "normalized": {
+          "P": 0.0,
+          "R": 0.0,
+          "F1": 0.0,
+          "F_beta": 0.0,
+          "beta": 2.0
+        },
+        "semantic": {
+          "P": 0.0,
+          "R": 0.0,
+          "F1": 0.0,
+          "F_beta": 0.0,
+          "beta": 2.0
+        }
+      },
+      "key_alignment_failed": true,
+      "missing_key_columns": [
+        "position"
+      ],
+      "structure_score": 0.0,
+      "structure_fbeta_score": 0.0,
+      "structure_f1_score": 0.0,
+      "structure_beta": 2.0
+    },
+    "value": {
+      "row_recall_context": 0.0,
+      "rel_err_histogram": {
+        "exact_or_le_1pct": 0.0,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 0.0,
+        "20_to_100pct": 0.0,
+        "gt_100pct": 0.0
+      },
+      "range_err_histogram": {
+        "exact_or_le_1pct": 0.0,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 0.0,
+        "20_to_100pct": 0.0,
+        "gt_100pct": 0.0
+      },
+      "pass_at_tau": {
+        "0.01": 1.0,
+        "0.05": 1.0,
+        "0.2": 1.0
+      },
+      "pass_by_operator": {},
+      "frac_catastrophic": 0.0,
+      "zero_true_count": 0,
+      "column_ranges": {}
+    },
+    "grouping": {
+      "merge_rate": 0.0,
+      "split_rate": 0.0
+    },
+    "structure_score": 0.0,
+    "structure_fbeta_score": 0.0,
+    "structure_f1_score": 0.0,
+    "structure_beta": 2.0,
+    "cell_f1": {
+      "0.01": 0.0,
+      "0.05": 0.0,
+      "0.2": 0.0
+    },
+    "query_score": {
+      "0.01": 0.0,
+      "0.05": 0.0,
+      "0.2": 0.0
+    }
+  },
+  "quwarts_differences": {
+    "missing_rows": [
+      {
+        "position": "Backcourt",
+        "avg_age": 49.096774193548384
+      },
+      {
+        "position": "Frontcourt",
+        "avg_age": 58.644444444444446
+      }
+    ],
+    "extra_rows": [],
+    "wrong_values": []
+  },
+  "docetl_differences": {
+    "missing_rows": [
+      {
+        "position": "Backcourt",
+        "avg_age": 49.096774193548384
+      },
+      {
+        "position": "Frontcourt",
+        "avg_age": 58.644444444444446
+      }
+    ],
+    "extra_rows": [],
+    "wrong_values": []
+  }
+}

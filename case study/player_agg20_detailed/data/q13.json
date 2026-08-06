@@ -1,0 +1,632 @@
+{
+  "query_id": "q13",
+  "natural_language_query": "How many teams founded before 1970 are based in each city?",
+  "reference_sql": "SELECT location, COUNT(*) AS team_count FROM team WHERE founded_year < 1970 AND location != '' GROUP BY location",
+  "quwarts_sql": "SELECT location, COUNT(*) AS team_count FROM team WHERE founded_year < 1970 AND location != '' GROUP BY location",
+  "quwarts_config_id": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+  "schema": {
+    "key_columns": [
+      "location"
+    ],
+    "measure_columns": [
+      "team_count"
+    ],
+    "operators": {
+      "team_count": "COUNT"
+    },
+    "is_aggregation": true,
+    "has_groupby": true
+  },
+  "gold": [
+    {
+      "location": "Atlanta",
+      "team_count": 1
+    },
+    {
+      "location": "Boston",
+      "team_count": 1
+    },
+    {
+      "location": "Brooklyn",
+      "team_count": 1
+    },
+    {
+      "location": "Chicago",
+      "team_count": 1
+    },
+    {
+      "location": "Denver",
+      "team_count": 1
+    },
+    {
+      "location": "Detroit",
+      "team_count": 1
+    },
+    {
+      "location": "Houston",
+      "team_count": 1
+    },
+    {
+      "location": "Indianapolis",
+      "team_count": 1
+    },
+    {
+      "location": "Los Angeles",
+      "team_count": 1
+    },
+    {
+      "location": "Milwaukee",
+      "team_count": 1
+    },
+    {
+      "location": "New York City",
+      "team_count": 1
+    },
+    {
+      "location": "Oklahoma City",
+      "team_count": 1
+    },
+    {
+      "location": "Philadelphia",
+      "team_count": 1
+    },
+    {
+      "location": "Phoenix",
+      "team_count": 1
+    },
+    {
+      "location": "Sacramento",
+      "team_count": 1
+    },
+    {
+      "location": "San Antonio",
+      "team_count": 1
+    },
+    {
+      "location": "San Francisco",
+      "team_count": 1
+    },
+    {
+      "location": "Washington",
+      "team_count": 1
+    }
+  ],
+  "quwarts": [
+    {
+      "location": "Auburn Hills",
+      "team_count": 1
+    },
+    {
+      "location": "Boston",
+      "team_count": 1
+    },
+    {
+      "location": "Brooklyn",
+      "team_count": 1
+    },
+    {
+      "location": "Chicago",
+      "team_count": 1
+    },
+    {
+      "location": "Denver",
+      "team_count": 1
+    },
+    {
+      "location": "Indianapolis",
+      "team_count": 1
+    },
+    {
+      "location": "Los Angeles",
+      "team_count": 1
+    },
+    {
+      "location": "Manhattan",
+      "team_count": 1
+    },
+    {
+      "location": "Milwaukee",
+      "team_count": 1
+    },
+    {
+      "location": "Phoenix, Arizona",
+      "team_count": 1
+    },
+    {
+      "location": "San Antonio",
+      "team_count": 1
+    },
+    {
+      "location": "San Francisco",
+      "team_count": 1
+    },
+    {
+      "location": "Washington, D.C.",
+      "team_count": 1
+    }
+  ],
+  "docetl": [
+    {
+      "location": "Atlanta",
+      "team_count": 1
+    },
+    {
+      "location": "Boston",
+      "team_count": 1
+    },
+    {
+      "location": "Charlotte, North Carolina",
+      "team_count": 1
+    },
+    {
+      "location": "Chicago",
+      "team_count": 1
+    },
+    {
+      "location": "Denver",
+      "team_count": 1
+    },
+    {
+      "location": "Fort Wayne",
+      "team_count": 1
+    },
+    {
+      "location": "Houston",
+      "team_count": 1
+    },
+    {
+      "location": "Indianapolis",
+      "team_count": 1
+    },
+    {
+      "location": "Los Angeles",
+      "team_count": 1
+    },
+    {
+      "location": "Miami",
+      "team_count": 1
+    },
+    {
+      "location": "Milwaukee",
+      "team_count": 1
+    },
+    {
+      "location": "New Jersey",
+      "team_count": 1
+    },
+    {
+      "location": "New Orleans",
+      "team_count": 1
+    },
+    {
+      "location": "Oklahoma City",
+      "team_count": 1
+    },
+    {
+      "location": "Philadelphia",
+      "team_count": 1
+    },
+    {
+      "location": "Phoenix, Arizona",
+      "team_count": 1
+    },
+    {
+      "location": "San Francisco",
+      "team_count": 1
+    },
+    {
+      "location": "Washington, D.C.",
+      "team_count": 1
+    }
+  ],
+  "quwarts_metrics": {
+    "official_query_error": 0.4193548387096774,
+    "official_accuracy": 0.5806451612903226,
+    "gold_row_count": 18,
+    "predicted_row_count": 13,
+    "schema": {
+      "key_columns": [
+        "location"
+      ],
+      "measure_columns": [
+        "team_count"
+      ],
+      "operators": {
+        "team_count": "COUNT"
+      },
+      "is_aggregation": true,
+      "has_groupby": true
+    },
+    "rank": {
+      "structure_score": 0.5294117647058824,
+      "structure_fbeta_score": 0.5294117647058824,
+      "structure_f1_score": 0.5806451612903226,
+      "structure_beta": 2.0,
+      "cell_f1": {
+        "0.01": 0.5806451612903226,
+        "0.05": 0.5806451612903226,
+        "0.2": 0.5806451612903226
+      },
+      "query_score": {
+        "0.01": 0.3074003795066414,
+        "0.05": 0.3074003795066414,
+        "0.2": 0.3074003795066414
+      }
+    },
+    "structure": {
+      "column": {
+        "key": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "measure": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "all": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        }
+      },
+      "row": {
+        "exact": {
+          "P": 0.6923076923076923,
+          "R": 0.5,
+          "F1": 0.5806451612903226,
+          "F_beta": 0.5294117647058824,
+          "beta": 2.0
+        },
+        "normalized": {
+          "P": 0.6923076923076923,
+          "R": 0.5,
+          "F1": 0.5806451612903226,
+          "F_beta": 0.5294117647058824,
+          "beta": 2.0
+        },
+        "semantic": {
+          "P": 0.6923076923076923,
+          "R": 0.5,
+          "F1": 0.5806451612903226,
+          "F_beta": 0.5294117647058824,
+          "beta": 2.0
+        }
+      },
+      "key_alignment_failed": false,
+      "missing_key_columns": [],
+      "structure_score": 0.5294117647058824,
+      "structure_fbeta_score": 0.5294117647058824,
+      "structure_f1_score": 0.5806451612903226,
+      "structure_beta": 2.0
+    },
+    "value": {
+      "row_recall_context": 0.5,
+      "rel_err_histogram": {
+        "exact_or_le_1pct": 1.0,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 0.0,
+        "20_to_100pct": 0.0,
+        "gt_100pct": 0.0
+      },
+      "range_err_histogram": {
+        "exact_or_le_1pct": 1.0,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 0.0,
+        "20_to_100pct": 0.0,
+        "gt_100pct": 0.0
+      },
+      "pass_at_tau": {
+        "0.01": 1.0,
+        "0.05": 1.0,
+        "0.2": 1.0
+      },
+      "pass_by_operator": {
+        "COUNT": {
+          "0.01": 1.0,
+          "0.05": 1.0,
+          "0.2": 1.0
+        }
+      },
+      "frac_catastrophic": 0.0,
+      "zero_true_count": 0,
+      "column_ranges": {
+        "team_count": {
+          "min": 1.0,
+          "max": 1.0
+        }
+      }
+    },
+    "grouping": {
+      "merge_rate": 0.0,
+      "split_rate": 0.0
+    },
+    "structure_score": 0.5294117647058824,
+    "structure_fbeta_score": 0.5294117647058824,
+    "structure_f1_score": 0.5806451612903226,
+    "structure_beta": 2.0,
+    "cell_f1": {
+      "0.01": 0.5806451612903226,
+      "0.05": 0.5806451612903226,
+      "0.2": 0.5806451612903226
+    },
+    "query_score": {
+      "0.01": 0.3074003795066414,
+      "0.05": 0.3074003795066414,
+      "0.2": 0.3074003795066414
+    }
+  },
+  "docetl_metrics": {
+    "official_query_error": 0.38888888888888884,
+    "official_accuracy": 0.6111111111111112,
+    "gold_row_count": 18,
+    "predicted_row_count": 18,
+    "schema": {
+      "key_columns": [
+        "location"
+      ],
+      "measure_columns": [
+        "team_count"
+      ],
+      "operators": {
+        "team_count": "COUNT"
+      },
+      "is_aggregation": true,
+      "has_groupby": true
+    },
+    "rank": {
+      "structure_score": 0.6111111111111112,
+      "structure_fbeta_score": 0.6111111111111112,
+      "structure_f1_score": 0.6111111111111112,
+      "structure_beta": 2.0,
+      "cell_f1": {
+        "0.01": 0.6111111111111112,
+        "0.05": 0.6111111111111112,
+        "0.2": 0.6111111111111112
+      },
+      "query_score": {
+        "0.01": 0.37345679012345684,
+        "0.05": 0.37345679012345684,
+        "0.2": 0.37345679012345684
+      }
+    },
+    "structure": {
+      "column": {
+        "key": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "measure": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "all": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        }
+      },
+      "row": {
+        "exact": {
+          "P": 0.6111111111111112,
+          "R": 0.6111111111111112,
+          "F1": 0.6111111111111112,
+          "F_beta": 0.6111111111111112,
+          "beta": 2.0
+        },
+        "normalized": {
+          "P": 0.6111111111111112,
+          "R": 0.6111111111111112,
+          "F1": 0.6111111111111112,
+          "F_beta": 0.6111111111111112,
+          "beta": 2.0
+        },
+        "semantic": {
+          "P": 0.6111111111111112,
+          "R": 0.6111111111111112,
+          "F1": 0.6111111111111112,
+          "F_beta": 0.6111111111111112,
+          "beta": 2.0
+        }
+      },
+      "key_alignment_failed": false,
+      "missing_key_columns": [],
+      "structure_score": 0.6111111111111112,
+      "structure_fbeta_score": 0.6111111111111112,
+      "structure_f1_score": 0.6111111111111112,
+      "structure_beta": 2.0
+    },
+    "value": {
+      "row_recall_context": 0.6111111111111112,
+      "rel_err_histogram": {
+        "exact_or_le_1pct": 1.0,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 0.0,
+        "20_to_100pct": 0.0,
+        "gt_100pct": 0.0
+      },
+      "range_err_histogram": {
+        "exact_or_le_1pct": 1.0,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 0.0,
+        "20_to_100pct": 0.0,
+        "gt_100pct": 0.0
+      },
+      "pass_at_tau": {
+        "0.01": 1.0,
+        "0.05": 1.0,
+        "0.2": 1.0
+      },
+      "pass_by_operator": {
+        "COUNT": {
+          "0.01": 1.0,
+          "0.05": 1.0,
+          "0.2": 1.0
+        }
+      },
+      "frac_catastrophic": 0.0,
+      "zero_true_count": 0,
+      "column_ranges": {
+        "team_count": {
+          "min": 1.0,
+          "max": 1.0
+        }
+      }
+    },
+    "grouping": {
+      "merge_rate": 0.0,
+      "split_rate": 0.0
+    },
+    "structure_score": 0.6111111111111112,
+    "structure_fbeta_score": 0.6111111111111112,
+    "structure_f1_score": 0.6111111111111112,
+    "structure_beta": 2.0,
+    "cell_f1": {
+      "0.01": 0.6111111111111112,
+      "0.05": 0.6111111111111112,
+      "0.2": 0.6111111111111112
+    },
+    "query_score": {
+      "0.01": 0.37345679012345684,
+      "0.05": 0.37345679012345684,
+      "0.2": 0.37345679012345684
+    }
+  },
+  "quwarts_differences": {
+    "missing_rows": [
+      {
+        "location": "Atlanta",
+        "team_count": 1
+      },
+      {
+        "location": "Detroit",
+        "team_count": 1
+      },
+      {
+        "location": "Houston",
+        "team_count": 1
+      },
+      {
+        "location": "New York City",
+        "team_count": 1
+      },
+      {
+        "location": "Oklahoma City",
+        "team_count": 1
+      },
+      {
+        "location": "Philadelphia",
+        "team_count": 1
+      },
+      {
+        "location": "Phoenix",
+        "team_count": 1
+      },
+      {
+        "location": "Sacramento",
+        "team_count": 1
+      },
+      {
+        "location": "Washington",
+        "team_count": 1
+      }
+    ],
+    "extra_rows": [
+      {
+        "location": "Auburn Hills",
+        "team_count": 1
+      },
+      {
+        "location": "Manhattan",
+        "team_count": 1
+      },
+      {
+        "location": "Phoenix, Arizona",
+        "team_count": 1
+      },
+      {
+        "location": "Washington, D.C.",
+        "team_count": 1
+      }
+    ],
+    "wrong_values": []
+  },
+  "docetl_differences": {
+    "missing_rows": [
+      {
+        "location": "Brooklyn",
+        "team_count": 1
+      },
+      {
+        "location": "Detroit",
+        "team_count": 1
+      },
+      {
+        "location": "New York City",
+        "team_count": 1
+      },
+      {
+        "location": "Phoenix",
+        "team_count": 1
+      },
+      {
+        "location": "Sacramento",
+        "team_count": 1
+      },
+      {
+        "location": "San Antonio",
+        "team_count": 1
+      },
+      {
+        "location": "Washington",
+        "team_count": 1
+      }
+    ],
+    "extra_rows": [
+      {
+        "location": "Charlotte, North Carolina",
+        "team_count": 1
+      },
+      {
+        "location": "Fort Wayne",
+        "team_count": 1
+      },
+      {
+        "location": "Miami",
+        "team_count": 1
+      },
+      {
+        "location": "New Jersey",
+        "team_count": 1
+      },
+      {
+        "location": "New Orleans",
+        "team_count": 1
+      },
+      {
+        "location": "Phoenix, Arizona",
+        "team_count": 1
+      },
+      {
+        "location": "Washington, D.C.",
+        "team_count": 1
+      }
+    ],
+    "wrong_values": []
+  }
+}

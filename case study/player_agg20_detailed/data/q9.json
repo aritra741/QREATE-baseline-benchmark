@@ -1,0 +1,978 @@
+{
+  "query_id": "q9",
+  "natural_language_query": "For each college, how many of its players have won at least one NBA championship?",
+  "reference_sql": "SELECT college, COUNT(*) AS champion_count FROM player WHERE nba_championships >= 1 AND college != '' GROUP BY college",
+  "quwarts_sql": "SELECT college, COUNT(*) AS champion_count FROM player WHERE nba_championships >= 1 AND college != '' GROUP BY college",
+  "quwarts_config_id": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+  "schema": {
+    "key_columns": [
+      "college"
+    ],
+    "measure_columns": [
+      "champion_count"
+    ],
+    "operators": {
+      "champion_count": "COUNT"
+    },
+    "is_aggregation": true,
+    "has_groupby": true
+  },
+  "gold": [
+    {
+      "college": "Davidson",
+      "champion_count": 1
+    },
+    {
+      "college": "Duke",
+      "champion_count": 1
+    },
+    {
+      "college": "Duke University",
+      "champion_count": 2
+    },
+    {
+      "college": "Indiana Hoosiers",
+      "champion_count": 1
+    },
+    {
+      "college": "Indiana University",
+      "champion_count": 1
+    },
+    {
+      "college": "Kansas Jayhawks",
+      "champion_count": 1
+    },
+    {
+      "college": "Kentucky",
+      "champion_count": 1
+    },
+    {
+      "college": "Louisiana State University (LSU)",
+      "champion_count": 1
+    },
+    {
+      "college": "Memphis State University",
+      "champion_count": 1
+    },
+    {
+      "college": "Michigan State",
+      "champion_count": 2
+    },
+    {
+      "college": "Michigan State University",
+      "champion_count": 1
+    },
+    {
+      "college": "North Carolina Tar Heels",
+      "champion_count": 1
+    },
+    {
+      "college": "UCLA",
+      "champion_count": 3
+    },
+    {
+      "college": "UTEP",
+      "champion_count": 1
+    },
+    {
+      "college": "University of Arizona",
+      "champion_count": 2
+    },
+    {
+      "college": "University of California, Berkeley",
+      "champion_count": 1
+    },
+    {
+      "college": "University of Florida",
+      "champion_count": 2
+    },
+    {
+      "college": "University of Minnesota",
+      "champion_count": 1
+    },
+    {
+      "college": "University of North Carolina",
+      "champion_count": 1
+    },
+    {
+      "college": "University of North Dakota",
+      "champion_count": 1
+    },
+    {
+      "college": "University of Texas at Austin",
+      "champion_count": 1
+    },
+    {
+      "college": "Villanova Wildcats",
+      "champion_count": 1
+    },
+    {
+      "college": "Wake Forest University",
+      "champion_count": 1
+    },
+    {
+      "college": "Xavier University",
+      "champion_count": 1
+    }
+  ],
+  "quwarts": [
+    {
+      "college": "Arizona Wildcats",
+      "champion_count": 1
+    },
+    {
+      "college": "California Golden Bears",
+      "champion_count": 1
+    },
+    {
+      "college": "Davidson Wildcats",
+      "champion_count": 1
+    },
+    {
+      "college": "Duke",
+      "champion_count": 1
+    },
+    {
+      "college": "Duke Blue Devils",
+      "champion_count": 2
+    },
+    {
+      "college": "Florida Gators",
+      "champion_count": 1
+    },
+    {
+      "college": "Indiana Hoosiers",
+      "champion_count": 1
+    },
+    {
+      "college": "Indiana University",
+      "champion_count": 1
+    },
+    {
+      "college": "Kansas Jayhawks",
+      "champion_count": 1
+    },
+    {
+      "college": "Kentucky",
+      "champion_count": 1
+    },
+    {
+      "college": "Kentucky Wildcats",
+      "champion_count": 2
+    },
+    {
+      "college": "LSU Tigers",
+      "champion_count": 1
+    },
+    {
+      "college": "Lower Merion High School",
+      "champion_count": 1
+    },
+    {
+      "college": "Michigan State",
+      "champion_count": 1
+    },
+    {
+      "college": "Michigan State Spartans",
+      "champion_count": 1
+    },
+    {
+      "college": "North Carolina Tar Heels",
+      "champion_count": 2
+    },
+    {
+      "college": "Texas Western College",
+      "champion_count": 1
+    },
+    {
+      "college": "UCLA Bruins",
+      "champion_count": 3
+    },
+    {
+      "college": "University of Florida",
+      "champion_count": 1
+    },
+    {
+      "college": "University of Maryland",
+      "champion_count": 1
+    },
+    {
+      "college": "University of Memphis",
+      "champion_count": 1
+    },
+    {
+      "college": "University of Texas",
+      "champion_count": 1
+    },
+    {
+      "college": "Villanova Wildcats",
+      "champion_count": 1
+    },
+    {
+      "college": "Wake Forest Demon Deacons",
+      "champion_count": 1
+    }
+  ],
+  "docetl": [
+    {
+      "college": "Arizona",
+      "champion_count": 1
+    },
+    {
+      "college": "California",
+      "champion_count": 1
+    },
+    {
+      "college": "Duke",
+      "champion_count": 2
+    },
+    {
+      "college": "Duke Blue Devils",
+      "champion_count": 1
+    },
+    {
+      "college": "Florida",
+      "champion_count": 1
+    },
+    {
+      "college": "Indiana",
+      "champion_count": 2
+    },
+    {
+      "college": "Kansas",
+      "champion_count": 1
+    },
+    {
+      "college": "Kentucky",
+      "champion_count": 3
+    },
+    {
+      "college": "Marist College",
+      "champion_count": 1
+    },
+    {
+      "college": "Marquette",
+      "champion_count": 1
+    },
+    {
+      "college": "Michigan State",
+      "champion_count": 3
+    },
+    {
+      "college": "North Carolina",
+      "champion_count": 2
+    },
+    {
+      "college": "San Jose State University",
+      "champion_count": 1
+    },
+    {
+      "college": "Texas Longhorns",
+      "champion_count": 1
+    },
+    {
+      "college": "Texas Western College",
+      "champion_count": 1
+    },
+    {
+      "college": "UCLA",
+      "champion_count": 3
+    },
+    {
+      "college": "UTEP",
+      "champion_count": 1
+    },
+    {
+      "college": "University of Arizona",
+      "champion_count": 1
+    },
+    {
+      "college": "University of Connecticut",
+      "champion_count": 1
+    },
+    {
+      "college": "University of Florida",
+      "champion_count": 1
+    },
+    {
+      "college": "University of Memphis",
+      "champion_count": 1
+    },
+    {
+      "college": "University of Southern California",
+      "champion_count": 1
+    },
+    {
+      "college": "Utah State University",
+      "champion_count": 1
+    },
+    {
+      "college": "Villanova",
+      "champion_count": 1
+    },
+    {
+      "college": "Villanova University",
+      "champion_count": 1
+    },
+    {
+      "college": "Wake Forest",
+      "champion_count": 1
+    }
+  ],
+  "quwarts_metrics": {
+    "official_query_error": 0.6493055555555556,
+    "official_accuracy": 0.3506944444444444,
+    "gold_row_count": 24,
+    "predicted_row_count": 24,
+    "schema": {
+      "key_columns": [
+        "college"
+      ],
+      "measure_columns": [
+        "champion_count"
+      ],
+      "operators": {
+        "champion_count": "COUNT"
+      },
+      "is_aggregation": true,
+      "has_groupby": true
+    },
+    "rank": {
+      "structure_score": 0.5833333333333334,
+      "structure_fbeta_score": 0.5833333333333334,
+      "structure_f1_score": 0.5833333333333334,
+      "structure_beta": 2.0,
+      "cell_f1": {
+        "0.01": 0.375,
+        "0.05": 0.375,
+        "0.2": 0.375
+      },
+      "query_score": {
+        "0.01": 0.21875,
+        "0.05": 0.21875,
+        "0.2": 0.21875
+      }
+    },
+    "structure": {
+      "column": {
+        "key": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "measure": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "all": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        }
+      },
+      "row": {
+        "exact": {
+          "P": 0.375,
+          "R": 0.375,
+          "F1": 0.375,
+          "F_beta": 0.375,
+          "beta": 2.0
+        },
+        "normalized": {
+          "P": 0.375,
+          "R": 0.375,
+          "F1": 0.375,
+          "F_beta": 0.375,
+          "beta": 2.0
+        },
+        "semantic": {
+          "P": 0.5833333333333334,
+          "R": 0.5833333333333334,
+          "F1": 0.5833333333333334,
+          "F_beta": 0.5833333333333334,
+          "beta": 2.0
+        }
+      },
+      "key_alignment_failed": false,
+      "missing_key_columns": [],
+      "structure_score": 0.5833333333333334,
+      "structure_fbeta_score": 0.5833333333333334,
+      "structure_f1_score": 0.5833333333333334,
+      "structure_beta": 2.0
+    },
+    "value": {
+      "row_recall_context": 0.5833333333333334,
+      "rel_err_histogram": {
+        "exact_or_le_1pct": 0.75,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 0.0,
+        "20_to_100pct": 0.25,
+        "gt_100pct": 0.0
+      },
+      "range_err_histogram": {
+        "exact_or_le_1pct": 0.75,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 0.0,
+        "20_to_100pct": 0.25,
+        "gt_100pct": 0.0
+      },
+      "pass_at_tau": {
+        "0.01": 0.75,
+        "0.05": 0.75,
+        "0.2": 0.75
+      },
+      "pass_by_operator": {
+        "COUNT": {
+          "0.01": 0.75,
+          "0.05": 0.75,
+          "0.2": 0.75
+        }
+      },
+      "frac_catastrophic": 0.0,
+      "zero_true_count": 0,
+      "column_ranges": {
+        "champion_count": {
+          "min": 1.0,
+          "max": 3.0
+        }
+      }
+    },
+    "grouping": {
+      "merge_rate": 0.0,
+      "split_rate": 0.041666666666666664
+    },
+    "structure_score": 0.5833333333333334,
+    "structure_fbeta_score": 0.5833333333333334,
+    "structure_f1_score": 0.5833333333333334,
+    "structure_beta": 2.0,
+    "cell_f1": {
+      "0.01": 0.375,
+      "0.05": 0.375,
+      "0.2": 0.375
+    },
+    "query_score": {
+      "0.01": 0.21875,
+      "0.05": 0.21875,
+      "0.2": 0.21875
+    }
+  },
+  "docetl_metrics": {
+    "official_query_error": 0.7633333333333334,
+    "official_accuracy": 0.23666666666666658,
+    "gold_row_count": 24,
+    "predicted_row_count": 26,
+    "schema": {
+      "key_columns": [
+        "college"
+      ],
+      "measure_columns": [
+        "champion_count"
+      ],
+      "operators": {
+        "champion_count": "COUNT"
+      },
+      "is_aggregation": true,
+      "has_groupby": true
+    },
+    "rank": {
+      "structure_score": 0.5737704918032787,
+      "structure_fbeta_score": 0.5737704918032787,
+      "structure_f1_score": 0.5599999999999999,
+      "structure_beta": 2.0,
+      "cell_f1": {
+        "0.01": 0.32,
+        "0.05": 0.32,
+        "0.2": 0.32
+      },
+      "query_score": {
+        "0.01": 0.18360655737704917,
+        "0.05": 0.18360655737704917,
+        "0.2": 0.18360655737704917
+      }
+    },
+    "structure": {
+      "column": {
+        "key": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "measure": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "all": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        }
+      },
+      "row": {
+        "exact": {
+          "P": 0.2692307692307692,
+          "R": 0.2916666666666667,
+          "F1": 0.27999999999999997,
+          "F_beta": 0.28688524590163933,
+          "beta": 2.0
+        },
+        "normalized": {
+          "P": 0.2692307692307692,
+          "R": 0.2916666666666667,
+          "F1": 0.27999999999999997,
+          "F_beta": 0.28688524590163933,
+          "beta": 2.0
+        },
+        "semantic": {
+          "P": 0.5384615384615384,
+          "R": 0.5833333333333334,
+          "F1": 0.5599999999999999,
+          "F_beta": 0.5737704918032787,
+          "beta": 2.0
+        }
+      },
+      "key_alignment_failed": false,
+      "missing_key_columns": [],
+      "structure_score": 0.5737704918032787,
+      "structure_fbeta_score": 0.5737704918032787,
+      "structure_f1_score": 0.5599999999999999,
+      "structure_beta": 2.0
+    },
+    "value": {
+      "row_recall_context": 0.5833333333333334,
+      "rel_err_histogram": {
+        "exact_or_le_1pct": 0.8888888888888888,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 0.0,
+        "20_to_100pct": 0.1111111111111111,
+        "gt_100pct": 0.0
+      },
+      "range_err_histogram": {
+        "exact_or_le_1pct": 0.8888888888888888,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 0.0,
+        "20_to_100pct": 0.1111111111111111,
+        "gt_100pct": 0.0
+      },
+      "pass_at_tau": {
+        "0.01": 0.8888888888888888,
+        "0.05": 0.8888888888888888,
+        "0.2": 0.8888888888888888
+      },
+      "pass_by_operator": {
+        "COUNT": {
+          "0.01": 0.8888888888888888,
+          "0.05": 0.8888888888888888,
+          "0.2": 0.8888888888888888
+        }
+      },
+      "frac_catastrophic": 0.0,
+      "zero_true_count": 0,
+      "column_ranges": {
+        "champion_count": {
+          "min": 1.0,
+          "max": 3.0
+        }
+      }
+    },
+    "grouping": {
+      "merge_rate": 0.11538461538461539,
+      "split_rate": 0.08333333333333333
+    },
+    "structure_score": 0.5737704918032787,
+    "structure_fbeta_score": 0.5737704918032787,
+    "structure_f1_score": 0.5599999999999999,
+    "structure_beta": 2.0,
+    "cell_f1": {
+      "0.01": 0.32,
+      "0.05": 0.32,
+      "0.2": 0.32
+    },
+    "query_score": {
+      "0.01": 0.18360655737704917,
+      "0.05": 0.18360655737704917,
+      "0.2": 0.18360655737704917
+    }
+  },
+  "quwarts_differences": {
+    "missing_rows": [
+      {
+        "college": "Davidson",
+        "champion_count": 1
+      },
+      {
+        "college": "Duke University",
+        "champion_count": 2
+      },
+      {
+        "college": "Louisiana State University (LSU)",
+        "champion_count": 1
+      },
+      {
+        "college": "Memphis State University",
+        "champion_count": 1
+      },
+      {
+        "college": "Michigan State University",
+        "champion_count": 1
+      },
+      {
+        "college": "UCLA",
+        "champion_count": 3
+      },
+      {
+        "college": "University of Arizona",
+        "champion_count": 2
+      },
+      {
+        "college": "University of California, Berkeley",
+        "champion_count": 1
+      },
+      {
+        "college": "University of Minnesota",
+        "champion_count": 1
+      },
+      {
+        "college": "University of North Carolina",
+        "champion_count": 1
+      },
+      {
+        "college": "University of North Dakota",
+        "champion_count": 1
+      },
+      {
+        "college": "University of Texas at Austin",
+        "champion_count": 1
+      },
+      {
+        "college": "UTEP",
+        "champion_count": 1
+      },
+      {
+        "college": "Wake Forest University",
+        "champion_count": 1
+      },
+      {
+        "college": "Xavier University",
+        "champion_count": 1
+      }
+    ],
+    "extra_rows": [
+      {
+        "college": "Arizona Wildcats",
+        "champion_count": 1
+      },
+      {
+        "college": "California Golden Bears",
+        "champion_count": 1
+      },
+      {
+        "college": "Davidson Wildcats",
+        "champion_count": 1
+      },
+      {
+        "college": "Duke Blue Devils",
+        "champion_count": 2
+      },
+      {
+        "college": "Florida Gators",
+        "champion_count": 1
+      },
+      {
+        "college": "Kentucky Wildcats",
+        "champion_count": 2
+      },
+      {
+        "college": "Lower Merion High School",
+        "champion_count": 1
+      },
+      {
+        "college": "LSU Tigers",
+        "champion_count": 1
+      },
+      {
+        "college": "Michigan State Spartans",
+        "champion_count": 1
+      },
+      {
+        "college": "Texas Western College",
+        "champion_count": 1
+      },
+      {
+        "college": "UCLA Bruins",
+        "champion_count": 3
+      },
+      {
+        "college": "University of Maryland",
+        "champion_count": 1
+      },
+      {
+        "college": "University of Memphis",
+        "champion_count": 1
+      },
+      {
+        "college": "University of Texas",
+        "champion_count": 1
+      },
+      {
+        "college": "Wake Forest Demon Deacons",
+        "champion_count": 1
+      }
+    ],
+    "wrong_values": [
+      {
+        "key": {
+          "college": "Michigan State"
+        },
+        "differences": {
+          "champion_count": {
+            "gold": 2,
+            "predicted": 1
+          }
+        }
+      },
+      {
+        "key": {
+          "college": "North Carolina Tar Heels"
+        },
+        "differences": {
+          "champion_count": {
+            "gold": 1,
+            "predicted": 2
+          }
+        }
+      },
+      {
+        "key": {
+          "college": "University of Florida"
+        },
+        "differences": {
+          "champion_count": {
+            "gold": 2,
+            "predicted": 1
+          }
+        }
+      }
+    ]
+  },
+  "docetl_differences": {
+    "missing_rows": [
+      {
+        "college": "Davidson",
+        "champion_count": 1
+      },
+      {
+        "college": "Duke University",
+        "champion_count": 2
+      },
+      {
+        "college": "Indiana Hoosiers",
+        "champion_count": 1
+      },
+      {
+        "college": "Indiana University",
+        "champion_count": 1
+      },
+      {
+        "college": "Kansas Jayhawks",
+        "champion_count": 1
+      },
+      {
+        "college": "Louisiana State University (LSU)",
+        "champion_count": 1
+      },
+      {
+        "college": "Memphis State University",
+        "champion_count": 1
+      },
+      {
+        "college": "Michigan State University",
+        "champion_count": 1
+      },
+      {
+        "college": "North Carolina Tar Heels",
+        "champion_count": 1
+      },
+      {
+        "college": "University of California, Berkeley",
+        "champion_count": 1
+      },
+      {
+        "college": "University of Minnesota",
+        "champion_count": 1
+      },
+      {
+        "college": "University of North Carolina",
+        "champion_count": 1
+      },
+      {
+        "college": "University of North Dakota",
+        "champion_count": 1
+      },
+      {
+        "college": "University of Texas at Austin",
+        "champion_count": 1
+      },
+      {
+        "college": "Villanova Wildcats",
+        "champion_count": 1
+      },
+      {
+        "college": "Wake Forest University",
+        "champion_count": 1
+      },
+      {
+        "college": "Xavier University",
+        "champion_count": 1
+      }
+    ],
+    "extra_rows": [
+      {
+        "college": "Arizona",
+        "champion_count": 1
+      },
+      {
+        "college": "California",
+        "champion_count": 1
+      },
+      {
+        "college": "Duke Blue Devils",
+        "champion_count": 1
+      },
+      {
+        "college": "Florida",
+        "champion_count": 1
+      },
+      {
+        "college": "Indiana",
+        "champion_count": 2
+      },
+      {
+        "college": "Kansas",
+        "champion_count": 1
+      },
+      {
+        "college": "Marist College",
+        "champion_count": 1
+      },
+      {
+        "college": "Marquette",
+        "champion_count": 1
+      },
+      {
+        "college": "North Carolina",
+        "champion_count": 2
+      },
+      {
+        "college": "San Jose State University",
+        "champion_count": 1
+      },
+      {
+        "college": "Texas Longhorns",
+        "champion_count": 1
+      },
+      {
+        "college": "Texas Western College",
+        "champion_count": 1
+      },
+      {
+        "college": "University of Connecticut",
+        "champion_count": 1
+      },
+      {
+        "college": "University of Memphis",
+        "champion_count": 1
+      },
+      {
+        "college": "University of Southern California",
+        "champion_count": 1
+      },
+      {
+        "college": "Utah State University",
+        "champion_count": 1
+      },
+      {
+        "college": "Villanova",
+        "champion_count": 1
+      },
+      {
+        "college": "Villanova University",
+        "champion_count": 1
+      },
+      {
+        "college": "Wake Forest",
+        "champion_count": 1
+      }
+    ],
+    "wrong_values": [
+      {
+        "key": {
+          "college": "Duke"
+        },
+        "differences": {
+          "champion_count": {
+            "gold": 1,
+            "predicted": 2
+          }
+        }
+      },
+      {
+        "key": {
+          "college": "Kentucky"
+        },
+        "differences": {
+          "champion_count": {
+            "gold": 1,
+            "predicted": 3
+          }
+        }
+      },
+      {
+        "key": {
+          "college": "Michigan State"
+        },
+        "differences": {
+          "champion_count": {
+            "gold": 2,
+            "predicted": 3
+          }
+        }
+      },
+      {
+        "key": {
+          "college": "University of Arizona"
+        },
+        "differences": {
+          "champion_count": {
+            "gold": 2,
+            "predicted": 1
+          }
+        }
+      },
+      {
+        "key": {
+          "college": "University of Florida"
+        },
+        "differences": {
+          "champion_count": {
+            "gold": 2,
+            "predicted": 1
+          }
+        }
+      }
+    ]
+  }
+}

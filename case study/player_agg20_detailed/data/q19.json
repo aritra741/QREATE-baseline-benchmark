@@ -1,0 +1,550 @@
+{
+  "query_id": "q19",
+  "natural_language_query": "Among cities with more than one million people, what is the highest GDP in each state?",
+  "reference_sql": "SELECT state_name, MAX(gdp) AS max_gdp FROM city WHERE population > 1000000 AND state_name != '' GROUP BY state_name",
+  "quwarts_sql": "SELECT state_name, MAX(gdp) AS max_gdp FROM city WHERE population > 1000000 AND state_name != '' GROUP BY state_name",
+  "quwarts_config_id": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+  "schema": {
+    "key_columns": [
+      "state_name"
+    ],
+    "measure_columns": [
+      "max_gdp"
+    ],
+    "operators": {
+      "max_gdp": "MAX"
+    },
+    "is_aggregation": true,
+    "has_groupby": true
+  },
+  "gold": [
+    {
+      "state_name": "Arizona",
+      "max_gdp": 362000
+    },
+    {
+      "state_name": "California",
+      "max_gdp": ""
+    },
+    {
+      "state_name": "Illinois",
+      "max_gdp": 689000
+    },
+    {
+      "state_name": "New York",
+      "max_gdp": ""
+    },
+    {
+      "state_name": "Ontario",
+      "max_gdp": ""
+    },
+    {
+      "state_name": "Pennsylvania",
+      "max_gdp": 518.5
+    },
+    {
+      "state_name": "Texas",
+      "max_gdp": ""
+    }
+  ],
+  "quwarts": [
+    {
+      "state_name": "Arizona",
+      "max_gdp": 362000000000
+    },
+    {
+      "state_name": "California",
+      "max_gdp": 1000000
+    },
+    {
+      "state_name": "Illinois",
+      "max_gdp": 689000000000
+    },
+    {
+      "state_name": "New York",
+      "max_gdp": null
+    },
+    {
+      "state_name": "Ontario",
+      "max_gdp": null
+    },
+    {
+      "state_name": "Pennsylvania",
+      "max_gdp": 518500000000
+    },
+    {
+      "state_name": "Texas",
+      "max_gdp": null
+    },
+    {
+      "state_name": "Utah",
+      "max_gdp": null
+    }
+  ],
+  "docetl": [
+    {
+      "state_name": "California",
+      "max_gdp": 1000000.0
+    },
+    {
+      "state_name": "Florida",
+      "max_gdp": -1.0
+    },
+    {
+      "state_name": "New York",
+      "max_gdp": 180000.0
+    },
+    {
+      "state_name": "Pennsylvania",
+      "max_gdp": 52889.0
+    },
+    {
+      "state_name": "Texas",
+      "max_gdp": 189056.3
+    }
+  ],
+  "quwarts_metrics": {
+    "official_query_error": 0.5333331999333333,
+    "official_accuracy": 0.4666668000666667,
+    "gold_row_count": 7,
+    "predicted_row_count": 8,
+    "schema": {
+      "key_columns": [
+        "state_name"
+      ],
+      "measure_columns": [
+        "max_gdp"
+      ],
+      "operators": {
+        "max_gdp": "MAX"
+      },
+      "is_aggregation": true,
+      "has_groupby": true
+    },
+    "rank": {
+      "structure_score": 0.9722222222222222,
+      "structure_fbeta_score": 0.9722222222222222,
+      "structure_f1_score": 0.9333333333333333,
+      "structure_beta": 2.0,
+      "cell_f1": {
+        "0.01": 0.0,
+        "0.05": 0.0,
+        "0.2": 0.0
+      },
+      "query_score": {
+        "0.01": 0.0,
+        "0.05": 0.0,
+        "0.2": 0.0
+      }
+    },
+    "structure": {
+      "column": {
+        "key": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "measure": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "all": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        }
+      },
+      "row": {
+        "exact": {
+          "P": 0.875,
+          "R": 1.0,
+          "F1": 0.9333333333333333,
+          "F_beta": 0.9722222222222222,
+          "beta": 2.0
+        },
+        "normalized": {
+          "P": 0.875,
+          "R": 1.0,
+          "F1": 0.9333333333333333,
+          "F_beta": 0.9722222222222222,
+          "beta": 2.0
+        },
+        "semantic": {
+          "P": 0.875,
+          "R": 1.0,
+          "F1": 0.9333333333333333,
+          "F_beta": 0.9722222222222222,
+          "beta": 2.0
+        }
+      },
+      "key_alignment_failed": false,
+      "missing_key_columns": [],
+      "structure_score": 0.9722222222222222,
+      "structure_fbeta_score": 0.9722222222222222,
+      "structure_f1_score": 0.9333333333333333,
+      "structure_beta": 2.0
+    },
+    "value": {
+      "row_recall_context": 1.0,
+      "rel_err_histogram": {
+        "exact_or_le_1pct": 0.0,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 0.0,
+        "20_to_100pct": 0.0,
+        "gt_100pct": 1.0
+      },
+      "range_err_histogram": {
+        "exact_or_le_1pct": 0.0,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 0.0,
+        "20_to_100pct": 0.0,
+        "gt_100pct": 1.0
+      },
+      "pass_at_tau": {
+        "0.01": 0.0,
+        "0.05": 0.0,
+        "0.2": 0.0
+      },
+      "pass_by_operator": {
+        "MAX": {
+          "0.01": 0.0,
+          "0.05": 0.0,
+          "0.2": 0.0
+        }
+      },
+      "frac_catastrophic": 1.0,
+      "zero_true_count": 0,
+      "column_ranges": {
+        "max_gdp": {
+          "min": 518.5,
+          "max": 689000.0
+        }
+      }
+    },
+    "grouping": {
+      "merge_rate": 0.0,
+      "split_rate": 0.0
+    },
+    "structure_score": 0.9722222222222222,
+    "structure_fbeta_score": 0.9722222222222222,
+    "structure_f1_score": 0.9333333333333333,
+    "structure_beta": 2.0,
+    "cell_f1": {
+      "0.01": 0.0,
+      "0.05": 0.0,
+      "0.2": 0.0
+    },
+    "query_score": {
+      "0.01": 0.0,
+      "0.05": 0.0,
+      "0.2": 0.0
+    }
+  },
+  "docetl_metrics": {
+    "official_query_error": 0.6658497040972603,
+    "official_accuracy": 0.3341502959027397,
+    "gold_row_count": 7,
+    "predicted_row_count": 5,
+    "schema": {
+      "key_columns": [
+        "state_name"
+      ],
+      "measure_columns": [
+        "max_gdp"
+      ],
+      "operators": {
+        "max_gdp": "MAX"
+      },
+      "is_aggregation": true,
+      "has_groupby": true
+    },
+    "rank": {
+      "structure_score": 0.6060606060606061,
+      "structure_fbeta_score": 0.6060606060606061,
+      "structure_f1_score": 0.6666666666666666,
+      "structure_beta": 2.0,
+      "cell_f1": {
+        "0.01": 0.0,
+        "0.05": 0.0,
+        "0.2": 0.16666666666666666
+      },
+      "query_score": {
+        "0.01": 0.0,
+        "0.05": 0.0,
+        "0.2": 0.10101010101010101
+      }
+    },
+    "structure": {
+      "column": {
+        "key": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "measure": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "all": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        }
+      },
+      "row": {
+        "exact": {
+          "P": 0.8,
+          "R": 0.5714285714285714,
+          "F1": 0.6666666666666666,
+          "F_beta": 0.6060606060606061,
+          "beta": 2.0
+        },
+        "normalized": {
+          "P": 0.8,
+          "R": 0.5714285714285714,
+          "F1": 0.6666666666666666,
+          "F_beta": 0.6060606060606061,
+          "beta": 2.0
+        },
+        "semantic": {
+          "P": 0.8,
+          "R": 0.5714285714285714,
+          "F1": 0.6666666666666666,
+          "F_beta": 0.6060606060606061,
+          "beta": 2.0
+        }
+      },
+      "key_alignment_failed": false,
+      "missing_key_columns": [],
+      "structure_score": 0.6060606060606061,
+      "structure_fbeta_score": 0.6060606060606061,
+      "structure_f1_score": 0.6666666666666666,
+      "structure_beta": 2.0
+    },
+    "value": {
+      "row_recall_context": 0.5714285714285714,
+      "rel_err_histogram": {
+        "exact_or_le_1pct": 0.0,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 1.0,
+        "20_to_100pct": 0.0,
+        "gt_100pct": 0.0
+      },
+      "range_err_histogram": {
+        "exact_or_le_1pct": 0.0,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 1.0,
+        "20_to_100pct": 0.0,
+        "gt_100pct": 0.0
+      },
+      "pass_at_tau": {
+        "0.01": 0.0,
+        "0.05": 0.0,
+        "0.2": 1.0
+      },
+      "pass_by_operator": {
+        "MAX": {
+          "0.01": 0.0,
+          "0.05": 0.0,
+          "0.2": 1.0
+        }
+      },
+      "frac_catastrophic": 0.0,
+      "zero_true_count": 0,
+      "column_ranges": {
+        "max_gdp": {
+          "min": 518.5,
+          "max": 689000.0
+        }
+      }
+    },
+    "grouping": {
+      "merge_rate": 0.0,
+      "split_rate": 0.0
+    },
+    "structure_score": 0.6060606060606061,
+    "structure_fbeta_score": 0.6060606060606061,
+    "structure_f1_score": 0.6666666666666666,
+    "structure_beta": 2.0,
+    "cell_f1": {
+      "0.01": 0.0,
+      "0.05": 0.0,
+      "0.2": 0.16666666666666666
+    },
+    "query_score": {
+      "0.01": 0.0,
+      "0.05": 0.0,
+      "0.2": 0.10101010101010101
+    }
+  },
+  "quwarts_differences": {
+    "missing_rows": [],
+    "extra_rows": [
+      {
+        "state_name": "Utah",
+        "max_gdp": null
+      }
+    ],
+    "wrong_values": [
+      {
+        "key": {
+          "state_name": "Arizona"
+        },
+        "differences": {
+          "max_gdp": {
+            "gold": 362000,
+            "predicted": 362000000000
+          }
+        }
+      },
+      {
+        "key": {
+          "state_name": "California"
+        },
+        "differences": {
+          "max_gdp": {
+            "gold": "",
+            "predicted": 1000000
+          }
+        }
+      },
+      {
+        "key": {
+          "state_name": "Illinois"
+        },
+        "differences": {
+          "max_gdp": {
+            "gold": 689000,
+            "predicted": 689000000000
+          }
+        }
+      },
+      {
+        "key": {
+          "state_name": "New York"
+        },
+        "differences": {
+          "max_gdp": {
+            "gold": "",
+            "predicted": null
+          }
+        }
+      },
+      {
+        "key": {
+          "state_name": "Ontario"
+        },
+        "differences": {
+          "max_gdp": {
+            "gold": "",
+            "predicted": null
+          }
+        }
+      },
+      {
+        "key": {
+          "state_name": "Pennsylvania"
+        },
+        "differences": {
+          "max_gdp": {
+            "gold": 518.5,
+            "predicted": 518500000000
+          }
+        }
+      },
+      {
+        "key": {
+          "state_name": "Texas"
+        },
+        "differences": {
+          "max_gdp": {
+            "gold": "",
+            "predicted": null
+          }
+        }
+      }
+    ]
+  },
+  "docetl_differences": {
+    "missing_rows": [
+      {
+        "state_name": "Arizona",
+        "max_gdp": 362000
+      },
+      {
+        "state_name": "Illinois",
+        "max_gdp": 689000
+      },
+      {
+        "state_name": "Ontario",
+        "max_gdp": ""
+      }
+    ],
+    "extra_rows": [
+      {
+        "state_name": "Florida",
+        "max_gdp": -1.0
+      }
+    ],
+    "wrong_values": [
+      {
+        "key": {
+          "state_name": "California"
+        },
+        "differences": {
+          "max_gdp": {
+            "gold": "",
+            "predicted": 1000000.0
+          }
+        }
+      },
+      {
+        "key": {
+          "state_name": "New York"
+        },
+        "differences": {
+          "max_gdp": {
+            "gold": "",
+            "predicted": 180000.0
+          }
+        }
+      },
+      {
+        "key": {
+          "state_name": "Pennsylvania"
+        },
+        "differences": {
+          "max_gdp": {
+            "gold": 518.5,
+            "predicted": 52889.0
+          }
+        }
+      },
+      {
+        "key": {
+          "state_name": "Texas"
+        },
+        "differences": {
+          "max_gdp": {
+            "gold": "",
+            "predicted": 189056.3
+          }
+        }
+      }
+    ]
+  }
+}

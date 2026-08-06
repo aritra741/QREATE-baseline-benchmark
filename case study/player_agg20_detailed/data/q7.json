@@ -1,0 +1,754 @@
+{
+  "query_id": "q7",
+  "natural_language_query": "For each current NBA team, what is the earliest (lowest) draft pick among its drafted players?",
+  "reference_sql": "SELECT p.team, MIN(p.draft_pick) AS earliest_draft_pick FROM player p JOIN team t ON p.team = t.team_name WHERE p.draft_pick > 0 GROUP BY p.team",
+  "quwarts_sql": "SELECT p.team, MIN(p.draft_pick) AS earliest_draft_pick FROM player p JOIN team t ON p.team = t.team_name WHERE p.draft_pick > 0 GROUP BY p.team",
+  "quwarts_config_id": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+  "schema": {
+    "key_columns": [
+      "team"
+    ],
+    "measure_columns": [
+      "earliest_draft_pick"
+    ],
+    "operators": {
+      "earliest_draft_pick": "MIN"
+    },
+    "is_aggregation": true,
+    "has_groupby": true
+  },
+  "gold": [
+    {
+      "team": "Boston Celtics",
+      "earliest_draft_pick": 1
+    },
+    {
+      "team": "Brooklyn Nets",
+      "earliest_draft_pick": 8
+    },
+    {
+      "team": "Chicago Bulls",
+      "earliest_draft_pick": 2
+    },
+    {
+      "team": "Cleveland Cavaliers",
+      "earliest_draft_pick": 16
+    },
+    {
+      "team": "Dallas Mavericks",
+      "earliest_draft_pick": 1
+    },
+    {
+      "team": "Detroit Pistons",
+      "earliest_draft_pick": 1
+    },
+    {
+      "team": "Golden State Warriors",
+      "earliest_draft_pick": 1
+    },
+    {
+      "team": "Houston Rockets",
+      "earliest_draft_pick": 1
+    },
+    {
+      "team": "Indiana Pacers",
+      "earliest_draft_pick": 2
+    },
+    {
+      "team": "Los Angeles Lakers",
+      "earliest_draft_pick": 1
+    },
+    {
+      "team": "Miami Heat",
+      "earliest_draft_pick": 5
+    },
+    {
+      "team": "Milwaukee Bucks",
+      "earliest_draft_pick": 1
+    },
+    {
+      "team": "Minnesota Timberwolves",
+      "earliest_draft_pick": 1
+    },
+    {
+      "team": "New York Knicks",
+      "earliest_draft_pick": 8
+    },
+    {
+      "team": "Orlando Magic",
+      "earliest_draft_pick": 25
+    },
+    {
+      "team": "Philadelphia 76ers",
+      "earliest_draft_pick": 3
+    },
+    {
+      "team": "Phoenix Suns",
+      "earliest_draft_pick": 2
+    },
+    {
+      "team": "Portland Trail Blazers",
+      "earliest_draft_pick": 2
+    },
+    {
+      "team": "San Antonio Spurs",
+      "earliest_draft_pick": 1
+    }
+  ],
+  "quwarts": [
+    {
+      "team": "Boston Celtics",
+      "earliest_draft_pick": 3
+    },
+    {
+      "team": "Charlotte Hornets",
+      "earliest_draft_pick": 8
+    },
+    {
+      "team": "Chicago Bulls",
+      "earliest_draft_pick": 3
+    },
+    {
+      "team": "Dallas Mavericks",
+      "earliest_draft_pick": 1
+    },
+    {
+      "team": "Detroit Pistons",
+      "earliest_draft_pick": 1
+    },
+    {
+      "team": "Golden State Warriors",
+      "earliest_draft_pick": 6
+    },
+    {
+      "team": "Houston Rockets",
+      "earliest_draft_pick": 4
+    },
+    {
+      "team": "Indiana Pacers",
+      "earliest_draft_pick": 2
+    },
+    {
+      "team": "Los Angeles Lakers",
+      "earliest_draft_pick": 1
+    },
+    {
+      "team": "Memphis Grizzlies",
+      "earliest_draft_pick": 24
+    },
+    {
+      "team": "Miami Heat",
+      "earliest_draft_pick": 5
+    },
+    {
+      "team": "Minnesota Timberwolves",
+      "earliest_draft_pick": 1
+    },
+    {
+      "team": "New York Knicks",
+      "earliest_draft_pick": 3
+    },
+    {
+      "team": "Philadelphia 76ers",
+      "earliest_draft_pick": 9
+    },
+    {
+      "team": "Phoenix Suns",
+      "earliest_draft_pick": 2
+    },
+    {
+      "team": "Portland Trail Blazers",
+      "earliest_draft_pick": 8
+    },
+    {
+      "team": "San Antonio Spurs",
+      "earliest_draft_pick": 1
+    },
+    {
+      "team": "Utah Jazz",
+      "earliest_draft_pick": 4
+    }
+  ],
+  "docetl": [
+    {
+      "team": "Atlanta Hawks",
+      "earliest_draft_pick": 3
+    },
+    {
+      "team": "Brooklyn Nets",
+      "earliest_draft_pick": 17
+    },
+    {
+      "team": "Bucks",
+      "earliest_draft_pick": 15
+    },
+    {
+      "team": "Charlotte Hornets",
+      "earliest_draft_pick": 16
+    },
+    {
+      "team": "Chicago Bulls",
+      "earliest_draft_pick": 3
+    },
+    {
+      "team": "Cleveland Cavaliers",
+      "earliest_draft_pick": 1
+    },
+    {
+      "team": "Dallas Mavericks",
+      "earliest_draft_pick": 24
+    },
+    {
+      "team": "Detroit Pistons",
+      "earliest_draft_pick": 1
+    },
+    {
+      "team": "Golden State Warriors",
+      "earliest_draft_pick": 1
+    },
+    {
+      "team": "Houston Rockets",
+      "earliest_draft_pick": 1
+    },
+    {
+      "team": "Indiana Pacers",
+      "earliest_draft_pick": 2
+    },
+    {
+      "team": "Los Angeles Lakers",
+      "earliest_draft_pick": 1
+    },
+    {
+      "team": "Miami Heat",
+      "earliest_draft_pick": 13
+    },
+    {
+      "team": "Minnesota Timberwolves",
+      "earliest_draft_pick": 1
+    },
+    {
+      "team": "Oklahoma City Thunder",
+      "earliest_draft_pick": 29
+    },
+    {
+      "team": "Philadelphia 76ers",
+      "earliest_draft_pick": 3
+    },
+    {
+      "team": "Phoenix Suns",
+      "earliest_draft_pick": 2
+    },
+    {
+      "team": "Portland Trail Blazers",
+      "earliest_draft_pick": 2
+    },
+    {
+      "team": "San Antonio Spurs",
+      "earliest_draft_pick": 1
+    },
+    {
+      "team": "Toronto Raptors",
+      "earliest_draft_pick": 23
+    }
+  ],
+  "quwarts_metrics": {
+    "official_query_error": 0.3076923076923077,
+    "official_accuracy": 0.6923076923076923,
+    "gold_row_count": 19,
+    "predicted_row_count": 18,
+    "schema": {
+      "key_columns": [
+        "team"
+      ],
+      "measure_columns": [
+        "earliest_draft_pick"
+      ],
+      "operators": {
+        "earliest_draft_pick": "MIN"
+      },
+      "is_aggregation": true,
+      "has_groupby": true
+    },
+    "rank": {
+      "structure_score": 0.797872340425532,
+      "structure_fbeta_score": 0.797872340425532,
+      "structure_f1_score": 0.8108108108108109,
+      "structure_beta": 2.0,
+      "cell_f1": {
+        "0.01": 0.43243243243243246,
+        "0.05": 0.4864864864864865,
+        "0.2": 0.5945945945945946
+      },
+      "query_score": {
+        "0.01": 0.34502587694077064,
+        "0.05": 0.38815411155836693,
+        "0.2": 0.4744105807935596
+      }
+    },
+    "structure": {
+      "column": {
+        "key": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "measure": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "all": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        }
+      },
+      "row": {
+        "exact": {
+          "P": 0.8333333333333334,
+          "R": 0.7894736842105263,
+          "F1": 0.8108108108108109,
+          "F_beta": 0.797872340425532,
+          "beta": 2.0
+        },
+        "normalized": {
+          "P": 0.8333333333333334,
+          "R": 0.7894736842105263,
+          "F1": 0.8108108108108109,
+          "F_beta": 0.797872340425532,
+          "beta": 2.0
+        },
+        "semantic": {
+          "P": 0.8333333333333334,
+          "R": 0.7894736842105263,
+          "F1": 0.8108108108108109,
+          "F_beta": 0.797872340425532,
+          "beta": 2.0
+        }
+      },
+      "key_alignment_failed": false,
+      "missing_key_columns": [],
+      "structure_score": 0.797872340425532,
+      "structure_fbeta_score": 0.797872340425532,
+      "structure_f1_score": 0.8108108108108109,
+      "structure_beta": 2.0
+    },
+    "value": {
+      "row_recall_context": 0.7894736842105263,
+      "rel_err_histogram": {
+        "exact_or_le_1pct": 0.5333333333333333,
+        "1_to_5pct": 0.06666666666666667,
+        "5_to_20pct": 0.13333333333333333,
+        "20_to_100pct": 0.26666666666666666,
+        "gt_100pct": 0.0
+      },
+      "range_err_histogram": {
+        "exact_or_le_1pct": 0.5333333333333333,
+        "1_to_5pct": 0.06666666666666667,
+        "5_to_20pct": 0.13333333333333333,
+        "20_to_100pct": 0.26666666666666666,
+        "gt_100pct": 0.0
+      },
+      "pass_at_tau": {
+        "0.01": 0.5333333333333333,
+        "0.05": 0.6,
+        "0.2": 0.7333333333333333
+      },
+      "pass_by_operator": {
+        "MIN": {
+          "0.01": 0.5333333333333333,
+          "0.05": 0.6,
+          "0.2": 0.7333333333333333
+        }
+      },
+      "frac_catastrophic": 0.0,
+      "zero_true_count": 0,
+      "column_ranges": {
+        "earliest_draft_pick": {
+          "min": 1.0,
+          "max": 25.0
+        }
+      }
+    },
+    "grouping": {
+      "merge_rate": 0.0,
+      "split_rate": 0.0
+    },
+    "structure_score": 0.797872340425532,
+    "structure_fbeta_score": 0.797872340425532,
+    "structure_f1_score": 0.8108108108108109,
+    "structure_beta": 2.0,
+    "cell_f1": {
+      "0.01": 0.43243243243243246,
+      "0.05": 0.4864864864864865,
+      "0.2": 0.5945945945945946
+    },
+    "query_score": {
+      "0.01": 0.34502587694077064,
+      "0.05": 0.38815411155836693,
+      "0.2": 0.4744105807935596
+    }
+  },
+  "docetl_metrics": {
+    "official_query_error": 0.3056495901153615,
+    "official_accuracy": 0.6943504098846385,
+    "gold_row_count": 19,
+    "predicted_row_count": 20,
+    "schema": {
+      "key_columns": [
+        "team"
+      ],
+      "measure_columns": [
+        "earliest_draft_pick"
+      ],
+      "operators": {
+        "earliest_draft_pick": "MIN"
+      },
+      "is_aggregation": true,
+      "has_groupby": true
+    },
+    "rank": {
+      "structure_score": 0.8333333333333333,
+      "structure_fbeta_score": 0.8333333333333333,
+      "structure_f1_score": 0.8205128205128205,
+      "structure_beta": 2.0,
+      "cell_f1": {
+        "0.01": 0.5128205128205129,
+        "0.05": 0.5641025641025641,
+        "0.2": 0.5641025641025641
+      },
+      "query_score": {
+        "0.01": 0.4273504273504274,
+        "0.05": 0.47008547008547,
+        "0.2": 0.47008547008547
+      }
+    },
+    "structure": {
+      "column": {
+        "key": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "measure": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "all": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        }
+      },
+      "row": {
+        "exact": {
+          "P": 0.75,
+          "R": 0.7894736842105263,
+          "F1": 0.7692307692307692,
+          "F_beta": 0.78125,
+          "beta": 2.0
+        },
+        "normalized": {
+          "P": 0.75,
+          "R": 0.7894736842105263,
+          "F1": 0.7692307692307692,
+          "F_beta": 0.78125,
+          "beta": 2.0
+        },
+        "semantic": {
+          "P": 0.8,
+          "R": 0.8421052631578947,
+          "F1": 0.8205128205128205,
+          "F_beta": 0.8333333333333333,
+          "beta": 2.0
+        }
+      },
+      "key_alignment_failed": false,
+      "missing_key_columns": [],
+      "structure_score": 0.8333333333333333,
+      "structure_fbeta_score": 0.8333333333333333,
+      "structure_f1_score": 0.8205128205128205,
+      "structure_beta": 2.0
+    },
+    "value": {
+      "row_recall_context": 0.8421052631578947,
+      "rel_err_histogram": {
+        "exact_or_le_1pct": 0.625,
+        "1_to_5pct": 0.0625,
+        "5_to_20pct": 0.0,
+        "20_to_100pct": 0.3125,
+        "gt_100pct": 0.0
+      },
+      "range_err_histogram": {
+        "exact_or_le_1pct": 0.625,
+        "1_to_5pct": 0.0625,
+        "5_to_20pct": 0.0,
+        "20_to_100pct": 0.3125,
+        "gt_100pct": 0.0
+      },
+      "pass_at_tau": {
+        "0.01": 0.625,
+        "0.05": 0.6875,
+        "0.2": 0.6875
+      },
+      "pass_by_operator": {
+        "MIN": {
+          "0.01": 0.625,
+          "0.05": 0.6875,
+          "0.2": 0.6875
+        }
+      },
+      "frac_catastrophic": 0.0,
+      "zero_true_count": 0,
+      "column_ranges": {
+        "earliest_draft_pick": {
+          "min": 1.0,
+          "max": 25.0
+        }
+      }
+    },
+    "grouping": {
+      "merge_rate": 0.0,
+      "split_rate": 0.0
+    },
+    "structure_score": 0.8333333333333333,
+    "structure_fbeta_score": 0.8333333333333333,
+    "structure_f1_score": 0.8205128205128205,
+    "structure_beta": 2.0,
+    "cell_f1": {
+      "0.01": 0.5128205128205129,
+      "0.05": 0.5641025641025641,
+      "0.2": 0.5641025641025641
+    },
+    "query_score": {
+      "0.01": 0.4273504273504274,
+      "0.05": 0.47008547008547,
+      "0.2": 0.47008547008547
+    }
+  },
+  "quwarts_differences": {
+    "missing_rows": [
+      {
+        "team": "Brooklyn Nets",
+        "earliest_draft_pick": 8
+      },
+      {
+        "team": "Cleveland Cavaliers",
+        "earliest_draft_pick": 16
+      },
+      {
+        "team": "Milwaukee Bucks",
+        "earliest_draft_pick": 1
+      },
+      {
+        "team": "Orlando Magic",
+        "earliest_draft_pick": 25
+      }
+    ],
+    "extra_rows": [
+      {
+        "team": "Charlotte Hornets",
+        "earliest_draft_pick": 8
+      },
+      {
+        "team": "Memphis Grizzlies",
+        "earliest_draft_pick": 24
+      },
+      {
+        "team": "Utah Jazz",
+        "earliest_draft_pick": 4
+      }
+    ],
+    "wrong_values": [
+      {
+        "key": {
+          "team": "Boston Celtics"
+        },
+        "differences": {
+          "earliest_draft_pick": {
+            "gold": 1,
+            "predicted": 3
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "Chicago Bulls"
+        },
+        "differences": {
+          "earliest_draft_pick": {
+            "gold": 2,
+            "predicted": 3
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "Golden State Warriors"
+        },
+        "differences": {
+          "earliest_draft_pick": {
+            "gold": 1,
+            "predicted": 6
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "Houston Rockets"
+        },
+        "differences": {
+          "earliest_draft_pick": {
+            "gold": 1,
+            "predicted": 4
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "New York Knicks"
+        },
+        "differences": {
+          "earliest_draft_pick": {
+            "gold": 8,
+            "predicted": 3
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "Philadelphia 76ers"
+        },
+        "differences": {
+          "earliest_draft_pick": {
+            "gold": 3,
+            "predicted": 9
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "Portland Trail Blazers"
+        },
+        "differences": {
+          "earliest_draft_pick": {
+            "gold": 2,
+            "predicted": 8
+          }
+        }
+      }
+    ]
+  },
+  "docetl_differences": {
+    "missing_rows": [
+      {
+        "team": "Boston Celtics",
+        "earliest_draft_pick": 1
+      },
+      {
+        "team": "Milwaukee Bucks",
+        "earliest_draft_pick": 1
+      },
+      {
+        "team": "New York Knicks",
+        "earliest_draft_pick": 8
+      },
+      {
+        "team": "Orlando Magic",
+        "earliest_draft_pick": 25
+      }
+    ],
+    "extra_rows": [
+      {
+        "team": "Atlanta Hawks",
+        "earliest_draft_pick": 3
+      },
+      {
+        "team": "Bucks",
+        "earliest_draft_pick": 15
+      },
+      {
+        "team": "Charlotte Hornets",
+        "earliest_draft_pick": 16
+      },
+      {
+        "team": "Oklahoma City Thunder",
+        "earliest_draft_pick": 29
+      },
+      {
+        "team": "Toronto Raptors",
+        "earliest_draft_pick": 23
+      }
+    ],
+    "wrong_values": [
+      {
+        "key": {
+          "team": "Brooklyn Nets"
+        },
+        "differences": {
+          "earliest_draft_pick": {
+            "gold": 8,
+            "predicted": 17
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "Chicago Bulls"
+        },
+        "differences": {
+          "earliest_draft_pick": {
+            "gold": 2,
+            "predicted": 3
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "Cleveland Cavaliers"
+        },
+        "differences": {
+          "earliest_draft_pick": {
+            "gold": 16,
+            "predicted": 1
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "Dallas Mavericks"
+        },
+        "differences": {
+          "earliest_draft_pick": {
+            "gold": 1,
+            "predicted": 24
+          }
+        }
+      },
+      {
+        "key": {
+          "team": "Miami Heat"
+        },
+        "differences": {
+          "earliest_draft_pick": {
+            "gold": 5,
+            "predicted": 13
+          }
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,626 @@
+{
+  "query_id": "q6",
+  "natural_language_query": "How many players were drafted in each year after 2010?",
+  "reference_sql": "SELECT draft_year, COUNT(*) AS player_count FROM player WHERE draft_year > 2010 GROUP BY draft_year",
+  "quwarts_sql": "SELECT draft_year, COUNT(*) AS player_count FROM player WHERE draft_year > 2010 GROUP BY draft_year",
+  "quwarts_config_id": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+  "schema": {
+    "key_columns": [
+      "draft_year"
+    ],
+    "measure_columns": [
+      "player_count"
+    ],
+    "operators": {
+      "player_count": "COUNT"
+    },
+    "is_aggregation": true,
+    "has_groupby": true
+  },
+  "gold": [
+    {
+      "draft_year": 2011,
+      "player_count": 3
+    },
+    {
+      "draft_year": 2012,
+      "player_count": 5
+    },
+    {
+      "draft_year": 2013,
+      "player_count": 4
+    },
+    {
+      "draft_year": 2014,
+      "player_count": 4
+    },
+    {
+      "draft_year": 2015,
+      "player_count": 5
+    },
+    {
+      "draft_year": 2016,
+      "player_count": 3
+    },
+    {
+      "draft_year": 2017,
+      "player_count": 5
+    },
+    {
+      "draft_year": 2018,
+      "player_count": 2
+    },
+    {
+      "draft_year": 2019,
+      "player_count": 2
+    },
+    {
+      "draft_year": 2020,
+      "player_count": 1
+    },
+    {
+      "draft_year": 2021,
+      "player_count": 3
+    },
+    {
+      "draft_year": 2022,
+      "player_count": 2
+    },
+    {
+      "draft_year": 2023,
+      "player_count": 4
+    },
+    {
+      "draft_year": "",
+      "player_count": 1
+    }
+  ],
+  "quwarts": [
+    {
+      "draft_year": "2011",
+      "player_count": 4
+    },
+    {
+      "draft_year": "2012",
+      "player_count": 5
+    },
+    {
+      "draft_year": "2013",
+      "player_count": 4
+    },
+    {
+      "draft_year": "2014",
+      "player_count": 4
+    },
+    {
+      "draft_year": "2015",
+      "player_count": 5
+    },
+    {
+      "draft_year": "2016",
+      "player_count": 3
+    },
+    {
+      "draft_year": "2017",
+      "player_count": 4
+    },
+    {
+      "draft_year": "2018",
+      "player_count": 2
+    },
+    {
+      "draft_year": "2019",
+      "player_count": 2
+    },
+    {
+      "draft_year": "2020",
+      "player_count": 1
+    },
+    {
+      "draft_year": "2021",
+      "player_count": 2
+    },
+    {
+      "draft_year": "2022",
+      "player_count": 2
+    },
+    {
+      "draft_year": "2023",
+      "player_count": 4
+    },
+    {
+      "draft_year": "2024",
+      "player_count": 1
+    }
+  ],
+  "docetl": [
+    {
+      "draft_year": 2011,
+      "player_count": 8
+    },
+    {
+      "draft_year": 2013,
+      "player_count": 2
+    },
+    {
+      "draft_year": 2014,
+      "player_count": 3
+    },
+    {
+      "draft_year": 2015,
+      "player_count": 4
+    },
+    {
+      "draft_year": 2016,
+      "player_count": 1
+    },
+    {
+      "draft_year": 2017,
+      "player_count": 3
+    },
+    {
+      "draft_year": 2018,
+      "player_count": 1
+    },
+    {
+      "draft_year": 2020,
+      "player_count": 1
+    },
+    {
+      "draft_year": 2023,
+      "player_count": 3
+    }
+  ],
+  "quwarts_metrics": {
+    "official_query_error": 0.09523809523809534,
+    "official_accuracy": 0.9047619047619047,
+    "gold_row_count": 14,
+    "predicted_row_count": 14,
+    "schema": {
+      "key_columns": [
+        "draft_year"
+      ],
+      "measure_columns": [
+        "player_count"
+      ],
+      "operators": {
+        "player_count": "COUNT"
+      },
+      "is_aggregation": true,
+      "has_groupby": true
+    },
+    "rank": {
+      "structure_score": 0.9285714285714286,
+      "structure_fbeta_score": 0.9285714285714286,
+      "structure_f1_score": 0.9285714285714286,
+      "structure_beta": 2.0,
+      "cell_f1": {
+        "0.01": 0.7142857142857143,
+        "0.05": 0.7142857142857143,
+        "0.2": 0.7142857142857143
+      },
+      "query_score": {
+        "0.01": 0.663265306122449,
+        "0.05": 0.663265306122449,
+        "0.2": 0.663265306122449
+      }
+    },
+    "structure": {
+      "column": {
+        "key": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "measure": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "all": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        }
+      },
+      "row": {
+        "exact": {
+          "P": 0.0,
+          "R": 0.0,
+          "F1": 0.0,
+          "F_beta": 0.0,
+          "beta": 2.0
+        },
+        "normalized": {
+          "P": 0.9285714285714286,
+          "R": 0.9285714285714286,
+          "F1": 0.9285714285714286,
+          "F_beta": 0.9285714285714286,
+          "beta": 2.0
+        },
+        "semantic": {
+          "P": 0.9285714285714286,
+          "R": 0.9285714285714286,
+          "F1": 0.9285714285714286,
+          "F_beta": 0.9285714285714286,
+          "beta": 2.0
+        }
+      },
+      "key_alignment_failed": false,
+      "missing_key_columns": [],
+      "structure_score": 0.9285714285714286,
+      "structure_fbeta_score": 0.9285714285714286,
+      "structure_f1_score": 0.9285714285714286,
+      "structure_beta": 2.0
+    },
+    "value": {
+      "row_recall_context": 0.9285714285714286,
+      "rel_err_histogram": {
+        "exact_or_le_1pct": 0.7692307692307693,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 0.0,
+        "20_to_100pct": 0.23076923076923078,
+        "gt_100pct": 0.0
+      },
+      "range_err_histogram": {
+        "exact_or_le_1pct": 0.7692307692307693,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 0.0,
+        "20_to_100pct": 0.23076923076923078,
+        "gt_100pct": 0.0
+      },
+      "pass_at_tau": {
+        "0.01": 0.7692307692307693,
+        "0.05": 0.7692307692307693,
+        "0.2": 0.7692307692307693
+      },
+      "pass_by_operator": {
+        "COUNT": {
+          "0.01": 0.7692307692307693,
+          "0.05": 0.7692307692307693,
+          "0.2": 0.7692307692307693
+        }
+      },
+      "frac_catastrophic": 0.0,
+      "zero_true_count": 0,
+      "column_ranges": {
+        "player_count": {
+          "min": 1.0,
+          "max": 5.0
+        }
+      }
+    },
+    "grouping": {
+      "merge_rate": 0.0,
+      "split_rate": 0.0
+    },
+    "structure_score": 0.9285714285714286,
+    "structure_fbeta_score": 0.9285714285714286,
+    "structure_f1_score": 0.9285714285714286,
+    "structure_beta": 2.0,
+    "cell_f1": {
+      "0.01": 0.7142857142857143,
+      "0.05": 0.7142857142857143,
+      "0.2": 0.7142857142857143
+    },
+    "query_score": {
+      "0.01": 0.663265306122449,
+      "0.05": 0.663265306122449,
+      "0.2": 0.663265306122449
+    }
+  },
+  "docetl_metrics": {
+    "official_query_error": 0.3280020703933747,
+    "official_accuracy": 0.6719979296066253,
+    "gold_row_count": 14,
+    "predicted_row_count": 9,
+    "schema": {
+      "key_columns": [
+        "draft_year"
+      ],
+      "measure_columns": [
+        "player_count"
+      ],
+      "operators": {
+        "player_count": "COUNT"
+      },
+      "is_aggregation": true,
+      "has_groupby": true
+    },
+    "rank": {
+      "structure_score": 0.6923076923076923,
+      "structure_fbeta_score": 0.6923076923076923,
+      "structure_f1_score": 0.782608695652174,
+      "structure_beta": 2.0,
+      "cell_f1": {
+        "0.01": 0.08695652173913043,
+        "0.05": 0.08695652173913043,
+        "0.2": 0.08695652173913043
+      },
+      "query_score": {
+        "0.01": 0.060200668896321065,
+        "0.05": 0.060200668896321065,
+        "0.2": 0.060200668896321065
+      }
+    },
+    "structure": {
+      "column": {
+        "key": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "measure": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "all": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        }
+      },
+      "row": {
+        "exact": {
+          "P": 1.0,
+          "R": 0.6428571428571429,
+          "F1": 0.782608695652174,
+          "F_beta": 0.6923076923076923,
+          "beta": 2.0
+        },
+        "normalized": {
+          "P": 1.0,
+          "R": 0.6428571428571429,
+          "F1": 0.782608695652174,
+          "F_beta": 0.6923076923076923,
+          "beta": 2.0
+        },
+        "semantic": {
+          "P": 1.0,
+          "R": 0.6428571428571429,
+          "F1": 0.782608695652174,
+          "F_beta": 0.6923076923076923,
+          "beta": 2.0
+        }
+      },
+      "key_alignment_failed": false,
+      "missing_key_columns": [],
+      "structure_score": 0.6923076923076923,
+      "structure_fbeta_score": 0.6923076923076923,
+      "structure_f1_score": 0.782608695652174,
+      "structure_beta": 2.0
+    },
+    "value": {
+      "row_recall_context": 0.6428571428571429,
+      "rel_err_histogram": {
+        "exact_or_le_1pct": 0.1111111111111111,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 0.0,
+        "20_to_100pct": 0.7777777777777778,
+        "gt_100pct": 0.1111111111111111
+      },
+      "range_err_histogram": {
+        "exact_or_le_1pct": 0.1111111111111111,
+        "1_to_5pct": 0.0,
+        "5_to_20pct": 0.0,
+        "20_to_100pct": 0.7777777777777778,
+        "gt_100pct": 0.1111111111111111
+      },
+      "pass_at_tau": {
+        "0.01": 0.1111111111111111,
+        "0.05": 0.1111111111111111,
+        "0.2": 0.1111111111111111
+      },
+      "pass_by_operator": {
+        "COUNT": {
+          "0.01": 0.1111111111111111,
+          "0.05": 0.1111111111111111,
+          "0.2": 0.1111111111111111
+        }
+      },
+      "frac_catastrophic": 0.1111111111111111,
+      "zero_true_count": 0,
+      "column_ranges": {
+        "player_count": {
+          "min": 1.0,
+          "max": 5.0
+        }
+      }
+    },
+    "grouping": {
+      "merge_rate": 0.0,
+      "split_rate": 0.0
+    },
+    "structure_score": 0.6923076923076923,
+    "structure_fbeta_score": 0.6923076923076923,
+    "structure_f1_score": 0.782608695652174,
+    "structure_beta": 2.0,
+    "cell_f1": {
+      "0.01": 0.08695652173913043,
+      "0.05": 0.08695652173913043,
+      "0.2": 0.08695652173913043
+    },
+    "query_score": {
+      "0.01": 0.060200668896321065,
+      "0.05": 0.060200668896321065,
+      "0.2": 0.060200668896321065
+    }
+  },
+  "quwarts_differences": {
+    "missing_rows": [
+      {
+        "draft_year": "",
+        "player_count": 1
+      }
+    ],
+    "extra_rows": [
+      {
+        "draft_year": "2024",
+        "player_count": 1
+      }
+    ],
+    "wrong_values": [
+      {
+        "key": {
+          "draft_year": 2011
+        },
+        "differences": {
+          "player_count": {
+            "gold": 3,
+            "predicted": 4
+          }
+        }
+      },
+      {
+        "key": {
+          "draft_year": 2017
+        },
+        "differences": {
+          "player_count": {
+            "gold": 5,
+            "predicted": 4
+          }
+        }
+      },
+      {
+        "key": {
+          "draft_year": 2021
+        },
+        "differences": {
+          "player_count": {
+            "gold": 3,
+            "predicted": 2
+          }
+        }
+      }
+    ]
+  },
+  "docetl_differences": {
+    "missing_rows": [
+      {
+        "draft_year": "",
+        "player_count": 1
+      },
+      {
+        "draft_year": 2012,
+        "player_count": 5
+      },
+      {
+        "draft_year": 2019,
+        "player_count": 2
+      },
+      {
+        "draft_year": 2021,
+        "player_count": 3
+      },
+      {
+        "draft_year": 2022,
+        "player_count": 2
+      }
+    ],
+    "extra_rows": [],
+    "wrong_values": [
+      {
+        "key": {
+          "draft_year": 2011
+        },
+        "differences": {
+          "player_count": {
+            "gold": 3,
+            "predicted": 8
+          }
+        }
+      },
+      {
+        "key": {
+          "draft_year": 2013
+        },
+        "differences": {
+          "player_count": {
+            "gold": 4,
+            "predicted": 2
+          }
+        }
+      },
+      {
+        "key": {
+          "draft_year": 2014
+        },
+        "differences": {
+          "player_count": {
+            "gold": 4,
+            "predicted": 3
+          }
+        }
+      },
+      {
+        "key": {
+          "draft_year": 2015
+        },
+        "differences": {
+          "player_count": {
+            "gold": 5,
+            "predicted": 4
+          }
+        }
+      },
+      {
+        "key": {
+          "draft_year": 2016
+        },
+        "differences": {
+          "player_count": {
+            "gold": 3,
+            "predicted": 1
+          }
+        }
+      },
+      {
+        "key": {
+          "draft_year": 2017
+        },
+        "differences": {
+          "player_count": {
+            "gold": 5,
+            "predicted": 3
+          }
+        }
+      },
+      {
+        "key": {
+          "draft_year": 2018
+        },
+        "differences": {
+          "player_count": {
+            "gold": 2,
+            "predicted": 1
+          }
+        }
+      },
+      {
+        "key": {
+          "draft_year": 2023
+        },
+        "differences": {
+          "player_count": {
+            "gold": 4,
+            "predicted": 3
+          }
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,669 @@
+{
+  "query_id": "q11",
+  "natural_language_query": "How many players aged 20 to 40 are there for each nationality?",
+  "reference_sql": "SELECT nationality, COUNT(*) AS player_count FROM player WHERE age BETWEEN 20 AND 40 AND nationality != '' GROUP BY nationality",
+  "quwarts_sql": "SELECT \"t2\".\"nationality\", COUNT(*) AS \"player_count\"\nFROM \"player\" AS \"t2\"\nWHERE ((\"t2\".\"age\" >= 20 AND \"t2\".\"age\" <= 40) AND \"t2\".\"nationality\" != '')\nGROUP BY \"t2\".\"nationality\"",
+  "quwarts_config_id": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+  "schema": {
+    "key_columns": [
+      "nationality"
+    ],
+    "measure_columns": [
+      "player_count"
+    ],
+    "operators": {
+      "player_count": "COUNT"
+    },
+    "is_aggregation": true,
+    "has_groupby": true
+  },
+  "gold": [
+    {
+      "nationality": "American",
+      "player_count": 49
+    },
+    {
+      "nationality": "American-Chinese",
+      "player_count": 1
+    },
+    {
+      "nationality": "American-born naturalized Azerbaijani",
+      "player_count": 1
+    },
+    {
+      "nationality": "Bahamian",
+      "player_count": 1
+    },
+    {
+      "nationality": "British",
+      "player_count": 1
+    },
+    {
+      "nationality": "Cameroonian-American",
+      "player_count": 1
+    },
+    {
+      "nationality": "Canadian",
+      "player_count": 1
+    },
+    {
+      "nationality": "Congolese",
+      "player_count": 1
+    },
+    {
+      "nationality": "Dominican",
+      "player_count": 1
+    },
+    {
+      "nationality": "French",
+      "player_count": 2
+    },
+    {
+      "nationality": "German",
+      "player_count": 1
+    },
+    {
+      "nationality": "Greek",
+      "player_count": 1
+    },
+    {
+      "nationality": "Greek and Nigerian",
+      "player_count": 1
+    },
+    {
+      "nationality": "Greek-American",
+      "player_count": 1
+    },
+    {
+      "nationality": "Mexican-American",
+      "player_count": 1
+    },
+    {
+      "nationality": "Nigerian-American",
+      "player_count": 1
+    },
+    {
+      "nationality": "Serbian",
+      "player_count": 1
+    }
+  ],
+  "quwarts": [
+    {
+      "nationality": "American",
+      "player_count": 40
+    },
+    {
+      "nationality": "Azerbaijan",
+      "player_count": 1
+    },
+    {
+      "nationality": "Bahamas",
+      "player_count": 1
+    },
+    {
+      "nationality": "Bahamian",
+      "player_count": 1
+    },
+    {
+      "nationality": "British",
+      "player_count": 1
+    },
+    {
+      "nationality": "Cameroonian-American",
+      "player_count": 1
+    },
+    {
+      "nationality": "Canadian",
+      "player_count": 1
+    },
+    {
+      "nationality": "Congolese",
+      "player_count": 1
+    },
+    {
+      "nationality": "Dominican Republic",
+      "player_count": 1
+    },
+    {
+      "nationality": "French",
+      "player_count": 1
+    },
+    {
+      "nationality": "German",
+      "player_count": 1
+    },
+    {
+      "nationality": "Mexican-American",
+      "player_count": 1
+    },
+    {
+      "nationality": "Nigerian",
+      "player_count": 1
+    },
+    {
+      "nationality": "Serbian",
+      "player_count": 1
+    },
+    {
+      "nationality": "Slovenian",
+      "player_count": 1
+    },
+    {
+      "nationality": "Yugoslav",
+      "player_count": 1
+    }
+  ],
+  "docetl": [
+    {
+      "nationality": "American",
+      "player_count": 48
+    },
+    {
+      "nationality": "American-Chinese",
+      "player_count": 1
+    },
+    {
+      "nationality": "Azerbaijan",
+      "player_count": 1
+    },
+    {
+      "nationality": "Bahamas",
+      "player_count": 1
+    },
+    {
+      "nationality": "Bahamian",
+      "player_count": 1
+    },
+    {
+      "nationality": "British",
+      "player_count": 1
+    },
+    {
+      "nationality": "Canadian",
+      "player_count": 1
+    },
+    {
+      "nationality": "Croatian",
+      "player_count": 1
+    },
+    {
+      "nationality": "Dominican",
+      "player_count": 1
+    },
+    {
+      "nationality": "French",
+      "player_count": 1
+    },
+    {
+      "nationality": "German",
+      "player_count": 1
+    },
+    {
+      "nationality": "Greek",
+      "player_count": 2
+    },
+    {
+      "nationality": "Greek and Nigerian",
+      "player_count": 1
+    },
+    {
+      "nationality": "Mexican-American",
+      "player_count": 1
+    },
+    {
+      "nationality": "Nigerian-American",
+      "player_count": 1
+    },
+    {
+      "nationality": "Serbian",
+      "player_count": 1
+    },
+    {
+      "nationality": "Slovenian",
+      "player_count": 1
+    }
+  ],
+  "quwarts_metrics": {
+    "official_query_error": 0.40874259839777083,
+    "official_accuracy": 0.5912574016022292,
+    "gold_row_count": 17,
+    "predicted_row_count": 16,
+    "schema": {
+      "key_columns": [
+        "nationality"
+      ],
+      "measure_columns": [
+        "player_count"
+      ],
+      "operators": {
+        "player_count": "COUNT"
+      },
+      "is_aggregation": true,
+      "has_groupby": true
+    },
+    "rank": {
+      "structure_score": 0.7142857142857143,
+      "structure_fbeta_score": 0.7142857142857143,
+      "structure_f1_score": 0.7272727272727272,
+      "structure_beta": 2.0,
+      "cell_f1": {
+        "0.01": 0.6060606060606061,
+        "0.05": 0.6666666666666667,
+        "0.2": 0.7272727272727272
+      },
+      "query_score": {
+        "0.01": 0.4329004329004329,
+        "0.05": 0.4761904761904763,
+        "0.2": 0.5194805194805194
+      }
+    },
+    "structure": {
+      "column": {
+        "key": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "measure": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "all": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        }
+      },
+      "row": {
+        "exact": {
+          "P": 0.625,
+          "R": 0.5882352941176471,
+          "F1": 0.6060606060606061,
+          "F_beta": 0.5952380952380952,
+          "beta": 2.0
+        },
+        "normalized": {
+          "P": 0.625,
+          "R": 0.5882352941176471,
+          "F1": 0.6060606060606061,
+          "F_beta": 0.5952380952380952,
+          "beta": 2.0
+        },
+        "semantic": {
+          "P": 0.75,
+          "R": 0.7058823529411765,
+          "F1": 0.7272727272727272,
+          "F_beta": 0.7142857142857143,
+          "beta": 2.0
+        }
+      },
+      "key_alignment_failed": false,
+      "missing_key_columns": [],
+      "structure_score": 0.7142857142857143,
+      "structure_fbeta_score": 0.7142857142857143,
+      "structure_f1_score": 0.7272727272727272,
+      "structure_beta": 2.0
+    },
+    "value": {
+      "row_recall_context": 0.7058823529411765,
+      "rel_err_histogram": {
+        "exact_or_le_1pct": 0.8333333333333334,
+        "1_to_5pct": 0.08333333333333333,
+        "5_to_20pct": 0.08333333333333333,
+        "20_to_100pct": 0.0,
+        "gt_100pct": 0.0
+      },
+      "range_err_histogram": {
+        "exact_or_le_1pct": 0.8333333333333334,
+        "1_to_5pct": 0.08333333333333333,
+        "5_to_20pct": 0.08333333333333333,
+        "20_to_100pct": 0.0,
+        "gt_100pct": 0.0
+      },
+      "pass_at_tau": {
+        "0.01": 0.8333333333333334,
+        "0.05": 0.9166666666666666,
+        "0.2": 1.0
+      },
+      "pass_by_operator": {
+        "COUNT": {
+          "0.01": 0.8333333333333334,
+          "0.05": 0.9166666666666666,
+          "0.2": 1.0
+        }
+      },
+      "frac_catastrophic": 0.0,
+      "zero_true_count": 0,
+      "column_ranges": {
+        "player_count": {
+          "min": 1.0,
+          "max": 49.0
+        }
+      }
+    },
+    "grouping": {
+      "merge_rate": 0.0,
+      "split_rate": 0.0
+    },
+    "structure_score": 0.7142857142857143,
+    "structure_fbeta_score": 0.7142857142857143,
+    "structure_f1_score": 0.7272727272727272,
+    "structure_beta": 2.0,
+    "cell_f1": {
+      "0.01": 0.6060606060606061,
+      "0.05": 0.6666666666666667,
+      "0.2": 0.7272727272727272
+    },
+    "query_score": {
+      "0.01": 0.4329004329004329,
+      "0.05": 0.4761904761904763,
+      "0.2": 0.5194805194805194
+    }
+  },
+  "docetl_metrics": {
+    "official_query_error": 0.260392156862745,
+    "official_accuracy": 0.739607843137255,
+    "gold_row_count": 17,
+    "predicted_row_count": 17,
+    "schema": {
+      "key_columns": [
+        "nationality"
+      ],
+      "measure_columns": [
+        "player_count"
+      ],
+      "operators": {
+        "player_count": "COUNT"
+      },
+      "is_aggregation": true,
+      "has_groupby": true
+    },
+    "rank": {
+      "structure_score": 0.7647058823529411,
+      "structure_fbeta_score": 0.7647058823529411,
+      "structure_f1_score": 0.7647058823529412,
+      "structure_beta": 2.0,
+      "cell_f1": {
+        "0.01": 0.5882352941176471,
+        "0.05": 0.7058823529411765,
+        "0.2": 0.7058823529411765
+      },
+      "query_score": {
+        "0.01": 0.44982698961937717,
+        "0.05": 0.5397923875432525,
+        "0.2": 0.5397923875432525
+      }
+    },
+    "structure": {
+      "column": {
+        "key": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "measure": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        },
+        "all": {
+          "P": 1.0,
+          "R": 1.0,
+          "F1": 1.0,
+          "F_beta": 1.0,
+          "beta": 2.0
+        }
+      },
+      "row": {
+        "exact": {
+          "P": 0.7647058823529411,
+          "R": 0.7647058823529411,
+          "F1": 0.7647058823529412,
+          "F_beta": 0.7647058823529411,
+          "beta": 2.0
+        },
+        "normalized": {
+          "P": 0.7647058823529411,
+          "R": 0.7647058823529411,
+          "F1": 0.7647058823529412,
+          "F_beta": 0.7647058823529411,
+          "beta": 2.0
+        },
+        "semantic": {
+          "P": 0.7647058823529411,
+          "R": 0.7647058823529411,
+          "F1": 0.7647058823529412,
+          "F_beta": 0.7647058823529411,
+          "beta": 2.0
+        }
+      },
+      "key_alignment_failed": false,
+      "missing_key_columns": [],
+      "structure_score": 0.7647058823529411,
+      "structure_fbeta_score": 0.7647058823529411,
+      "structure_f1_score": 0.7647058823529412,
+      "structure_beta": 2.0
+    },
+    "value": {
+      "row_recall_context": 0.7647058823529411,
+      "rel_err_histogram": {
+        "exact_or_le_1pct": 0.8333333333333334,
+        "1_to_5pct": 0.16666666666666666,
+        "5_to_20pct": 0.0,
+        "20_to_100pct": 0.0,
+        "gt_100pct": 0.0
+      },
+      "range_err_histogram": {
+        "exact_or_le_1pct": 0.8333333333333334,
+        "1_to_5pct": 0.16666666666666666,
+        "5_to_20pct": 0.0,
+        "20_to_100pct": 0.0,
+        "gt_100pct": 0.0
+      },
+      "pass_at_tau": {
+        "0.01": 0.8333333333333334,
+        "0.05": 1.0,
+        "0.2": 1.0
+      },
+      "pass_by_operator": {
+        "COUNT": {
+          "0.01": 0.8333333333333334,
+          "0.05": 1.0,
+          "0.2": 1.0
+        }
+      },
+      "frac_catastrophic": 0.0,
+      "zero_true_count": 0,
+      "column_ranges": {
+        "player_count": {
+          "min": 1.0,
+          "max": 49.0
+        }
+      }
+    },
+    "grouping": {
+      "merge_rate": 0.058823529411764705,
+      "split_rate": 0.0
+    },
+    "structure_score": 0.7647058823529411,
+    "structure_fbeta_score": 0.7647058823529411,
+    "structure_f1_score": 0.7647058823529412,
+    "structure_beta": 2.0,
+    "cell_f1": {
+      "0.01": 0.5882352941176471,
+      "0.05": 0.7058823529411765,
+      "0.2": 0.7058823529411765
+    },
+    "query_score": {
+      "0.01": 0.44982698961937717,
+      "0.05": 0.5397923875432525,
+      "0.2": 0.5397923875432525
+    }
+  },
+  "quwarts_differences": {
+    "missing_rows": [
+      {
+        "nationality": "American-born naturalized Azerbaijani",
+        "player_count": 1
+      },
+      {
+        "nationality": "American-Chinese",
+        "player_count": 1
+      },
+      {
+        "nationality": "Dominican",
+        "player_count": 1
+      },
+      {
+        "nationality": "Greek",
+        "player_count": 1
+      },
+      {
+        "nationality": "Greek and Nigerian",
+        "player_count": 1
+      },
+      {
+        "nationality": "Greek-American",
+        "player_count": 1
+      },
+      {
+        "nationality": "Nigerian-American",
+        "player_count": 1
+      }
+    ],
+    "extra_rows": [
+      {
+        "nationality": "Azerbaijan",
+        "player_count": 1
+      },
+      {
+        "nationality": "Bahamas",
+        "player_count": 1
+      },
+      {
+        "nationality": "Dominican Republic",
+        "player_count": 1
+      },
+      {
+        "nationality": "Nigerian",
+        "player_count": 1
+      },
+      {
+        "nationality": "Slovenian",
+        "player_count": 1
+      },
+      {
+        "nationality": "Yugoslav",
+        "player_count": 1
+      }
+    ],
+    "wrong_values": [
+      {
+        "key": {
+          "nationality": "American"
+        },
+        "differences": {
+          "player_count": {
+            "gold": 49,
+            "predicted": 40
+          }
+        }
+      },
+      {
+        "key": {
+          "nationality": "French"
+        },
+        "differences": {
+          "player_count": {
+            "gold": 2,
+            "predicted": 1
+          }
+        }
+      }
+    ]
+  },
+  "docetl_differences": {
+    "missing_rows": [
+      {
+        "nationality": "American-born naturalized Azerbaijani",
+        "player_count": 1
+      },
+      {
+        "nationality": "Cameroonian-American",
+        "player_count": 1
+      },
+      {
+        "nationality": "Congolese",
+        "player_count": 1
+      },
+      {
+        "nationality": "Greek-American",
+        "player_count": 1
+      }
+    ],
+    "extra_rows": [
+      {
+        "nationality": "Azerbaijan",
+        "player_count": 1
+      },
+      {
+        "nationality": "Bahamas",
+        "player_count": 1
+      },
+      {
+        "nationality": "Croatian",
+        "player_count": 1
+      },
+      {
+        "nationality": "Slovenian",
+        "player_count": 1
+      }
+    ],
+    "wrong_values": [
+      {
+        "key": {
+          "nationality": "American"
+        },
+        "differences": {
+          "player_count": {
+            "gold": 49,
+            "predicted": 48
+          }
+        }
+      },
+      {
+        "key": {
+          "nationality": "French"
+        },
+        "differences": {
+          "player_count": {
+            "gold": 2,
+            "predicted": 1
+          }
+        }
+      },
+      {
+        "key": {
+          "nationality": "Greek"
+        },
+        "differences": {
+          "player_count": {
+            "gold": 1,
+            "predicted": 2
+          }
+        }
+      }
+    ]
+  }
+}
