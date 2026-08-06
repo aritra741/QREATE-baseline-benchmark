@@ -136,7 +136,7 @@ function ReasonPanel({ system, reason }) {
       </header>
       <dl className="analysis-list">
         <div>
-          <dt>Pipeline stage</dt>
+          <dt>System component</dt>
           <dd>{reason.component}</dd>
         </div>
         <div>

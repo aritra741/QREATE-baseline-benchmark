@@ -215,7 +215,7 @@ def _diagnosis_section(system: str, diagnosis: dict[str, Any]) -> str:
     return "\n".join(
         [
             f"### Why {label} differs",
-            f"- **Pipeline stage:** {diagnosis.get('failure_stage', 'mixed')}",
+            f"- **System component:** {diagnosis.get('failure_stage', 'mixed')}",
             f"- **Root cause:** {diagnosis.get('root_cause', diagnosis.get('summary', 'Not specified.'))}",
             f"- **Pipeline behavior behind it:** {diagnosis.get('design_choice', 'Not specified.')}",
             f"- **Why validation allowed it:** {diagnosis.get('why_checks_missed', 'Not specified.')}",
@@ -408,10 +408,10 @@ def _write_index(
                 "DocETL main score at 20%": (
                     f"{case['docetl_metrics']['query_score']['0.2']:.4f}"
                 ),
-                "QuWARTS stage": diagnoses.get(query_id, {})
+                "QuWARTS component": diagnoses.get(query_id, {})
                 .get("quwarts", {})
                 .get("failure_stage", "unclassified"),
-                "DocETL stage": diagnoses.get(query_id, {})
+                "DocETL component": diagnoses.get(query_id, {})
                 .get("docetl", {})
                 .get("failure_stage", "unclassified"),
             }
@@ -429,8 +429,8 @@ def _write_index(
                     "query",
                     "QuWARTS main score at 20%",
                     "DocETL main score at 20%",
-                    "QuWARTS stage",
-                    "DocETL stage",
+                    "QuWARTS component",
+                    "DocETL component",
                 ],
             ),
             "",

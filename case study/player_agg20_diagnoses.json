@@ -1,7 +1,7 @@
 {
   "q0": {
     "quwarts": {
-      "failure_stage": "Position names",
+      "failure_stage": "Normalization",
       "root_cause": "QuWARTS kept detailed positions but the question needed two broad position groups.",
       "summary": "QuWARTS kept detailed positions but the question needed two broad position groups.",
       "design_choice": "The selected working table kept the position text as extracted. It did not include a step that maps each detailed position to one of the two groups.",
@@ -14,7 +14,7 @@
       ]
     },
     "docetl": {
-      "failure_stage": "Position names",
+      "failure_stage": "Extraction",
       "root_cause": "DocETL read detailed position names but did not turn them into the two values used by the filter.",
       "summary": "DocETL read detailed position names but did not turn them into the two values used by the filter.",
       "design_choice": "The natural-language instruction asked for known positions and said to keep names concise and normalized. It gave no mapping from detailed positions to Frontcourt and Backcourt.",
@@ -29,7 +29,7 @@
   },
   "q1": {
     "quwarts": {
-      "failure_stage": "Nationality names and missing values",
+      "failure_stage": "Normalization",
       "root_cause": "QuWARTS did not use one clear set of nationality names. It also missed many nationality values.",
       "summary": "QuWARTS did not use one clear set of nationality names. It also missed many nationality values.",
       "design_choice": "The table chosen for this question was meant to use name mapping, but its nationality column is identical to the table without mapping. No nationality value changed.",
@@ -42,7 +42,7 @@
       ]
     },
     "docetl": {
-      "failure_stage": "Nationality output",
+      "failure_stage": "Output validation",
       "root_cause": "DocETL saved some full data objects as nationality names. It also did not join different names for the same nationality.",
       "summary": "DocETL saved some full data objects as nationality names. It also did not join different names for the same nationality.",
       "design_choice": "The output rule only checks that nationality is text. It does not check that the text is a normal nationality name.",
@@ -57,7 +57,7 @@
   },
   "q2": {
     "quwarts": {
-      "failure_stage": "Teams and title counts",
+      "failure_stage": "Extraction",
       "root_cause": "The QuWARTS working table was missing many team and NBA title values, and some retained values did not match the benchmark rows.",
       "summary": "The QuWARTS working table was missing many team and NBA title values, and some retained values did not match the benchmark rows.",
       "design_choice": "The selected table stores one team name and one title count, but it stores no date or event that could be used to check what each value describes.",
@@ -70,7 +70,7 @@
       ]
     },
     "docetl": {
-      "failure_stage": "Missing numbers and team names",
+      "failure_stage": "Extraction and query execution",
       "root_cause": "DocETL used -1 for missing title counts. It also used different forms of the same team name.",
       "summary": "DocETL used -1 for missing title counts. It also used different forms of the same team name.",
       "design_choice": "Player data and team data were built separately. Missing numbers stayed as -1, and team names were not cleaned together.",
@@ -85,7 +85,7 @@
   },
   "q3": {
     "quwarts": {
-      "failure_stage": "College names and MVP counts",
+      "failure_stage": "Extraction and normalization",
       "root_cause": "QuWARTS used several names for the same college and missed most MVP counts.",
       "summary": "QuWARTS used several names for the same college and missed most MVP counts.",
       "design_choice": "The selected working table did not run a name-cleaning step that joins short names, full names, and mascot names.",
@@ -98,7 +98,7 @@
       ]
     },
     "docetl": {
-      "failure_stage": "College names and missing numbers",
+      "failure_stage": "Extraction",
       "root_cause": "DocETL used several names for the same college and used -1 for missing MVP counts.",
       "summary": "DocETL used several names for the same college and used -1 for missing MVP counts.",
       "design_choice": "The instruction said to keep names concise and normalized, but it did not provide a shared college-name mapping.",
@@ -113,7 +113,7 @@
   },
   "q4": {
     "quwarts": {
-      "failure_stage": "Position names",
+      "failure_stage": "Normalization",
       "root_cause": "QuWARTS did not change detailed positions into Frontcourt and Backcourt.",
       "summary": "QuWARTS did not change detailed positions into Frontcourt and Backcourt.",
       "design_choice": "The selected working table contains detailed position labels and no Frontcourt or Backcourt values.",
@@ -126,7 +126,7 @@
       ]
     },
     "docetl": {
-      "failure_stage": "Position names",
+      "failure_stage": "Extraction",
       "root_cause": "DocETL returned detailed positions instead of the two groups needed by the question.",
       "summary": "DocETL returned detailed positions instead of the two groups needed by the question.",
       "design_choice": "The instruction did not provide a fixed list or explain how each position should be grouped.",
@@ -141,7 +141,7 @@
   },
   "q5": {
     "quwarts": {
-      "failure_stage": "Meaning of title counts",
+      "failure_stage": "Cell validation",
       "root_cause": "QuWARTS retained wrong NBA title counts, including a value of 6 linked to a hockey player's Stanley Cups.",
       "summary": "QuWARTS retained wrong NBA title counts, including a value of 6 linked to a hockey player's Stanley Cups.",
       "design_choice": "The selected working table checks that this field contains a number. It does not apply an NBA-specific meaning or range check.",
@@ -155,7 +155,7 @@
       ]
     },
     "docetl": {
-      "failure_stage": "Missing rows, names, and a scoring edge case",
+      "failure_stage": "Extraction and evaluation",
       "root_cause": "The DocETL output omitted 25 of the 141 input player documents and split nationality names. Its American value of 9 matches Steve Kerr's source row, but the benchmark result for that group is an empty string because of mixed text and number handling.",
       "summary": "The DocETL output omitted 25 of the 141 input player documents and split nationality names. Its American value of 9 matches Steve Kerr's source row, but the benchmark result for that group is an empty string because of mixed text and number handling.",
       "design_choice": "The map step is configured to skip a document after an extraction error, and it uses one free-text nationality field with no shared mapping. The saved output does not record the reason for each omitted document.",
@@ -171,7 +171,7 @@
   },
   "q6": {
     "quwarts": {
-      "failure_stage": "Meaning of years",
+      "failure_stage": "Cell validation",
       "root_cause": "QuWARTS used a year from a draft discussion as the player's draft year, even when the player was not drafted.",
       "summary": "QuWARTS used a year from a draft discussion as the player's draft year, even when the player was not drafted.",
       "design_choice": "The selected working table checks the value type, but it does not require evidence that the year is the player's own draft year.",
@@ -185,7 +185,7 @@
       ]
     },
     "docetl": {
-      "failure_stage": "Wrong and missing draft years",
+      "failure_stage": "Extraction",
       "root_cause": "DocETL assigned unrelated years to some players and left many other draft years unknown.",
       "summary": "DocETL assigned unrelated years to some players and left many other draft years unknown.",
       "design_choice": "The instruction asked for a draft year but did not require proof that the year described the player's own draft.",
@@ -201,7 +201,7 @@
   },
   "q7": {
     "quwarts": {
-      "failure_stage": "Current teams",
+      "failure_stage": "Extraction",
       "root_cause": "The QuWARTS working table missed many team and draft-pick values, and some retained team groups did not match the benchmark.",
       "summary": "The QuWARTS working table missed many team and draft-pick values, and some retained team groups did not match the benchmark.",
       "design_choice": "The player row stores a team name but no date or status. After extraction, the working table has no check that confirms the value is the current team requested by the question.",
@@ -215,7 +215,7 @@
       ]
     },
     "docetl": {
-      "failure_stage": "Team name matching",
+      "failure_stage": "Extraction and query execution",
       "root_cause": "DocETL built player team names and official team names separately. It also kept some old team links.",
       "summary": "DocETL built player team names and official team names separately. It also kept some old team links.",
       "design_choice": "The prompt asks for the current team, but the output stores only the team name. The two tables are not cleaned together, and there is no later check of team identity or date.",
@@ -231,7 +231,7 @@
   },
   "q8": {
     "quwarts": {
-      "failure_stage": "Position names",
+      "failure_stage": "Normalization",
       "root_cause": "QuWARTS did not change detailed positions into Frontcourt and Backcourt.",
       "summary": "QuWARTS did not change detailed positions into Frontcourt and Backcourt.",
       "design_choice": "The selected working table contains detailed position labels and no Frontcourt or Backcourt values.",
@@ -244,7 +244,7 @@
       ]
     },
     "docetl": {
-      "failure_stage": "Position names and missing values",
+      "failure_stage": "Extraction",
       "root_cause": "DocETL missed many positions and medal counts. It also did not create Frontcourt and Backcourt groups.",
       "summary": "DocETL missed many positions and medal counts. It also did not create Frontcourt and Backcourt groups.",
       "design_choice": "The instruction gave no fixed position list. Many position and medal values remained unknown.",
@@ -259,7 +259,7 @@
   },
   "q9": {
     "quwarts": {
-      "failure_stage": "College names and title counts",
+      "failure_stage": "Extraction and normalization",
       "root_cause": "QuWARTS used several names for the same college and accepted some wrong NBA title counts.",
       "summary": "QuWARTS used several names for the same college and accepted some wrong NBA title counts.",
       "design_choice": "The selected working table does not clean college names and only checks that the title field is a number.",
@@ -273,7 +273,7 @@
       ]
     },
     "docetl": {
-      "failure_stage": "College names and title counts",
+      "failure_stage": "Extraction",
       "root_cause": "DocETL produced several forms of each college name and some wrong NBA title counts.",
       "summary": "DocETL produced several forms of each college name and some wrong NBA title counts.",
       "design_choice": "There was no shared college-name list and no check of what each title number meant.",
@@ -289,7 +289,7 @@
   },
   "q10": {
     "quwarts": {
-      "failure_stage": "Meaning of title counts",
+      "failure_stage": "Cell validation",
       "root_cause": "QuWARTS accepted years as FIBA title counts and often missed current team links.",
       "summary": "QuWARTS accepted years as FIBA title counts and often missed current team links.",
       "design_choice": "The selected working table checked that the title field held a number, but it did not apply a sensible count range.",
@@ -303,7 +303,7 @@
       ]
     },
     "docetl": {
-      "failure_stage": "Title counts and team names",
+      "failure_stage": "Extraction and query execution",
       "root_cause": "DocETL accepted any number as a title count and built team names separately.",
       "summary": "DocETL accepted any number as a title count and built team names separately.",
       "design_choice": "It had no sensible range for title counts and no shared cleanup for team names.",
@@ -319,7 +319,7 @@
   },
   "q11": {
     "quwarts": {
-      "failure_stage": "Age calculation",
+      "failure_stage": "Extraction",
       "root_cause": "The QuWARTS table contains old age values instead of the players' ages in 2026.",
       "summary": "The QuWARTS table contains old age values instead of the players' ages in 2026.",
       "design_choice": "The working table stores age, but it does not store birth date or the date used for the age calculation. It can therefore keep an age stated in an older article.",
@@ -333,7 +333,7 @@
       ]
     },
     "docetl": {
-      "failure_stage": "Age calculation and missing values",
+      "failure_stage": "Extraction",
       "root_cause": "The DocETL table contains old age values and leaves many other ages unknown.",
       "summary": "The DocETL table contains old age values and leaves many other ages unknown.",
       "design_choice": "The instruction requests one age number but does not require a birth-date calculation or store the date used for that calculation.",
@@ -349,7 +349,7 @@
   },
   "q12": {
     "quwarts": {
-      "failure_stage": "Team records and current facts",
+      "failure_stage": "Extraction",
       "root_cause": "The QuWARTS team table contains historical team names, person names, and a year as separate team rows.",
       "summary": "The QuWARTS team table contains historical team names, person names, and a year as separate team rows.",
       "design_choice": "The selected team table has 42 rows, while the benchmark has 30 teams. It has no final rule that limits the result to one current row for each benchmark team.",
@@ -363,7 +363,7 @@
       ]
     },
     "docetl": {
-      "failure_stage": "Choosing current team facts",
+      "failure_stage": "Extraction",
       "root_cause": "DocETL sometimes chose old team facts, and some documents produced no row.",
       "summary": "DocETL sometimes chose old team facts, and some documents produced no row.",
       "design_choice": "Each team document was handled once. There was no second check to choose current facts over old facts.",
@@ -378,7 +378,7 @@
   },
   "q13": {
     "quwarts": {
-      "failure_stage": "Team rows, cities, and years",
+      "failure_stage": "Extraction",
       "root_cause": "QuWARTS kept extra historical or non-current team rows, different city names, and wrong founding years.",
       "summary": "QuWARTS kept extra historical or non-current team rows, different city names, and wrong founding years.",
       "design_choice": "The selected team table has 42 rows for a 30-team benchmark and no final step that keeps one current row per team.",
@@ -392,7 +392,7 @@
       ]
     },
     "docetl": {
-      "failure_stage": "Missing years and old locations",
+      "failure_stage": "Extraction",
       "root_cause": "DocETL marked some founding years as unknown and sometimes chose old locations.",
       "summary": "DocETL marked some founding years as unknown and sometimes chose old locations.",
       "design_choice": "Inside the team table, DocETL used -1 to mark an unknown year. It also did not clearly require one current team record.",
@@ -408,7 +408,7 @@
   },
   "q14": {
     "quwarts": {
-      "failure_stage": "Owner names used for scoring",
+      "failure_stage": "Evaluation",
       "root_cause": "The scoring data changes team owner names by using a separate owner table, but the question does not ask either system to use that table.",
       "summary": "The scoring data changes team owner names by using a separate owner table, but the question does not ask either system to use that table.",
       "design_choice": "The requested table has a team ownership field but no owner lookup table. QuWARTS therefore uses ownership text from its team rows, including old, legal, and short names.",
@@ -422,7 +422,7 @@
       ]
     },
     "docetl": {
-      "failure_stage": "Owner names used for scoring",
+      "failure_stage": "Evaluation",
       "root_cause": "DocETL reads owner names from team documents, while the scoring data changes them by using a separate owner table.",
       "summary": "DocETL reads owner names from team documents, while the scoring data changes them by using a separate owner table.",
       "design_choice": "The reference query requests only a team table, so this DocETL run builds only that table. It does not build or join the separate owner lookup used while creating the gold table.",
@@ -438,7 +438,7 @@
   },
   "q15": {
     "quwarts": {
-      "failure_stage": "Current locations and title totals",
+      "failure_stage": "Extraction",
       "root_cause": "QuWARTS kept location variants and wrong title totals instead of one benchmark row for each team.",
       "summary": "QuWARTS kept location variants and wrong title totals instead of one benchmark row for each team.",
       "design_choice": "The working table stores a location and title number, but it stores no date that could identify the current version of each fact.",
@@ -451,7 +451,7 @@
       ]
     },
     "docetl": {
-      "failure_stage": "Choosing current team facts",
+      "failure_stage": "Extraction",
       "root_cause": "DocETL chose historical cities and some wrong title totals.",
       "summary": "DocETL chose historical cities and some wrong title totals.",
       "design_choice": "It made one row from each team document without a second step that checks the time period of each selected fact.",
@@ -466,7 +466,7 @@
   },
   "q16": {
     "quwarts": {
-      "failure_stage": "Owner coverage and age calculation",
+      "failure_stage": "Extraction",
       "root_cause": "The QuWARTS table has only 11 owner rows, and several saved ages do not match the 2026 benchmark values.",
       "summary": "The QuWARTS table has only 11 owner rows, and several saved ages do not match the 2026 benchmark values.",
       "design_choice": "The working table stores age but not birth date or the date used for the calculation, so the saved age cannot be recalculated or checked for 2026.",
@@ -479,7 +479,7 @@
       ]
     },
     "docetl": {
-      "failure_stage": "Age values and missing numbers",
+      "failure_stage": "Extraction",
       "root_cause": "DocETL confused a birth year with an age and used -1 for missing ages.",
       "summary": "DocETL confused a birth year with an age and used -1 for missing ages.",
       "design_choice": "The age field only had to contain a number. The instruction did not require a sensible age range or a birth-date calculation.",
@@ -494,7 +494,7 @@
   },
   "q17": {
     "quwarts": {
-      "failure_stage": "Owner coverage and purchase years",
+      "failure_stage": "Cell validation",
       "root_cause": "The QuWARTS owner table lacks the American purchase year 2000 and contains an unsupported 1996 year for the Taiwanese-Canadian row.",
       "summary": "The QuWARTS owner table lacks the American purchase year 2000 and contains an unsupported 1996 year for the Taiwanese-Canadian row.",
       "design_choice": "The owner table stores one year but no event text that proves the year is a team purchase. The working table can keep a numeric year without that proof.",
@@ -508,7 +508,7 @@
       ]
     },
     "docetl": {
-      "failure_stage": "Purchase years and nationality",
+      "failure_stage": "Extraction",
       "root_cause": "DocETL left most nationality values empty and used a company job year as a team purchase year.",
       "summary": "DocETL left most nationality values empty and used a company job year as a team purchase year.",
       "design_choice": "The extraction output stores only the year value. It does not store a quote or event label that proves the year describes buying the team.",
@@ -523,7 +523,7 @@
   },
   "q18": {
     "quwarts": {
-      "failure_stage": "Population date and area",
+      "failure_stage": "Cell validation",
       "root_cause": "QuWARTS used population numbers from different years or different areas.",
       "summary": "QuWARTS used population numbers from different years or different areas.",
       "design_choice": "It saved one population number without also saving the date or whether it covered the city or the larger metro area.",
@@ -536,7 +536,7 @@
       ]
     },
     "docetl": {
-      "failure_stage": "Missing states and populations",
+      "failure_stage": "Extraction and query execution",
       "root_cause": "DocETL left many state names empty and marked some populations as unknown.",
       "summary": "DocETL left many state names empty and marked some populations as unknown.",
       "design_choice": "Inside the city table, DocETL used -1 to mark an unknown population. It did not remove that marker before calculating averages.",
@@ -551,7 +551,7 @@
   },
   "q19": {
     "quwarts": {
-      "failure_stage": "GDP units and population area",
+      "failure_stage": "Extraction and normalization",
       "root_cause": "QuWARTS mixed GDP values written in dollars, millions, and billions.",
       "summary": "QuWARTS mixed GDP values written in dollars, millions, and billions.",
       "design_choice": "The working table stores one GDP number but no unit, so values cannot be converted to a common scale after extraction.",
@@ -564,7 +564,7 @@
       ]
     },
     "docetl": {
-      "failure_stage": "GDP units and missing states",
+      "failure_stage": "Extraction",
       "root_cause": "DocETL saved GDP as a number without saving its unit. It also left some state names empty.",
       "summary": "DocETL saved GDP as a number without saving its unit. It also left some state names empty.",
       "design_choice": "The output has one numeric GDP field and no unit field. It therefore cannot show whether a value is in dollars, millions, or billions.",
