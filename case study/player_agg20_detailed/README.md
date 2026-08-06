@@ -8,8 +8,8 @@ This index links the 20 query-level reports. Each report contains the exact quer
 | [q2](q2.md) | 0.2606 | 0.2202 | Teams and title counts | Missing numbers and team names |
 | [q3](q3.md) | 0.0000 | 0.0356 | College names and MVP counts | College names and missing numbers |
 | [q4](q4.md) | 0.0000 | 0.0000 | Position names | Position names |
-| [q5](q5.md) | 0.3333 | 0.4054 | Meaning of title counts | Missing rows and wrong title counts |
-| [q6](q6.md) | 0.6633 | 0.0602 | Meaning of years | Draft years and missing values |
+| [q5](q5.md) | 0.3333 | 0.4054 | Meaning of title counts | Missing rows, names, and a scoring edge case |
+| [q6](q6.md) | 0.6633 | 0.0602 | Meaning of years | Wrong and missing draft years |
 | [q7](q7.md) | 0.4744 | 0.4701 | Current teams | Team name matching |
 | [q8](q8.md) | 0.0000 | 0.0000 | Position names | Position names and missing values |
 | [q9](q9.md) | 0.2188 | 0.1836 | College names and title counts | College names and title counts |

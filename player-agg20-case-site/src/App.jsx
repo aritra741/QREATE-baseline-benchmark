@@ -156,7 +156,7 @@ function ReasonPanel({ system, reason }) {
           <dd>{reason.failure_path}</dd>
         </div>
       </dl>
-      <h5>What I saw in the run</h5>
+      <h5>What I found in the final and working tables</h5>
       <ul>
         {(reason.evidence || []).map((item) => (
           <li key={item}>{item}</li>
@@ -323,8 +323,7 @@ export default function App() {
     <div className="page">
       <div className="atmosphere" aria-hidden="true" />
       <header className="hero">
-        <p className="brand">QuWARTS</p>
-        <h1>case study Aug 6, 2026</h1>
+        <h1>QuWARTS case study Aug 6, 2026</h1>
         <p className="lede">
           Compare QuWARTS and DocETL on 20 Player questions. The main score is structure F2 times
           cell accuracy, shown at 1%, 5%, and 20% error. Open a question to see the ground truth,

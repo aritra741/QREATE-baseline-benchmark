@@ -4,8 +4,8 @@
       "failure_stage": "Position names",
       "root_cause": "QuWARTS kept detailed positions but the question needed two broad position groups.",
       "summary": "QuWARTS kept detailed positions but the question needed two broad position groups.",
-      "design_choice": "QuWARTS kept names such as center and point guard because those names came directly from the documents.",
-      "why_checks_missed": "The names are real basketball positions, so the checks did not see them as wrong.",
+      "design_choice": "The selected working table used the raw position text. It did not include a step that maps each detailed position to one of the two groups.",
+      "why_checks_missed": "The checks accept normal text values. They do not test whether every position matches one of the values used by the question.",
       "failure_path": "The question accepts only Frontcourt or Backcourt. Neither name was present, so no player reached the average calculation.",
       "evidence": [
         "The selected QuWARTS player table contains 160 rows, with positions such as forward (17), point guard (14), center (14), power forward (9), and shooting guard (9), but zero Frontcourt or Backcourt values.",
@@ -15,15 +15,15 @@
     },
     "docetl": {
       "failure_stage": "Position names",
-      "root_cause": "DocETL was not told how to change detailed positions into Frontcourt and Backcourt.",
-      "summary": "DocETL was not told how to change detailed positions into Frontcourt and Backcourt.",
-      "design_choice": "The instruction only asked DocETL to keep names clean. It did not give a fixed list of allowed positions.",
+      "root_cause": "DocETL read detailed position names but did not turn them into the two values used by the filter.",
+      "summary": "DocETL read detailed position names but did not turn them into the two values used by the filter.",
+      "design_choice": "The natural-language instruction asked for known positions and said to keep names concise and normalized. It gave no mapping from detailed positions to Frontcourt and Backcourt.",
       "why_checks_missed": "Center, forward, and point guard are all normal text values, so they passed the checks.",
       "failure_path": "None of those values matched Frontcourt or Backcourt, so the result was empty.",
       "evidence": [
         "The q0 DocETL player output has 136 rows; its common nonempty positions are center (11), forward (11), point guard (10), shooting guard (9), power forward (7), and small forward (6).",
         "There are zero Frontcourt or Backcourt values and 65 empty positions.",
-        "Forty-three ages use -1 to mean missing. However, the result is empty because the position names do not match."
+        "In DocETL's intermediate player table, 43 ages use -1 to mean missing. No -1 appears in the final result because the position rule removes every row."
       ]
     }
   },
@@ -32,8 +32,8 @@
       "failure_stage": "Nationality names and missing values",
       "root_cause": "QuWARTS did not use one clear set of nationality names. It also missed many nationality values.",
       "summary": "QuWARTS did not use one clear set of nationality names. It also missed many nationality values.",
-      "design_choice": "QuWARTS changes a value only when there is clear proof that the change is right. This reduces guessing, but it leaves difficult names unchanged.",
-      "why_checks_missed": "Names such as Azerbaijan and Azerbaijani both appear reasonable. The checks cannot tell that they should be placed in the same group.",
+      "design_choice": "This question used the mapped QuWARTS table, but that table had no fixed list of allowed nationality names. The mapping changed some values and left other forms separate.",
+      "why_checks_missed": "Names such as Azerbaijan and Azerbaijani are both valid text. A text and type check cannot prove that they belong to the same benchmark group.",
       "failure_path": "The same nationality appears under several names, while missing values make the American group too small. The question counts each name as a separate group.",
       "evidence": [
         "QuWARTS counts 82 American players, while the ground truth has 116.",
@@ -58,10 +58,10 @@
   "q2": {
     "quwarts": {
       "failure_stage": "Teams and title counts",
-      "root_cause": "QuWARTS often missed a player's current team or NBA title count.",
-      "summary": "QuWARTS often missed a player's current team or NBA title count.",
-      "design_choice": "It kept team and number mentions from the documents so that it would not lose useful facts. It did not always choose the current fact.",
-      "why_checks_missed": "A team name or number can appear in the document and still describe the wrong time or event.",
+      "root_cause": "The QuWARTS working table was missing many team and NBA title values, and some retained values did not match the benchmark rows.",
+      "summary": "The QuWARTS working table was missing many team and NBA title values, and some retained values did not match the benchmark rows.",
+      "design_choice": "The selected table stores one team name and one title count, but it stores no date or event that could be used to check what each value describes.",
+      "why_checks_missed": "The raw-value checks test text and number types. A real team name or number can pass even when it refers to the wrong part of a player's history.",
       "failure_path": "The average used only a small and unfair set of players. The calculation was correct, but the input rows were wrong.",
       "evidence": [
         "Team is missing from 62 of 160 player rows. NBA title count is missing from 114 rows.",
@@ -134,7 +134,7 @@
       "failure_path": "The question found no Frontcourt or Backcourt rows, so the result was empty.",
       "evidence": [
         "The output has none of the two required position groups. Common values include forward, center, point guard, and small forward.",
-        "Fifty-six positions are empty and 113/134 MVP values are -1.",
+        "In the intermediate player table, 56 positions are empty and 113 of 134 MVP values use -1 to mean missing. These values do not appear in the final empty result.",
         "The position mismatch alone is sufficient to explain the zero-row table."
       ]
     }
@@ -144,28 +144,28 @@
       "failure_stage": "Meaning of title counts",
       "root_cause": "QuWARTS treated numbers from other sports and nearby years as NBA title counts.",
       "summary": "QuWARTS treated numbers from other sports and nearby years as NBA title counts.",
-      "design_choice": "It checked that the value was a number, but not what the number described.",
-      "why_checks_missed": "Six Stanley Cups and several years appear in the documents, so the checks found support for those numbers.",
+      "design_choice": "The selected raw table checks that this field contains a number. It does not apply an NBA-specific meaning or range check.",
+      "why_checks_missed": "A count of six and year-like numbers fit the numeric type, so the raw table could keep them even when they described another event.",
       "failure_path": "Wrong title counts became the highest value for some nationalities. Different nationality names created more group errors. One error also comes from an unusual empty value in the scoring data.",
       "evidence": [
         "Dominican and Nigerian-American are replaced by Dominican Republic and Nigerian; Yugoslav is an additional unmatched group.",
         "Canadian is reported as 6 rather than 1, indicating a wrong championship count on at least one retained record.",
-        "The Canadian=6 row is Larry Robinson, a hockey player whose six Stanley Cups were extracted as NBA championships; Dino Rađa becomes Yugoslav=2 after two cited years are interpreted as two NBA titles.",
-        "The ground truth reports an empty American value because the scorer compares empty text with numbers in an unusual way. QuWARTS reports the reasonable number 6 but is still marked wrong."
+        "The saved verifier records link the Canadian value of 6 to Larry Robinson. His benchmark NBA title count is 0, while the article describes six Stanley Cups.",
+        "The Player CSV contains Steve Kerr with 9 NBA championships, but the saved gold result for American is an empty string. Empty numeric text passes the SQLite comparison and is selected by MAX, so this part of the score is a benchmark data-type edge case. QuWARTS reports 6, which is also below the source-table maximum of 9."
       ]
     },
     "docetl": {
-      "failure_stage": "Missing rows and wrong title counts",
-      "root_cause": "DocETL skipped some rows and accepted a wrong NBA title count.",
-      "summary": "DocETL skipped some rows and accepted a wrong NBA title count.",
-      "design_choice": "A failed document can be skipped without stopping the full question. The number check does not test what the number means.",
-      "why_checks_missed": "A value such as 9 looks like a valid number even when it describes the wrong fact.",
-      "failure_path": "Skipped rows removed nationality groups, while the wrong value made the American maximum too high.",
+      "failure_stage": "Missing rows, names, and a scoring edge case",
+      "root_cause": "DocETL skipped some player rows and split nationality names. Its American value of 9 matches Steve Kerr's source row, but the benchmark result for that group is an empty string because of mixed text and number handling.",
+      "summary": "DocETL skipped some player rows and split nationality names. Its American value of 9 matches Steve Kerr's source row, but the benchmark result for that group is an empty string because of mixed text and number handling.",
+      "design_choice": "The map step is allowed to skip a document after an extraction error. It also uses one free-text nationality field with no shared list of names.",
+      "why_checks_missed": "The output checks cannot recover a skipped player or join two nationality spellings. The score also treats the empty benchmark value as different from the valid number 9.",
+      "failure_path": "Skipped or incomplete rows removed groups, name differences added other groups, and the benchmark edge case marks the American value as wrong even though 9 is present in the source table.",
       "evidence": [
-        "The q5 extraction contains only 116 rows; 65 nationalities are empty and 81 championship values are -1.",
-        "The American maximum is 9, although gold's evaluator result is the empty-string edge case; Nigerian-American is 2 instead of 1.",
-        "All player documents were sent to DocETL, but OG Anunoby and Giannis Antetokounmpo are missing from its 116-row output. DocETL can skip a document when extraction fails. Steve Kerr supplies the wrong American maximum of 9.",
-        "British and Greek and Nigerian are missing, while Croatian, Dutch, Greek, and Slovenian are extra groups."
+        "The intermediate player table contains only 116 rows. It has 65 empty nationalities and 81 title counts marked as missing. The at-least-one rule removes those missing title counts from the final result.",
+        "The American maximum is 9, which matches Steve Kerr's row in the Player CSV. It is marked wrong only because the saved gold result is the empty-string SQLite edge case. Nigerian-American is 2 instead of 1.",
+        "All 141 player documents were sent to the map step, but OG Anunoby and Giannis Antetokounmpo are absent from its 116-row output. The map operation is configured to skip a document after an extraction error.",
+        "The gold labels \"British\" and \"Greek and Nigerian\" are missing. Croatian, Dutch, Greek, and Slovenian are extra groups."
       ]
     }
   },
@@ -174,8 +174,8 @@
       "failure_stage": "Meaning of years",
       "root_cause": "QuWARTS used a year from a draft discussion as the player's draft year, even when the player was not drafted.",
       "summary": "QuWARTS used a year from a draft discussion as the player's draft year, even when the player was not drafted.",
-      "design_choice": "It checked that draft year was a whole number, but it did not prove that the year described the player's own draft.",
-      "why_checks_missed": "The year 2024 appeared in the document and had the right number format.",
+      "design_choice": "The selected raw table checks the value type, but it does not require evidence that the year is the player's own draft year.",
+      "why_checks_missed": "The saved verifier record says Max Fiedler's 2024 value was not supported as his draft year, but the selected raw table still retained it.",
       "failure_path": "Players moved into the wrong year groups and a false 2024 group appeared. Other players had no draft year.",
       "evidence": [
         "The output has every numeric gold year but adds 2024; counts differ for 2011 (3→4), 2017 (5→4), and 2021 (3→2).",
@@ -185,14 +185,14 @@
       ]
     },
     "docetl": {
-      "failure_stage": "Draft years and missing values",
-      "root_cause": "DocETL used unrelated years as draft years and used -1 when it was unsure.",
-      "summary": "DocETL used unrelated years as draft years and used -1 when it was unsure.",
+      "failure_stage": "Wrong and missing draft years",
+      "root_cause": "DocETL assigned unrelated years to some players and left many other draft years unknown.",
+      "summary": "DocETL assigned unrelated years to some players and left many other draft years unknown.",
       "design_choice": "The instruction asked for a draft year but did not require proof that the year described the player's own draft.",
-      "why_checks_missed": "Unrelated years and -1 are all numbers, so they passed the basic check.",
-      "failure_path": "Players moved into wrong groups, many real year groups disappeared, and rows with -1 did not pass the year rule.",
+      "why_checks_missed": "The wrong years looked like normal years. Players with an unknown year simply disappeared from the displayed result.",
+      "failure_path": "The final table has no -1 row. The after-2010 rule removed those missing-value rows. Wrong years still moved players into the wrong groups, and several real year groups disappeared.",
       "evidence": [
-        "The q6 extraction has 136 rows but 100 draft_year=-1.",
+        "The intermediate player table has 136 rows, and 100 draft years are marked as missing. The after-2010 rule removes those rows, so no -1 appears in the final table.",
         "2012, 2019, 2021, and 2022 are missing, in addition to the evaluator's empty-string group.",
         "Unrelated years are also assigned as draft years: Tim Duncan, Kevin Durant, Kevin Love, and Giannis Antetokounmpo are all incorrectly mapped to 2011, explaining most of that group's 3→8 overcount.",
         "For example, 2011 is overcounted 3→8 while 2016 is undercounted 3→1."
@@ -202,15 +202,15 @@
   "q7": {
     "quwarts": {
       "failure_stage": "Current teams",
-      "root_cause": "QuWARTS did not always choose a player's current NBA team and missed many draft picks.",
-      "summary": "QuWARTS did not always choose a player's current NBA team and missed many draft picks.",
-      "design_choice": "It kept team mentions from different parts of a document instead of choosing one current team.",
-      "why_checks_missed": "An old team or related company can appear in the document and therefore look supported.",
+      "root_cause": "The QuWARTS working table missed many team and draft-pick values, and some retained team groups did not match the benchmark.",
+      "summary": "The QuWARTS working table missed many team and draft-pick values, and some retained team groups did not match the benchmark.",
+      "design_choice": "The player row stores a team name but no date or status. The selected raw table has no rule that can choose a current team over another team mention.",
+      "why_checks_missed": "A team name can be valid text and still be the wrong team for the benchmark row.",
       "failure_path": "Players were placed under missing or wrong teams. The lowest draft pick was then calculated from the wrong players.",
       "evidence": [
         "Team is missing from 62 of 160 rows. Draft pick is missing from 82 rows.",
         "Brooklyn, Cleveland, Milwaukee, and Orlando are missing, while Charlotte, Memphis, and Utah are extra.",
-        "Shaquille O'Neal is assigned to NRG Esports instead of Boston. Portland's ground-truth pick-2 player has no team, while an unrelated pick-8 player is placed under Portland.",
+        "The working player table stores only a team name and draft pick. It has no date or status field that could prove the team is the current benchmark team.",
         "Seven aligned teams have wrong minima, including Boston 1→3, Golden State 1→6, and Philadelphia 3→9."
       ]
     },
@@ -222,7 +222,7 @@
       "why_checks_missed": "Both sides contained normal text, even when the names differed or the team link was old.",
       "failure_path": "Valid players failed to match their teams, while other players were sent to the wrong team. This changed the lowest draft pick.",
       "evidence": [
-        "The q7 player extraction has 30 empty teams and 53 draft_pick=-1 values.",
+        "The intermediate player table has 30 empty teams and 53 missing draft picks. None of the displayed team minimums is -1.",
         "Player team names such as Boston Celtics, Denver Nuggets, Milwaukee Bucks, and New York Knicks do not match the shorter team names in the other table.",
         "Current-team errors include Jay Vincent Lakers→Dallas, Kyrie Irving Dallas→Cleveland, and Al Horford Boston→Atlanta. Their draft picks therefore lower the value for the wrong teams.",
         "Four gold teams are missing, five groups are extra, and five aligned minima are wrong, including Dallas 1→24."
@@ -247,11 +247,11 @@
       "failure_stage": "Position names and missing values",
       "root_cause": "DocETL missed many positions and medal counts. It also did not create Frontcourt and Backcourt groups.",
       "summary": "DocETL missed many positions and medal counts. It also did not create Frontcourt and Backcourt groups.",
-      "design_choice": "The instruction gave no fixed position list. Unknown numbers became -1 and unknown text became empty.",
-      "why_checks_missed": "Detailed positions, empty text, and -1 all matched the basic output format.",
+      "design_choice": "The instruction gave no fixed position list. Many position and medal values remained unknown.",
+      "why_checks_missed": "Detailed positions and missing values passed the basic output checks.",
       "failure_path": "No position matched Frontcourt or Backcourt, so the result was empty.",
       "evidence": [
-        "In q8, 107/128 rows have olympic_gold_medals=-1 and 107/128 have an empty position.",
+        "In the intermediate player table, 107 of 128 rows have a missing medal count and 107 have an empty position. The final result is empty, so no -1 is displayed.",
         "The nonempty positions are fine-grained labels such as power forward, point guard, forward, and small forward.",
         "No Frontcourt or Backcourt literal exists."
       ]
@@ -268,7 +268,7 @@
       "evidence": [
         "Fifteen ground-truth college names are missing and fifteen different names are added, including Davidson→Davidson Wildcats, LSU→LSU Tigers, and UCLA→UCLA Bruins.",
         "NBA title count is missing from 114 of 160 rows. College is missing from 38 rows.",
-        "Alias splits directly explain wrong counts (Florida Gators plus University of Florida) while Kobe Bryant is incorrectly assigned Lower Merion High School as a college and admitted as a champion.",
+        "Alias splits directly explain wrong counts, such as Florida Gators and University of Florida. Lower Merion High School also appears as an extra college group with a champion count of 1, although it is not a gold college group.",
         "Three aligned college counts are also wrong, showing that key normalization alone does not explain all value error."
       ]
     },
@@ -280,9 +280,9 @@
       "why_checks_missed": "Every college form was normal text, and every false title was still a number.",
       "failure_path": "Wrong title values let some players pass. Short, mascot, and full college names then became separate groups.",
       "evidence": [
-        "The q9 extraction has 20 empty colleges and 91/135 nba_championships=-1.",
+        "The intermediate player table has 20 empty colleges and 91 of 135 title counts marked as missing. The title rule removes those missing counts from the final result.",
         "Seventeen gold labels are missing and nineteen unmatched variants are added, including Florida, Indiana, Kansas, North Carolina, and multiple Villanova forms.",
-        "False champion extractions create extra groups: David Lattin at Texas Western, Toby Kimball at Connecticut, Rik Smits at Marist, and Jalen Brunson at Villanova University are assigned NBA titles they do not have in gold.",
+        "False champion extractions create extra groups: Dave Lattin at Texas Western, Toby Kimball at Connecticut, Rik Smits at Marist, and Jalen Brunson at Villanova University are assigned NBA titles they do not have in the Player CSV.",
         "Five aligned group counts are wrong; Kentucky is overcounted 1→3 and Michigan State 2→3."
       ]
     }
@@ -310,7 +310,7 @@
       "why_checks_missed": "A title value of 30 and two different forms of a team name both passed the basic checks.",
       "failure_path": "Wrong counts made totals too high, while different team names removed valid players.",
       "evidence": [
-        "The q10 player extraction has 86/114 fiba_world_cup=-1 and 69 empty team values; one extracted title count is 30.",
+        "The intermediate player table has 86 of 114 FIBA title counts marked as missing and 69 empty team values. The title rule removes the missing counts from the final result. One remaining title count is 30.",
         "Names such as Boston Celtics and Chicago Bulls do not match the shorter team names in the other table.",
         "Kevin Durant is extracted as Brooklyn/4 and Dennis Schröder adds 1, while three Philadelphia players are each assigned one title; these rows directly produce Brooklyn=5 and Philadelphia=3.",
         "Seven gold groups are missing, five are extra, and Brooklyn and Philadelphia are inflated to 5 and 3."
@@ -322,27 +322,27 @@
       "failure_stage": "Age calculation",
       "root_cause": "QuWARTS copied ages mentioned in articles instead of calculating age in 2026 from birth information.",
       "summary": "QuWARTS copied ages mentioned in articles instead of calculating age in 2026 from birth information.",
-      "design_choice": "The question asked for age, so QuWARTS filled that value directly. It did not require birth information for a checked calculation.",
-      "why_checks_missed": "An old age from an article is still a normal number and appears in the source text.",
+      "design_choice": "The working schema stores age, but it does not store birth date or the date used for the age calculation. The selected raw table could therefore keep an age stated in an older article.",
+      "why_checks_missed": "An old age from an article is still a normal number. A type check cannot tell whether it is the person's age in 2026.",
       "failure_path": "Old ages let some older players pass the 20 to 40 rule. Missing ages removed other players, and nationality names split more groups.",
       "evidence": [
         "Age is missing from 91 of 160 rows. Nationality is missing from 53 rows.",
         "Seven gold nationality groups are missing and six country/demonym variants are extra.",
-        "False age inclusions include Guy Rodgers 90→35, Tim Duncan 50→34, Dino Rađa 58→23, and Kobe Bryant 47→35. These rows pass the otherwise-correct 20 to 40 filter.",
+        "Saved verifier records show Tim Duncan with extracted age 34 and Kobe Bryant with 35. Their benchmark 2026 ages are 50 and 47, so both wrongly pass the 20 to 40 filter.",
         "American is undercounted 49→40 and French 2→1."
       ]
     },
     "docetl": {
       "failure_stage": "Age calculation and missing values",
-      "root_cause": "DocETL copied ages from articles and used -1 when age was unclear.",
-      "summary": "DocETL copied ages from articles and used -1 when age was unclear.",
+      "root_cause": "DocETL copied ages from articles and left many other ages unknown.",
+      "summary": "DocETL copied ages from articles and left many other ages unknown.",
       "design_choice": "The instruction did not require age to be calculated from birth information.",
-      "why_checks_missed": "Old ages and -1 are both numbers, so the basic check accepted them.",
-      "failure_path": "Wrong ages changed which players passed the 20 to 40 rule. Missing ages and different nationality names caused more errors.",
+      "why_checks_missed": "The old ages looked like normal numbers. Players with an unknown age did not appear in the displayed result.",
+      "failure_path": "The final table has no -1 age. The 20 to 40 rule removed those rows. Wrong ages still changed which players passed, and different nationality names caused more errors.",
       "evidence": [
-        "The q11 extraction has 49/133 age=-1 and 45 empty nationalities.",
+        "The intermediate player table has 49 of 133 ages marked as missing and 45 empty nationalities. The age rule removes the missing ages, so no -1 appears in the final table.",
         "Four gold groups are missing and four unmatched groups are added.",
-        "Old or unrelated ages move older players into the allowed range. Examples are Mark Price 61→36, Magic Johnson 66→36, and Michael Jordan 62→38. Several players who should qualify are missing or have age -1.",
+        "Old or unrelated ages move older players into the allowed range. Examples are Mark Price 61→36, Magic Johnson 66→36, and Michael Jordan 62→38. Several players who should qualify are missing from the final result because their age was unknown.",
         "American is close but low (49→48), French is 2→1, and Greek is overcounted 1→2."
       ]
     }
@@ -350,14 +350,14 @@
   "q12": {
     "quwarts": {
       "failure_stage": "Team records and current facts",
-      "root_cause": "QuWARTS created extra team rows from old sections, owner documents, people, and years.",
-      "summary": "QuWARTS created extra team rows from old sections, owner documents, people, and years.",
-      "design_choice": "It keeps documents that may be useful and can create several rows from one document. It did not reduce them to one current row for each team.",
+      "root_cause": "The QuWARTS team table contains historical team names, person names, and a year as separate team rows.",
+      "summary": "The QuWARTS team table contains historical team names, person names, and a year as separate team rows.",
+      "design_choice": "The extraction can create more than one row from a document, and the selected raw table has no final rule that keeps one current row for each team.",
       "why_checks_missed": "Each row can contain real words and numbers from the source, even when the row does not describe a current team.",
       "failure_path": "Old and false rows added locations. Some years were also used as title counts, which changed the highest values.",
       "evidence": [
         "The team table contains spurious identities such as Rod Derline, 1967, Josh Harris (businessman), and historical Fort Wayne Zollner Pistons.",
-        "Owner-document leakage creates team-like rows such as James L. Dolan→New York metropolitan area and Josh Harris→Philadelphia, Pennsylvania.",
+        "Person-named team rows include James L. Dolan→New York metropolitan area and Josh Harris (businessman)→Philadelphia, Pennsylvania, U.S.",
         "Location variants explain paired misses/extras: Detroit→Auburn Hills, New York City→Manhattan, Portland→Portland, Oregon, and Washington→Washington, D.C.",
         "Wrong extracted totals include Portland=1977 (a championship year used as a count), Cleveland=6 (gold 1), San Antonio=7 (gold 5), and Golden State=6 (gold 7); ten gold locations are missing and twelve unmatched locations are added."
       ]
@@ -393,13 +393,13 @@
     },
     "docetl": {
       "failure_stage": "Missing years and old locations",
-      "root_cause": "DocETL used -1 for unknown founding years and sometimes chose old locations.",
-      "summary": "DocETL used -1 for unknown founding years and sometimes chose old locations.",
-      "design_choice": "The instruction allowed -1 for missing numbers and did not clearly require one current team record.",
-      "why_checks_missed": "-1 is a number and is less than 1970. Old locations are also normal text.",
-      "failure_path": "Teams with unknown years were wrongly included. Other current teams appeared under old city names or wrong years.",
+      "root_cause": "DocETL marked some founding years as unknown and sometimes chose old locations.",
+      "summary": "DocETL marked some founding years as unknown and sometimes chose old locations.",
+      "design_choice": "Inside the team table, DocETL used -1 to mark an unknown year. It also did not clearly require one current team record.",
+      "why_checks_missed": "The question treats -1 as a year before 1970. The final table shows only city and count, so the -1 value itself is not displayed.",
+      "failure_path": "Teams with unknown years were wrongly counted. Other current teams appeared under old city names or wrong years.",
       "evidence": [
-        "Charlotte, Miami, and New Orleans have founded_year=-1 and therefore become false-positive pre-1970 teams.",
+        "In the intermediate team table, Charlotte, Miami, and New Orleans have founding year -1. The question treats this as before 1970, so those teams are wrongly counted. The final table shows city and count, not the -1 year.",
         "Detroit is represented as Fort Wayne; Brooklyn as New Jersey; Phoenix and Washington carry state/district suffixes.",
         "San Antonio is assigned 1973 rather than 1967 and fails the filter; Sacramento has an empty location and the Knicks document is absent.",
         "Seven gold cities are missing and seven unmatched cities are added despite the row count coincidentally equaling gold."
@@ -411,8 +411,8 @@
       "failure_stage": "Owner names used for scoring",
       "root_cause": "The scoring data changes team owner names by using a separate owner table, but the question does not ask either system to use that table.",
       "summary": "The scoring data changes team owner names by using a separate owner table, but the question does not ask either system to use that table.",
-      "design_choice": "QuWARTS follows the question and reads owner names from team documents. It also keeps old, legal, and short owner names.",
-      "why_checks_missed": "Those owner names really appear in team documents, so QuWARTS has no clear reason to replace them with the names used by the scorer.",
+      "design_choice": "The requested schema has a team ownership field but no owner lookup table. QuWARTS therefore uses ownership text from its team rows, including old, legal, and short names.",
+      "why_checks_missed": "Those values are valid owner text. The working contract contains no link to the separate owner-name list used while building the gold table.",
       "failure_path": "Related owner names became separate groups. Extra team rows added more owners. Part of this error comes from a scoring rule that was hidden from both systems.",
       "evidence": [
         "Before scoring, the ground-truth process replaces 15 team owner names with names from a separate owner table.",
@@ -425,7 +425,7 @@
       "failure_stage": "Owner names used for scoring",
       "root_cause": "DocETL reads owner names from team documents, while the scoring data changes them by using a separate owner table.",
       "summary": "DocETL reads owner names from team documents, while the scoring data changes them by using a separate owner table.",
-      "design_choice": "DocETL builds only the tables named by the question. It does not add a separate owner lookup that the question never requested.",
+      "design_choice": "The reference query requests only a team table, so this DocETL run builds only that table. It does not build or join the separate owner lookup used while creating the gold table.",
       "why_checks_missed": "Names such as Dan Gilbert and Joseph Tsai are reasonable answers from team documents.",
       "failure_path": "These names did not exactly match the scorer's longer names. Old owners and missing rows caused more errors.",
       "evidence": [
@@ -439,10 +439,10 @@
   "q15": {
     "quwarts": {
       "failure_stage": "Current locations and title totals",
-      "root_cause": "QuWARTS kept old locations and old title totals instead of one current row for each team.",
-      "summary": "QuWARTS kept old locations and old title totals instead of one current row for each team.",
-      "design_choice": "It kept facts from different times because each fact appeared in a document.",
-      "why_checks_missed": "Old cities and totals look valid on their own. The checks could not tell which year the question expected.",
+      "root_cause": "QuWARTS kept historical location names and wrong title totals instead of one benchmark row for each team.",
+      "summary": "QuWARTS kept historical location names and wrong title totals instead of one benchmark row for each team.",
+      "design_choice": "The working table stores a location and title number, but it stores no date that could identify the current version of each fact.",
+      "why_checks_missed": "Historical cities and wrong totals still have valid text and number types. The checks could not tell which time period the benchmark expected.",
       "failure_path": "The question kept the wrong versions of teams. Different city names split groups, and wrong totals changed the averages.",
       "evidence": [
         "Location variants include Detroit→Auburn Hills, New York City→Manhattan, Philadelphia→Philadelphia metropolitan area, and Washington→Washington, D.C.",
@@ -452,11 +452,11 @@
     },
     "docetl": {
       "failure_stage": "Choosing current team facts",
-      "root_cause": "DocETL chose old cities and title totals because the instruction did not clearly ask for the current facts.",
-      "summary": "DocETL chose old cities and title totals because the instruction did not clearly ask for the current facts.",
-      "design_choice": "It made one row from each team document without a second step to choose the best time period.",
-      "why_checks_missed": "Old cities and title totals have the expected text and number formats.",
-      "failure_path": "Old locations created extra groups, and wrong totals changed the averages.",
+      "root_cause": "DocETL chose historical cities and some wrong title totals.",
+      "summary": "DocETL chose historical cities and some wrong title totals.",
+      "design_choice": "It made one row from each team document without a second step that checks the time period of each selected fact.",
+      "why_checks_missed": "Historical cities and wrong title totals still have the expected text and number formats.",
+      "failure_path": "Historical locations created extra groups, and wrong totals changed the averages.",
       "evidence": [
         "Examples include Atlanta→St. Louis, Brooklyn→New Jersey, Sacramento→Kansas City, and qualified Memphis/Orlando locations.",
         "Eleven unmatched city groups are added and five gold cities are missing.",
@@ -469,7 +469,7 @@
       "failure_stage": "Owner coverage and age calculation",
       "root_cause": "QuWARTS built rows for only some owners and did not calculate age from birth information.",
       "summary": "QuWARTS built rows for only some owners and did not calculate age from birth information.",
-      "design_choice": "The document sorting and extraction can miss documents or fields. QuWARTS also accepts ages stated directly in articles.",
+      "design_choice": "The selected owner table has 11 rows while the benchmark owner table has 16. The pipeline accepts partial tables, and it also accepts ages stated directly in articles.",
       "why_checks_missed": "A stated age is a normal number. There was no required check against birth information and 2026.",
       "failure_path": "The average used too few owners. Missing ages gave empty results for some groups, and different nationality wording created extra groups.",
       "evidence": [
@@ -497,8 +497,8 @@
       "failure_stage": "Owner coverage and purchase years",
       "root_cause": "QuWARTS missed an important owner and confused other years with the year a team was bought.",
       "summary": "QuWARTS missed an important owner and confused other years with the year a team was bought.",
-      "design_choice": "It searched for a year in the source text but did not always prove that the year described the team purchase.",
-      "why_checks_missed": "A wrong year can still appear in the document and have the correct number format.",
+      "design_choice": "The owner table stores one year but no event text that proves the year is a team purchase. The selected raw table can keep a numeric year without that proof.",
+      "why_checks_missed": "A wrong year can still have the correct number format. The saved verifier record says Joseph Tsai's 1996 value was not supported as an ownership year.",
       "failure_path": "The missing 2000 purchase changed the American minimum. A wrong 1996 year removed the Taiwanese-Canadian row.",
       "evidence": [
         "The owner table has only 11 rows and contains no American own_year=2000; Mark Cuban's gold 2000 acquisition is absent.",
@@ -537,13 +537,13 @@
     },
     "docetl": {
       "failure_stage": "Missing states and populations",
-      "root_cause": "DocETL left many state names empty and used -1 for unknown populations.",
-      "summary": "DocETL left many state names empty and used -1 for unknown populations.",
-      "design_choice": "The instruction allowed empty text and -1. These missing-value markers were not removed before calculation.",
-      "why_checks_missed": "Both markers matched the expected output format.",
-      "failure_path": "Empty state names removed groups, while -1 lowered averages such as Florida.",
+      "root_cause": "DocETL left many state names empty and marked some populations as unknown.",
+      "summary": "DocETL left many state names empty and marked some populations as unknown.",
+      "design_choice": "Inside the city table, DocETL used -1 to mark an unknown population. It did not remove that marker before calculating averages.",
+      "why_checks_missed": "The final table shows averages, not the original -1 values. The checks did not notice that an average included a missing-value marker.",
+      "failure_path": "Empty state names removed groups. In Florida, a hidden -1 marker lowered the displayed average.",
       "evidence": [
-        "The q18 extraction has 29 rows, but 13 state names are empty and several populations are -1.",
+        "The intermediate city table has 29 rows. Nine state names are empty and eight populations use -1 to mean missing. The final table shows averages, not the original -1 values.",
         "Arizona, Illinois, Massachusetts, New York, Ontario, and Oregon are missing entirely.",
         "Florida averages 221,120 because the valid value 442,241 is averaged with Orlando's -1 missing marker. Texas keeps only Houston and becomes 2,314,157."
       ]
@@ -556,7 +556,7 @@
       "summary": "QuWARTS mixed GDP values written in dollars, millions, and billions.",
       "design_choice": "It kept the number found in each document without changing all values to one unit.",
       "why_checks_missed": "Each value was a number and appeared in the source text. The checks did not compare the units.",
-      "failure_path": "The total added values that used different units. A metro population also caused Utah to pass a rule meant for city population.",
+      "failure_path": "The maximum was chosen from values that used different units. A metro population also caused Utah to pass a rule meant for city population.",
       "evidence": [
         "GDP scaling errors include Arizona 362,000→362,000,000,000, Illinois 689,000→689,000,000,000, and Pennsylvania 518.5→518,500,000,000.",
         "Utah is an extra group because Salt Lake City population is extracted as 1,257,936 instead of 200,133 and incorrectly passes the >1,000,000 filter.",
@@ -567,11 +567,11 @@
       "failure_stage": "GDP units and missing states",
       "root_cause": "DocETL saved GDP as a number without saving its unit. It also left some state names empty.",
       "summary": "DocETL saved GDP as a number without saving its unit. It also left some state names empty.",
-      "design_choice": "It removed commas from numbers but did not change millions and billions to one common unit.",
+      "design_choice": "The output has one numeric GDP field and no unit field. It therefore cannot show whether a value is in dollars, millions, or billions.",
       "why_checks_missed": "Values on different scales are still numbers, and empty state names were allowed.",
-      "failure_path": "Some cities disappeared because the state was empty. Other GDP values were added even though they used different units.",
+      "failure_path": "Some cities disappeared because the state was empty. Other GDP values were reported even though they used different units.",
       "evidence": [
-        "Arizona, Illinois, and Ontario source rows have blank state names and disappear; Florida is extra because Orlando population is extracted as 2,509,831.",
+        "The Phoenix, Chicago, and Toronto rows have blank state names, so the Arizona, Illinois, and Ontario groups disappear. Florida is extra because Orlando population is extracted as 2,509,831.",
         "Pennsylvania GDP is 52,889 instead of 518.5 and Texas is 189,056.3 despite blank gold GDP.",
         "California and New York also receive nonblank GDP values where the benchmark gold result is blank."
       ]
