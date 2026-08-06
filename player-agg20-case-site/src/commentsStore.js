@@ -1,5 +1,6 @@
 const AUTHOR_KEY = "quwarts-case-author";
 const THREADS_KEY = "quwarts-case-threads-v1";
+const COMMENTS_API = "/api/comments";
 
 function uid() {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
@@ -27,7 +28,7 @@ export function setAuthorName(name) {
   return cleaned;
 }
 
-export function loadThreads() {
+export function loadLocalThreads() {
   try {
     const raw = localStorage.getItem(THREADS_KEY);
     if (!raw) return [];
@@ -38,12 +39,58 @@ export function loadThreads() {
   }
 }
 
-export function saveThreads(threads) {
+export function saveLocalThreads(threads) {
   try {
     localStorage.setItem(THREADS_KEY, JSON.stringify(threads));
   } catch {
     /* ignore quota */
   }
+}
+
+function commentStamp(comment) {
+  return String(comment?.createdAt || "");
+}
+
+function threadStamp(thread) {
+  const comments = Array.isArray(thread?.comments) ? thread.comments : [];
+  const latest = comments.reduce((max, comment) => {
+    const value = commentStamp(comment);
+    return value > max ? value : max;
+  }, String(thread?.createdAt || ""));
+  return latest;
+}
+
+export function mergeThreads(localThreads, remoteThreads) {
+  const byId = new Map();
+  for (const thread of [...(remoteThreads || []), ...(localThreads || [])]) {
+    if (!thread || !thread.id) continue;
+    const existing = byId.get(thread.id);
+    if (!existing) {
+      byId.set(thread.id, {
+        ...thread,
+        comments: Array.isArray(thread.comments) ? [...thread.comments] : [],
+      });
+      continue;
+    }
+    const commentsById = new Map();
+    for (const comment of [...existing.comments, ...(thread.comments || [])]) {
+      if (!comment?.id) continue;
+      const prev = commentsById.get(comment.id);
+      if (!prev || commentStamp(comment) >= commentStamp(prev)) {
+        commentsById.set(comment.id, comment);
+      }
+    }
+    const comments = [...commentsById.values()].sort((a, b) =>
+      commentStamp(a).localeCompare(commentStamp(b))
+    );
+    const preferRemote = threadStamp(thread) >= threadStamp(existing);
+    byId.set(thread.id, {
+      ...(preferRemote ? thread : existing),
+      comments,
+      resolved: preferRemote ? Boolean(thread.resolved) : Boolean(existing.resolved),
+    });
+  }
+  return [...byId.values()].sort((a, b) => threadStamp(b).localeCompare(threadStamp(a)));
 }
 
 export function createThread({ quote, prefix, suffix, author, body }) {
@@ -94,6 +141,44 @@ export function resolveThread(threads, threadId, resolved = true) {
 
 export function deleteThread(threads, threadId) {
   return threads.filter((thread) => thread.id !== threadId);
+}
+
+export async function fetchSharedThreads() {
+  const response = await fetch(COMMENTS_API, {
+    method: "GET",
+    headers: { Accept: "application/json" },
+  });
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(detail || `Failed to load comments (${response.status})`);
+  }
+  const payload = await response.json();
+  return {
+    threads: Array.isArray(payload.threads) ? payload.threads : [],
+    updatedAt: payload.updatedAt || null,
+    shared: Boolean(payload.shared),
+  };
+}
+
+export async function pushSharedThreads(threads) {
+  const response = await fetch(COMMENTS_API, {
+    method: "PUT",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ threads }),
+  });
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(detail || `Failed to save comments (${response.status})`);
+  }
+  const payload = await response.json();
+  return {
+    threads: Array.isArray(payload.threads) ? payload.threads : threads,
+    updatedAt: payload.updatedAt || null,
+    shared: Boolean(payload.shared),
+  };
 }
 
 export function formatRelativeTime(iso) {

@@ -5,11 +5,14 @@ import {
   authorInitials,
   createThread,
   deleteThread,
+  fetchSharedThreads,
   formatRelativeTime,
   getAuthorName,
-  loadThreads,
+  loadLocalThreads,
+  mergeThreads,
+  pushSharedThreads,
   resolveThread,
-  saveThreads,
+  saveLocalThreads,
   setAuthorName,
 } from "./commentsStore";
 
@@ -52,6 +55,91 @@ function selectionContext() {
 function clearSelection() {
   const selection = window.getSelection();
   if (selection) selection.removeAllRanges();
+}
+
+function findQuoteRange(root, thread) {
+  const quote = String(thread.quote || "");
+  if (!quote) return null;
+  const prefix = String(thread.prefix || "");
+  const suffix = String(thread.suffix || "");
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const nodes = [];
+  let node = walker.nextNode();
+  while (node) {
+    if (!node.parentElement?.closest(".comment-ui, button, a, textarea, input, script, style")) {
+      nodes.push(node);
+    }
+    node = walker.nextNode();
+  }
+  let full = "";
+  const map = [];
+  for (const textNode of nodes) {
+    const value = textNode.nodeValue || "";
+    for (let i = 0; i < value.length; i += 1) {
+      map.push({ node: textNode, offset: i });
+      full += value[i];
+    }
+  }
+  const compact = full.replace(/\s+/g, " ");
+  // Build mapping from compact index -> original index
+  const compactToFull = [];
+  let compactText = "";
+  for (let i = 0; i < full.length; i += 1) {
+    const ch = full[i];
+    if (/\s/.test(ch)) {
+      if (compactText.endsWith(" ") || compactText.length === 0) continue;
+      compactToFull.push(i);
+      compactText += " ";
+    } else {
+      compactToFull.push(i);
+      compactText += ch;
+    }
+  }
+  const needle = `${prefix}${quote}${suffix}`;
+  let startCompact = -1;
+  if (prefix || suffix) {
+    const idx = compactText.indexOf(needle);
+    if (idx >= 0) startCompact = idx + prefix.length;
+  }
+  if (startCompact < 0) {
+    startCompact = compactText.indexOf(quote);
+  }
+  if (startCompact < 0) return null;
+  const endCompact = startCompact + quote.length;
+  const startFull = compactToFull[startCompact];
+  const endFull = compactToFull[endCompact - 1];
+  if (startFull == null || endFull == null || !map[startFull] || !map[endFull]) return null;
+  const range = document.createRange();
+  range.setStart(map[startFull].node, map[startFull].offset);
+  range.setEnd(map[endFull].node, map[endFull].offset + 1);
+  return range;
+}
+
+function collectOverlays(threads, activeId) {
+  const root = document.querySelector(".page-content");
+  const shell = document.querySelector(".comments-shell");
+  if (!root || !shell) return [];
+  const shellRect = shell.getBoundingClientRect();
+  const overlays = [];
+  for (const thread of threads) {
+    if (!thread.quote || thread.resolved) continue;
+    const range = findQuoteRange(root, thread);
+    if (!range) continue;
+    const rects = [...range.getClientRects()];
+    rects.forEach((rect, index) => {
+      if (!rect.width || !rect.height) return;
+      overlays.push({
+        key: `${thread.id}-${index}`,
+        threadId: thread.id,
+        active: activeId === thread.id,
+        top: rect.top - shellRect.top + shell.scrollTop,
+        left: rect.left - shellRect.left + shell.scrollLeft,
+        width: rect.width,
+        height: rect.height,
+      });
+    });
+  }
+  return overlays;
 }
 
 function NameModal({ open, onSubmit, onCancel }) {
@@ -127,11 +215,7 @@ function Composer({ placeholder, onSubmit, onCancel, autoFocus = true }) {
 function Avatar({ name }) {
   const hue = authorHue(name);
   return (
-    <span
-      className="comment-avatar"
-      style={{ background: `hsl(${hue} 45% 42%)` }}
-      aria-hidden="true"
-    >
+    <span className="comment-avatar" style={{ background: `hsl(${hue} 45% 42%)` }} aria-hidden="true">
       {authorInitials(name)}
     </span>
   );
@@ -152,15 +236,7 @@ function CommentBubble({ comment }) {
   );
 }
 
-function ThreadCard({
-  thread,
-  active,
-  onSelect,
-  onReply,
-  onResolve,
-  onDelete,
-  ensureAuthor,
-}) {
+function ThreadCard({ thread, active, onSelect, onReply, onResolve, onDelete, ensureAuthor }) {
   const [replying, setReplying] = useState(false);
   return (
     <article
@@ -225,22 +301,114 @@ function ThreadCard({
 }
 
 export default function CommentsSystem({ children }) {
-  const [threads, setThreads] = useState(() => loadThreads());
+  const [threads, setThreads] = useState(() => loadLocalThreads());
   const [author, setAuthor] = useState(() => getAuthorName());
   const [panelOpen, setPanelOpen] = useState(false);
   const [activeId, setActiveId] = useState(null);
   const [draft, setDraft] = useState(null);
   const [namePrompt, setNamePrompt] = useState(null);
+  const [overlays, setOverlays] = useState([]);
+  const [syncState, setSyncState] = useState({ shared: false, status: "Connecting…" });
   const nameResolver = useRef(null);
+  const skipPush = useRef(true);
+  const pushTimer = useRef(null);
+  const remoteUpdatedAt = useRef(null);
 
   useEffect(() => {
-    saveThreads(threads);
+    saveLocalThreads(threads);
   }, [threads]);
 
   useEffect(() => {
     document.body.classList.toggle("comments-open", panelOpen);
     return () => document.body.classList.remove("comments-open");
   }, [panelOpen]);
+
+  const applyRemote = useCallback((remoteThreads, updatedAt, shared) => {
+    remoteUpdatedAt.current = updatedAt;
+    setSyncState({
+      shared,
+      status: shared ? "Shared with everyone" : "Local only on this browser",
+    });
+    skipPush.current = true;
+    setThreads((current) => mergeThreads(current, remoteThreads));
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function boot() {
+      try {
+        const remote = await fetchSharedThreads();
+        if (cancelled) return;
+        applyRemote(remote.threads, remote.updatedAt, remote.shared);
+      } catch (error) {
+        if (cancelled) return;
+        setSyncState({
+          shared: false,
+          status: "Local only (shared storage unavailable)",
+        });
+      }
+    }
+    boot();
+    return () => {
+      cancelled = true;
+    };
+  }, [applyRemote]);
+
+  useEffect(() => {
+    if (skipPush.current) {
+      skipPush.current = false;
+      return;
+    }
+    if (pushTimer.current) window.clearTimeout(pushTimer.current);
+    pushTimer.current = window.setTimeout(async () => {
+      try {
+        let outgoing = threads;
+        try {
+          const latest = await fetchSharedThreads();
+          if (latest.shared) {
+            outgoing = mergeThreads(threads, latest.threads);
+          }
+        } catch {
+          /* push local state if refresh fails */
+        }
+        const remote = await pushSharedThreads(outgoing);
+        remoteUpdatedAt.current = remote.updatedAt;
+        if (outgoing !== threads) {
+          skipPush.current = true;
+          setThreads(outgoing);
+        }
+        setSyncState({
+          shared: remote.shared,
+          status: remote.shared ? "Shared with everyone" : "Local only on this browser",
+        });
+      } catch {
+        setSyncState((current) => ({
+          ...current,
+          status: current.shared
+            ? "Could not save shared comments"
+            : "Local only (shared storage unavailable)",
+        }));
+      }
+    }, 450);
+    return () => {
+      if (pushTimer.current) window.clearTimeout(pushTimer.current);
+    };
+  }, [threads]);
+
+  useEffect(() => {
+    const timer = window.setInterval(async () => {
+      try {
+        const remote = await fetchSharedThreads();
+        if (!remote.shared) return;
+        if (remote.updatedAt && remote.updatedAt !== remoteUpdatedAt.current) {
+          applyRemote(remote.threads, remote.updatedAt, true);
+        }
+      } catch {
+        /* keep current view */
+      }
+    }, 5000);
+    return () => window.clearInterval(timer);
+  }, [applyRemote]);
 
   const ensureAuthor = useCallback(() => {
     const existing = getAuthorName() || author;
@@ -257,7 +425,7 @@ export default function CommentsSystem({ children }) {
   const openComposerForSelection = useCallback(() => {
     const context = selectionContext();
     if (!context) return;
-    setDraft(context);
+    setDraft({ ...context, mode: "compose" });
     setPanelOpen(true);
     clearSelection();
   }, []);
@@ -289,52 +457,17 @@ export default function CommentsSystem({ children }) {
   }, [openComposerForSelection]);
 
   useEffect(() => {
-    const marks = document.querySelectorAll("mark.comment-mark");
-    marks.forEach((mark) => {
-      const text = document.createTextNode(mark.textContent || "");
-      mark.replaceWith(text);
-    });
-
-    const root = document.querySelector(".page-content");
-    if (!root) return;
-
-    for (const thread of threads) {
-      if (!thread.quote || thread.resolved) continue;
-      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-      let node = walker.nextNode();
-      while (node) {
-        const value = node.nodeValue || "";
-        const index = value.indexOf(thread.quote);
-        if (index >= 0 && !node.parentElement?.closest("mark.comment-mark, .comment-ui, button, a, textarea, input")) {
-          const range = document.createRange();
-          range.setStart(node, index);
-          range.setEnd(node, index + thread.quote.length);
-          const mark = document.createElement("mark");
-          mark.className = `comment-mark ${activeId === thread.id ? "active" : ""}`;
-          mark.dataset.threadId = thread.id;
-          mark.title = "Open comment";
-          mark.addEventListener("click", (event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            setActiveId(thread.id);
-            setPanelOpen(true);
-          });
-          try {
-            range.surroundContents(mark);
-          } catch {
-            /* skip awkward split nodes */
-          }
-          break;
-        }
-        node = walker.nextNode();
-      }
-    }
+    const refresh = () => setOverlays(collectOverlays(threads, activeId));
+    refresh();
+    window.addEventListener("resize", refresh);
+    window.addEventListener("scroll", refresh, true);
+    return () => {
+      window.removeEventListener("resize", refresh);
+      window.removeEventListener("scroll", refresh, true);
+    };
   }, [threads, activeId, panelOpen]);
 
-  const openCount = useMemo(
-    () => threads.filter((thread) => !thread.resolved).length,
-    [threads]
-  );
+  const openCount = useMemo(() => threads.filter((thread) => !thread.resolved).length, [threads]);
 
   const sortedThreads = useMemo(
     () =>
@@ -348,6 +481,27 @@ export default function CommentsSystem({ children }) {
   return (
     <div className={`comments-shell ${panelOpen ? "with-panel" : ""}`}>
       <div className="page-content">{children}</div>
+
+      <div className="comment-overlay-layer" aria-hidden="true">
+        {overlays.map((overlay) => (
+          <button
+            key={overlay.key}
+            type="button"
+            className={`comment-ui comment-overlay ${overlay.active ? "active" : ""}`}
+            style={{
+              top: overlay.top,
+              left: overlay.left,
+              width: overlay.width,
+              height: overlay.height,
+            }}
+            title="Open comment"
+            onClick={() => {
+              setActiveId(overlay.threadId);
+              setPanelOpen(true);
+            }}
+          />
+        ))}
+      </div>
 
       {draft?.mode === "floating" ? (
         <div
@@ -388,6 +542,7 @@ export default function CommentsSystem({ children }) {
           <div>
             <h2>Comments</h2>
             <p>Select any text, then add a comment. Replies stay in the same thread.</p>
+            <p className={`comment-sync ${syncState.shared ? "shared" : "local"}`}>{syncState.status}</p>
           </div>
           <button type="button" className="comment-btn ghost" onClick={() => setPanelOpen(false)}>
             Close
@@ -397,14 +552,10 @@ export default function CommentsSystem({ children }) {
         {author ? (
           <div className="comment-signed-in">
             <Avatar name={author} />
-            <span>Commenting as <strong>{author}</strong></span>
-            <button
-              type="button"
-              className="comment-btn ghost"
-              onClick={() => {
-                setNamePrompt({ mode: "change" });
-              }}
-            >
+            <span>
+              Commenting as <strong>{author}</strong>
+            </span>
+            <button type="button" className="comment-btn ghost" onClick={() => setNamePrompt({ mode: "change" })}>
               Change
             </button>
           </div>
@@ -463,9 +614,7 @@ export default function CommentsSystem({ children }) {
               />
             ))
           ) : (
-            <p className="comment-empty">
-              No comments yet. Select text on the page and click Add comment.
-            </p>
+            <p className="comment-empty">No comments yet. Select text on the page and click Add comment.</p>
           )}
         </div>
       </aside>
