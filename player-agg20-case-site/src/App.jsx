@@ -156,7 +156,7 @@ function ReasonPanel({ system, reason }) {
           <dd>{reason.failure_path}</dd>
         </div>
       </dl>
-      <h5>What we saw in the run</h5>
+      <h5>What I saw in the run</h5>
       <ul>
         {(reason.evidence || []).map((item) => (
           <li key={item}>{item}</li>

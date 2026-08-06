@@ -221,7 +221,7 @@ def _diagnosis_section(system: str, diagnosis: dict[str, Any]) -> str:
             f"- **Why the checks did not catch it:** {diagnosis.get('why_checks_missed', 'Not specified.')}",
             f"- **Why this query failed:** {diagnosis.get('failure_path', 'Not specified.')}",
             "",
-            "**What we saw in the run**",
+            "**What I saw in the run**",
             evidence or "- No artifact evidence recorded.",
         ]
     )

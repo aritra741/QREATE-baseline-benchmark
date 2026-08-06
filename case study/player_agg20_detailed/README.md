@@ -3,26 +3,26 @@ This index links the 20 query-level reports. Each report contains the exact quer
 
 | query | QuWARTS main score at 20% | DocETL main score at 20% | QuWARTS stage | DocETL stage |
 | --- | --- | --- | --- | --- |
-| [q0](q0.md) | 0.0000 | 0.0000 | Normalization and candidate selection | Per-question Map extraction |
-| [q1](q1.md) | 0.5280 | 0.5732 | Semantic mapping and extraction coverage | Map output validation |
-| [q2](q2.md) | 0.2606 | 0.2202 | Relationship and measure extraction | Missing-value handling and exact joins |
-| [q3](q3.md) | 0.0000 | 0.0356 | Entity resolution and sparse measure extraction | Entity resolution and sentinel handling |
-| [q4](q4.md) | 0.0000 | 0.0000 | Normalization and candidate selection | Per-question Map extraction |
-| [q5](q5.md) | 0.3333 | 0.4054 | Attribute meaning and category resolution | Map reliability and semantic number checks |
-| [q6](q6.md) | 0.6633 | 0.0602 | Semantic role of years | Year extraction and missing-value handling |
-| [q7](q7.md) | 0.4744 | 0.4701 | Current relationship resolution | Independent key extraction |
-| [q8](q8.md) | 0.0000 | 0.0000 | Normalization and candidate selection | Per-question Map extraction |
-| [q9](q9.md) | 0.2188 | 0.1836 | Entity and attribute resolution | Prompt-only normalization and filter extraction |
-| [q10](q10.md) | 0.1598 | 0.1190 | Semantic number and unit handling | Semantic number checks and exact joins |
-| [q11](q11.md) | 0.5195 | 0.5398 | Age derivation and extraction coverage | Age derivation and missing-value handling |
-| [q12](q12.md) | 0.2948 | 0.6761 | Document routing, row identity, and current facts | Current-fact selection in the Map step |
-| [q13](q13.md) | 0.3074 | 0.3735 | Row identity, location resolution, and event years | Sentinel handling and current-fact selection |
-| [q14](q14.md) | 0.0435 | 0.1094 | Cross-table identity resolution | Cross-table identity resolution |
-| [q15](q15.md) | 0.4714 | 0.4307 | Current-fact and location resolution | Current-fact selection |
-| [q16](q16.md) | 0.0000 | 0.0000 | Owner coverage and age derivation | Age meaning and sentinel handling |
-| [q17](q17.md) | 0.0000 | 0.2500 | Owner coverage and acquisition-event extraction | Event meaning and categorical coverage |
-| [q18](q18.md) | 1.0000 | 0.6478 | Numeric scope and time | Missing-value handling and category coverage |
-| [q19](q19.md) | 0.0000 | 0.1010 | Unit and numeric scope | Unit handling and filter-field coverage |
+| [q0](q0.md) | 0.0000 | 0.0000 | Position names | Position names |
+| [q1](q1.md) | 0.5280 | 0.5732 | Nationality names and missing values | Nationality output |
+| [q2](q2.md) | 0.2606 | 0.2202 | Teams and title counts | Missing numbers and team names |
+| [q3](q3.md) | 0.0000 | 0.0356 | College names and MVP counts | College names and missing numbers |
+| [q4](q4.md) | 0.0000 | 0.0000 | Position names | Position names |
+| [q5](q5.md) | 0.3333 | 0.4054 | Meaning of title counts | Missing rows and wrong title counts |
+| [q6](q6.md) | 0.6633 | 0.0602 | Meaning of years | Draft years and missing values |
+| [q7](q7.md) | 0.4744 | 0.4701 | Current teams | Team name matching |
+| [q8](q8.md) | 0.0000 | 0.0000 | Position names | Position names and missing values |
+| [q9](q9.md) | 0.2188 | 0.1836 | College names and title counts | College names and title counts |
+| [q10](q10.md) | 0.1598 | 0.1190 | Meaning of title counts | Title counts and team names |
+| [q11](q11.md) | 0.5195 | 0.5398 | Age calculation | Age calculation and missing values |
+| [q12](q12.md) | 0.2948 | 0.6761 | Team records and current facts | Choosing current team facts |
+| [q13](q13.md) | 0.3074 | 0.3735 | Team rows, cities, and years | Missing years and old locations |
+| [q14](q14.md) | 0.0435 | 0.1094 | Owner names used for scoring | Owner names used for scoring |
+| [q15](q15.md) | 0.4714 | 0.4307 | Current locations and title totals | Choosing current team facts |
+| [q16](q16.md) | 0.0000 | 0.0000 | Owner coverage and age calculation | Age values and missing numbers |
+| [q17](q17.md) | 0.0000 | 0.2500 | Owner coverage and purchase years | Purchase years and nationality |
+| [q18](q18.md) | 1.0000 | 0.6478 | Population date and area | Missing states and populations |
+| [q19](q19.md) | 0.0000 | 0.1010 | GDP units and population area | GDP units and missing states |
 
 ## Cross-query findings
 - **Shared hard failure:** q0, q4, and q8 return no rows in both systems because fine-grained positions are never mapped to the contract literals Frontcourt and Backcourt.
