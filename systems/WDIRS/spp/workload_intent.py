@@ -3430,6 +3430,58 @@ def _sql_requirement(query_id: str, sql: str) -> QueryRequirement:
         entity = aliases.get((column.table or fallback).lower(), fallback)
         return AttributeRef(entity, column.name.lower(), semantic_type)
 
+    def unwrap_column(
+        node: Optional["exp.Expression"],
+    ) -> Optional["exp.Column"]:
+        """Recover the join/filter column under TRIM/CASE/CAST wrappers."""
+
+        current = node
+        for _ in range(8):
+            if current is None:
+                return None
+            if isinstance(current, exp.Column):
+                return current
+            if isinstance(current, exp.Paren):
+                current = current.this
+                continue
+            if isinstance(current, exp.Distinct):
+                expressions = list(current.expressions or ())
+                current = expressions[0] if expressions else current.this
+                continue
+            if isinstance(current, exp.Case) and current.this is not None:
+                current = current.this
+                continue
+            if isinstance(
+                current,
+                (
+                    exp.Trim,
+                    exp.Lower,
+                    exp.Upper,
+                    exp.Cast,
+                    exp.TryCast,
+                    exp.Anonymous,
+                ),
+            ):
+                nested = next(current.find_all(exp.Column), None)
+                if nested is not None:
+                    return nested
+                current = current.this
+                continue
+            return None
+        return None
+
+    def aggregate_argument(
+        node: "exp.Expression",
+    ) -> tuple[Optional["exp.Expression"], bool]:
+        argument = node.this
+        distinct = bool(node.args.get("distinct")) or isinstance(
+            argument, exp.Distinct
+        )
+        if isinstance(argument, exp.Distinct):
+            expressions = list(argument.expressions or ())
+            argument = expressions[0] if expressions else argument.this
+        return argument, distinct
+
     attributes: List[str] = []
     attribute_bindings: List[Tuple[str, str]] = []
     for column in tree.find_all(exp.Column):
@@ -3449,8 +3501,9 @@ def _sql_requirement(query_id: str, sql: str) -> QueryRequirement:
         if on_expr is None:
             continue
         for equality in on_expr.find_all(exp.EQ):
-            left, right = equality.left, equality.right
-            if not isinstance(left, exp.Column) or not isinstance(right, exp.Column):
+            left = unwrap_column(equality.left)
+            right = unwrap_column(equality.right)
+            if left is None or right is None:
                 continue
             fallback_table = entities[0] if entities else "record"
             left_raw = (left.table or fallback_table).lower()
@@ -3492,13 +3545,14 @@ def _sql_requirement(query_id: str, sql: str) -> QueryRequirement:
         matched_aggregate = False
         for node_type, function in aggregate_types:
             if isinstance(value, node_type):
-                argument = value.this
+                argument, distinct = aggregate_argument(value)
+                column = unwrap_column(argument)
                 reference = (
                     column_ref(
-                        argument,
+                        column,
                         "integer" if function in {"count", "sum"} else "real",
                     )
-                    if isinstance(argument, exp.Column)
+                    if column is not None
                     else None
                 )
                 aggregates.append(
@@ -3506,7 +3560,7 @@ def _sql_requirement(query_id: str, sql: str) -> QueryRequirement:
                         function=function,
                         attribute=reference,
                         alias=alias,
-                        distinct=bool(value.args.get("distinct")),
+                        distinct=distinct,
                     )
                 )
                 matched_aggregate = True
@@ -3672,20 +3726,14 @@ def _sql_requirement(query_id: str, sql: str) -> QueryRequirement:
             for aggregate_type, function in aggregate_types:
                 if not isinstance(aggregate_node, aggregate_type):
                     continue
-                argument = aggregate_node.this
-                distinct = isinstance(argument, exp.Distinct)
-                if distinct:
-                    argument = (
-                        argument.expressions[0]
-                        if argument.expressions
-                        else argument
-                    )
+                argument, distinct = aggregate_argument(aggregate_node)
+                column = unwrap_column(argument)
                 reference = (
                     column_ref(
-                        argument,
+                        column,
                         "integer" if function in {"count", "sum"} else "real",
                     )
-                    if isinstance(argument, exp.Column)
+                    if column is not None
                     else None
                 )
                 try:
@@ -3713,13 +3761,13 @@ def _sql_requirement(query_id: str, sql: str) -> QueryRequirement:
         if on_expr is None:
             continue
         for equality in on_expr.find_all(exp.EQ):
-            if isinstance(equality.left, exp.Column) and isinstance(
-                equality.right, exp.Column
-            ):
+            left = unwrap_column(equality.left)
+            right = unwrap_column(equality.right)
+            if left is not None and right is not None:
                 join_specs.append(
                     JoinSpec(
-                        column_ref(equality.left),
-                        column_ref(equality.right),
+                        column_ref(left),
+                        column_ref(right),
                         "left"
                         if str(join.args.get("kind", "")).lower() == "left"
                         else "inner",

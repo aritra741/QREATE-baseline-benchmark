@@ -448,6 +448,65 @@ def test_sql_contract_expands_in_and_between_predicates():
     ) == ((">=", 20), ("<=", 40))
 
 
+def test_sql_contract_preserves_count_distinct_and_trim_case_joins():
+    intent = analyze_sql_contract_workload(
+        [
+            {
+                "query_id": "q4",
+                "sql_query": (
+                    "SELECT p.position, COUNT(DISTINCT t.team_name) AS "
+                    "titled_team_count FROM player p JOIN team t ON "
+                    "TRIM(p.team) = TRIM(t.team_name) WHERE p.position IN "
+                    "('Frontcourt', 'Backcourt') AND t.championship >= 1 "
+                    "GROUP BY p.position"
+                ),
+            },
+            {
+                "query_id": "city",
+                "sql_query": (
+                    "SELECT c.state_name, COUNT(*) AS team_count FROM team t "
+                    "JOIN city c ON c.city_name = CASE t.location "
+                    "WHEN 'Brooklyn' THEN 'New York City' "
+                    "WHEN 'Washington' THEN 'Washington, D.C.' "
+                    "ELSE t.location END "
+                    "WHERE c.state_name != '' GROUP BY c.state_name"
+                ),
+            },
+        ]
+    )
+
+    count_req = intent.requirements[0]
+    assert count_req.plan is not None
+    assert count_req.plan.aggregates == (
+        AggregateSpec(
+            "count",
+            AttributeRef("team", "team_name", "integer"),
+            "titled_team_count",
+            distinct=True,
+        ),
+    )
+    assert count_req.plan.joins == (
+        JoinSpec(
+            AttributeRef("player", "team"),
+            AttributeRef("team", "team_name"),
+        ),
+    )
+    assert count_req.plan.predicate is not None
+    assert {
+        (child.attribute.attribute, child.value)
+        for child in count_req.plan.predicate.children[0].children
+    } == {("position", "Frontcourt"), ("position", "Backcourt")}
+
+    city_req = intent.requirements[1]
+    assert city_req.plan is not None
+    assert city_req.plan.joins == (
+        JoinSpec(
+            AttributeRef("city", "city_name"),
+            AttributeRef("team", "location"),
+        ),
+    )
+
+
 def test_qwen_null_intent_fields_are_treated_as_empty():
     requirements = _parse_llm_payload(
         '[{"query_id":"q0","entities":["player"],"attributes":["name"],'
