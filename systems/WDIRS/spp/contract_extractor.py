@@ -34,7 +34,7 @@ from spp.workload_contract import (
 from token_counter import count_tokens
 
 
-_PROMPT_VERSION = 9
+_PROMPT_VERSION = 10
 _ENTITY_ARTIFACT_VERSION = 3
 _CONTEXT_ROUTING_VERSION = 5
 CORPUS_REFERENCE_YEAR = 2026
@@ -158,7 +158,7 @@ class RelationshipRecord:
 
 @dataclass(frozen=True)
 class DerivationMapping:
-    """A reversible unit or categorical mapping over accepted raw values."""
+    """A reversible unit, taxonomy, or entity mapping over accepted raw values."""
 
     entity: str
     attribute: str
@@ -170,7 +170,7 @@ class DerivationMapping:
     supporting_document_ids: Tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
-        if self.mapping_kind not in {"taxonomy", "unit"}:
+        if self.mapping_kind not in {"entity", "taxonomy", "unit"}:
             raise ValueError("unsupported derivation mapping kind")
 
     def to_payload(self) -> dict:
@@ -1988,19 +1988,35 @@ class ContractExtractor:
     ) -> Tuple[DerivationMapping, ...]:
         result: List[DerivationMapping] = []
         for attribute in contract.attributes:
+            roles_by_query = dict(attribute.contexts)
             roles = {
                 role
-                for _query_id, query_roles in attribute.contexts
+                for query_roles in roles_by_query.values()
                 for role in query_roles
             }
+            grouping_queries = {
+                query_id
+                for query_id, query_roles in roles_by_query.items()
+                if "group_by" in query_roles
+            }
+            target_values = tuple(
+                sorted(
+                    {
+                        value
+                        for query_id, values in attribute.value_constraints
+                        if query_id in grouping_queries
+                        for value in values
+                    }
+                )
+            )
+            has_value_filter = any(
+                role.startswith("filter:")
+                and role not in {"filter:is_null", "filter:is_not_null"}
+                for role in roles
+            )
             if (
                 "group_by" not in roles
-                or any(
-                    role.startswith("filter:")
-                    and role
-                    not in {"filter:is_null", "filter:is_not_null"}
-                    for role in roles
-                )
+                or (has_value_filter and len(target_values) < 2)
                 or set(attribute.semantic_types) != {"text"}
             ):
                 continue
@@ -2027,6 +2043,14 @@ class ContractExtractor:
             )
             if case_variants < 2:
                 continue
+            target_instruction = (
+                "The SQL workload explicitly defines the canonical target "
+                "vocabulary below. Map every applicable observed value to "
+                "exactly one of those canonical target values, and map "
+                "non-values to null. Do not invent another target label.\n\n"
+                if target_values
+                else "\n\n"
+            )
             prompt = (
                 "Choose the categorical representation that most directly "
                 "answers the natural-language workload. When observed values "
@@ -2054,11 +2078,13 @@ class ContractExtractor:
                 "source label is not actually a value of the requested "
                 "attribute. target_value must be justified solely "
                 "by the NL workload, observed labels, and ordinary language "
-                "meaning; it must not encode an expected benchmark answer.\n\n"
-                f"Entity: {attribute.entity}\n"
+                "meaning; it must not encode an expected benchmark answer. "
+                + target_instruction
+                + f"Entity: {attribute.entity}\n"
                 f"Attribute: {attribute.name}\n"
                 "Natural-language workload hints: "
                 f"{json.dumps(dict(attribute.query_hints), sort_keys=True)}\n"
+                f"Canonical target values: {json.dumps(target_values)}\n"
                 f"Observed value count: {len(values)}\n"
                 f"Case-insensitive unique count: {case_variants}\n"
                 f"Observed values: {json.dumps(values)}"
@@ -2103,6 +2129,10 @@ class ContractExtractor:
                         and (
                             not isinstance(target, str)
                             or not target.strip()
+                            or (
+                                target_values
+                                and target.strip() not in target_values
+                            )
                         )
                     )
                 ):
@@ -2129,11 +2159,15 @@ class ContractExtractor:
                     "chosen in accepted_mapping. target_value must be a "
                     "canonical string, or null when the source label is not "
                     "actually a value of the requested attribute. Do not alter "
-                    "or repeat accepted mappings.\n\n"
+                    "or repeat accepted mappings. When canonical_target_values "
+                    "is non-empty, every non-null target must be copied exactly "
+                    "from that list.\n\n"
                     f"Entity: {attribute.entity}\n"
                     f"Attribute: {attribute.name}\n"
                     "Natural-language workload hints: "
                     f"{json.dumps(dict(attribute.query_hints), sort_keys=True)}\n"
+                    "Canonical target values: "
+                    f"{json.dumps(target_values)}\n"
                     f"Accepted mapping: {json.dumps(mapping, sort_keys=True)}\n"
                     f"Missing observed values: {json.dumps(missing)}"
                 )
@@ -2165,6 +2199,10 @@ class ContractExtractor:
                             and (
                                 not isinstance(target, str)
                                 or not target.strip()
+                                or (
+                                    target_values
+                                    and target.strip() not in target_values
+                                )
                             )
                         )
                     ):
@@ -2205,6 +2243,324 @@ class ContractExtractor:
                 )
         return tuple(result)
 
+    def _join_key_mappings(
+        self,
+        contract: WorkloadContract,
+        records: Sequence[ExtractionRecord],
+    ) -> Tuple[DerivationMapping, ...]:
+        """Resolve aliases jointly, but only across declared join endpoints."""
+
+        Node = Tuple[str, str]
+        adjacency: Dict[Node, set[Node]] = defaultdict(set)
+        display: Dict[Node, Tuple[str, str]] = {}
+        for relationship in contract.relationships:
+            for left_attribute, right_attribute in relationship.endpoint_pairs:
+                if not left_attribute or not right_attribute:
+                    continue
+                left = (
+                    _symbol_key(relationship.left_entity),
+                    _symbol_key(left_attribute),
+                )
+                right = (
+                    _symbol_key(relationship.right_entity),
+                    _symbol_key(right_attribute),
+                )
+                if not all((*left, *right)) or left == right:
+                    continue
+                display.setdefault(
+                    left, (relationship.left_entity, left_attribute)
+                )
+                display.setdefault(
+                    right, (relationship.right_entity, right_attribute)
+                )
+                adjacency[left].add(right)
+                adjacency[right].add(left)
+        if not adjacency:
+            return ()
+
+        records_by_node: Dict[Node, List[ExtractionRecord]] = defaultdict(list)
+        for record in records:
+            if record.attribute is None or not isinstance(record.value, str):
+                continue
+            node = (
+                _symbol_key(record.entity),
+                _symbol_key(record.attribute),
+            )
+            if node in adjacency and record.value.strip():
+                records_by_node[node].append(record)
+
+        def surface_key(value: object) -> str:
+            return " ".join(str(value).strip().casefold().split())
+
+        def alias_compatible(source: str, target: str) -> bool:
+            """Require lexical containment or an initialism, not shared context."""
+
+            source_tokens = tuple(_symbol_key(source).split("_"))
+            target_tokens = tuple(_symbol_key(target).split("_"))
+            source_set = set(source_tokens)
+            target_set = set(target_tokens)
+            if not source_set or not target_set:
+                return False
+            if source_set <= target_set or target_set <= source_set:
+                return True
+            source_only = source_set - target_set
+            target_only = target_set - source_set
+
+            def initialism(short: set[str], expanded: set[str]) -> bool:
+                if len(short) != 1 or not expanded:
+                    return False
+                token = next(iter(short))
+                initials = "".join(
+                    value[0] for value in sorted(expanded) if value
+                )
+                # Preserve phrase order as well as a deterministic set order.
+                ordered_initials = "".join(
+                    value[0]
+                    for value in (
+                        target_tokens if expanded is target_only else source_tokens
+                    )
+                    if value in expanded
+                )
+                return len(token) <= 4 and token in {
+                    initials,
+                    ordered_initials,
+                }
+
+            return initialism(source_only, target_only) or initialism(
+                target_only, source_only
+            )
+
+        def exact_overlap(
+            values: Mapping[Node, set[str]],
+        ) -> Dict[Tuple[Node, Node], int]:
+            overlaps: Dict[Tuple[Node, Node], int] = {}
+            for left in sorted(adjacency):
+                for right in sorted(adjacency[left]):
+                    if left >= right:
+                        continue
+                    overlaps[(left, right)] = len(
+                        values.get(left, set()) & values.get(right, set())
+                    )
+            return overlaps
+
+        components: List[Tuple[Node, ...]] = []
+        remaining = set(adjacency)
+        while remaining:
+            start = min(remaining)
+            stack = [start]
+            component: set[Node] = set()
+            while stack:
+                node = stack.pop()
+                if node in component:
+                    continue
+                component.add(node)
+                stack.extend(adjacency[node] - component)
+            remaining -= component
+            components.append(tuple(sorted(component)))
+
+        result: List[DerivationMapping] = []
+        for component in components:
+            values_by_node = {
+                node: {
+                    str(record.value)
+                    for record in records_by_node.get(node, ())
+                    if str(record.value).strip()
+                }
+                for node in component
+            }
+            populated_nodes = [
+                node for node in component if values_by_node[node]
+            ]
+            if len(populated_nodes) < 2:
+                continue
+
+            # Prefer a central relationship key. For a single edge, the
+            # smaller distinct domain is usually the referenced dimension.
+            pivot = min(
+                populated_nodes,
+                key=lambda node: (
+                    -len(adjacency[node] & set(component)),
+                    len(values_by_node[node]),
+                    node,
+                ),
+            )
+            canonical_values = tuple(sorted(values_by_node[pivot]))
+            canonical_by_surface: Dict[str, List[str]] = defaultdict(list)
+            for value in canonical_values:
+                canonical_by_surface[surface_key(value)].append(value)
+
+            proposed: List[Tuple[Node, str, str]] = []
+            proposed_keys: set[Tuple[Node, str]] = set()
+            unresolved: List[Tuple[Node, str]] = []
+            for node in populated_nodes:
+                if node == pivot or pivot not in adjacency[node]:
+                    continue
+                allowed_targets = values_by_node[pivot]
+                for source in sorted(values_by_node[node]):
+                    exact = canonical_by_surface.get(surface_key(source), [])
+                    if len(exact) == 1:
+                        target = exact[0]
+                        if source != target:
+                            proposed.append((node, source, target))
+                            proposed_keys.add((node, source))
+                    elif source not in allowed_targets:
+                        unresolved.append((node, source))
+
+            if unresolved and canonical_values:
+                source_payload = [
+                    {
+                        "entity": display[node][0],
+                        "attribute": display[node][1],
+                        "source_value": source,
+                    }
+                    for node, source in unresolved
+                ]
+                prompt = (
+                    "Resolve entity aliases only across the declared SQL join "
+                    "columns below. Return only a JSON array. Each object must "
+                    "have exactly entity, attribute, source_value, and "
+                    "target_value. Copy entity, attribute, and source_value "
+                    "exactly from unresolved_sources. target_value must be "
+                    "copied exactly from canonical_values. Map a source only "
+                    "when it denotes the same real-world entity as one "
+                    "canonical value (for example, an abbreviation or former "
+                    "surface form). Omit uncertain sources. Never merge distinct "
+                    "entities merely because they share a city, organization "
+                    "type, or common token. Do not map out-of-domain entities "
+                    "to null and do not invent values.\n\n"
+                    f"Join-key component: {json.dumps([display[node] for node in component])}\n"
+                    f"Canonical endpoint: {json.dumps(display[pivot])}\n"
+                    f"Canonical values: {json.dumps(canonical_values)}\n"
+                    f"Unresolved sources: {json.dumps(source_payload, sort_keys=True)}"
+                )
+                supporting_documents = {
+                    record.document_id
+                    for node, _source in unresolved
+                    for record in records_by_node[node]
+                }
+                representative = next(
+                    (
+                        unit
+                        for unit in self.units
+                        if unit.document_id in supporting_documents
+                    ),
+                    self.units[0],
+                )
+                rows = self._budgeted_rows(
+                    target=(
+                        "join-entity-resolution:"
+                        + ":".join(
+                            f"{display[node][0]}.{display[node][1]}"
+                            for node in component
+                        )
+                    ),
+                    phase="entity_resolution",
+                    prompt=prompt,
+                    unit=representative,
+                    max_tokens=max(
+                        self.max_attribute_tokens,
+                        min(4_096, 128 * len(unresolved)),
+                    ),
+                )
+                if rows is not None:
+                    unresolved_index = {
+                        (
+                            _symbol_key(display[node][0]),
+                            _symbol_key(display[node][1]),
+                            source,
+                        ): node
+                        for node, source in unresolved
+                    }
+                    for row in rows:
+                        if set(row) != {
+                            "entity",
+                            "attribute",
+                            "source_value",
+                            "target_value",
+                        }:
+                            continue
+                        entity = row.get("entity")
+                        attribute = row.get("attribute")
+                        source = row.get("source_value")
+                        target = row.get("target_value")
+                        if not all(
+                            isinstance(value, str)
+                            for value in (
+                                entity,
+                                attribute,
+                                source,
+                                target,
+                            )
+                        ):
+                            continue
+                        node = unresolved_index.get(
+                            (
+                                _symbol_key(entity),
+                                _symbol_key(attribute),
+                                source,
+                            )
+                        )
+                        if (
+                            node is None
+                            or target not in values_by_node[pivot]
+                            or pivot not in adjacency[node]
+                            or (node, source) in proposed_keys
+                            or source == target
+                            or not alias_compatible(source, target)
+                        ):
+                            continue
+                        proposed.append((node, source, target))
+                        proposed_keys.add((node, source))
+
+            # Admit mappings one at a time only when they improve at least one
+            # declared edge and do not reduce overlap on any edge.
+            transformed = {
+                node: set(values) for node, values in values_by_node.items()
+            }
+            overlap = exact_overlap(transformed)
+            accepted: List[Tuple[Node, str, str]] = []
+            for node, source, target in proposed:
+                candidate = {
+                    key: set(values)
+                    for key, values in transformed.items()
+                }
+                candidate[node].discard(source)
+                candidate[node].add(target)
+                candidate_overlap = exact_overlap(candidate)
+                if (
+                    any(
+                        candidate_overlap[edge] < overlap[edge]
+                        for edge in overlap
+                    )
+                ):
+                    continue
+                transformed = candidate
+                overlap = candidate_overlap
+                accepted.append((node, source, target))
+
+            for node, source, target in accepted:
+                documents = {
+                    record.document_id
+                    for record in records_by_node[node]
+                    if str(record.value) == source
+                }
+                documents.update(
+                    record.document_id
+                    for record in records_by_node[pivot]
+                    if str(record.value) == target
+                )
+                result.append(
+                    DerivationMapping(
+                        entity=display[node][0],
+                        attribute=display[node][1],
+                        source_value=source,
+                        target_value=target,
+                        mapping_kind="entity",
+                        supporting_document_ids=tuple(sorted(documents)),
+                    )
+                )
+        return tuple(result)
+
     def derive_mappings(
         self,
         contract: WorkloadContract,
@@ -2213,6 +2569,7 @@ class ContractExtractor:
         """Build explicit reversible mappings after raw extraction."""
         return (
             *self._unit_mappings(contract, records),
+            *self._join_key_mappings(contract, records),
             *self._taxonomy_mappings(contract, records),
         )
 

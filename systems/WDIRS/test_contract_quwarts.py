@@ -64,10 +64,11 @@ from spp.schema_materializer import write_sqlite_database
 from spp.workload_contract import (
     AttributeContract,
     EntityContract,
+    RelationshipContract,
     WorkloadContract,
     compile_workload_contract,
 )
-from spp.workload_intent import WorkloadIntent
+from spp.workload_intent import WorkloadIntent, analyze_sql_contract_workload
 
 
 def _intent(*requirements: QueryRequirement) -> WorkloadIntent:
@@ -194,6 +195,78 @@ def test_workload_contract_preserves_shared_query_roles_and_join_edges():
     assert all(
         relation.name != "workload_flat" for relation in graph.relations
     )
+
+
+def test_workload_contract_preserves_query_scoped_category_targets():
+    position = AttributeRef("player", "position", "text")
+    requirement = QueryRequirement(
+        query_id="q0",
+        text="How many players are Frontcourt and Backcourt?",
+        entities=("player",),
+        attributes=("position",),
+        attribute_bindings=(("player", "position"),),
+        operators=("group", "filter"),
+        plan=QueryPlan(
+            projections=(position,),
+            group_by=(position,),
+            predicate=PredicateSpec(
+                kind="or",
+                children=(
+                    PredicateSpec(
+                        attribute=position,
+                        operator="=",
+                        value="Frontcourt",
+                    ),
+                    PredicateSpec(
+                        attribute=position,
+                        operator="=",
+                        value="Backcourt",
+                    ),
+                ),
+            ),
+        ),
+    )
+
+    contract = compile_workload_contract(_intent(requirement))
+    attribute = contract.attributes_for("player")[0]
+
+    assert attribute.value_constraints == (
+        ("q0", ("Backcourt", "Frontcourt")),
+    )
+
+
+def test_sql_contract_preserves_player_team_owner_join_key_chain():
+    intent = analyze_sql_contract_workload(
+        [
+            {
+                "query_id": "q0",
+                "sql_query": (
+                    "SELECT o.name, COUNT(*) AS player_count "
+                    "FROM player p "
+                    "JOIN team t ON p.team = t.team_name "
+                    "JOIN owner o ON t.team_name = o.nba_team "
+                    "GROUP BY o.name"
+                ),
+            }
+        ]
+    )
+
+    contract = compile_workload_contract(intent)
+    endpoint_pairs = {
+        (
+            relationship.left_entity,
+            left_attribute,
+            relationship.right_entity,
+            right_attribute,
+        )
+        for relationship in contract.relationships
+        for left_attribute, right_attribute in relationship.endpoint_pairs
+    }
+
+    assert endpoint_pairs == {
+        ("player", "team", "team", "team_name"),
+        ("team", "team_name", "owner", "nba_team"),
+    }
 
 
 def test_field_local_validation_rejects_value_from_another_span():
@@ -352,6 +425,313 @@ def test_casefold_taxonomy_runs_after_an_llm_budget_boundary(tmp_path):
         extractor._budget_exhausted = True
         mappings = extractor._taxonomy_mappings(contract, records)
     assert len(mappings) == 1
+
+
+def test_filtered_grouping_uses_sql_category_targets_for_taxonomy(tmp_path):
+    class PositionTaxonomyClient:
+        model = "fixture"
+
+        def __init__(self):
+            self.ledger = type("Ledger", (), {"actual_spent": 0})()
+
+        def generate(self, prompt, **_kwargs):
+            assert (
+                'Canonical target values: ["Backcourt", "Frontcourt"]'
+                in prompt
+            )
+            return json.dumps(
+                [
+                    {
+                        "source_value": "Center",
+                        "target_value": "Frontcourt",
+                    },
+                    {
+                        "source_value": "Point Guard",
+                        "target_value": "Backcourt",
+                    },
+                    {
+                        "source_value": "Power Forward",
+                        "target_value": "Frontcourt",
+                    },
+                    {
+                        "source_value": "Shooting Guard",
+                        "target_value": "Backcourt",
+                    },
+                ]
+            )
+
+    document = type(
+        "Document",
+        (),
+        {
+            "document_id": "player/1.txt",
+            "text": "Center Point Guard Power Forward Shooting Guard",
+            "metadata": {},
+        },
+    )()
+    attribute = AttributeContract(
+        "player",
+        "position",
+        semantic_types=("text",),
+        contexts=(("q0", ("filter:=", "group_by")),),
+        query_hints=(
+            ("q0", "How many players are Frontcourt and Backcourt?"),
+        ),
+        value_constraints=(("q0", ("Backcourt", "Frontcourt")),),
+    )
+    contract = WorkloadContract(
+        entities=(EntityContract("player"),),
+        attributes=(attribute,),
+        relationships=(),
+    )
+    records = tuple(
+        ExtractionRecord(
+            "player",
+            "position",
+            str(index),
+            value,
+            value,
+            None,
+            "player/1.txt",
+            "u1",
+            index,
+            index + len(value),
+        )
+        for index, value in enumerate(
+            (
+                "Center",
+                "Point Guard",
+                "Power Forward",
+                "Shooting Guard",
+            )
+        )
+    )
+
+    with EvidenceStore(tmp_path / "position-taxonomy.sqlite") as evidence:
+        extractor = ContractExtractor(
+            (document,),
+            PositionTaxonomyClient(),
+            evidence,
+            max_workers=1,
+        )
+        mappings = extractor._taxonomy_mappings(contract, records)
+
+    assert {
+        (mapping.source_value, mapping.target_value)
+        for mapping in mappings
+    } == {
+        ("Center", "Frontcourt"),
+        ("Point Guard", "Backcourt"),
+        ("Power Forward", "Frontcourt"),
+        ("Shooting Guard", "Backcourt"),
+    }
+    assert {record.value for record in records} == {
+        "Center",
+        "Point Guard",
+        "Power Forward",
+        "Shooting Guard",
+    }
+
+
+def test_join_key_er_resolves_declared_multihop_component_only(tmp_path):
+    class JoinEntityClient:
+        model = "fixture"
+
+        def __init__(self):
+            self.ledger = type("Ledger", (), {"actual_spent": 0})()
+
+        def generate(self, prompt, **_kwargs):
+            assert '"player", "team"' in prompt
+            assert '"team", "team_name"' in prompt
+            assert '"owner", "nba_team"' in prompt
+            return json.dumps(
+                [
+                    {
+                        "entity": "player",
+                        "attribute": "team",
+                        "source_value": "LA Lakers",
+                        "target_value": "Los Angeles Lakers",
+                    },
+                    {
+                        "entity": "player",
+                        "attribute": "team",
+                        "source_value": "New York Liberty",
+                        "target_value": "New York Knicks",
+                    },
+                    {
+                        "entity": "player",
+                        "attribute": "team",
+                        "source_value": "Boston Celtics",
+                        "target_value": "Invented Celtics",
+                    },
+                ]
+            )
+
+    contract = WorkloadContract(
+        entities=(
+            EntityContract("player"),
+            EntityContract("team"),
+            EntityContract("owner"),
+        ),
+        attributes=(
+            AttributeContract("player", "team"),
+            AttributeContract("team", "team_name"),
+            AttributeContract("owner", "nba_team"),
+            AttributeContract("owner", "name"),
+        ),
+        relationships=(
+            RelationshipContract(
+                "team=team_name",
+                "player",
+                "team",
+                left_attributes=("team",),
+                right_attributes=("team_name",),
+            ),
+            RelationshipContract(
+                "team_name=nba_team",
+                "team",
+                "owner",
+                left_attributes=("team_name",),
+                right_attributes=("nba_team",),
+            ),
+        ),
+    )
+    values = {
+        ("player", "team"): (
+            "LA Lakers",
+            "Boston Celtics",
+            "New York Liberty",
+        ),
+        ("team", "team_name"): (
+            "Los Angeles Lakers",
+            "Boston Celtics",
+            "New York Knicks",
+        ),
+        ("owner", "nba_team"): (
+            "Los Angeles Lakers",
+            "Boston Celtics",
+        ),
+        # This is deliberately not a declared join endpoint.
+        ("owner", "name"): ("Lakers Ownership Group",),
+    }
+    records = tuple(
+        ExtractionRecord(
+            entity,
+            attribute,
+            f"{entity}-{index}",
+            value,
+            value,
+            None,
+            "player/1.txt",
+            "u1",
+            index,
+            index + len(value),
+        )
+        for (entity, attribute), observed in values.items()
+        for index, value in enumerate(observed)
+    )
+    document = type(
+        "Document",
+        (),
+        {
+            "document_id": "player/1.txt",
+            "text": " ".join(
+                value
+                for observed in values.values()
+                for value in observed
+            ),
+            "metadata": {},
+        },
+    )()
+
+    with EvidenceStore(tmp_path / "join-er.sqlite") as evidence:
+        extractor = ContractExtractor(
+            (document,),
+            JoinEntityClient(),
+            evidence,
+            max_workers=1,
+        )
+        mappings = extractor._join_key_mappings(contract, records)
+
+    assert {
+        (
+            mapping.entity,
+            mapping.attribute,
+            mapping.source_value,
+            mapping.target_value,
+            mapping.mapping_kind,
+        )
+        for mapping in mappings
+    } == {
+        (
+            "player",
+            "team",
+            "LA Lakers",
+            "Los Angeles Lakers",
+            "entity",
+        )
+    }
+    assert "Lakers Ownership Group" in {
+        record.value for record in records
+    }
+
+
+def test_entity_derivation_changes_semantic_join_key_but_not_raw_table():
+    mapping = DerivationMapping(
+        entity="player",
+        attribute="team",
+        source_value="LA Lakers",
+        target_value="Los Angeles Lakers",
+        mapping_kind="entity",
+        supporting_document_ids=("player/1.txt", "team/1.txt"),
+    )
+    raw_tables = {
+        "player": ({"row_id": "p1", "team": "LA Lakers"},),
+        "team": (
+            {
+                "row_id": "t1",
+                "team_name": "Los Angeles Lakers",
+            },
+        ),
+    }
+    backend = ContractBackend(
+        (ContractDocument("player/1.txt", "LA Lakers"),),
+        object(),
+    )
+    backend.relation_graph = WorkloadRelationGraph(
+        relations=(
+            RelationSpec(
+                "player",
+                ("team",),
+                semantic_types=(("team", "text"),),
+            ),
+            RelationSpec(
+                "team",
+                ("team_name",),
+                semantic_types=(("team_name", "text"),),
+            ),
+        ),
+        edges=(
+            RelationEdge(
+                "player",
+                "team",
+                "team",
+                "team_name",
+            ),
+        ),
+        covered_query_ids=("q0",),
+    )
+    backend._shared = SharedExtraction(
+        raw_tables=raw_tables,
+        evidence=(),
+        metadata={"derivation_mappings": (mapping.to_payload(),)},
+    )
+
+    semantic = backend._derived_semantic_tables(raw_tables)
+
+    assert raw_tables["player"][0]["team"] == "LA Lakers"
+    assert semantic["player"][0]["team"] == "Los Angeles Lakers"
+    assert semantic["team"][0]["team_name"] == "Los Angeles Lakers"
 
 
 def test_partial_llm_taxonomy_is_rejected(tmp_path):

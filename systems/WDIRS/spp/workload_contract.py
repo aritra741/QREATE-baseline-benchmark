@@ -1,10 +1,11 @@
-"""Workload-wide, value-free contracts for evidence-backed extraction.
+"""Workload-wide contracts for evidence-backed extraction.
 
 The intent analyzer describes each query independently. Extraction needs the
 dual view: one shared symbol table that retains every query's use of a symbol.
-Natural-language hints remain attached to their query ids because they are
-legitimate synthesis input and disambiguate field/taxonomy meaning. This module
-contains no corpus- or benchmark-specific vocabulary.
+Natural-language hints and categorical equality constraints remain attached to
+their query ids because they are legitimate synthesis input and disambiguate
+field/taxonomy meaning. This module contains no corpus- or benchmark-specific
+vocabulary.
 """
 
 from __future__ import annotations
@@ -35,6 +36,7 @@ if TYPE_CHECKING:
 
 QueryContext = Tuple[Tuple[str, Tuple[str, ...]], ...]
 QueryHints = Tuple[Tuple[str, str], ...]
+QueryValues = Tuple[Tuple[str, Tuple[str, ...]], ...]
 
 
 def _ordered(values: Iterable[str]) -> Tuple[str, ...]:
@@ -98,6 +100,9 @@ class AttributeContract:
     In that case ``entity_alternatives`` retains all possible owners.
     ``semantic_types`` and ``units`` are alternative constraints, not votes;
     validators accept a value supported by any retained alternative.
+    ``value_constraints`` retains categorical equality values by query so
+    extraction can normalize source labels to the vocabulary required by the
+    workload without confusing values used by unrelated queries.
     """
 
     entity: str
@@ -110,6 +115,7 @@ class AttributeContract:
     contexts: QueryContext = ()
     operators: Tuple[str, ...] = ()
     query_hints: QueryHints = ()
+    value_constraints: QueryValues = ()
 
     def __post_init__(self) -> None:
         if not _symbol_key(self.name):
@@ -193,9 +199,9 @@ class WorkloadContract:
     """Immutable extraction contract compiled from a complete workload.
 
     The payload is safe to cache and prompt with because it contains only the
-    NL workload's schema symbols, structural roles, semantic types, units, and
-    query hints. It never serializes reference SQL, expected answers, or source
-    data.
+    workload's schema symbols, structural roles, semantic types, units, query
+    hints, and query-scoped categorical constraints. It never serializes
+    reference SQL, expected answers, or source data.
     """
 
     entities: Tuple[EntityContract, ...]
@@ -266,7 +272,7 @@ def _canonicalization(intent: WorkloadIntent) -> Mapping[str, Any]:
 def _plan_uses(
     requirement: QueryRequirement,
 ) -> List[Tuple[AttributeRef, str]]:
-    """Collect field roles while deliberately discarding predicate values."""
+    """Collect field roles from a typed query plan."""
 
     plan = requirement.plan
     if plan is None:
@@ -301,6 +307,40 @@ def _plan_uses(
     return uses
 
 
+def _categorical_predicate_values(
+    requirement: QueryRequirement,
+) -> Dict[Tuple[str, str], Set[str]]:
+    """Collect text equality values that define a query's category domain."""
+
+    result: Dict[Tuple[str, str], Set[str]] = defaultdict(set)
+    plan = requirement.plan
+    if plan is None:
+        return result
+
+    def visit(predicate: Optional[PredicateSpec]) -> None:
+        if predicate is None:
+            return
+        if (
+            predicate.kind == "predicate"
+            and predicate.attribute is not None
+            and predicate.operator == "="
+            and predicate.attribute.semantic_type == "text"
+            and isinstance(predicate.value, str)
+            and predicate.value.strip()
+        ):
+            result[
+                (
+                    _symbol_key(predicate.attribute.entity),
+                    _symbol_key(predicate.attribute.attribute),
+                )
+            ].add(predicate.value.strip())
+        for child in predicate.children:
+            visit(child)
+
+    visit(plan.predicate)
+    return result
+
+
 def _relationship_name(left_attribute: str, right_attribute: str) -> str:
     if left_attribute or right_attribute:
         return f"{left_attribute}={right_attribute}"
@@ -308,14 +348,14 @@ def _relationship_name(left_attribute: str, right_attribute: str) -> str:
 
 
 def compile_workload_contract(intent: WorkloadIntent) -> WorkloadContract:
-    """Compile query-local intent into one literal-free extraction contract.
+    """Compile query-local intent into one extraction contract.
 
     Shared entity/attribute symbols are merged across queries.  Aliases,
     conflicting semantic types, unresolved owners, relationship labels, join
     keys, units, and per-query structural roles remain explicit alternatives.
-    Query prose is retained only as an explicitly labelled NL hint; typed
-    predicate values remain represented by the query plan, not copied into a
-    separate schema rule.
+    Query prose is retained as an explicitly labelled NL hint. Text equality
+    values are also retained, scoped to their query, because they can define
+    the canonical category vocabulary needed to execute the workload.
     """
 
     canonicalization = _canonicalization(intent)
@@ -395,6 +435,7 @@ def compile_workload_contract(intent: WorkloadIntent) -> WorkloadContract:
         role: str,
         operators: Iterable[str],
         units: Iterable[str],
+        value_constraints: Iterable[str] = (),
     ) -> None:
         rendered_name = str(name or "").strip()
         if not _symbol_key(rendered_name):
@@ -424,6 +465,7 @@ def compile_workload_contract(intent: WorkloadIntent) -> WorkloadContract:
                 "units": set(),
                 "operators": set(),
                 "context": defaultdict(set),
+                "value_constraints": defaultdict(set),
             },
         )
         candidate_type = str(semantic_type or "text").strip().lower()
@@ -435,10 +477,21 @@ def compile_workload_contract(intent: WorkloadIntent) -> WorkloadContract:
             str(value).strip() for value in operators if str(value).strip()
         )
         state["context"][query_id].add(role)
+        state["value_constraints"][query_id].update(
+            str(value).strip()
+            for value in value_constraints
+            if str(value).strip()
+        )
 
     for requirement in intent.requirements:
         query_id = str(requirement.query_id)
         plan_uses = _plan_uses(requirement)
+        predicate_values = {
+            (_symbol_key(canonical_entity(entity)), attribute): values
+            for (entity, attribute), values in _categorical_predicate_values(
+                requirement
+            ).items()
+        }
         for operator in requirement.operators:
             workload_context[query_id].add(f"operator:{operator}")
         for unit in requirement.units:
@@ -481,6 +534,7 @@ def compile_workload_contract(intent: WorkloadIntent) -> WorkloadContract:
                     role="binding",
                     operators=requirement.operators,
                     units=(),
+                    value_constraints=predicate_values.get(binding_key, ()),
                 )
 
         numeric_refs = {
@@ -503,6 +557,7 @@ def compile_workload_contract(intent: WorkloadIntent) -> WorkloadContract:
                 role=role,
                 operators=requirement.operators,
                 units=requirement.units if ref_key in unit_targets else (),
+                value_constraints=predicate_values.get(ref_key, ()),
             )
 
         # Preserve unbound owner alternatives instead of assigning a field to
@@ -651,6 +706,13 @@ def compile_workload_contract(intent: WorkloadIntent) -> WorkloadContract:
                 query_hints=tuple(
                     (query_id, query_hints[query_id])
                     for query_id in sorted(state["context"])
+                ),
+                value_constraints=tuple(
+                    (query_id, _ordered(values))
+                    for query_id, values in sorted(
+                        state["value_constraints"].items()
+                    )
+                    if values
                 ),
             )
         )

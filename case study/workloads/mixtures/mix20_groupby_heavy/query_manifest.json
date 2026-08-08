@@ -1,0 +1,82 @@
+[
+  {
+    "query_id": "q0",
+    "sql": "SELECT t.location, p.position, COUNT(*) AS player_count FROM player p JOIN team t ON TRIM(p.team) = TRIM(t.team_name) WHERE p.position IN ('Frontcourt', 'Backcourt') AND t.location != '' GROUP BY t.location, p.position"
+  },
+  {
+    "query_id": "q1",
+    "sql": "SELECT o.name, MAX(p.nba_championships) AS max_player_titles FROM owner o LEFT JOIN team t ON TRIM(t.team_name) = TRIM(o.nba_team) LEFT JOIN player p ON TRIM(p.team) = TRIM(t.team_name) GROUP BY o.name"
+  },
+  {
+    "query_id": "q2",
+    "sql": "SELECT c.state_name, AVG(p.nba_championships) AS avg_player_titles FROM player p JOIN team t ON TRIM(p.team) = TRIM(t.team_name) JOIN city c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE p.nba_championships IS NOT NULL AND c.state_name != '' GROUP BY c.state_name"
+  },
+  {
+    "query_id": "q3",
+    "sql": "SELECT CAST(founded_year / 10 AS INTEGER) * 10 AS founded_decade, COUNT(*) AS team_count, SUM(championship) AS total_titles, AVG(championship) AS avg_titles, MIN(founded_year) AS earliest_founded FROM team WHERE founded_year > 0 GROUP BY founded_decade"
+  },
+  {
+    "query_id": "q4",
+    "sql": "SELECT nationality, MAX(nba_championships) AS max_championships FROM player WHERE nba_championships >= 1 AND nationality != '' GROUP BY nationality"
+  },
+  {
+    "query_id": "q5",
+    "sql": "SELECT c.state_name, AVG(p.olympic_gold_medals) AS avg_olympic_golds FROM player p JOIN team t ON TRIM(p.team) = TRIM(t.team_name) JOIN owner o ON TRIM(t.team_name) = TRIM(o.nba_team) JOIN city c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE p.olympic_gold_medals >= 1 AND c.state_name != '' GROUP BY c.state_name"
+  },
+  {
+    "query_id": "q6",
+    "sql": "SELECT CASE WHEN TRIM(nationality) = 'American' THEN 'American' ELSE 'International' END AS nationality_group, CAST(draft_year / 10 AS INTEGER) * 10 AS draft_decade, COUNT(*) AS player_count FROM player WHERE nationality != '' AND draft_year > 0 GROUP BY nationality_group, draft_decade"
+  },
+  {
+    "query_id": "q7",
+    "sql": "SELECT position, COUNT(*) AS player_count, AVG(mvp_awards) AS avg_mvp, AVG(nba_championships) AS avg_titles FROM player WHERE position IN ('Frontcourt', 'Backcourt') AND mvp_awards IS NOT NULL AND nba_championships IS NOT NULL GROUP BY position"
+  },
+  {
+    "query_id": "q8",
+    "sql": "SELECT CAST(draft_year / 10 AS INTEGER) * 10 AS draft_decade, COUNT(*) AS player_count, AVG(draft_pick) AS avg_pick, MIN(draft_pick) AS best_pick, MAX(draft_pick) AS latest_pick FROM player WHERE draft_year > 0 AND draft_pick > 0 GROUP BY draft_decade HAVING COUNT(*) >= 2"
+  },
+  {
+    "query_id": "q9",
+    "sql": "SELECT position, CASE WHEN age < 30 THEN 'under_30' WHEN age < 40 THEN '30s' ELSE '40_or_older' END AS age_band, COUNT(*) AS player_count FROM player WHERE position IN ('Frontcourt', 'Backcourt') AND age IS NOT NULL GROUP BY position, age_band"
+  },
+  {
+    "query_id": "q10",
+    "sql": "SELECT CAST(o.own_year / 10 AS INTEGER) * 10 AS acquisition_decade, COUNT(*) AS owner_count, AVG(t.championship) AS avg_team_titles, MIN(o.own_year) AS earliest_acquisition, MAX(o.own_year) AS latest_acquisition FROM owner o JOIN team t ON TRIM(t.team_name) = TRIM(o.nba_team) WHERE o.own_year > 0 GROUP BY acquisition_decade"
+  },
+  {
+    "query_id": "q11",
+    "sql": "SELECT position, CASE WHEN nba_championships >= 1 THEN 'has_championship' WHEN nba_championships = 0 THEN 'no_championship' ELSE 'unknown' END AS championship_status, COUNT(*) AS player_count FROM player WHERE position IN ('Frontcourt', 'Backcourt') GROUP BY position, championship_status"
+  },
+  {
+    "query_id": "q12",
+    "sql": "SELECT position, CASE WHEN mvp_awards >= 1 THEN 'mvp_winner' ELSE 'no_mvp' END AS mvp_status, COUNT(*) AS player_count FROM player WHERE position IN ('Frontcourt', 'Backcourt') GROUP BY position, mvp_status"
+  },
+  {
+    "query_id": "q13",
+    "sql": "SELECT college, position, AVG(age) AS avg_age FROM player WHERE college != '' AND position IN ('Frontcourt', 'Backcourt') GROUP BY college, position HAVING COUNT(*) >= 2"
+  },
+  {
+    "query_id": "q14",
+    "sql": "SELECT founded_year, COUNT(*) AS team_count FROM team WHERE founded_year >= 1970 GROUP BY founded_year"
+  },
+  {
+    "query_id": "q15",
+    "sql": "SELECT nationality, COUNT(*) AS player_count, AVG(olympic_gold_medals) AS avg_golds, SUM(olympic_gold_medals) AS total_golds, MAX(olympic_gold_medals) AS max_golds FROM player WHERE olympic_gold_medals >= 1 AND nationality != '' GROUP BY nationality"
+  },
+  {
+    "query_id": "q16",
+    "sql": "SELECT CAST(draft_year / 5 AS INTEGER) * 5 AS draft_cohort, position, COUNT(*) AS player_count FROM player WHERE draft_year > 2000 AND position IN ('Frontcourt', 'Backcourt') GROUP BY draft_cohort, position"
+  },
+  {
+    "query_id": "q17",
+    "sql": "SELECT position, CASE WHEN draft_pick BETWEEN 1 AND 14 THEN 'lottery' WHEN draft_pick BETWEEN 15 AND 30 THEN 'later_first_round' WHEN draft_pick > 30 THEN 'later_pick' ELSE 'undrafted_or_unknown' END AS draft_band, COUNT(*) AS player_count FROM player WHERE position IN ('Frontcourt', 'Backcourt') GROUP BY position, draft_band"
+  },
+  {
+    "query_id": "q18",
+    "sql": "SELECT college, MAX(mvp_awards) AS max_mvp_awards FROM player WHERE college != '' GROUP BY college HAVING COUNT(*) > 1"
+  },
+  {
+    "query_id": "q19",
+    "sql": "SELECT nationality, CAST(own_year / 10 AS INTEGER) * 10 AS acquisition_decade, COUNT(*) AS owner_count FROM owner WHERE nationality != '' AND own_year > 0 GROUP BY nationality, acquisition_decade"
+  }
+]

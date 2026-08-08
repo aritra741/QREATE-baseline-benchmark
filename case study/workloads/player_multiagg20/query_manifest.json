@@ -1,0 +1,82 @@
+[
+  {
+    "query_id": "q0",
+    "sql": "SELECT position, COUNT(*) AS player_count, AVG(age) AS avg_age, MAX(age) AS max_age FROM player WHERE position IN ('Frontcourt', 'Backcourt') GROUP BY position"
+  },
+  {
+    "query_id": "q1",
+    "sql": "SELECT nationality, COUNT(*) AS player_count, AVG(nba_championships) AS avg_titles, SUM(nba_championships) AS total_titles FROM player WHERE nationality != '' AND nba_championships IS NOT NULL GROUP BY nationality HAVING COUNT(*) >= 2"
+  },
+  {
+    "query_id": "q2",
+    "sql": "SELECT college, COUNT(*) AS player_count, MAX(mvp_awards) AS max_mvp, SUM(mvp_awards) AS total_mvp FROM player WHERE college != '' AND mvp_awards IS NOT NULL GROUP BY college HAVING COUNT(*) >= 2 AND SUM(mvp_awards) >= 1"
+  },
+  {
+    "query_id": "q3",
+    "sql": "SELECT draft_year, COUNT(*) AS player_count, AVG(draft_pick) AS avg_pick, MIN(draft_pick) AS best_pick FROM player WHERE draft_year > 2010 AND draft_pick > 0 GROUP BY draft_year"
+  },
+  {
+    "query_id": "q4",
+    "sql": "SELECT t.team_name, COUNT(*) AS player_count, AVG(p.age) AS avg_age, SUM(CASE WHEN p.olympic_gold_medals IS NOT NULL THEN p.olympic_gold_medals ELSE 0 END) AS total_recorded_olympic_golds FROM player p JOIN team t ON TRIM(p.team) = TRIM(t.team_name) GROUP BY t.team_name HAVING COUNT(*) >= 2"
+  },
+  {
+    "query_id": "q5",
+    "sql": "SELECT position, COUNT(*) AS player_count, AVG(mvp_awards) AS avg_mvp, AVG(nba_championships) AS avg_titles FROM player WHERE position IN ('Frontcourt', 'Backcourt') AND mvp_awards IS NOT NULL AND nba_championships IS NOT NULL GROUP BY position"
+  },
+  {
+    "query_id": "q6",
+    "sql": "SELECT nationality, COUNT(*) AS player_count, MIN(age) AS youngest, MAX(age) AS oldest FROM player WHERE nationality != '' AND age BETWEEN 20 AND 45 GROUP BY nationality HAVING COUNT(*) > 1"
+  },
+  {
+    "query_id": "q7",
+    "sql": "SELECT college, COUNT(*) AS champion_count, AVG(age) AS avg_age, MAX(nba_championships) AS max_titles FROM player WHERE nba_championships >= 1 AND college != '' GROUP BY college HAVING COUNT(*) >= 2"
+  },
+  {
+    "query_id": "q8",
+    "sql": "SELECT c.state_name, COUNT(*) AS team_count, AVG(t.championship) AS avg_titles, MAX(t.championship) AS max_titles, MIN(t.founded_year) AS earliest_founded FROM team t JOIN city c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE c.state_name != '' GROUP BY c.state_name"
+  },
+  {
+    "query_id": "q9",
+    "sql": "SELECT CAST(founded_year / 10 AS INTEGER) * 10 AS founded_decade, COUNT(*) AS team_count, SUM(championship) AS total_titles, AVG(championship) AS avg_titles, MIN(founded_year) AS earliest_founded FROM team WHERE founded_year > 0 GROUP BY founded_decade"
+  },
+  {
+    "query_id": "q10",
+    "sql": "SELECT state_name, COUNT(*) AS city_count, AVG(population) AS avg_population, MAX(population) AS max_population, SUM(area) AS total_area FROM city WHERE state_name != '' AND population IS NOT NULL AND area IS NOT NULL GROUP BY state_name HAVING COUNT(*) >= 2"
+  },
+  {
+    "query_id": "q11",
+    "sql": "SELECT CAST(o.own_year / 10 AS INTEGER) * 10 AS acquisition_decade, COUNT(*) AS owner_count, AVG(t.championship) AS avg_team_titles, MIN(o.own_year) AS earliest_acquisition, MAX(o.own_year) AS latest_acquisition FROM owner o JOIN team t ON TRIM(t.team_name) = TRIM(o.nba_team) WHERE o.own_year > 0 GROUP BY acquisition_decade"
+  },
+  {
+    "query_id": "q12",
+    "sql": "SELECT t.team_name, COUNT(*) AS player_count, AVG(p.age) AS avg_age, SUM(CASE WHEN p.mvp_awards >= 1 THEN 1 ELSE 0 END) AS mvp_winner_count, MAX(t.championship) AS team_titles FROM player p JOIN team t ON TRIM(p.team) = TRIM(t.team_name) GROUP BY t.team_name HAVING COUNT(*) >= 2"
+  },
+  {
+    "query_id": "q13",
+    "sql": "SELECT t.location, COUNT(*) AS player_count, AVG(p.nba_championships) AS avg_player_titles, SUM(CASE WHEN p.fiba_world_cup >= 1 THEN 1 ELSE 0 END) AS fiba_winner_count FROM player p JOIN team t ON TRIM(p.team) = TRIM(t.team_name) WHERE t.location != '' AND p.nba_championships IS NOT NULL AND p.fiba_world_cup IS NOT NULL GROUP BY t.location HAVING SUM(CASE WHEN p.fiba_world_cup >= 1 THEN 1 ELSE 0 END) >= 1"
+  },
+  {
+    "query_id": "q14",
+    "sql": "SELECT c.state_name, COUNT(*) AS player_count, AVG(p.age) AS avg_age, MAX(p.mvp_awards) AS max_mvp FROM player p JOIN team t ON TRIM(p.team) = TRIM(t.team_name) JOIN city c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE c.state_name != '' GROUP BY c.state_name HAVING COUNT(*) >= 3"
+  },
+  {
+    "query_id": "q15",
+    "sql": "SELECT o.name, COUNT(*) AS player_count, AVG(p.age) AS avg_age, SUM(CASE WHEN p.nba_championships >= 1 THEN 1 ELSE 0 END) AS champion_player_count, MAX(t.championship) AS team_titles FROM player p JOIN team t ON TRIM(p.team) = TRIM(t.team_name) JOIN owner o ON TRIM(t.team_name) = TRIM(o.nba_team) GROUP BY o.name HAVING COUNT(*) >= 2"
+  },
+  {
+    "query_id": "q16",
+    "sql": "SELECT p.position, c.state_name, COUNT(*) AS player_count, AVG(p.draft_pick) AS avg_pick, MIN(p.draft_year) AS earliest_draft FROM player p JOIN team t ON TRIM(p.team) = TRIM(t.team_name) JOIN city c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE p.position IN ('Frontcourt', 'Backcourt') AND p.draft_pick > 0 AND c.state_name != '' GROUP BY p.position, c.state_name HAVING COUNT(*) >= 2"
+  },
+  {
+    "query_id": "q17",
+    "sql": "SELECT nationality, COUNT(*) AS player_count, AVG(olympic_gold_medals) AS avg_golds, SUM(olympic_gold_medals) AS total_golds, MAX(olympic_gold_medals) AS max_golds FROM player WHERE olympic_gold_medals >= 1 AND nationality != '' GROUP BY nationality"
+  },
+  {
+    "query_id": "q18",
+    "sql": "SELECT CAST(draft_year / 10 AS INTEGER) * 10 AS draft_decade, COUNT(*) AS player_count, AVG(draft_pick) AS avg_pick, MIN(draft_pick) AS best_pick, MAX(draft_pick) AS latest_pick FROM player WHERE draft_year > 0 AND draft_pick > 0 GROUP BY draft_decade HAVING COUNT(*) >= 2"
+  },
+  {
+    "query_id": "q19",
+    "sql": "SELECT c.state_name, COUNT(DISTINCT t.team_name) AS team_count, COUNT(*) AS player_count, AVG(p.age) AS avg_age, SUM(CASE WHEN p.mvp_awards >= 1 THEN 1 ELSE 0 END) AS mvp_winner_count FROM player p JOIN team t ON TRIM(p.team) = TRIM(t.team_name) JOIN city c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE c.state_name != '' GROUP BY c.state_name HAVING COUNT(*) >= 2"
+  }
+]

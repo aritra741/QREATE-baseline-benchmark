@@ -1,0 +1,82 @@
+[
+  {
+    "query_id": "q0",
+    "sql": "SELECT CAST(draft_year / 10 AS INTEGER) * 10 AS draft_decade, COUNT(*) AS player_count, AVG(draft_pick) AS avg_pick, MIN(draft_pick) AS best_pick, MAX(draft_pick) AS latest_pick FROM player WHERE draft_year > 0 AND draft_pick > 0 GROUP BY draft_decade HAVING COUNT(*) >= 2"
+  },
+  {
+    "query_id": "q1",
+    "sql": "SELECT t.team_name, COUNT(*) AS player_count FROM player p JOIN team t ON TRIM(p.team) = TRIM(t.team_name) JOIN owner o ON TRIM(t.team_name) = TRIM(o.nba_team) WHERE p.college != '' AND p.mvp_awards = 0 AND p.nba_championships >= 1 GROUP BY t.team_name"
+  },
+  {
+    "query_id": "q2",
+    "sql": "SELECT o.name, COUNT(p.id) AS player_count FROM owner o LEFT JOIN team t ON TRIM(t.team_name) = TRIM(o.nba_team) LEFT JOIN player p ON TRIM(p.team) = TRIM(t.team_name) GROUP BY o.name"
+  },
+  {
+    "query_id": "q3",
+    "sql": "SELECT t.location, p.position, COUNT(*) AS player_count FROM player p JOIN team t ON TRIM(p.team) = TRIM(t.team_name) WHERE p.position IN ('Frontcourt', 'Backcourt') AND t.location != '' GROUP BY t.location, p.position"
+  },
+  {
+    "query_id": "q4",
+    "sql": "SELECT t.location, COUNT(*) AS player_count, AVG(p.nba_championships) AS avg_player_titles, SUM(CASE WHEN p.fiba_world_cup >= 1 THEN 1 ELSE 0 END) AS fiba_winner_count FROM player p JOIN team t ON TRIM(p.team) = TRIM(t.team_name) WHERE t.location != '' AND p.nba_championships IS NOT NULL AND p.fiba_world_cup IS NOT NULL GROUP BY t.location HAVING SUM(CASE WHEN p.fiba_world_cup >= 1 THEN 1 ELSE 0 END) >= 1"
+  },
+  {
+    "query_id": "q5",
+    "sql": "SELECT c.state_name, SUM(p.fiba_world_cup) AS total_fiba FROM player p JOIN team t ON TRIM(p.team) = TRIM(t.team_name) JOIN owner o ON TRIM(t.team_name) = TRIM(o.nba_team) JOIN city c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE p.fiba_world_cup >= 1 AND c.population > 500000 AND c.state_name != '' GROUP BY c.state_name"
+  },
+  {
+    "query_id": "q6",
+    "sql": "SELECT p.position, c.state_name, COUNT(*) AS player_count, AVG(p.draft_pick) AS avg_pick, MIN(p.draft_year) AS earliest_draft FROM player p JOIN team t ON TRIM(p.team) = TRIM(t.team_name) JOIN city c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE p.position IN ('Frontcourt', 'Backcourt') AND p.draft_pick > 0 AND c.state_name != '' GROUP BY p.position, c.state_name HAVING COUNT(*) >= 2"
+  },
+  {
+    "query_id": "q7",
+    "sql": "SELECT c.state_name, p.position, COUNT(*) AS player_count FROM player p JOIN team t ON TRIM(p.team) = TRIM(t.team_name) JOIN city c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE p.position IN ('Frontcourt', 'Backcourt') AND c.state_name != '' GROUP BY c.state_name, p.position"
+  },
+  {
+    "query_id": "q8",
+    "sql": "SELECT c.state_name, AVG(p.olympic_gold_medals) AS avg_olympic_golds FROM player p JOIN team t ON TRIM(p.team) = TRIM(t.team_name) JOIN owner o ON TRIM(t.team_name) = TRIM(o.nba_team) JOIN city c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE p.olympic_gold_medals >= 1 AND c.state_name != '' GROUP BY c.state_name"
+  },
+  {
+    "query_id": "q9",
+    "sql": "SELECT c.state_name, COUNT(*) AS player_count FROM player p JOIN team t ON TRIM(p.team) = TRIM(t.team_name) JOIN owner o ON TRIM(t.team_name) = TRIM(o.nba_team) JOIN city c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE c.state_name != '' GROUP BY c.state_name"
+  },
+  {
+    "query_id": "q10",
+    "sql": "SELECT c.state_name, COUNT(*) AS team_count, AVG(t.championship) AS avg_titles, MAX(t.championship) AS max_titles, MIN(t.founded_year) AS earliest_founded FROM team t JOIN city c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE c.state_name != '' GROUP BY c.state_name"
+  },
+  {
+    "query_id": "q11",
+    "sql": "SELECT p.position, COUNT(*) AS player_count FROM player p JOIN team t ON TRIM(p.team) = TRIM(t.team_name) JOIN city c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE c.state_name IN ('California', 'Texas', 'New York', 'Florida') AND p.age BETWEEN 22 AND 34 AND p.position IN ('Frontcourt', 'Backcourt') GROUP BY p.position"
+  },
+  {
+    "query_id": "q12",
+    "sql": "SELECT t.team_name, COUNT(*) AS player_count FROM player p JOIN team t ON TRIM(p.team) = TRIM(t.team_name) JOIN owner o ON TRIM(t.team_name) = TRIM(o.nba_team) WHERE o.own_year >= 2000 AND p.draft_year >= 2000 AND p.draft_pick > 0 AND p.draft_pick <= 30 GROUP BY t.team_name"
+  },
+  {
+    "query_id": "q13",
+    "sql": "SELECT c.state_name, COUNT(*) AS player_count FROM player p JOIN team t ON TRIM(p.team) = TRIM(t.team_name) JOIN city c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE c.state_name != '' GROUP BY c.state_name"
+  },
+  {
+    "query_id": "q14",
+    "sql": "SELECT o.nationality, c.state_name, COUNT(*) AS player_count FROM player p JOIN team t ON TRIM(p.team) = TRIM(t.team_name) JOIN owner o ON TRIM(t.team_name) = TRIM(o.nba_team) JOIN city c ON c.city_name = CASE t.location WHEN 'Brooklyn' THEN 'New York City' WHEN 'Washington' THEN 'Washington, D.C.' ELSE t.location END WHERE o.nationality != '' AND c.state_name != '' GROUP BY o.nationality, c.state_name"
+  },
+  {
+    "query_id": "q15",
+    "sql": "SELECT position, CASE WHEN nba_championships >= 1 THEN 'has_championship' WHEN nba_championships = 0 THEN 'no_championship' ELSE 'unknown' END AS championship_status, COUNT(*) AS player_count FROM player WHERE position IN ('Frontcourt', 'Backcourt') GROUP BY position, championship_status"
+  },
+  {
+    "query_id": "q16",
+    "sql": "SELECT p.team, p.nationality, COUNT(*) AS player_count FROM player p JOIN team t ON TRIM(p.team) = TRIM(t.team_name) WHERE p.nationality != '' GROUP BY p.team, p.nationality"
+  },
+  {
+    "query_id": "q17",
+    "sql": "SELECT position, AVG(age) AS avg_age FROM player WHERE college != '' AND nba_championships = 0 AND position IN ('Frontcourt', 'Backcourt') GROUP BY position"
+  },
+  {
+    "query_id": "q18",
+    "sql": "SELECT t.location, AVG(p.age) AS avg_player_age FROM player p JOIN team t ON TRIM(p.team) = TRIM(t.team_name) GROUP BY t.location"
+  },
+  {
+    "query_id": "q19",
+    "sql": "SELECT o.nationality, COUNT(*) AS team_count FROM team t JOIN owner o ON TRIM(t.team_name) = TRIM(o.nba_team) WHERE o.nationality != '' GROUP BY o.nationality"
+  }
+]
