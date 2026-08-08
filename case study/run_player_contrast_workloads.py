@@ -364,6 +364,19 @@ def run_one(
     record["finished_at_utc"] = datetime.now(timezone.utc).isoformat()
     record["wall_clock_seconds"] = round(time.monotonic() - started, 3)
     record["status"] = "ok" if completed.returncode == 0 else "failed"
+    if completed.returncode != 0:
+        try:
+            log_text = log_path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            log_text = ""
+        tail = "\n".join(log_text.splitlines()[-80:])
+        record["error_tail"] = tail
+        print(
+            f"\n----- {workload_id} failed; last log lines -----\n"
+            f"{tail}\n"
+            f"----- full log: {log_path} -----\n",
+            flush=True,
+        )
 
     manifest = output_dir / "run_manifest.json"
     if manifest.exists():
