@@ -209,6 +209,7 @@ def run_one(
     record["log_path"] = _rel(log_path)
 
     env = os.environ.copy()
+    summary_path = output_dir / "summary.json"
     with log_path.open("w", encoding="utf-8") as log_handle:
         log_handle.write("RUN COMMAND:\n" + " ".join(run_command) + "\n\n")
         log_handle.flush()
@@ -221,7 +222,10 @@ def run_one(
             check=False,
         )
         record["run_exit_code"] = completed.returncode
-        if completed.returncode == 0 and not args.skip_eval:
+        # DocETL returns 1 when any per-query extraction fails, but still writes
+        # summary.json / query_tables. Score whatever completed.
+        has_results = summary_path.is_file() and (output_dir / "query_tables").is_dir()
+        if has_results and not args.skip_eval:
             log_handle.write("\n\nEVAL COMMAND:\n" + " ".join(eval_command) + "\n\n")
             log_handle.flush()
             print(" ".join(eval_command), flush=True)
@@ -249,10 +253,26 @@ def run_one(
                     pass
             status_ok = evaluated.returncode == 0
         else:
-            status_ok = completed.returncode == 0
+            status_ok = completed.returncode == 0 and has_results
+
+    if summary_path.is_file():
+        try:
+            summary = json.loads(summary_path.read_text(encoding="utf-8"))
+            record["docetl_summary"] = {
+                "score": summary.get("score"),
+                "mean_query_error": summary.get("mean_query_error"),
+                "queries_succeeded": summary.get("queries_succeeded"),
+                "queries_failed": summary.get("queries_failed"),
+                "total_tokens": summary.get("total_tokens"),
+            }
+        except json.JSONDecodeError:
+            pass
 
     record["exit_code"] = 0 if status_ok else 1
-    record["status"] = "ok" if status_ok else "failed"
+    if status_ok and completed.returncode != 0:
+        record["status"] = "ok_with_query_failures"
+    else:
+        record["status"] = "ok" if status_ok else "failed"
     record["finished_at_utc"] = datetime.now(timezone.utc).isoformat()
     record["wall_clock_seconds"] = round(time.monotonic() - started, 3)
 
@@ -269,8 +289,17 @@ def run_one(
             f"----- full log: {log_path} -----\n",
             flush=True,
         )
-    elif record.get("evaluation"):
-        print(json.dumps(record["evaluation"], indent=2), flush=True)
+    else:
+        if completed.returncode != 0:
+            print(
+                f"{workload_id}: DocETL exit={completed.returncode} "
+                f"(some queries failed); scoring completed tables anyway.",
+                flush=True,
+            )
+        if record.get("evaluation"):
+            print(json.dumps(record["evaluation"], indent=2), flush=True)
+        elif record.get("docetl_summary"):
+            print(json.dumps(record["docetl_summary"], indent=2), flush=True)
     return record
 
 

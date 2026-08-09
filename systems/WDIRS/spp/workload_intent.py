@@ -3448,9 +3448,33 @@ def _sql_requirement(query_id: str, sql: str) -> QueryRequirement:
                 expressions = list(current.expressions or ())
                 current = expressions[0] if expressions else current.this
                 continue
-            if isinstance(current, exp.Case) and current.this is not None:
-                current = current.this
-                continue
+            if isinstance(current, exp.Case):
+                # Simple CASE: CASE col WHEN ... THEN ...
+                if current.this is not None:
+                    current = current.this
+                    continue
+                # Searched CASE: CASE WHEN cond THEN measure ELSE ...
+                # Prefer a column from THEN/ELSE (the aggregated measure);
+                # otherwise fall back to a column from the WHEN predicates
+                # (e.g. SUM(CASE WHEN mvp_awards >= 1 THEN 1 ELSE 0 END)).
+                then_nodes: List["exp.Expression"] = []
+                for if_node in current.args.get("ifs") or ():
+                    true_expr = if_node.args.get("true")
+                    if true_expr is not None:
+                        then_nodes.append(true_expr)
+                default = current.args.get("default")
+                if default is not None:
+                    then_nodes.append(default)
+                for then in then_nodes:
+                    if isinstance(then, exp.Column):
+                        return then
+                    nested = next(then.find_all(exp.Column), None)
+                    if nested is not None:
+                        return nested
+                nested = next(current.find_all(exp.Column), None)
+                if nested is not None:
+                    return nested
+                return None
             if isinstance(
                 current,
                 (

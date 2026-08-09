@@ -507,6 +507,60 @@ def test_sql_contract_preserves_count_distinct_and_trim_case_joins():
     )
 
 
+def test_sql_contract_unwraps_sum_case_when_aggregates():
+    """Searched CASE inside SUM must yield an attribute (multiagg-style)."""
+
+    intent = analyze_sql_contract_workload(
+        [
+            {
+                "query_id": "measure_then",
+                "sql_query": (
+                    "SELECT t.team_name, "
+                    "SUM(CASE WHEN p.olympic_gold_medals IS NOT NULL "
+                    "THEN p.olympic_gold_medals ELSE 0 END) AS total_golds "
+                    "FROM player p JOIN team t ON TRIM(p.team)=TRIM(t.team_name) "
+                    "GROUP BY t.team_name"
+                ),
+            },
+            {
+                "query_id": "indicator",
+                "sql_query": (
+                    "SELECT t.team_name, "
+                    "SUM(CASE WHEN p.mvp_awards >= 1 THEN 1 ELSE 0 END) "
+                    "AS mvp_winner_count "
+                    "FROM player p JOIN team t ON TRIM(p.team)=TRIM(t.team_name) "
+                    "GROUP BY t.team_name "
+                    "HAVING SUM(CASE WHEN p.mvp_awards >= 1 THEN 1 ELSE 0 END) >= 1"
+                ),
+            },
+        ]
+    )
+
+    measure = intent.requirements[0]
+    assert measure.plan is not None
+    assert measure.plan.aggregates == (
+        AggregateSpec(
+            "sum",
+            AttributeRef("player", "olympic_gold_medals", "integer"),
+            "total_golds",
+        ),
+    )
+
+    indicator = intent.requirements[1]
+    assert indicator.plan is not None
+    assert indicator.plan.aggregates == (
+        AggregateSpec(
+            "sum",
+            AttributeRef("player", "mvp_awards", "integer"),
+            "mvp_winner_count",
+        ),
+    )
+    assert indicator.plan.having
+    assert indicator.plan.having[0].aggregate.attribute == AttributeRef(
+        "player", "mvp_awards", "integer"
+    )
+
+
 def test_qwen_null_intent_fields_are_treated_as_empty():
     requirements = _parse_llm_payload(
         '[{"query_id":"q0","entities":["player"],"attributes":["name"],'
