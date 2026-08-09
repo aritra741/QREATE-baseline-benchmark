@@ -1066,6 +1066,45 @@ def test_output_equivalence_does_not_discard_unique_query_coverage():
     assert eliminated == {}
 
 
+def test_output_equivalence_preserves_distinct_route_eligibility():
+    signature = canonical_output_signature({"q0": []})
+    eligible = QualityEstimate(
+        "q0",
+        "semantic",
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1,
+        components={"contract_route_eligible": 1.0},
+    )
+    ineligible = QualityEstimate(
+        "q0",
+        "raw",
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1,
+        components={"contract_route_eligible": 0.0},
+    )
+    pilots = {
+        "raw": PilotResult(
+            "raw", {"q0": ineligible}, signature, 10, 0.1
+        ),
+        "semantic": PilotResult(
+            "semantic", {"q0": eligible}, signature, 20, 0.1
+        ),
+    }
+
+    retained, eliminated = collapse_output_equivalent(
+        ["raw", "semantic"], pilots
+    )
+
+    assert retained == ["raw", "semantic"]
+    assert eliminated == {}
+
+
 def test_progressive_dominance_preserves_unique_query_coverage():
     q0 = _player_requirement()
     q1 = QueryRequirement(
@@ -1164,6 +1203,51 @@ def test_portfolio_selection_obeys_budget_and_routes_by_lcb():
     )
     assert portfolio.query_to_config["q0"] == high.config_id
     assert portfolio.construction_tokens <= 25
+
+
+def test_portfolio_never_routes_to_contract_ineligible_candidate():
+    requirement = _player_requirement()
+    raw = _config("raw", requirement)
+    semantic = _config("semantic", requirement)
+    estimates = {
+        (
+            "q0",
+            raw.config_id,
+        ): QualityEstimate(
+            "q0",
+            raw.config_id,
+            1.0,
+            1.0,
+            0.0,
+            1.0,
+            1,
+            components={"contract_route_eligible": 0.0},
+        ),
+        (
+            "q0",
+            semantic.config_id,
+        ): QualityEstimate(
+            "q0",
+            semantic.config_id,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            1,
+            components={"contract_route_eligible": 1.0},
+        ),
+    }
+
+    portfolio = select_budgeted_portfolio(
+        [raw, semantic],
+        [requirement],
+        estimates,
+        {raw.config_id: 10, semantic.config_id: 20},
+        token_budget=30,
+        quality_floor=0.0,
+    )
+
+    assert portfolio.query_to_config["q0"] == semantic.config_id
 
 
 def test_portfolio_selects_multiple_shared_databases_only_for_coverage_gain():

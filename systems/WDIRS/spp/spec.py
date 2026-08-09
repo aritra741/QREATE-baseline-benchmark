@@ -446,6 +446,12 @@ class QualityEstimate:
             2.0 * self.precision_proxy * self.recall_proxy / denominator
         ) * self.validity
 
+    @property
+    def route_eligible(self) -> bool:
+        """Whether a hard workload contract permits serving this query."""
+
+        return float(self.components.get("contract_route_eligible", 1.0)) > 0.0
+
     def lower_confidence_bound(self, beta: float = 1.0) -> float:
         return max(0.0, self.f_proxy - beta * self.uncertainty)
 
@@ -500,6 +506,9 @@ def conservative_portfolio_objective(
             estimates[(requirement.query_id, config_id)].lower_confidence_bound(beta)
             for config_id in selected
             if (requirement.query_id, config_id) in estimates
+            and estimates[
+                (requirement.query_id, config_id)
+            ].route_eligible
         ]
         total += float(weights.get(requirement.query_id, 1.0)) * (
             max(candidates) if candidates else 0.0
@@ -524,7 +533,7 @@ def route_by_conservative_quality(
             if not config.schema.covers(requirement):
                 continue
             estimate = estimates.get((requirement.query_id, config.config_id))
-            if estimate is None:
+            if estimate is None or not estimate.route_eligible:
                 continue
             ranked.append(
                 (estimate.lower_confidence_bound(beta), config.config_id)

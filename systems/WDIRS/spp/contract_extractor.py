@@ -489,6 +489,7 @@ class ContractExtractor:
         )
         self._budget_exhausted = False
         self._pending_target: Optional[str] = None
+        self._mapping_escrow_reservation_id: Optional[str] = None
         self._document_text = {
             document.document_id: document.text for document in self.documents
         }
@@ -503,6 +504,24 @@ class ContractExtractor:
                 document.text,
                 metadata=dict(document.metadata),
             )
+
+    def set_mapping_escrow(self, reservation_id: Optional[str]) -> None:
+        """Hold extraction budget until semantic mappings are ready to run."""
+
+        self._mapping_escrow_reservation_id = reservation_id
+
+    def release_mapping_escrow(self) -> None:
+        reservation_id = self._mapping_escrow_reservation_id
+        if not reservation_id:
+            return
+        ledger = getattr(self.llm_client, "ledger", None)
+        if ledger is None:
+            raise RuntimeError("mapping escrow requires a token ledger")
+        ledger.cancel(
+            reservation_id,
+            reason="released for required workload mappings",
+        )
+        self._mapping_escrow_reservation_id = None
 
     def documents_for_entity(
         self, entity: EntityContract | str
@@ -2573,8 +2592,8 @@ class ContractExtractor:
         """Build explicit reversible mappings after raw extraction."""
         return (
             *self._unit_mappings(contract, records),
-            *self._join_key_mappings(contract, records),
             *self._taxonomy_mappings(contract, records),
+            *self._join_key_mappings(contract, records),
         )
 
     @staticmethod

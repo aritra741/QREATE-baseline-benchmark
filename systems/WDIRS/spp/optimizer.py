@@ -103,7 +103,9 @@ def collapse_output_equivalent(
     pilots: Mapping[str, PilotResult],
 ) -> Tuple[List[str], Dict[str, str]]:
     """Keep the cheapest representative for each output and coverage signature."""
-    by_signature: Dict[Tuple[str, Tuple[str, ...]], List[str]] = {}
+    by_signature: Dict[
+        Tuple[str, Tuple[str, ...], Tuple[str, ...]], List[str]
+    ] = {}
     for config_id in config_ids:
         pilot = pilots.get(config_id)
         if pilot is None:
@@ -111,6 +113,13 @@ def collapse_output_equivalent(
         signature = (
             pilot.output_signature,
             tuple(sorted(pilot.estimates)),
+            tuple(
+                sorted(
+                    query_id
+                    for query_id, estimate in pilot.estimates.items()
+                    if estimate.route_eligible
+                )
+            ),
         )
         by_signature.setdefault(signature, []).append(config_id)
     retained: List[str] = []
@@ -147,6 +156,14 @@ def _confidence_dominated(
         left = candidate.estimates.get(requirement.query_id)
         right = challenger.estimates.get(requirement.query_id)
         if left is None or right is None:
+            continue
+        if left.route_eligible and not right.route_eligible:
+            return False
+        if right.route_eligible and not left.route_eligible:
+            compared = True
+            strict = True
+            continue
+        if not left.route_eligible and not right.route_eligible:
             continue
         compared = True
         if right.lower_confidence_bound(beta) < left.upper_confidence_bound(beta):
@@ -344,7 +361,11 @@ def select_budgeted_portfolio(
                     estimate = estimates.get(
                         (requirement.query_id, config.config_id)
                     )
-                    if not config.schema.covers(requirement) or estimate is None:
+                    if (
+                        not config.schema.covers(requirement)
+                        or estimate is None
+                        or not estimate.route_eligible
+                    ):
                         continue
                     lcb = estimate.lower_confidence_bound(beta)
                     if lcb < quality_floor:
@@ -453,6 +474,9 @@ def select_budgeted_portfolio(
                 for query_id in uncovered
                 if config.schema.covers(req_by_id[query_id])
                 and (query_id, config.config_id) in estimates
+                and estimates[
+                    (query_id, config.config_id)
+                ].route_eligible
                 and estimates[
                     (query_id, config.config_id)
                 ].lower_confidence_bound(beta)

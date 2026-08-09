@@ -456,6 +456,42 @@ def test_casefold_taxonomy_runs_after_an_llm_budget_boundary(tmp_path):
     assert len(mappings) == 1
 
 
+def test_mapping_escrow_is_released_for_taxonomy(tmp_path):
+    ledger = GlobalBudgetLedger(20_000)
+    reservation_id = ledger.reserve(
+        stage="contract_extraction",
+        operation="required_taxonomy_escrow",
+        input_tokens=0,
+        max_output_tokens=16_384,
+    )
+
+    class EscrowClient:
+        model = "fixture"
+
+        def __init__(self):
+            self.ledger = ledger
+
+    document = type(
+        "Document",
+        (),
+        {
+            "document_id": "item/1.txt",
+            "text": "An item.",
+            "metadata": {},
+        },
+    )()
+    with EvidenceStore(tmp_path / "escrow.sqlite") as evidence:
+        extractor = ContractExtractor(
+            (document,), EscrowClient(), evidence
+        )
+        extractor.set_mapping_escrow(reservation_id)
+        assert ledger.available == 3_616
+        extractor.release_mapping_escrow()
+
+    assert ledger.available == 20_000
+    assert ledger.charges()[0].status == "cancelled"
+
+
 def test_filtered_grouping_uses_sql_category_targets_for_taxonomy(tmp_path):
     class PositionTaxonomyClient:
         model = "fixture"
@@ -2972,6 +3008,7 @@ def test_required_predicate_vocabulary_forces_semantic_candidate():
     assert [
         row.get("position") for row in semantic_tables["player"]
     ] == ["Backcourt", "Frontcourt", None]
+    assert backend._semantic_changes_are_supported(semantic_tables)
 
     def assessment(config: SynthesisConfig) -> QueryAssessment:
         return QueryAssessment(
@@ -3001,11 +3038,13 @@ def test_required_predicate_vocabulary_forces_semantic_candidate():
 
     assert raw_estimate.validity == 0.0
     assert raw_estimate.components["contract_vocabulary_alignment"] == 0.0
+    assert not raw_estimate.route_eligible
     assert semantic_estimate.validity == 1.0
     assert (
         semantic_estimate.components["contract_vocabulary_alignment"]
         == 1.0
     )
+    assert semantic_estimate.route_eligible
     retained = backend._apply_candidate_retention_contract(
         semantic,
         semantic_tables,

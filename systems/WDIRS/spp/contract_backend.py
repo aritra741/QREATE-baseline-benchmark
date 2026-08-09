@@ -87,7 +87,7 @@ from spp.workload_contract import (
 )
 
 
-BACKEND_VERSION = 21
+BACKEND_VERSION = 22
 HYBRID_BULK_VERSION = 5
 
 logger = logging.getLogger(__name__)
@@ -4082,21 +4082,63 @@ class ContractBackend:
         if callable(derive_mappings) and hasattr(
             current, "derivation_mappings"
         ):
+            existing_mappings = tuple(
+                _member(current, "derivation_mappings", default=()) or ()
+            )
+            refreshed_mappings = tuple(
+                derive_mappings(
+                    self.contract,
+                    tuple(
+                        _member(
+                            current,
+                            "attribute_records",
+                            default=(),
+                        )
+                        or ()
+                    ),
+                )
+            )
+
+            def mapping_key(mapping: object) -> tuple:
+                return (
+                    str(_member(mapping, "entity", default="")),
+                    str(_member(mapping, "attribute", default="")),
+                    json.dumps(
+                        _jsonable(
+                            _member(
+                                mapping, "source_value", default=None
+                            )
+                        ),
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    ),
+                    json.dumps(
+                        _jsonable(
+                            _member(
+                                mapping, "target_value", default=None
+                            )
+                        ),
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    ),
+                    str(
+                        _member(
+                            mapping, "mapping_kind", default=""
+                        )
+                    ),
+                )
+
+            merged_mappings = []
+            seen_mappings = set()
+            for mapping in (*existing_mappings, *refreshed_mappings):
+                key = mapping_key(mapping)
+                if key in seen_mappings:
+                    continue
+                seen_mappings.add(key)
+                merged_mappings.append(mapping)
             current = replace(
                 current,
-                derivation_mappings=tuple(
-                    derive_mappings(
-                        self.contract,
-                        tuple(
-                            _member(
-                                current,
-                                "attribute_records",
-                                default=(),
-                            )
-                            or ()
-                        ),
-                    )
-                ),
+                derivation_mappings=tuple(merged_mappings),
             )
         self._repair_summary = {
             "admitted_actions": admission.admitted_attempts,
@@ -4135,23 +4177,69 @@ class ContractBackend:
             )
         else:
             before = ledger.actual_spent
-            bulk_shared = (
-                self._bulk_extract_shared(ledger)
-                if self.use_bulk_extraction
+            constrained_fields = len(
+                self._closed_workload_vocabularies()
+            )
+            taxonomy_escrow_tokens = min(
+                16_384 * constrained_fields,
+                ledger.total_tokens // 20,
+            )
+            taxonomy_escrow = (
+                ledger.reserve(
+                    stage="contract_extraction",
+                    operation="required_taxonomy_escrow",
+                    input_tokens=0,
+                    max_output_tokens=taxonomy_escrow_tokens,
+                )
+                if taxonomy_escrow_tokens > 0
                 else None
             )
-            extractor = self._extractor(evidence_store, ledger)
-            result = extractor.extract(self.contract)
-            result, validation_issues = self._adaptive_repair(
-                extractor,
-                result,
-                ledger,
-            )
-            result = self._add_bulk_derivation_mappings(
-                extractor,
-                result,
-                bulk_shared,
-            )
+            extractor = None
+            try:
+                bulk_shared = (
+                    self._bulk_extract_shared(ledger)
+                    if self.use_bulk_extraction
+                    else None
+                )
+                extractor = self._extractor(evidence_store, ledger)
+                set_mapping_escrow = getattr(
+                    extractor, "set_mapping_escrow", None
+                )
+                if callable(set_mapping_escrow):
+                    set_mapping_escrow(taxonomy_escrow)
+                elif taxonomy_escrow is not None:
+                    ledger.cancel(
+                        taxonomy_escrow,
+                        reason="extractor has no mapping escrow support",
+                    )
+                    taxonomy_escrow = None
+                result = extractor.extract(self.contract)
+                result, validation_issues = self._adaptive_repair(
+                    extractor,
+                    result,
+                    ledger,
+                )
+                release_mapping_escrow = getattr(
+                    extractor, "release_mapping_escrow", None
+                )
+                if callable(release_mapping_escrow):
+                    release_mapping_escrow()
+                    taxonomy_escrow = None
+                result = self._add_bulk_derivation_mappings(
+                    extractor,
+                    result,
+                    bulk_shared,
+                )
+            finally:
+                if taxonomy_escrow is not None:
+                    try:
+                        ledger.cancel(
+                            taxonomy_escrow,
+                            reason="mapping escrow cleanup",
+                        )
+                    except (KeyError, ValueError):
+                        pass
+            assert extractor is not None
             self._persist_contract_audit(
                 result, validation_issues, evidence_store
             )
@@ -4589,6 +4677,9 @@ class ContractBackend:
                 else ()
             )
         }
+        closed_vocabulary_fields = set(
+            self._closed_workload_vocabularies()
+        )
         changed = False
         for relation, rows in tables.items():
             for row in rows:
@@ -4624,9 +4715,18 @@ class ContractBackend:
                         )
                         == value
                     )
+                    workload_closed_null = (
+                        value is None
+                        and (
+                            _symbol_key(relation),
+                            _symbol_key(column),
+                        )
+                        in closed_vocabulary_fields
+                    )
                     if (
                         not mapped
                         and not deterministic
+                        and not workload_closed_null
                         and (relation, identity, column) not in supported
                     ):
                         return False
@@ -4958,6 +5058,7 @@ class ContractBackend:
                 components["contract_vocabulary_alignment"] = float(
                     aligned
                 )
+                components["contract_route_eligible"] = float(aligned)
             updated_estimate = (
                 replace(
                     estimate,
