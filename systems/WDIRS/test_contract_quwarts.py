@@ -763,7 +763,7 @@ def test_entity_derivation_changes_semantic_join_key_but_not_raw_table():
     assert semantic["team"][0]["team_name"] == "Los Angeles Lakers"
 
 
-def test_partial_llm_taxonomy_is_rejected(tmp_path):
+def test_partial_llm_taxonomy_preserves_supported_mappings(tmp_path):
     class PartialTaxonomyClient:
         model = "fixture"
 
@@ -818,7 +818,11 @@ def test_partial_llm_taxonomy_is_rejected(tmp_path):
             evidence,
             max_workers=1,
         )
-        assert extractor._taxonomy_mappings(contract, records) == ()
+        mappings = extractor._taxonomy_mappings(contract, records)
+    assert {
+        (mapping.source_value, mapping.target_value)
+        for mapping in mappings
+    } == {("A", "Broad")}
 
 
 def test_partial_llm_taxonomy_is_completed_by_targeted_retry(tmp_path):
@@ -2882,6 +2886,139 @@ def test_optional_query_mapping_does_not_invalidate_raw_candidate():
     assert raw_result.components["contract_mapping_available"] == 1.0
     assert semantic_result.validity == 1.0
     assert semantic_result.components["contract_mapping_alignment"] == 1.0
+
+
+def test_required_predicate_vocabulary_forces_semantic_candidate():
+    position = AttributeRef("player", "position", "text")
+    requirement = QueryRequirement(
+        query_id="q0",
+        text=(
+            "SELECT position, COUNT(*) FROM player "
+            "WHERE position IN ('Frontcourt', 'Backcourt') "
+            "GROUP BY position"
+        ),
+        entities=("player",),
+        attributes=("position",),
+        attribute_bindings=(("player", "position"),),
+        plan=QueryPlan(
+            projections=(position,),
+            group_by=(position,),
+            aggregates=(AggregateSpec("count"),),
+            predicate=PredicateSpec(
+                kind="or",
+                children=(
+                    PredicateSpec(
+                        attribute=position,
+                        operator="=",
+                        value="Frontcourt",
+                    ),
+                    PredicateSpec(
+                        attribute=position,
+                        operator="=",
+                        value="Backcourt",
+                    ),
+                ),
+            ),
+        ),
+    )
+    intent = _intent(requirement)
+    backend = ContractBackend(
+        (ContractDocument("player/1.txt", "A point guard."),),
+        object(),
+    )
+    configs = backend.generate_configs(intent)
+    raw = next(
+        config
+        for config in configs
+        if config.population.norm_strategy == "raw"
+    )
+    semantic = next(
+        config
+        for config in configs
+        if config.population.norm_strategy == "contract_mapping"
+    )
+    backend.intent = intent
+    backend._shared = SharedExtraction(
+        raw_tables={
+            "player": (
+                {"row_id": "1", "position": "point guard"},
+                {"row_id": "2", "position": "center"},
+                {"row_id": "3", "position": "player"},
+            )
+        },
+        evidence=(),
+        metadata={
+            "derivation_mappings": (
+                {
+                    "entity": "player",
+                    "attribute": "position",
+                    "source_value": "point guard",
+                    "target_value": "Backcourt",
+                    "mapping_kind": "taxonomy",
+                },
+                {
+                    "entity": "player",
+                    "attribute": "position",
+                    "source_value": "center",
+                    "target_value": "Frontcourt",
+                    "mapping_kind": "taxonomy",
+                },
+            )
+        },
+    )
+    semantic_tables = backend._derived_semantic_tables(
+        backend._shared.raw_tables
+    )
+    assert [
+        row.get("position") for row in semantic_tables["player"]
+    ] == ["Backcourt", "Frontcourt", None]
+
+    def assessment(config: SynthesisConfig) -> QueryAssessment:
+        return QueryAssessment(
+            QualityEstimate(
+                "q0",
+                config.config_id,
+                1.0,
+                1.0,
+                1.0,
+                0.0,
+                3,
+            ),
+            None,
+            None,
+        )
+
+    raw_estimate = backend._apply_mapping_contract(
+        raw,
+        {"q0": assessment(raw)},
+        backend._shared.raw_tables,
+    )["q0"].estimate
+    semantic_estimate = backend._apply_mapping_contract(
+        semantic,
+        {"q0": assessment(semantic)},
+        semantic_tables,
+    )["q0"].estimate
+
+    assert raw_estimate.validity == 0.0
+    assert raw_estimate.components["contract_vocabulary_alignment"] == 0.0
+    assert semantic_estimate.validity == 1.0
+    assert (
+        semantic_estimate.components["contract_vocabulary_alignment"]
+        == 1.0
+    )
+    retained = backend._apply_candidate_retention_contract(
+        semantic,
+        semantic_tables,
+        backend._shared.raw_tables,
+        {
+            "q0": QueryAssessment(
+                semantic_estimate,
+                None,
+                None,
+            )
+        },
+    )["q0"].estimate
+    assert retained.validity == 1.0
 
 
 def test_semantic_overlay_cannot_win_by_dropping_required_cells():

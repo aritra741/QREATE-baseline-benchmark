@@ -2072,8 +2072,10 @@ class ContractExtractor:
                 "JSON array whose objects have exactly source_value and "
                 "target_value. source_value must be copied exactly from "
                 "observed_values. Every observed_value should appear at most "
-                "once as source_value. Include every observed value when a "
-                "coarser taxonomy is proposed; a partial taxonomy is invalid. "
+                "once as source_value. Map every observed value that can be "
+                "classified confidently. Use null for clear non-values; "
+                "omitted values will be treated as unknown rather than "
+                "invalidating otherwise supported mappings. "
                 "target_value must be a canonical string, or null when the "
                 "source label is not actually a value of the requested "
                 "attribute. target_value must be justified solely "
@@ -2184,37 +2186,39 @@ class ContractExtractor:
                         min(2_048, 96 * len(missing)),
                     ),
                 )
-                if repair_rows is None:
-                    break
-                for row in repair_rows:
-                    if set(row) != {"source_value", "target_value"}:
-                        continue
-                    source = row.get("source_value")
-                    target = row.get("target_value")
-                    if (
-                        not isinstance(source, str)
-                        or source not in missing
-                        or (
-                            target is not None
-                            and (
-                                not isinstance(target, str)
-                                or not target.strip()
-                                or (
-                                    target_values
-                                    and target.strip() not in target_values
+                if repair_rows is not None:
+                    for row in repair_rows:
+                        if set(row) != {"source_value", "target_value"}:
+                            continue
+                        source = row.get("source_value")
+                        target = row.get("target_value")
+                        if (
+                            not isinstance(source, str)
+                            or source not in missing
+                            or (
+                                target is not None
+                                and (
+                                    not isinstance(target, str)
+                                    or not target.strip()
+                                    or (
+                                        target_values
+                                        and target.strip()
+                                        not in target_values
+                                    )
                                 )
                             )
+                        ):
+                            continue
+                        mapping[source] = (
+                            target.strip()
+                            if isinstance(target, str)
+                            else None
                         )
-                    ):
-                        continue
-                    mapping[source] = (
-                        target.strip()
-                        if isinstance(target, str)
-                        else None
-                    )
-            # Mixed raw/canonical values are worse than no taxonomy because
-            # they create incompatible grouping levels.
-            if set(mapping) != set(values):
+            # Keep supported partial mappings. The semantic materializer closes
+            # workload-constrained vocabularies and turns unmapped surfaces into
+            # NULL, so they cannot create mixed grouping levels or accidentally
+            # satisfy a workload predicate.
+            if not mapping:
                 continue
             if all(
                 isinstance(target, str)

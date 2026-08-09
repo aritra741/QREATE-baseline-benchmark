@@ -87,7 +87,7 @@ from spp.workload_contract import (
 )
 
 
-BACKEND_VERSION = 20
+BACKEND_VERSION = 21
 HYBRID_BULK_VERSION = 5
 
 logger = logging.getLogger(__name__)
@@ -4228,6 +4228,52 @@ class ContractBackend:
             return int(number)
         return number if semantic_type == "real" else value
 
+    def _constraint_vocabularies_by_query(
+        self,
+    ) -> Dict[str, Dict[Tuple[str, str], Tuple[str, ...]]]:
+        """Return workload-required text vocabularies keyed by query and field."""
+
+        result: Dict[str, Dict[Tuple[str, str], Tuple[str, ...]]] = {}
+        if self.contract is None:
+            return result
+        for attribute in self.contract.attributes:
+            if set(attribute.semantic_types) != {"text"}:
+                continue
+            field = (
+                _symbol_key(attribute.entity),
+                _symbol_key(attribute.name),
+            )
+            for query_id, values in attribute.value_constraints:
+                vocabulary = tuple(
+                    sorted(
+                        {
+                            str(value).strip()
+                            for value in values
+                            if str(value).strip()
+                        }
+                    )
+                )
+                if vocabulary:
+                    result.setdefault(query_id, {})[field] = vocabulary
+        return result
+
+    def _closed_workload_vocabularies(
+        self,
+    ) -> Dict[Tuple[str, str], Tuple[str, ...]]:
+        """Return fields whose constrained queries agree on one vocabulary."""
+
+        by_field: Dict[
+            Tuple[str, str], set[Tuple[str, ...]]
+        ] = {}
+        for fields in self._constraint_vocabularies_by_query().values():
+            for field, vocabulary in fields.items():
+                by_field.setdefault(field, set()).add(vocabulary)
+        return {
+            field: next(iter(vocabularies))
+            for field, vocabularies in by_field.items()
+            if len(vocabularies) == 1
+        }
+
     def _derived_semantic_tables(
         self,
         raw_tables: Mapping[str, Sequence[Mapping[str, object]]],
@@ -4262,6 +4308,7 @@ class ContractBackend:
         }
         mappings: Dict[Tuple[str, str, str], object] = {}
         casefold_mappings: Dict[Tuple[str, str, str], object] = {}
+        closed_vocabularies = self._closed_workload_vocabularies()
         for mapping in (
             self._shared.metadata.get("derivation_mappings", ())
             if isinstance(self._shared.metadata, Mapping)
@@ -4332,6 +4379,28 @@ class ContractBackend:
                         and casefold_key in casefold_mappings
                     ):
                         output[column] = casefold_mappings[casefold_key]
+                    elif (
+                        isinstance(coerced, str)
+                        and (
+                            _symbol_key(name),
+                            _symbol_key(column),
+                        )
+                        in closed_vocabularies
+                    ):
+                        canonical = {
+                            target.casefold(): target
+                            for target in closed_vocabularies[
+                                (
+                                    _symbol_key(name),
+                                    _symbol_key(column),
+                                )
+                            ]
+                        }
+                        # This semantic view is closed over the workload's
+                        # explicit predicate vocabulary. Unknown raw surfaces
+                        # remain available in the immutable raw candidate but
+                        # cannot leak into constrained serving queries.
+                        output[column] = canonical.get(coerced.casefold())
                     elif (
                         (name, identity, column) in supported
                         or coerced != value
@@ -4766,8 +4835,11 @@ class ContractBackend:
         self,
         config: SynthesisConfig,
         assessments: Mapping[str, QueryAssessment],
+        tables: Optional[
+            Mapping[str, Sequence[Mapping[str, object]]]
+        ] = None,
     ) -> Dict[str, QueryAssessment]:
-        """Treat an explicitly induced query mapping as a hard plan contract."""
+        """Enforce workload vocabularies while retaining raw provenance."""
         if self._shared is None or self.intent is None:
             return dict(assessments)
         mapped_fields = {
@@ -4784,7 +4856,8 @@ class ContractBackend:
                 _member(mapping, "mapping_kind", default="")
             ) == "taxonomy"
         }
-        if not mapped_fields:
+        constraints_by_query = self._constraint_vocabularies_by_query()
+        if not mapped_fields and not constraints_by_query:
             return dict(assessments)
         requirement_by_id = {
             requirement.query_id: requirement
@@ -4794,6 +4867,30 @@ class ContractBackend:
             self._candidate_kind.get(config.config_id)
             == "evidence_semantic"
         )
+
+        def field_values(
+            source_tables: Mapping[
+                str, Sequence[Mapping[str, object]]
+            ],
+            field: Tuple[str, str],
+        ) -> Tuple[str, ...]:
+            entity, attribute = field
+            result = []
+            for relation, rows in source_tables.items():
+                if _symbol_key(relation) != entity:
+                    continue
+                for row in rows:
+                    for column, value in row.items():
+                        if (
+                            _symbol_key(column) == attribute
+                            and value not in (None, "")
+                        ):
+                            result.append(str(value).strip())
+                            break
+            return tuple(result)
+
+        candidate_tables = tables or {}
+        raw_tables = self._shared.raw_tables
         adjusted: Dict[str, QueryAssessment] = {}
         for query_id, assessment in assessments.items():
             requirement = requirement_by_id.get(query_id)
@@ -4807,19 +4904,69 @@ class ContractBackend:
                 (reference.entity, reference.attribute) in mapped_fields
                 for reference in references
             )
-            if not relevant:
+            constrained = constraints_by_query.get(query_id, {})
+            if not relevant and not constrained:
                 adjusted[query_id] = assessment
                 continue
             estimate = assessment.estimate
             components = dict(estimate.components)
             components["contract_mapping_alignment"] = float(semantic)
-            components["contract_mapping_available"] = 1.0
-            # A learned taxonomy is an optional derived view, not proof that
-            # the immutable raw surface is invalid. Let evidence coverage and
-            # output checks rank both candidates without hard-disqualifying raw.
-            updated_estimate = replace(
-                estimate,
-                components=components,
+            components["contract_mapping_available"] = float(
+                bool(mapped_fields)
+            )
+            aligned = True
+            coverages = []
+            for field, vocabulary in constrained.items():
+                targets = {
+                    value.casefold(): value for value in vocabulary
+                }
+                raw_values = field_values(raw_tables, field)
+                candidate_values = field_values(candidate_tables, field)
+                requires_mapping = any(
+                    value.casefold() not in targets
+                    for value in raw_values
+                )
+                canonical_values = [
+                    value
+                    for value in candidate_values
+                    if value.casefold() in targets
+                ]
+                purity = all(
+                    value.casefold() in targets
+                    for value in candidate_values
+                )
+                coverage = (
+                    len({value.casefold() for value in canonical_values})
+                    / len(targets)
+                    if targets
+                    else 1.0
+                )
+                coverages.append(coverage)
+                field_aligned = (
+                    purity
+                    and (
+                        not requires_mapping
+                        or (semantic and bool(canonical_values))
+                    )
+                )
+                aligned = aligned and field_aligned
+            if constrained:
+                components["contract_vocabulary_required"] = 1.0
+                components["contract_vocabulary_coverage"] = (
+                    min(coverages) if coverages else 0.0
+                )
+                components["contract_vocabulary_alignment"] = float(
+                    aligned
+                )
+            updated_estimate = (
+                replace(
+                    estimate,
+                    validity=0.0,
+                    uncertainty=1.0,
+                    components=components,
+                )
+                if constrained and not aligned
+                else replace(estimate, components=components)
             )
             adjusted[query_id] = replace(
                 assessment, estimate=updated_estimate
@@ -4879,6 +5026,7 @@ class ContractBackend:
             requirement.query_id: requirement
             for requirement in self.intent.requirements
         }
+        constraints_by_query = self._constraint_vocabularies_by_query()
         adjusted: Dict[str, QueryAssessment] = {}
         for query_id, assessment in assessments.items():
             requirement = requirements.get(query_id)
@@ -4893,6 +5041,9 @@ class ContractBackend:
             relation_specs = {
                 relation.name: relation for relation in config.schema.relations
             }
+            constrained_fields = set(
+                constraints_by_query.get(query_id, {})
+            )
             for reference in plan.attributes():
                 location = self._candidate_location(reference, config)
                 if location is None:
@@ -4901,7 +5052,13 @@ class ContractBackend:
                 locations[reference] = location
                 raw_values = self._nonnull_values(raw_tables, location)
                 candidate_values = self._nonnull_values(tables, location)
-                if raw_values:
+                field = (
+                    _symbol_key(location[0]),
+                    _symbol_key(location[1]),
+                )
+                if raw_values and not (
+                    semantic and field in constrained_fields
+                ):
                     cell_ratios.append(
                         min(1.0, len(candidate_values) / len(raw_values))
                     )
@@ -5155,7 +5312,7 @@ class ContractBackend:
                 config, tables, assessments, directory
             )
             assessments = self._apply_mapping_contract(
-                config, assessments
+                config, assessments, tables
             )
             raw_baseline = self._reshape(
                 self._materializable_raw_tables(
@@ -5241,7 +5398,7 @@ class ContractBackend:
                 config, tables, assessments, directory
             )
         assessments = self._apply_mapping_contract(
-            config, assessments
+            config, assessments, tables
         )
         raw_baseline = self._reshape(
             self._materializable_raw_tables(
