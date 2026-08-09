@@ -434,7 +434,7 @@ def analyze(
     if set(query_ids) != set(references):
         raise ValueError("reference and sealed workload query IDs differ")
 
-    intent_payload = {"version": 1, **synthesis["workload_intent"]}
+    intent_payload = {"version": 2, **synthesis["workload_intent"]}
     intent = workload_intent_from_payload(intent_payload)
     requirements = {
         requirement.query_id: requirement

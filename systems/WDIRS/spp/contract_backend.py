@@ -77,6 +77,8 @@ from spp.spec import (
     RelationSpec,
     SchemaDesign,
     SynthesisConfig,
+    expression_attributes,
+    map_expression_references,
 )
 from spp.workload_intent import WorkloadIntent
 from spp.workload_contract import (
@@ -2050,15 +2052,16 @@ class ContractBackend:
             )
 
         def bind_plan(plan: object) -> object:
+            def expression(value: object) -> object:
+                return map_expression_references(value, bind_reference)
+
             return replace(
                 plan,
                 projections=tuple(
-                    bind_reference(reference)
-                    for reference in plan.projections
+                    expression(item) for item in plan.projections
                 ),
                 group_by=tuple(
-                    bind_reference(reference)
-                    for reference in plan.group_by
+                    expression(item) for item in plan.group_by
                 ),
                 aggregates=tuple(
                     replace(
@@ -2066,6 +2069,11 @@ class ContractBackend:
                         attribute=(
                             bind_reference(aggregate.attribute)
                             if aggregate.attribute is not None
+                            else None
+                        ),
+                        expression=(
+                            expression(aggregate.expression)
+                            if aggregate.expression is not None
                             else None
                         ),
                     )
@@ -2077,6 +2085,16 @@ class ContractBackend:
                         join,
                         left=bind_reference(join.left),
                         right=bind_reference(join.right),
+                        left_expression=(
+                            expression(join.left_expression)
+                            if join.left_expression is not None
+                            else None
+                        ),
+                        right_expression=(
+                            expression(join.right_expression)
+                            if join.right_expression is not None
+                            else None
+                        ),
                     )
                     for join in plan.joins
                 ),
@@ -2090,6 +2108,11 @@ class ContractBackend:
                                     condition.aggregate.attribute
                                 )
                                 if condition.aggregate.attribute is not None
+                                else None
+                            ),
+                            expression=(
+                                expression(condition.aggregate.expression)
+                                if condition.aggregate.expression is not None
                                 else None
                             ),
                         ),
@@ -2197,27 +2220,55 @@ class ContractBackend:
                 left_column, right_column = rebound
                 left_relation = relations.get(join.left.entity)
                 right_relation = relations.get(join.right.entity)
+                rebound_left = AttributeRef(
+                    join.left.entity,
+                    left_column,
+                    (
+                        left_relation.semantic_type(left_column)
+                        if left_relation is not None
+                        else "text"
+                    ),
+                )
+                rebound_right = AttributeRef(
+                    join.right.entity,
+                    right_column,
+                    (
+                        right_relation.semantic_type(right_column)
+                        if right_relation is not None
+                        else "text"
+                    ),
+                )
+
+                def rebound_reference(
+                    reference: AttributeRef,
+                ) -> AttributeRef:
+                    if reference == join.left:
+                        return rebound_left
+                    if reference == join.right:
+                        return rebound_right
+                    return reference
+
                 joins.append(
                     JoinSpec(
-                        AttributeRef(
-                            join.left.entity,
-                            left_column,
-                            (
-                                left_relation.semantic_type(left_column)
-                                if left_relation is not None
-                                else "text"
-                            ),
-                        ),
-                        AttributeRef(
-                            join.right.entity,
-                            right_column,
-                            (
-                                right_relation.semantic_type(right_column)
-                                if right_relation is not None
-                                else "text"
-                            ),
-                        ),
+                        rebound_left,
+                        rebound_right,
                         join.join_type,
+                        left_expression=(
+                            map_expression_references(
+                                join.left_expression,
+                                rebound_reference,
+                            )
+                            if join.left_expression is not None
+                            else None
+                        ),
+                        right_expression=(
+                            map_expression_references(
+                                join.right_expression,
+                                rebound_reference,
+                            )
+                            if join.right_expression is not None
+                            else None
+                        ),
                     )
                 )
                 changed.append(
@@ -4899,18 +4950,21 @@ class ContractBackend:
                     )
 
             group_ratios = []
-            for reference in plan.group_by:
-                location = locations.get(reference)
-                if location is None:
-                    continue
-                raw_groups = set(self._nonnull_values(raw_tables, location))
-                candidate_groups = set(
-                    self._nonnull_values(tables, location)
-                )
-                if raw_groups:
-                    group_ratios.append(
-                        len(candidate_groups) / len(raw_groups)
+            for expression in plan.group_by:
+                for reference in expression_attributes(expression):
+                    location = locations.get(reference)
+                    if location is None:
+                        continue
+                    raw_groups = set(
+                        self._nonnull_values(raw_tables, location)
                     )
+                    candidate_groups = set(
+                        self._nonnull_values(tables, location)
+                    )
+                    if raw_groups:
+                        group_ratios.append(
+                            len(candidate_groups) / len(raw_groups)
+                        )
 
             required_cell_retention = (
                 min(cell_ratios) if cell_ratios else 1.0

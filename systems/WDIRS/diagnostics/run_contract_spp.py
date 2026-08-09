@@ -29,7 +29,7 @@ from spp.workload_intent import (
 )
 from spp.workload_contract import compile_workload_contract
 
-CONTRACT_INTENT_CACHE_VERSION = 4
+CONTRACT_INTENT_CACHE_VERSION = 5
 
 _FORBIDDEN_INPUT_PARTS = {
     "answers",

@@ -31,6 +31,7 @@ from spp.workload_intent import (
     _expects_group_cardinality_having,
     _plan_contract_diagnostics,
     _normalize_plan_with_schema,
+    analyze_sql_contract_workload,
     analyze_workload,
     workload_intent_from_payload,
     workload_intent_to_payload,
@@ -342,11 +343,23 @@ def test_workload_intent_contains_no_benchmark_domain_literals():
 
 
 def test_canonical_workload_intent_json_round_trip():
-    intent = analyze_workload(
-        ["SELECT team, COUNT(*) FROM player GROUP BY team"]
+    intent = analyze_sql_contract_workload(
+        [
+            {
+                "query_id": "q",
+                "sql": (
+                    "SELECT CASE WHEN age < 30 THEN 'young' ELSE 'older' "
+                    "END AS age_band, "
+                    "SUM(CASE WHEN mvp_awards >= 1 THEN 1 ELSE 0 END) "
+                    "AS winners FROM player GROUP BY age_band"
+                ),
+            }
+        ]
     )
+    payload = workload_intent_to_payload(intent)
+    assert payload["version"] == 2
     restored = workload_intent_from_payload(
-        json.loads(json.dumps(workload_intent_to_payload(intent)))
+        json.loads(json.dumps(payload))
     )
     assert restored == intent
 

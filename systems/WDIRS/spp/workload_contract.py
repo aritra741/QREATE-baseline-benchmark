@@ -28,7 +28,12 @@ from typing import (
     Tuple,
 )
 
-from spp.spec import AttributeRef, PredicateSpec, QueryRequirement
+from spp.spec import (
+    AttributeRef,
+    PredicateSpec,
+    QueryRequirement,
+    expression_attributes,
+)
 
 if TYPE_CHECKING:
     from spp.workload_intent import WorkloadIntent
@@ -278,11 +283,24 @@ def _plan_uses(
     if plan is None:
         return []
     uses: List[Tuple[AttributeRef, str]] = []
-    uses.extend((reference, "projection") for reference in plan.projections)
-    uses.extend((reference, "group_by") for reference in plan.group_by)
+    for expression in plan.projections:
+        uses.extend(
+            (reference, "projection")
+            for reference in expression_attributes(expression)
+        )
+    for expression in plan.group_by:
+        uses.extend(
+            (reference, "group_by")
+            for reference in expression_attributes(expression)
+        )
     for aggregate in plan.aggregates:
         if aggregate.attribute is not None:
             uses.append((aggregate.attribute, f"aggregate:{aggregate.function}"))
+        if aggregate.expression is not None:
+            uses.extend(
+                (reference, f"aggregate:{aggregate.function}")
+                for reference in aggregate.expression.attributes()
+            )
     for condition in plan.having:
         if condition.aggregate.attribute is not None:
             uses.append(
@@ -290,6 +308,15 @@ def _plan_uses(
                     condition.aggregate.attribute,
                     f"having:{condition.aggregate.function}:{condition.operator}",
                 )
+            )
+        if condition.aggregate.expression is not None:
+            uses.extend(
+                (
+                    reference,
+                    f"having:{condition.aggregate.function}:"
+                    f"{condition.operator}",
+                )
+                for reference in condition.aggregate.expression.attributes()
             )
 
     def visit(predicate: Optional[PredicateSpec]) -> None:
@@ -304,6 +331,16 @@ def _plan_uses(
     for join in plan.joins:
         uses.append((join.left, "join:left"))
         uses.append((join.right, "join:right"))
+        if join.left_expression is not None:
+            uses.extend(
+                (reference, "join:left")
+                for reference in join.left_expression.attributes()
+            )
+        if join.right_expression is not None:
+            uses.extend(
+                (reference, "join:right")
+                for reference in join.right_expression.attributes()
+            )
     return uses
 
 

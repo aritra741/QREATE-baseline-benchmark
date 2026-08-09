@@ -22,11 +22,14 @@ from spp.budgeted_llm import BudgetedLLMClient
 from spp.spec import (
     AggregateSpec,
     AttributeRef,
+    ExpressionSpec,
     HavingSpec,
     JoinSpec,
     PredicateSpec,
     QueryPlan,
     QueryRequirement,
+    expression_attributes,
+    map_expression_references,
 )
 from spp.value_normalization import canonical_date
 
@@ -105,7 +108,7 @@ class WorkloadIntent:
 def workload_intent_to_payload(intent: WorkloadIntent) -> dict:
     """Serialize a canonical intent for deterministic scratch reuse."""
     return {
-        "version": 1,
+        "version": 2,
         "requirements": [asdict(item) for item in intent.requirements],
         "entity_frequency": dict(intent.entity_frequency),
         "attribute_frequency": dict(intent.attribute_frequency),
@@ -116,7 +119,10 @@ def workload_intent_to_payload(intent: WorkloadIntent) -> dict:
 
 def workload_intent_from_payload(payload: object) -> WorkloadIntent:
     """Restore a canonical intent previously produced by this module."""
-    if not isinstance(payload, Mapping) or payload.get("version") != 1:
+    if (
+        not isinstance(payload, Mapping)
+        or payload.get("version") not in {1, 2}
+    ):
         raise ValueError("unsupported cached workload intent")
     raw_requirements = payload.get("requirements")
     if not isinstance(raw_requirements, list):
@@ -292,16 +298,24 @@ def _bind_plan_to_entity_vocabulary(
             children=tuple(predicate(child) for child in value.children),
         )
 
+    def expression(value):
+        return map_expression_references(value, reference)
+
     try:
         return QueryPlan(
-            projections=tuple(reference(item) for item in plan.projections),
-            group_by=tuple(reference(item) for item in plan.group_by),
+            projections=tuple(expression(item) for item in plan.projections),
+            group_by=tuple(expression(item) for item in plan.group_by),
             aggregates=tuple(
                 replace(
                     aggregate,
                     attribute=(
                         reference(aggregate.attribute)
                         if aggregate.attribute is not None
+                        else None
+                    ),
+                    expression=(
+                        expression(aggregate.expression)
+                        if aggregate.expression is not None
                         else None
                     ),
                 )
@@ -313,6 +327,16 @@ def _bind_plan_to_entity_vocabulary(
                     join,
                     left=reference(join.left),
                     right=reference(join.right),
+                    left_expression=(
+                        expression(join.left_expression)
+                        if join.left_expression is not None
+                        else None
+                    ),
+                    right_expression=(
+                        expression(join.right_expression)
+                        if join.right_expression is not None
+                        else None
+                    ),
                 )
                 for join in plan.joins
             ),
@@ -324,6 +348,11 @@ def _bind_plan_to_entity_vocabulary(
                         attribute=(
                             reference(condition.aggregate.attribute)
                             if condition.aggregate.attribute is not None
+                            else None
+                        ),
+                        expression=(
+                            expression(condition.aggregate.expression)
+                            if condition.aggregate.expression is not None
                             else None
                         ),
                     ),
@@ -390,16 +419,24 @@ def _bind_plan_to_single_mentioned_entity(
             children=tuple(predicate(child) for child in value.children),
         )
 
+    def expression(value):
+        return map_expression_references(value, reference)
+
     return replace(
         plan,
-        projections=tuple(reference(value) for value in plan.projections),
-        group_by=tuple(reference(value) for value in plan.group_by),
+        projections=tuple(expression(value) for value in plan.projections),
+        group_by=tuple(expression(value) for value in plan.group_by),
         aggregates=tuple(
             replace(
                 aggregate,
                 attribute=(
                     reference(aggregate.attribute)
                     if aggregate.attribute is not None
+                    else None
+                ),
+                expression=(
+                    expression(aggregate.expression)
+                    if aggregate.expression is not None
                     else None
                 ),
             )
@@ -411,6 +448,16 @@ def _bind_plan_to_single_mentioned_entity(
                 join,
                 left=reference(join.left),
                 right=reference(join.right),
+                left_expression=(
+                    expression(join.left_expression)
+                    if join.left_expression is not None
+                    else None
+                ),
+                right_expression=(
+                    expression(join.right_expression)
+                    if join.right_expression is not None
+                    else None
+                ),
             )
             for join in plan.joins
         ),
@@ -422,6 +469,11 @@ def _bind_plan_to_single_mentioned_entity(
                     attribute=(
                         reference(condition.aggregate.attribute)
                         if condition.aggregate.attribute is not None
+                        else None
+                    ),
+                    expression=(
+                        expression(condition.aggregate.expression)
+                        if condition.aggregate.expression is not None
                         else None
                     ),
                 ),
@@ -585,23 +637,77 @@ def _query_plan(
     if not isinstance(payload, Mapping):
         return None
 
-    def refs(name: str) -> Tuple[AttributeRef, ...]:
+    def expression(value: object) -> Optional[ExpressionSpec]:
+        if not isinstance(value, Mapping):
+            return None
+        kind = str(value.get("kind", "")).strip().lower()
+        if not kind:
+            return None
+        attribute = _attribute_ref(
+            value.get("attribute"),
+            entity_vocabulary,
+            default_entity,
+            attribute_vocabulary,
+        )
+        arguments = tuple(
+            item
+            for item in (
+                expression(item)
+                for item in (
+                    value.get("arguments", [])
+                    if isinstance(value.get("arguments", []), (list, tuple))
+                    else ()
+                )
+            )
+            if item is not None
+        )
+        branches = []
+        branch_values = value.get("branches", [])
+        if isinstance(branch_values, (list, tuple)):
+            for branch in branch_values:
+                if not isinstance(branch, (list, tuple)) or len(branch) != 2:
+                    continue
+                condition = expression(branch[0])
+                result = expression(branch[1])
+                if condition is not None and result is not None:
+                    branches.append((condition, result))
+        default = expression(value.get("default"))
+        try:
+            return ExpressionSpec(
+                kind=kind,
+                semantic_type=str(
+                    value.get("semantic_type", "text")
+                ).strip().lower(),
+                attribute=attribute,
+                value=value.get("value"),
+                operator=str(value.get("operator", "")).strip().lower(),
+                arguments=arguments,
+                branches=tuple(branches),
+                default=default,
+                alias=str(value.get("alias", "")).strip().lower(),
+            )
+        except ValueError:
+            return None
+
+    def plan_expressions(name: str):
         values = payload.get(name, [])
         if not isinstance(values, (list, tuple)):
             return ()
-        return tuple(
-            reference
-            for reference in (
-                _attribute_ref(
-                    value,
-                    entity_vocabulary,
-                    default_entity,
-                    attribute_vocabulary,
-                )
-                for value in values
+        result = []
+        for value in values:
+            parsed_expression = expression(value)
+            if parsed_expression is not None:
+                result.append(parsed_expression)
+                continue
+            reference = _attribute_ref(
+                value,
+                entity_vocabulary,
+                default_entity,
+                attribute_vocabulary,
             )
-            if reference is not None
-        )
+            if reference is not None:
+                result.append(reference)
+        return tuple(result)
 
     aggregates: List[AggregateSpec] = []
     values = payload.get("aggregates", [])
@@ -623,6 +729,7 @@ def _query_plan(
                         attribute=reference,
                         alias=str(value.get("alias", "")).strip().lower(),
                         distinct=bool(value.get("distinct", False)),
+                        expression=expression(value.get("expression")),
                     )
                 )
             except ValueError:
@@ -656,6 +763,9 @@ def _query_plan(
                     ).strip().lower(),
                     distinct=bool(
                         aggregate_payload.get("distinct", False)
+                    ),
+                    expression=expression(
+                        aggregate_payload.get("expression")
                     ),
                 )
                 operator = str(value.get("operator", "")).strip().lower()
@@ -712,13 +822,15 @@ def _query_plan(
                         left,
                         right,
                         join_type,
+                        expression(value.get("left_expression")),
+                        expression(value.get("right_expression")),
                     )
                 )
             except ValueError:
                 continue
     plan = QueryPlan(
-        projections=refs("projections"),
-        group_by=refs("group_by"),
+        projections=plan_expressions("projections"),
+        group_by=plan_expressions("group_by"),
         aggregates=tuple(aggregates),
         predicate=_predicate_spec(
             payload.get("predicate"),
@@ -863,8 +975,16 @@ def _repair_plan_aggregate(
 
 
     aggregates = list(plan.aggregates)
-    projections = list(plan.projections)
-    grouped = set(plan.group_by)
+    projections = [
+        reference
+        for expression in plan.projections
+        for reference in expression_attributes(expression)
+    ]
+    grouped = {
+        reference
+        for expression in plan.group_by
+        for reference in expression_attributes(expression)
+    }
     if not aggregates:
         candidates = [
             reference
@@ -1510,7 +1630,9 @@ def _normalize_plan_with_schema(
         if aggregate.attribute is not None
     }
     grouped_keys = {
-        (reference.entity, reference.attribute) for reference in plan.group_by
+        (reference.entity, reference.attribute)
+        for expression in plan.group_by
+        for reference in expression_attributes(expression)
     }
 
     existing_values: set[str] = set()
@@ -2032,7 +2154,8 @@ def _normalize_plan_with_schema(
         ]
         context_entities = {
             reference.entity
-            for reference in (*plan.projections, *plan.group_by)
+            for expression in (*plan.projections, *plan.group_by)
+            for reference in expression_attributes(expression)
         }
         if candidates:
             known_position = max(
@@ -3140,18 +3263,26 @@ def _canonicalize_workload_requirements(
             children=tuple(predicate(child) for child in value.children),
         )
 
+    def expression(value):
+        return map_expression_references(value, reference)
+
     def plan(value: Optional[QueryPlan]) -> Optional[QueryPlan]:
         if value is None:
             return None
         return QueryPlan(
-            projections=tuple(reference(item) for item in value.projections),
-            group_by=tuple(reference(item) for item in value.group_by),
+            projections=tuple(expression(item) for item in value.projections),
+            group_by=tuple(expression(item) for item in value.group_by),
             aggregates=tuple(
                 replace(
                     aggregate,
                     attribute=(
                         reference(aggregate.attribute)
                         if aggregate.attribute is not None
+                        else None
+                    ),
+                    expression=(
+                        expression(aggregate.expression)
+                        if aggregate.expression is not None
                         else None
                     ),
                 )
@@ -3163,6 +3294,16 @@ def _canonicalize_workload_requirements(
                     join,
                     left=reference(join.left),
                     right=reference(join.right),
+                    left_expression=(
+                        expression(join.left_expression)
+                        if join.left_expression is not None
+                        else None
+                    ),
+                    right_expression=(
+                        expression(join.right_expression)
+                        if join.right_expression is not None
+                        else None
+                    ),
                 )
                 for join in value.joins
             ),
@@ -3174,6 +3315,11 @@ def _canonicalize_workload_requirements(
                         attribute=(
                             reference(condition.aggregate.attribute)
                             if condition.aggregate.attribute is not None
+                            else None
+                        ),
+                        expression=(
+                            expression(condition.aggregate.expression)
+                            if condition.aggregate.expression is not None
                             else None
                         ),
                     ),
@@ -3506,9 +3652,327 @@ def _sql_requirement(query_id: str, sql: str) -> QueryRequirement:
             argument = expressions[0] if expressions else argument.this
         return argument, distinct
 
+    select_alias_nodes: Dict[str, "exp.Expression"] = {}
+    for selected in tree.expressions:
+        alias = selected.alias_or_name.lower() if selected.alias_or_name else ""
+        value = selected.this if isinstance(selected, exp.Alias) else selected
+        if alias and not (
+            isinstance(value, exp.Column) and value.name.lower() == alias
+        ):
+            select_alias_nodes[alias] = value
+
+    def scalar_literal(node: "exp.Expression") -> object:
+        if isinstance(node, exp.Null):
+            return None
+        if isinstance(node, exp.Boolean):
+            return str(node.this).lower() == "true"
+        if isinstance(node, exp.Literal):
+            if node.is_number:
+                rendered = str(node.this)
+                return float(rendered) if "." in rendered else int(rendered)
+            return str(node.this)
+        raise ValueError(f"unsupported expression literal: {node.sql()}")
+
+    def literal_semantic_type(value: object) -> str:
+        if isinstance(value, bool):
+            return "boolean"
+        if isinstance(value, int):
+            return "integer"
+        if isinstance(value, float):
+            return "real"
+        return "text"
+
+    def scalar_expression(
+        node: Optional["exp.Expression"],
+        semantic_hint: str = "",
+    ) -> Optional[ExpressionSpec]:
+        if node is None:
+            return None
+        if isinstance(node, exp.Alias):
+            parsed = scalar_expression(node.this, semantic_hint)
+            return (
+                replace(parsed, alias=node.alias.lower())
+                if parsed is not None
+                else None
+            )
+        if isinstance(node, exp.Paren):
+            return scalar_expression(node.this, semantic_hint)
+        if isinstance(node, exp.Column):
+            return ExpressionSpec(
+                kind="column",
+                semantic_type=semantic_hint or "text",
+                attribute=column_ref(node, semantic_hint or "text"),
+            )
+        if isinstance(node, (exp.Literal, exp.Null, exp.Boolean)):
+            value = scalar_literal(node)
+            return ExpressionSpec(
+                kind="literal",
+                semantic_type=literal_semantic_type(value),
+                value=value,
+            )
+
+        arithmetic = (
+            (exp.Add, "+"),
+            (exp.Sub, "-"),
+            (exp.Mul, "*"),
+            (exp.Div, "/"),
+            (exp.Mod, "%"),
+        )
+        for node_type, operator in arithmetic:
+            if isinstance(node, node_type):
+                result_type = (
+                    "real" if operator == "/" or semantic_hint == "real"
+                    else "integer"
+                )
+                left = scalar_expression(node.left, result_type)
+                right = scalar_expression(node.right, result_type)
+                if left is None or right is None:
+                    return None
+                return ExpressionSpec(
+                    kind="binary",
+                    semantic_type=result_type,
+                    operator=operator,
+                    arguments=(left, right),
+                )
+
+        comparisons = (
+            (exp.EQ, "="), (exp.NEQ, "!="), (exp.LT, "<"),
+            (exp.LTE, "<="), (exp.GT, ">"), (exp.GTE, ">="),
+        )
+        for node_type, operator in comparisons:
+            if isinstance(node, node_type):
+                hint = ""
+                literal_node = (
+                    node.right
+                    if isinstance(
+                        node.right, (exp.Literal, exp.Boolean, exp.Null)
+                    )
+                    else None
+                )
+                if literal_node is not None:
+                    hint = literal_semantic_type(scalar_literal(literal_node))
+                left = scalar_expression(node.left, hint)
+                right = scalar_expression(node.right, hint)
+                if left is None or right is None:
+                    return None
+                return ExpressionSpec(
+                    kind="binary",
+                    semantic_type="boolean",
+                    operator=operator,
+                    arguments=(left, right),
+                )
+        if isinstance(node, (exp.And, exp.Or)):
+            left = scalar_expression(node.left, "boolean")
+            right = scalar_expression(node.right, "boolean")
+            if left is None or right is None:
+                return None
+            return ExpressionSpec(
+                kind="binary",
+                semantic_type="boolean",
+                operator="and" if isinstance(node, exp.And) else "or",
+                arguments=(left, right),
+            )
+        if isinstance(node, exp.Between):
+            target = scalar_expression(node.this, semantic_hint)
+            low = scalar_expression(node.args.get("low"), semantic_hint)
+            high = scalar_expression(node.args.get("high"), semantic_hint)
+            if target is None or low is None or high is None:
+                return None
+            return ExpressionSpec(
+                kind="binary",
+                semantic_type="boolean",
+                operator="between",
+                arguments=(target, low, high),
+            )
+        if isinstance(node, exp.In):
+            arguments = [scalar_expression(node.this, semantic_hint)]
+            arguments.extend(
+                scalar_expression(item, semantic_hint)
+                for item in node.expressions
+            )
+            if any(item is None for item in arguments):
+                return None
+            return ExpressionSpec(
+                kind="binary",
+                semantic_type="boolean",
+                operator="in",
+                arguments=tuple(arguments),
+            )
+        if isinstance(node, exp.Is):
+            target = scalar_expression(node.this)
+            if target is None or not isinstance(node.expression, exp.Null):
+                return None
+            return ExpressionSpec(
+                kind="unary",
+                semantic_type="boolean",
+                operator="is_null",
+                arguments=(target,),
+            )
+        if isinstance(node, exp.Not):
+            child = scalar_expression(node.this)
+            if child is None:
+                return None
+            if child.kind == "unary" and child.operator == "is_null":
+                return replace(child, operator="is_not_null")
+            return ExpressionSpec(
+                kind="unary",
+                semantic_type="boolean",
+                operator="not",
+                arguments=(child,),
+            )
+        if isinstance(node, exp.Neg):
+            child = scalar_expression(node.this, semantic_hint or "real")
+            if child is None:
+                return None
+            return ExpressionSpec(
+                kind="unary",
+                semantic_type=child.semantic_type,
+                operator="neg",
+                arguments=(child,),
+            )
+        if isinstance(node, (exp.Cast, exp.TryCast)):
+            target = str(node.args.get("to").sql()).strip().lower()
+            target = {
+                "int": "integer",
+                "bigint": "integer",
+                "smallint": "integer",
+                "float": "real",
+                "double": "real",
+                "varchar": "text",
+                "string": "text",
+            }.get(target, target)
+            if target not in {
+                "integer", "real", "text", "numeric", "date", "boolean",
+            }:
+                return None
+            child = scalar_expression(node.this, target)
+            if child is None:
+                return None
+            return ExpressionSpec(
+                kind="cast",
+                semantic_type=target,
+                operator=target,
+                arguments=(child,),
+            )
+        if isinstance(node, exp.Case):
+            base = scalar_expression(node.this) if node.this is not None else None
+            branches = []
+            for branch in node.args.get("ifs") or ():
+                condition_node = branch.this
+                if base is not None:
+                    matched = scalar_expression(condition_node, base.semantic_type)
+                    if matched is None:
+                        return None
+                    condition = ExpressionSpec(
+                        kind="binary",
+                        semantic_type="boolean",
+                        operator="=",
+                        arguments=(base, matched),
+                    )
+                else:
+                    condition = scalar_expression(condition_node, "boolean")
+                result = scalar_expression(
+                    branch.args.get("true"), semantic_hint
+                )
+                if condition is None or result is None:
+                    return None
+                branches.append((condition, result))
+            default = scalar_expression(
+                node.args.get("default"), semantic_hint
+            )
+            result_types = [result.semantic_type for _, result in branches]
+            if default is not None:
+                result_types.append(default.semantic_type)
+            result_type = (
+                "real"
+                if "real" in result_types
+                else "integer"
+                if result_types and set(result_types) == {"integer"}
+                else result_types[0]
+                if result_types
+                else "text"
+            )
+            return ExpressionSpec(
+                kind="case",
+                semantic_type=result_type,
+                branches=tuple(branches),
+                default=default,
+            )
+
+        function_types = (
+            (exp.Trim, "trim", "text"),
+            (exp.Lower, "lower", "text"),
+            (exp.Upper, "upper", "text"),
+            (exp.Coalesce, "coalesce", semantic_hint or "text"),
+            (exp.Nullif, "nullif", semantic_hint or "text"),
+            (exp.Abs, "abs", semantic_hint or "real"),
+            (exp.Round, "round", semantic_hint or "real"),
+        )
+        for node_type, function, result_type in function_types:
+            if isinstance(node, node_type):
+                child_nodes = [node.this, *(node.expressions or ())]
+                child_nodes.extend(
+                    value
+                    for key, value in node.args.items()
+                    if key not in {"this", "expressions"}
+                    and isinstance(value, exp.Expression)
+                )
+                arguments = tuple(
+                    parsed
+                    for child in child_nodes
+                    if child is not None
+                    and (parsed := scalar_expression(child, semantic_hint))
+                    is not None
+                )
+                if not arguments:
+                    return None
+                return ExpressionSpec(
+                    kind="function",
+                    semantic_type=result_type,
+                    operator=function,
+                    arguments=arguments,
+                )
+        if isinstance(node, exp.Anonymous):
+            function = str(node.name).strip().lower()
+            if function not in {
+                "trim", "lower", "upper", "coalesce", "nullif", "abs", "round",
+            }:
+                return None
+            arguments = tuple(
+                parsed
+                for child in node.expressions
+                if (parsed := scalar_expression(child, semantic_hint))
+                is not None
+            )
+            if not arguments:
+                return None
+            return ExpressionSpec(
+                kind="function",
+                semantic_type=(
+                    "text"
+                    if function in {"trim", "lower", "upper"}
+                    else semantic_hint or "real"
+                ),
+                operator=function,
+                arguments=arguments,
+            )
+        return None
+
+    def is_select_alias_reference(column: "exp.Column") -> bool:
+        if column.table or column.name.lower() not in select_alias_nodes:
+            return False
+        parent = column.parent
+        while parent is not None and not isinstance(parent, exp.Select):
+            if isinstance(parent, (exp.Group, exp.Order, exp.Having)):
+                return True
+            parent = parent.parent
+        return False
+
     attributes: List[str] = []
     attribute_bindings: List[Tuple[str, str]] = []
     for column in tree.find_all(exp.Column):
+        if is_select_alias_reference(column):
+            continue
         name = column.name.lower()
         if name not in attributes:
             attributes.append(name)
@@ -3562,7 +4026,7 @@ def _sql_requirement(query_id: str, sql: str) -> QueryRequirement:
         (exp.Max, "max"),
     )
     aggregates: List[AggregateSpec] = []
-    projections: List[AttributeRef] = []
+    projections: List[object] = []
     for expression in tree.expressions:
         alias = expression.alias_or_name.lower() if expression.alias_or_name else ""
         value = expression.this if isinstance(expression, exp.Alias) else expression
@@ -3571,6 +4035,15 @@ def _sql_requirement(query_id: str, sql: str) -> QueryRequirement:
             if isinstance(value, node_type):
                 argument, distinct = aggregate_argument(value)
                 column = unwrap_column(argument)
+                parsed_argument = (
+                    scalar_expression(
+                        argument,
+                        "integer" if function in {"count", "sum"} else "real",
+                    )
+                    if argument is not None
+                    and not isinstance(argument, (exp.Column, exp.Star))
+                    else None
+                )
                 reference = (
                     column_ref(
                         column,
@@ -3585,19 +4058,40 @@ def _sql_requirement(query_id: str, sql: str) -> QueryRequirement:
                         attribute=reference,
                         alias=alias,
                         distinct=distinct,
+                        expression=parsed_argument,
                     )
                 )
                 matched_aggregate = True
                 break
-        if not matched_aggregate and isinstance(value, exp.Column):
-            projections.append(column_ref(value))
+        if not matched_aggregate:
+            if isinstance(value, exp.Column):
+                projections.append(column_ref(value))
+            else:
+                parsed_projection = scalar_expression(value)
+                if parsed_projection is not None:
+                    projections.append(
+                        replace(parsed_projection, alias=alias)
+                    )
 
-    group_by: List[AttributeRef] = []
+    group_by: List[object] = []
     group = tree.args.get("group")
     if group is not None:
         for expression in group.expressions:
-            if isinstance(expression, exp.Column):
+            alias = ""
+            value = expression
+            if (
+                isinstance(expression, exp.Column)
+                and not expression.table
+                and expression.name.lower() in select_alias_nodes
+            ):
+                alias = expression.name.lower()
+                value = select_alias_nodes[alias]
+            if isinstance(value, exp.Column):
                 group_by.append(column_ref(expression))
+                continue
+            parsed_group = scalar_expression(value)
+            if parsed_group is not None:
+                group_by.append(replace(parsed_group, alias=alias))
 
     comparison_types = (
         (exp.EQ, "="), (exp.NEQ, "!="), (exp.LT, "<"),
@@ -3760,6 +4254,15 @@ def _sql_requirement(query_id: str, sql: str) -> QueryRequirement:
                     if column is not None
                     else None
                 )
+                parsed_argument = (
+                    scalar_expression(
+                        argument,
+                        "integer" if function in {"count", "sum"} else "real",
+                    )
+                    if argument is not None
+                    and not isinstance(argument, (exp.Column, exp.Star))
+                    else None
+                )
                 try:
                     having_specs.append(
                         HavingSpec(
@@ -3767,6 +4270,7 @@ def _sql_requirement(query_id: str, sql: str) -> QueryRequirement:
                                 function=function,
                                 attribute=reference,
                                 distinct=distinct,
+                                expression=parsed_argument,
                             ),
                             operator=operator,
                             value=literal_value(node.right),
@@ -3788,13 +4292,25 @@ def _sql_requirement(query_id: str, sql: str) -> QueryRequirement:
             left = unwrap_column(equality.left)
             right = unwrap_column(equality.right)
             if left is not None and right is not None:
+                left_expression = (
+                    scalar_expression(equality.left)
+                    if not isinstance(equality.left, exp.Column)
+                    else None
+                )
+                right_expression = (
+                    scalar_expression(equality.right)
+                    if not isinstance(equality.right, exp.Column)
+                    else None
+                )
                 join_specs.append(
                     JoinSpec(
                         column_ref(left),
                         column_ref(right),
                         "left"
-                        if str(join.args.get("kind", "")).lower() == "left"
+                        if str(join.args.get("side", "")).lower() == "left"
                         else "inner",
+                        left_expression=left_expression,
+                        right_expression=right_expression,
                     )
                 )
     plan = QueryPlan(

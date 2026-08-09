@@ -11,7 +11,18 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import asdict, dataclass, field
-from typing import Dict, Iterable, List, Mapping, Optional, Sequence, Set, Tuple
+from typing import (
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Union,
+)
 
 from spp.population_config import PopulationConfig
 
@@ -31,17 +42,176 @@ class AttributeRef:
             )
 
 
+_SEMANTIC_TYPES = {"text", "integer", "real", "date", "boolean"}
+_BINARY_EXPRESSION_OPERATORS = {
+    "+", "-", "*", "/", "%",
+    "=", "!=", "<", "<=", ">", ">=",
+    "and", "or", "between", "in",
+}
+_UNARY_EXPRESSION_OPERATORS = {"not", "neg", "is_null", "is_not_null"}
+_CAST_TYPES = {"integer", "real", "text", "numeric", "date", "boolean"}
+_SCALAR_FUNCTIONS = {
+    "trim", "lower", "upper", "coalesce", "nullif", "abs", "round",
+}
+
+
+@dataclass(frozen=True)
+class ExpressionSpec:
+    """Safe scalar-expression AST used by deterministic query plans.
+
+    The AST is deliberately allowlisted and contains no raw SQL fragments.
+    Physical columns remain explicit :class:`AttributeRef` leaves so schema
+    coverage, contract extraction, and provenance can walk dependencies.
+    """
+
+    kind: str
+    semantic_type: str = "text"
+    attribute: Optional[AttributeRef] = None
+    value: object = None
+    operator: str = ""
+    arguments: Tuple["ExpressionSpec", ...] = ()
+    branches: Tuple[Tuple["ExpressionSpec", "ExpressionSpec"], ...] = ()
+    default: Optional["ExpressionSpec"] = None
+    alias: str = ""
+
+    def __post_init__(self) -> None:
+        if self.kind not in {
+            "column", "literal", "binary", "unary", "cast", "case", "function",
+        }:
+            raise ValueError(f"unsupported expression kind: {self.kind}")
+        if self.semantic_type not in _SEMANTIC_TYPES:
+            raise ValueError(
+                f"unsupported expression semantic type: {self.semantic_type}"
+            )
+        if self.kind == "column":
+            if self.attribute is None:
+                raise ValueError("column expression requires an attribute")
+            if (
+                self.arguments
+                or self.branches
+                or self.default is not None
+                or self.operator
+            ):
+                raise ValueError("column expression cannot have child operations")
+        elif self.kind == "literal":
+            if self.attribute is not None or self.arguments or self.branches:
+                raise ValueError("literal expression cannot have dependencies")
+        elif self.kind == "binary":
+            if self.operator not in _BINARY_EXPRESSION_OPERATORS:
+                raise ValueError(
+                    f"unsupported binary expression operator: {self.operator}"
+                )
+            if len(self.arguments) < 2:
+                raise ValueError("binary expression requires at least two arguments")
+        elif self.kind == "unary":
+            if self.operator not in _UNARY_EXPRESSION_OPERATORS:
+                raise ValueError(
+                    f"unsupported unary expression operator: {self.operator}"
+                )
+            if len(self.arguments) != 1:
+                raise ValueError("unary expression requires one argument")
+        elif self.kind == "cast":
+            if self.operator not in _CAST_TYPES:
+                raise ValueError(f"unsupported cast target: {self.operator}")
+            if len(self.arguments) != 1:
+                raise ValueError("cast expression requires one argument")
+        elif self.kind == "case":
+            if not self.branches:
+                raise ValueError("CASE expression requires at least one branch")
+            if self.attribute is not None or self.arguments or self.operator:
+                raise ValueError("CASE expression uses branches/default only")
+        elif self.kind == "function":
+            if self.operator not in _SCALAR_FUNCTIONS:
+                raise ValueError(
+                    f"unsupported scalar function: {self.operator}"
+                )
+            if not self.arguments:
+                raise ValueError("scalar function requires arguments")
+
+    def attributes(self) -> Tuple[AttributeRef, ...]:
+        result: List[AttributeRef] = []
+
+        def add(reference: AttributeRef) -> None:
+            if reference not in result:
+                result.append(reference)
+
+        def visit(expression: Optional["ExpressionSpec"]) -> None:
+            if expression is None:
+                return
+            if expression.attribute is not None:
+                add(expression.attribute)
+            for argument in expression.arguments:
+                visit(argument)
+            for condition, value in expression.branches:
+                visit(condition)
+                visit(value)
+            visit(expression.default)
+
+        visit(self)
+        return tuple(result)
+
+
+PlanExpression = Union[AttributeRef, ExpressionSpec]
+
+
+def expression_attributes(value: PlanExpression) -> Tuple[AttributeRef, ...]:
+    if isinstance(value, AttributeRef):
+        return (value,)
+    return value.attributes()
+
+
+def map_expression_references(
+    value: PlanExpression,
+    mapper: Callable[[AttributeRef], AttributeRef],
+) -> PlanExpression:
+    """Return ``value`` with every physical-column leaf rewritten."""
+
+    if isinstance(value, AttributeRef):
+        return mapper(value)
+    return ExpressionSpec(
+        kind=value.kind,
+        semantic_type=value.semantic_type,
+        attribute=(
+            mapper(value.attribute) if value.attribute is not None else None
+        ),
+        value=value.value,
+        operator=value.operator,
+        arguments=tuple(
+            map_expression_references(argument, mapper)
+            for argument in value.arguments
+        ),
+        branches=tuple(
+            (
+                map_expression_references(condition, mapper),
+                map_expression_references(result, mapper),
+            )
+            for condition, result in value.branches
+        ),
+        default=(
+            map_expression_references(value.default, mapper)
+            if value.default is not None
+            else None
+        ),
+        alias=value.alias,
+    )
+
+
 @dataclass(frozen=True)
 class AggregateSpec:
     function: str
     attribute: Optional[AttributeRef] = None
     alias: str = ""
     distinct: bool = False
+    expression: Optional[ExpressionSpec] = None
 
     def __post_init__(self) -> None:
         if self.function not in {"count", "sum", "avg", "min", "max"}:
             raise ValueError(f"unsupported aggregate: {self.function}")
-        if self.function != "count" and self.attribute is None:
+        if (
+            self.function != "count"
+            and self.attribute is None
+            and self.expression is None
+        ):
             raise ValueError(f"{self.function} requires an attribute")
 
 
@@ -88,6 +258,8 @@ class JoinSpec:
     left: AttributeRef
     right: AttributeRef
     join_type: str = "inner"
+    left_expression: Optional[ExpressionSpec] = None
+    right_expression: Optional[ExpressionSpec] = None
 
     def __post_init__(self) -> None:
         if self.join_type not in {"inner", "left"}:
@@ -96,8 +268,8 @@ class JoinSpec:
 
 @dataclass(frozen=True)
 class QueryPlan:
-    projections: Tuple[AttributeRef, ...] = ()
-    group_by: Tuple[AttributeRef, ...] = ()
+    projections: Tuple[PlanExpression, ...] = ()
+    group_by: Tuple[PlanExpression, ...] = ()
     aggregates: Tuple[AggregateSpec, ...] = ()
     predicate: Optional[PredicateSpec] = None
     joins: Tuple[JoinSpec, ...] = ()
@@ -117,16 +289,30 @@ class QueryPlan:
             for child in predicate.children:
                 visit(child)
 
-        for reference in (*self.projections, *self.group_by):
-            add(reference)
+        for expression in (*self.projections, *self.group_by):
+            for reference in expression_attributes(expression):
+                add(reference)
         for aggregate in self.aggregates:
             add(aggregate.attribute)
+            if aggregate.expression is not None:
+                for reference in aggregate.expression.attributes():
+                    add(reference)
         for condition in self.having:
             add(condition.aggregate.attribute)
+            if condition.aggregate.expression is not None:
+                for reference in condition.aggregate.expression.attributes():
+                    add(reference)
         visit(self.predicate)
         for join in self.joins:
             add(join.left)
             add(join.right)
+            for expression in (
+                join.left_expression,
+                join.right_expression,
+            ):
+                if expression is not None:
+                    for reference in expression.attributes():
+                        add(reference)
         return tuple(result)
 
 

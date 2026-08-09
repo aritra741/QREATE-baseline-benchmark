@@ -12,6 +12,7 @@ imported by :mod:`spp.system`.
 from spp.spec import (
     AggregateSpec,
     AttributeRef,
+    ExpressionSpec,
     FrozenPortfolio,
     JoinSpec,
     PreprocessingPolicy,
@@ -27,6 +28,7 @@ from spp.spec import (
 __all__ = [
     "AggregateSpec",
     "AttributeRef",
+    "ExpressionSpec",
     "FrozenPortfolio",
     "JoinSpec",
     "PreprocessingPolicy",

@@ -14,7 +14,12 @@ from spp.budget_ledger import GlobalBudgetLedger
 from spp.budgeted_llm import BudgetedLLMClient
 from spp.query_plan_compiler import compile_query_plan
 from spp.sql_validator import validate_sql
-from spp.spec import AttributeRef, QueryRequirement, SynthesisConfig
+from spp.spec import (
+    AttributeRef,
+    QueryRequirement,
+    SynthesisConfig,
+    expression_attributes,
+)
 from spp.workload_intent import _expected_aggregate
 
 
@@ -211,27 +216,36 @@ def _semantic_validation_errors(
             for relation in config.schema.relations
             for column, target_table, target_column in relation.foreign_keys
         )
-        for reference in requirement.plan.group_by:
-            equivalent_refs = {reference}
-            changed = True
-            while changed:
-                changed = False
-                for left, right in equivalence_edges:
-                    if left in equivalent_refs and right not in equivalent_refs:
-                        equivalent_refs.add(right)
-                        changed = True
-                    if right in equivalent_refs and left not in equivalent_refs:
-                        equivalent_refs.add(left)
-                        changed = True
-            if not any(
-                re.search(
-                    rf"\b{re.escape(candidate.attribute)}\b", group_sql
-                )
-                for candidate in equivalent_refs
-            ):
-                errors.append(
-                    f"missing GROUP BY dimension {reference.entity}.{reference.attribute}"
-                )
+        for expression in requirement.plan.group_by:
+            for reference in expression_attributes(expression):
+                equivalent_refs = {reference}
+                changed = True
+                while changed:
+                    changed = False
+                    for left, right in equivalence_edges:
+                        if (
+                            left in equivalent_refs
+                            and right not in equivalent_refs
+                        ):
+                            equivalent_refs.add(right)
+                            changed = True
+                        if (
+                            right in equivalent_refs
+                            and left not in equivalent_refs
+                        ):
+                            equivalent_refs.add(left)
+                            changed = True
+                if not any(
+                    re.search(
+                        rf"\b{re.escape(candidate.attribute)}\b",
+                        group_sql,
+                    )
+                    for candidate in equivalent_refs
+                ):
+                    errors.append(
+                        "missing GROUP BY dimension "
+                        f"{reference.entity}.{reference.attribute}"
+                    )
         for join in requirement.plan.joins:
             if join.left.entity == join.right.entity:
                 continue

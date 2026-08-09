@@ -35,6 +35,8 @@ from spp.spec import (
     QualityEstimate,
     QueryRequirement,
     SynthesisConfig,
+    expression_attributes,
+    map_expression_references,
 )
 from spp.workload_intent import (
     WorkloadIntent,
@@ -67,13 +69,40 @@ def _rewrite_query_plan(
             children=tuple(predicate(child) for child in value.children),
         )
 
+    def expression(value: Any) -> Any:
+        return map_expression_references(value, reference_mapper)
+
+    def join(value: Any) -> Any:
+        rewritten = (
+            join_mapper(value)
+            if join_mapper is not None
+            else replace(
+                value,
+                left=reference_mapper(value.left),
+                right=reference_mapper(value.right),
+            )
+        )
+        return replace(
+            rewritten,
+            left_expression=(
+                expression(value.left_expression)
+                if value.left_expression is not None
+                else None
+            ),
+            right_expression=(
+                expression(value.right_expression)
+                if value.right_expression is not None
+                else None
+            ),
+        )
+
     return replace(
         plan,
         projections=tuple(
-            reference_mapper(value) for value in plan.projections
+            expression(value) for value in plan.projections
         ),
         group_by=tuple(
-            reference_mapper(value) for value in plan.group_by
+            expression(value) for value in plan.group_by
         ),
         aggregates=tuple(
             replace(
@@ -83,22 +112,16 @@ def _rewrite_query_plan(
                     if aggregate.attribute is not None
                     else None
                 ),
+                expression=(
+                    expression(aggregate.expression)
+                    if aggregate.expression is not None
+                    else None
+                ),
             )
             for aggregate in plan.aggregates
         ),
         predicate=predicate(plan.predicate),
-        joins=tuple(
-            (
-                join_mapper(join)
-                if join_mapper is not None
-                else replace(
-                    join,
-                    left=reference_mapper(join.left),
-                    right=reference_mapper(join.right),
-                )
-            )
-            for join in plan.joins
-        ),
+        joins=tuple(join(value) for value in plan.joins),
         having=tuple(
             replace(
                 condition,
@@ -109,6 +132,11 @@ def _rewrite_query_plan(
                             condition.aggregate.attribute
                         )
                         if condition.aggregate.attribute is not None
+                        else None
+                    ),
+                    expression=(
+                        expression(condition.aggregate.expression)
+                        if condition.aggregate.expression is not None
                         else None
                     ),
                 ),
@@ -1058,18 +1086,19 @@ class WDIRSPrimitiveBackend:
                         reference.attribute
                     ] = reference.semantic_type
                     protected[reference.entity].add(reference.attribute)
-                for reference in requirement.plan.group_by:
-                    if (
-                        reference.entity in abstractions
-                        and reference.semantic_type
-                        not in {"integer", "real", "date", "boolean"}
-                    ):
-                        abstractions[reference.entity].add(
-                            reference.attribute
-                        )
-                        abstraction_hints[reference.entity].setdefault(
-                            reference.attribute, []
-                        ).append(requirement.text)
+                for expression in requirement.plan.group_by:
+                    for reference in expression_attributes(expression):
+                        if (
+                            reference.entity in abstractions
+                            and reference.semantic_type
+                            not in {"integer", "real", "date", "boolean"}
+                        ):
+                            abstractions[reference.entity].add(
+                                reference.attribute
+                            )
+                            abstraction_hints[reference.entity].setdefault(
+                                reference.attribute, []
+                            ).append(requirement.text)
         lattice_tables = getattr(
             self.runner.lattice_planner.lattice, "tables", {}
         )

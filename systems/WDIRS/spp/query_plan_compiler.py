@@ -7,6 +7,8 @@ from typing import Dict, Optional, Set, Tuple
 from spp.spec import (
     AggregateSpec,
     AttributeRef,
+    ExpressionSpec,
+    PlanExpression,
     PredicateSpec,
     QueryPlan,
     SynthesisConfig,
@@ -71,6 +73,73 @@ def compile_query_plan(
         table, name = locations[reference]
         return f"{_quote(aliases[table])}.{_quote(name)}"
 
+    def expression_sql(expression: PlanExpression) -> str:
+        if isinstance(expression, AttributeRef):
+            return column(expression)
+        if expression.kind == "column":
+            assert expression.attribute is not None
+            return column(expression.attribute)
+        if expression.kind == "literal":
+            return _literal(expression.value)
+        if expression.kind == "binary":
+            arguments = [
+                expression_sql(argument) for argument in expression.arguments
+            ]
+            if expression.operator in {"and", "or"}:
+                separator = f" {expression.operator.upper()} "
+                return "(" + separator.join(arguments) + ")"
+            if expression.operator == "between":
+                return (
+                    f"({arguments[0]} BETWEEN {arguments[1]} "
+                    f"AND {arguments[2]})"
+                )
+            if expression.operator == "in":
+                return f"({arguments[0]} IN ({', '.join(arguments[1:])}))"
+            return (
+                f"({arguments[0]} {expression.operator.upper()} "
+                f"{arguments[1]})"
+            )
+        if expression.kind == "unary":
+            argument = expression_sql(expression.arguments[0])
+            if expression.operator == "not":
+                return f"(NOT {argument})"
+            if expression.operator == "neg":
+                return f"(-{argument})"
+            if expression.operator == "is_null":
+                return f"({argument} IS NULL)"
+            if expression.operator == "is_not_null":
+                return f"({argument} IS NOT NULL)"
+        if expression.kind == "cast":
+            argument = expression_sql(expression.arguments[0])
+            return f"CAST({argument} AS {expression.operator.upper()})"
+        if expression.kind == "case":
+            parts = ["CASE"]
+            for condition, result in expression.branches:
+                parts.extend(
+                    [
+                        "WHEN",
+                        expression_sql(condition),
+                        "THEN",
+                        expression_sql(result),
+                    ]
+                )
+            if expression.default is not None:
+                parts.extend(["ELSE", expression_sql(expression.default)])
+            parts.append("END")
+            return " ".join(parts)
+        if expression.kind == "function":
+            arguments = ", ".join(
+                expression_sql(argument) for argument in expression.arguments
+            )
+            return f"{expression.operator.upper()}({arguments})"
+        raise ValueError(f"unsupported expression kind: {expression.kind}")
+
+    def selected_sql(expression: PlanExpression) -> str:
+        rendered = expression_sql(expression)
+        if isinstance(expression, ExpressionSpec) and expression.alias:
+            return f"{rendered} AS {_quote(expression.alias)}"
+        return rendered
+
     # SQLite permits bare, non-grouped columns in aggregate SELECT lists and
     # returns an arbitrary row's value. Treat the IR strictly instead: aggregate
     # outputs contain only grouping dimensions plus aggregates.
@@ -81,13 +150,16 @@ def compile_query_plan(
             else (*plan.group_by, *plan.projections)
         )
     )
-    select_parts = [column(reference) for reference in selected_refs]
+    select_parts = [selected_sql(expression) for expression in selected_refs]
+
     def aggregate_sql(aggregate: AggregateSpec) -> str:
         argument = "*"
-        if aggregate.attribute is not None:
+        if aggregate.expression is not None:
+            argument = expression_sql(aggregate.expression)
+        elif aggregate.attribute is not None:
             argument = column(aggregate.attribute)
-            if aggregate.distinct:
-                argument = f"DISTINCT {argument}"
+        if aggregate.distinct:
+            argument = f"DISTINCT {argument}"
         return f"{aggregate.function.upper()}({argument})"
 
     for aggregate in plan.aggregates:
@@ -126,9 +198,11 @@ def compile_query_plan(
             else:
                 continue
             keyword = "LEFT JOIN" if join.join_type == "left" else "JOIN"
+            left = join.left_expression or join.left
+            right = join.right_expression or join.right
             join_sql.append(
                 f"{keyword} {_quote(target)} AS {_quote(aliases[target])} "
-                f"ON {column(join.left)} = {column(join.right)}"
+                f"ON {expression_sql(left)} = {expression_sql(right)}"
             )
             included.add(target)
             pending.remove(join)
@@ -160,7 +234,7 @@ def compile_query_plan(
         sql += "\nWHERE " + predicate_sql(plan.predicate)
     if plan.group_by:
         sql += "\nGROUP BY " + ", ".join(
-            column(reference) for reference in plan.group_by
+            expression_sql(expression) for expression in plan.group_by
         )
     if plan.having:
         sql += "\nHAVING " + " AND ".join(

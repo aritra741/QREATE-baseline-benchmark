@@ -269,6 +269,35 @@ def test_sql_contract_preserves_player_team_owner_join_key_chain():
     }
 
 
+def test_derived_group_contract_targets_source_columns_not_aliases():
+    intent = analyze_sql_contract_workload(
+        [
+            {
+                "query_id": "q0",
+                "sql_query": (
+                    "SELECT CASE WHEN age < 30 THEN 'young' ELSE 'older' "
+                    "END AS age_band, COUNT(*) AS player_count "
+                    "FROM player GROUP BY age_band"
+                ),
+            }
+        ]
+    )
+
+    contract = compile_workload_contract(intent)
+    attributes = {
+        attribute.name: attribute
+        for attribute in contract.attributes_for("player")
+    }
+
+    assert "age" in attributes
+    assert "age_band" not in attributes
+    assert dict(attributes["age"].contexts)["q0"] == (
+        "binding",
+        "group_by",
+        "projection",
+    )
+
+
 def test_field_local_validation_rejects_value_from_another_span():
     record = ExtractionRecord(
         entity="account",

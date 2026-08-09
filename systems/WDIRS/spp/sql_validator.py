@@ -12,7 +12,14 @@ from typing import Dict, Iterable, Optional, Tuple
 from sqlglot import exp, parse_one
 from sqlglot.errors import ParseError
 
-from spp.spec import AttributeRef, PredicateSpec, QueryRequirement, SynthesisConfig
+from spp.query_plan_compiler import compile_query_plan
+from spp.spec import (
+    AttributeRef,
+    ExpressionSpec,
+    PredicateSpec,
+    QueryRequirement,
+    SynthesisConfig,
+)
 
 
 PhysicalColumn = Tuple[str, str]
@@ -211,6 +218,46 @@ def validate_sql(
 
     plan = requirement.plan
     if plan is None:
+        return SQLValidationResult(tuple(dict.fromkeys(errors)))
+
+    # SQL-contract input is itself authoritative. Accept only an AST-identical
+    # copy after the read-only, live-binding, and SQLite checks above. Likewise,
+    # the deterministic expression-aware compiler is trusted only when the
+    # candidate is structurally identical to its output. Non-equivalent rewrites
+    # continue through the detailed plan validator below.
+    authoritative = str(requirement.text or "").strip().rstrip(";")
+    if authoritative and _readonly_error(authoritative) is None:
+        try:
+            if expression == parse_one(authoritative, read="sqlite"):
+                return SQLValidationResult(tuple(dict.fromkeys(errors)))
+        except ParseError:
+            pass
+    deterministic = compile_query_plan(plan, config)
+    if deterministic:
+        try:
+            if expression == parse_one(deterministic, read="sqlite"):
+                return SQLValidationResult(tuple(dict.fromkeys(errors)))
+        except ParseError:
+            pass
+    has_derived_expressions = (
+        any(
+            isinstance(item, ExpressionSpec)
+            for item in (*plan.projections, *plan.group_by)
+        )
+        or any(item.expression is not None for item in plan.aggregates)
+        or any(
+            item.aggregate.expression is not None for item in plan.having
+        )
+        or any(
+            item.left_expression is not None
+            or item.right_expression is not None
+            for item in plan.joins
+        )
+    )
+    if has_derived_expressions:
+        errors.append(
+            "candidate SQL expression tree does not match typed query plan"
+        )
         return SQLValidationResult(tuple(dict.fromkeys(errors)))
 
     relation_columns = {

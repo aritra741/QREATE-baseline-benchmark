@@ -77,6 +77,7 @@ from spp.value_normalization import canonical_date
 from spp.spec import (
     AggregateSpec,
     AttributeRef,
+    ExpressionSpec,
     FrozenPortfolio,
     HavingSpec,
     JoinSpec,
@@ -485,12 +486,14 @@ def test_sql_contract_preserves_count_distinct_and_trim_case_joins():
             distinct=True,
         ),
     )
-    assert count_req.plan.joins == (
-        JoinSpec(
-            AttributeRef("player", "team"),
-            AttributeRef("team", "team_name"),
-        ),
-    )
+    assert len(count_req.plan.joins) == 1
+    count_join = count_req.plan.joins[0]
+    assert count_join.left == AttributeRef("player", "team")
+    assert count_join.right == AttributeRef("team", "team_name")
+    assert count_join.left_expression is not None
+    assert count_join.left_expression.operator == "trim"
+    assert count_join.right_expression is not None
+    assert count_join.right_expression.operator == "trim"
     assert count_req.plan.predicate is not None
     assert {
         (child.attribute.attribute, child.value)
@@ -499,16 +502,16 @@ def test_sql_contract_preserves_count_distinct_and_trim_case_joins():
 
     city_req = intent.requirements[1]
     assert city_req.plan is not None
-    assert city_req.plan.joins == (
-        JoinSpec(
-            AttributeRef("city", "city_name"),
-            AttributeRef("team", "location"),
-        ),
-    )
+    assert len(city_req.plan.joins) == 1
+    city_join = city_req.plan.joins[0]
+    assert city_join.left == AttributeRef("city", "city_name")
+    assert city_join.right == AttributeRef("team", "location")
+    assert city_join.right_expression is not None
+    assert city_join.right_expression.kind == "case"
 
 
-def test_sql_contract_unwraps_sum_case_when_aggregates():
-    """Searched CASE inside SUM must yield an attribute (multiagg-style)."""
+def test_sql_contract_preserves_sum_case_when_aggregates():
+    """Searched CASE inside SUM retains semantics and source dependencies."""
 
     intent = analyze_sql_contract_workload(
         [
@@ -538,27 +541,144 @@ def test_sql_contract_unwraps_sum_case_when_aggregates():
 
     measure = intent.requirements[0]
     assert measure.plan is not None
-    assert measure.plan.aggregates == (
-        AggregateSpec(
-            "sum",
-            AttributeRef("player", "olympic_gold_medals", "integer"),
-            "total_golds",
-        ),
+    measure_aggregate = measure.plan.aggregates[0]
+    assert measure_aggregate.attribute == AttributeRef(
+        "player", "olympic_gold_medals", "integer"
     )
+    assert measure_aggregate.alias == "total_golds"
+    assert measure_aggregate.expression is not None
+    assert measure_aggregate.expression.kind == "case"
 
     indicator = intent.requirements[1]
     assert indicator.plan is not None
-    assert indicator.plan.aggregates == (
-        AggregateSpec(
-            "sum",
-            AttributeRef("player", "mvp_awards", "integer"),
-            "mvp_winner_count",
-        ),
+    indicator_aggregate = indicator.plan.aggregates[0]
+    assert indicator_aggregate.attribute == AttributeRef(
+        "player", "mvp_awards", "integer"
     )
+    assert indicator_aggregate.alias == "mvp_winner_count"
+    assert indicator_aggregate.expression is not None
+    assert indicator_aggregate.expression.kind == "case"
     assert indicator.plan.having
     assert indicator.plan.having[0].aggregate.attribute == AttributeRef(
         "player", "mvp_awards", "integer"
     )
+    assert indicator.plan.having[0].aggregate.expression == (
+        indicator_aggregate.expression
+    )
+
+
+def test_sql_contract_executes_derived_groups_and_indicator_sums(
+    tmp_path: Path,
+):
+    derived_sql = (
+        "SELECT position, CASE WHEN age < 30 THEN 'under_30' "
+        "WHEN age < 40 THEN '30s' ELSE '40_or_older' END AS age_band, "
+        "COUNT(*) AS player_count FROM player "
+        "WHERE position IN ('Frontcourt', 'Backcourt') AND age IS NOT NULL "
+        "GROUP BY position, age_band"
+    )
+    indicator_sql = (
+        "SELECT t.team_name, "
+        "SUM(CASE WHEN p.mvp_awards >= 1 THEN 1 ELSE 0 END) "
+        "AS mvp_winner_count FROM player p JOIN team t "
+        "ON TRIM(p.team) = TRIM(t.team_name) GROUP BY t.team_name "
+        "HAVING SUM(CASE WHEN p.mvp_awards >= 1 THEN 1 ELSE 0 END) >= 1"
+    )
+    intent = analyze_sql_contract_workload(
+        [
+            {"query_id": "derived", "sql_query": derived_sql},
+            {"query_id": "indicator", "sql_query": indicator_sql},
+        ]
+    )
+    derived, indicator = intent.requirements
+    assert derived.plan is not None
+    assert indicator.plan is not None
+    assert "age_band" not in derived.attributes
+    assert ("player", "age_band") not in derived.attribute_bindings
+    assert isinstance(derived.plan.group_by[1], ExpressionSpec)
+    assert derived.plan.group_by[1].alias == "age_band"
+    assert AttributeRef("player", "age", "integer") in (
+        derived.plan.group_by[1].attributes()
+    )
+
+    relations = []
+    for entity in ("player", "team"):
+        attributes = tuple(
+            sorted(
+                {
+                    reference.attribute
+                    for requirement in intent.requirements
+                    for reference in requirement.plan.attributes()
+                    if reference.entity == entity
+                }
+            )
+        )
+        relations.append(RelationSpec(entity, attributes))
+    config = SynthesisConfig(
+        SchemaDesign(
+            "snowflake",
+            tuple(relations),
+            tuple(intent.query_ids()),
+        ),
+        PopulationConfig(),
+        PreprocessingPolicy("whole_document"),
+    )
+    database = write_sqlite_database(
+        tmp_path / "expressions.sqlite",
+        {
+            "player": [
+                {
+                    "id": 1,
+                    "position": "Frontcourt",
+                    "age": 25,
+                    "team": "Comets",
+                    "mvp_awards": 3,
+                },
+                {
+                    "id": 2,
+                    "position": "Backcourt",
+                    "age": 35,
+                    "team": "Comets",
+                    "mvp_awards": 1,
+                },
+                {
+                    "id": 3,
+                    "position": "Frontcourt",
+                    "age": 45,
+                    "team": "Comets",
+                    "mvp_awards": 0,
+                },
+            ],
+            "team": [{"team_name": "Comets"}],
+        },
+        config.schema,
+    )
+    with sqlite3.connect(database) as connection:
+        for requirement in intent.requirements:
+            compiled = compile_query_plan(requirement.plan, config)
+            assert compiled is not None
+            assert validate_sql(
+                requirement, config, database, requirement.text
+            ).valid
+            assert validate_sql(
+                requirement, config, database, compiled
+            ).valid
+            expected = connection.execute(requirement.text).fetchall()
+            actual = connection.execute(compiled).fetchall()
+            assert sorted(expected, key=repr) == sorted(actual, key=repr)
+        compiled_indicator = compile_query_plan(indicator.plan, config)
+        assert compiled_indicator is not None
+        assert connection.execute(compiled_indicator).fetchone() == (
+            "Comets",
+            2,
+        )
+
+    lossy = (
+        "SELECT t.team_name, SUM(p.mvp_awards) AS mvp_winner_count "
+        "FROM player p JOIN team t ON p.team = t.team_name "
+        "GROUP BY t.team_name HAVING SUM(p.mvp_awards) >= 1"
+    )
+    assert not validate_sql(indicator, config, database, lossy).valid
 
 
 def test_qwen_null_intent_fields_are_treated_as_empty():

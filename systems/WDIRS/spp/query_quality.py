@@ -23,6 +23,7 @@ from spp.query_plan_compiler import compile_query_plan
 from spp.quality_signals import profile_relational_database
 from spp.spec import (
     AttributeRef,
+    PlanExpression,
     QualityEstimate,
     QueryRequirement,
     SynthesisConfig,
@@ -62,6 +63,29 @@ _DENIED_SQLITE_ACTIONS = {
     )
     if (value := getattr(sqlite3, name, None)) is not None
 }
+
+
+def _expression_output_name(expression: PlanExpression) -> str:
+    if isinstance(expression, AttributeRef):
+        return expression.attribute
+    if expression.alias:
+        return expression.alias
+    if expression.kind == "column" and expression.attribute is not None:
+        return expression.attribute.attribute
+    return ""
+
+
+def _aggregate_output_name(aggregate: object) -> str:
+    alias = str(getattr(aggregate, "alias", "") or "")
+    if alias:
+        return alias
+    attribute = getattr(aggregate, "attribute", None)
+    function = str(getattr(aggregate, "function", ""))
+    return (
+        f"{function}_{attribute.attribute}"
+        if attribute is not None
+        else "count_all"
+    )
 
 
 class QueryCompilationError(ValueError):
@@ -462,12 +486,7 @@ def compute_evidence_coverage(
     recall = sum(per_attribute) / len(per_attribute) if per_attribute else 0.0
 
     aggregate_columns = {
-        aggregate.alias
-        or (
-            f"{aggregate.function}_{aggregate.attribute.attribute}"
-            if aggregate.attribute is not None
-            else "count_all"
-        )
+        _aggregate_output_name(aggregate)
         for aggregate in (
             requirement.plan.aggregates if requirement.plan else ()
         )
@@ -525,11 +544,7 @@ def _aggregate_grouping_signals(
         return 1.0, 1.0
     checks: list[float] = []
     for aggregate in requirement.plan.aggregates:
-        alias = aggregate.alias or (
-            f"{aggregate.function}_{aggregate.attribute.attribute}"
-            if aggregate.attribute is not None
-            else "count_all"
-        )
+        alias = _aggregate_output_name(aggregate)
         if alias not in execution.columns:
             checks.append(0.0)
             continue
@@ -548,8 +563,14 @@ def _aggregate_grouping_signals(
     grouping = 1.0
     if requirement.plan.group_by:
         group_columns = [
-            reference.attribute for reference in requirement.plan.group_by
+            _expression_output_name(expression)
+            for expression in requirement.plan.group_by
         ]
+        if not all(group_columns):
+            aggregate_score = (
+                sum(checks) / len(checks) if checks else 1.0
+            )
+            return aggregate_score, 1.0
         groups = [
             tuple(row.get(column) for column in group_columns)
             for row in execution.rows
@@ -607,11 +628,7 @@ def _aggregate_additivity(
     global_row = global_execution.rows[0]
     checks: list[float] = []
     for aggregate in comparable:
-        alias = aggregate.alias or (
-            f"{aggregate.function}_{aggregate.attribute.attribute}"
-            if aggregate.attribute is not None
-            else "count_all"
-        )
+        alias = _aggregate_output_name(aggregate)
         grouped_values = [
             row.get(alias)
             for row in execution.rows
@@ -705,8 +722,10 @@ def _predicate_monotonicity(
         )
 
     group_columns = tuple(
-        reference.attribute for reference in plan.group_by
+        _expression_output_name(expression) for expression in plan.group_by
     )
+    if not all(group_columns):
+        return 1.0
     filtered_groups = {
         tuple(row.get(column) for column in group_columns)
         for row in execution.rows
@@ -718,12 +737,7 @@ def _predicate_monotonicity(
     if not filtered_groups <= relaxed_groups:
         return 0.0
     count_aliases = [
-        aggregate.alias
-        or (
-            f"count_{aggregate.attribute.attribute}"
-            if aggregate.attribute is not None
-            else "count_all"
-        )
+        _aggregate_output_name(aggregate)
         for aggregate in plan.aggregates
         if aggregate.function == "count"
     ]
@@ -833,8 +847,12 @@ def bootstrap_output_stability(
             )
         else:
             group_columns = tuple(
-                reference.attribute for reference in plan.group_by
+                _expression_output_name(expression)
+                for expression in plan.group_by
             )
+            if not all(group_columns):
+                scores.append(1.0)
+                continue
             baseline_by_group = {
                 tuple(row.get(column) for column in group_columns): row
                 for row in baseline.rows
@@ -851,11 +869,7 @@ def bootstrap_output_stability(
                 )
             )
             for aggregate in plan.aggregates:
-                alias = aggregate.alias or (
-                    f"{aggregate.function}_{aggregate.attribute.attribute}"
-                    if aggregate.attribute is not None
-                    else "count_all"
-                )
+                alias = _aggregate_output_name(aggregate)
                 for group, row in sample_by_group.items():
                     value = row.get(alias)
                     if value is not None and (
