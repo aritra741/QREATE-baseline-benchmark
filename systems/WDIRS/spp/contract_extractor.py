@@ -34,7 +34,7 @@ from spp.workload_contract import (
 from token_counter import count_tokens
 
 
-_PROMPT_VERSION = 11
+_PROMPT_VERSION = 12
 _ENTITY_ARTIFACT_VERSION = 3
 _CONTEXT_ROUTING_VERSION = 5
 CORPUS_REFERENCE_YEAR = 2026
@@ -2171,9 +2171,15 @@ class ContractExtractor:
                 if value.casefold() in by_case:
                     mapping[value] = by_case[value.casefold()]
             missing = sorted(set(values) - set(mapping))
-            if mapping and missing:
+            if missing:
+                repair_action = (
+                    "Complete an otherwise valid categorical mapping."
+                    if mapping
+                    else "Produce the required categorical mapping after the "
+                    "first response yielded no valid canonical rows."
+                )
                 repair_prompt = (
-                    "Complete an otherwise valid categorical mapping. Return "
+                    f"{repair_action} Return "
                     "only a JSON array whose objects have exactly source_value "
                     "and target_value. Include every missing source exactly "
                     "once. source_value must be copied exactly from "

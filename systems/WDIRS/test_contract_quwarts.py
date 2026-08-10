@@ -501,12 +501,23 @@ def test_filtered_grouping_uses_sql_category_targets_for_taxonomy(tmp_path):
 
         def __init__(self):
             self.ledger = type("Ledger", (), {"actual_spent": 0})()
+            self.calls = 0
 
         def generate(self, prompt, **_kwargs):
             assert (
                 'Canonical target values: ["Backcourt", "Frontcourt"]'
                 in prompt
             )
+            self.calls += 1
+            if self.calls == 1:
+                return json.dumps(
+                    [
+                        {
+                            "source_value": "Point Guard",
+                            "target_value": "point guard",
+                        }
+                    ]
+                )
             return json.dumps(
                 [
                     {

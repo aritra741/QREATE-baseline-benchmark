@@ -85,9 +85,10 @@ from spp.workload_contract import (
     WorkloadContract,
     compile_workload_contract as _default_contract_compiler,
 )
+from token_counter import count_tokens
 
 
-BACKEND_VERSION = 27
+BACKEND_VERSION = 29
 HYBRID_BULK_VERSION = 5
 
 logger = logging.getLogger(__name__)
@@ -4201,12 +4202,8 @@ class ContractBackend:
             )
         else:
             before = ledger.actual_spent
-            constrained_fields = len(
-                self._closed_workload_vocabularies()
-            )
-            taxonomy_escrow_tokens = min(
-                16_384 * constrained_fields,
-                ledger.total_tokens // 20,
+            taxonomy_escrow_tokens = (
+                self._required_taxonomy_escrow_tokens()
             )
             taxonomy_escrow = (
                 ledger.reserve(
@@ -4385,6 +4382,83 @@ class ContractBackend:
             for field, vocabularies in by_field.items()
             if len(vocabularies) == 1
         }
+
+    @staticmethod
+    def _token_upper_bound(text: str) -> int:
+        conservative = (len(text.encode("utf-8")) + 1) // 2
+        try:
+            return max(count_tokens(text), conservative)
+        except RuntimeError:
+            return conservative
+
+    def _required_taxonomy_escrow_tokens(self) -> int:
+        """Estimate the two-call worst case from workload and routed sources."""
+
+        closed = self._closed_workload_vocabularies()
+        if not closed or self.contract is None:
+            return 0
+        routes = route_documents_by_content(self.documents, self.contract)
+        documents = {
+            document.document_id: document for document in self.documents
+        }
+        attributes = {
+            (
+                _symbol_key(attribute.entity),
+                _symbol_key(attribute.name),
+            ): attribute
+            for attribute in self.contract.attributes
+        }
+        # This deliberately over-counts the executable prompt scaffold rather
+        # than relying on an unrelated fixed allowance.
+        scaffold_tokens = self._token_upper_bound(
+            inspect.getsource(ContractExtractor._taxonomy_mappings)
+        )
+        total = 0
+        for field, vocabulary in sorted(closed.items()):
+            attribute = attributes.get(field)
+            owners = tuple(
+                str(owner)
+                for owner in (
+                    getattr(attribute, "owners", ()) if attribute else ()
+                )
+            ) or (field[0],)
+            routed_ids = {
+                document_id
+                for owner in owners
+                for document_id in routes.get(owner, ())
+            }
+            relevant = [
+                document
+                for document_id, document in documents.items()
+                if not routed_ids or document_id in routed_ids
+            ]
+            source_text = "\n".join(document.text for document in relevant)
+            metadata_text = json.dumps(
+                {
+                    "entity": field[0],
+                    "attribute": field[1],
+                    "canonical_targets": vocabulary,
+                    "query_hints": tuple(
+                        getattr(attribute, "query_hints", ())
+                        if attribute is not None
+                        else ()
+                    ),
+                },
+                sort_keys=True,
+            )
+            source_tokens = self._token_upper_bound(source_text)
+            metadata_tokens = self._token_upper_bound(metadata_text)
+            # The initial prompt can contain every observed source surface.
+            # The targeted retry can contain those surfaces twice: once in the
+            # accepted map and once in the missing list. Both calls allow at
+            # most 2,048 output tokens.
+            total += (
+                scaffold_tokens
+                + 3 * source_tokens
+                + 2 * metadata_tokens
+                + 2 * 2_048
+            )
+        return total
 
     def _derived_semantic_tables(
         self,
