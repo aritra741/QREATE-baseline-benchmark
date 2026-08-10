@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import CommentsSystem from "./Comments.jsx";
+import ContrastPage from "./ContrastPage.jsx";
 import data from "./data.json";
 
 const ERROR_LEVELS = data.error_levels || ["0.01", "0.05", "0.2"];
@@ -304,7 +305,16 @@ function QueryPanel({ query, open, onToggle }) {
   );
 }
 
-export default function App() {
+function SiteNav() {
+  return (
+    <nav className="site-nav" aria-label="Case study pages">
+      <a href="/" className={window.location.pathname === "/" ? "active" : ""}>Agg20 case study</a>
+      <a href="/contrasts" className={window.location.pathname === "/contrasts" ? "active" : ""}>Contrast results</a>
+    </nav>
+  );
+}
+
+function CaseStudyPage() {
   const [openId, setOpenId] = useState("q0");
   const [filter, setFilter] = useState("all");
 
@@ -321,7 +331,6 @@ export default function App() {
   }, [filter]);
 
   return (
-    <CommentsSystem>
       <div className="page">
         <div className="atmosphere" aria-hidden="true" />
         <header className="hero">
@@ -414,6 +423,15 @@ export default function App() {
           </p>
         </footer>
       </div>
+  );
+}
+
+export default function App() {
+  const contrasts = window.location.pathname.replace(/\/+$/, "") === "/contrasts";
+  return (
+    <CommentsSystem>
+      <SiteNav />
+      {contrasts ? <ContrastPage /> : <CaseStudyPage />}
     </CommentsSystem>
   );
 }

@@ -2,6 +2,37 @@
 
 Static site that compares QuWARTS and DocETL on 20 Player questions.
 
+The original case study is served at `/`; the four-workload, 80-query comparison
+is served at `/contrasts`.
+
+## Harvest contrast results
+
+Run the strict harvest on HPC after all QuWARTS and DocETL evaluations finish:
+
+```bash
+cd /path/to/UDA-Bench-main
+python3 "case study/harvest_player_contrast_results.py" \
+  --quwarts-root "case study/workloads/runs/quwarts_forced_taxonomy_25pct_20260810" \
+  --groupby-root "case study/workloads/runs/quwarts_forced_taxonomy_25pct_20260809" \
+  --docetl-root "case study/workloads/runs/docetl_contrast" \
+  --output "player-agg20-case-site/src/contrast-data.json"
+```
+
+This is the publishing path: it requires both systems' `evaluation.json` for all
+four workloads, exactly 20 matching records per evaluation, finite metrics, and
+unique manifest IDs. Validation happens before the output is atomically replaced.
+
+For a local UI build without detailed HPC artifacts:
+
+```bash
+python3 "case study/harvest_player_contrast_results.py" \
+  --allow-summary-fallback \
+  --output "player-agg20-case-site/src/contrast-data.json"
+```
+
+Fallback mode includes all 80 manifest queries but labels per-query system
+metrics as unavailable.
+
 ## Comments
 
 Select any text to add a Google Docs-style comment. The first time you comment,
@@ -22,10 +53,20 @@ npm run dev
 `npm run dev` starts the Vite app and a local comments API on port 8787.
 Open two browser windows against the same local URL to confirm comments sync.
 
+Build and preview the exact deployable site:
+
+```bash
+cd player-agg20-case-site
+npm ci
+npm run build
+npm run preview -- --host 0.0.0.0
+```
+
 ## Deploy on Vercel
 
 ```bash
 cd player-agg20-case-site
+npm run build
 npx vercel
 ```
 
