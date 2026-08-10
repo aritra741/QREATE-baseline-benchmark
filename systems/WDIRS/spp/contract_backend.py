@@ -87,7 +87,7 @@ from spp.workload_contract import (
 )
 
 
-BACKEND_VERSION = 26
+BACKEND_VERSION = 27
 HYBRID_BULK_VERSION = 5
 
 logger = logging.getLogger(__name__)
@@ -5036,8 +5036,16 @@ class ContractBackend:
                             break
             return tuple(result)
 
-        candidate_tables = tables or {}
         raw_tables = self._shared.raw_tables
+        # Route eligibility is a hard contract property, not a statistical
+        # pilot estimate. Computing it from a 5% pilot can mark a valid
+        # semantic candidate ineligible merely because that sample contains no
+        # mapped row, after which progressive search permanently prunes it.
+        candidate_tables = (
+            self._derived_semantic_tables(raw_tables)
+            if semantic
+            else self._materializable_raw_tables(raw_tables)
+        )
         adjusted: Dict[str, QueryAssessment] = {}
         for query_id, assessment in assessments.items():
             requirement = requirement_by_id.get(query_id)

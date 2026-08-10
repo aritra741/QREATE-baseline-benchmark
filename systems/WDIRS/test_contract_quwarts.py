@@ -3070,7 +3070,9 @@ def test_required_predicate_vocabulary_forces_semantic_candidate():
     semantic_estimate = backend._apply_mapping_contract(
         semantic,
         {"q0": assessment(semantic)},
-        semantic_tables,
+        # Pilot samples may contain no mapped row. Hard route eligibility must
+        # still be derived from the complete shared extraction.
+        {"player": ({"row_id": "3", "position": None},)},
     )["q0"].estimate
 
     assert raw_estimate.validity == 0.0
