@@ -2567,7 +2567,7 @@ def test_contract_backend_bulk_extraction_preserves_coherent_rows(tmp_path):
     assert all(cell.supported for cell in shared.evidence)
 
 
-def test_span_grounded_bulk_values_participate_without_nli(tmp_path):
+def test_all_observed_bulk_values_participate_in_required_taxonomy(tmp_path):
     class MappingExtractor:
         def derive_mappings(self, _contract, records):
             assert {record.value for record in records} == {"Detailed"}
@@ -2614,7 +2614,7 @@ def test_span_grounded_bulk_values_participate_without_nli(tmp_path):
                 start=0,
                 end=8,
                 entailed=False,
-                span_restored=True,
+                span_restored=False,
             ),
         ),
     )

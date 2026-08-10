@@ -87,7 +87,7 @@ from spp.workload_contract import (
 )
 
 
-BACKEND_VERSION = 24
+BACKEND_VERSION = 25
 HYBRID_BULK_VERSION = 5
 
 logger = logging.getLogger(__name__)
@@ -3294,11 +3294,11 @@ class ContractBackend:
                 derivation_inputs={},
             )
             for cell in bulk.evidence
-            # Taxonomy induction needs an exact source surface, not a separate
-            # NLI verdict. Offline deployments may lack the verifier model; a
-            # restored span still provides auditable evidence for mapping the
-            # observed value into the workload's required vocabulary.
-            if cell.span_restored
+            # Required workload vocabularies must be induced over every value
+            # observed by bulk extraction. NLI verification runs separately
+            # and quarantines unsupported cells before serving; restricting
+            # this pass to restored spans can otherwise leave every semantic
+            # value NULL and make all constrained routes ineligible.
         )
         if not records:
             return result
