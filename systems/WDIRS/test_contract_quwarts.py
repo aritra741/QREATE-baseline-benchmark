@@ -5,10 +5,13 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from spp.calculation_tools import operands_are_grounded
 from spp.cell_verifier import (
     BudgetAwareCellVerifier,
     CellClaim,
+    NLIUnavailableError,
     VerificationDecision,
     VerificationReport,
 )
@@ -1267,6 +1270,25 @@ def test_budget_aware_verifier_falls_back_to_nli_without_llm_budget():
     assert report.nli_claims == 2
 
 
+def test_backend_nli_preflight_fails_before_spending_tokens():
+    class MissingNLI:
+        def __init__(self, _client, _ledger):
+            pass
+
+        def require_nli_available(self):
+            raise NLIUnavailableError("fixture NLI is unavailable")
+
+    backend = ContractBackend(
+        (ContractDocument("fixture.txt", "Fixture document."),),
+        object(),
+        cell_verifier_factory=MissingNLI,
+    )
+    ledger = GlobalBudgetLedger(100_000)
+    with pytest.raises(NLIUnavailableError, match="unavailable"):
+        backend._preflight_cell_verifier(ledger)
+    assert ledger.actual_spent == 0
+
+
 def test_backend_quarantines_only_verifier_rejections():
     class SelectiveVerifier:
         seen_attributes = ()
@@ -2127,6 +2149,7 @@ def test_contract_backend_materializes_explicit_relationship_edges(
         ),
         FakeClient(),
         scratch_dir=tmp_path,
+            verify_extracted_cells=False,
     )
     configs = backend.generate_configs(
         intent, observed_document_lengths=(28, 62)
@@ -2544,7 +2567,7 @@ def test_contract_backend_bulk_extraction_preserves_coherent_rows(tmp_path):
     assert all(cell.supported for cell in shared.evidence)
 
 
-def test_bulk_values_participate_in_contract_taxonomy_induction(tmp_path):
+def test_span_grounded_bulk_values_participate_without_nli(tmp_path):
     class MappingExtractor:
         def derive_mappings(self, _contract, records):
             assert {record.value for record in records} == {"Detailed"}
@@ -2590,7 +2613,7 @@ def test_bulk_values_participate_in_contract_taxonomy_induction(tmp_path):
                 anchor_text="Detailed",
                 start=0,
                 end=8,
-                entailed=True,
+                entailed=False,
                 span_restored=True,
             ),
         ),

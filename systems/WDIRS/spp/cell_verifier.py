@@ -13,13 +13,17 @@ from spp.budgeted_llm import BudgetedLLMClient
 
 logger = logging.getLogger(__name__)
 
-_VERIFIER_VERSION = 4
+_VERIFIER_VERSION = 5
 _ALLOWED_STATUSES = {
     "entailed",
     "contradicted",
     "unsupported",
     "abstain",
 }
+
+
+class NLIUnavailableError(RuntimeError):
+    """Raised when required NLI verification cannot run."""
 
 
 @dataclass(frozen=True)
@@ -230,6 +234,7 @@ class BudgetAwareCellVerifier:
         self._llm_started_at = ledger.actual_spent
         self._nli = None
         self._nli_unavailable = False
+        self._nli_error: Optional[Exception] = None
 
     @staticmethod
     def _prompt(claims: Sequence[CellClaim]) -> str:
@@ -313,7 +318,9 @@ class BudgetAwareCellVerifier:
         if self._nli is not None:
             return self._nli
         if self._nli_unavailable:
-            return None
+            raise NLIUnavailableError(
+                f"required NLI verifier '{self.nli_model}' is unavailable"
+            ) from self._nli_error
         try:
             from sentence_transformers import CrossEncoder
 
@@ -323,21 +330,26 @@ class BudgetAwareCellVerifier:
             )
         except Exception as exc:
             self._nli_unavailable = True
-            logger.warning(
-                "NLI verifier unavailable (%s); unresolved cells remain "
-                "unverified",
-                exc,
-            )
-            return None
+            self._nli_error = exc
+            raise NLIUnavailableError(
+                f"required NLI verifier '{self.nli_model}' could not be "
+                "loaded; install or cache the model before running the "
+                "pipeline"
+            ) from exc
         return self._nli
+
+    def require_nli_available(self) -> None:
+        """Load the required verifier before extraction begins."""
+
+        self._load_nli()
 
     def _nli_decisions(
         self,
         claims: Sequence[CellClaim],
     ) -> Dict[str, VerificationDecision]:
-        model = self._load_nli()
-        if model is None or not claims:
+        if not claims:
             return {}
+        model = self._load_nli()
         try:
             scores = model.predict(
                 [
@@ -348,8 +360,10 @@ class BudgetAwareCellVerifier:
             )
             import numpy as np
         except Exception as exc:
-            logger.warning("NLI cell verification failed: %s", exc)
-            return {}
+            raise NLIUnavailableError(
+                f"required NLI verifier '{self.nli_model}' failed during "
+                "inference"
+            ) from exc
         labels = getattr(model.model.config, "id2label", {}) or {
             0: "contradiction",
             1: "entailment",
@@ -419,6 +433,7 @@ class BudgetAwareCellVerifier:
 __all__ = [
     "BudgetAwareCellVerifier",
     "CellClaim",
+    "NLIUnavailableError",
     "VerificationDecision",
     "VerificationReport",
 ]

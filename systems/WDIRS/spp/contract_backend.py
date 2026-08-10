@@ -87,7 +87,7 @@ from spp.workload_contract import (
 )
 
 
-BACKEND_VERSION = 22
+BACKEND_VERSION = 24
 HYBRID_BULK_VERSION = 5
 
 logger = logging.getLogger(__name__)
@@ -1847,6 +1847,7 @@ class ContractBackend:
             not in {"0", "false", "no"}
         )
         self.cell_verifier_factory = cell_verifier_factory
+        self._cell_verifier: object = None
         self.bulk_column_batch_size = int(
             bulk_column_batch_size
             if bulk_column_batch_size is not None
@@ -2750,8 +2751,11 @@ class ContractBackend:
             return shared
         claims.sort(key=lambda claim: priorities[claim.claim_id])
         claims_by_id = {claim.claim_id: claim for claim in claims}
-        factory = self.cell_verifier_factory or BudgetAwareCellVerifier
-        verifier = factory(self.llm_client, ledger)
+        verifier = self._cell_verifier
+        if verifier is None:
+            factory = self.cell_verifier_factory or BudgetAwareCellVerifier
+            verifier = factory(self.llm_client, ledger)
+            self._cell_verifier = verifier
         verification_tokens_before = ledger.actual_spent
         report = verifier.verify(claims)
         verification_tokens = ledger.actual_spent - verification_tokens_before
@@ -2870,6 +2874,21 @@ class ContractBackend:
             evidence=shared.evidence,
             metadata=metadata,
         )
+
+    def _preflight_cell_verifier(
+        self,
+        ledger: GlobalBudgetLedger,
+    ) -> None:
+        """Require the configured NLI verifier before any extraction work."""
+
+        if not self.verify_extracted_cells:
+            return
+        factory = self.cell_verifier_factory or BudgetAwareCellVerifier
+        verifier = factory(self.llm_client, ledger)
+        require_nli = getattr(verifier, "require_nli_available", None)
+        if callable(require_nli):
+            require_nli()
+        self._cell_verifier = verifier
 
     def _bulk_documents_for_relation(
         self,
@@ -3275,7 +3294,11 @@ class ContractBackend:
                 derivation_inputs={},
             )
             for cell in bulk.evidence
-            if cell.supported
+            # Taxonomy induction needs an exact source surface, not a separate
+            # NLI verdict. Offline deployments may lack the verifier model; a
+            # restored span still provides auditable evidence for mapping the
+            # observed value into the workload's required vocabulary.
+            if cell.span_restored
         )
         if not records:
             return result
@@ -4158,6 +4181,7 @@ class ContractBackend:
         evidence_store: EvidenceStore,
         ledger: GlobalBudgetLedger,
     ) -> None:
+        self._preflight_cell_verifier(ledger)
         self.intent = intent
         self._ensure_contract(intent)
         for document in self.documents:
