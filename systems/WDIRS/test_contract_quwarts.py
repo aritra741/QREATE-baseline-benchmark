@@ -518,6 +518,10 @@ def test_filtered_grouping_uses_sql_category_targets_for_taxonomy(tmp_path):
                         "target_value": "Backcourt",
                     },
                     {
+                        "source_value": "point guard",
+                        "target_value": "Backcourt",
+                    },
+                    {
                         "source_value": "Power Forward",
                         "target_value": "Frontcourt",
                     },
@@ -533,7 +537,7 @@ def test_filtered_grouping_uses_sql_category_targets_for_taxonomy(tmp_path):
         (),
         {
             "document_id": "player/1.txt",
-            "text": "Center Point Guard Power Forward Shooting Guard",
+            "text": "Center Point Guard point guard Power Forward Shooting Guard",
             "metadata": {},
         },
     )()
@@ -569,6 +573,7 @@ def test_filtered_grouping_uses_sql_category_targets_for_taxonomy(tmp_path):
             (
                 "Center",
                 "Point Guard",
+                "point guard",
                 "Power Forward",
                 "Shooting Guard",
             )
@@ -590,12 +595,14 @@ def test_filtered_grouping_uses_sql_category_targets_for_taxonomy(tmp_path):
     } == {
         ("Center", "Frontcourt"),
         ("Point Guard", "Backcourt"),
+        ("point guard", "Backcourt"),
         ("Power Forward", "Frontcourt"),
         ("Shooting Guard", "Backcourt"),
     }
     assert {record.value for record in records} == {
         "Center",
         "Point Guard",
+        "point guard",
         "Power Forward",
         "Shooting Guard",
     }
@@ -3020,6 +3027,13 @@ def test_required_predicate_vocabulary_forces_semantic_candidate():
                     "attribute": "position",
                     "source_value": "center",
                     "target_value": "Frontcourt",
+                    "mapping_kind": "taxonomy",
+                },
+                {
+                    "entity": "player",
+                    "attribute": "position",
+                    "source_value": "point guard",
+                    "target_value": "Point Guard",
                     "mapping_kind": "taxonomy",
                 },
             )

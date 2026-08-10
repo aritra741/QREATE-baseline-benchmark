@@ -87,7 +87,7 @@ from spp.workload_contract import (
 )
 
 
-BACKEND_VERSION = 25
+BACKEND_VERSION = 26
 HYBRID_BULK_VERSION = 5
 
 logger = logging.getLogger(__name__)
@@ -4440,6 +4440,29 @@ class ContractBackend:
             if entity and column:
                 entity_key = _symbol_key(entity)
                 column_key = _symbol_key(column)
+                field = (entity_key, column_key)
+                if (
+                    str(
+                        _member(
+                            mapping,
+                            "mapping_kind",
+                            default="",
+                        )
+                    )
+                    == "taxonomy"
+                    and field in closed_vocabularies
+                    and target is not None
+                ):
+                    canonical_targets = {
+                        value.casefold(): value
+                        for value in closed_vocabularies[field]
+                    }
+                    canonical_target = canonical_targets.get(
+                        str(target).strip().casefold()
+                    )
+                    if canonical_target is None:
+                        continue
+                    target = canonical_target
                 mappings[(entity_key, column_key, source)] = target
                 if isinstance(source_value, str):
                     casefold_mappings[

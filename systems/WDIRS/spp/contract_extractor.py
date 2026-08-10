@@ -34,7 +34,7 @@ from spp.workload_contract import (
 from token_counter import count_tokens
 
 
-_PROMPT_VERSION = 10
+_PROMPT_VERSION = 11
 _ENTITY_ARTIFACT_VERSION = 3
 _CONTEXT_ROUTING_VERSION = 5
 CORPUS_REFERENCE_YEAR = 2026
@@ -2054,9 +2054,10 @@ class ContractExtractor:
             )
             if len(values) < 2:
                 continue
-            result.extend(
-                self._casefold_taxonomy_mappings(attribute, candidates)
-            )
+            if not target_values:
+                result.extend(
+                    self._casefold_taxonomy_mappings(attribute, candidates)
+                )
             case_variants = len(
                 {" ".join(value.casefold().split()) for value in values}
             )
