@@ -1,0 +1,162 @@
+{
+  "title": "Player contrast workloads: QuWARTS vs DocETL",
+  "updated_at_utc": "2026-08-10",
+  "model": "qwen2.5:7b-instruct",
+  "primary_error_level": "0.2",
+  "score_note": "Main ranking score is query_score = structure_score × cell_f1 at the listed relative error tolerance.",
+  "notes": [
+    "QuWARTS budgets are ~25% of the corresponding DocETL token totals.",
+    "groupby20 result lives under quwarts_forced_taxonomy_25pct_20260809; the other three under quwarts_forced_taxonomy_25pct_20260810.",
+    "prior_quwarts is the earlier contrast table before expression IR + forced closed-vocabulary routing.",
+    "DocETL scores come from the earlier contrast evaluation table; re-harvest on HPC if exact evaluation.json paths differ."
+  ],
+  "workloads": {
+    "player_join20": {
+      "focus": "join depth",
+      "docetl": {
+        "mean_official_accuracy": 0.324,
+        "mean_structure_score": 0.368,
+        "mean_query_score": { "0.2": 0.115 },
+        "tokens": 28462525
+      },
+      "prior_quwarts": {
+        "mean_official_accuracy": 0.567,
+        "mean_structure_score": 0.673,
+        "mean_query_score": { "0.2": 0.296 },
+        "tokens": 9207824
+      },
+      "quwarts": {
+        "run_root": "case study/workloads/runs/quwarts_forced_taxonomy_25pct_20260810",
+        "token_budget": 7115631,
+        "mean_official_accuracy": 0.49228151794099895,
+        "mean_structure_score": 0.5586805762274495,
+        "mean_structure_f1_score": 0.6064239926739927,
+        "mean_cell_f1": {
+          "0.01": 0.14188492063492064,
+          "0.05": 0.15640873015873016,
+          "0.2": 0.28631105006105007
+        },
+        "mean_query_score": {
+          "0.01": 0.08209597846111004,
+          "0.05": 0.08861001997515155,
+          "0.2": 0.16413843599367223
+        },
+        "evaluation_json": "case study/workloads/runs/quwarts_forced_taxonomy_25pct_20260810/results/player_join20/evaluation.json"
+      }
+    },
+    "player_groupby20": {
+      "focus": "GROUP BY shape + closed position vocabulary",
+      "docetl": {
+        "mean_official_accuracy": 0.377,
+        "mean_structure_score": 0.437,
+        "mean_query_score": { "0.2": 0.150 },
+        "tokens": 20540522
+      },
+      "prior_quwarts": {
+        "mean_official_accuracy": 0.140,
+        "mean_structure_score": 0.152,
+        "mean_query_score": { "0.2": 0.092 },
+        "tokens": 5133540
+      },
+      "quwarts": {
+        "run_root": "case study/workloads/runs/quwarts_forced_taxonomy_25pct_20260809",
+        "token_budget": 5135131,
+        "mean_official_accuracy": 0.7473731292311598,
+        "mean_structure_score": 0.8500751845507654,
+        "mean_structure_f1_score": 0.8305429629012483,
+        "mean_cell_f1": {
+          "0.01": 0.28476467264317945,
+          "0.05": 0.31264928802779485,
+          "0.2": 0.5162362264081878
+        },
+        "mean_query_score": {
+          "0.01": 0.23499406380998944,
+          "0.05": 0.2610687244434736,
+          "0.2": 0.43776265093172856
+        },
+        "evaluation_json": "case study/workloads/runs/quwarts_forced_taxonomy_25pct_20260809/results/player_groupby20/evaluation.json"
+      }
+    },
+    "player_multiagg20": {
+      "focus": "multiple aggregates + HAVING",
+      "docetl": {
+        "mean_official_accuracy": 0.342,
+        "mean_structure_score": 0.415,
+        "mean_query_score": { "0.2": 0.111 },
+        "tokens": 22680169
+      },
+      "prior_quwarts": {
+        "mean_official_accuracy": 0.254,
+        "mean_structure_score": 0.378,
+        "mean_query_score": { "0.2": 0.124 },
+        "tokens": 5668033
+      },
+      "quwarts": {
+        "run_root": "case study/workloads/runs/quwarts_forced_taxonomy_25pct_20260810",
+        "token_budget": 5670042,
+        "mean_official_accuracy": 0.3475298343881894,
+        "mean_structure_score": 0.4755764101840681,
+        "mean_structure_f1_score": 0.5109854497354497,
+        "mean_cell_f1": {
+          "0.01": 0.14059193121693123,
+          "0.05": 0.14914847883597884,
+          "0.2": 0.21310460758377425
+        },
+        "mean_query_score": {
+          "0.01": 0.10777079760821116,
+          "0.05": 0.11333414648792493,
+          "0.2": 0.16035335564596087
+        },
+        "evaluation_json": "case study/workloads/runs/quwarts_forced_taxonomy_25pct_20260810/results/player_multiagg20/evaluation.json"
+      }
+    },
+    "player_filterjoin20": {
+      "focus": "selective filters with light joins",
+      "docetl": {
+        "mean_official_accuracy": 0.432,
+        "mean_structure_score": 0.486,
+        "mean_query_score": { "0.2": 0.106 },
+        "tokens": 24456613
+      },
+      "prior_quwarts": {
+        "mean_official_accuracy": 0.139,
+        "mean_structure_score": 0.141,
+        "mean_query_score": { "0.2": 0.087 },
+        "tokens": 6112574
+      },
+      "quwarts": {
+        "run_root": "case study/workloads/runs/quwarts_forced_taxonomy_25pct_20260810",
+        "token_budget": 6114153,
+        "mean_official_accuracy": 0.7470135076231319,
+        "mean_structure_score": 0.8359633648316578,
+        "mean_structure_f1_score": 0.8668442496615871,
+        "mean_cell_f1": {
+          "0.01": 0.24636108989050165,
+          "0.05": 0.2516242477852385,
+          "0.2": 0.3463850133354777
+        },
+        "mean_query_score": {
+          "0.01": 0.2033658059211928,
+          "0.05": 0.20766226134546778,
+          "0.2": 0.2840903445404683
+        },
+        "evaluation_json": "case study/workloads/runs/quwarts_forced_taxonomy_25pct_20260810/results/player_filterjoin20/evaluation.json"
+      }
+    }
+  },
+  "headline": {
+    "quwarts_beats_docetl_on": [
+      "player_join20",
+      "player_groupby20",
+      "player_multiagg20",
+      "player_filterjoin20"
+    ],
+    "largest_gains_vs_docetl": [
+      "player_groupby20",
+      "player_filterjoin20"
+    ],
+    "only_regression_vs_prior_quwarts": [
+      "player_join20"
+    ]
+  }
+}
