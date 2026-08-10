@@ -42,6 +42,228 @@ button {
   cursor: pointer;
 }
 
+.site-nav {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  display: flex;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.65rem;
+  border-bottom: 1px solid var(--line);
+  background: rgba(243, 239, 230, 0.92);
+  backdrop-filter: blur(12px);
+}
+
+.site-nav a {
+  padding: 0.45rem 0.75rem;
+  border-radius: 999px;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.86rem;
+}
+
+.site-nav a.active,
+.site-nav a:hover {
+  color: var(--paper);
+  background: var(--ink);
+}
+
+.contrast-page {
+  max-width: 1180px;
+}
+
+.contrast-hero {
+  position: relative;
+  z-index: 1;
+  padding: 5rem 0 3rem;
+}
+
+.contrast-hero h1 {
+  margin: 0.2rem 0 1rem;
+  font-family: "Syne", sans-serif;
+  font-size: clamp(2.7rem, 8vw, 6rem);
+  letter-spacing: -0.055em;
+  line-height: 0.95;
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--accent);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.contrast-notice {
+  max-width: 52rem;
+  padding: 0.85rem 1rem;
+  border-left: 3px solid var(--docetl);
+  background: var(--docetl-soft);
+}
+
+.contrast-token-summary,
+.contrast-aggregate-grid,
+.contrast-system-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.contrast-token-summary {
+  grid-template-columns: repeat(3, 1fr);
+  margin-bottom: 3rem;
+}
+
+.contrast-token-summary > div,
+.contrast-aggregate-grid article,
+.contrast-system,
+.contrast-evidence {
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.46);
+}
+
+.contrast-token-summary span,
+.contrast-token-summary strong {
+  display: block;
+}
+
+.contrast-token-summary span,
+.contrast-system dt,
+.contrast-evidence dt,
+.contrast-aggregate-grid dt {
+  color: var(--muted);
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.contrast-token-summary strong {
+  margin-top: 0.3rem;
+  font: 500 1.6rem "IBM Plex Mono", monospace;
+}
+
+.contrast-method {
+  max-width: 46rem;
+  margin-bottom: 4rem;
+}
+
+.contrast-workload {
+  padding: 3rem 0;
+  border-top: 1px solid var(--line);
+}
+
+.contrast-workload > header {
+  display: grid;
+  grid-template-columns: minmax(14rem, 0.8fr) 1.2fr;
+  gap: 2rem;
+  align-items: end;
+}
+
+.contrast-workload h2 {
+  margin: 0.25rem 0 0;
+  font: 700 clamp(1.6rem, 4vw, 2.5rem) "Syne", sans-serif;
+}
+
+.contrast-aggregate-grid,
+.contrast-system-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.contrast-aggregate-grid {
+  margin: 1.5rem 0;
+}
+
+.contrast-aggregate-grid h3,
+.contrast-system h3,
+.contrast-evidence h4 {
+  margin: 0 0 0.7rem;
+}
+
+.contrast-aggregate-grid dl,
+.contrast-system dl,
+.contrast-evidence dl {
+  margin: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.contrast-aggregate-grid dl > div,
+.contrast-system dl > div,
+.contrast-evidence dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.contrast-aggregate-grid dd,
+.contrast-system dd,
+.contrast-evidence dd {
+  margin: 0;
+  font-family: "IBM Plex Mono", monospace;
+}
+
+.contrast-query-list {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.contrast-query {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.contrast-query-head {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 12rem 1fr 11rem;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.9rem 1rem;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+
+.contrast-query-head strong {
+  color: var(--quwarts);
+  text-align: right;
+}
+
+.contrast-query-id {
+  color: var(--muted);
+  font: 0.72rem "IBM Plex Mono", monospace;
+}
+
+.contrast-query-body {
+  padding: 1rem;
+  border-top: 1px solid var(--line);
+}
+
+.contrast-query-body pre {
+  overflow: auto;
+  padding: 1rem;
+  border-radius: 8px;
+  color: #e8efe9;
+  background: var(--ink);
+  white-space: pre-wrap;
+}
+
+.contrast-explanation {
+  margin: 1rem 0;
+  padding: 0.8rem 1rem;
+  border-left: 3px solid var(--quwarts);
+  background: var(--quwarts-soft);
+}
+
+.contrast-missing {
+  color: var(--muted);
+}
+
 .page {
   position: relative;
   max-width: 1120px;
@@ -607,6 +829,18 @@ th {
   .reasons,
   .hero-metrics {
     grid-template-columns: 1fr;
+  }
+
+  .contrast-token-summary,
+  .contrast-aggregate-grid,
+  .contrast-system-grid,
+  .contrast-workload > header,
+  .contrast-query-head {
+    grid-template-columns: 1fr;
+  }
+
+  .contrast-query-head strong {
+    text-align: left;
   }
 }
 
