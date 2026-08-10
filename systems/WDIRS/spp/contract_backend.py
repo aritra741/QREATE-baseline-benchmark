@@ -88,7 +88,7 @@ from spp.workload_contract import (
 from token_counter import count_tokens
 
 
-BACKEND_VERSION = 29
+BACKEND_VERSION = 30
 HYBRID_BULK_VERSION = 5
 
 logger = logging.getLogger(__name__)
@@ -3268,17 +3268,16 @@ class ContractBackend:
             },
         )
 
-    def _add_bulk_derivation_mappings(
+    def _bulk_derivation_mappings(
         self,
         extractor: object,
-        result: object,
         bulk: Optional[SharedExtraction],
-    ) -> object:
+    ) -> Tuple[object, ...]:
         """Induce contract mappings over the bulk extractor's observed values."""
 
         derive = getattr(extractor, "derive_mappings", None)
         if bulk is None or not callable(derive):
-            return result
+            return ()
         records = tuple(
             ExtractionRecord(
                 entity=cell.relation,
@@ -3302,13 +3301,29 @@ class ContractBackend:
             # value NULL and make all constrained routes ineligible.
         )
         if not records:
-            return result
-        induced = tuple(derive(self.contract, records))
+            return ()
+        return tuple(derive(self.contract, records))
+
+    def _add_bulk_derivation_mappings(
+        self,
+        extractor: object,
+        result: object,
+        bulk: Optional[SharedExtraction],
+        *,
+        induced: Optional[Sequence[object]] = None,
+    ) -> object:
+        """Merge mappings induced from bulk observations into extraction."""
+
+        bulk_mappings = (
+            tuple(induced)
+            if induced is not None
+            else self._bulk_derivation_mappings(extractor, bulk)
+        )
         existing = tuple(
             _member(result, "derivation_mappings", default=()) or ()
         )
         mappings: Dict[str, object] = {}
-        for mapping in (*existing, *induced):
+        for mapping in (*existing, *bulk_mappings):
             mappings[_fingerprint(_jsonable(mapping))] = mapping
         if is_dataclass(result) and hasattr(result, "derivation_mappings"):
             return replace(
@@ -4234,22 +4249,27 @@ class ContractBackend:
                         reason="extractor has no mapping escrow support",
                     )
                     taxonomy_escrow = None
-                result = extractor.extract(self.contract)
-                result, validation_issues = self._adaptive_repair(
-                    extractor,
-                    result,
-                    ledger,
-                )
                 release_mapping_escrow = getattr(
                     extractor, "release_mapping_escrow", None
                 )
                 if callable(release_mapping_escrow):
                     release_mapping_escrow()
                     taxonomy_escrow = None
+                bulk_mappings = self._bulk_derivation_mappings(
+                    extractor,
+                    bulk_shared,
+                )
+                result = extractor.extract(self.contract)
+                result, validation_issues = self._adaptive_repair(
+                    extractor,
+                    result,
+                    ledger,
+                )
                 result = self._add_bulk_derivation_mappings(
                     extractor,
                     result,
                     bulk_shared,
+                    induced=bulk_mappings,
                 )
             finally:
                 if taxonomy_escrow is not None:
