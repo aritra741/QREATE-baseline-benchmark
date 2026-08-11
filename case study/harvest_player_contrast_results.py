@@ -123,16 +123,57 @@ def _actual_tokens(result_dir: Path) -> int | None:
 
 
 def _find_evaluation(root: Path, workload_id: str) -> Path | None:
+    if not root.exists():
+        return None
     candidates = (
         root / "results" / workload_id / "evaluation.json",
         root / workload_id / "evaluation.json",
         root / workload_id / "results" / "evaluation.json",
+        root / "docetl" / "results" / workload_id / "evaluation.json",
     )
     for path in candidates:
         if path.is_file():
             return path
     matches = sorted(root.rglob(f"*/{workload_id}/evaluation.json"))
     return matches[0] if matches else None
+
+
+def _discover_docetl_evaluation(workload_id: str) -> Path | None:
+    """Find DocETL evaluation when results are split across timestamped runs."""
+    runs = CASE / "workloads" / "runs"
+    preferred = {
+        "player_join20": runs
+        / "20260808T222754Z"
+        / "docetl"
+        / "results"
+        / "player_join20"
+        / "evaluation.json",
+        "player_groupby20": runs
+        / "20260809T002918Z"
+        / "docetl"
+        / "results"
+        / "player_groupby20"
+        / "evaluation.json",
+        "player_multiagg20": runs
+        / "20260809T024938Z"
+        / "docetl"
+        / "results"
+        / "player_multiagg20"
+        / "evaluation.json",
+        "player_filterjoin20": runs
+        / "20260809T024938Z"
+        / "docetl"
+        / "results"
+        / "player_filterjoin20"
+        / "evaluation.json",
+    }
+    path = preferred.get(workload_id)
+    if path is not None and path.is_file():
+        return path
+    matches = sorted(runs.glob(f"*/docetl/results/{workload_id}/evaluation.json"))
+    if not matches:
+        return None
+    return max(matches, key=lambda item: item.stat().st_mtime)
 
 
 def _normalise_per_query(value: Any, workload_id: str, system: str) -> dict[str, Any]:
@@ -181,11 +222,16 @@ def _validate_system(
 
 
 def _system_entry(root: Path | None, workload_id: str, system: str) -> dict[str, Any]:
-    if root is None:
-        return {"status": "missing_root"}
-    path = _find_evaluation(root, workload_id)
+    path = _find_evaluation(root, workload_id) if root is not None else None
+    if path is None and system == "docetl":
+        path = _discover_docetl_evaluation(workload_id)
     if path is None:
-        return {"status": "missing_evaluation", "searched_under": str(root)}
+        if root is None:
+            return {"status": "missing_root"}
+        return {
+            "status": "missing_evaluation",
+            "searched_under": str(root),
+        }
     evaluation = _read_json(path)
     entry = {
         "status": "ok",

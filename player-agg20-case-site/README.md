@@ -7,16 +7,23 @@ is served at `/contrasts`.
 
 ## Harvest contrast results
 
-Run the strict harvest on HPC after all QuWARTS and DocETL evaluations finish:
+DocETL contrast results are split across timestamped run folders. Stage them
+first (includes `evaluation.json` + `query_tables/`), then harvest:
 
 ```bash
 cd /path/to/UDA-Bench-main
+
+python3 "case study/stage_docetl_contrast_results.py"
+
 python3 "case study/harvest_player_contrast_results.py" \
   --quwarts-root "case study/workloads/runs/quwarts_forced_taxonomy_25pct_20260810" \
   --groupby-root "case study/workloads/runs/quwarts_forced_taxonomy_25pct_20260809" \
-  --docetl-root "case study/workloads/runs/docetl_contrast" \
+  --docetl-root "case study/workloads/runs/docetl_contrast_staged" \
   --output "player-agg20-case-site/src/contrast-data.json"
 ```
+
+If you skip staging, omit `--docetl-root` and the harvester will look up the
+known DocETL paths under `case study/workloads/runs/*/docetl/results/`.
 
 This is the publishing path: it requires both systems' `evaluation.json` for all
 four workloads, exactly 20 matching records per evaluation, finite metrics, and
