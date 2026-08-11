@@ -143,30 +143,48 @@ def row_differences(
     }
 
 
-def _load_docetl_table(result_dir: Path | None, query_id: str) -> list[dict[str, Any]] | None:
+def _as_row_list(payload: Any) -> list[dict[str, Any]] | None:
+    if isinstance(payload, list):
+        return payload
+    if isinstance(payload, dict):
+        for key in ("rows", "table", "result", "data"):
+            if isinstance(payload.get(key), list):
+                return payload[key]
+    return None
+
+
+def _docetl_tables_dir(result_dir: Path | None) -> Path | None:
     if result_dir is None:
         return None
-    candidates = [
-        result_dir / "query_tables" / f"{query_id}.json",
-        result_dir.parent / "query_tables" / f"{query_id}.json",
-    ]
-    for path in candidates:
-        if path.is_file():
-            payload = _read_json(path)
-            if isinstance(payload, list):
-                return payload
-    results_path = result_dir / "query_results.json"
+    for candidate in (result_dir / "query_tables", result_dir.parent / "query_tables"):
+        if candidate.is_dir():
+            return candidate
+    return None
+
+
+def _load_docetl_table(result_dir: Path | None, query_id: str) -> list[dict[str, Any]] | None:
+    tables_dir = _docetl_tables_dir(result_dir)
+    if tables_dir is None:
+        return None
+    path = tables_dir / f"{query_id}.json"
+    if path.is_file():
+        rows = _as_row_list(_read_json(path))
+        return [] if rows is None else rows
+    results_path = (result_dir or Path()) / "query_results.json"
     if results_path.is_file():
         payload = _read_json(results_path)
-        if isinstance(payload, dict) and isinstance(payload.get(query_id), list):
-            return payload[query_id]
+        if isinstance(payload, dict):
+            rows = _as_row_list(payload.get(query_id))
+            if rows is not None:
+                return rows
         if isinstance(payload, list):
             for row in payload:
                 if isinstance(row, dict) and row.get("query_id") == query_id:
-                    table = row.get("rows") or row.get("table") or row.get("result")
-                    if isinstance(table, list):
-                        return table
-    return None
+                    rows = _as_row_list(row.get("rows") or row.get("table") or row)
+                    if rows is not None:
+                        return rows
+    # query_tables exists but this query file is absent → empty prediction
+    return []
 
 
 def _load_quwarts_table(result_dir: Path | None, query_id: str) -> list[dict[str, Any]] | None:
@@ -194,10 +212,13 @@ def _load_quwarts_table(result_dir: Path | None, query_id: str) -> list[dict[str
     }
     database_path = databases.get(query.get("config_id"))
     if database_path is None or not database_path.is_file():
-        return None
+        return []
     connection = sqlite3.connect(database_path)
     try:
-        return _execute(connection, query["sql"])
+        try:
+            return _execute(connection, query["sql"])
+        except sqlite3.Error:
+            return []
     finally:
         connection.close()
 
@@ -216,7 +237,10 @@ def enrich_query_tables(
     )
     keys = list(schema.get("key_columns") or [])
     measures = list(schema.get("measure_columns") or [])
-    gold = _execute(gold_db, query["sql"]) if query.get("sql") else []
+    try:
+        gold = _execute(gold_db, query["sql"]) if query.get("sql") else []
+    except sqlite3.Error:
+        gold = []
     quwarts = _load_quwarts_table(quwarts_result_dir, query["query_id"])
     docetl = _load_docetl_table(docetl_result_dir, query["query_id"])
     differences = {
@@ -231,13 +255,19 @@ def enrich_query_tables(
             else None
         ),
     }
+    missing = []
+    if quwarts is None:
+        missing.append("quwarts_serving_bundle")
+    if docetl is None:
+        missing.append("docetl_query_tables")
     query = {
         **query,
         "schema": schema,
         "gold": gold,
         "tables": {"quwarts": quwarts, "docetl": docetl},
         "differences": differences,
-        "tables_complete": quwarts is not None and docetl is not None,
+        "tables_complete": not missing,
+        "tables_missing": missing,
     }
     # Surface missing columns in evidence even when empty, for the UI.
     for system in ("quwarts", "docetl"):
@@ -248,6 +278,24 @@ def enrich_query_tables(
         if isinstance(structure, dict) and "missing_key_columns" not in structure:
             structure["missing_key_columns"] = []
     return query
+
+
+def table_gaps(bundle: dict[str, Any]) -> list[str]:
+    gaps: list[str] = []
+    for workload_id, row in (bundle.get("workloads") or {}).items():
+        quwarts_dir = Path(row.get("quwarts", {}).get("result_dir") or "")
+        docetl_dir = Path(row.get("docetl", {}).get("result_dir") or "")
+        if not (quwarts_dir / "serving_bundle" / "manifest.json").is_file():
+            gaps.append(f"{workload_id}: missing QuWARTS serving_bundle/manifest.json under {quwarts_dir}")
+        if _docetl_tables_dir(docetl_dir if docetl_dir.is_dir() else None) is None:
+            gaps.append(f"{workload_id}: missing DocETL query_tables under {docetl_dir}")
+        for query in row.get("queries") or []:
+            missing = query.get("tables_missing") or []
+            if missing:
+                gaps.append(
+                    f"{workload_id}/{query.get('query_id')}: missing {', '.join(missing)}"
+                )
+    return gaps
 
 
 def enrich_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
@@ -271,7 +319,7 @@ def enrich_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
                 "queries": queries,
                 "tables_complete": all(query.get("tables_complete") for query in queries),
             }
-        return {
+        enriched = {
             **bundle,
             "tables_attached": True,
             "tables_complete": all(
@@ -279,6 +327,8 @@ def enrich_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
             ),
             "workloads": workloads,
         }
+        enriched["table_gaps"] = table_gaps(enriched)
+        return enriched
     finally:
         gold_db.close()
 

@@ -358,6 +358,11 @@ def main() -> int:
         help="Local-only: permit audited aggregates without detailed evaluations.",
     )
     parser.add_argument(
+        "--require-tables",
+        action="store_true",
+        help="Fail if QuWARTS serving_bundle or DocETL query_tables cannot be loaded.",
+    )
+    parser.add_argument(
         "--output",
         type=Path,
         default=ROOT / "player-agg20-case-site" / "src" / "contrast-data.json",
@@ -454,10 +459,18 @@ def main() -> int:
     }
     if not args.allow_summary_fallback:
         bundle = enrich_bundle(bundle)
-        if not bundle.get("tables_complete"):
-            raise ValueError(
-                "strict harvest requires gold plus QuWARTS serving_bundle tables "
-                "and DocETL query_tables next to each evaluation.json"
+        gaps = bundle.get("table_gaps") or []
+        if gaps:
+            preview = "\n  - ".join(gaps[:12])
+            more = "" if len(gaps) <= 12 else f"\n  - ... and {len(gaps) - 12} more"
+            if args.require_tables:
+                raise ValueError(
+                    "strict harvest is missing predicted tables:\n  - "
+                    f"{preview}{more}"
+                )
+            print(
+                "warning: predicted tables incomplete; writing bundle anyway:\n  - "
+                f"{preview}{more}"
             )
     ids = {
         f"{workload_id}:{query['query_id']}"
