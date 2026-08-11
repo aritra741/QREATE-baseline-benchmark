@@ -1,5 +1,6 @@
 import { useState } from "react";
 import data from "./contrast-data.json";
+import { DiffBlock, ResultTable, WrongValues } from "./tableViews.jsx";
 
 const LEVEL = data.primary_error_level || "0.2";
 
@@ -17,16 +18,34 @@ function metric(record, key) {
   return record[key]?.[LEVEL] ?? record.rank?.[key]?.[LEVEL] ?? null;
 }
 
+function listOrNone(values) {
+  if (!values?.length) return "None";
+  return values.join(", ");
+}
+
 function Evidence({ system, evidence }) {
   if (!evidence) {
     return <p className="contrast-missing">{system} per-query evidence is not available.</p>;
   }
   const structure = evidence.structure || {};
   const value = evidence.value || {};
+  const schema = evidence.schema || {};
   return (
     <div className="contrast-evidence">
       <h4>{system}</h4>
       <dl>
+        <div>
+          <dt>Key columns</dt>
+          <dd>{listOrNone(schema.key_columns)}</dd>
+        </div>
+        <div>
+          <dt>Measure columns</dt>
+          <dd>{listOrNone(schema.measure_columns)}</dd>
+        </div>
+        <div>
+          <dt>Missing key columns</dt>
+          <dd>{listOrNone(structure.missing_key_columns)}</dd>
+        </div>
         <div>
           <dt>Rows</dt>
           <dd>
@@ -42,17 +61,19 @@ function Evidence({ system, evidence }) {
           <dd>{pct(value.row_recall_context)}</dd>
         </div>
       </dl>
-      {structure.missing_key_columns?.length ? (
-        <p>Missing key columns: {structure.missing_key_columns.join(", ")}</p>
-      ) : null}
     </div>
   );
 }
 
 function QueryCard({ workloadId, query }) {
   const [open, setOpen] = useState(false);
-  const qScore = metric(query.metrics.quwarts, "query_score");
-  const dScore = metric(query.metrics.docetl, "query_score");
+  const metrics = query.metrics || {};
+  const evidence = query.evidence || {};
+  const schema = query.schema || metrics.quwarts?.schema || metrics.docetl?.schema || {};
+  const tables = query.tables || {};
+  const differences = query.differences || {};
+  const qScore = metric(metrics.quwarts, "query_score");
+  const dScore = metric(metrics.docetl, "query_score");
   const winner =
     qScore == null || dScore == null
       ? "Awaiting detailed metrics"
@@ -72,8 +93,8 @@ function QueryCard({ workloadId, query }) {
         <pre>{query.sql}</pre>
         <div className="contrast-system-grid">
           {[
-            ["QuWARTS", query.metrics.quwarts],
-            ["DocETL", query.metrics.docetl],
+            ["QuWARTS", metrics.quwarts],
+            ["DocETL", metrics.docetl],
           ].map(([name, record]) => (
             <section key={name} className="contrast-system">
               <h3>{name}</h3>
@@ -87,8 +108,58 @@ function QueryCard({ workloadId, query }) {
         </div>
         <p className="contrast-explanation">{query.explanation}</p>
         <div className="contrast-system-grid">
-          <Evidence system="QuWARTS evidence" evidence={query.evidence.quwarts} />
-          <Evidence system="DocETL evidence" evidence={query.evidence.docetl} />
+          <Evidence system="QuWARTS evidence" evidence={evidence.quwarts} />
+          <Evidence system="DocETL evidence" evidence={evidence.docetl} />
+        </div>
+        <div className="tables-grid">
+          <div>
+            <h3>Ground truth</h3>
+            <ResultTable rows={query.gold} schema={schema} emptyLabel="Ground-truth table not attached." />
+          </div>
+          <div>
+            <h3>QuWARTS output</h3>
+            <ResultTable
+              rows={tables.quwarts}
+              schema={schema}
+              emptyLabel={tables.quwarts == null ? "Predicted table not in bundle (need serving_bundle)." : "No rows."}
+            />
+          </div>
+          <div>
+            <h3>DocETL output</h3>
+            <ResultTable
+              rows={tables.docetl}
+              schema={schema}
+              emptyLabel={tables.docetl == null ? "Predicted table not in bundle (need query_tables)." : "No rows."}
+            />
+          </div>
+        </div>
+        <div className="diff-grid">
+          <div>
+            <h3>What QuWARTS got wrong</h3>
+            {differences.quwarts ? (
+              <>
+                <DiffBlock title="Missing groups" rows={differences.quwarts.missing_rows} schema={schema} />
+                <DiffBlock title="Extra groups" rows={differences.quwarts.extra_rows} schema={schema} />
+                <h5>Wrong values</h5>
+                <WrongValues wrong={differences.quwarts.wrong_values} />
+              </>
+            ) : (
+              <p className="empty">Diff unavailable until QuWARTS predicted rows are harvested.</p>
+            )}
+          </div>
+          <div>
+            <h3>What DocETL got wrong</h3>
+            {differences.docetl ? (
+              <>
+                <DiffBlock title="Missing groups" rows={differences.docetl.missing_rows} schema={schema} />
+                <DiffBlock title="Extra groups" rows={differences.docetl.extra_rows} schema={schema} />
+                <h5>Wrong values</h5>
+                <WrongValues wrong={differences.docetl.wrong_values} />
+              </>
+            ) : (
+              <p className="empty">Diff unavailable until DocETL predicted rows are harvested.</p>
+            )}
+          </div>
         </div>
       </div>
     </article>
@@ -96,9 +167,15 @@ function QueryCard({ workloadId, query }) {
 }
 
 export default function ContrastPage() {
-  const workloads = Object.entries(data.workloads);
-  const qTokens = workloads.reduce((sum, [, row]) => sum + Number(row.quwarts.tokens_actual || 0), 0);
-  const dTokens = workloads.reduce((sum, [, row]) => sum + Number(row.docetl.tokens_actual || 0), 0);
+  const workloads = Object.entries(data.workloads || {});
+  const qTokens = workloads.reduce((sum, [, row]) => {
+    const value = row.quwarts?.tokens_actual;
+    return value == null ? sum : (sum ?? 0) + Number(value);
+  }, null);
+  const dTokens = workloads.reduce((sum, [, row]) => {
+    const value = row.docetl?.tokens_actual;
+    return value == null ? sum : (sum ?? 0) + Number(value);
+  }, null);
   return (
     <div className="page contrast-page">
       <div className="atmosphere" aria-hidden="true" />
@@ -109,6 +186,11 @@ export default function ContrastPage() {
         {!data.per_query_metrics_complete ? (
           <p className="contrast-notice">This local bundle uses audited aggregate results. Query SQL and descriptions are complete; per-query system metrics will appear after the strict HPC harvest.</p>
         ) : null}
+        {data.tables_attached && !data.tables_complete ? (
+          <p className="contrast-notice">
+            Ground-truth tables are attached. Predicted QuWARTS/DocETL tables (and therefore missing/extra groups) appear after the result directories include `serving_bundle` and `query_tables` next to each `evaluation.json`.
+          </p>
+        ) : null}
       </header>
       <main>
         <section className="contrast-token-summary">
@@ -118,11 +200,12 @@ export default function ContrastPage() {
         </section>
         <section className="contrast-method">
           <h2>Methodology</h2>
-          <p>Aggregate cards compare official accuracy, structure score, and the structure × cell-F1 query score at 20% relative-error tolerance. Explanations state only differences present in the harvested metrics and evidence.</p>
+          <p>Aggregate cards compare official accuracy, structure score, and the structure × cell-F1 query score at 20% relative-error tolerance. Expanded queries show ground truth, system outputs, missing groups, extra groups, and wrong values when those tables are harvested.</p>
         </section>
         {workloads.map(([workloadId, row]) => {
-          const q = row.quwarts.scores;
-          const d = row.docetl.scores;
+          const q = row.quwarts?.scores || {};
+          const d = row.docetl?.scores || {};
+          const queries = row.queries || [];
           return (
             <section className="contrast-workload" key={workloadId} id={workloadId}>
               <header>
@@ -131,8 +214,8 @@ export default function ContrastPage() {
               </header>
               <div className="contrast-aggregate-grid">
                 {[
-                  ["QuWARTS", q, row.quwarts.tokens_actual],
-                  ["DocETL", d, row.docetl.tokens_actual],
+                  ["QuWARTS", q, row.quwarts?.tokens_actual],
+                  ["DocETL", d, row.docetl?.tokens_actual],
                 ].map(([name, scores, tokenCount]) => (
                   <article key={name}>
                     <h3>{name}</h3>
@@ -146,7 +229,7 @@ export default function ContrastPage() {
                 ))}
               </div>
               <div className="contrast-query-list">
-                {row.queries.map((query) => <QueryCard key={query.query_id} workloadId={workloadId} query={query} />)}
+                {queries.map((query) => <QueryCard key={query.query_id} workloadId={workloadId} query={query} />)}
               </div>
             </section>
           );

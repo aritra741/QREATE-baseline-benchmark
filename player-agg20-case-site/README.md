@@ -20,7 +20,18 @@ python3 "case study/harvest_player_contrast_results.py" \
 
 This is the publishing path: it requires both systems' `evaluation.json` for all
 four workloads, exactly 20 matching records per evaluation, finite metrics, and
-unique manifest IDs. Validation happens before the output is atomically replaced.
+unique manifest IDs. It also attaches ground-truth tables plus system outputs so
+`/contrasts` can show missing groups, extra groups, and wrong values. Keep
+QuWARTS `serving_bundle/` and DocETL `query_tables/` next to each
+`evaluation.json` (do not stage scores alone). Validation happens before the
+output is atomically replaced.
+
+If a local bundle already has scores but not tables:
+
+```bash
+python3 "case study/contrast_table_enrichment.py" \
+  --bundle "player-agg20-case-site/src/contrast-data.json"
+```
 
 For a local UI build without detailed HPC artifacts:
 

@@ -14,6 +14,7 @@ import json
 import math
 import os
 import tempfile
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -27,6 +28,10 @@ WORKLOADS = (
     "player_filterjoin20",
 )
 EXPECTED_QUERY_COUNT = 20
+
+if str(CASE) not in sys.path:
+    sys.path.insert(0, str(CASE))
+from contrast_table_enrichment import enrich_bundle  # noqa: E402
 
 
 def _read_json(path: Path) -> Any:
@@ -329,6 +334,17 @@ def main() -> int:
                     quwarts = _fallback_entry(fallback, system)
                 else:
                     docetl = _fallback_entry(fallback, system)
+        # Staged DocETL trees often copy only evaluation.json, so token ledgers are
+        # absent. Backfill actual spend from the contrast summary when present.
+        for system_name, entry in (("quwarts", quwarts), ("docetl", docetl)):
+            if entry.get("tokens_actual") is not None:
+                continue
+            source = fallback.get(system_name) or {}
+            for key in ("tokens", "token_budget", "total_tokens"):
+                if source.get(key) is not None:
+                    entry["tokens_actual"] = int(source[key])
+                    entry["tokens_source"] = f"summary.{key}"
+                    break
         _validate_system(quwarts, workload_id, "quwarts", not args.allow_summary_fallback)
         _validate_system(docetl, workload_id, "docetl", not args.allow_summary_fallback)
         q_records, d_records = quwarts.get("per_query") or {}, docetl.get("per_query") or {}
@@ -390,6 +406,13 @@ def main() -> int:
         "workloads": workloads,
         "headline": summary.get("headline"),
     }
+    if not args.allow_summary_fallback:
+        bundle = enrich_bundle(bundle)
+        if not bundle.get("tables_complete"):
+            raise ValueError(
+                "strict harvest requires gold plus QuWARTS serving_bundle tables "
+                "and DocETL query_tables next to each evaluation.json"
+            )
     ids = {
         f"{workload_id}:{query['query_id']}"
         for workload_id, row in workloads.items()
