@@ -19,6 +19,10 @@ from spp.spec import (
 )
 
 
+class PortfolioInfeasible(RuntimeError):
+    """No candidate can satisfy a workload contract independent of budget."""
+
+
 @dataclass
 class PilotResult:
     config_id: str
@@ -381,10 +385,51 @@ def select_budgeted_portfolio(
                 )
             ]
             if incompatible_query_ids:
-                rendered_ids = ", ".join(incompatible_query_ids)
-                raise BudgetExhausted(
-                    "no full-cover portfolio satisfies the quality floor; "
-                    f"incompatible queries: {rendered_ids}"
+                details = []
+                for query_id in incompatible_query_ids:
+                    requirement = next(
+                        item
+                        for item in requirements
+                        if item.query_id == query_id
+                    )
+                    covering = [
+                        config
+                        for config in config_list
+                        if config.schema.covers(requirement)
+                    ]
+                    estimated = [
+                        (
+                            config,
+                            estimates.get((query_id, config.config_id)),
+                        )
+                        for config in covering
+                        if estimates.get((query_id, config.config_id))
+                        is not None
+                    ]
+                    eligible = [
+                        (config, estimate)
+                        for config, estimate in estimated
+                        if estimate is not None and estimate.route_eligible
+                    ]
+                    above_floor = [
+                        (config, estimate)
+                        for config, estimate in eligible
+                        if estimate.lower_confidence_bound(beta)
+                        >= quality_floor
+                    ]
+                    details.append(
+                        f"{query_id}("
+                        f"candidates={len(config_list)}, "
+                        f"schema_cover={len(covering)}, "
+                        f"estimated={len(estimated)}, "
+                        f"route_eligible={len(eligible)}, "
+                        f"above_floor={len(above_floor)})"
+                    )
+                raise PortfolioInfeasible(
+                    "no candidate can serve every workload contract; "
+                    "this is not a token-budget exhaustion. "
+                    "Incompatible query diagnostics: "
+                    + ", ".join(details)
                 )
 
             rows = 1 + n_queries + n_queries * n_configs

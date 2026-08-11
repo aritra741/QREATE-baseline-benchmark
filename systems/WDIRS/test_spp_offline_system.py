@@ -33,6 +33,7 @@ from spp.experiment import (
 )
 from spp.optimizer import (
     PilotResult,
+    PortfolioInfeasible,
     canonical_output_signature,
     collapse_output_equivalent,
     diverse_candidate_order,
@@ -1248,6 +1249,41 @@ def test_portfolio_never_routes_to_contract_ineligible_candidate():
     )
 
     assert portfolio.query_to_config["q0"] == semantic.config_id
+
+
+def test_portfolio_reports_contract_infeasibility_separately_from_budget():
+    requirement = _player_requirement()
+    raw = _config("raw", requirement)
+    estimates = {
+        (
+            "q0",
+            raw.config_id,
+        ): QualityEstimate(
+            "q0",
+            raw.config_id,
+            1.0,
+            1.0,
+            0.0,
+            1.0,
+            1,
+            components={"contract_route_eligible": 0.0},
+        )
+    }
+
+    with pytest.raises(PortfolioInfeasible) as error:
+        select_budgeted_portfolio(
+            [raw],
+            [requirement],
+            estimates,
+            {raw.config_id: 10},
+            token_budget=1_000_000,
+            quality_floor=0.0,
+        )
+
+    message = str(error.value)
+    assert "not a token-budget exhaustion" in message
+    assert "q0(" in message
+    assert "route_eligible=0" in message
 
 
 def test_portfolio_selects_multiple_shared_databases_only_for_coverage_gain():

@@ -619,6 +619,82 @@ def test_filtered_grouping_uses_sql_category_targets_for_taxonomy(tmp_path):
     }
 
 
+def test_closed_vocabulary_taxonomy_maps_one_observed_value(tmp_path):
+    class SinglePositionClient:
+        model = "fixture"
+
+        def __init__(self):
+            self.ledger = type("Ledger", (), {"actual_spent": 0})()
+
+        def generate(self, prompt, **_kwargs):
+            assert (
+                'Canonical target values: ["Backcourt", "Frontcourt"]'
+                in prompt
+            )
+            return json.dumps(
+                [
+                    {
+                        "source_value": "Center",
+                        "target_value": "Frontcourt",
+                    }
+                ]
+            )
+
+    document = type(
+        "Document",
+        (),
+        {
+            "document_id": "player/1.txt",
+            "text": "Center",
+            "metadata": {},
+        },
+    )()
+    attribute = AttributeContract(
+        "player",
+        "position",
+        semantic_types=("text",),
+        contexts=(("q4", ("filter:=", "group_by")),),
+        query_hints=(
+            (
+                "q4",
+                "For Frontcourt and Backcourt players separately, count teams.",
+            ),
+        ),
+        value_constraints=(("q4", ("Backcourt", "Frontcourt")),),
+    )
+    contract = WorkloadContract(
+        entities=(EntityContract("player"),),
+        attributes=(attribute,),
+        relationships=(),
+    )
+    record = ExtractionRecord(
+        "player",
+        "position",
+        "1",
+        "Center",
+        "Center",
+        None,
+        "player/1.txt",
+        "u1",
+        0,
+        6,
+    )
+
+    with EvidenceStore(tmp_path / "single-position-taxonomy.sqlite") as evidence:
+        extractor = ContractExtractor(
+            (document,),
+            SinglePositionClient(),
+            evidence,
+            max_workers=1,
+        )
+        mappings = extractor._taxonomy_mappings(contract, (record,))
+
+    assert {
+        (mapping.source_value, mapping.target_value)
+        for mapping in mappings
+    } == {("Center", "Frontcourt")}
+
+
 def test_join_key_er_resolves_declared_multihop_component_only(tmp_path):
     class JoinEntityClient:
         model = "fixture"
@@ -960,6 +1036,9 @@ def test_contract_response_parser_accepts_envelopes_and_mixed_arrays():
     ) == [row]
     assert ContractExtractor._parse_response(
         json.dumps([row, "discard this commentary", None])
+    ) == [row]
+    assert ContractExtractor._parse_response(
+        json.dumps([json.dumps(row)])
     ) == [row]
     assert ContractExtractor._recover_scalar_entity_response(
         '["Example"]',

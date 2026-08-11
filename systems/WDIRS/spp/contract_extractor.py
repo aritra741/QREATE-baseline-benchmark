@@ -886,6 +886,24 @@ class ContractExtractor:
                     for nested in item
                     if isinstance(nested, Mapping)
                 )
+            elif isinstance(item, str):
+                # Some local models double-encode each requested object inside
+                # a JSON string, e.g. ["{\"identity\": ...}"]. Recover only
+                # strings that independently decode to an object; ordinary
+                # commentary remains invalid and cannot become evidence.
+                candidate = item.strip()
+                if candidate.startswith("{") and candidate.endswith("}"):
+                    try:
+                        nested = json.loads(candidate)
+                    except json.JSONDecodeError:
+                        try:
+                            nested = repair_json(
+                                candidate, return_objects=True
+                            )
+                        except Exception:
+                            nested = None
+                    if isinstance(nested, Mapping):
+                        rows.append(dict(nested))
         if payload and not rows:
             raise ValueError(
                 "contract extraction response must contain object rows"
@@ -2052,7 +2070,7 @@ class ContractExtractor:
             values = tuple(
                 sorted({str(record.value).strip() for record in candidates})
             )
-            if len(values) < 2:
+            if not values or (len(values) < 2 and not target_values):
                 continue
             if not target_values:
                 result.extend(
