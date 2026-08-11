@@ -1,0 +1,40 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+The query is about players older than 25, but there are no players mentioned in the context. The context only provides information about a single individual named Elmer Behnke. We need to check if he meets the criteria of being older than 25 and then extract the required fields.
+
+1. **Check Age**: 
+   - Birth date: February 3, 1929
+   - Death date (if applicable): May 25, 2018
+
+   Calculate age at death:
+   \[
+   2018 - 1929 = 89 \text{ years old}
+   \]
+   
+   Since he died in 2018 and was born in 1929, Elmer Behnke is indeed older than 25.
+
+2. **Extract Required Fields**:
+   - Name: "Elmer H. Behnke"
+   - Position: Not explicitly mentioned but can be inferred as a basketball player.
+   - Team: Milwaukee Hawks (1951-52)
+   - Founded Year of the Team: The context does not provide this information, so we will assume it is not available.
+
+Given these steps and the provided context:
+
+```json
+{
+  "age": 89,
+  "name": "Elmer H. Behnke",
+  "position": "player",
+  "team": "Milwaukee Hawks"
+}
+```
+
+---
+
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: For players older than 25, list player name, position, team name, and team founded year.. Return a short normalized string.'), 'position': FieldInfo(annotation=Union[str, Any], required=True, description='position from the player document for query: For players older than 25, list player name, position, team name, and team founded year.. Return a short normalized string.'), 'age': FieldInfo(annotation=Union[float, Any], required=True, description='age from the player document for query: For players older than 25, list player name, position, team name, and team founded year.. Return a number.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: For players older than 25, list player name, position, team name, and team founded year.. Return a short normalized string.')}
+#####
+Expecting property name enclosed in double quotes: line 1 column 3 (char 2)

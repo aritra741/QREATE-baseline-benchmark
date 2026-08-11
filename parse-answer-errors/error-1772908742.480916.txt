@@ -1,0 +1,32 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To extract the required information from the context, we need to identify the relevant details for each output field:
+
+1. **age**: The age of Devontae Cacok can be calculated using his birth date (October 8, 1996) and the current year.
+2. **name**: The name is provided in the text as "Devontae Cacok".
+3. **nationality**: The nationality is mentioned as "American".
+4. **team**: The team he plays for currently is "Virtus Bologna".
+
+Let's calculate the age first:
+
+- Current year: 2023
+- Birth year: 1996
+
+Age = 2023 - 1996 = 27 years old.
+
+Now, we can construct the JSON object with these values.
+---
+```json
+{
+  "age": 27,
+  "name": "Devontae Cacok",
+  "nationality": "American",
+  "team": "Virtus Bologna"
+}
+```
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description="name from the player document for query: List each player's name, nationality, and age with their team name and team location.. Return a short normalized string."), 'nationality': FieldInfo(annotation=Union[str, Any], required=True, description="nationality from the player document for query: List each player's name, nationality, and age with their team name and team location.. Return a short normalized string."), 'age': FieldInfo(annotation=Union[float, Any], required=True, description="age from the player document for query: List each player's name, nationality, and age with their team name and team location.. Return a number."), 'team': FieldInfo(annotation=Union[str, Any], required=True, description="team from the player document for query: List each player's name, nationality, and age with their team name and team location.. Return a short normalized string.")}
+#####
+Expecting value: line 1 column 1 (char 0)

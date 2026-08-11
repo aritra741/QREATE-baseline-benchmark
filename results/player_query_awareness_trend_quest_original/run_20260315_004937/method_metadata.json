@@ -1,0 +1,18 @@
+{
+  "script": "test_player_query_awareness_trend_quest.py",
+  "source_codebase": "systems/QUEST-original",
+  "query_file": "/uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/Query/Player/query_aware_trend_queries.sql",
+  "ground_truth_dir": "/uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/Data/Player",
+  "source_docs_dir": "/uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/source_data/Player",
+  "bridge_mode": "quest_original_single_table_extraction_plus_sql_join",
+  "doc_sample_size": 20,
+  "segment_sample_size": 10,
+  "token_accounting": "sum(all_actual_token) across per-table QUEST-original runs",
+  "notes": [
+    "This script uses the original QUEST extraction modules, not quest-old.",
+    "Join queries are executed over SQLite tables built from QUEST-original extractions.",
+    "Only benchmark queries with a real top-level WHERE clause are run.",
+    "Anchor tables use real benchmark predicates; downstream tables use real derived join predicates built from upstream extracted join values.",
+    "No synthetic always-true WHERE clause is used anywhere in the extraction pipeline."
+  ]
+}

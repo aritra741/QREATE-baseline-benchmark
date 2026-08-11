@@ -1,0 +1,27 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To determine the location and team name from the given context:
+
+1. **Team Name**: The text clearly states "The San Antonio Spurs" multiple times, indicating that this is the name of the team.
+2. **Location**: The passage mentions several locations related to the Spurs, but the most relevant for the query are "San Antonio," where the team plays its home games and has a strong community presence.
+
+Based on these points:
+
+- **team_name**: San Antonio Spurs
+- **location**: San Antonio
+
+Now, let's format this into the required JSON object.
+---
+```json
+{
+  "team_name": "San Antonio Spurs",
+  "location": "San Antonio"
+}
+```
+---
+#####
+{'team_name': FieldInfo(annotation=Union[str, Any], required=True, description='team_name from the team document for query: List player name with team name, city name, and city state by linking player -> team -> city.. Return a short normalized string.'), 'location': FieldInfo(annotation=Union[str, Any], required=True, description='location from the team document for query: List player name with team name, city name, and city state by linking player -> team -> city.. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 1 (char 0)

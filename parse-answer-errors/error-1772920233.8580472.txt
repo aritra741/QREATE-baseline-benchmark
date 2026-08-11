@@ -1,0 +1,34 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+1. **Identify the player**: The text is about Tim Duncan.
+2. **Determine age for players younger than 35**:
+   - Tim Duncan was born on April 25, 1976.
+   - As of August 8, 2024, he would be 48 years old.
+   - Since the query asks for players younger than 35, we can infer that this player does not fit the criteria. However, if we were to strictly follow the format and assume a hypothetical scenario where Tim Duncan is considered under 35 (which isn't true), his age would be calculated as follows:
+     - Age = 2024 - 1976 = 48.
+   - Since he's not younger than 35, we can return `None` or a placeholder value indicating no match.
+
+3. **Extract the required fields**:
+   - **name**: "Tim Duncan"
+   - **position**: "power forward" (primary) and "center" (secondary)
+   - **team**: "San Antonio Spurs"
+   - **city name and population**: Not directly provided, but we can infer it from the team's location. San Antonio is in Texas.
+
+4. **Formulate the JSON**:
+```json
+{
+  "age": None,
+  "name": "Tim Duncan",
+  "position": "power forward",
+  "team": "San Antonio Spurs"
+}
+```
+
+---
+
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: For players younger than 35, list player name, position, city name, and city population via player -> team -> city.. Return a short normalized string.'), 'position': FieldInfo(annotation=Union[str, Any], required=True, description='position from the player document for query: For players younger than 35, list player name, position, city name, and city population via player -> team -> city.. Return a short normalized string.'), 'age': FieldInfo(annotation=Union[float, Any], required=True, description='age from the player document for query: For players younger than 35, list player name, position, city name, and city population via player -> team -> city.. Return a number.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: For players younger than 35, list player name, position, city name, and city population via player -> team -> city.. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 12 (char 11)

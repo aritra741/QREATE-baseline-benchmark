@@ -1,0 +1,26 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+The query is for players older than 25, and from the context provided, we can see that Bill Hewitt was born on August 8, 1944. Therefore, he is older than 25. We need to extract his name, position, team, and the founding year of one of his teams.
+
+From the contents:
+- Name: "Bill Hewitt"
+- Position: "forward"
+- Team: "Los Angeles Lakers", "Detroit Pistons", "Buffalo Braves", "Chicago Bulls"
+
+For the team founded year, we can use the Los Angeles Lakers as an example since it is a well-known and long-standing NBA team. The Los Angeles Lakers were founded in 1947.
+
+Now let's fill in the output fields based on this information.
+---
+{
+  "age": 25,
+  "name": "Bill Hewitt",
+  "position": "forward",
+  "team": "Los Angeles Lakers"
+}
+---
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: For players older than 25, list player name, position, team name, and team founded year.. Return a short normalized string.'), 'position': FieldInfo(annotation=Union[str, Any], required=True, description='position from the player document for query: For players older than 25, list player name, position, team name, and team founded year.. Return a short normalized string.'), 'age': FieldInfo(annotation=Union[float, Any], required=True, description='age from the player document for query: For players older than 25, list player name, position, team name, and team founded year.. Return a number.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: For players older than 25, list player name, position, team name, and team founded year.. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 1 (char 0)

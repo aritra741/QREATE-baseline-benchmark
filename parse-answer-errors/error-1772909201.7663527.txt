@@ -1,0 +1,28 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+The context provided does not contain any information about a player document or draft picks. However, based on the content of the text, we can extract the relevant details for the output fields if we assume that the file contents describe a player's career and include their name, college, and team.
+
+1. **name**: The name mentioned in the context is "Kurt Thomas".
+2. **college**: The college mentioned in the context is "Texas Christian University".
+3. **team**: Several teams are mentioned in the context, but if we need to provide a single value for this field, we can choose one of them. For simplicity, let's use "New York Knicks" as it was his longest stint.
+4. **draft_pick**: The text does not explicitly mention a draft pick number.
+
+Given these considerations, here is the JSON object:
+
+```json
+{
+  "college": "Texas Christian University",
+  "name": "Kurt Thomas",
+  "team": "New York Knicks"
+}
+```
+
+---
+
+
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: For players with draft pick at least 0, list player name, draft pick, college, and team name.. Return a short normalized string.'), 'draft_pick': FieldInfo(annotation=Union[float, Any], required=True, description='draft_pick from the player document for query: For players with draft pick at least 0, list player name, draft pick, college, and team name.. Return a number.'), 'college': FieldInfo(annotation=Union[str, Any], required=True, description='college from the player document for query: For players with draft pick at least 0, list player name, draft pick, college, and team name.. Return a short normalized string.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: For players with draft pick at least 0, list player name, draft pick, college, and team name.. Return a short normalized string.')}
+#####
+'draft_pick'

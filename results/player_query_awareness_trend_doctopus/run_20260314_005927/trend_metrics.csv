@@ -1,0 +1,44 @@
+query_id,query_text,nl_query,success,delta_type,latency_s,result_rows,prompt_tokens,completion_tokens,total_tokens,macro_f1,macro_precision,macro_recall,gt_result_count,matched_rows,is_agg,error
+Q1,"SELECT player.name, player.nationality, player.age, team.team_name, team.location
+FROM player
+JOIN team ON player.team = team.team_name;","List each player's name, nationality, and age with their team name and team location.",True,DOCTOPUS_EXTRACT_SQL,237.20217609405518,60,1298439,12371,1310810,0.5351351351351351,0.66,0.45,88,56,False,
+Q2,"SELECT player.name, player.position, team.team_name, team.founded_year
+FROM player
+JOIN team ON player.team = team.team_name
+WHERE player.age > 25;","For players older than 25, list player name, position, team name, and team founded year.",True,DOCTOPUS_EXTRACT_SQL,237.26696825027466,26,1298439,12371,1310810,0.34466019417475735,0.6826923076923077,0.2305194805194805,77,24,False,
+Q3,"SELECT player.name, player.draft_pick, player.college, team.team_name
+FROM player
+JOIN team ON player.team = team.team_name
+WHERE player.draft_pick >= 0;","For players with draft pick at least 0, list player name, draft pick, college, and team name.",True,DOCTOPUS_EXTRACT_SQL,237.19740915298462,53,1298439,12371,1310810,0.6107142857142858,0.8066037735849056,0.49137931034482757,87,49,False,
+Q4,"SELECT team.team_name, team.location, city.city_name, city.state_name
+FROM team
+JOIN city ON team.location = city.city_name;",List team name and location with matched city name and state name.,True,DOCTOPUS_EXTRACT_SQL,139.44825649261475,19,980420,2361,982781,0.7872340425531915,0.9736842105263158,0.6607142857142857,28,19,False,
+Q5,"SELECT player.name, team.team_name, city.city_name, city.state_name
+FROM player
+JOIN team ON player.team = team.team_name
+JOIN city ON team.location = city.city_name;","List player name with team name, city name, and city state by linking player → team → city.",True,DOCTOPUS_EXTRACT_SQL,314.0641279220581,39,1826983,13864,1840847,0.576,0.923076923076923,0.4186046511627907,86,37,False,
+Q6,"SELECT player.name, player.position, city.city_name, city.population
+FROM player
+JOIN team ON player.team = team.team_name
+JOIN city ON team.location = city.city_name
+WHERE player.age < 35;","For players younger than 35, list player name, position, city name, and city population via player → team → city.",True,DOCTOPUS_EXTRACT_SQL,313.9249584674835,30,1826983,13864,1840847,0.393939393939394,0.4333333333333333,0.36111111111111116,36,21,False,
+Q7,"SELECT player.name, player.college, team.team_name, city.gdp
+FROM player
+JOIN team ON player.team = team.team_name
+JOIN city ON team.location = city.city_name
+WHERE player.draft_pick > 0;","For players with draft pick greater than 0, list player name, college, team name, and city GDP via player → team → city.",True,DOCTOPUS_EXTRACT_SQL,313.4366478919983,34,1826983,13864,1840847,0.4380952380952381,0.676470588235294,0.32394366197183094,71,31,False,
+Q8,"SELECT player.name, player.birth_date, team.team_name, city.area
+FROM player
+JOIN team ON player.team = team.team_name
+JOIN city ON team.location = city.city_name
+WHERE city.area > 100;","For cities with area greater than 100, list player name, player birth date, team name, and city area via player → team → city.",True,DOCTOPUS_EXTRACT_SQL,314.0985462665558,18,1826983,13864,1840847,0.11764705882352941,0.2777777777777778,0.07462686567164178,67,10,False,
+Q9,"SELECT city.city_name, city.state_name, team.team_name, player.name
+FROM city
+JOIN team ON city.city_name = team.location
+JOIN player ON player.team = team.team_name
+WHERE player.age < 40;","Starting from city and traversing city → team → player, list city name, state, team name, and player name for players younger than 40.",True,DOCTOPUS_EXTRACT_SQL,314.451297044754,33,1826983,13869,1840852,0.5312499999999999,0.6439393939393939,0.45212765957446804,47,28,False,
+Q10,"SELECT city.city_name, city.state_name, team.team_name, player.name, player.college
+FROM city
+JOIN team ON city.city_name = team.location
+JOIN player ON player.team = team.team_name
+WHERE player.age > 20;","Starting from city and traversing city → team → player, list city name, state, team name, player name, and player college for players older than 20.",True,DOCTOPUS_EXTRACT_SQL,314.1726942062378,23,1826983,13869,1840852,0.28256880733944956,0.6695652173913043,0.17906976744186046,86,23,False,

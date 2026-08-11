@@ -1,0 +1,163 @@
+{
+  "mode": "smoke_test",
+  "dataset": "Med",
+  "required_tables": [
+    "drug"
+  ],
+  "rows_by_table": {
+    "disease": 0,
+    "drug": 26,
+    "institution": 0
+  },
+  "num_docs": 10,
+  "num_configs": 4,
+  "num_pairs": 2,
+  "num_eval_queries": 3,
+  "llm_profile": "ollama_qwen_7b",
+  "total_token_cost": 138021.0,
+  "config_table": [
+    {
+      "config_id": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict",
+      "glass_box_score": 0.7048689668174962,
+      "btl_score": 1.9999990000005,
+      "true_error": 0.8507936507936508,
+      "numeric_type_success_rate": 0.0,
+      "required_table_row_count": {
+        "drug": 26
+      }
+    },
+    {
+      "config_id": "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+      "glass_box_score": 0.5798689668174962,
+      "btl_score": 1.9999990000005,
+      "true_error": 0.8507936507936508,
+      "numeric_type_success_rate": 0.0,
+      "required_table_row_count": {
+        "drug": 26
+      }
+    },
+    {
+      "config_id": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict",
+      "glass_box_score": 0.700461915535445,
+      "btl_score": 9.9999950000025e-07,
+      "true_error": 0.8507936507936508,
+      "numeric_type_success_rate": 0.0,
+      "required_table_row_count": {
+        "drug": 26
+      }
+    },
+    {
+      "config_id": "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive",
+      "glass_box_score": 0.575461915535445,
+      "btl_score": 9.9999950000025e-07,
+      "true_error": 0.8507936507936508,
+      "numeric_type_success_rate": 0.0,
+      "required_table_row_count": {
+        "drug": 26
+      }
+    }
+  ],
+  "judge_comparisons": [
+    {
+      "winner": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict",
+      "loser": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict",
+      "reasoning": "Database A has consistent and non-null values for 'dosage_frequency' in the drug table, which is necessary to answer queries related to dosage frequency. In contrast, Database B has null values for 'dosage_frequency', making it unable to accurately respond to the provided workload queries."
+    },
+    {
+      "winner": "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+      "loser": "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive",
+      "reasoning": "Database A has non-null values for 'dosage_frequency' in the drug table, which is necessary to answer the aggregation queries. Database B lacks these values, leading to null results for those specific fields."
+    }
+  ],
+  "btl_report": {
+    "win_counts": {
+      "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": 1,
+      "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 1,
+      "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": 0,
+      "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 0
+    },
+    "loss_counts": {
+      "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+      "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+      "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": 1,
+      "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 1
+    },
+    "tie_counts": {
+      "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+      "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+      "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": 0,
+      "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 0
+    },
+    "win_matrix": {
+      "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": {
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": 1,
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 0
+      },
+      "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": {
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": 0,
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 1
+      },
+      "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": {
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": 0,
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 0
+      },
+      "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": {
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": 0,
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 0
+      }
+    },
+    "comparison_edges": [
+      {
+        "winner": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict",
+        "loser": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict"
+      },
+      {
+        "winner": "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+        "loser": "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive"
+      }
+    ],
+    "comparison_graph_connected": false,
+    "num_components": 2,
+    "components": [
+      [
+        "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict",
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict"
+      ],
+      [
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive"
+      ]
+    ],
+    "isolated_configs": [],
+    "btl_scores": {
+      "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 1.9999990000005,
+      "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 9.9999950000025e-07,
+      "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": 9.9999950000025e-07,
+      "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": 1.9999990000005
+    }
+  },
+  "pipeline": {
+    "best_surrogate": "structural_probe_ranking",
+    "best_algorithm": "use_coordinate_descent",
+    "selected_configs": [
+      "er=embedding_0.8|norm=dictionary|unit=none|miss=llm|coerce=llm",
+      "er=embedding_0.9|norm=dictionary|unit=none|miss=constant|coerce=llm",
+      "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict",
+      "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict",
+      "er=llm|norm=dictionary|unit=none|miss=median|coerce=strict",
+      "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+      "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive",
+      "er=embedding_0.8|norm=dictionary|unit=none|miss=median|coerce=strict"
+    ],
+    "routing_table": {},
+    "cluster_surrogates": {}
+  }
+}

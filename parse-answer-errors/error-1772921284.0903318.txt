@@ -1,0 +1,20 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+The context provided does not contain any information about players or cities that would allow us to derive the required fields for the output. The text is primarily about a single individual, Francis Hugh Curran Sr., and does not provide details necessary to fulfill the queries mentioned in the output fields.
+
+Given this situation, we can only extract the name from the player document as it's directly stated in the context:
+
+- name: "Francis Hugh Curran Sr."
+
+Since there is no information about a team or players younger than 40, we cannot provide values for age and team. Therefore, the output JSON will contain only the 'name' field.
+
+---
+{
+  "name": "Francis Hugh Curran Sr."
+}
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: Starting from city and traversing city -> team -> player, list city name, state, team name, and player name for players younger than 40.. Return a short normalized string.'), 'age': FieldInfo(annotation=Union[float, Any], required=True, description='age from the player document for query: Starting from city and traversing city -> team -> player, list city name, state, team name, and player name for players younger than 40.. Return a number.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: Starting from city and traversing city -> team -> player, list city name, state, team name, and player name for players younger than 40.. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 1 (char 0)

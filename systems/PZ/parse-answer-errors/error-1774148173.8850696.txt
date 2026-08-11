@@ -1,0 +1,28 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To determine the values for `draft_pick`, `olympic_gold_medals`, and `team` based on the provided context:
+
+1. **Draft Pick**: The text mentions that "Horford was drafted with the third overall pick in the 2007 NBA draft by the Atlanta Hawks." Therefore, his draft pick is 3.
+
+2. **Olympic Gold Medals**: There's no explicit mention of Olympic gold medals in the provided context. However, it states: "On September 12, 2024, Horford visited the Dominican Republic with the Larry O'Brien Trophy, the first of his countrymen to be able to do so." This implies that he won an NBA championship, but there's no specific mention of Olympic gold medals.
+
+3. **Team**: The text states: "Horford signed a four-year, $113 million contract with the Boston Celtics and said he was looking forward to working with Celtics head coach Brad Stevens and the rest of the team to bring a championship trophy back to Boston." This indicates that his current team is the Boston Celtics.
+
+Based on this reasoning:
+
+```json
+{
+  "draft_pick": 3,
+  "olympic_gold_medals": null,  # No specific mention in the text.
+  "team": "Boston Celtics"
+}
+```
+
+---
+
+#####
+{'draft_pick': FieldInfo(annotation=Union[float, Any], required=True, description='draft_pick from the player document for query: For each NBA player, which team do they play for, what was their draft pick, and how many Olympic gold medals have they won?. Return a number.'), 'olympic_gold_medals': FieldInfo(annotation=Union[float, Any], required=True, description='olympic_gold_medals from the player document for query: For each NBA player, which team do they play for, what was their draft pick, and how many Olympic gold medals have they won?. Return a number.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: For each NBA player, which team do they play for, what was their draft pick, and how many Olympic gold medals have they won?. Return a short normalized string.')}
+#####
+Expecting property name enclosed in double quotes: line 1 column 54 (char 53)

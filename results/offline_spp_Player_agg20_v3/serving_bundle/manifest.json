@@ -1,0 +1,243 @@
+{
+  "version": 1,
+  "portfolio": {
+    "selected_config_ids": [
+      "schema=denormalized:dc23a0cc2471|pre=whole_document|er=embedding_0.7|norm=llm|unit=none|miss=drop|coerce=permissive",
+      "schema=star:f53e4075dea0|pre=whole_document|er=llm|norm=llm|unit=none|miss=drop|coerce=strict"
+    ],
+    "query_to_config": {
+      "q0": "schema=star:f53e4075dea0|pre=whole_document|er=llm|norm=llm|unit=none|miss=drop|coerce=strict",
+      "q1": "schema=star:f53e4075dea0|pre=whole_document|er=llm|norm=llm|unit=none|miss=drop|coerce=strict",
+      "q2": "schema=denormalized:dc23a0cc2471|pre=whole_document|er=embedding_0.7|norm=llm|unit=none|miss=drop|coerce=permissive",
+      "q3": "schema=star:f53e4075dea0|pre=whole_document|er=llm|norm=llm|unit=none|miss=drop|coerce=strict",
+      "q4": "schema=star:f53e4075dea0|pre=whole_document|er=llm|norm=llm|unit=none|miss=drop|coerce=strict",
+      "q5": "schema=star:f53e4075dea0|pre=whole_document|er=llm|norm=llm|unit=none|miss=drop|coerce=strict",
+      "q6": "schema=denormalized:dc23a0cc2471|pre=whole_document|er=embedding_0.7|norm=llm|unit=none|miss=drop|coerce=permissive",
+      "q7": "schema=denormalized:dc23a0cc2471|pre=whole_document|er=embedding_0.7|norm=llm|unit=none|miss=drop|coerce=permissive",
+      "q8": "schema=star:f53e4075dea0|pre=whole_document|er=llm|norm=llm|unit=none|miss=drop|coerce=strict",
+      "q9": "schema=star:f53e4075dea0|pre=whole_document|er=llm|norm=llm|unit=none|miss=drop|coerce=strict",
+      "q10": "schema=star:f53e4075dea0|pre=whole_document|er=llm|norm=llm|unit=none|miss=drop|coerce=strict",
+      "q11": "schema=star:f53e4075dea0|pre=whole_document|er=llm|norm=llm|unit=none|miss=drop|coerce=strict",
+      "q12": "schema=denormalized:dc23a0cc2471|pre=whole_document|er=embedding_0.7|norm=llm|unit=none|miss=drop|coerce=permissive",
+      "q13": "schema=star:f53e4075dea0|pre=whole_document|er=llm|norm=llm|unit=none|miss=drop|coerce=strict",
+      "q14": "schema=denormalized:dc23a0cc2471|pre=whole_document|er=embedding_0.7|norm=llm|unit=none|miss=drop|coerce=permissive",
+      "q15": "schema=denormalized:dc23a0cc2471|pre=whole_document|er=embedding_0.7|norm=llm|unit=none|miss=drop|coerce=permissive",
+      "q16": "schema=star:f53e4075dea0|pre=whole_document|er=llm|norm=llm|unit=none|miss=drop|coerce=strict",
+      "q17": "schema=denormalized:dc23a0cc2471|pre=whole_document|er=embedding_0.7|norm=llm|unit=none|miss=drop|coerce=permissive",
+      "q18": "schema=star:f53e4075dea0|pre=whole_document|er=llm|norm=llm|unit=none|miss=drop|coerce=strict",
+      "q19": "schema=star:f53e4075dea0|pre=whole_document|er=llm|norm=llm|unit=none|miss=drop|coerce=strict"
+    },
+    "query_scores": {
+      "q0": 0.5687166524820472,
+      "q1": 0.7664251537656521,
+      "q2": 0.4917904351315188,
+      "q3": 0.6582061095385974,
+      "q4": 0.6437812946696508,
+      "q5": 0.6460000292070301,
+      "q6": 0.7451547227953023,
+      "q7": 0.5007904133657194,
+      "q8": 0.5762825489856508,
+      "q9": 0.6514404149789909,
+      "q10": 0.0,
+      "q11": 0.5886318258216259,
+      "q12": 0.6399268025313632,
+      "q13": 0.769462713756336,
+      "q14": 0.5770237617942942,
+      "q15": 0.6504668318973799,
+      "q16": 0.5746085814475792,
+      "q17": 0.0,
+      "q18": 0.6414955820704299,
+      "q19": 0.5068531602893581
+    },
+    "construction_tokens": 5169347,
+    "objective_value": 11.197057034528527
+  },
+  "databases": [
+    {
+      "config_id": "schema=denormalized:dc23a0cc2471|pre=whole_document|er=embedding_0.7|norm=llm|unit=none|miss=drop|coerce=permissive",
+      "filename": "databases/549367749cf52b48.sqlite",
+      "sha256": "5f1037b4993c04ff10f47fbbebbb3a0236f1f562c4ea0b321bf6f1b5a59137f9",
+      "size_bytes": 24576
+    },
+    {
+      "config_id": "schema=star:f53e4075dea0|pre=whole_document|er=llm|norm=llm|unit=none|miss=drop|coerce=strict",
+      "filename": "databases/d9ef48b4be9d9ca3.sqlite",
+      "sha256": "8c37106e1d9ce7a8b3cbe581b563a1ca5bab700f36e5afc7d753fad4c1545636",
+      "size_bytes": 20480
+    }
+  ],
+  "queries": [
+    {
+      "query_id": "q0",
+      "natural_language_query": "Among players with a known position, what is the average age at each position?",
+      "config_id": "schema=star:f53e4075dea0|pre=whole_document|er=llm|norm=llm|unit=none|miss=drop|coerce=strict",
+      "sql": "SELECT \"t0\".\"position\", AVG(\"t0\".\"age\") AS \"avg_age\"\nFROM \"player\" AS \"t0\"\nWHERE \"t0\".\"position\" IS NOT NULL\nGROUP BY \"t0\".\"position\"",
+      "sql_sha256": "389c91d38cce0ee2cf6c8ad01a66ad1015f14a2998fa26839634d64709922d2f",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q1",
+      "natural_language_query": "How many players are there for each nationality?",
+      "config_id": "schema=star:f53e4075dea0|pre=whole_document|er=llm|norm=llm|unit=none|miss=drop|coerce=strict",
+      "sql": "SELECT \"t0\".\"nationality\", COUNT(*) AS \"count_all\"\nFROM \"player\" AS \"t0\"\nGROUP BY \"t0\".\"nationality\"",
+      "sql_sha256": "df277a30d2fe1ceda2a64aea8646a2b9bc6d5cf6da20f940dddd80b91015cff4",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q2",
+      "natural_language_query": "For each current NBA team, what is the average number of NBA championships won by its listed players?",
+      "config_id": "schema=denormalized:dc23a0cc2471|pre=whole_document|er=embedding_0.7|norm=llm|unit=none|miss=drop|coerce=permissive",
+      "sql": "SELECT \"t0\".\"name\", AVG(\"t0\".\"nba_championships_won\") AS \"avg_player_championships\"\nFROM \"workload_flat\" AS \"t0\"\nGROUP BY \"t0\".\"name\"",
+      "sql_sha256": "5c9ff3943f4e8465ef6e04e8cc189329bf76bd4cf727d7c26f474fd7163a4a52",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q3",
+      "natural_language_query": "Among colleges with more than one player in the league, what is the highest number of MVP awards won by any of its players?",
+      "config_id": "schema=star:f53e4075dea0|pre=whole_document|er=llm|norm=llm|unit=none|miss=drop|coerce=strict",
+      "sql": "SELECT \"t0\".\"player_college\", MAX(\"t0\".\"mvp_awards\") AS \"max_mvp_awards\"\nFROM \"player\" AS \"t0\"\nGROUP BY \"t0\".\"player_college\"\nHAVING COUNT(*) > 1",
+      "sql_sha256": "2118cb9562f25acf7ecad7f53930766fc5885cc401cf87cd4999e5ce6bcdd704",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q4",
+      "natural_language_query": "Among players with a known position, what is the total number of MVP awards won at each position?",
+      "config_id": "schema=star:f53e4075dea0|pre=whole_document|er=llm|norm=llm|unit=none|miss=drop|coerce=strict",
+      "sql": "SELECT \"t0\".\"position\", SUM(\"t0\".\"mvp_awards\") AS \"sum_mvp_award\"\nFROM \"player\" AS \"t0\"\nWHERE \"t0\".\"position\" IS NOT NULL\nGROUP BY \"t0\".\"position\"",
+      "sql_sha256": "cddca6a663148d8e934a6c0ce5013c40e40fd6362469fd6464549f7008926fdd",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q5",
+      "natural_language_query": "Among players with at least one NBA championship, what is the most championships won by any player of each nationality?",
+      "config_id": "schema=star:f53e4075dea0|pre=whole_document|er=llm|norm=llm|unit=none|miss=drop|coerce=strict",
+      "sql": "SELECT \"t0\".\"nationality\", MAX(\"t0\".\"nba_championships_won\") AS \"max_nba_championships\"\nFROM \"player\" AS \"t0\"\nWHERE \"t0\".\"nba_championships_won\" >= 1\nGROUP BY \"t0\".\"nationality\"",
+      "sql_sha256": "5f1b9c7c52c6a1ed1de6e06674aed8d758bafe0244a26ed13c58ec7d070d7223",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q6",
+      "natural_language_query": "How many players were drafted in each year after 2010?",
+      "config_id": "schema=denormalized:dc23a0cc2471|pre=whole_document|er=embedding_0.7|norm=llm|unit=none|miss=drop|coerce=permissive",
+      "sql": "SELECT \"t0\".\"year\", COUNT(*) AS \"count_all\"\nFROM \"workload_flat\" AS \"t0\"\nWHERE \"t0\".\"year\" > 2010\nGROUP BY \"t0\".\"year\"",
+      "sql_sha256": "63e3f1ae89214e0d8fb021baec34486e882283b1e5698884ba8d9396c71bfdc3",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q7",
+      "natural_language_query": "For each current NBA team, what is the earliest (lowest) draft pick among its drafted players?",
+      "config_id": "schema=denormalized:dc23a0cc2471|pre=whole_document|er=embedding_0.7|norm=llm|unit=none|miss=drop|coerce=permissive",
+      "sql": "SELECT \"t0\".\"name\", MIN(\"t0\".\"draft_pick\") AS \"min_player_draft_pick\"\nFROM \"workload_flat\" AS \"t0\"\nGROUP BY \"t0\".\"name\"",
+      "sql_sha256": "3bb808a5fe592f693998a14f66a4e2746545e1d87c8a42590996d5fe5aa63136",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q8",
+      "natural_language_query": "Among players with a known position and at least one Olympic gold medal, what is the average number of Olympic golds at each position?",
+      "config_id": "schema=star:f53e4075dea0|pre=whole_document|er=llm|norm=llm|unit=none|miss=drop|coerce=strict",
+      "sql": "SELECT \"t0\".\"position\", AVG(\"t0\".\"gold_medals\") AS \"avg_gold_medals\"\nFROM \"player\" AS \"t0\"\nWHERE (\"t0\".\"position\" IS NOT NULL AND \"t0\".\"gold_medals\" >= 1)\nGROUP BY \"t0\".\"position\"",
+      "sql_sha256": "65607179511c7e544008a801065a24b0ead073352746260a731dc70594894df3",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q9",
+      "natural_language_query": "For each college, how many of its players have won at least one NBA championship?",
+      "config_id": "schema=star:f53e4075dea0|pre=whole_document|er=llm|norm=llm|unit=none|miss=drop|coerce=strict",
+      "sql": "SELECT \"t0\".\"player_college\", COUNT(*) AS \"count_all\"\nFROM \"player\" AS \"t0\"\nWHERE \"t0\".\"nba_championships_won\" >= 1\nGROUP BY \"t0\".\"player_college\"",
+      "sql_sha256": "94ec4002bce7a1d264ca3a756ff4d4100e19a65186611f546ea6a3e9c44eaf51",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q10",
+      "natural_language_query": "Among players with at least one FIBA World Cup title, what is the total number of FIBA titles for each current NBA team?",
+      "config_id": "schema=star:f53e4075dea0|pre=whole_document|er=llm|norm=llm|unit=none|miss=drop|coerce=strict",
+      "sql": "SELECT \"t3\".\"name\", SUM(\"t0\".\"has_fiba_world_cup_title\") AS \"sum_player_fiba_titles\"\nFROM \"team\" AS \"t3\"\nJOIN \"player\" AS \"t0\" ON \"t0\".\"team_name\" = \"t3\".\"name\"\nWHERE \"t0\".\"has_fiba_world_cup_title\" >= 1\nGROUP BY \"t3\".\"name\"",
+      "sql_sha256": "f40ce15db10d37241c265f6a608586c5b4cca7e58ecacfa37debddb81eb29f21",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q11",
+      "natural_language_query": "How many players aged 20 to 40 are there for each nationality?",
+      "config_id": "schema=star:f53e4075dea0|pre=whole_document|er=llm|norm=llm|unit=none|miss=drop|coerce=strict",
+      "sql": "SELECT \"t0\".\"nationality\", COUNT(*) AS \"count_all\"\nFROM \"player\" AS \"t0\"\nWHERE (\"t0\".\"age\" >= 20 AND \"t0\".\"age\" <= 40)\nGROUP BY \"t0\".\"nationality\"",
+      "sql_sha256": "411ac4b31d6838fca8465b17a78cfcb4e62dcf8837d695023400713f07c5360b",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q12",
+      "natural_language_query": "For each city that hosts an NBA team, what is the most championships won by any team there?",
+      "config_id": "schema=denormalized:dc23a0cc2471|pre=whole_document|er=embedding_0.7|norm=llm|unit=none|miss=drop|coerce=permissive",
+      "sql": "SELECT \"t0\".\"name\", MAX(\"t0\".\"nba_championships\") AS \"max_team_championships\"\nFROM \"workload_flat\" AS \"t0\"\nWHERE \"t0\".\"league\" = 'NBA'\nGROUP BY \"t0\".\"name\"",
+      "sql_sha256": "f36d8fbf156c98eb2906d10f7f806d3be2dbba4c82a35209f3742d103e403505",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q13",
+      "natural_language_query": "How many teams founded before 1970 are based in each city?",
+      "config_id": "schema=star:f53e4075dea0|pre=whole_document|er=llm|norm=llm|unit=none|miss=drop|coerce=strict",
+      "sql": "SELECT \"t1\".\"name\", COUNT(*) AS \"count_all\"\nFROM \"city\" AS \"t1\"\nJOIN \"team\" AS \"t3\" ON \"t3\".\"based_in\" = \"t1\".\"name\"\nWHERE \"t3\".\"founded_year\" < 1970\nGROUP BY \"t1\".\"name\"",
+      "sql_sha256": "48b8f7e1348a4e68820d0f728e4d6f80e4952c2f0365f489c9c3b5c328637146",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q14",
+      "natural_language_query": "How many championships has each owner\u2019s team(s) won in total?",
+      "config_id": "schema=denormalized:dc23a0cc2471|pre=whole_document|er=embedding_0.7|norm=llm|unit=none|miss=drop|coerce=permissive",
+      "sql": "SELECT \"t0\".\"name\", SUM(\"t0\".\"championships\") AS \"sum_team_championships\"\nFROM \"workload_flat\" AS \"t0\"\nGROUP BY \"t0\".\"name\"",
+      "sql_sha256": "233e83c6a4c12c9576644318c1050913631069e1487752a054a69a53c6e929d6",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q15",
+      "natural_language_query": "Among teams with at least one championship, what is the average number of championships for teams in each city?",
+      "config_id": "schema=denormalized:dc23a0cc2471|pre=whole_document|er=embedding_0.7|norm=llm|unit=none|miss=drop|coerce=permissive",
+      "sql": "SELECT \"t0\".\"name\", AVG(\"t0\".\"championships\") AS \"avg_team_championships\"\nFROM \"workload_flat\" AS \"t0\"\nWHERE \"t0\".\"championships\" > 0\nGROUP BY \"t0\".\"name\"",
+      "sql_sha256": "a455d29161c6612af525fb52c80037639a1c8b9e2e593115cd9a49b68daea3cd",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q16",
+      "natural_language_query": "What is the average owner age for each nationality?",
+      "config_id": "schema=star:f53e4075dea0|pre=whole_document|er=llm|norm=llm|unit=none|miss=drop|coerce=strict",
+      "sql": "SELECT \"t2\".\"nationality\", AVG(\"t2\".\"age\") AS \"avg_age\"\nFROM \"owner\" AS \"t2\"\nGROUP BY \"t2\".\"nationality\"",
+      "sql_sha256": "9144093402b8fa621cc96241424bfb81272971eb198a47f8cfd285f84902d935",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q17",
+      "natural_language_query": "Among owners who acquired their team in 2000 or later, what is the earliest acquisition year for each nationality?",
+      "config_id": "schema=denormalized:dc23a0cc2471|pre=whole_document|er=embedding_0.7|norm=llm|unit=none|miss=drop|coerce=permissive",
+      "sql": "SELECT \"t0\".\"nationality\", MIN(\"t0\".\"year_acquired\") AS \"min_year_acquired\"\nFROM \"workload_flat\" AS \"t0\"\nWHERE \"t0\".\"year_acquired\" >= 2000\nGROUP BY \"t0\".\"nationality\"",
+      "sql_sha256": "8af4e716e0c2b545ac93a5d6221638e508dd3777e7ce77f18ee40ccc2da3d1fa",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q18",
+      "natural_language_query": "What is the average city population for each state?",
+      "config_id": "schema=star:f53e4075dea0|pre=whole_document|er=llm|norm=llm|unit=none|miss=drop|coerce=strict",
+      "sql": "SELECT \"t1\".\"state\", AVG(\"t1\".\"population\") AS \"avg_population\"\nFROM \"city\" AS \"t1\"\nGROUP BY \"t1\".\"state\"",
+      "sql_sha256": "ffd3a5988b7a672b87b0b42e813e65330dc2b09c1ca49232fd512804d28c79f0",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q19",
+      "natural_language_query": "Among cities with more than one million people, what is the highest GDP in each state?",
+      "config_id": "schema=star:f53e4075dea0|pre=whole_document|er=llm|norm=llm|unit=none|miss=drop|coerce=strict",
+      "sql": "SELECT \"t1\".\"state\", MAX(\"t1\".\"gdp\") AS \"max_gdp\"\nFROM \"city\" AS \"t1\"\nWHERE \"t1\".\"population\" > 1000000\nGROUP BY \"t1\".\"state\"",
+      "sql_sha256": "211d01fbad03969ca49b6c9dfdee0f22983919f5eb42e4ebd3509d13535c4141",
+      "compilation_error": null
+    }
+  ],
+  "token_ledger_sha256": "5630aff1ebdfd11b5ae5ba3590df6d49c95e87df804df4afa90c8840d276c975",
+  "synthesis_manifest_sha256": "cd0893d3f07f2c46e37ed94d8752db58b61c94cbb9883d451409af0788ce1878",
+  "evidence_manifest": {
+    "path": "/uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/results/offline_spp_Player_agg20_v3/evidence.sqlite",
+    "sha256": "c8f87e517d4d92b3dbe0ba5164310a15bff5589996e4a3f6c94ea20d78f24854",
+    "counts": {
+      "documents": 216,
+      "anchors": 5667,
+      "cell_provenance": 42502,
+      "shared_artifacts": 0
+    }
+  }
+}

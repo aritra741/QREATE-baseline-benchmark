@@ -1,0 +1,30 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To determine the correct values for the output fields, we need to extract relevant information from the context provided:
+
+1. **location**: The query asks for a location where the document is about NBA players and their details such as playing position, Olympic gold medals, team, ownership, and city. This type of document would be found in a "team document" or similar reference material.
+2. **ownership**: Ownership information can be derived from the context mentioning Donald Sterling's role as an owner.
+3. **team_name**: The name of the NBA team is clearly mentioned multiple times throughout the text.
+
+Based on this reasoning, let's extract the required values:
+
+- **location**: "team document"
+- **ownership**: "Donald Sterling"
+- **team_name**: "Los Angeles Clippers"
+
+Now, we will generate a JSON object with these fields filled in.
+---
+```json
+{
+  "location": "team document",
+  "ownership": "Donald Sterling",
+  "team_name": "Los Angeles Clippers"
+}
+```
+---
+#####
+{'location': FieldInfo(annotation=Union[str, Any], required=True, description='location from the team document for query: For each NBA player, what is their playing position, how many Olympic gold medals have they won, which team do they play for, who owns the team, and what city is the team in?. Return a short normalized string.'), 'ownership': FieldInfo(annotation=Union[str, Any], required=True, description='ownership from the team document for query: For each NBA player, what is their playing position, how many Olympic gold medals have they won, which team do they play for, who owns the team, and what city is the team in?. Return a short normalized string.'), 'team_name': FieldInfo(annotation=Union[str, Any], required=True, description='team_name from the team document for query: For each NBA player, what is their playing position, how many Olympic gold medals have they won, which team do they play for, who owns the team, and what city is the team in?. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 1 (char 0)

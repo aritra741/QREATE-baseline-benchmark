@@ -1,0 +1,353 @@
+System Prompt:
+You are an expert at formulating database schemas from textual data. I have given you a paragraph of text. 
+Using this text, your task is to generate a relational database schema in JSON format. 
+
+### **Task:**
+1. **Extract Entities & Relationships**: Identify unique entity types and relationships.
+2. **Determine Attributes**: Define necessary columns for each table.
+3. **Normalize the Schema**: Ensure proper **primary keys, foreign keys, and normalization (3NF)**.
+4. **Generate Output in JSON Format**.
+5. **Column and Table name restriction**:
+reserved_sql_keywords = ["order", "group", "select", "from", "where", "join", "on", "as", "and", "or",
+        "by", "insert", "update", "delete", "create", "drop", "alter", "into", "table"]
+- Ensure that the table names and column names do not contain any SQL reserved keywords. 
+
+User Prompt:
+
+### **Text:**
+Player records:
+Player Antonius Cleveland  , born 1994/2/2, nationality American  , age 31, plays for Lokomotiv Kuban  , position nan, draft pick 0.0, draft year 0.0, college Southeast Missouri State University  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Jay Vincent Jay Fletcher Vincent  , born 1959/6/10, nationality American  , age 66, plays for Los Angeles Lakers, position Frontcourt, draft pick 24.0, draft year 1981.0, college Michigan State Spartans  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Nikola Radi?evi?  , born 1994/4/25, nationality Serbian  , age 31, plays for Cedevita Olimpija  , position Backcourt, draft pick 57.0, draft year 2015.0, college  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Fran Curran Francis Hugh Curran Sr., born 1922/9/9, nationality American, age 103, plays for Rochester Royals, position nan, draft pick 0.0, draft year 0.0, college University of Notre Dame, NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Mark Price  , born 1964/2/15, nationality American  , age 61, plays for Orlando Magic, position Backcourt, draft pick 25.0, draft year 1986.0, college Georgia Tech  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 1.0.
+Player David Michineau  , born 1994/6/6, nationality French  , age 31, plays for Bursaspor Basketbol  , position Backcourt, draft pick 0.0, draft year 2016.0, college  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Donta Hall  , born 1997/8/7, nationality American-born naturalized Azerbaijani  , age 28, plays for Saski Baskonia, position nan, draft pick 0.0, draft year 0.0, college Alabama  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Erick Strickland  , born 1973/11/25, nationality American  , age 51, plays for Milwaukee Bucks, position nan, draft pick 0.0, draft year 0.0, college University of Nebraska, NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player David Lattin  , born 1943/12/23, nationality American  , age 81, plays for  New Orleans Jazz, position Frontcourt, draft pick 10.0, draft year 1967.0, college Texas Western College  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Toby Kimball  , born 1942/9/7, nationality American  , age 83, plays for  New Orleans Jazz, position Frontcourt, draft pick 0.0, draft year 0.0, college University of Connecticut  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Derek Grimm  , born 1974/8/3, nationality American  , age 51, plays for Sacramento Kings  , position Frontcourt, draft pick 0.0, draft year 0.0, college University of Missouri  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Anthony Marshon Davis Jr., born 1993/3/11, nationality American, age 32, plays for Los Angeles Lakers, position Frontcourt, draft pick 1.0, draft year 2012.0, college Kentucky, NBA championships 1.0, MVP awards 1, Olympic gold medals 2.0, FIBA world cup 1.0.
+Player Brandan Keith Wright  , born 1987/10/5, nationality American  , age 37, plays for Houston Rockets  , position nan, draft pick 8.0, draft year 2007.0, college University of North Carolina at Chapel Hill  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Askia Rahman Jones  , born 1971/12/3, nationality American-Venezuelan  , age 53, plays for Guaros de Lara, position Backcourt, draft pick 0.0, draft year 0.0, college Kansas State University  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Carrick Felix  , born 1990/8/17, nationality American  , age 35, plays for  Melbourne United, position Backcourt, draft pick 33.0, draft year 2013.0, college Arizona State  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Mychel Thompson  , born 1988/6/1, nationality American  , age 37, plays for  Santa Cruz Warriors, position Backcourt, draft pick 0.0, draft year 0.0, college Pepperdine University  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Marvin Roberts, born 1950/1/29, nationality American, age 75, plays for nan, position nan, draft pick 45.0, draft year 1971.0, college Utah State University, NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Kenneth "Apple" Green  , born 1959/9/19, nationality American  , age 66, plays for New York Knicks  , position nan, draft pick 11.0, draft year 1981.0, college Pan American University  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Gerald Madkins Jr., born 1969/4/18, nationality American, age 56, plays for Grand Rapids Hoops, position nan, draft pick 0.0, draft year 0.0, college University of California, Los Angeles, NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Don Anielak  , born 1930/11/1, nationality American  , age 95, plays for New York Knicks  , position nan, draft pick 26.0, draft year 1954.0, college Southwest Missouri State University  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Philip Douglas Jackson  , born 1945/9/17, nationality American  , age 80, plays for  Los Angeles Lakers, position Frontcourt, draft pick 2.0, draft year 1967.0, college University of North Dakota  , NBA championships 13.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Anthony Avent  , born 1969/10/18, nationality American  , age 56, plays for  PAOK Thessaloniki, position Frontcourt, draft pick 15.0, draft year 1991.0, college Seton Hall University  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Drew Edward Gordon  , born 1990/7/12, nationality American  , age 33, plays for Philadelphia 76ers  , position Frontcourt, draft pick 0.0, draft year 0.0, college UCLA  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Jarrett Jack  , born 1983/10/28, nationality American  , age 41, plays for Detroit Pistons  , position nan, draft pick 22.0, draft year 2005.0, college Georgia Tech  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Rick Hughes  , born 1973/8/22, nationality American  , age 52, plays for  HTV Basket, position nan, draft pick 0.0, draft year 0.0, college Thomas More College  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Lavoy Allen  , born 1989/2/4, nationality American  , age 36, plays for Philadelphia 76ers  , position nan, draft pick 50.0, draft year 2011.0, college Temple University  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Ed Dahler Edward Dahler Jr., born 1926/1/31, nationality American, age 99, plays for Philadelphia Warriors, position nan, draft pick 14.0, draft year 1950.0, college Duquesne, NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Magic Johnson  , born 1959/8/14, nationality American  , age 66, plays for Los Angeles Lakers, position Backcourt, draft pick 1.0, draft year 1979.0, college Michigan State  , NBA championships 5.0, MVP awards 3, Olympic gold medals 1.0, FIBA world cup 0.0.
+Player Stanley M. Noszka  , born 1920/9/19, nationality  , age 105, plays for  Boston Celtics, position nan, draft pick 0.0, draft year 0.0, college  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Isiah Thomas  , born 1961/4/30, nationality American  , age 64, plays for Detroit Pistons  , position Backcourt, draft pick 2.0, draft year 1981.0, college Indiana Hoosiers  , NBA championships 2.0, MVP awards 1, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Dan Anderson, born 1951/1/1, nationality American, age 74, plays for Portland Trail Blazers, position nan, draft pick 2.0, draft year 1974.0, college nan, NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Jahlil Okafor, born 1995/12/15, nationality Nigerian-American, age 30, plays for Capitanes de Arecibo, position nan, draft pick 3.0, draft year 2015.0, college Duke, NBA championships 1.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 1.0.
+Player Trent Tucker  , born 1959/12/20, nationality American  , age 65, plays for Chicago Bulls  , position Backcourt, draft pick 6.0, draft year 1982.0, college University of Minnesota  , NBA championships 1.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Dwayne Kenneth Schintzius  , born 1968/10/14, nationality American  , age 57, plays for  Brevard Blue Ducks, position Frontcourt, draft pick 24.0, draft year 1990.0, college University of Florida  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Miles Julian Simon  , born 1975/11/21, nationality American  , age 49, plays for Phoenix Suns  , position Backcourt, draft pick 0.0, draft year 0.0, college University of Arizona  , NBA championships 1.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Guy William Rodgers  , born 1935/9/1, nationality American  , age 90, plays for Milwaukee Bucks  , position nan, draft pick 1.0, draft year 1958.0, college Temple University  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Vernon Maxwell, born 1965/9/12, nationality American, age 60, plays for Dallas Mavericks, position Backcourt, draft pick 2.0, draft year 1988.0, college University of Florida, NBA championships 2.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Tim Duncan, born 1976/4/25, nationality American, age 50, plays for San Antonio Spurs, position Frontcourt, draft pick 1.0, draft year 1997.0, college Wake Forest University, NBA championships 5.0, MVP awards 2, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Walter Berry , born 1964/5/14, nationality American  , age 61, plays for  Panteras de Miranda, position Frontcourt, draft pick 14.0, draft year 1986.0, college St. John's University  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player James Patrick Walsh  , born 1930/8/29, nationality American  , age 95, plays for Philadelphia Warriors  , position Frontcourt, draft pick 0.0, draft year 0.0, college Stanford University  , NBA championships 0.0, MVP awards 0, Olympic gold medals 1.0, FIBA world cup 0.0.
+Player Tony Lorenzo Delk  , born 1974/1/28, nationality American  , age 51, plays for New Mexico State, position nan, draft pick 16.0, draft year 1996.0, college Kentucky  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Calvin Ramsey  , born 1937/7/13, nationality American  , age 88, plays for New York Knicks  , position Frontcourt, draft pick 13.0, draft year 1959.0, college NYU  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Gene Dyker Eugene Walter Dyker  , born 1930/2/17, nationality American  , age 95, plays for Milwaukee Hawks  , position Frontcourt, draft pick 0.0, draft year 1953.0, college   , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Derrick Chievous  , born 1967/7/3, nationality American  , age 58, plays for Cleveland Cavaliers  , position Frontcourt, draft pick 16.0, draft year 1988.0, college University of Missouri  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Rik Smits  , born 1966/8/23, nationality Dutch  , age 59, plays for Indiana Pacers  , position Frontcourt, draft pick 2.0, draft year 1988.0, college Marist College  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 1.0.
+Player Anthony Edwards, born 2001/8/5, nationality American, age 24, plays for Minnesota Timberwolves, position Backcourt, draft pick 1.0, draft year 2020.0, college Georgia, NBA championships 0.0, MVP awards 0, Olympic gold medals 1.0, FIBA world cup 0.0.
+Player Harry Junior "The Horse" Gallatin  , born 1927/4/26, nationality American  , age 98, plays for Detroit Pistons  , position Frontcourt, draft pick 20.0, draft year 1949.0, college Northeast Missouri State Teachers' College  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Jim Brasco  , born 1931/2/3, nationality American  , age 94, plays for Milwaukee Hawks  , position nan, draft pick 1.0, draft year 1952.0, college New York University  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Darnell Hillman  , born 1949/8/29, nationality American, age 76, plays for Golden State Warriors, position Frontcourt, draft pick 8.0, draft year 1971.0, college San Jose State University  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 1.0.
+Player Larry Robinson, born 1951/6/2, nationality Canadian, age 74, plays for Senior Consultant to Hockey Operations for the St. Louis Blues, position Frontcourt, draft pick 0.0, draft year 0.0, college nan, NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Nicholas William Calathes , born 1989/2/7, nationality Greek-American  , age 36, plays for AS Monaco  , position Backcourt, draft pick 35.0, draft year 2009.0, college University of Florida  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Rod Derline  , born 1952/3/11, nationality  , age 73, plays for Seattle SuperSonics  , position Backcourt, draft pick 169.0, draft year 1974.0, college Seattle University  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Kurt Thomas  , born 1972/10/4, nationality American  , age 53, plays for  New York Knicks, position Frontcourt, draft pick 0.0, draft year 1995.0, college Texas Christian University  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Kevin Wayne Durant, born 1988/9/29, nationality American, age 37, plays for Phoenix Suns, position Frontcourt, draft pick 2.0, draft year 2007.0, college University of Texas at Austin, NBA championships 2.0, MVP awards 1, Olympic gold medals 4.0, FIBA world cup 1.0.
+Player Aaron Williams  , born 1971/10/2, nationality American  , age 54, plays for  Los Angeles Clippers, position Frontcourt, draft pick 0.0, draft year 0.0, college Xavier University  , NBA championships nan, MVP awards 0, Olympic gold medals nan, FIBA world cup nan.
+Player Nathaniel Thomas Huffman  , born 1975/4/2, nationality American  , age 50, plays for Toronto Raptors  , position nan, draft pick 0.0, draft year 0.0, college Central Michigan University  , NBA championships 0.0, MVP awards 1, Olympic gold medals 0.0, FIBA world cup 1.0.
+Player Fred Boyd  , born 1950/6/13, nationality American  , age 75, plays for New Orleans Jazz  , position nan, draft pick 5.0, draft year 1972.0, college Oregon State University  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player William Bedford  , born 1963/12/14, nationality American  , age 61, plays for  Grand Rapids Hoops, position Frontcourt, draft pick 6.0, draft year 1986.0, college Memphis State University  , NBA championships 1.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Steve Smith, born 1969/3/31, nationality American, age 56, plays for Charlotte Bobcats, position Backcourt, draft pick 5.0, draft year 1991.0, college Michigan State, NBA championships 1.0, MVP awards 0, Olympic gold medals 1.0, FIBA world cup 1.0.
+Player Shawn Christopher Respert  , born 1972/2/6, nationality American  , age 53, plays for   , position nan, draft pick 8.0, draft year 1995.0, college Michigan State  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Rodney Strickland  , born 1966/7/11, nationality American  , age 59, plays for  Houston Rockets, position nan, draft pick 19.0, draft year 1988.0, college DePaul University  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Elmer H. Behnke  , born 1929/2/3, nationality American  , age 96, plays for Milwaukee Hawks  , position nan, draft pick 35.0, draft year 1951.0, college Bradley University  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Lamar Brandon Stevens  , born 1997/7/9, nationality American  , age 28, plays for Memphis Grizzlies  , position nan, draft pick 0.0, draft year 0.0, college Penn State Nittany Lions  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Ronald Moore  , born 1988/7/14, nationality American  , age 37, plays for Debreceni EAC  , position Backcourt, draft pick nan, draft year 2010.0, college Siena  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Erazem Lorbek  , born 1984/2/21, nationality Slovenian  , age 41, plays for  Petrol Olimpija, position Frontcourt, draft pick 2.0, draft year 2005.0, college Michigan State University  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Marvin "Mickey" Rottner  , born 1919/3/23, nationality American  , age 106, plays for  Chicago Stags, position Backcourt, draft pick 0.0, draft year 0.0, college Loyola University in Chicago  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Hamidou Diallo  , born 1998/7/31, nationality American  , age 27, plays for Capital City Go-Go  , position nan, draft pick 45.0, draft year 2018.0, college University of Kentucky  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Dewayne "D. J." White, Jr., born 1986/8/31, nationality American, age 39, plays for Piratas de Quebradillas, position Frontcourt, draft pick 29.0, draft year 2008.0, college Indiana Hoosiers, NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Steve Kerr  , born 1965/9/27, nationality American  , age 60, plays for Golden State Warriors  , position Frontcourt, draft pick 50.0, draft year 1988.0, college University of Arizona  , NBA championships 9.0, MVP awards 0, Olympic gold medals 1.0, FIBA world cup 1.0.
+Player Gregory Clinton Foster  , born 1968/10/3, nationality American  , age 57, plays for Indiana Pacers  , position Frontcourt, draft pick 35.0, draft year 1990.0, college UTEP  , NBA championships 1.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Bill Hewitt  , born 1944/8/8, nationality American  , age 81, plays for Los Angeles Lakers, position Frontcourt, draft pick 0.0, draft year 0.0, college University of Southern California  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Joseph Xavier Forte  , born 1981/3/23, nationality American  , age 44, plays for  Maccabi Tel Aviv, position Backcourt, draft pick 21.0, draft year 2001.0, college University of North Carolina at Chapel Hill  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Dino_Ra?a, born 1967/4/24, nationality Croatian  , age 58, plays for  Split, position Frontcourt, draft pick 40.0, draft year 1989.0, college  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 1.0.
+Player Mark Jeffrey Radford  , born 1959/7/5, nationality American  , age 66, plays for Seattle SuperSonics  , position nan, draft pick 53.0, draft year 1981.0, college Oregon State University  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Kostas Papanikolaou, born 1990/7/31, nationality Greek, age 35, plays for Olympiacos, position Frontcourt, draft pick 48.0, draft year 2012.0, college nan, NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Garry Witts Garrett David Witts  , born 1959/7/3, nationality American  , age 66, plays for Washington Bullets  , position nan, draft pick 0.0, draft year 0.0, college  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Jabari Dominic Walker  , born 2002/7/30, nationality American  , age 23, plays for Portland Trail Blazers  , position nan, draft pick 57.0, draft year 2022.0, college Colorado  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Devontae Cacok  , born 1996/10/8, nationality American  , age 29, plays for Virtus Bologna  , position nan, draft pick 0.0, draft year 0.0, college UNC Wilmington  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Brandon Goodwin  , born 1995/10/2, nationality American  , age 30, plays for Gigantes de Carolina  , position Backcourt, draft pick 0.0, draft year 0.0, college UCF Knights, Florida Gulf Coast Eagles  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Dick Rosenthal  , born 1933/1/20, nationality American  , age 91, plays for Fort Wayne Pistons  , position Frontcourt, draft pick 1.0, draft year 1954.0, college Notre Dame  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Jamal Crawford  , born 1980/3/20, nationality American  , age 45, plays for  Brooklyn Nets, position nan, draft pick 8.0, draft year 2000.0, college University of Michigan  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Jordan Lee Crawford  , born 1988/10/23, nationality American  , age 37, plays for Sichuan Blue Whales  , position nan, draft pick 27.0, draft year 2010.0, college Indiana University, Xavier University  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Tom Copa  , born 1964/10/30, nationality American  , age 61, plays for  Libertas Livorno, position nan, draft pick 44.0, draft year 1987.0, college Marquette  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Kermit Washington  , born 1951/9/17, nationality American  , age 74, plays for  Golden State Warriors, position Frontcourt, draft pick 5.0, draft year 1973.0, college American University  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Donyell Marshall  , born 1973/5/18, nationality American  , age 52, plays for Greensboro Swarm  , position nan, draft pick 4.0, draft year 1994.0, college University of Connecticut  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Wayne Lavern Robinson, born 1930/1/14, nationality American, age 95, plays for Philadelphia Eagles, position Frontcourt, draft pick 8.0, draft year 1952.0, college University of Minnesota, NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Greg Fillmore Gregory Paul Fillmore  , born 1947/3/7, nationality American  , age 78, plays for New York Knicks  , position Frontcourt, draft pick 8.0, draft year 1970.0, college Cheyney University of Pennsylvania  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player John Harding Lucas II  , born 1953/10/31, nationality American  , age 72, plays for Houston Rockets  , position Frontcourt, draft pick 1.0, draft year 1976.0, college University of Maryland  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Dick Surhoff  , born 1929/11/16, nationality American, age 96, plays for Milwaukee Hawks  , position nan, draft pick 0.0, draft year 1952.0, college Long Island, John Marshall College  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Garfield Smith  , born 1945/11/18, nationality American  , age 80, plays for Boston Celtics  , position nan, draft pick 10.0, draft year 1968.0, college  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Leroy Patrick Chollet  , born 1925/3/5, nationality American  , age 100, plays for Syracuse Nationals, position Backcourt, draft pick 1.0, draft year 1949.0, college Loyola University New Orleans  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Michael Carter-Williams  , born 1991/10/10, nationality American  , age 34, plays for Capitanes de Ciudad de M��xico  , position nan, draft pick 11.0, draft year 2013.0, college Syracuse Orange  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Dennis Schr?der, born 1993/9/15, nationality German, age 32, plays for Brooklyn Nets, position nan, draft pick 17.0, draft year 2013.0, college nan, NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 1.0.
+Player Jack Parr  , born 1936/3/13, nationality American  , age 89, plays for Cincinnati Royals  , position nan, draft pick 10.0, draft year 1958.0, college Kansas State University  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Monti Davis DaMon William "Monti" Davis  , born 1958/7/26, nationality American  , age 67, plays for Dallas Mavericks  , position Frontcourt, draft pick 21.0, draft year 1980.0, college Tennessee State University  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Eric Johnson Jones  , born 1966/2/7, nationality American-Spanish  , age 59, plays for Utah Jazz  , position nan, draft pick 0.0, draft year 0.0, college  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Sidney Harold Tanenbaum, born 1925/10/8, nationality American, age 100, plays for Baltimore Bullets, position Backcourt, draft pick 0.0, draft year 0.0, college New York University, NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Trayce Jackson-Davis  , born 2000/2/22, nationality American  , age 25, plays for Golden State Warriors  , position nan, draft pick 57.0, draft year 2023.0, college Indiana Hoosiers  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Andre Jamal Drummond, born 1993/8/10, nationality American, age 32, plays for Philadelphia 76ers, position Frontcourt, draft pick 9.0, draft year 2012.0, college University of Connecticut, NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 1.0.
+Player Chavano Rainer "Buddy" Hield, born 1992/12/17, nationality Bahamian, age 33, plays for Golden State Warriors, position nan, draft pick 6.0, draft year 2016.0, college Oklahoma Sooners, NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player D'Angelo Russell, born 1996/2/23, nationality American, age 29, plays for Los Angeles Lakers, position Backcourt, draft pick 2.0, draft year 2015.0, college Ohio State, NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Joel Hans Embiid, born 1994/3/16, nationality Cameroonian-American, age 31, plays for Philadelphia 76ers, position nan, draft pick 3.0, draft year 2014.0, college University of Kansas, NBA championships 0.0, MVP awards 1, Olympic gold medals 1.0, FIBA world cup 0.0.
+Player Paul Clifton Anthony George, born 1990/5/2, nationality American, age 35, plays for Philadelphia 76ers, position nan, draft pick 10.0, draft year 2010.0, college Fresno State, NBA championships 0.0, MVP awards 0, Olympic gold medals 1.0, FIBA world cup 0.0.
+Player Kyrie Andrew Irving, born 1992/3/23, nationality American, age 33, plays for Dallas Mavericks, position nan, draft pick 1.0, draft year 2011.0, college Duke University, NBA championships 1.0, MVP awards 0, Olympic gold medals 1.0, FIBA world cup 1.0.
+Player Jayson Christopher Tatum, born 1998/3/3, nationality American, age 27, plays for Boston Celtics, position nan, draft pick 3.0, draft year 2017.0, college Duke University, NBA championships 1.0, MVP awards 1, Olympic gold medals 2.0, FIBA world cup 0.0.
+Player Caleb Martin, born 1995/9/28, nationality American, age 30, plays for Philadelphia 76ers, position Frontcourt, draft pick 0.0, draft year 2019.0, college NC State Wolfpack, Nevada Wolf Pack, NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Andrew Christian Wiggins, born 1995/2/23, nationality Canadian, age 30, plays for Golden State Warriors, position nan, draft pick 1.0, draft year 2014.0, college Kansas Jayhawks, NBA championships 1.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Max Berning Fiedler, born 2001/2/26, nationality American, age 24, plays for Philadelphia 76ers, position nan, draft pick nan, draft year nan, college Rice Owls, NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Ogugua "OG" Anunoby Jr., born 1997/7/17, nationality British, age 28, plays for New York Knicks , position nan, draft pick 23.0, draft year 2017.0, college Indiana University, NBA championships 1.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Jaylen Marselles Brown, born 1996/10/24, nationality American, age 29, plays for Boston Celtics, position Backcourt, draft pick 3.0, draft year 2016.0, college University of California, Berkeley, NBA championships 1.0, MVP awards 1, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Victor Wembanyama, born 2004/1/4, nationality French, age 21, plays for San Antonio Spurs, position Frontcourt, draft pick 1.0, draft year 2023.0, college nan, NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Jrue Randall Holiday  , born 1990/6/12, nationality American  , age 35, plays for Boston Celtics  , position nan, draft pick 17.0, draft year 2009.0, college UCLA  , NBA championships 2.0, MVP awards 1, Olympic gold medals 2.0, FIBA world cup 0.0.
+Player Austin Tyler Reaves, born 1998/5/29, nationality American, age 27, plays for Los Angeles Lakers, position nan, draft pick 0.0, draft year 2021.0, college Wichita State Shockers, Oklahoma Sooners, NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 1.0.
+Player Kevin Wesley Love, born 1988/9/7, nationality American, age 37, plays for Miami Heat, position nan, draft pick 5.0, draft year 2008.0, college UCLA, NBA championships 1.0, MVP awards 0, Olympic gold medals 1.0, FIBA world cup 1.0.
+Player Giannis Sina Ugo Antetokounmpo, born 1994/12/6, nationality Greek and Nigerian, age 31, plays for Milwaukee Bucks, position Frontcourt, draft pick 15.0, draft year 2013.0, college nan, NBA championships 1.0, MVP awards 2, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Wardell Stephen Curry II  , born 1988/3/14, nationality American  , age 37, plays for Golden State Warriors  , position Backcourt, draft pick 7.0, draft year 2009.0, college Davidson  , NBA championships 4.0, MVP awards 2, Olympic gold medals 1.0, FIBA world cup 2.0.
+Player Alfred Joel Horford Reynoso, born 1986/6/3, nationality Dominican, age 39, plays for Boston Celtics, position Frontcourt, draft pick 3.0, draft year 2007.0, college University of Florida, NBA championships 1.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Tyler Christopher Herro, born 2000/1/20, nationality American, age 25, plays for Miami Heat, position Backcourt, draft pick 13.0, draft year 2019.0, college University of Kentucky, NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Duncan McBryde Robinson, born 1994/4/22, nationality American, age 31, plays for Miami Heat, position nan, draft pick 0.0, draft year 0.0, college Williams College, University of Michigan, NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Kyle Forman Anderson, born 1993/9/20, nationality American-Chinese, age 33, plays for Golden State Warriors, position nan, draft pick 30.0, draft year 2014.0, college UCLA, NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Cade Parker Cunningham, born 2001/9/25, nationality American, age 24, plays for Detroit Pistons, position nan, draft pick 1.0, draft year 2021.0, college Oklahoma State, NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 1.0.
+Player LeBron Raymone James Sr., born 1984/12/30, nationality American, age 40, plays for Los Angeles Lakers, position nan, draft pick 1.0, draft year 2003.0, college nan, NBA championships 4.0, MVP awards 4, Olympic gold medals 3.0, FIBA world cup 0.0.
+Player Jimmy Butler III  , born 1989/9/14, nationality American  , age 36, plays for Miami Heat  , position nan, draft pick 30.0, draft year 2011.0, college Marquette University  , NBA championships 0.0, MVP awards 0, Olympic gold medals 1.0, FIBA world cup 0.0.
+Player Kevon Grant Looney, born 1996/2/6, nationality American, age 29, plays for Golden State Warriors, position Frontcourt, draft pick 30.0, draft year 2015.0, college UCLA, NBA championships 3.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Zachary Thomas LaVine, born 1995/3/10, nationality American, age 30, plays for Chicago Bulls, position nan, draft pick 13.0, draft year 2014.0, college UCLA, NBA championships 0.0, MVP awards 0, Olympic gold medals 1.0, FIBA world cup 0.0.
+Player Jaden Edward Dhananjay Ivey, born 2002/2/13, nationality American, age 23, plays for Detroit Pistons, position nan, draft pick 5.0, draft year 2022.0, college Purdue, NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 1.0.
+Player Kyle Terrell Lowry, born 1986/3/25, nationality American, age 39, plays for Philadelphia 76ers, position Backcourt, draft pick 24.0, draft year 2006.0, college Villanova Wildcats, NBA championships 1.0, MVP awards 0, Olympic gold medals 1.0, FIBA world cup 0.0.
+Player Michael Jeffrey Jordan, born 1963/2/17, nationality American, age 62, plays for Chicago Bulls, Washington Wizards, position Backcourt, draft pick 3.0, draft year 1984.0, college University of North Carolina, NBA championships 6.0, MVP awards 5, Olympic gold medals 2.0, FIBA world cup 0.0.
+Player Devin Armani Booker, born 1996/10/30, nationality American, age 28, plays for Phoenix Suns, position Backcourt, draft pick 13.0, draft year 2015.0, college Kentucky Wildcats, NBA championships 0.0, MVP awards 0, Olympic gold medals 2.0, FIBA world cup 0.0.
+Player Draymond Jamal Green, born 1990/3/4, nationality American, age 35, plays for Golden State Warriors, position Frontcourt, draft pick 35.0, draft year 2012.0, college Michigan State University, NBA championships 4.0, MVP awards 0, Olympic gold medals 2.0, FIBA world cup 0.0.
+Player Zach Collins, born 1997/11/19, nationality American, age 28, plays for San Antonio Spurs, position nan, draft pick 10.0, draft year 2017.0, college Gonzaga Bulldogs, NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Jonathan Malangu Kuminga, born 2002/10/6, nationality Congolese, age 23, plays for Golden State Warriors, position Frontcourt, draft pick 7.0, draft year 2021.0, college nan, NBA championships 1.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Lonzo Anderson Ball, born 1997/10/27, nationality American, age 28, plays for Chicago Bulls, position Backcourt, draft pick 2.0, draft year 2017.0, college UCLA, NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Jaime Jaquez Jr.  , born 2001/2/18, nationality Mexican-American  , age 24, plays for Miami Heat  , position nan, draft pick 18.0, draft year 2023.0, college UCLA  , NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Ausar XLNC Thompson, born 2003/1/30, nationality American, age 22, plays for Detroit Pistons, position nan, draft pick 5.0, draft year 2023.0, college nan, NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Jalen Marquis Brunson, born 1996/8/31, nationality American, age 29, plays for New York Knicks, position nan, draft pick 33.0, draft year 2018.0, college Villanova University, NBA championships 0.0, MVP awards 0, Olympic gold medals 0.0, FIBA world cup 0.0.
+Player Shaquille Rashaun O'Neal, born 1972/3/6, nationality American, age 53, plays for Boston Celtics, position Frontcourt, draft pick 1.0, draft year 1992.0, college Louisiana State University (LSU), NBA championships 4.0, MVP awards 1, Olympic gold medals 1.0, FIBA world cup 1.0.
+Player Kobe Bean Bryant, born 1978/8/23, nationality American, age 47, plays for Los Angeles Lakers, position Backcourt, draft pick 13.0, draft year 1996.0, college nan, NBA championships 5.0, MVP awards 1, Olympic gold medals 2.0, FIBA world cup 0.0.
+Player Christopher Emmanuel Paul, born 1985/5/6, nationality American, age 40, plays for San Antonio Spurs, position Backcourt, draft pick 4.0, draft year 2005.0, college Wake Forest University, NBA championships 0.0, MVP awards 1, Olympic gold medals 2.0, FIBA world cup 0.0.
+Player Harrison Bryce Jordan Barnes, born 1992/5/30, nationality American, age 33, plays for San Antonio Spurs, position nan, draft pick 7.0, draft year 2012.0, college North Carolina Tar Heels, NBA championships 1.0, MVP awards 0, Olympic gold medals 1.0, FIBA world cup 0.0.
+Player Edrice Femi "Bam" Adebayo, born 1997/7/18, nationality American, age 28, plays for Miami Heat, position nan, draft pick 14.0, draft year 2017.0, college University of Kentucky, NBA championships 0.0, MVP awards 0, Olympic gold medals 2.0, FIBA world cup 0.0.
+Team records:
+Team Atlanta Hawks, founded year 1946, location Atlanta, ownership Atlanta Spirit LLC, championship 1.
+Team Boston Celtics, founded year 1946, location Boston, ownership   , championship 18.
+Team Brooklyn Nets, founded year 1967, location Brooklyn, ownership Joseph Tsai, championship 0.
+Team Charlotte Hornets, founded year 1988, location Charlotte, ownership Gabe Plotkin and Rick Schnall, championship 0.
+Team Chicago Bulls, founded year 1966, location Chicago, ownership nan, championship 6.
+Team Cleveland Cavaliers, founded year 1970, location Cleveland, ownership Dan Gilbert  , championship 1.
+Team Dallas Mavericks, founded year 1980, location Dallas, ownership Miriam Adelson and Patrick Dumont, championship 1.
+Team Denver Nuggets, founded year 1967, location Denver, ownership  , championship 1.
+Team Detroit Pistons, founded year 1937, location Detroit, ownership nan, championship 3.
+Team Golden State Warriors, founded year 1946, location San Francisco, ownership nan, championship 7.
+Team Houston Rockets, founded year 1967, location Houston, ownership nan, championship 2.
+Team Indiana Pacers, founded year 1967, location Indianapolis, ownership  , championship 3.
+Team Los Angeles Clippers, founded year 1970, location Los Angeles, ownership Steve Ballmer, championship 0.
+Team Los Angeles Lakers, founded year 1946, location Los Angeles, ownership Jerry Buss (from 1979), championship 17.
+Team Memphis Grizzlies, founded year 1995, location Memphis, ownership Robert J. Pera, championship 0.
+Team Miami Heat, founded year 1988, location Miami, ownership Micky Arison  , championship 3.
+Team Milwaukee Bucks, founded year 1968, location Milwaukee, ownership Wes Edens and Marc Lasry  , championship 2.
+Team Minnesota Timberwolves, founded year 1989, location Minneapolis, ownership Glen Taylor, championship 0.
+Team New Orleans Pelicans, founded year 2002, location New Orleans, ownership Gayle Benson, championship 0.
+Team New York Knicks, founded year 1946, location New York City, ownership James L. Dolan, championship 2.
+Team Oklahoma City Thunder, founded year 1967, location Oklahoma City, ownership Professional Basketball Club LLC, a group of Oklahoma City investors led by Clay Bennett  , championship 0.
+Team Orlando Magic, founded year 1989, location Orlando, ownership nan, championship 0.
+Team Philadelphia 76ers, founded year 1946, location Philadelphia, ownership Harris Blitzer Sports & Entertainment (HBSE)  , championship 3.
+Team Phoenix Suns, founded year 1968, location Phoenix, ownership  , championship 0.
+Team Portland Trail Blazers, founded year 1970, location Portland, ownership Paul Allen, championship 1.
+Team Sacramento Kings, founded year 1923, location Sacramento, ownership   , championship 1.
+Team San Antonio Spurs, founded year 1967, location San Antonio, ownership  , championship 5.
+Team Toronto Raptors, founded year 1995, location Toronto, ownership  , championship 1.
+Team Utah Jazz, founded year 1974, location Salt Lake City, ownership nan, championship 0.
+Team Washington Wizards, founded year 1961, location Washington, ownership Ted Leonsis, championship 1.
+City records:
+City Denver, state Colorado, population 715522, area 400.739, gdp nan.
+City Boston, state Massachusetts, population 675647, area 125.0, gdp nan.
+City Indianapolis, state Indiana, population 887642, area 953.0, gdp nan.
+City Dallas, state Texas, population 1304379, area 999.3, gdp nan.
+City San Antonio, state Texas, population 1434625, area 1205.4, gdp nan.
+City Los Angeles, state California, population 3,820,914, area 1210.0, gdp nan.
+City Minneapolis, state Minnesota, population 429954, area 152.8, gdp nan.
+City Miami, state Florida, population 442241, area nan, gdp 344.9.
+City Inglewood, state California, population 107,762, area 24.0, gdp  .
+City Portland, state Oregon, population 652,503, area 375.78, gdp nan.
+City San Francisco, state California, population 808988, area 121.0, gdp 252200.
+City Philadelphia, state Pennsylvania, population 1603797, area nan, gdp 518.5.
+City New Orleans, state Louisiana, population 383,997, area nan, gdp nan.
+City Chicago, state Illinois, population 2746388, area nan, gdp 689000.
+City Orlando, state Florida, population 307573, area nan, gdp nan.
+City Salt Lake City, state Utah, population 200133, area 286.0, gdp nan.
+City Toronto, state Ontario, population 2794356, area 630.2, gdp nan.
+City Phoenix, state Arizona, population 1662607, area 1341.0, gdp 362000.
+City Washington, D.C., state nan, population 689,545, area 177.0, gdp nan.
+City Cleveland, state Ohio, population 372,624, area 213.6, gdp nan.
+City Houston, state Texas, population 2314157, area 1651.0, gdp nan.
+City Sacramento, state California, population 524943, area 259.0, gdp nan.
+City Detroit, state Michigan, population 639,111, area 370.03, gdp nan.
+City Memphis, state Tennessee, population 633104, area nan, gdp nan.
+City Charlotte, state North Carolina, population 874579, area 808.1, gdp nan.
+City New York City, state New York, population 8258035, area 778.2, gdp nan.
+City Oklahoma City, state Oklahoma, population 681054, area 1606.7, gdp nan.
+City Milwaukee, state Wisconsin, population 577,222, area 250.71, gdp 102,000,000,000.
+City Atlanta, state Georgia, population 510,823, area 347.1, gdp 473,000.
+Owner records:
+Owner Tom Gores  , age 60, nationality American  , nba team Detroit Pistons  , own year 2011.0.
+Owner Daniel Gilbert, age 62, nationality American, nba team Cleveland Cavaliers, own year nan.
+Owner Steven Anthony Ballmer, age 68, nationality American, nba team Los Angeles Clippers, own year nan.
+Owner Daniel G. DeVos, age 66, nationality American, nba team Orlando Magic, own year 1991.0.
+Owner Mark Cuban, age 65, nationality American, nba team Dallas Mavericks, own year 2000.0.
+Owner Tilman Joseph Fertitta, age 66, nationality American, nba team Houston Rockets, own year 2017.0.
+Owner Joseph Chung-Hsin Tsai, age 59, nationality Taiwanese-Canadian, nba team Brooklyn Nets, own year 2019.0.
+Owner Clay Bennett, age 64, nationality American, nba team Oklahoma City Thunder, own year 2006.0.
+Owner Herbert Simon, age 89, nationality American, nba team Indiana Pacers, own year 1983.0.
+Owner Jerry Michael Reinsdorf, age 88, nationality American, nba team Chicago Bulls, own year 1985.0.
+Owner Gayle Marie LaJaunie Bird Benson, age 77, nationality American, nba team New Orleans Pelicans, own year 2018.0.
+Owner Enos Stanley Kroenke, age 76, nationality American, nba team Denver Nuggets, own year nan.
+Owner Joshua Jordan Harris, age 59, nationality American, nba team Philadelphia 76ers, own year 2011.0.
+Owner James Lawrence Dolan, age 68, nationality American, nba team New York Knicks, own year nan.
+Owner Micky Arison, age 1949, nationality Israeli-American, nba team Miami Heat, own year 1995.0.
+Owner Joseph Steven Lacob, age 67, nationality American, nba team Golden State Warriors, own year 2010.0.
+
+### **Expected Example Output Format (Strictly Follow This Structure while modifying the table_names, column_names to match the given text)**:
+schema = [
+    {
+        "table_name": "student",
+        "columns": [
+            {"name": "id", "type": "INTEGER", "primary_key": True},
+            {"name": "name", "type": "TEXT"},
+        ]
+    },
+    {
+        "table_name": "course",
+        "columns": [
+            {"name": "id", "type": "INTEGER", "primary_key": True},
+            {"name": "title", "type": "TEXT"},
+        ]
+    },
+    {
+        "table_name": "enrollment",
+        "columns": [
+            {"name": "id", "type": "INTEGER", "primary_key": True},
+            {"name": "student_id", "type": "INTEGER", "foreign_key": True, "foreign_key_table": "student", "foreign_key_column": "id"},
+            {"name": "course_id", "type": "INTEGER", "foreign_key": True, "foreign_key_table": "course", "foreign_key_column": "id"}
+        ]
+    }
+]
+
+
+Now output the schema as per the system instructions.
+### Output:
+
+Output:
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+```json
+{
+    "table_name": "player",
+    "columns": [
+        {"name": "player_id", "type": "INTEGER", "primary_key": true},
+        {"name": "full_name", "type": "TEXT"},
+        {"name": "birth_date", "type": "DATE"},
+        {"name": "nationality", "type": "TEXT"},
+        {"name": "age", "type": "INTEGER"},
+        {"name": "current_team", "type": "TEXT"},
+        {"name": "position", "type": "TEXT"},
+        {"name": "draft_pick", "type": "REAL"},
+        {"name": "draft_year", "type": "INTEGER"},
+        {"name": "college", "type": "TEXT"},
+        {"name": "nba_championships", "type": "INTEGER"},
+        {"name": "mvp_awards", "type": "INTEGER"},
+        {"name": "olympic_gold_medals", "type": "REAL"},
+        {"name": "fiba_world_cup", "type": "REAL"}
+    ]
+},
+{
+    "table_name": "team",
+    "columns": [
+        {"name": "team_id", "type": "INTEGER", "primary_key": true},
+        {"name": "name", "type": "TEXT"},
+        {"name": "founded_year", "type": "INTEGER"},
+        {"name": "location", "type": "TEXT"},
+        {"name": "ownership", "type": "TEXT"},
+        {"name": "championships", "type": "INTEGER"}
+    ]
+},
+{
+    "table_name": "city",
+    "columns": [
+        {"name": "city_id", "type": "INTEGER", "primary_key": true},
+        {"name": "name", "type": "TEXT"},
+        {"name": "state", "type": "TEXT"},
+        {"name": "population", "type": "INTEGER"},
+        {"name": "area", "type": "REAL"},
+        {"name": "gdp", "type": "REAL"}
+    ]
+},
+{
+    "table_name": "owner",
+    "columns": [
+        {"name": "owner_id", "type": "INTEGER", "primary_key": true},
+        {"name": "full_name", "type": "TEXT"},
+        {"name": "age", "type": "INTEGER"},
+        {"name": "nationality", "type": "TEXT"},
+        {"name": "nba_team", "type": "TEXT"},
+        {"name": "own_year", "type": "REAL"}
+    ]
+},
+{
+    "table_name": "player_team_history",
+    "columns": [
+        {"name": "history_id", "type": "INTEGER", "primary_key": true},
+        {"name": "player_id", "type": "INTEGER", "foreign_key": true, "foreign_key_table": "player", "foreign_key_column": "player_id"},
+        {"name": "team_name", "type": "TEXT"},
+        {"name": "start_year", "type": "INTEGER"}
+    ]
+},
+{
+    "table_name": "city_team",
+    "columns": [
+        {"name": "id", "type": "INTEGER", "primary_key": true},
+        {"name": "team_id", "type": "INTEGER", "foreign_key": true, "foreign_key_table": "team", "foreign_key_column": "team_id"},
+        {"name": "city_id", "type": "INTEGER", "foreign_key": true, "foreign_key_table": "city", "foreign_key_column": "city_id"}
+    ]
+}
+```
+
+### Explanation:
+- **Player Table**: Contains player details such as full name, birth date, nationality, age, current team, position, draft pick, draft year, college, and achievements.
+- **Team Table**: Contains information about the NBA teams including their names, founded years, locations, ownership, and championships.
+- **City Table**: Contains city records with population, area, and GDP data.
+- **Owner Table**: Contains owner details such as full name, age, nationality, NBA team they own, and year of ownership.
+- **Player Team History Table**: Tracks the history of players playing for different teams over time.
+- **City Team Table**: Maps cities to their respective NBA teams.
+
+This schema ensures proper normalization and avoids SQL reserved keywords in table and column names.
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+********************************************************************************

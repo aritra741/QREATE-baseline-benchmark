@@ -1,0 +1,38 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+Based on the context provided:
+
+1. **name**: The name of the player is "Askia Jones" or "Askia Rahman Jones". We can use a short normalized string, so we'll just use "Askia Jones".
+
+2. **age**: To calculate the age, we need to know the current year and subtract 1971 (the birth year). However, since no current year is provided in the context, let's assume it's 2023 for this calculation.
+   - Age = 2023 - 1971 = 52. Since we need a number younger than 35, and Askia Jones is older than 35, he won't be included in the query results.
+
+3. **position**: The position of the player is "shooting guard".
+
+4. **team**: There's no specific team mentioned for Askia Jones in this context. However, we can infer that during his NBA career, he played with the Minnesota Timberwolves.
+
+Since Askia Jones does not meet the criteria (age younger than 35), we will return an empty JSON object as there are no players meeting the specified conditions.
+
+```json
+{
+  "name": "Askia Jones",
+  "position": "shooting guard",
+  "team": "Minnesota Timberwolves"
+}
+```
+
+---
+
+Note: Since Askia Jones is older than 35, we should ideally return an empty object. However, based on the provided context and instructions, this is the best answer we can derive.
+
+```json
+{}
+```
+
+---
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: For players younger than 35, list player name, position, city name, and city population via player -> team -> city.. Return a short normalized string.'), 'position': FieldInfo(annotation=Union[str, Any], required=True, description='position from the player document for query: For players younger than 35, list player name, position, city name, and city population via player -> team -> city.. Return a short normalized string.'), 'age': FieldInfo(annotation=Union[float, Any], required=True, description='age from the player document for query: For players younger than 35, list player name, position, city name, and city population via player -> team -> city.. Return a number.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: For players younger than 35, list player name, position, city name, and city population via player -> team -> city.. Return a short normalized string.')}
+#####
+'age'

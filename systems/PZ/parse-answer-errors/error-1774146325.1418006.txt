@@ -1,0 +1,24 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To find the age and position of Erazem Lorbek, we need to extract this information from the provided context. 
+
+1. **Age**: The birth year is mentioned as February 21, 1984. To calculate his age in 2013 (the last year he played for FC Barcelona), we can subtract 1984 from 2013.
+   - Age = 2013 - 1984 = 29
+
+2. **Position**: The context states that Erazem Lorbek "primarily played at the power forward position, but he was also capable of playing at the center position." For simplicity and normalization, we can use 'PF' as a short string for power forward.
+
+Now, let's construct the JSON object with these values.
+---
+```json
+{
+  "age": 29,
+  "position": "PF"
+}
+```
+---
+#####
+{'age': FieldInfo(annotation=Union[float, Any], required=True, description='age from the player document for query: For each NBA player, what is their playing position and age?. Return a number.'), 'position': FieldInfo(annotation=Union[str, Any], required=True, description='position from the player document for query: For each NBA player, what is their playing position and age?. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 1 (char 0)

@@ -1,0 +1,28 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To determine the correct values for "location" and "team_name", we need to carefully analyze the provided context:
+
+1. **Team Name**: The team name is clearly mentioned multiple times as "Portland Trail Blazers". This can be found throughout the text, such as in the first line of the document: "Portland Trail Blazers".
+
+2. **Location**: The location for this team is also explicitly stated within the text. It mentions that the team is based in Portland, Oregon.
+
+Based on these observations:
+
+- **team_name** should be set to "Portland Trail Blazers".
+- **location** should be set to "Portland, Oregon".
+
+Now, let's format this into a JSON object as required.
+---
+```json
+{
+  "team_name": "Portland Trail Blazers",
+  "location": "Portland, Oregon"
+}
+```
+---
+#####
+{'team_name': FieldInfo(annotation=Union[str, Any], required=True, description="team_name from the team document for query: List each player's name, nationality, and age with their team name and team location.. Return a short normalized string."), 'location': FieldInfo(annotation=Union[str, Any], required=True, description="location from the team document for query: List each player's name, nationality, and age with their team name and team location.. Return a short normalized string.")}
+#####
+Expecting value: line 1 column 1 (char 0)

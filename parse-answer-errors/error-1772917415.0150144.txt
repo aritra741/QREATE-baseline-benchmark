@@ -1,0 +1,25 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To derive the required output fields from the context, let's break down the information:
+
+1. **birth_date**: The text mentions "Dennis Schröder (German pronunciation: [\d̪n̩ˈʃʁøːdɐ]; born 15 September 1993)" which gives us the birth date as '15 September 1993'.
+2. **name**: The name of the player is clearly mentioned in the text as "Dennis Schröder".
+3. **team**: To find the current team, we look at the most recent information provided: "On 8 February 2024, Schröder was traded alongside Thaddeus Young to the Brooklyn Nets in exchange for Spencer Dinwiddie." This indicates his current team is 'Brooklyn Nets'.
+
+Now let's construct the JSON object with these values.
+
+---
+```json
+{
+  "birth_date": "15 September 1993",
+  "name": "Dennis Schröder",
+  "team": "Brooklyn Nets"
+}
+```
+---
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: For cities with area greater than 100, list player name, player birth date, team name, and city area via player -> team -> city.. Return a short normalized string.'), 'birth_date': FieldInfo(annotation=Union[str, Any], required=True, description='birth_date from the player document for query: For cities with area greater than 100, list player name, player birth date, team name, and city area via player -> team -> city.. Return a short normalized string.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: For cities with area greater than 100, list player name, player birth date, team name, and city area via player -> team -> city.. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 1 (char 0)

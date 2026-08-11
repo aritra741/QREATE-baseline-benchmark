@@ -1,0 +1,23 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To extract the required information from the context:
+
+1. **city_name**: The city name is explicitly mentioned multiple times throughout the text as "Detroit".
+2. **population**: The population of Detroit at the 2020 census is provided in the text: "Detroit had a population of 639,111 at the 2020 census".
+
+Based on this reasoning, we can construct the JSON object with the required fields.
+
+---
+```json
+{
+  "city_name": "Detroit",
+  "population": 639111
+}
+```
+---
+#####
+{'city_name': FieldInfo(annotation=Union[str, Any], required=True, description='city_name from the city document for query: For players younger than 35, list player name, position, city name, and city population via player -> team -> city.. Return a short normalized string.'), 'population': FieldInfo(annotation=Union[float, Any], required=True, description='population from the city document for query: For players younger than 35, list player name, position, city name, and city population via player -> team -> city.. Return a number.')}
+#####
+Expecting value: line 1 column 1 (char 0)

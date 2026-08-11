@@ -1,0 +1,29 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+The context provided does not contain any information about a player document or players older than 25. Instead, it describes the biography of Miles Simon, an American basketball coach and former player. Therefore, we need to extract the relevant details from his biography that match the required output fields.
+
+1. **name**: The name "Miles Julian Simon" is mentioned in the text.
+2. **position**: He played as a guard during his college career at the University of Arizona.
+3. **team**: His professional team was the Orlando Magic, and he also played for the Dakota Wizards.
+4. Since there's no specific age query or player document provided, we cannot determine an "age" from this context.
+
+Given that the required fields are not directly available in the context, let's assume a fictional scenario where Miles Simon is older than 25 (which is true as he was born in 1975).
+
+Here’s how to fill in the output fields based on the information provided:
+
+```json
+{
+  "name": "Miles Julian Simon",
+  "position": "guard",
+  "team": "Orlando Magic, Dakota Wizards"
+}
+```
+
+---
+
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: For players older than 25, list player name, position, team name, and team founded year.. Return a short normalized string.'), 'position': FieldInfo(annotation=Union[str, Any], required=True, description='position from the player document for query: For players older than 25, list player name, position, team name, and team founded year.. Return a short normalized string.'), 'age': FieldInfo(annotation=Union[float, Any], required=True, description='age from the player document for query: For players older than 25, list player name, position, team name, and team founded year.. Return a number.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: For players older than 25, list player name, position, team name, and team founded year.. Return a short normalized string.')}
+#####
+'age'

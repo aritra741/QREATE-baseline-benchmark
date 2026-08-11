@@ -1,0 +1,30 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To derive the required fields from the context:
+
+1. **age**: The text mentions that LeBron James was born on December 30, 1984. To find his age for players younger than 35, we need to calculate the difference between the current year and his birth year. As of now (2023), he is 38 years old, which means he does not qualify as a player younger than 35.
+
+2. **name**: The name from the player document for the query is "LeBron James".
+
+3. **position**: LeBron James plays as a forward and guard, but we can normalize it to "forward" or "guard". For simplicity, let's use "forward".
+
+4. **team**: As of 2010 (when he left Cleveland), his team was the Miami Heat.
+
+Given that the age is not within the specified range, we will still provide the other fields as requested:
+
+```json
+{
+  "name": "LeBron James",
+  "position": "forward",
+  "team": "Miami Heat"
+}
+```
+
+---
+
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: For players younger than 35, list player name, position, city name, and city population via player -> team -> city.. Return a short normalized string.'), 'position': FieldInfo(annotation=Union[str, Any], required=True, description='position from the player document for query: For players younger than 35, list player name, position, city name, and city population via player -> team -> city.. Return a short normalized string.'), 'age': FieldInfo(annotation=Union[float, Any], required=True, description='age from the player document for query: For players younger than 35, list player name, position, city name, and city population via player -> team -> city.. Return a number.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: For players younger than 35, list player name, position, city name, and city population via player -> team -> city.. Return a short normalized string.')}
+#####
+'age'

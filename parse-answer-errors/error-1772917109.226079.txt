@@ -1,0 +1,29 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+Based on the context provided:
+
+- The filename is "108.txt".
+- The contents of the file describe a player named Max Fiedler.
+- For the query about players with draft pick greater than 0, we need to extract information from the player document.
+
+From the content:
+- College: Rice Owls
+- Draft Pick: Not explicitly mentioned in the text (draft pick is not > 0)
+- Name: Max Fiedler
+- Team: Philadelphia 76ers
+
+Since draft_pick is not greater than 0, we will exclude it from the output.
+
+ANSWER:
+{
+  "college": "Rice Owls",
+  "name": "Max Fiedler",
+  "team": "Philadelphia 76ers"
+}
+---
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: For players with draft pick greater than 0, list player name, college, team name, and city GDP via player -> team -> city.. Return a short normalized string.'), 'college': FieldInfo(annotation=Union[str, Any], required=True, description='college from the player document for query: For players with draft pick greater than 0, list player name, college, team name, and city GDP via player -> team -> city.. Return a short normalized string.'), 'draft_pick': FieldInfo(annotation=Union[float, Any], required=True, description='draft_pick from the player document for query: For players with draft pick greater than 0, list player name, college, team name, and city GDP via player -> team -> city.. Return a number.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: For players with draft pick greater than 0, list player name, college, team name, and city GDP via player -> team -> city.. Return a short normalized string.')}
+#####
+'draft_pick'

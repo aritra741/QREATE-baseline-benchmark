@@ -1,0 +1,21 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+The task requires extracting information from a context about a file and then mapping that information into specific fields. However, the provided context does not contain any data related to the city document or queries involving traversing through documents to extract names, states, team names, player names, or player colleges for players older than 20. Therefore, we need to infer from the given text what can be reasonably derived.
+
+Given that the context is about Chicago's history and geography, it does not contain any information related to a city document with queries as described in the output fields. Thus, we cannot derive the required values directly from this context.
+
+ANSWER:
+Since there is no relevant data in the provided context to map into the specified output fields, the answer will be an empty JSON object:
+
+```json
+{}
+```
+
+---
+
+#####
+{'city_name': FieldInfo(annotation=Union[str, Any], required=True, description='city_name from the city document for query: Starting from city and traversing city -> team -> player, list city name, state, team name, player name, and player college for players older than 20.. Return a short normalized string.'), 'state_name': FieldInfo(annotation=Union[str, Any], required=True, description='state_name from the city document for query: Starting from city and traversing city -> team -> player, list city name, state, team name, player name, and player college for players older than 20.. Return a short normalized string.')}
+#####
+'city_name'

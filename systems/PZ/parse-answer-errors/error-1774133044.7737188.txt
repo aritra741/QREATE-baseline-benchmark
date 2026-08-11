@@ -1,0 +1,31 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To determine the values for the output fields, we need to extract relevant information from the context provided. Let's break it down:
+
+1. **age**: The age of Devontae Cacok can be calculated using his birth date (October 8, 1996) and the current year.
+2. **olympic_gold_medals**: There is no mention of any Olympic gold medals in the context provided.
+3. **team**: The most recent team mentioned for Devontae Cacok is Virtus Bologna.
+
+Let's calculate the age first:
+
+- Current Year: 2023
+- Birth Year: 1996
+
+Age = 2023 - 1996 = 27 years old
+
+Now, let's fill in the JSON object with these values.
+---
+```json
+{
+  "age": 27,
+  "olympic_gold_medals": null,
+  "team": "Virtus Bologna"
+}
+```
+---
+#####
+{'age': FieldInfo(annotation=Union[float, Any], required=True, description='age from the player document for query: For each NBA player, what is their age, how many Olympic gold medals have they won, which team do they play for, how many championships has that team won, and where is the team based?. Return a number.'), 'olympic_gold_medals': FieldInfo(annotation=Union[float, Any], required=True, description='olympic_gold_medals from the player document for query: For each NBA player, what is their age, how many Olympic gold medals have they won, which team do they play for, how many championships has that team won, and where is the team based?. Return a number.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: For each NBA player, what is their age, how many Olympic gold medals have they won, which team do they play for, how many championships has that team won, and where is the team based?. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 1 (char 0)

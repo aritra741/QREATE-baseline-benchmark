@@ -1,0 +1,40 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To derive the required information from the context:
+
+1. **Identify the player document**: The text is about Michael Carter-Williams, so we can use this as our player document.
+2. **Check for age**:
+   - The birth date of Michael Carter-Williams is given as October 10, 1991.
+   - To find his current age (as of the context's writing), we need to calculate from 1991 to the present year.
+
+Since the text does not specify a particular year for the query, let's assume it’s currently 2023:
+- Age = 2023 - 1991 = 32
+
+3. **Extract name**:
+   - The full name is "Michael Carter-Williams".
+
+4. **Extract position**:
+   - His primary position in basketball is listed as a point guard.
+
+5. **Extract team and founded year**:
+   - For the query, we need to find his current or most recent team.
+   - As of 2023, he was signed with the Capitanes de Ciudad de México (NBA G League).
+
+Now let's fill in these values into a JSON object.
+
+---
+```json
+{
+  "age": 32,
+  "name": "Michael Carter-Williams",
+  "position": "point guard",
+  "team": "Capitanes de Ciudad de México"
+}
+```
+---
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: For players older than 25, list player name, position, team name, and team founded year.. Return a short normalized string.'), 'position': FieldInfo(annotation=Union[str, Any], required=True, description='position from the player document for query: For players older than 25, list player name, position, team name, and team founded year.. Return a short normalized string.'), 'age': FieldInfo(annotation=Union[float, Any], required=True, description='age from the player document for query: For players older than 25, list player name, position, team name, and team founded year.. Return a number.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: For players older than 25, list player name, position, team name, and team founded year.. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 1 (char 0)

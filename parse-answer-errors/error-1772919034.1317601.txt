@@ -1,0 +1,30 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To fill in the output fields, we need to extract specific information from the context provided:
+
+1. **age**: The player document mentions that Ogugua "OG" Anunoby Jr. was born on 17 July 1997. To find his age, we can calculate it based on the current year (2024). 
+   - Age = 2024 - 1997 = 27
+
+2. **name**: The name from the player document is "OG Anunoby".
+
+3. **nationality**: The nationality of the player is mentioned as British.
+
+4. **team**: The team for which he plays is New York Knicks, as stated in the context: "On 1 March 2020, Anunoby scored 32 points and recorded seven steals, along with seven rebounds and three assists in a 133\u2013118 loss against the Denver Nuggets. He hit a game-winning buzzer-beater three-pointer on 3 September, in a 104\u2013103 win in Game 3 of the Eastern Conference semifinals against the Boston Celtics, and finished with 12 points. The buzzer-beater prevented the Raptors from going down to a 0\u20133 deficit to the Celtics. The Raptors would eventually fall in seven games." However, later it states: "On 25 February 2022, Anunoby was sidelined due to a right finger fracture suffered against the Charlotte Hornets. On 3 March, he was ruled out for two weeks to rest his fractured finger." and then "On 16 November 2022, Anunoby scored a season-high 32 points during a 112\u2013104 win against the Miami Heat." and finally "On 30 December 2023, Anunoby, along with Precious Achiuwa and Malachi Flynn were traded to the New York Knicks in exchange for RJ Barrett, Immanuel Quickley and a second-round pick."
+
+Based on this information, we can conclude that his current team is the New York Knicks.
+
+---
+```json
+{
+  "age": 27,
+  "name": "OG Anunoby",
+  "nationality": "British",
+  "team": "New York Knicks"
+}
+```
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description="name from the player document for query: List each player's name, nationality, and age with their team name and team location.. Return a short normalized string."), 'nationality': FieldInfo(annotation=Union[str, Any], required=True, description="nationality from the player document for query: List each player's name, nationality, and age with their team name and team location.. Return a short normalized string."), 'age': FieldInfo(annotation=Union[float, Any], required=True, description="age from the player document for query: List each player's name, nationality, and age with their team name and team location.. Return a number."), 'team': FieldInfo(annotation=Union[str, Any], required=True, description="team from the player document for query: List each player's name, nationality, and age with their team name and team location.. Return a short normalized string.")}
+#####
+Expecting value: line 1 column 1 (char 0)

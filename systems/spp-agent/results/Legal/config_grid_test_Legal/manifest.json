@@ -1,0 +1,165 @@
+{
+  "experiment": "config_grid_test",
+  "split": "test",
+  "held_out_policy": "The test split is assigned first from a shuffled per-slice pool and is never included in train or dev. Use train for agent design, prompt tuning, threshold optimization, and algorithm selection. Use dev only for validation during development. The test split must not be used for any tuning or selection.",
+  "n_configs": 288,
+  "n_test_queries": 10,
+  "slice_counts": {
+    "agg_only": 5,
+    "agg_filter": 5
+  },
+  "dataset": "Legal",
+  "slices_present": [
+    "agg_only",
+    "agg_filter"
+  ],
+  "extraction_source": "cache (qwen2.5:7b-instruct)",
+  "extraction_model": "qwen2.5:7b-instruct",
+  "extraction_token_cost": 4043804.0,
+  "extraction_fingerprint": "71a3d91b1ff2396f",
+  "run_fingerprint": {
+    "extraction_model": "qwen2.5:7b-instruct",
+    "llm_profile": "ollama_qwen_7b",
+    "seed": 42,
+    "num_docs": 570,
+    "n_test_queries": 10,
+    "corpus_fingerprint": "ee34c8ce5531d185",
+    "extraction_mode": "workload_aware",
+    "demand_fingerprint": "5da4b8932bbe0fe6",
+    "value_hints_fingerprint": "none",
+    "split": "test"
+  },
+  "corpus_fingerprint": "ee34c8ce5531d185",
+  "extraction_mode": "workload_aware",
+  "demand_fingerprint": "5da4b8932bbe0fe6",
+  "demand_profile": {
+    "columns": [
+      {
+        "column": "first_judge",
+        "roles": [
+          "group_key"
+        ],
+        "aggregation_functions": [],
+        "query_ids": [
+          "agg_only_legal_gen_107",
+          "agg_filter_legal_gen_1727"
+        ]
+      },
+      {
+        "column": "judgment_year",
+        "roles": [
+          "aggregate_input",
+          "group_key"
+        ],
+        "aggregation_functions": [
+          "SUM",
+          "AVG"
+        ],
+        "query_ids": [
+          "agg_only_legal_gen_107",
+          "agg_only_legal_gen_69",
+          "agg_filter_legal_gen_1727",
+          "agg_filter_legal_gen_1135",
+          "agg_filter_legal_gen_1014"
+        ]
+      },
+      {
+        "column": "legal_basis_num",
+        "roles": [
+          "aggregate_input"
+        ],
+        "aggregation_functions": [
+          "SUM",
+          "AVG"
+        ],
+        "query_ids": [
+          "agg_only_legal_gen_69",
+          "agg_filter_legal_gen_1339",
+          "agg_filter_legal_gen_1135"
+        ]
+      },
+      {
+        "column": "evidence",
+        "roles": [
+          "group_key"
+        ],
+        "aggregation_functions": [],
+        "query_ids": [
+          "agg_only_legal_gen_86",
+          "agg_filter_legal_gen_1339"
+        ]
+      },
+      {
+        "column": "hearing_year",
+        "roles": [
+          "aggregate_input",
+          "group_key"
+        ],
+        "aggregation_functions": [
+          "SUM",
+          "AVG"
+        ],
+        "query_ids": [
+          "agg_only_legal_gen_86",
+          "agg_only_legal_gen_55",
+          "agg_only_legal_gen_44",
+          "agg_filter_legal_gen_1014"
+        ]
+      },
+      {
+        "column": "fine_amount",
+        "roles": [
+          "aggregate_input"
+        ],
+        "aggregation_functions": [
+          "MAX"
+        ],
+        "query_ids": [
+          "agg_only_legal_gen_55"
+        ]
+      },
+      {
+        "column": "judge_name",
+        "roles": [
+          "group_key"
+        ],
+        "aggregation_functions": [],
+        "query_ids": [
+          "agg_only_legal_gen_44"
+        ]
+      },
+      {
+        "column": "nationality_for_applicant",
+        "roles": [
+          "group_key"
+        ],
+        "aggregation_functions": [],
+        "query_ids": [
+          "mixed_queries_5"
+        ]
+      },
+      {
+        "column": "case_number",
+        "roles": [
+          "aggregate_input"
+        ],
+        "aggregation_functions": [
+          "MAX"
+        ],
+        "query_ids": [
+          "mixed_queries_5"
+        ]
+      }
+    ],
+    "has_join": false,
+    "has_temporal": false
+  },
+  "corpus_mode": "full_aligned",
+  "aligned_corpus_size": 570,
+  "llm_profile": "ollama_qwen_7b",
+  "num_docs": 570,
+  "seed": 42,
+  "materialize_only": false,
+  "save_databases": true,
+  "databases_dir": "databases"
+}

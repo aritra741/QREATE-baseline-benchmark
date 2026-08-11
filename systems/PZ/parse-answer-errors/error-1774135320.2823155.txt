@@ -1,0 +1,24 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+Based on the context provided, we need to extract specific information from the file contents for each output field. Let's break it down:
+
+1. **name**: The name of the player is "Jim Walsh" (normalized as "jim walsh").
+2. **team**: The team he played for in the NBA was the "Philadelphia Warriors" (normalized as "philadelphia warriors").
+3. **birth_date**: His birth date is given as "August 29, 1930".
+
+Now we can construct the JSON object with these values.
+
+---
+```json
+{
+  "name": "jim walsh",
+  "team": "philadelphia warriors",
+  "birth_date": "august 29, 1930"
+}
+```
+#####
+{'birth_date': FieldInfo(annotation=Union[str, Any], required=True, description='birth_date from the player document for query: For each NBA player, what is their name, which team do they play for, who owns that team, how old is the owner, when was the team founded, and in which city does the team play?. Return a short normalized string.'), 'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: For each NBA player, what is their name, which team do they play for, who owns that team, how old is the owner, when was the team founded, and in which city does the team play?. Return a short normalized string.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: For each NBA player, what is their name, which team do they play for, who owns that team, how old is the owner, when was the team founded, and in which city does the team play?. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 1 (char 0)

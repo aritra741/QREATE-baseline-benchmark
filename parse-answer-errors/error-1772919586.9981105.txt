@@ -1,0 +1,48 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To fill in the required fields, we need to extract specific information from the context provided:
+
+1. **college**: The player attended Wichita State and Oklahoma.
+2. **draft_pick**: Not explicitly mentioned; assume it's at least 0 as per the query conditions.
+3. **name**: Austin Reaves.
+4. **team**: Los Angeles Lakers.
+
+Given that we need to return a short normalized string for college, let's choose "Wichita State" and "Oklahoma" as separate entries since he played for both institutions.
+
+Now, let's construct the JSON object:
+
+```json
+{
+  "college": "Wichita State",
+  "draft_pick": 0,
+  "name": "Austin Reaves",
+  "team": "Los Angeles Lakers"
+}
+```
+
+Since we need to provide a separate entry for each college he played at, let's include both colleges in the output:
+
+```json
+{
+  "college": "Wichita State",
+  "draft_pick": 0,
+  "name": "Austin Reaves",
+  "team": "Los Angeles Lakers"
+},
+{
+  "college": "Oklahoma",
+  "draft_pick": 0,
+  "name": "Austin Reaves",
+  "team": "Los Angeles Lakers"
+}
+```
+
+---
+
+
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: For players with draft pick at least 0, list player name, draft pick, college, and team name.. Return a short normalized string.'), 'draft_pick': FieldInfo(annotation=Union[float, Any], required=True, description='draft_pick from the player document for query: For players with draft pick at least 0, list player name, draft pick, college, and team name.. Return a number.'), 'college': FieldInfo(annotation=Union[str, Any], required=True, description='college from the player document for query: For players with draft pick at least 0, list player name, draft pick, college, and team name.. Return a short normalized string.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: For players with draft pick at least 0, list player name, draft pick, college, and team name.. Return a short normalized string.')}
+#####
+Extra data: line 1 column 112 (char 111)

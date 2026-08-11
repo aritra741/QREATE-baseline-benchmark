@@ -1,0 +1,24 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+Based on the context provided, we need to extract specific information from the file contents for each output field. Let's break it down:
+
+1. **draft_pick**: The draft pick is mentioned as "4th round (35th pick overall) of the 1951 NBA draft." So, the draft pick number is 35.
+2. **olympic_gold_medals**: There is no mention of any Olympic gold medals in the provided context.
+3. **team**: The team mentioned for Elmer Behnke is "Milwaukee Hawks" (1951–52).
+
+Now we can construct the JSON object with these values.
+
+---
+```json
+{
+  "draft_pick": 35,
+  "olympic_gold_medals": 0,
+  "team": "Milwaukee Hawks"
+}
+```
+#####
+{'draft_pick': FieldInfo(annotation=Union[float, Any], required=True, description='draft_pick from the player document for query: For each NBA player, which team do they play for, what was their draft pick, and how many Olympic gold medals have they won?. Return a number.'), 'olympic_gold_medals': FieldInfo(annotation=Union[float, Any], required=True, description='olympic_gold_medals from the player document for query: For each NBA player, which team do they play for, what was their draft pick, and how many Olympic gold medals have they won?. Return a number.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: For each NBA player, which team do they play for, what was their draft pick, and how many Olympic gold medals have they won?. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 1 (char 0)

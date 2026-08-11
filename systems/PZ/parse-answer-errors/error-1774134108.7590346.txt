@@ -1,0 +1,30 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To fill out the JSON object with the correct values based on the provided context, we need to extract relevant information from the text for each output field. Here’s how:
+
+1. **fiba_world_cup**: The query asks about "For each NBA player, what is their nationality, how many Olympic gold medals have they won, and which team do they play for?" There's no mention of a FIBA World Cup in the context provided.
+
+2. **nationality**: From the text: "Tyler Herro (/\u02c8hi\u02d0ro\u028a/ HEE-roh; born January 20, 2000) is an American professional basketball player." The nationality of Tyler Herro is "American".
+
+3. **olympic_gold_medals**: There's no mention of any Olympic gold medals in the provided text.
+
+4. **team**: From the text: "He plays for the Miami Heat of the National Basketball Association (NBA)." So, his team is "Miami Heat".
+
+Given that we can only derive certain fields from the context and some are not mentioned at all, here's the JSON object:
+
+```json
+{
+  "nationality": "American",
+  "olympic_gold_medals": null,
+  "team": "Miami Heat"
+}
+```
+
+---
+
+#####
+{'fiba_world_cup': FieldInfo(annotation=Union[float, Any], required=True, description='fiba_world_cup from the player document for query: For each NBA player, what is their nationality, how many Olympic gold medals have they won, and which team do they play for?. Return a number.'), 'nationality': FieldInfo(annotation=Union[str, Any], required=True, description='nationality from the player document for query: For each NBA player, what is their nationality, how many Olympic gold medals have they won, and which team do they play for?. Return a short normalized string.'), 'olympic_gold_medals': FieldInfo(annotation=Union[float, Any], required=True, description='olympic_gold_medals from the player document for query: For each NBA player, what is their nationality, how many Olympic gold medals have they won, and which team do they play for?. Return a number.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: For each NBA player, what is their nationality, how many Olympic gold medals have they won, and which team do they play for?. Return a short normalized string.')}
+#####
+'fiba_world_cup'

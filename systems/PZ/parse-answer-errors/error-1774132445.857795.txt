@@ -1,0 +1,34 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To extract the required information from the context, we need to identify the relevant details for each output field:
+
+1. **age**: The age of Donyell Marshall can be calculated using his birth date (May 18, 1973) and the current year.
+2. **nationality**: His nationality is mentioned as "American".
+3. **position**: While not explicitly stated in the context, we can infer that he played various positions during his NBA career based on his roles with different teams.
+
+Let's calculate the age first:
+
+- Current Year: 2023
+- Birth Year: 1973
+
+Age = 2023 - 1973 = 50 years old
+
+Now, we can fill in the required fields:
+
+```json
+{
+  "age": 50,
+  "nationality": "American",
+  "position": "Forward/Guard"  # Inferred from his roles with different teams and his playing style.
+}
+```
+
+---
+
+
+#####
+{'age': FieldInfo(annotation=Union[float, Any], required=True, description="age from the player document for query: What is each NBA player's playing position, nationality, and age?. Return a number."), 'nationality': FieldInfo(annotation=Union[str, Any], required=True, description="nationality from the player document for query: What is each NBA player's playing position, nationality, and age?. Return a short normalized string."), 'position': FieldInfo(annotation=Union[str, Any], required=True, description="position from the player document for query: What is each NBA player's playing position, nationality, and age?. Return a short normalized string.")}
+#####
+Expecting ',' delimiter: line 1 column 76 (char 75)

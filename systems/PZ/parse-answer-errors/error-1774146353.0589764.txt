@@ -1,0 +1,31 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To determine the age and position from the player document, we need to extract relevant information from the provided context. Here’s how we can break it down:
+
+1. **Age Calculation**:
+   - The birth date is given as July 26, 1958.
+   - The death date is given as June 4, 2013.
+   - Age = Death year - Birth year + (Death month < Birth month ? -1 : 0) + (Death day >= Birth day ? 0 : -1)
+   - Plugging in the values: 
+     \[
+     \text{Age} = 2013 - 1958 + (6 < 7 ? -1 : 0) + (4 >= 26 ? 0 : -1) = 55
+     \]
+
+2. **Position**:
+   - The text mentions that Monti Davis was a "forward".
+
+Based on this reasoning, we can now fill in the required fields.
+
+---
+```json
+{
+  "age": 55,
+  "position": "forward"
+}
+```
+#####
+{'age': FieldInfo(annotation=Union[float, Any], required=True, description='age from the player document for query: For each NBA player, what is their playing position and age?. Return a number.'), 'position': FieldInfo(annotation=Union[str, Any], required=True, description='position from the player document for query: For each NBA player, what is their playing position and age?. Return a short normalized string.')}
+#####
+Expecting property name enclosed in double quotes: line 1 column 2 (char 1)

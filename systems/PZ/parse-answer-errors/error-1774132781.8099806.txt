@@ -1,0 +1,34 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To determine the age and position of Anthony Davis, we need to extract this information from the provided context. 
+
+1. **Position**: The text states that "Davis plays the power forward and center positions." Therefore, his playing positions are "power forward" and "center."
+
+2. **Age**: To find out how old Davis is, we can use the birth date mentioned in the text: "Anthony Marshon Davis Jr. (born March 11, 1993)". Since the current year is not specified, we will assume the context refers to a recent time period where he would be around 30 years old as of 2023.
+
+Based on this information:
+
+```json
+{
+  "age": 30,
+  "position": "power forward"
+}
+```
+
+Since the position can be either "power forward" or "center," we will include both in a list for accuracy, but only one is required by the output fields. 
+
+Final JSON:
+```json
+{
+  "age": 30,
+  "position": "power forward"
+}
+```
+---
+
+#####
+{'age': FieldInfo(annotation=Union[float, Any], required=True, description='age from the player document for query: For each NBA player, what is their playing position and age?. Return a number.'), 'position': FieldInfo(annotation=Union[str, Any], required=True, description='position from the player document for query: For each NBA player, what is their playing position and age?. Return a short normalized string.')}
+#####
+Extra data: line 1 column 48 (char 47)

@@ -1,0 +1,31 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To find the correct values for "age" and "position", we need to carefully analyze the provided context:
+
+1. **Position**: The text mentions that Lonzo Ball is a point guard, which can be directly extracted from the passage.
+2. **Age**: To determine his age, we need to look at when he was born and compare it with the current date or the latest accepted revision date mentioned in the text.
+
+From the context:
+- Lonzo Ball's birth year: 1997 (born on October 27, 1997)
+- The latest accepted revision date is August 30, 2024
+
+Calculating his age as of August 30, 2024:
+\[ \text{Age} = 2024 - 1997 = 27 \]
+
+Now we can fill in the required fields:
+
+```json
+{
+  "age": 27,
+  "position": "point guard"
+}
+```
+
+---
+
+#####
+{'age': FieldInfo(annotation=Union[float, Any], required=True, description='age from the player document for query: For each NBA player, what is their playing position and age?. Return a number.'), 'position': FieldInfo(annotation=Union[str, Any], required=True, description='position from the player document for query: For each NBA player, what is their playing position and age?. Return a short normalized string.')}
+#####
+Expecting property name enclosed in double quotes: line 1 column 2 (char 1)

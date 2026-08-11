@@ -1,0 +1,25 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+The context provided does not contain any information about cities with an area greater than 100, nor does it provide a player document that can be queried for birth_date, name, and team. The contents of the file are about Bill Hewitt's biography as a basketball player.
+
+However, based on the available data in the context:
+
+- Name: "William Severlyn Hewitt"
+- Birth Date: "August 8, 1944"
+- Team: "Los Angeles Lakers" (and other teams mentioned)
+
+Given that we need to return short normalized strings for these fields, here is the JSON object:
+
+---
+{
+  "birth_date": "1944-08-08",
+  "name": "William Severlyn Hewitt",
+  "team": "Los Angeles Lakers"
+}
+---
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: For cities with area greater than 100, list player name, player birth date, team name, and city area via player -> team -> city.. Return a short normalized string.'), 'birth_date': FieldInfo(annotation=Union[str, Any], required=True, description='birth_date from the player document for query: For cities with area greater than 100, list player name, player birth date, team name, and city area via player -> team -> city.. Return a short normalized string.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: For cities with area greater than 100, list player name, player birth date, team name, and city area via player -> team -> city.. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 1 (char 0)

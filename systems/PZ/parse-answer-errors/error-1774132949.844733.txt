@@ -1,0 +1,29 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To determine the age and position of Jay Vincent, we need to extract relevant information from the provided context. 
+
+1. **Age Calculation**:
+   - Jay Vincent was born on June 10, 1959.
+   - The current year is not specified in the context, but for the sake of this exercise, let's assume it is 2023 (since he had a long NBA career and passed away recently).
+   - Age = Current Year - Birth Year
+   - Age = 2023 - 1959 = 64
+
+2. **Position**:
+   - The context mentions that Jay Vincent was a "6'7\" forward".
+   - Therefore, his position is "forward".
+
+Now we can construct the JSON object with the required fields.
+
+---
+```json
+{
+  "age": 64,
+  "position": "forward"
+}
+```
+#####
+{'age': FieldInfo(annotation=Union[float, Any], required=True, description='age from the player document for query: For each NBA player, what is their playing position and age?. Return a number.'), 'position': FieldInfo(annotation=Union[str, Any], required=True, description='position from the player document for query: For each NBA player, what is their playing position and age?. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 1 (char 0)

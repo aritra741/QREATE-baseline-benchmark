@@ -1,0 +1,26 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To derive the required information from the context provided:
+
+1. **college**: The college is mentioned as "Indiana Hoosiers" in the text.
+2. **draft_pick**: The draft pick is stated as "29th pick of the 2008 NBA draft by the Detroit Pistons and traded the same day to the Seattle SuperSonics, who were relocating to Oklahoma City."
+3. **name**: The name of the player is given as "Dewayne 'D. J.' White, Jr." in the text.
+4. **team**: The first team mentioned for his professional career is "Oklahoma City Thunder."
+
+Based on this reasoning, we can construct the JSON object with the required fields.
+
+---
+```json
+{
+  "college": "Indiana Hoosiers",
+  "draft_pick": 29,
+  "name": "Dewayne 'D. J.' White, Jr.",
+  "team": "Oklahoma City Thunder"
+}
+```
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: For players with draft pick greater than 0, list player name, college, team name, and city GDP via player -> team -> city.. Return a short normalized string.'), 'college': FieldInfo(annotation=Union[str, Any], required=True, description='college from the player document for query: For players with draft pick greater than 0, list player name, college, team name, and city GDP via player -> team -> city.. Return a short normalized string.'), 'draft_pick': FieldInfo(annotation=Union[float, Any], required=True, description='draft_pick from the player document for query: For players with draft pick greater than 0, list player name, college, team name, and city GDP via player -> team -> city.. Return a number.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: For players with draft pick greater than 0, list player name, college, team name, and city GDP via player -> team -> city.. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 1 (char 0)

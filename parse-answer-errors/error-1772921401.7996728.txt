@@ -1,0 +1,42 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To solve this problem, we need to extract information from the context provided and map it to the required output fields based on the queries given. Let's break down each query:
+
+1. **Query for age**: The player document mentions that Max Fiedler was born on February 26, 2001. To find his current age, we need to calculate the difference between the current date and his birthdate. However, since no specific date is provided in the context, we can assume a recent date (e.g., August 31, 2024) for calculation purposes.
+
+   - Current Date: August 31, 2024
+   - Birth Date: February 26, 2001
+
+   Age = 2024 - 2001 + (if current month is before birth month or same and day is before birth day, subtract one year)
+   
+   Since August comes after February, we don't need to adjust the age. Therefore:
+   \[
+   \text{Age} = 23
+   \]
+
+2. **Query for name**: The player's full name from the document is "Max Berning Fiedler". For normalization, we can use just his first and last name.
+   
+   - Name: Max Fiedler
+
+3. **Query for team**: The current team mentioned in the context is the Philadelphia 76ers.
+
+   - Team: Philadelphia 76ers
+
+Now, let's construct the JSON object with these values:
+
+```json
+{
+  "age": 23,
+  "name": "Max Fiedler",
+  "team": "Philadelphia 76ers"
+}
+```
+
+---
+
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: Starting from city and traversing city -> team -> player, list city name, state, team name, and player name for players younger than 40.. Return a short normalized string.'), 'age': FieldInfo(annotation=Union[float, Any], required=True, description='age from the player document for query: Starting from city and traversing city -> team -> player, list city name, state, team name, and player name for players younger than 40.. Return a number.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: Starting from city and traversing city -> team -> player, list city name, state, team name, and player name for players younger than 40.. Return a short normalized string.')}
+#####
+Expecting property name enclosed in double quotes: line 1 column 2 (char 1)

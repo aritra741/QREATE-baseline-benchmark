@@ -1,0 +1,28 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+The context provided does not contain enough information to directly extract the required fields for the output JSON. However, we can infer some details from the given text:
+
+1. **name**: The name of the player is "William Bedford".
+2. **position**: His position is mentioned as a "7'0\" center".
+3. **team**: He played for multiple teams including Phoenix Suns, Detroit Pistons, and San Antonio Spurs.
+4. **age**: Since his birth year is not explicitly stated but he was born on December 14, 1963, we can calculate that he would be younger than 35 in the context of this query.
+
+Given these points, let's fill in the required fields:
+
+```json
+{
+  "name": "William Bedford",
+  "position": "center",
+  "team": "Phoenix Suns, Detroit Pistons, San Antonio Spurs",
+  "age": 31  # Assuming current year is 1994 for this example
+}
+```
+
+---
+
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: For players younger than 35, list player name, position, city name, and city population via player -> team -> city.. Return a short normalized string.'), 'position': FieldInfo(annotation=Union[str, Any], required=True, description='position from the player document for query: For players younger than 35, list player name, position, city name, and city population via player -> team -> city.. Return a short normalized string.'), 'age': FieldInfo(annotation=Union[float, Any], required=True, description='age from the player document for query: For players younger than 35, list player name, position, city name, and city population via player -> team -> city.. Return a number.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: For players younger than 35, list player name, position, city name, and city population via player -> team -> city.. Return a short normalized string.')}
+#####
+Expecting ',' delimiter: line 1 column 131 (char 130)

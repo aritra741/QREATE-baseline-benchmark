@@ -1,0 +1,40 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+The query is for players older than 25. From the context provided, we can extract information about Tom Copa and determine if he meets the criteria (age > 25).
+
+1. **Determine Age**: 
+   - Born on October 30, 1964.
+   - Current year: 2023.
+   - Age = 2023 - 1964 = 59 years old.
+
+Since Tom Copa is older than 25, we can include his details in the output.
+
+2. **Extract Player Details**:
+   - Name: "Tom Copa"
+   - Position: Not explicitly mentioned but can be inferred as a basketball player.
+   - Team: Multiple teams are mentioned (Maccabi Brussels, San Antonio Spurs, La Crosse Bobcats, Saski Baskonia, Libertas Livorno).
+   - Team Founded Year: Not provided in the context.
+
+Given that we need to return a single team name and founded year for the query, we can choose one of his teams. Let's use Maccabi Brussels as an example since it is mentioned first after his college career.
+
+3. **Generate JSON Output**:
+   - age: 59
+   - name: "Tom Copa"
+   - position: "player" (normalized string)
+   - team: "Maccabi Brussels"
+
+---
+```json
+{
+  "age": 59,
+  "name": "Tom Copa",
+  "position": "player",
+  "team": "Maccabi Brussels"
+}
+```
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: For players older than 25, list player name, position, team name, and team founded year.. Return a short normalized string.'), 'position': FieldInfo(annotation=Union[str, Any], required=True, description='position from the player document for query: For players older than 25, list player name, position, team name, and team founded year.. Return a short normalized string.'), 'age': FieldInfo(annotation=Union[float, Any], required=True, description='age from the player document for query: For players older than 25, list player name, position, team name, and team founded year.. Return a number.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: For players older than 25, list player name, position, team name, and team founded year.. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 1 (char 0)

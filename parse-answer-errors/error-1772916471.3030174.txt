@@ -1,0 +1,32 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To derive the required output fields from the context provided:
+
+1. **name**: The name of the player can be derived from "Tom Copa" and "Thomas James Copa". We should use a short normalized string, which is typically just the first or full name.
+2. **team**: The team names mentioned in the text are "Maccabi Brussels", "San Antonio Spurs", "Houston Rockets", "La Crosse Bobcats", and "Saski Baskonia" and "Libertas Livorno". We should use a short normalized string for each.
+
+Based on this, we can extract:
+- name: "Thomas James Copa"
+- team: ["Maccabi Brussels", "San Antonio Spurs", "Houston Rockets", "La Crosse Bobcats", "Saski Baskonia", "Libertas Livorno"]
+
+Now let's format the answer as a JSON dictionary.
+
+---
+{
+  "name": "Thomas James Copa",
+  "team": [
+    "Maccabi Brussels",
+    "San Antonio Spurs",
+    "Houston Rockets",
+    "La Crosse Bobcats",
+    "Saski Baskonia",
+    "Libertas Livorno"
+  ]
+}
+---
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: List player name with team name, city name, and city state by linking player -> team -> city.. Return a short normalized string.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: List player name with team name, city name, and city state by linking player -> team -> city.. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 1 (char 0)

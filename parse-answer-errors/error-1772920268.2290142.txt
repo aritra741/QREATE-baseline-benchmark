@@ -1,0 +1,26 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To derive the required fields from the context, let's break down the information provided:
+
+1. **name**: The name of the player is "David Lattin" (or "Dave Lattin").
+2. **age**: To calculate the age, we need to use the birth date given in the text: "David Lattin was born on December 23, 1943". Since the context does not specify a current year, let's assume the current year is 2023 for calculation purposes. Therefore, his age would be \(2023 - 1943 = 80\).
+3. **position**: The position of the player is "center".
+4. **team**: The team mentioned in the text is "Texas Western Miners".
+
+Now we can construct the JSON object with these values.
+
+---
+```json
+{
+  "age": 80,
+  "name": "David Lattin",
+  "position": "center",
+  "team": "Texas Western Miners"
+}
+```
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: For players younger than 35, list player name, position, city name, and city population via player -> team -> city.. Return a short normalized string.'), 'position': FieldInfo(annotation=Union[str, Any], required=True, description='position from the player document for query: For players younger than 35, list player name, position, city name, and city population via player -> team -> city.. Return a short normalized string.'), 'age': FieldInfo(annotation=Union[float, Any], required=True, description='age from the player document for query: For players younger than 35, list player name, position, city name, and city population via player -> team -> city.. Return a number.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: For players younger than 35, list player name, position, city name, and city population via player -> team -> city.. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 1 (char 0)

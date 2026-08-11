@@ -1,0 +1,25 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+The context provided does not contain any information about FIBA World Cup titles, team based location, or current NBA player details. However, we can extract the draft pick number from the given text and normalize the team name as per the query requirements.
+
+1. **Draft Pick**: The text mentions that Ed Dahler was selected in the second round (14th overall) of the 1950 NBA draft by the Philadelphia Warriors.
+2. **FIBA World Cup Titles**: There is no information about FIBA World Cup titles won by Ed Dahler.
+3. **Team**: The team mentioned is "Philadelphia Warriors". Normalizing this to a short string, we can use "Warriors".
+
+Given these points, let's construct the JSON object.
+
+---
+```json
+{
+  "draft_pick": 14,
+  "fiba_world_cup": null,
+  "team": "Warriors"
+}
+```
+---
+#####
+{'draft_pick': FieldInfo(annotation=Union[float, Any], required=True, description='draft_pick from the player document for query: For each NBA player, what was their draft pick number, how many FIBA World Cup titles have they won, which team do they play for, and where is that team based?. Return a number.'), 'fiba_world_cup': FieldInfo(annotation=Union[float, Any], required=True, description='fiba_world_cup from the player document for query: For each NBA player, what was their draft pick number, how many FIBA World Cup titles have they won, which team do they play for, and where is that team based?. Return a number.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: For each NBA player, what was their draft pick number, how many FIBA World Cup titles have they won, which team do they play for, and where is that team based?. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 1 (char 0)

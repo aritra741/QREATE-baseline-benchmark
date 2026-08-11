@@ -1,0 +1,30 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+Based on the context provided, we need to extract specific information from the file contents for each of the output fields. Let's break it down:
+
+1. **birth_date**: The birth date is not explicitly mentioned in the text. However, the name and other details are available.
+2. **name**: The name of the player is "Gene Dyker".
+3. **team**: The team he played for was the Milwaukee Hawks.
+
+Given that we need to return a short normalized string for each field:
+
+- For `birth_date`, since it's not provided, we can leave it as an empty string.
+- For `name`, the name is clearly stated as "Gene Dyker".
+- For `team`, the team is mentioned as "Milwaukee Hawks".
+
+Now, let's construct the JSON object with these values.
+
+---
+```json
+{
+  "birth_date": "",
+  "name": "Gene Dyker",
+  "team": "Milwaukee Hawks"
+}
+```
+#####
+{'birth_date': FieldInfo(annotation=Union[str, Any], required=True, description='birth_date from the player document for query: For each NBA player, what is their name, which team do they play for, who owns that team, how old is the owner, when was the team founded, and in which city does the team play?. Return a short normalized string.'), 'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: For each NBA player, what is their name, which team do they play for, who owns that team, how old is the owner, when was the team founded, and in which city does the team play?. Return a short normalized string.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: For each NBA player, what is their name, which team do they play for, who owns that team, how old is the owner, when was the team founded, and in which city does the team play?. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 1 (char 0)

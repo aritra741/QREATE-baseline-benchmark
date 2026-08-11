@@ -1,0 +1,31 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To extract the required information from the context:
+
+1. **Age Calculation**:
+   - The contents mention that Rod Derline was born on March 11, 1952.
+   - To find his age, we need to calculate the difference between the current year and his birth year.
+
+2. **Position Information**:
+   - The text states that he is a "former professional basketball guard."
+
+Based on this information:
+
+- Age: We can assume the current year for calculation purposes (e.g., 2023). So, 2023 - 1952 = 71.
+- Position: The position mentioned in the text is "guard".
+
+Now we will create a JSON object with these values.
+
+---
+```json
+{
+  "age": 71,
+  "position": "guard"
+}
+```
+#####
+{'age': FieldInfo(annotation=Union[float, Any], required=True, description='age from the player document for query: For each NBA player, what is their playing position and age?. Return a number.'), 'position': FieldInfo(annotation=Union[str, Any], required=True, description='position from the player document for query: For each NBA player, what is their playing position and age?. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 1 (char 0)

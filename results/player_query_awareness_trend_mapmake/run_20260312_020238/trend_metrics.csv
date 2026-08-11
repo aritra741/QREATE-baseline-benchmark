@@ -1,0 +1,30 @@
+query_id,query_text,success,latency_s,result_rows,prompt_tokens,completion_tokens,total_tokens,macro_f1,macro_precision,macro_recall,gt_result_count,matched_rows,is_agg,error
+Q1,"SELECT player.name, player.nationality, player.age
+FROM player;",True,0.2147068977355957,141,0,0,0,0.5153664302600472,0.5153664302600472,0.5153664302600472,141,124,False,
+Q2,"SELECT player.name, player.position, player.team
+FROM player
+WHERE player.age > 25;",True,0.05272078514099121,0,0,0,0,0.0,0.0,0.0,130,0,False,
+Q3,"SELECT player.name, player.draft_pick, player.college
+FROM player
+WHERE player.draft_pick >= 0;",True,0.06535506248474121,10,0,0,0,0.09843400447427293,0.7333333333333334,0.052757793764988015,139,9,False,
+Q4,"SELECT team.team_name, team.location, team.founded_year
+FROM team;",True,0.0636754035949707,30,0,0,0,0.43333333333333335,0.43333333333333335,0.43333333333333335,30,16,False,
+Q5,"SELECT team.team_name, team.ownership, team.championships
+FROM team
+WHERE team.championships > 0;",False,0.013681888580322266,0,0,0,0,0.0,0.0,0.0,0,0,False,"Binder Error: Values list ""team"" does not have a column named ""championships""
+
+LINE 3: WHERE team.championships > 0;
+              ^"
+Q6,"SELECT city.city_name, city.state_name, city.population
+FROM city;",True,0.07465505599975586,29,0,0,0,0.7701149425287358,0.7701149425287358,0.7701149425287358,29,28,False,
+Q7,"SELECT city.city_name, city.area, city.gdp
+FROM city
+WHERE city.area > 100;",True,0.04785919189453125,4,0,0,0,0.10256410256410257,0.3333333333333333,0.06060606060606061,22,4,False,
+Q8,"SELECT owner.name, owner.nba_team, owner.own_year
+FROM owner;",True,0.06450724601745605,16,0,0,0,0.7083333333333334,0.7083333333333334,0.7083333333333334,16,16,False,
+Q9,"SELECT owner.name, owner.age, owner.nationality
+FROM owner
+WHERE owner.age > 50;",True,0.041257381439208984,0,0,0,0,0.0,0.0,0.0,16,0,False,
+Q10,"SELECT player.name, player.birth_date, player.team, player.position
+FROM player
+WHERE player.age < 35;",True,0.04746437072753906,0,0,0,0,0.0,0.0,0.0,46,0,False,

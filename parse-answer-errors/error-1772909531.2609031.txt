@@ -1,0 +1,23 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+The context provides information about a player named Ed Dahler, including his name and some details of his career. We need to extract the relevant parts for the output fields based on the queries provided:
+
+1. **name**: The query asks for "List player name with team name, city name, and city state by linking player -> team -> city." From the context, we can see that Ed Dahler played for the Philadelphia Warriors. Philadelphia is in Pennsylvania (PA). So, the normalized string would be: "Ed Dahler - Philadelphia Warriors - Philadelphia, PA".
+
+2. **team**: The query asks for the same information but specifically about the team name and city name. From the context, we can see that Ed Dahler played for the Philadelphia Warriors. Philadelphia is in Pennsylvania (PA). So, the normalized string would be: "Philadelphia Warriors - Philadelphia, PA".
+
+Now let's construct the JSON object with these values.
+
+---
+```json
+{
+  "name": "Ed Dahler - Philadelphia Warriors - Philadelphia, PA",
+  "team": "Philadelphia Warriors - Philadelphia, PA"
+}
+```
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: List player name with team name, city name, and city state by linking player -> team -> city.. Return a short normalized string.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: List player name with team name, city name, and city state by linking player -> team -> city.. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 1 (char 0)

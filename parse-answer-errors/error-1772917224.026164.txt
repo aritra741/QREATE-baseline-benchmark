@@ -1,0 +1,25 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To determine the correct values for the output fields based on the provided context:
+
+1. **location**: The query asks for a location from the team document where players with draft pick greater than 0 are listed, along with their names, colleges, teams, and city GDP via player -> team -> city. This information is not directly available in the text as it's a hypothetical query rather than an actual data point within the context.
+
+2. **team_name**: The team name can be found in the first sentence of the document: "The Brooklyn Nets are an American professional basketball team based in the New York City borough of Brooklyn."
+
+Given that we cannot directly extract the location from the text, and the team name is clearly stated, here's how to fill out the JSON:
+
+```json
+{
+  "team_name": "Brooklyn Nets"
+}
+```
+
+---
+
+
+#####
+{'team_name': FieldInfo(annotation=Union[str, Any], required=True, description='team_name from the team document for query: For players with draft pick greater than 0, list player name, college, team name, and city GDP via player -> team -> city.. Return a short normalized string.'), 'location': FieldInfo(annotation=Union[str, Any], required=True, description='location from the team document for query: For players with draft pick greater than 0, list player name, college, team name, and city GDP via player -> team -> city.. Return a short normalized string.')}
+#####
+'location'

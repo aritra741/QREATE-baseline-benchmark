@@ -1,0 +1,44 @@
+query_id,query_text,success,delta_type,latency_s,result_rows,prompt_tokens,completion_tokens,total_tokens,macro_f1,macro_precision,macro_recall,gt_result_count,matched_rows,is_agg,error
+Q1,"SELECT player.name, player.nationality, player.age, team.team_name, team.location
+FROM player
+JOIN team ON player.team = team.team_name;",True,join_alignment,5.239716529846191,42,852,65,917,0.3292307692307692,0.5095238095238095,0.24318181818181817,88,35,False,
+Q2,"SELECT player.name, player.position, team.team_name, team.founded_year
+FROM player
+JOIN team ON player.team = team.team_name
+WHERE player.age > 25;",True,join_alignment,2.7808680534362793,26,852,65,917,0.27184466019417475,0.5384615384615384,0.18181818181818182,77,22,False,
+Q3,"SELECT player.name, player.draft_pick, player.college, team.team_name
+FROM player
+JOIN team ON player.team = team.team_name
+WHERE player.draft_pick >= 0;",True,row_delta,2498.99102807045,82,7035772,292016,7327788,0.2692307692307692,0.2774390243902439,0.2614942528735632,87,38,False,
+Q4,"SELECT team.team_name, team.location, city.city_name, city.state_name
+FROM team
+JOIN city ON team.location = city.city_name;",True,join_alignment,3.144587993621826,34,952,46,998,0.3870967741935484,0.3529411764705882,0.42857142857142855,28,15,False,
+Q5,"SELECT player.name, team.team_name, city.city_name, city.state_name
+FROM player
+JOIN team ON player.team = team.team_name
+JOIN city ON team.location = city.city_name;",True,join_alignment,8.72558045387268,91,2961,168,3129,0.192090395480226,0.18681318681318682,0.19767441860465115,86,26,False,
+Q6,"SELECT player.name, player.position, city.city_name, city.population
+FROM player
+JOIN team ON player.team = team.team_name
+JOIN city ON team.location = city.city_name
+WHERE player.age < 35;",True,join_alignment,8.54774522781372,21,2961,168,3129,0.2719298245614035,0.36904761904761907,0.2152777777777778,36,11,False,
+Q7,"SELECT player.name, player.college, team.team_name, city.gdp
+FROM player
+JOIN team ON player.team = team.team_name
+JOIN city ON team.location = city.city_name
+WHERE player.draft_pick > 0;",True,row_delta,3107.7288162708282,85,9372180,347932,9720112,0.1762820512820513,0.16176470588235295,0.1936619718309859,71,27,False,
+Q8,"SELECT player.name, player.birth_date, team.team_name, city.area
+FROM player
+JOIN team ON player.team = team.team_name
+JOIN city ON team.location = city.city_name
+WHERE city.area > 100;",True,join_alignment,10.04004454612732,132,3473,193,3666,0.09045226130653267,0.06818181818181818,0.13432835820895522,67,21,False,
+Q9,"SELECT city.city_name, city.state_name, team.team_name, player.name
+FROM city
+JOIN team ON city.city_name = team.location
+JOIN player ON player.team = team.team_name
+WHERE player.age < 40;",True,join_alignment,9.870335340499878,53,3470,193,3663,0.44,0.41509433962264153,0.46808510638297873,47,34,False,
+Q10,"SELECT city.city_name, city.state_name, team.team_name, player.name, player.college
+FROM city
+JOIN team ON city.city_name = team.location
+JOIN player ON player.team = team.team_name
+WHERE player.age > 20;",True,join_alignment,9.90919017791748,66,3470,193,3663,0.3026315789473685,0.3484848484848485,0.26744186046511625,86,43,False,

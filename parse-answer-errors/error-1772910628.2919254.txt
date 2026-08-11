@@ -1,0 +1,27 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To determine the correct values for the output fields, we need to carefully analyze the context provided:
+
+1. **area**: The query asks for cities with an area greater than 100. However, the context only provides information about Toronto's area and does not mention any other city. Therefore, there is no data available in the given text to determine a number of cities meeting this criterion.
+
+2. **city_name**: We need to find a short normalized string representing the name of the city from the context. The context clearly states that "Toronto" is the capital city of Ontario and provides extensive details about it. Therefore, we can use "Toronto" as the city name.
+
+Given these considerations:
+
+- Since there's no information on cities with an area greater than 100 in the provided text, the value for `area` cannot be derived from this context.
+- The normalized string for the city name is straightforwardly "Toronto".
+
+ANSWER:
+```json
+{
+  "city_name": "Toronto"
+}
+```
+---
+
+#####
+{'city_name': FieldInfo(annotation=Union[str, Any], required=True, description='city_name from the city document for query: For cities with area greater than 100, list player name, player birth date, team name, and city area via player -> team -> city.. Return a short normalized string.'), 'area': FieldInfo(annotation=Union[float, Any], required=True, description='area from the city document for query: For cities with area greater than 100, list player name, player birth date, team name, and city area via player -> team -> city.. Return a number.')}
+#####
+'area'

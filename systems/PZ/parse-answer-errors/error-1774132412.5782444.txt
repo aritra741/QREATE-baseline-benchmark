@@ -1,0 +1,27 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To extract the required information from the context, we need to identify the relevant details for each output field:
+
+1. **age**: The player document mentions that Max Fiedler was born on February 26, 2001. To find his age in the year 2024 (when he signed with the Philadelphia 76ers), we calculate:
+   - Age = 2024 - 2001 = 23 years old.
+
+2. **nationality**: The document states that Max Fiedler is American.
+
+3. **position**: While the context does not explicitly mention his playing position, it mentions he played college basketball for Rice Owls and was a senior player. Typically, seniors in college basketball play as forwards or centers, but without explicit information, we can infer a general position like "forward" or "center". For simplicity, let's assume "forward".
+
+Now, we will create the JSON object with these values.
+
+---
+```json
+{
+  "age": 23,
+  "nationality": "American",
+  "position": "forward"
+}
+```
+#####
+{'age': FieldInfo(annotation=Union[float, Any], required=True, description="age from the player document for query: What is each NBA player's playing position, nationality, and age?. Return a number."), 'nationality': FieldInfo(annotation=Union[str, Any], required=True, description="nationality from the player document for query: What is each NBA player's playing position, nationality, and age?. Return a short normalized string."), 'position': FieldInfo(annotation=Union[str, Any], required=True, description="position from the player document for query: What is each NBA player's playing position, nationality, and age?. Return a short normalized string.")}
+#####
+Expecting value: line 1 column 1 (char 0)

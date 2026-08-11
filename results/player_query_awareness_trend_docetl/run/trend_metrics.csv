@@ -1,0 +1,44 @@
+query_id,query_text,nl_query,success,delta_type,latency_s,result_rows,prompt_tokens,completion_tokens,total_tokens,macro_f1,macro_precision,macro_recall,gt_result_count,matched_rows,is_agg,error
+Q1,"SELECT player.name, player.nationality, player.age, team.team_name, team.location
+FROM player
+JOIN team ON player.team = team.team_name;","List each player's name, nationality, and age with their team name and team location.",True,DOCETL_NL,353.2230336666107,41,1073721,6828,1080549,0.31937984496124033,0.5024390243902439,0.23409090909090907,88,31,False,
+Q2,"SELECT player.name, player.position, team.team_name, team.founded_year
+FROM player
+JOIN team ON player.team = team.team_name
+WHERE player.age > 25;","For players older than 25, list player name, position, team name, and team founded year.",True,DOCETL_NL,379.36652994155884,57,1086272,8495,1094767,0.3955223880597015,0.4649122807017544,0.34415584415584416,77,42,False,
+Q3,"SELECT player.name, player.draft_pick, player.college, team.team_name
+FROM player
+JOIN team ON player.team = team.team_name
+WHERE player.draft_pick >= 0;","For players with draft pick at least 0, list player name, draft pick, college, and team name.",True,DOCETL_NL,1401.3194518089294,70,1254455,9018,1263473,0.48089171974522293,0.5392857142857143,0.4339080459770115,87,47,False,
+Q4,"SELECT team.team_name, team.location, city.city_name, city.state_name
+FROM team
+JOIN city ON team.location = city.city_name;",List team name and location with the matched city name and state name.,True,DOCETL_NL,165.0248463153839,10,933384,1676,935060,0.3684210526315789,0.7,0.25,28,7,False,
+Q5,"SELECT player.name, team.team_name, city.city_name, city.state_name
+FROM player
+JOIN team ON player.team = team.team_name
+JOIN city ON team.location = city.city_name;","List player name with team name, city name, and city state by linking player -> team -> city.",True,DOCETL_NL,411.8909502029419,23,1635941,6445,1642386,0.3348623853211009,0.7934782608695652,0.2122093023255814,86,19,False,
+Q6,"SELECT player.name, player.position, city.city_name, city.population
+FROM player
+JOIN team ON player.team = team.team_name
+JOIN city ON team.location = city.city_name
+WHERE player.age < 35;","For players younger than 35, list player name, position, city name, and city population via player -> team -> city.",True,DOCETL_NL,483.4602942466736,19,1437971,8110,1446081,0.24545454545454545,0.35526315789473684,0.1875,36,9,False,
+Q7,"SELECT player.name, player.college, team.team_name, city.gdp
+FROM player
+JOIN team ON player.team = team.team_name
+JOIN city ON team.location = city.city_name
+WHERE player.draft_pick > 0;","For players with draft pick greater than 0, list player name, college, team name, and city GDP via player -> team -> city.",True,DOCETL_NL,519.7716655731201,31,1565184,8913,1574097,0.20588235294117646,0.33870967741935487,0.147887323943662,71,16,False,
+Q8,"SELECT player.name, player.birth_date, team.team_name, city.area
+FROM player
+JOIN team ON player.team = team.team_name
+JOIN city ON team.location = city.city_name
+WHERE city.area > 100;","For cities with area greater than 100, list player name, player birth date, team name, and city area via player -> team -> city.",True,DOCETL_NL,459.9054319858551,27,1652726,9052,1661778,0.05851063829787234,0.10185185185185185,0.041044776119402986,67,7,False,
+Q9,"SELECT city.city_name, city.state_name, team.team_name, player.name
+FROM city
+JOIN team ON city.city_name = team.location
+JOIN player ON player.team = team.team_name
+WHERE player.age < 40;","Starting from city and traversing city -> team -> player, list city name, state, team name, and player name for players younger than 40.",True,DOCETL_NL,447.0301208496094,8,1532910,6048,1538958,0.20909090909090905,0.71875,0.12234042553191489,47,8,False,
+Q10,"SELECT city.city_name, city.state_name, team.team_name, player.name, player.college
+FROM city
+JOIN team ON city.city_name = team.location
+JOIN player ON player.team = team.team_name
+WHERE player.age > 20;","Starting from city and traversing city -> team -> player, list city name, state, team name, player name, and player college for players older than 20.",True,DOCETL_NL,420.17370676994324,14,1575315,7207,1582522,0.168,0.6000000000000001,0.09767441860465118,86,13,False,

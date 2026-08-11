@@ -1,0 +1,40 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To determine the location and team name for the query "List player name with team name, city name, and city state by linking player -> team -> city," we need to follow these steps:
+
+1. Identify the relevant information from the context.
+2. Extract the necessary details about the team (name, city) and players' names.
+
+From the context:
+- The team is "Houston Rockets."
+- The city is "Houston."
+
+Now, let's extract player names linked to this team:
+- Elvin Hayes
+- Moses Malone
+- Hakeem Olajuwon
+- Clyde Drexler
+- Tracy McGrady
+- Yao Ming
+- James Harden
+
+We can form a short normalized string for the location and team name as follows:
+
+1. **Location**: Houston, Texas (Houston is in Texas)
+2. **Team Name**: Rockets
+
+Now we will generate the JSON object with these values.
+
+---
+```json
+{
+  "location": "Houston, Texas",
+  "team_name": "Rockets"
+}
+```
+#####
+{'team_name': FieldInfo(annotation=Union[str, Any], required=True, description='team_name from the team document for query: List player name with team name, city name, and city state by linking player -> team -> city.. Return a short normalized string.'), 'location': FieldInfo(annotation=Union[str, Any], required=True, description='location from the team document for query: List player name with team name, city name, and city state by linking player -> team -> city.. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 1 (char 0)

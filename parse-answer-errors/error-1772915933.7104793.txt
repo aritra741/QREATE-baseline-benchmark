@@ -1,0 +1,30 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To find the required information from the context:
+
+- For "age", we need to calculate how old Kyle Anderson was when he entered the NBA, which can be derived by subtracting his birth year (1993) from the year he declared for the draft (2014).
+- The name is straightforward: it's "Kyle Anderson".
+- His position in the player document is mentioned as a point guard.
+- His team and founded year are not directly provided, but we can infer that his first team was San Antonio Spurs, which were founded in 1973.
+
+Now let's calculate the age:
+
+2014 - 1993 = 21
+
+So, the JSON object will be as follows:
+---
+{
+  "age": 21,
+  "name": "Kyle Anderson",
+  "position": "point guard",
+  "team": "San Antonio Spurs",
+  "team_founded_year": 1973
+}
+---
+---
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: For players older than 25, list player name, position, team name, and team founded year.. Return a short normalized string.'), 'position': FieldInfo(annotation=Union[str, Any], required=True, description='position from the player document for query: For players older than 25, list player name, position, team name, and team founded year.. Return a short normalized string.'), 'age': FieldInfo(annotation=Union[float, Any], required=True, description='age from the player document for query: For players older than 25, list player name, position, team name, and team founded year.. Return a number.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: For players older than 25, list player name, position, team name, and team founded year.. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 1 (char 0)

@@ -1,0 +1,29 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To extract the required information from the context, we need to identify and match the relevant details for each output field:
+
+1. **age**: The age of the player can be derived by subtracting his birth year (1943) from the current year or a recent reference year. Since no specific date is provided in the text, we will assume the current year as 2023.
+   - Age = 2023 - 1943 = 80
+
+2. **nationality**: The nationality of the player can be found in the context where it states "American former basketball player."
+   - Nationality = American
+
+3. **position**: The position of the player is mentioned as he was the starting center for Texas Western Miners.
+   - Position = Center
+
+Now, we will create a JSON object with these values.
+
+---
+```json
+{
+  "age": 80,
+  "nationality": "American",
+  "position": "Center"
+}
+```
+#####
+{'age': FieldInfo(annotation=Union[float, Any], required=True, description="age from the player document for query: What is each NBA player's playing position, nationality, and age?. Return a number."), 'nationality': FieldInfo(annotation=Union[str, Any], required=True, description="nationality from the player document for query: What is each NBA player's playing position, nationality, and age?. Return a short normalized string."), 'position': FieldInfo(annotation=Union[str, Any], required=True, description="position from the player document for query: What is each NBA player's playing position, nationality, and age?. Return a short normalized string.")}
+#####
+Expecting value: line 1 column 1 (char 0)

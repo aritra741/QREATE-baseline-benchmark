@@ -1,0 +1,23 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To determine the name and team for the output fields, we need to identify the most recent information from the context provided. The last mentioned NBA team is the Detroit Pistons, where Jack was hired as an assistant coach on June 16, 2023. Therefore, his current team is "Detroit Pistons". For the name field, it's clear that the player's full name is Jarrett Jack.
+
+Here’s how we can fill in the output fields:
+
+- **name**: Jarrett Jack
+- **team**: Detroit Pistons
+
+Now, let's generate the JSON object with these values.
+---
+```json
+{
+  "name": "Jarrett Jack",
+  "team": "Detroit Pistons"
+}
+```
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: For each NBA player, what is their name, which team do they currently play for, and when was that team founded?. Return a short normalized string.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: For each NBA player, what is their name, which team do they currently play for, and when was that team founded?. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 1 (char 0)

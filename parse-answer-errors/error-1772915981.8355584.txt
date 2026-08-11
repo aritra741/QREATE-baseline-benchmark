@@ -1,0 +1,28 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+The context provided does not contain any information about a "player document" or specific queries related to players older than 25. Instead, it describes Joseph Forte's biography and career. Therefore, we need to extract relevant data from the text for the given output fields.
+
+1. **name**: The name of the person described in the context is "Joseph Xavier Forte".
+2. **position**: There is no explicit mention of a position in the context.
+3. **team**: The context mentions several teams Joseph Forte played for, such as Boston Celtics, Seattle SuperSonics, Asheville Altitude, Apollon Patras, Montepaschi Siena, UNICS Kazan, Fortitudo Bologna, Nuova Pallacanestro Pavia, Pistoia Basket, and Ironi Ashkelon. However, since the query asks for a single team name, we can choose one of them.
+4. **team founded year**: The context does not provide any information about the founding years of these teams.
+
+Given that there is no specific player document or age criteria mentioned in the context, we will use the available data to fill the fields as best as possible:
+
+```json
+{
+  "name": "Joseph Xavier Forte",
+  "position": "",
+  "team": "Boston Celtics",
+  "team founded year": ""
+}
+```
+
+---
+
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: For players older than 25, list player name, position, team name, and team founded year.. Return a short normalized string.'), 'position': FieldInfo(annotation=Union[str, Any], required=True, description='position from the player document for query: For players older than 25, list player name, position, team name, and team founded year.. Return a short normalized string.'), 'age': FieldInfo(annotation=Union[float, Any], required=True, description='age from the player document for query: For players older than 25, list player name, position, team name, and team founded year.. Return a number.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: For players older than 25, list player name, position, team name, and team founded year.. Return a short normalized string.')}
+#####
+'age'

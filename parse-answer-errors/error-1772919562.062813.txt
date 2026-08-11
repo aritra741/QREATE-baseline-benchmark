@@ -1,0 +1,31 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+Based on the context provided, we need to extract specific information from the file contents for a player document. The query is for players with a draft pick at least 0 and requires details such as name, draft pick, college, and team name. Let's break down the relevant parts of the text:
+
+1. **Name**: Ken Green
+2. **Draft Pick**: The context mentions that Ken Green was drafted with the eleventh pick in the second round of the 1981 NBA draft by the Denver Nuggets.
+3. **College**: Pan American University
+4. **Team**: New York Knicks (where he played for a short period)
+
+Now, let's fill in the required fields:
+
+- **college**: "Pan American University"
+- **draft_pick**: 11 (since it was the eleventh pick)
+- **name**: "Ken Green" (normalized to "ken_green")
+- **team**: "New York Knicks"
+
+Here is the JSON object with the correct values:
+---
+{
+  "college": "Pan American University",
+  "draft_pick": 11,
+  "name": "ken_green",
+  "team": "New York Knicks"
+}
+---
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: For players with draft pick at least 0, list player name, draft pick, college, and team name.. Return a short normalized string.'), 'draft_pick': FieldInfo(annotation=Union[float, Any], required=True, description='draft_pick from the player document for query: For players with draft pick at least 0, list player name, draft pick, college, and team name.. Return a number.'), 'college': FieldInfo(annotation=Union[str, Any], required=True, description='college from the player document for query: For players with draft pick at least 0, list player name, draft pick, college, and team name.. Return a short normalized string.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: For players with draft pick at least 0, list player name, draft pick, college, and team name.. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 1 (char 0)

@@ -1,0 +1,44 @@
+query_id,query_text,success,delta_type,latency_s,result_rows,prompt_tokens,completion_tokens,total_tokens,macro_f1,macro_precision,macro_recall,gt_result_count,matched_rows,is_agg,error
+Q1,"SELECT player.name, player.nationality, player.age, team.team_name, team.location
+FROM player
+JOIN team ON player.team = team.team_name;",True,OFFLINE,0.008405447006225586,0,0,0,0,0.0,0.0,0.0,0,0,False,
+Q2,"SELECT player.name, player.position, team.team_name, team.founded_year
+FROM player
+JOIN team ON player.team = team.team_name
+WHERE player.age > 25;",True,OFFLINE,0.0054018497467041016,0,0,0,0,0.0,0.0,0.0,0,0,False,
+Q3,"SELECT player.name, player.draft_pick, player.college, team.team_name
+FROM player
+JOIN team ON player.team = team.team_name
+WHERE player.draft_pick >= 0;",True,OFFLINE,0.005529642105102539,0,0,0,0,0.0,0.0,0.0,0,0,False,
+Q4,"SELECT team.team_name, team.location, city.city_name, city.state_name
+FROM team
+JOIN city ON team.location = city.city_name;",True,OFFLINE,0.004099845886230469,0,0,0,0,0.0,0.0,0.0,0,0,False,
+Q5,"SELECT player.name, team.team_name, city.city_name, city.state_name
+FROM player
+JOIN team ON player.team = team.team_name
+JOIN city ON team.location = city.city_name;",True,OFFLINE,0.006484508514404297,0,0,0,0,0.0,0.0,0.0,0,0,False,
+Q6,"SELECT player.name, player.position, city.city_name, city.population
+FROM player
+JOIN team ON player.team = team.team_name
+JOIN city ON team.location = city.city_name
+WHERE player.age < 35;",True,OFFLINE,0.0049512386322021484,0,0,0,0,0.0,0.0,0.0,0,0,False,
+Q7,"SELECT player.name, player.college, team.team_name, city.gdp
+FROM player
+JOIN team ON player.team = team.team_name
+JOIN city ON team.location = city.city_name
+WHERE player.draft_pick > 0;",True,OFFLINE,0.006800651550292969,0,0,0,0,0.0,0.0,0.0,0,0,False,
+Q8,"SELECT player.name, player.birth_date, team.team_name, city.area
+FROM player
+JOIN team ON player.team = team.team_name
+JOIN city ON team.location = city.city_name
+WHERE city.area > 100;",True,OFFLINE,0.007714271545410156,0,0,0,0,0.0,0.0,0.0,0,0,False,
+Q9,"SELECT city.city_name, city.state_name, team.team_name, player.name
+FROM city
+JOIN team ON city.city_name = team.location
+JOIN player ON player.team = team.team_name
+WHERE player.age < 40;",True,OFFLINE,0.006582736968994141,0,0,0,0,0.0,0.0,0.0,0,0,False,
+Q10,"SELECT city.city_name, city.state_name, team.team_name, player.name, player.college
+FROM city
+JOIN team ON city.city_name = team.location
+JOIN player ON player.team = team.team_name
+WHERE player.age > 20;",True,OFFLINE,0.006391048431396484,0,0,0,0,0.0,0.0,0.0,0,0,False,

@@ -1,0 +1,34 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To derive the required information from the context, we need to focus on the player document details provided. Here’s a breakdown:
+
+1. **Age**: The player was born on February 21, 1984. To find out if he is younger than 35:
+   - Current year: 2023
+   - Age = 2023 - 1984 = 39 years old.
+   Since the age is not younger than 35, we will exclude this player from our query.
+
+However, since the context does not provide any other players and the question asks to derive information based on the given text, let's assume the task requires us to extract data for Erazem Lorbek as per the provided document. 
+
+2. **Name**: The name of the player is "Erazem Lorbek".
+3. **Position**: He primarily played at the power forward position.
+4. **Team**: His last mentioned team was FC Barcelona.
+
+Given that no other players are mentioned and Erazem Lorbek does not meet the criteria (age younger than 35), we will provide the data for him as per the context:
+
+```json
+{
+  "name": "Erazem Lorbek",
+  "position": "power forward",
+  "team": "FC Barcelona"
+}
+```
+
+---
+
+
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: For players younger than 35, list player name, position, city name, and city population via player -> team -> city.. Return a short normalized string.'), 'position': FieldInfo(annotation=Union[str, Any], required=True, description='position from the player document for query: For players younger than 35, list player name, position, city name, and city population via player -> team -> city.. Return a short normalized string.'), 'age': FieldInfo(annotation=Union[float, Any], required=True, description='age from the player document for query: For players younger than 35, list player name, position, city name, and city population via player -> team -> city.. Return a number.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: For players younger than 35, list player name, position, city name, and city population via player -> team -> city.. Return a short normalized string.')}
+#####
+'age'

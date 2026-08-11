@@ -1,0 +1,25 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To extract the required information from the context for the output fields:
+
+1. **age**: The age of Askia Jones can be calculated by subtracting his birth year (1971) from the current year (2023). 
+   - Age = 2023 - 1971 = 52
+
+2. **position**: From the context, it is mentioned that "Askia Rahman Jones (born December 3, 1971) is an American-Venezuelan retired professional basketball player, a 6'5\" (1.96 m) shooting guard."
+   - Position = "shooting guard"
+
+Now we can construct the JSON object with these values.
+
+---
+```json
+{
+  "age": 52,
+  "position": "shooting guard"
+}
+```
+#####
+{'age': FieldInfo(annotation=Union[float, Any], required=True, description='age from the player document for query: For each NBA player, what is their playing position and age?. Return a number.'), 'position': FieldInfo(annotation=Union[str, Any], required=True, description='position from the player document for query: For each NBA player, what is their playing position and age?. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 1 (char 0)

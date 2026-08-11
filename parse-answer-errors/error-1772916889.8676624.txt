@@ -1,0 +1,27 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+Firstly, we need to identify if D'Angelo Russell is younger than 35 years old. Given his birthdate is February 23, 1996, he would be 28 years old as of 2024 (the latest year mentioned in the context), which means he is not younger than 35.
+
+However, since we are asked to return data for players younger than 35 and D'Angelo Russell does not fit this criteria, we will still extract his information based on the provided context:
+
+1. **name**: "D'Angelo Russell"
+2. **position**: "point guard"
+3. **team**: The team changes over time in the text (Lakers, Nets, Warriors, Timberwolves). For simplicity and as per the instructions to return a single value, we can use his current or most recent team which is the Lakers.
+4. **age**: Since D'Angelo Russell does not fit the criteria of being younger than 35, this field will be left empty.
+
+ANSWER:
+```json
+{
+  "name": "D'Angelo Russell",
+  "position": "point guard",
+  "team": "Lakers"
+}
+```
+---
+
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: For players younger than 35, list player name, position, city name, and city population via player -> team -> city.. Return a short normalized string.'), 'position': FieldInfo(annotation=Union[str, Any], required=True, description='position from the player document for query: For players younger than 35, list player name, position, city name, and city population via player -> team -> city.. Return a short normalized string.'), 'age': FieldInfo(annotation=Union[float, Any], required=True, description='age from the player document for query: For players younger than 35, list player name, position, city name, and city population via player -> team -> city.. Return a number.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: For players younger than 35, list player name, position, city name, and city population via player -> team -> city.. Return a short normalized string.')}
+#####
+'age'

@@ -1,0 +1,28 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To extract the required information from the context:
+
+1. **Area**: The text mentions "Houston is 165 miles (266 km) east of Austin, 88 miles (142 km) west of the Louisiana border, and 250 miles (400 km) south of Dallas." We can use this to determine a geographic area. Houston's location relative to these cities suggests it is in Texas, specifically in the southeastern part.
+
+2. **City Name**: The city name is clearly stated as "Houston" multiple times throughout the text.
+
+3. **State Name**: The state is also explicitly mentioned: "This article is about the city in the U.S. state of Texas."
+
+Based on this reasoning:
+
+```json
+{
+  "area": 640.4,  # Using the land area provided in square miles from the context.
+  "city_name": "Houston",
+  "state_name": "Texas"
+}
+```
+
+---
+
+#####
+{'area': FieldInfo(annotation=Union[float, Any], required=True, description='area from the city document for query: What is the name, state, and geographic area of each NBA home city?. Return a number.'), 'city_name': FieldInfo(annotation=Union[str, Any], required=True, description='city_name from the city document for query: What is the name, state, and geographic area of each NBA home city?. Return a short normalized string.'), 'state_name': FieldInfo(annotation=Union[str, Any], required=True, description='state_name from the city document for query: What is the name, state, and geographic area of each NBA home city?. Return a short normalized string.')}
+#####
+Expecting property name enclosed in double quotes: line 1 column 21 (char 20)

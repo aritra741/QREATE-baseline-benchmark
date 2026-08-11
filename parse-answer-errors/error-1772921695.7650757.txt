@@ -1,0 +1,31 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To derive the required fields from the context, we need to identify relevant information for each output field:
+
+1. **age**: The query mentions "players older than 20". We can see that Cal Ramsey was born on July 13, 1937 and died in March 25, 2019. To calculate his age at the time of death: 
+   - He was 81 years old when he died.
+
+2. **college**: The context mentions "NYU Violets" as Cal Ramsey's college team.
+   
+3. **name**: The name mentioned in the file contents is "Cal Ramsey".
+   
+4. **team**: The context lists his NBA teams, which are "St. Louis Hawks" and "New York Knicks".
+
+Now we can construct the JSON object with these values.
+
+---
+```json
+{
+  "age": 81,
+  "college": "NYU",
+  "name": "Cal Ramsey",
+  "team": "St. Louis Hawks"
+}
+```
+---
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: Starting from city and traversing city -> team -> player, list city name, state, team name, player name, and player college for players older than 20.. Return a short normalized string.'), 'college': FieldInfo(annotation=Union[str, Any], required=True, description='college from the player document for query: Starting from city and traversing city -> team -> player, list city name, state, team name, player name, and player college for players older than 20.. Return a short normalized string.'), 'age': FieldInfo(annotation=Union[float, Any], required=True, description='age from the player document for query: Starting from city and traversing city -> team -> player, list city name, state, team name, player name, and player college for players older than 20.. Return a number.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: Starting from city and traversing city -> team -> player, list city name, state, team name, player name, and player college for players older than 20.. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 1 (char 0)

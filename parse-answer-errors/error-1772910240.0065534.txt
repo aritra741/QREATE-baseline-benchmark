@@ -1,0 +1,21 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+The context provided does not contain any information related to players with draft pick greater than 0 or their college, team name, city GDP, etc., as required by the query. Therefore, we cannot derive the location and team_name from this text directly. However, based on the available data in the context, we can extract the team name.
+
+From the context:
+- The team name is "Golden State Warriors".
+
+Since there's no relevant information to determine the location or city GDP for players with draft pick greater than 0, we will only provide the team_name as per the output fields.
+
+ANSWER:
+{
+  "team_name": "Golden State Warriors"
+}
+---
+
+#####
+{'team_name': FieldInfo(annotation=Union[str, Any], required=True, description='team_name from the team document for query: For players with draft pick greater than 0, list player name, college, team name, and city GDP via player -> team -> city.. Return a short normalized string.'), 'location': FieldInfo(annotation=Union[str, Any], required=True, description='location from the team document for query: For players with draft pick greater than 0, list player name, college, team name, and city GDP via player -> team -> city.. Return a short normalized string.')}
+#####
+'location'

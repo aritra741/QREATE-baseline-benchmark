@@ -1,0 +1,101 @@
+query_id,query_text,nl_query,success,delta_type,latency_s,result_rows,prompt_tokens,completion_tokens,total_tokens,macro_f1,macro_precision,macro_recall,gt_result_count,matched_rows,is_agg,error
+S1,"SELECT area, city_name, gdp FROM city","What is the name, geographic area, and GDP of each NBA home city mentioned in the documents?",False,ERROR,0.015542268753051758,0,0,0,0,0.0,0.0,0.0,0,0,False,"1 validation error for schema
+prompt
+  Value error, Invalid Jinja2 template in 'prompt': expected token ':', got '}' [type=value_error, input_value='You are building a struc...:\n{{{{ input.text }}}}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+S2,"SELECT nba_team, name, own_year FROM owner","For each NBA team owner described in the documents, what is their name, which team do they own, and what year did they acquire ownership?",False,ERROR,0.008255720138549805,0,0,0,0,0.0,0.0,0.0,0,0,False,"1 validation error for schema
+prompt
+  Value error, Invalid Jinja2 template in 'prompt': expected token ':', got '}' [type=value_error, input_value='You are building a struc...:\n{{{{ input.text }}}}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+F1,"SELECT state_name, area, city_name FROM city WHERE area = 375.78","What is the name, state, and geographic area of each NBA home city?",False,ERROR,0.012348651885986328,0,0,0,0,0.0,0.0,0.0,0,0,False,"1 validation error for schema
+prompt
+  Value error, Invalid Jinja2 template in 'prompt': expected token ':', got '}' [type=value_error, input_value='You are building a struc...:\n{{{{ input.text }}}}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+F2,"SELECT state_name, area, city_name FROM city WHERE area != 1314.80 AND population = 887642","What is the name, state, and geographic area of each city where an NBA team is based?",False,ERROR,0.007643938064575195,0,0,0,0,0.0,0.0,0.0,0,0,False,"1 validation error for schema
+prompt
+  Value error, Invalid Jinja2 template in 'prompt': expected token ':', got '}' [type=value_error, input_value='You are building a struc...:\n{{{{ input.text }}}}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+F7,"SELECT age, nba_team, name FROM owner WHERE nba_team != 'Cleveland Cavaliers'","For each NBA team owner, what is their name, age, and which team do they own?",False,ERROR,0.01365208625793457,0,0,0,0,0.0,0.0,0.0,0,0,False,"1 validation error for schema
+prompt
+  Value error, Invalid Jinja2 template in 'prompt': expected token ':', got '}' [type=value_error, input_value='You are building a struc...:\n{{{{ input.text }}}}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+F8,"SELECT age, nba_team, name FROM owner WHERE nba_team != 'Golden State Warriors' AND age >= 66","What is each NBA team owner's name, age, and which team do they own?",False,ERROR,0.010867118835449219,0,0,0,0,0.0,0.0,0.0,0,0,False,"1 validation error for schema
+prompt
+  Value error, Invalid Jinja2 template in 'prompt': expected token ':', got '}' [type=value_error, input_value=""You are building a struc...:\n{{{{ input.text }}}}"", input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+F13,"SELECT mvp_awards, draft_pick, fiba_world_cup FROM player WHERE fiba_world_cup <= 0","For each NBA player, how many MVP awards have they won, what was their draft pick number, and how many FIBA World Cup titles have they earned?",False,ERROR,0.02091503143310547,0,0,0,0,0.0,0.0,0.0,0,0,False,"1 validation error for schema
+prompt
+  Value error, Invalid Jinja2 template in 'prompt': expected token ':', got '}' [type=value_error, input_value='You are building a struc...:\n{{{{ input.text }}}}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+F14,"SELECT position, nationality, age FROM player WHERE age < 91","What is each NBA player's playing position, nationality, and age?",False,ERROR,0.011295318603515625,0,0,0,0,0.0,0.0,0.0,0,0,False,"1 validation error for schema
+prompt
+  Value error, Invalid Jinja2 template in 'prompt': expected token ':', got '}' [type=value_error, input_value=""You are building a struc...:\n{{{{ input.text }}}}"", input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+F49,"SELECT founded_year, ownership, team_name FROM team WHERE ownership != '  '","For each NBA team, what is its name, founding year, and who currently owns it?",False,ERROR,0.01332235336303711,0,0,0,0,0.0,0.0,0.0,0,0,False,"1 validation error for schema
+prompt
+  Value error, Invalid Jinja2 template in 'prompt': expected token ':', got '}' [type=value_error, input_value='You are building a struc...:\n{{{{ input.text }}}}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+F50,"SELECT ownership, championship, founded_year FROM team WHERE founded_year < 1989","For each NBA team, who owns it, how many championships has it won, and when was it founded?",False,ERROR,0.012311697006225586,0,0,0,0,0.0,0.0,0.0,0,0,False,"1 validation error for schema
+prompt
+  Value error, Invalid Jinja2 template in 'prompt': expected token ':', got '}' [type=value_error, input_value='You are building a struc...:\n{{{{ input.text }}}}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+A1,"SELECT position, MIN(olympic_gold_medals) AS min_olympic_gold_medals FROM player GROUP BY position","For each NBA player, what is their playing position and how many Olympic gold medals have they won?",False,ERROR,0.01130223274230957,0,0,0,0,0.0,0.0,0.0,0,0,False,"1 validation error for schema
+prompt
+  Value error, Invalid Jinja2 template in 'prompt': expected token ':', got '}' [type=value_error, input_value='You are building a struc...:\n{{{{ input.text }}}}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+A3,"SELECT position, AVG(age) AS avg_age FROM player GROUP BY position","For each NBA player, what is their playing position and age?",False,ERROR,0.010087013244628906,0,0,0,0,0.0,0.0,0.0,0,0,False,"1 validation error for schema
+prompt
+  Value error, Invalid Jinja2 template in 'prompt': expected token ':', got '}' [type=value_error, input_value='You are building a struc...:\n{{{{ input.text }}}}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+J1,"SELECT team.championship, team.location, player.age, player.olympic_gold_medals FROM player JOIN team ON player.team = team.team_name","For each NBA player, what is their age, how many Olympic gold medals have they won, which team do they play for, how many championships has that team won, and where is the team based?",False,ERROR,0.009558439254760742,0,0,0,0,0.0,0.0,0.0,0,0,False,"1 validation error for schema
+prompt
+  Value error, Invalid Jinja2 template in 'prompt': expected token ':', got '}' [type=value_error, input_value='You are building a struc...:\n{{{{ input.text }}}}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+J2,"SELECT team.founded_year, team.team_name, player.name, player.team FROM player JOIN team ON player.team = team.team_name","For each NBA player, what is their name, which team do they currently play for, and when was that team founded?",False,ERROR,0.0063288211822509766,0,0,0,0,0.0,0.0,0.0,0,0,False,"1 validation error for schema
+prompt
+  Value error, Invalid Jinja2 template in 'prompt': expected token ':', got '}' [type=value_error, input_value='You are building a struc...:\n{{{{ input.text }}}}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+M1,"SELECT player.position, MIN(player.olympic_gold_medals) AS min_player_olympic_gold_medals FROM player JOIN team ON player.team = team.team_name GROUP BY player.position","For each NBA player, what is their playing position and how many Olympic gold medals have they won? Also note which team they play for.",False,ERROR,0.0063817501068115234,0,0,0,0,0.0,0.0,0.0,0,0,False,"1 validation error for schema
+prompt
+  Value error, Invalid Jinja2 template in 'prompt': expected token ':', got '}' [type=value_error, input_value='You are building a struc...:\n{{{{ input.text }}}}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+M2,"SELECT player.position, MIN(player.olympic_gold_medals) AS min_player_olympic_gold_medals FROM player JOIN team ON player.team = team.team_name JOIN owner ON team.ownership = owner.name JOIN city ON team.location = city.city_name GROUP BY player.position","For each NBA player, what is their playing position, how many Olympic gold medals have they won, which team do they play for, who owns the team, and what city is the team in?",False,ERROR,0.00671076774597168,0,0,0,0,0.0,0.0,0.0,0,0,False,"1 validation error for schema
+prompt
+  Value error, Invalid Jinja2 template in 'prompt': expected token ':', got '}' [type=value_error, input_value='You are building a struc...:\n{{{{ input.text }}}}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+M4,"SELECT nationality, SUM(age) AS sum_age FROM owner WHERE age != 76 AND nba_team != 'Houston Rockets' GROUP BY nationality","For each NBA team owner, what is their nationality and age?",False,ERROR,0.008095979690551758,0,0,0,0,0.0,0.0,0.0,0,0,False,"1 validation error for schema
+prompt
+  Value error, Invalid Jinja2 template in 'prompt': expected token ':', got '}' [type=value_error, input_value='You are building a struc...:\n{{{{ input.text }}}}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+M5,"SELECT nationality, COUNT(*) AS count_all FROM player WHERE name = 'Antonius Cleveland' OR nba_championships >= 0 GROUP BY nationality","For each NBA player, what is their name, nationality, and how many NBA championships have they won?",False,ERROR,0.009474754333496094,0,0,0,0,0.0,0.0,0.0,0,0,False,"1 validation error for schema
+prompt
+  Value error, Invalid Jinja2 template in 'prompt': expected token ':', got '}' [type=value_error, input_value='You are building a struc...:\n{{{{ input.text }}}}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+M9,"SELECT player.nationality, MIN(player.olympic_gold_medals) AS min_player_olympic_gold_medals FROM player JOIN team ON player.team = team.team_name WHERE player.fiba_world_cup > 0 GROUP BY player.nationality","For each NBA player, what is their nationality, how many Olympic gold medals have they won, and which team do they play for?",False,ERROR,0.007117748260498047,0,0,0,0,0.0,0.0,0.0,0,0,False,"1 validation error for schema
+prompt
+  Value error, Invalid Jinja2 template in 'prompt': expected token ':', got '}' [type=value_error, input_value='You are building a struc...:\n{{{{ input.text }}}}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+M10,"SELECT owner.nationality, MAX(player.mvp_awards) AS max_player_mvp_awards FROM player JOIN team ON player.team = team.team_name JOIN owner ON team.ownership = owner.name JOIN city ON team.location = city.city_name WHERE city.population < 1603797 OR team.location != 'Minneapolis' GROUP BY owner.nationality","For each NBA player, what is their nationality, how many MVP awards have they won, who owns their team, and what city does the team play in?",False,ERROR,0.005803585052490234,0,0,0,0,0.0,0.0,0.0,0,0,False,"1 validation error for schema
+prompt
+  Value error, Invalid Jinja2 template in 'prompt': expected token ':', got '}' [type=value_error, input_value='You are building a struc...:\n{{{{ input.text }}}}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+M21,"SELECT nationality, MIN(age) AS min_age FROM owner WHERE nba_team != 'Cleveland Cavaliers' GROUP BY nationality","For each NBA team owner, what is their nationality and age?",False,ERROR,0.008516550064086914,0,0,0,0,0.0,0.0,0.0,0,0,False,"1 validation error for schema
+prompt
+  Value error, Invalid Jinja2 template in 'prompt': expected token ':', got '}' [type=value_error, input_value='You are building a struc...:\n{{{{ input.text }}}}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+M27,"SELECT team, MIN(olympic_gold_medals) AS min_olympic_gold_medals FROM player WHERE draft_pick < 1 GROUP BY team","For each NBA player, which team do they play for, what was their draft pick, and how many Olympic gold medals have they won?",False,ERROR,0.007666349411010742,0,0,0,0,0.0,0.0,0.0,0,0,False,"1 validation error for schema
+prompt
+  Value error, Invalid Jinja2 template in 'prompt': expected token ':', got '}' [type=value_error, input_value='You are building a struc...:\n{{{{ input.text }}}}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+M28,"SELECT nationality, SUM(olympic_gold_medals) AS sum_olympic_gold_medals FROM player WHERE nationality = 'German' AND olympic_gold_medals <= 0 GROUP BY nationality","For each NBA player, what is their nationality and how many Olympic gold medals have they won?",False,ERROR,0.007379055023193359,0,0,0,0,0.0,0.0,0.0,0,0,False,"1 validation error for schema
+prompt
+  Value error, Invalid Jinja2 template in 'prompt': expected token ':', got '}' [type=value_error, input_value='You are building a struc...:\n{{{{ input.text }}}}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+M33,"SELECT player.draft_pick, team.team_name, player.fiba_world_cup, team.location FROM player JOIN team ON player.team = team.team_name WHERE player.fiba_world_cup > 0","For each NBA player, what was their draft pick number, how many FIBA World Cup titles have they won, which team do they play for, and where is that team based?",False,ERROR,0.006994962692260742,0,0,0,0,0.0,0.0,0.0,0,0,False,"1 validation error for schema
+prompt
+  Value error, Invalid Jinja2 template in 'prompt': expected token ':', got '}' [type=value_error, input_value='You are building a struc...:\n{{{{ input.text }}}}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+M34,"SELECT owner.age, team.founded_year, player.name, city.city_name FROM player JOIN team ON player.team = team.team_name JOIN owner ON team.ownership = owner.name JOIN city ON team.location = city.city_name WHERE player.birth_date > '1994/2/2' AND city.population > 715522","For each NBA player, what is their name, which team do they play for, who owns that team, how old is the owner, when was the team founded, and in which city does the team play?",False,ERROR,0.008122920989990234,0,0,0,0,0.0,0.0,0.0,0,0,False,"1 validation error for schema
+prompt
+  Value error, Invalid Jinja2 template in 'prompt': expected token ':', got '}' [type=value_error, input_value='You are building a struc...:\n{{{{ input.text }}}}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/value_error"

@@ -1,0 +1,426 @@
+{
+  "experiment": "config_grid_test",
+  "split": "test",
+  "held_out_policy": "The test split is assigned first from a shuffled per-slice pool and is never included in train or dev. Use train for agent design, prompt tuning, threshold optimization, and algorithm selection. Use dev only for validation during development. The test split must not be used for any tuning or selection.",
+  "n_configs": 288,
+  "n_test_queries": 20,
+  "slice_counts": {
+    "agg_only": 5,
+    "agg_filter": 5,
+    "agg_join": 5,
+    "agg_filter_join": 5
+  },
+  "dataset": "Med",
+  "slices_present": [
+    "agg_only",
+    "agg_filter",
+    "agg_join",
+    "agg_filter_join"
+  ],
+  "extraction_source": "cache (qwen2.5:7b-instruct)",
+  "extraction_model": "qwen2.5:7b-instruct",
+  "extraction_fingerprint": "fca2d4f1565eb4dd",
+  "run_fingerprint": {
+    "extraction_model": "qwen2.5:7b-instruct",
+    "llm_profile": "ollama_qwen_7b",
+    "seed": 42,
+    "num_docs": 297,
+    "n_test_queries": 20,
+    "corpus_fingerprint": "eceff229c8aa8456",
+    "extraction_mode": "workload_aware",
+    "demand_fingerprint": "256bc710999a08e0",
+    "value_hints_fingerprint": "none",
+    "split": "test"
+  },
+  "corpus_fingerprint": "eceff229c8aa8456",
+  "extraction_mode": "workload_aware",
+  "demand_fingerprint": "256bc710999a08e0",
+  "demand_profile": {
+    "columns": [
+      {
+        "column": "prescription_status",
+        "roles": [
+          "group_key"
+        ],
+        "aggregation_functions": [],
+        "query_ids": [
+          "agg_only_med_gen_8",
+          "agg_queries_drug_4",
+          "agg_filter_med_gen_77",
+          "agg_filter_med_gen_65",
+          "agg_filter_med_gen_84"
+        ]
+      },
+      {
+        "column": "storage_conditions",
+        "roles": [
+          "aggregate_input"
+        ],
+        "aggregation_functions": [
+          "MAX",
+          "MIN"
+        ],
+        "query_ids": [
+          "agg_only_med_gen_8",
+          "agg_only_med_gen_15"
+        ]
+      },
+      {
+        "column": "recommended_usage",
+        "roles": [
+          "aggregate_input"
+        ],
+        "aggregation_functions": [
+          "MAX"
+        ],
+        "query_ids": [
+          "agg_queries_drug_4"
+        ]
+      },
+      {
+        "column": "pharmaceutical_form",
+        "roles": [
+          "group_key"
+        ],
+        "aggregation_functions": [],
+        "query_ids": [
+          "agg_only_med_gen_19"
+        ]
+      },
+      {
+        "column": "manufacturer",
+        "roles": [
+          "aggregate_input"
+        ],
+        "aggregation_functions": [
+          "COUNT"
+        ],
+        "query_ids": [
+          "agg_only_med_gen_19"
+        ]
+      },
+      {
+        "column": "research_fields",
+        "roles": [
+          "group_key",
+          "aggregate_input"
+        ],
+        "aggregation_functions": [
+          "MIN"
+        ],
+        "query_ids": [
+          "agg_queries_institution_1",
+          "agg_filter_med_gen_371"
+        ]
+      },
+      {
+        "column": "institution_country",
+        "roles": [
+          "aggregate_input",
+          "group_key"
+        ],
+        "aggregation_functions": [
+          "MIN"
+        ],
+        "query_ids": [
+          "agg_queries_institution_1",
+          "agg_filter_med_gen_371"
+        ]
+      },
+      {
+        "column": "administration_route",
+        "roles": [
+          "group_key"
+        ],
+        "aggregation_functions": [],
+        "query_ids": [
+          "agg_only_med_gen_15",
+          "agg_filter_med_gen_120"
+        ]
+      },
+      {
+        "column": "side_effects",
+        "roles": [
+          "aggregate_input"
+        ],
+        "aggregation_functions": [
+          "COUNT"
+        ],
+        "query_ids": [
+          "agg_filter_med_gen_77",
+          "agg_filter_med_gen_65"
+        ]
+      },
+      {
+        "column": "dosage_frequency",
+        "roles": [
+          "aggregate_input"
+        ],
+        "aggregation_functions": [
+          "MIN"
+        ],
+        "query_ids": [
+          "agg_filter_med_gen_84"
+        ]
+      },
+      {
+        "column": "drug.prescription_status",
+        "roles": [
+          "group_key",
+          "filter"
+        ],
+        "aggregation_functions": [],
+        "query_ids": [
+          "agg_join_med_gen_6",
+          "agg_filter_join_med_gen_165"
+        ]
+      },
+      {
+        "column": "drug.storage_conditions",
+        "roles": [
+          "aggregate_input"
+        ],
+        "aggregation_functions": [
+          "MIN"
+        ],
+        "query_ids": [
+          "agg_join_med_gen_6"
+        ]
+      },
+      {
+        "column": "drug.disease_name",
+        "roles": [
+          "join_key"
+        ],
+        "aggregation_functions": [],
+        "query_ids": [
+          "agg_join_med_gen_6",
+          "agg_join_med_gen_12",
+          "agg_join_med_gen_14",
+          "agg_join_med_gen_17",
+          "agg_join_med_gen_15",
+          "agg_filter_join_med_gen_165",
+          "mixed_queries_filter_agg_join_8",
+          "mixed_queries_filter_agg_join_4",
+          "agg_filter_join_med_gen_109",
+          "mixed_queries_filter_agg_join_6"
+        ]
+      },
+      {
+        "column": "disease.disease_name",
+        "roles": [
+          "join_key",
+          "aggregate_input"
+        ],
+        "aggregation_functions": [
+          "COUNT"
+        ],
+        "query_ids": [
+          "agg_join_med_gen_6",
+          "agg_join_med_gen_12",
+          "agg_join_med_gen_14",
+          "agg_join_med_gen_17",
+          "agg_join_med_gen_15",
+          "agg_filter_join_med_gen_165",
+          "mixed_queries_filter_agg_join_8",
+          "mixed_queries_filter_agg_join_4",
+          "agg_filter_join_med_gen_109",
+          "mixed_queries_filter_agg_join_6"
+        ]
+      },
+      {
+        "column": "drug.administration_route",
+        "roles": [
+          "group_key"
+        ],
+        "aggregation_functions": [],
+        "query_ids": [
+          "agg_join_med_gen_12",
+          "agg_join_med_gen_14",
+          "agg_filter_join_med_gen_109"
+        ]
+      },
+      {
+        "column": "drug.dosage_frequency",
+        "roles": [
+          "aggregate_input"
+        ],
+        "aggregation_functions": [
+          "MAX",
+          "MIN",
+          "AVG"
+        ],
+        "query_ids": [
+          "agg_join_med_gen_12",
+          "agg_filter_join_med_gen_165",
+          "mixed_queries_filter_agg_join_8",
+          "agg_filter_join_med_gen_109"
+        ]
+      },
+      {
+        "column": "disease.treatments",
+        "roles": [
+          "aggregate_input"
+        ],
+        "aggregation_functions": [
+          "COUNT"
+        ],
+        "query_ids": [
+          "agg_join_med_gen_14"
+        ]
+      },
+      {
+        "column": "drug.pharmaceutical_form",
+        "roles": [
+          "group_key",
+          "filter"
+        ],
+        "aggregation_functions": [],
+        "query_ids": [
+          "agg_join_med_gen_17",
+          "agg_join_med_gen_15",
+          "agg_filter_join_med_gen_165",
+          "mixed_queries_filter_agg_join_6"
+        ]
+      },
+      {
+        "column": "disease.disease_type",
+        "roles": [
+          "filter"
+        ],
+        "aggregation_functions": [],
+        "query_ids": [
+          "agg_filter_join_med_gen_165",
+          "agg_filter_join_med_gen_109"
+        ]
+      },
+      {
+        "column": "institution.institution_type",
+        "roles": [
+          "group_key"
+        ],
+        "aggregation_functions": [],
+        "query_ids": [
+          "mixed_queries_filter_agg_join_8",
+          "mixed_queries_filter_agg_join_6"
+        ]
+      },
+      {
+        "column": "institution.research_diseases",
+        "roles": [],
+        "aggregation_functions": [],
+        "query_ids": [
+          "mixed_queries_filter_agg_join_8",
+          "mixed_queries_filter_agg_join_4",
+          "mixed_queries_filter_agg_join_6"
+        ]
+      },
+      {
+        "column": "drug.generic_name",
+        "roles": [
+          "filter"
+        ],
+        "aggregation_functions": [],
+        "query_ids": [
+          "mixed_queries_filter_agg_join_8"
+        ]
+      },
+      {
+        "column": "disease.common_symptoms",
+        "roles": [
+          "filter"
+        ],
+        "aggregation_functions": [],
+        "query_ids": [
+          "mixed_queries_filter_agg_join_8",
+          "mixed_queries_filter_agg_join_6"
+        ]
+      },
+      {
+        "column": "institution.research_fields",
+        "roles": [
+          "group_key",
+          "filter"
+        ],
+        "aggregation_functions": [],
+        "query_ids": [
+          "mixed_queries_filter_agg_join_4"
+        ]
+      },
+      {
+        "column": "disease.diagnosis_challenges",
+        "roles": [
+          "aggregate_input"
+        ],
+        "aggregation_functions": [
+          "MAX"
+        ],
+        "query_ids": [
+          "mixed_queries_filter_agg_join_4"
+        ]
+      },
+      {
+        "column": "institution.institution_country",
+        "roles": [
+          "filter"
+        ],
+        "aggregation_functions": [],
+        "query_ids": [
+          "mixed_queries_filter_agg_join_4"
+        ]
+      },
+      {
+        "column": "disease.etiology",
+        "roles": [
+          "filter"
+        ],
+        "aggregation_functions": [],
+        "query_ids": [
+          "mixed_queries_filter_agg_join_4"
+        ]
+      },
+      {
+        "column": "disease.epidemiology",
+        "roles": [
+          "aggregate_input"
+        ],
+        "aggregation_functions": [
+          "AVG"
+        ],
+        "query_ids": [
+          "mixed_queries_filter_agg_join_6"
+        ]
+      },
+      {
+        "column": "drug.brand_name",
+        "roles": [
+          "filter"
+        ],
+        "aggregation_functions": [],
+        "query_ids": [
+          "mixed_queries_filter_agg_join_6"
+        ]
+      },
+      {
+        "column": "institution.key_technologies",
+        "roles": [
+          "filter"
+        ],
+        "aggregation_functions": [],
+        "query_ids": [
+          "mixed_queries_filter_agg_join_6"
+        ]
+      }
+    ],
+    "has_join": true,
+    "has_temporal": false
+  },
+  "corpus_mode": "full_aligned",
+  "aligned_corpus_size": 297,
+  "llm_profile": "ollama_qwen_7b",
+  "num_docs": 297,
+  "seed": 42,
+  "materialize_only": false,
+  "save_databases": true,
+  "databases_dir": "databases"
+}

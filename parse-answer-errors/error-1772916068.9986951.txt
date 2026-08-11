@@ -1,0 +1,32 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To extract the required information from the context, let's break down the process:
+
+1. **Identify the player name**: The text starts with "Lavoy Allen" and mentions his full name throughout.
+2. **Determine the draft pick**: The text states that Lavoy Allen was selected in the second round, 50th overall pick in the 2011 NBA draft by the Philadelphia 76ers.
+3. **Find the college**: The text mentions that Allen committed to Temple University and played there for four years.
+
+Based on this reasoning:
+
+- **name**: Lavoy Allen
+- **college**: Temple
+- **draft_pick**: 50 (second round, 50th overall)
+- **team**: Philadelphia 76ers
+
+Now we can construct the JSON object with these values.
+---
+```json
+{
+  "name": "Lavoy Allen",
+  "college": "Temple",
+  "draft_pick": 50,
+  "team": "Philadelphia 76ers"
+}
+```
+---
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: For players with draft pick at least 0, list player name, draft pick, college, and team name.. Return a short normalized string.'), 'draft_pick': FieldInfo(annotation=Union[float, Any], required=True, description='draft_pick from the player document for query: For players with draft pick at least 0, list player name, draft pick, college, and team name.. Return a number.'), 'college': FieldInfo(annotation=Union[str, Any], required=True, description='college from the player document for query: For players with draft pick at least 0, list player name, draft pick, college, and team name.. Return a short normalized string.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: For players with draft pick at least 0, list player name, draft pick, college, and team name.. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 1 (char 0)

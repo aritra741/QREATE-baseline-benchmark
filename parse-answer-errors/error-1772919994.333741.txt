@@ -1,0 +1,22 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+From the context, we need to extract information about a player and their team. The relevant details are:
+
+1. **Name**: Elmer Behnke (from "Elmer Behnke" at the beginning of the text).
+2. **Team**: Milwaukee Hawks (mentioned in "He played for the Milwaukee Hawks (1951\u201352) in the NBA for four games.").
+
+Now, let's form the JSON object based on these details.
+
+---
+```json
+{
+  "name": "Elmer Behnke",
+  "team": "Milwaukee Hawks"
+}
+```
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: List player name with team name, city name, and city state by linking player -> team -> city.. Return a short normalized string.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: List player name with team name, city name, and city state by linking player -> team -> city.. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 1 (char 0)

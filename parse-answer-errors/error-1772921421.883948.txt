@@ -1,0 +1,39 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To solve this problem, we need to extract specific information from the provided context. Let's break it down:
+
+1. **age**: The query asks for players younger than 40. We need to find a player who fits this criteria.
+2. **name**: For the selected player, we need their name in a normalized string format.
+3. **team**: For the same player, we need the team they are currently playing with or have played with recently.
+
+From the context:
+- Nick Calathes is mentioned as a player and his birth date is February 7, 1989.
+- He has been playing for AS Monaco of the French LNB Pro A and the EuroLeague since June 17, 2024.
+
+Given that he was born in 1989, we can calculate his age as follows:
+\[ \text{Current Year} - 1989 = 2023 - 1989 = 34 \]
+Since 34 is less than 40, Nick Calathes fits the criteria.
+
+Now let's fill in the required fields:
+
+- **name**: Normalize "Nick Calathes" to "nick_calathes"
+- **age**: 34
+- **team**: AS Monaco
+
+Here is the JSON object:
+```json
+{
+  "age": 34,
+  "name": "nick_calathes",
+  "team": "AS Monaco"
+}
+```
+
+---
+
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: Starting from city and traversing city -> team -> player, list city name, state, team name, and player name for players younger than 40.. Return a short normalized string.'), 'age': FieldInfo(annotation=Union[float, Any], required=True, description='age from the player document for query: Starting from city and traversing city -> team -> player, list city name, state, team name, and player name for players younger than 40.. Return a number.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: Starting from city and traversing city -> team -> player, list city name, state, team name, and player name for players younger than 40.. Return a short normalized string.')}
+#####
+Expecting property name enclosed in double quotes: line 1 column 2 (char 1)

@@ -1,0 +1,26 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To determine the age and name fields, we need to extract relevant information from the provided context. 
+
+1. **Name**: The owner document mentions "Joseph Tsai" as the name of the individual who owns several sports teams.
+2. **Age**: To calculate Joseph Tsai's age, we can use his birth year which is mentioned in the text: "Tsai was born in Taipei, Taiwan, to Paul C. Tsai (Chinese: \u8521\u4e2d\u66fe; Pe\u030dh-\u014de-j\u012b: Chh\u00f2a Tiong-cheng, d.2013), a second-generation lawyer, and Ruby Tsai. The Tsai family had escaped to Taiwan as part of the Kuomintang exodus after the communists took over control of Mainland China in 1949 during the Chinese Civil War. At age 13, Tsai was sent to the U.S. to attend the Lawrenceville School in Lawrenceville, New Jersey, where he played both lacrosse and football (inside linebacker) and was a member of Cleve House. Tsai enrolled at his father's alma mater, Yale University. He played for the Yale varsity lacrosse team for four years and has remained a supporter of the team." This indicates that Joseph Tsai was 13 when he went to Lawrenceville School in 1976 (assuming he started school around age 13). Given his birth year is 1964, we can calculate his current age based on the present year.
+
+Let's perform these calculations:
+
+- **Name**: "Joseph Tsai"
+- **Age**: Assuming the current year is 2023, Joseph Tsai would be \(2023 - 1964 = 59\) years old.
+
+Now we can generate the JSON object with the required fields.
+---
+```json
+{
+  "age": 59,
+  "name": "Joseph Tsai"
+}
+```
+#####
+{'age': FieldInfo(annotation=Union[float, Any], required=True, description='age from the owner document for query: For each NBA player, what is their name, which team do they play for, who owns that team, how old is the owner, when was the team founded, and in which city does the team play?. Return a number.'), 'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the owner document for query: For each NBA player, what is their name, which team do they play for, who owns that team, how old is the owner, when was the team founded, and in which city does the team play?. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 1 (char 0)

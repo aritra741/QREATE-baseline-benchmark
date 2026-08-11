@@ -1,0 +1,30 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To find the required information, we need to focus on specific parts of the text related to the player document and the query. Here are the steps:
+
+1. **Draft Pick**: The relevant part is "He was selected in the second round, 50th overall pick in the 2011 NBA draft by the Philadelphia 76ers."
+   - Draft Pick: 50
+
+2. **Olympic Gold Medals**: There's no mention of any Olympic gold medals in the text.
+   - Olympic Gold Medals: 0 (since it is not mentioned, we assume zero)
+
+3. **Team**: The player was drafted by and played for the Philadelphia 76ers.
+   - Team: "Philadelphia 76ers"
+
+Now, let's construct the JSON object based on this information.
+
+---
+```json
+{
+  "draft_pick": 50,
+  "olympic_gold_medals": 0,
+  "team": "Philadelphia 76ers"
+}
+```
+---
+#####
+{'draft_pick': FieldInfo(annotation=Union[float, Any], required=True, description='draft_pick from the player document for query: For each NBA player, which team do they play for, what was their draft pick, and how many Olympic gold medals have they won?. Return a number.'), 'olympic_gold_medals': FieldInfo(annotation=Union[float, Any], required=True, description='olympic_gold_medals from the player document for query: For each NBA player, which team do they play for, what was their draft pick, and how many Olympic gold medals have they won?. Return a number.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: For each NBA player, which team do they play for, what was their draft pick, and how many Olympic gold medals have they won?. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 1 (char 0)

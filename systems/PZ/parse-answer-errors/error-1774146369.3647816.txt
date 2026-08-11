@@ -1,0 +1,35 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To determine the correct values for "age" and "position", we need to extract relevant information from the provided context. 
+
+1. **Age**:
+   - The text mentions that Shaquille O'Neal was born on March 6, 1972.
+   - To find his age in the year of the document (which is not explicitly stated but can be inferred as recent), we calculate: 
+     \[
+     \text{Current Year} - 1972
+     \]
+   - Assuming the current year is around 2023, O'Neal's age would be:
+     \[
+     2023 - 1972 = 51
+     \]
+
+2. **Position**:
+   - The text states that Shaquille O'Neal played as a "center" in the NBA.
+
+Based on this reasoning:
+
+```json
+{
+  "age": 51,
+  "position": "center"
+}
+```
+
+---
+
+#####
+{'age': FieldInfo(annotation=Union[float, Any], required=True, description='age from the player document for query: For each NBA player, what is their playing position and age?. Return a number.'), 'position': FieldInfo(annotation=Union[str, Any], required=True, description='position from the player document for query: For each NBA player, what is their playing position and age?. Return a short normalized string.')}
+#####
+Expecting property name enclosed in double quotes: line 1 column 2 (char 1)

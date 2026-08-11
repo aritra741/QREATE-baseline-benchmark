@@ -1,0 +1,5127 @@
+{
+  "method": "sealed_spp_posthoc_decomposition",
+  "evaluation_only": true,
+  "feeds_synthesis": false,
+  "dataset": "Player",
+  "tau": 0.2,
+  "sealed_manifest_sha256": "686411fa118235a1540eb99853e552fb8275c9a67bfbfa4938e99541de3c03f9",
+  "reference_workload_sha256": "b9e1abab3557fde51fd6c669f357408838243cfc6a394d651e5f1c48a81c452e",
+  "query_count": 20,
+  "materialized_config_count": 2,
+  "candidate_artifacts": {
+    "schema=snowflake:67e4bd72f719|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive": {
+      "path": "/uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/results/contract_quwarts_Player_semfix_20260802_200457/serving_bundle/databases/ac0f3dbe8889e465.sqlite",
+      "origin": "sealed_serving_bundle",
+      "sha256": "631c0670c671c7b10de6e75e9a3909e4af0730cc06ba258fa24192ed8c048f84"
+    },
+    "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict": {
+      "path": "/uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/results/contract_quwarts_Player_semfix_20260802_200457/serving_bundle/databases/9755fb58e6f230e3.sqlite",
+      "origin": "sealed_serving_bundle",
+      "sha256": "2b537f0654e1cbb99d994ec9e89a38f092382ec7dd4fe843e620a3a544ee84cd"
+    }
+  },
+  "plan_ceiling": {
+    "role_aligned_mean_query_score": 0.7778052297963548,
+    "mean_shape_score": 0.825,
+    "bindable_query_count": 14,
+    "coverage_fraction": 0.7,
+    "unbound_query_ids": [
+      "q12",
+      "q13",
+      "q14",
+      "q15",
+      "q6",
+      "q9"
+    ],
+    "per_query": {
+      "q0": {
+        "shape_score": 0.8333333333333334,
+        "shape_agreement": {
+          "projections": true,
+          "group_by": true,
+          "aggregates": true,
+          "predicate": false,
+          "joins": true,
+          "having": true
+        },
+        "role_alignment_conflicts": [],
+        "sql": "SELECT \"t2\".\"position\", AVG(\"t2\".\"age\") AS \"avg_age\"\nFROM \"player\" AS \"t2\"\nWHERE \"t2\".\"position\" IS NOT NULL\nGROUP BY \"t2\".\"position\"",
+        "query_score": 0.6400000000000001,
+        "official_accuracy": 0.8,
+        "row_count": 3
+      },
+      "q1": {
+        "shape_score": 0.8333333333333334,
+        "shape_agreement": {
+          "projections": true,
+          "group_by": true,
+          "aggregates": true,
+          "predicate": false,
+          "joins": true,
+          "having": true
+        },
+        "role_alignment_conflicts": [],
+        "sql": "SELECT \"t2\".\"nationality\", COUNT(*) AS \"count_all\"\nFROM \"player\" AS \"t2\"\nGROUP BY \"t2\".\"nationality\"",
+        "query_score": 0.9560493827160493,
+        "official_accuracy": 0.48888888888888893,
+        "row_count": 23
+      },
+      "q2": {
+        "shape_score": 1.0,
+        "shape_agreement": {
+          "projections": true,
+          "group_by": true,
+          "aggregates": true,
+          "predicate": true,
+          "joins": true,
+          "having": true
+        },
+        "role_alignment_conflicts": [],
+        "sql": "SELECT \"t2\".\"team\", AVG(\"t2\".\"nba_championships\") AS \"avg_player_championships\"\nFROM \"player\" AS \"t2\"\nJOIN \"team\" AS \"t3\" ON \"t2\".\"team\" = \"t3\".\"team_name\"\nGROUP BY \"t2\".\"team\"",
+        "query_score": 1.0,
+        "official_accuracy": 0.5,
+        "row_count": 24
+      },
+      "q3": {
+        "shape_score": 0.6666666666666666,
+        "shape_agreement": {
+          "projections": true,
+          "group_by": true,
+          "aggregates": true,
+          "predicate": false,
+          "joins": true,
+          "having": false
+        },
+        "role_alignment_conflicts": [],
+        "sql": "SELECT \"t2\".\"college\", MAX(\"t2\".\"mvp_awards\") AS \"max_mvp_awards\"\nFROM \"player\" AS \"t2\"\nGROUP BY \"t2\".\"college\"\nHAVING COUNT(*) >= 1",
+        "query_score": 0.07270408163265306,
+        "official_accuracy": 0.3392857142857143,
+        "row_count": 93
+      },
+      "q4": {
+        "shape_score": 0.8333333333333334,
+        "shape_agreement": {
+          "projections": true,
+          "group_by": true,
+          "aggregates": true,
+          "predicate": false,
+          "joins": true,
+          "having": true
+        },
+        "role_alignment_conflicts": [],
+        "sql": "SELECT \"t2\".\"position\", SUM(\"t2\".\"mvp_awards\") AS \"sum_mvp_award\"\nFROM \"player\" AS \"t2\"\nWHERE \"t2\".\"position\" IS NOT NULL\nGROUP BY \"t2\".\"position\"",
+        "query_score": 0.6400000000000001,
+        "official_accuracy": 0.4,
+        "row_count": 3
+      },
+      "q5": {
+        "shape_score": 0.8333333333333334,
+        "shape_agreement": {
+          "projections": true,
+          "group_by": true,
+          "aggregates": true,
+          "predicate": false,
+          "joins": true,
+          "having": true
+        },
+        "role_alignment_conflicts": [],
+        "sql": "SELECT \"t2\".\"nationality\", MAX(\"t2\".\"nba_championships\") AS \"max_nba_championships\"\nFROM \"player\" AS \"t2\"\nWHERE \"t2\".\"nba_championships\" >= 1\nGROUP BY \"t2\".\"nationality\"",
+        "query_score": 0.8571428571428571,
+        "official_accuracy": 0.5,
+        "row_count": 7
+      },
+      "q6": {
+        "shape_score": 0.8333333333333334,
+        "shape_agreement": {
+          "projections": true,
+          "group_by": true,
+          "aggregates": true,
+          "predicate": false,
+          "joins": true,
+          "having": true
+        },
+        "role_alignment_conflicts": [],
+        "sql": null,
+        "error": "role-aligned plan cannot bind canonical schema",
+        "query_score": null
+      },
+      "q7": {
+        "shape_score": 0.8333333333333334,
+        "shape_agreement": {
+          "projections": true,
+          "group_by": true,
+          "aggregates": true,
+          "predicate": false,
+          "joins": true,
+          "having": true
+        },
+        "role_alignment_conflicts": [],
+        "sql": "SELECT \"t2\".\"team\", MIN(\"t2\".\"draft_pick\") AS \"min_player_draft_pick\"\nFROM \"player\" AS \"t2\"\nJOIN \"team\" AS \"t3\" ON \"t2\".\"team\" = \"t3\".\"team_name\"\nGROUP BY \"t2\".\"team\"",
+        "query_score": 0.6987560843699296,
+        "official_accuracy": 0.4418604651162791,
+        "row_count": 24
+      },
+      "q8": {
+        "shape_score": 0.8333333333333334,
+        "shape_agreement": {
+          "projections": true,
+          "group_by": true,
+          "aggregates": true,
+          "predicate": false,
+          "joins": true,
+          "having": true
+        },
+        "role_alignment_conflicts": [],
+        "sql": "SELECT \"t2\".\"position\", AVG(\"t2\".\"olympic_gold_medals\") AS \"avg_gold_medals\"\nFROM \"player\" AS \"t2\"\nWHERE (\"t2\".\"position\" IS NOT NULL AND \"t2\".\"olympic_gold_medals\" > 0)\nGROUP BY \"t2\".\"position\"",
+        "query_score": 0.6400000000000001,
+        "official_accuracy": 0.4,
+        "row_count": 3
+      },
+      "q9": {
+        "shape_score": 0.8333333333333334,
+        "shape_agreement": {
+          "projections": true,
+          "group_by": true,
+          "aggregates": true,
+          "predicate": false,
+          "joins": true,
+          "having": true
+        },
+        "role_alignment_conflicts": [],
+        "sql": null,
+        "error": "role-aligned plan cannot bind canonical schema",
+        "query_score": null
+      },
+      "q10": {
+        "shape_score": 1.0,
+        "shape_agreement": {
+          "projections": true,
+          "group_by": true,
+          "aggregates": true,
+          "predicate": true,
+          "joins": true,
+          "having": true
+        },
+        "role_alignment_conflicts": [],
+        "sql": "SELECT \"t2\".\"team\", SUM(\"t2\".\"fiba_world_cup\") AS \"sum_player_fiba_titles\"\nFROM \"player\" AS \"t2\"\nJOIN \"team\" AS \"t3\" ON \"t2\".\"team\" = \"t3\".\"team_name\"\nWHERE \"t2\".\"fiba_world_cup\" >= 1\nGROUP BY \"t2\".\"team\"",
+        "query_score": 1.0,
+        "official_accuracy": 0.5,
+        "row_count": 13
+      },
+      "q11": {
+        "shape_score": 0.8333333333333334,
+        "shape_agreement": {
+          "projections": true,
+          "group_by": true,
+          "aggregates": true,
+          "predicate": false,
+          "joins": true,
+          "having": true
+        },
+        "role_alignment_conflicts": [],
+        "sql": "SELECT \"t2\".\"nationality\", COUNT(*) AS \"count_all\"\nFROM \"player\" AS \"t2\"\nWHERE (\"t2\".\"age\" >= 20 AND \"t2\".\"age\" <= 40)\nGROUP BY \"t2\".\"nationality\"",
+        "query_score": 1.0,
+        "official_accuracy": 0.5,
+        "row_count": 17
+      },
+      "q12": {
+        "shape_score": 0.6666666666666666,
+        "shape_agreement": {
+          "projections": true,
+          "group_by": true,
+          "aggregates": true,
+          "predicate": false,
+          "joins": false,
+          "having": true
+        },
+        "role_alignment_conflicts": [],
+        "sql": null,
+        "error": "role-aligned plan cannot bind canonical schema",
+        "query_score": null
+      },
+      "q13": {
+        "shape_score": 0.6666666666666666,
+        "shape_agreement": {
+          "projections": true,
+          "group_by": true,
+          "aggregates": true,
+          "predicate": false,
+          "joins": false,
+          "having": true
+        },
+        "role_alignment_conflicts": [],
+        "sql": null,
+        "error": "role-aligned plan cannot bind canonical schema",
+        "query_score": null
+      },
+      "q14": {
+        "shape_score": 0.6666666666666666,
+        "shape_agreement": {
+          "projections": true,
+          "group_by": true,
+          "aggregates": true,
+          "predicate": false,
+          "joins": false,
+          "having": true
+        },
+        "role_alignment_conflicts": [],
+        "sql": null,
+        "error": "role-aligned plan cannot bind canonical schema",
+        "query_score": null
+      },
+      "q15": {
+        "shape_score": 0.6666666666666666,
+        "shape_agreement": {
+          "projections": true,
+          "group_by": true,
+          "aggregates": true,
+          "predicate": false,
+          "joins": false,
+          "having": true
+        },
+        "role_alignment_conflicts": [],
+        "sql": null,
+        "error": "role-aligned plan cannot bind canonical schema",
+        "query_score": null
+      },
+      "q16": {
+        "shape_score": 1.0,
+        "shape_agreement": {
+          "projections": true,
+          "group_by": true,
+          "aggregates": true,
+          "predicate": true,
+          "joins": true,
+          "having": true
+        },
+        "role_alignment_conflicts": [],
+        "sql": "SELECT \"t1\".\"nationality\", AVG(\"t1\".\"age\") AS \"avg_age\"\nFROM \"owner\" AS \"t1\"\nGROUP BY \"t1\".\"nationality\"",
+        "query_score": 1.0,
+        "official_accuracy": 1.0,
+        "row_count": 3
+      },
+      "q17": {
+        "shape_score": 1.0,
+        "shape_agreement": {
+          "projections": true,
+          "group_by": true,
+          "aggregates": true,
+          "predicate": true,
+          "joins": true,
+          "having": true
+        },
+        "role_alignment_conflicts": [],
+        "sql": "SELECT \"t1\".\"nationality\", MIN(\"t1\".\"own_year\") AS \"min_year_acquired\"\nFROM \"owner\" AS \"t1\"\nWHERE \"t1\".\"own_year\" >= 2000\nGROUP BY \"t1\".\"nationality\"",
+        "query_score": 1.0,
+        "official_accuracy": 0.5,
+        "row_count": 2
+      },
+      "q18": {
+        "shape_score": 0.8333333333333334,
+        "shape_agreement": {
+          "projections": true,
+          "group_by": true,
+          "aggregates": true,
+          "predicate": false,
+          "joins": true,
+          "having": true
+        },
+        "role_alignment_conflicts": [],
+        "sql": "SELECT \"t0\".\"state_name\", AVG(\"t0\".\"population\") AS \"avg_population\"\nFROM \"city\" AS \"t0\"\nGROUP BY \"t0\".\"state_name\"",
+        "query_score": 0.9560493827160493,
+        "official_accuracy": 0.9777777777777777,
+        "row_count": 23
+      },
+      "q19": {
+        "shape_score": 0.8333333333333334,
+        "shape_agreement": {
+          "projections": true,
+          "group_by": true,
+          "aggregates": true,
+          "predicate": false,
+          "joins": true,
+          "having": true
+        },
+        "role_alignment_conflicts": [],
+        "sql": "SELECT \"t0\".\"state_name\", MAX(\"t0\".\"gdp\") AS \"max_gdp\"\nFROM \"city\" AS \"t0\"\nWHERE \"t0\".\"population\" > 1000000\nGROUP BY \"t0\".\"state_name\"",
+        "query_score": 0.42857142857142855,
+        "official_accuracy": 0.7142857142857143,
+        "row_count": 7
+      }
+    }
+  },
+  "candidate_matrix": {
+    "schema=snowflake:67e4bd72f719|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive": {
+      "q0": {
+        "official_query_error": 1.0,
+        "official_accuracy": 0.0,
+        "gold_row_count": 2,
+        "predicted_row_count": 19,
+        "schema": {
+          "key_columns": [
+            "position"
+          ],
+          "measure_columns": [
+            "avg_age"
+          ],
+          "operators": {
+            "avg_age": "AVG"
+          },
+          "is_aggregation": true,
+          "has_groupby": true
+        },
+        "rank": {
+          "structure_score": 0.0,
+          "cell_f1": {
+            "0.2": 0.0
+          },
+          "query_score": {
+            "0.2": 0.0
+          }
+        },
+        "structure": {
+          "column": {
+            "key": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "measure": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "all": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            }
+          },
+          "row": {
+            "exact": {
+              "P": 0.0,
+              "R": 0.0,
+              "F1": 0.0
+            },
+            "normalized": {
+              "P": 0.0,
+              "R": 0.0,
+              "F1": 0.0
+            },
+            "semantic": {
+              "P": 0.0,
+              "R": 0.0,
+              "F1": 0.0
+            }
+          },
+          "key_alignment_failed": false,
+          "missing_key_columns": [],
+          "structure_score": 0.0
+        },
+        "value": {
+          "row_recall_context": 0.0,
+          "rel_err_histogram": {
+            "exact_or_le_1pct": 0.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 0.0
+          },
+          "range_err_histogram": {
+            "exact_or_le_1pct": 0.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 0.0
+          },
+          "pass_at_tau": {
+            "0.2": 1.0
+          },
+          "pass_by_operator": {},
+          "frac_catastrophic": 0.0,
+          "zero_true_count": 0,
+          "column_ranges": {
+            "avg_age": {
+              "min": 49.096774193548384,
+              "max": 58.644444444444446
+            }
+          }
+        },
+        "grouping": {
+          "merge_rate": 0.0,
+          "split_rate": 0.0
+        },
+        "structure_score": 0.0,
+        "cell_f1": {
+          "0.2": 0.0
+        },
+        "query_score": {
+          "0.2": 0.0
+        },
+        "sql": "SELECT \"t2\".\"position\", AVG(\"t2\".\"age\") AS \"avg_age\"\nFROM \"player\" AS \"t2\"\nWHERE \"t2\".\"position\" IS NOT NULL\nGROUP BY \"t2\".\"position\"",
+        "row_count": 19
+      },
+      "q1": {
+        "official_query_error": 0.6578947368421052,
+        "official_accuracy": 0.3421052631578948,
+        "gold_row_count": 22,
+        "predicted_row_count": 16,
+        "schema": {
+          "key_columns": [
+            "nationality"
+          ],
+          "measure_columns": [
+            "player_count"
+          ],
+          "operators": {
+            "player_count": "COUNT"
+          },
+          "is_aggregation": true,
+          "has_groupby": true
+        },
+        "rank": {
+          "structure_score": 0.6842105263157896,
+          "cell_f1": {
+            "0.2": 0.631578947368421
+          },
+          "query_score": {
+            "0.2": 0.4321329639889197
+          }
+        },
+        "structure": {
+          "column": {
+            "key": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "measure": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "all": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            }
+          },
+          "row": {
+            "exact": {
+              "P": 0.8125,
+              "R": 0.5909090909090909,
+              "F1": 0.6842105263157896
+            },
+            "normalized": {
+              "P": 0.8125,
+              "R": 0.5909090909090909,
+              "F1": 0.6842105263157896
+            },
+            "semantic": {
+              "P": 0.8125,
+              "R": 0.5909090909090909,
+              "F1": 0.6842105263157896
+            }
+          },
+          "key_alignment_failed": false,
+          "missing_key_columns": [],
+          "structure_score": 0.6842105263157896
+        },
+        "value": {
+          "row_recall_context": 0.5909090909090909,
+          "rel_err_histogram": {
+            "exact_or_le_1pct": 0.8461538461538461,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.07692307692307693,
+            "20_to_100pct": 0.07692307692307693,
+            "gt_100pct": 0.0
+          },
+          "range_err_histogram": {
+            "exact_or_le_1pct": 0.8461538461538461,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.07692307692307693,
+            "20_to_100pct": 0.07692307692307693,
+            "gt_100pct": 0.0
+          },
+          "pass_at_tau": {
+            "0.2": 0.9230769230769231
+          },
+          "pass_by_operator": {
+            "COUNT": {
+              "0.2": 0.9230769230769231
+            }
+          },
+          "frac_catastrophic": 0.0,
+          "zero_true_count": 0,
+          "column_ranges": {
+            "player_count": {
+              "min": 1.0,
+              "max": 116.0
+            }
+          }
+        },
+        "grouping": {
+          "merge_rate": 0.0,
+          "split_rate": 0.0
+        },
+        "structure_score": 0.6842105263157896,
+        "cell_f1": {
+          "0.2": 0.631578947368421
+        },
+        "query_score": {
+          "0.2": 0.4321329639889197
+        },
+        "sql": "SELECT \"t2\".\"nationality\", COUNT(*) AS \"count_all\"\nFROM \"player\" AS \"t2\"\nGROUP BY \"t2\".\"nationality\"",
+        "row_count": 16
+      },
+      "q2": {
+        "official_query_error": 1.0,
+        "official_accuracy": 0.0,
+        "gold_row_count": 24,
+        "predicted_row_count": 21,
+        "schema": {
+          "key_columns": [
+            "team"
+          ],
+          "measure_columns": [
+            "avg_championships"
+          ],
+          "operators": {
+            "avg_championships": "AVG"
+          },
+          "is_aggregation": true,
+          "has_groupby": true
+        },
+        "rank": {
+          "structure_score": 0.7999999999999999,
+          "cell_f1": {
+            "0.2": 0.08888888888888889
+          },
+          "query_score": {
+            "0.2": 0.07111111111111111
+          }
+        },
+        "structure": {
+          "column": {
+            "key": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "measure": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "all": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            }
+          },
+          "row": {
+            "exact": {
+              "P": 0.8571428571428571,
+              "R": 0.75,
+              "F1": 0.7999999999999999
+            },
+            "normalized": {
+              "P": 0.8571428571428571,
+              "R": 0.75,
+              "F1": 0.7999999999999999
+            },
+            "semantic": {
+              "P": 0.8571428571428571,
+              "R": 0.75,
+              "F1": 0.7999999999999999
+            }
+          },
+          "key_alignment_failed": false,
+          "missing_key_columns": [],
+          "structure_score": 0.7999999999999999
+        },
+        "value": {
+          "row_recall_context": 0.75,
+          "rel_err_histogram": {
+            "exact_or_le_1pct": 0.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.15384615384615385,
+            "20_to_100pct": 0.7692307692307693,
+            "gt_100pct": 0.07692307692307693
+          },
+          "range_err_histogram": {
+            "exact_or_le_1pct": 0.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.15384615384615385,
+            "20_to_100pct": 0.7692307692307693,
+            "gt_100pct": 0.07692307692307693
+          },
+          "pass_at_tau": {
+            "0.2": 0.15384615384615385
+          },
+          "pass_by_operator": {
+            "AVG": {
+              "0.2": 0.15384615384615385
+            }
+          },
+          "frac_catastrophic": 0.07692307692307693,
+          "zero_true_count": 6,
+          "column_ranges": {
+            "avg_championships": {
+              "min": 0.0,
+              "max": 3.111111111111111
+            }
+          }
+        },
+        "grouping": {
+          "merge_rate": 0.0,
+          "split_rate": 0.0
+        },
+        "structure_score": 0.7999999999999999,
+        "cell_f1": {
+          "0.2": 0.08888888888888889
+        },
+        "query_score": {
+          "0.2": 0.07111111111111111
+        },
+        "sql": "SELECT \"t3\".\"name\", AVG(\"t2\".\"championships\") AS \"avg_player_championships\"\nFROM \"team\" AS \"t3\"\nJOIN \"player\" AS \"t2\" ON \"t3\".\"name\" = \"t2\".\"team_name\"\nGROUP BY \"t3\".\"name\"",
+        "row_count": 21
+      },
+      "q3": {
+        "official_query_error": 0.8372093023255813,
+        "official_accuracy": 0.16279069767441867,
+        "gold_row_count": 19,
+        "predicted_row_count": 67,
+        "schema": {
+          "key_columns": [
+            "college"
+          ],
+          "measure_columns": [
+            "max_mvp_awards"
+          ],
+          "operators": {
+            "max_mvp_awards": "MAX"
+          },
+          "is_aggregation": true,
+          "has_groupby": true
+        },
+        "rank": {
+          "structure_score": 0.3488372093023256,
+          "cell_f1": {
+            "0.2": 0.046511627906976744
+          },
+          "query_score": {
+            "0.2": 0.016224986479177934
+          }
+        },
+        "structure": {
+          "column": {
+            "key": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "measure": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "all": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            }
+          },
+          "row": {
+            "exact": {
+              "P": 0.16417910447761194,
+              "R": 0.5789473684210527,
+              "F1": 0.2558139534883721
+            },
+            "normalized": {
+              "P": 0.16417910447761194,
+              "R": 0.5789473684210527,
+              "F1": 0.2558139534883721
+            },
+            "semantic": {
+              "P": 0.22388059701492538,
+              "R": 0.7894736842105263,
+              "F1": 0.3488372093023256
+            }
+          },
+          "key_alignment_failed": false,
+          "missing_key_columns": [],
+          "structure_score": 0.3488372093023256
+        },
+        "value": {
+          "row_recall_context": 0.7894736842105263,
+          "rel_err_histogram": {
+            "exact_or_le_1pct": 0.4,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.6,
+            "gt_100pct": 0.0
+          },
+          "range_err_histogram": {
+            "exact_or_le_1pct": 0.4,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.6,
+            "gt_100pct": 0.0
+          },
+          "pass_at_tau": {
+            "0.2": 0.4
+          },
+          "pass_by_operator": {
+            "MAX": {
+              "0.2": 0.4
+            }
+          },
+          "frac_catastrophic": 0.0,
+          "zero_true_count": 2,
+          "column_ranges": {
+            "max_mvp_awards": {
+              "min": 0.0,
+              "max": 3.0
+            }
+          }
+        },
+        "grouping": {
+          "merge_rate": 0.014925373134328358,
+          "split_rate": 0.10526315789473684
+        },
+        "structure_score": 0.3488372093023256,
+        "cell_f1": {
+          "0.2": 0.046511627906976744
+        },
+        "query_score": {
+          "0.2": 0.016224986479177934
+        },
+        "sql": "SELECT \"t2\".\"college\", MAX(\"t2\".\"mvp_awards\") AS \"max_mvp_awards\"\nFROM \"player\" AS \"t2\"\nGROUP BY \"t2\".\"college\"\nHAVING COUNT(*) >= 1",
+        "row_count": 67
+      },
+      "q4": {
+        "official_query_error": 1.0,
+        "official_accuracy": 0.0,
+        "gold_row_count": 2,
+        "predicted_row_count": 19,
+        "schema": {
+          "key_columns": [
+            "position"
+          ],
+          "measure_columns": [
+            "total_mvp_awards"
+          ],
+          "operators": {
+            "total_mvp_awards": "SUM"
+          },
+          "is_aggregation": true,
+          "has_groupby": true
+        },
+        "rank": {
+          "structure_score": 0.0,
+          "cell_f1": {
+            "0.2": 0.0
+          },
+          "query_score": {
+            "0.2": 0.0
+          }
+        },
+        "structure": {
+          "column": {
+            "key": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "measure": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "all": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            }
+          },
+          "row": {
+            "exact": {
+              "P": 0.0,
+              "R": 0.0,
+              "F1": 0.0
+            },
+            "normalized": {
+              "P": 0.0,
+              "R": 0.0,
+              "F1": 0.0
+            },
+            "semantic": {
+              "P": 0.0,
+              "R": 0.0,
+              "F1": 0.0
+            }
+          },
+          "key_alignment_failed": false,
+          "missing_key_columns": [],
+          "structure_score": 0.0
+        },
+        "value": {
+          "row_recall_context": 0.0,
+          "rel_err_histogram": {
+            "exact_or_le_1pct": 0.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 0.0
+          },
+          "range_err_histogram": {
+            "exact_or_le_1pct": 0.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 0.0
+          },
+          "pass_at_tau": {
+            "0.2": 1.0
+          },
+          "pass_by_operator": {},
+          "frac_catastrophic": 0.0,
+          "zero_true_count": 0,
+          "column_ranges": {
+            "total_mvp_awards": {
+              "min": 7.0,
+              "max": 14.0
+            }
+          }
+        },
+        "grouping": {
+          "merge_rate": 0.0,
+          "split_rate": 0.0
+        },
+        "structure_score": 0.0,
+        "cell_f1": {
+          "0.2": 0.0
+        },
+        "query_score": {
+          "0.2": 0.0
+        },
+        "sql": "SELECT \"t2\".\"position\", SUM(\"t2\".\"mvp_awards\") AS \"sum_mvp_award\"\nFROM \"player\" AS \"t2\"\nWHERE \"t2\".\"position\" IS NOT NULL\nGROUP BY \"t2\".\"position\"",
+        "row_count": 19
+      },
+      "q5": {
+        "official_query_error": 0.6923076923076923,
+        "official_accuracy": 0.3076923076923077,
+        "gold_row_count": 7,
+        "predicted_row_count": 6,
+        "schema": {
+          "key_columns": [
+            "nationality"
+          ],
+          "measure_columns": [
+            "max_championships"
+          ],
+          "operators": {
+            "max_championships": "MAX"
+          },
+          "is_aggregation": true,
+          "has_groupby": true
+        },
+        "rank": {
+          "structure_score": 0.6153846153846153,
+          "cell_f1": {
+            "0.2": 0.4615384615384615
+          },
+          "query_score": {
+            "0.2": 0.2840236686390532
+          }
+        },
+        "structure": {
+          "column": {
+            "key": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "measure": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "all": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            }
+          },
+          "row": {
+            "exact": {
+              "P": 0.6666666666666666,
+              "R": 0.5714285714285714,
+              "F1": 0.6153846153846153
+            },
+            "normalized": {
+              "P": 0.6666666666666666,
+              "R": 0.5714285714285714,
+              "F1": 0.6153846153846153
+            },
+            "semantic": {
+              "P": 0.6666666666666666,
+              "R": 0.5714285714285714,
+              "F1": 0.6153846153846153
+            }
+          },
+          "key_alignment_failed": false,
+          "missing_key_columns": [],
+          "structure_score": 0.6153846153846153
+        },
+        "value": {
+          "row_recall_context": 0.5714285714285714,
+          "rel_err_histogram": {
+            "exact_or_le_1pct": 1.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 0.0
+          },
+          "range_err_histogram": {
+            "exact_or_le_1pct": 1.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 0.0
+          },
+          "pass_at_tau": {
+            "0.2": 1.0
+          },
+          "pass_by_operator": {
+            "MAX": {
+              "0.2": 1.0
+            }
+          },
+          "frac_catastrophic": 0.0,
+          "zero_true_count": 0,
+          "column_ranges": {
+            "max_championships": {
+              "min": 1.0,
+              "max": 1.0
+            }
+          }
+        },
+        "grouping": {
+          "merge_rate": 0.0,
+          "split_rate": 0.0
+        },
+        "structure_score": 0.6153846153846153,
+        "cell_f1": {
+          "0.2": 0.4615384615384615
+        },
+        "query_score": {
+          "0.2": 0.2840236686390532
+        },
+        "sql": "SELECT \"t2\".\"nationality\", MAX(\"t2\".\"nba_championships\") AS \"max_nba_championships\"\nFROM \"player\" AS \"t2\"\nWHERE \"t2\".\"nba_championships\" >= 1\nGROUP BY \"t2\".\"nationality\"",
+        "row_count": 6
+      },
+      "q6": {
+        "official_query_error": 1.0,
+        "official_accuracy": 0.0,
+        "gold_row_count": 14,
+        "predicted_row_count": 0,
+        "schema": {
+          "key_columns": [
+            "draft_year"
+          ],
+          "measure_columns": [
+            "player_count"
+          ],
+          "operators": {
+            "player_count": "COUNT"
+          },
+          "is_aggregation": true,
+          "has_groupby": true
+        },
+        "rank": {
+          "structure_score": 0.0,
+          "cell_f1": {
+            "0.2": 0.0
+          },
+          "query_score": {
+            "0.2": 0.0
+          }
+        },
+        "structure": {
+          "column": {
+            "key": {
+              "P": 0.0,
+              "R": 0.0,
+              "F1": 0.0
+            },
+            "measure": {
+              "P": 0.0,
+              "R": 0.0,
+              "F1": 0.0
+            },
+            "all": {
+              "P": 0.0,
+              "R": 0.0,
+              "F1": 0.0
+            }
+          },
+          "row": {
+            "exact": {
+              "P": 0.0,
+              "R": 0.0,
+              "F1": 0.0
+            },
+            "normalized": {
+              "P": 0.0,
+              "R": 0.0,
+              "F1": 0.0
+            },
+            "semantic": {
+              "P": 0.0,
+              "R": 0.0,
+              "F1": 0.0
+            }
+          },
+          "key_alignment_failed": true,
+          "missing_key_columns": [
+            "draft_year"
+          ],
+          "structure_score": 0.0
+        },
+        "value": {
+          "row_recall_context": 0.0,
+          "rel_err_histogram": {
+            "exact_or_le_1pct": 0.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 0.0
+          },
+          "range_err_histogram": {
+            "exact_or_le_1pct": 0.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 0.0
+          },
+          "pass_at_tau": {
+            "0.2": 1.0
+          },
+          "pass_by_operator": {},
+          "frac_catastrophic": 0.0,
+          "zero_true_count": 0,
+          "column_ranges": {}
+        },
+        "grouping": {
+          "merge_rate": 0.0,
+          "split_rate": 0.0
+        },
+        "structure_score": 0.0,
+        "cell_f1": {
+          "0.2": 0.0
+        },
+        "query_score": {
+          "0.2": 0.0
+        },
+        "sql": "SELECT \"t2\".\"draft_year\", COUNT(*) AS \"count_all\"\nFROM \"player\" AS \"t2\"\nWHERE (\"t2\".\"draft_year\" > 2010 AND \"t2\".\"drafted\" = 1)\nGROUP BY \"t2\".\"draft_year\"",
+        "row_count": 0
+      },
+      "q7": {
+        "official_query_error": 1.0,
+        "official_accuracy": 0.0,
+        "gold_row_count": 19,
+        "predicted_row_count": 21,
+        "schema": {
+          "key_columns": [
+            "team"
+          ],
+          "measure_columns": [
+            "earliest_draft_pick"
+          ],
+          "operators": {
+            "earliest_draft_pick": "MIN"
+          },
+          "is_aggregation": true,
+          "has_groupby": true
+        },
+        "rank": {
+          "structure_score": 0.7500000000000001,
+          "cell_f1": {
+            "0.2": 0.4
+          },
+          "query_score": {
+            "0.2": 0.30000000000000004
+          }
+        },
+        "structure": {
+          "column": {
+            "key": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "measure": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "all": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            }
+          },
+          "row": {
+            "exact": {
+              "P": 0.7142857142857143,
+              "R": 0.7894736842105263,
+              "F1": 0.7500000000000001
+            },
+            "normalized": {
+              "P": 0.7142857142857143,
+              "R": 0.7894736842105263,
+              "F1": 0.7500000000000001
+            },
+            "semantic": {
+              "P": 0.7142857142857143,
+              "R": 0.7894736842105263,
+              "F1": 0.7500000000000001
+            }
+          },
+          "key_alignment_failed": false,
+          "missing_key_columns": [],
+          "structure_score": 0.7500000000000001
+        },
+        "value": {
+          "row_recall_context": 0.7894736842105263,
+          "rel_err_histogram": {
+            "exact_or_le_1pct": 0.3333333333333333,
+            "1_to_5pct": 0.06666666666666667,
+            "5_to_20pct": 0.13333333333333333,
+            "20_to_100pct": 0.4,
+            "gt_100pct": 0.06666666666666667
+          },
+          "range_err_histogram": {
+            "exact_or_le_1pct": 0.3333333333333333,
+            "1_to_5pct": 0.06666666666666667,
+            "5_to_20pct": 0.13333333333333333,
+            "20_to_100pct": 0.4,
+            "gt_100pct": 0.06666666666666667
+          },
+          "pass_at_tau": {
+            "0.2": 0.5333333333333333
+          },
+          "pass_by_operator": {
+            "MIN": {
+              "0.2": 0.5333333333333333
+            }
+          },
+          "frac_catastrophic": 0.06666666666666667,
+          "zero_true_count": 0,
+          "column_ranges": {
+            "earliest_draft_pick": {
+              "min": 1.0,
+              "max": 25.0
+            }
+          }
+        },
+        "grouping": {
+          "merge_rate": 0.0,
+          "split_rate": 0.0
+        },
+        "structure_score": 0.7500000000000001,
+        "cell_f1": {
+          "0.2": 0.4
+        },
+        "query_score": {
+          "0.2": 0.30000000000000004
+        },
+        "sql": "SELECT \"t3\".\"name\", MIN(\"t2\".\"draft_pick\") AS \"min_player_draft_pick\"\nFROM \"team\" AS \"t3\"\nJOIN \"player\" AS \"t2\" ON \"t3\".\"name\" = \"t2\".\"team_name\"\nGROUP BY \"t3\".\"name\"",
+        "row_count": 21
+      },
+      "q8": {
+        "official_query_error": 1.0,
+        "official_accuracy": 0.0,
+        "gold_row_count": 2,
+        "predicted_row_count": 8,
+        "schema": {
+          "key_columns": [
+            "position"
+          ],
+          "measure_columns": [
+            "avg_olympic_golds"
+          ],
+          "operators": {
+            "avg_olympic_golds": "AVG"
+          },
+          "is_aggregation": true,
+          "has_groupby": true
+        },
+        "rank": {
+          "structure_score": 0.0,
+          "cell_f1": {
+            "0.2": 0.0
+          },
+          "query_score": {
+            "0.2": 0.0
+          }
+        },
+        "structure": {
+          "column": {
+            "key": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "measure": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "all": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            }
+          },
+          "row": {
+            "exact": {
+              "P": 0.0,
+              "R": 0.0,
+              "F1": 0.0
+            },
+            "normalized": {
+              "P": 0.0,
+              "R": 0.0,
+              "F1": 0.0
+            },
+            "semantic": {
+              "P": 0.0,
+              "R": 0.0,
+              "F1": 0.0
+            }
+          },
+          "key_alignment_failed": false,
+          "missing_key_columns": [],
+          "structure_score": 0.0
+        },
+        "value": {
+          "row_recall_context": 0.0,
+          "rel_err_histogram": {
+            "exact_or_le_1pct": 0.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 0.0
+          },
+          "range_err_histogram": {
+            "exact_or_le_1pct": 0.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 0.0
+          },
+          "pass_at_tau": {
+            "0.2": 1.0
+          },
+          "pass_by_operator": {},
+          "frac_catastrophic": 0.0,
+          "zero_true_count": 0,
+          "column_ranges": {
+            "avg_olympic_golds": {
+              "min": 1.4444444444444444,
+              "max": 1.5714285714285714
+            }
+          }
+        },
+        "grouping": {
+          "merge_rate": 0.0,
+          "split_rate": 0.0
+        },
+        "structure_score": 0.0,
+        "cell_f1": {
+          "0.2": 0.0
+        },
+        "query_score": {
+          "0.2": 0.0
+        },
+        "sql": "SELECT \"t2\".\"position\", AVG(\"t2\".\"gold_medals\") AS \"avg_gold_medals\"\nFROM \"player\" AS \"t2\"\nWHERE (\"t2\".\"position\" IS NOT NULL AND \"t2\".\"gold_medals\" > 0)\nGROUP BY \"t2\".\"position\"",
+        "row_count": 8
+      },
+      "q9": {
+        "official_query_error": 0.8,
+        "official_accuracy": 0.19999999999999996,
+        "gold_row_count": 24,
+        "predicted_row_count": 16,
+        "schema": {
+          "key_columns": [
+            "college"
+          ],
+          "measure_columns": [
+            "champion_count"
+          ],
+          "operators": {
+            "champion_count": "COUNT"
+          },
+          "is_aggregation": true,
+          "has_groupby": true
+        },
+        "rank": {
+          "structure_score": 0.5499999999999999,
+          "cell_f1": {
+            "0.2": 0.3
+          },
+          "query_score": {
+            "0.2": 0.16499999999999998
+          }
+        },
+        "structure": {
+          "column": {
+            "key": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "measure": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "all": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            }
+          },
+          "row": {
+            "exact": {
+              "P": 0.5,
+              "R": 0.3333333333333333,
+              "F1": 0.4
+            },
+            "normalized": {
+              "P": 0.5,
+              "R": 0.3333333333333333,
+              "F1": 0.4
+            },
+            "semantic": {
+              "P": 0.6875,
+              "R": 0.4583333333333333,
+              "F1": 0.5499999999999999
+            }
+          },
+          "key_alignment_failed": false,
+          "missing_key_columns": [],
+          "structure_score": 0.5499999999999999
+        },
+        "value": {
+          "row_recall_context": 0.4583333333333333,
+          "rel_err_histogram": {
+            "exact_or_le_1pct": 0.6666666666666666,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.3333333333333333,
+            "gt_100pct": 0.0
+          },
+          "range_err_histogram": {
+            "exact_or_le_1pct": 0.6666666666666666,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.3333333333333333,
+            "gt_100pct": 0.0
+          },
+          "pass_at_tau": {
+            "0.2": 0.6666666666666666
+          },
+          "pass_by_operator": {
+            "COUNT": {
+              "0.2": 0.6666666666666666
+            }
+          },
+          "frac_catastrophic": 0.0,
+          "zero_true_count": 0,
+          "column_ranges": {
+            "champion_count": {
+              "min": 1.0,
+              "max": 3.0
+            }
+          }
+        },
+        "grouping": {
+          "merge_rate": 0.0,
+          "split_rate": 0.041666666666666664
+        },
+        "structure_score": 0.5499999999999999,
+        "cell_f1": {
+          "0.2": 0.3
+        },
+        "query_score": {
+          "0.2": 0.16499999999999998
+        },
+        "sql": "SELECT \"t2\".\"college\", COUNT(*) AS \"count_all\"\nFROM \"player\" AS \"t2\"\nWHERE \"t2\".\"nba_championships_won\" >= 1\nGROUP BY \"t2\".\"college\"",
+        "row_count": 16
+      },
+      "q10": {
+        "official_query_error": 1.0,
+        "official_accuracy": 0.0,
+        "gold_row_count": 13,
+        "predicted_row_count": 1,
+        "schema": {
+          "key_columns": [
+            "team"
+          ],
+          "measure_columns": [
+            "total_fiba_titles"
+          ],
+          "operators": {
+            "total_fiba_titles": "SUM"
+          },
+          "is_aggregation": true,
+          "has_groupby": true
+        },
+        "rank": {
+          "structure_score": 0.0,
+          "cell_f1": {
+            "0.2": 0.0
+          },
+          "query_score": {
+            "0.2": 0.0
+          }
+        },
+        "structure": {
+          "column": {
+            "key": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "measure": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "all": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            }
+          },
+          "row": {
+            "exact": {
+              "P": 0.0,
+              "R": 0.0,
+              "F1": 0.0
+            },
+            "normalized": {
+              "P": 0.0,
+              "R": 0.0,
+              "F1": 0.0
+            },
+            "semantic": {
+              "P": 0.0,
+              "R": 0.0,
+              "F1": 0.0
+            }
+          },
+          "key_alignment_failed": false,
+          "missing_key_columns": [],
+          "structure_score": 0.0
+        },
+        "value": {
+          "row_recall_context": 0.0,
+          "rel_err_histogram": {
+            "exact_or_le_1pct": 0.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 0.0
+          },
+          "range_err_histogram": {
+            "exact_or_le_1pct": 0.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 0.0
+          },
+          "pass_at_tau": {
+            "0.2": 1.0
+          },
+          "pass_by_operator": {},
+          "frac_catastrophic": 0.0,
+          "zero_true_count": 0,
+          "column_ranges": {
+            "total_fiba_titles": {
+              "min": 0.0,
+              "max": 4.0
+            }
+          }
+        },
+        "grouping": {
+          "merge_rate": 0.0,
+          "split_rate": 0.0
+        },
+        "structure_score": 0.0,
+        "cell_f1": {
+          "0.2": 0.0
+        },
+        "query_score": {
+          "0.2": 0.0
+        },
+        "sql": "SELECT \"t3\".\"name\", SUM(\"t2\".\"fiba_titles\") AS \"sum_player_fiba_titles\"\nFROM \"team\" AS \"t3\"\nJOIN \"player\" AS \"t2\" ON \"t2\".\"team_id\" = \"t3\".\"id\"\nWHERE \"t2\".\"fiba_titles\" >= 1\nGROUP BY \"t3\".\"name\"",
+        "row_count": 1
+      },
+      "q11": {
+        "official_query_error": 0.689655172413793,
+        "official_accuracy": 0.31034482758620696,
+        "gold_row_count": 17,
+        "predicted_row_count": 12,
+        "schema": {
+          "key_columns": [
+            "nationality"
+          ],
+          "measure_columns": [
+            "player_count"
+          ],
+          "operators": {
+            "player_count": "COUNT"
+          },
+          "is_aggregation": true,
+          "has_groupby": true
+        },
+        "rank": {
+          "structure_score": 0.6206896551724139,
+          "cell_f1": {
+            "0.2": 0.5517241379310345
+          },
+          "query_score": {
+            "0.2": 0.3424494649227111
+          }
+        },
+        "structure": {
+          "column": {
+            "key": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "measure": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "all": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            }
+          },
+          "row": {
+            "exact": {
+              "P": 0.75,
+              "R": 0.5294117647058824,
+              "F1": 0.6206896551724139
+            },
+            "normalized": {
+              "P": 0.75,
+              "R": 0.5294117647058824,
+              "F1": 0.6206896551724139
+            },
+            "semantic": {
+              "P": 0.75,
+              "R": 0.5294117647058824,
+              "F1": 0.6206896551724139
+            }
+          },
+          "key_alignment_failed": false,
+          "missing_key_columns": [],
+          "structure_score": 0.6206896551724139
+        },
+        "value": {
+          "row_recall_context": 0.5294117647058824,
+          "rel_err_histogram": {
+            "exact_or_le_1pct": 0.8888888888888888,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.1111111111111111,
+            "gt_100pct": 0.0
+          },
+          "range_err_histogram": {
+            "exact_or_le_1pct": 0.8888888888888888,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.1111111111111111,
+            "gt_100pct": 0.0
+          },
+          "pass_at_tau": {
+            "0.2": 0.8888888888888888
+          },
+          "pass_by_operator": {
+            "COUNT": {
+              "0.2": 0.8888888888888888
+            }
+          },
+          "frac_catastrophic": 0.0,
+          "zero_true_count": 0,
+          "column_ranges": {
+            "player_count": {
+              "min": 1.0,
+              "max": 49.0
+            }
+          }
+        },
+        "grouping": {
+          "merge_rate": 0.0,
+          "split_rate": 0.0
+        },
+        "structure_score": 0.6206896551724139,
+        "cell_f1": {
+          "0.2": 0.5517241379310345
+        },
+        "query_score": {
+          "0.2": 0.3424494649227111
+        },
+        "sql": "SELECT \"t2\".\"nationality\", COUNT(*) AS \"count_all\"\nFROM \"player\" AS \"t2\"\nWHERE (\"t2\".\"age\" >= 20 AND \"t2\".\"age\" <= 40)\nGROUP BY \"t2\".\"nationality\"",
+        "row_count": 12
+      },
+      "q12": {
+        "official_query_error": 1.0,
+        "official_accuracy": 0.0,
+        "gold_row_count": 29,
+        "predicted_row_count": 19,
+        "schema": {
+          "key_columns": [
+            "location"
+          ],
+          "measure_columns": [
+            "max_championships"
+          ],
+          "operators": {
+            "max_championships": "MAX"
+          },
+          "is_aggregation": true,
+          "has_groupby": true
+        },
+        "rank": {
+          "structure_score": 0.6666666666666666,
+          "cell_f1": {
+            "0.2": 0.625
+          },
+          "query_score": {
+            "0.2": 0.41666666666666663
+          }
+        },
+        "structure": {
+          "column": {
+            "key": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "measure": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "all": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            }
+          },
+          "row": {
+            "exact": {
+              "P": 0.8421052631578947,
+              "R": 0.5517241379310345,
+              "F1": 0.6666666666666666
+            },
+            "normalized": {
+              "P": 0.8421052631578947,
+              "R": 0.5517241379310345,
+              "F1": 0.6666666666666666
+            },
+            "semantic": {
+              "P": 0.8421052631578947,
+              "R": 0.5517241379310345,
+              "F1": 0.6666666666666666
+            }
+          },
+          "key_alignment_failed": false,
+          "missing_key_columns": [],
+          "structure_score": 0.6666666666666666
+        },
+        "value": {
+          "row_recall_context": 0.5517241379310345,
+          "rel_err_histogram": {
+            "exact_or_le_1pct": 0.8,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.2,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 0.0
+          },
+          "range_err_histogram": {
+            "exact_or_le_1pct": 0.8,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.2,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 0.0
+          },
+          "pass_at_tau": {
+            "0.2": 1.0
+          },
+          "pass_by_operator": {
+            "MAX": {
+              "0.2": 1.0
+            }
+          },
+          "frac_catastrophic": 0.0,
+          "zero_true_count": 1,
+          "column_ranges": {
+            "max_championships": {
+              "min": 0.0,
+              "max": 18.0
+            }
+          }
+        },
+        "grouping": {
+          "merge_rate": 0.0,
+          "split_rate": 0.0
+        },
+        "structure_score": 0.6666666666666666,
+        "cell_f1": {
+          "0.2": 0.625
+        },
+        "query_score": {
+          "0.2": 0.41666666666666663
+        },
+        "sql": "SELECT \"t0\".\"name\", MAX(\"t3\".\"championships_won\") AS \"max_team_championships_won\"\nFROM \"city\" AS \"t0\"\nJOIN \"team\" AS \"t3\" ON \"t0\".\"name\" = \"t3\".\"city\"\nGROUP BY \"t0\".\"name\"",
+        "row_count": 19
+      },
+      "q13": {
+        "official_query_error": 1.0,
+        "official_accuracy": 0.0,
+        "gold_row_count": 18,
+        "predicted_row_count": 12,
+        "schema": {
+          "key_columns": [
+            "location"
+          ],
+          "measure_columns": [
+            "team_count"
+          ],
+          "operators": {
+            "team_count": "COUNT"
+          },
+          "is_aggregation": true,
+          "has_groupby": true
+        },
+        "rank": {
+          "structure_score": 0.6666666666666667,
+          "cell_f1": {
+            "0.2": 0.6666666666666667
+          },
+          "query_score": {
+            "0.2": 0.44444444444444453
+          }
+        },
+        "structure": {
+          "column": {
+            "key": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "measure": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "all": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            }
+          },
+          "row": {
+            "exact": {
+              "P": 0.8333333333333334,
+              "R": 0.5555555555555556,
+              "F1": 0.6666666666666667
+            },
+            "normalized": {
+              "P": 0.8333333333333334,
+              "R": 0.5555555555555556,
+              "F1": 0.6666666666666667
+            },
+            "semantic": {
+              "P": 0.8333333333333334,
+              "R": 0.5555555555555556,
+              "F1": 0.6666666666666667
+            }
+          },
+          "key_alignment_failed": false,
+          "missing_key_columns": [],
+          "structure_score": 0.6666666666666667
+        },
+        "value": {
+          "row_recall_context": 0.5555555555555556,
+          "rel_err_histogram": {
+            "exact_or_le_1pct": 1.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 0.0
+          },
+          "range_err_histogram": {
+            "exact_or_le_1pct": 1.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 0.0
+          },
+          "pass_at_tau": {
+            "0.2": 1.0
+          },
+          "pass_by_operator": {
+            "COUNT": {
+              "0.2": 1.0
+            }
+          },
+          "frac_catastrophic": 0.0,
+          "zero_true_count": 0,
+          "column_ranges": {
+            "team_count": {
+              "min": 1.0,
+              "max": 1.0
+            }
+          }
+        },
+        "grouping": {
+          "merge_rate": 0.0,
+          "split_rate": 0.0
+        },
+        "structure_score": 0.6666666666666667,
+        "cell_f1": {
+          "0.2": 0.6666666666666667
+        },
+        "query_score": {
+          "0.2": 0.44444444444444453
+        },
+        "sql": "SELECT \"t0\".\"name\", COUNT(*) AS \"count_all\"\nFROM \"city\" AS \"t0\"\nJOIN \"team\" AS \"t3\" ON \"t3\".\"based_in\" = \"t0\".\"name\"\nWHERE \"t3\".\"founded_year\" < 1970\nGROUP BY \"t0\".\"name\"",
+        "row_count": 12
+      },
+      "q14": {
+        "official_query_error": 1.0,
+        "official_accuracy": 0.0,
+        "gold_row_count": 24,
+        "predicted_row_count": 4,
+        "schema": {
+          "key_columns": [
+            "ownership"
+          ],
+          "measure_columns": [
+            "total_championships"
+          ],
+          "operators": {
+            "total_championships": "SUM"
+          },
+          "is_aggregation": true,
+          "has_groupby": true
+        },
+        "rank": {
+          "structure_score": 0.21428571428571427,
+          "cell_f1": {
+            "0.2": 0.07142857142857142
+          },
+          "query_score": {
+            "0.2": 0.01530612244897959
+          }
+        },
+        "structure": {
+          "column": {
+            "key": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "measure": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "all": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            }
+          },
+          "row": {
+            "exact": {
+              "P": 0.25,
+              "R": 0.041666666666666664,
+              "F1": 0.07142857142857142
+            },
+            "normalized": {
+              "P": 0.25,
+              "R": 0.041666666666666664,
+              "F1": 0.07142857142857142
+            },
+            "semantic": {
+              "P": 0.75,
+              "R": 0.125,
+              "F1": 0.21428571428571427
+            }
+          },
+          "key_alignment_failed": false,
+          "missing_key_columns": [],
+          "structure_score": 0.21428571428571427
+        },
+        "value": {
+          "row_recall_context": 0.125,
+          "rel_err_histogram": {
+            "exact_or_le_1pct": 0.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.5,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 0.5
+          },
+          "range_err_histogram": {
+            "exact_or_le_1pct": 0.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.5,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 0.5
+          },
+          "pass_at_tau": {
+            "0.2": 0.5
+          },
+          "pass_by_operator": {
+            "SUM": {
+              "0.2": 0.5
+            }
+          },
+          "frac_catastrophic": 0.5,
+          "zero_true_count": 1,
+          "column_ranges": {
+            "total_championships": {
+              "min": 0.0,
+              "max": 17.0
+            }
+          }
+        },
+        "grouping": {
+          "merge_rate": 0.0,
+          "split_rate": 0.0
+        },
+        "structure_score": 0.21428571428571427,
+        "cell_f1": {
+          "0.2": 0.07142857142857142
+        },
+        "query_score": {
+          "0.2": 0.01530612244897959
+        },
+        "sql": "SELECT \"t1\".\"name\", SUM(\"t3\".\"championships\") AS \"sum_team_championships\"\nFROM \"owner\" AS \"t1\"\nJOIN \"team\" AS \"t3\" ON \"t1\".\"name\" = \"t3\".\"owner_name\"\nGROUP BY \"t1\".\"name\"",
+        "row_count": 4
+      },
+      "q15": {
+        "official_query_error": 1.0,
+        "official_accuracy": 0.0,
+        "gold_row_count": 20,
+        "predicted_row_count": 15,
+        "schema": {
+          "key_columns": [
+            "location"
+          ],
+          "measure_columns": [
+            "avg_championships"
+          ],
+          "operators": {
+            "avg_championships": "AVG"
+          },
+          "is_aggregation": true,
+          "has_groupby": true
+        },
+        "rank": {
+          "structure_score": 0.8,
+          "cell_f1": {
+            "0.2": 0.7428571428571429
+          },
+          "query_score": {
+            "0.2": 0.5942857142857143
+          }
+        },
+        "structure": {
+          "column": {
+            "key": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "measure": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "all": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            }
+          },
+          "row": {
+            "exact": {
+              "P": 0.9333333333333333,
+              "R": 0.7,
+              "F1": 0.8
+            },
+            "normalized": {
+              "P": 0.9333333333333333,
+              "R": 0.7,
+              "F1": 0.8
+            },
+            "semantic": {
+              "P": 0.9333333333333333,
+              "R": 0.7,
+              "F1": 0.8
+            }
+          },
+          "key_alignment_failed": false,
+          "missing_key_columns": [],
+          "structure_score": 0.8
+        },
+        "value": {
+          "row_recall_context": 0.7,
+          "rel_err_histogram": {
+            "exact_or_le_1pct": 0.42857142857142855,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.5,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 0.07142857142857142
+          },
+          "range_err_histogram": {
+            "exact_or_le_1pct": 0.42857142857142855,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.5,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 0.07142857142857142
+          },
+          "pass_at_tau": {
+            "0.2": 0.9285714285714286
+          },
+          "pass_by_operator": {
+            "AVG": {
+              "0.2": 0.9285714285714286
+            }
+          },
+          "frac_catastrophic": 0.07142857142857142,
+          "zero_true_count": 0,
+          "column_ranges": {
+            "avg_championships": {
+              "min": 1.0,
+              "max": 18.0
+            }
+          }
+        },
+        "grouping": {
+          "merge_rate": 0.0,
+          "split_rate": 0.0
+        },
+        "structure_score": 0.8,
+        "cell_f1": {
+          "0.2": 0.7428571428571429
+        },
+        "query_score": {
+          "0.2": 0.5942857142857143
+        },
+        "sql": "SELECT \"t0\".\"name\", AVG(\"t3\".\"championships\") AS \"avg_team_championships\"\nFROM \"city\" AS \"t0\"\nJOIN \"team\" AS \"t3\" ON \"t3\".\"city\" = \"t0\".\"name\"\nWHERE \"t3\".\"championships\" > 0\nGROUP BY \"t0\".\"name\"",
+        "row_count": 15
+      },
+      "q16": {
+        "official_query_error": 0.6301569506726457,
+        "official_accuracy": 0.36984304932735435,
+        "gold_row_count": 3,
+        "predicted_row_count": 2,
+        "schema": {
+          "key_columns": [
+            "nationality"
+          ],
+          "measure_columns": [
+            "avg_age"
+          ],
+          "operators": {
+            "avg_age": "AVG"
+          },
+          "is_aggregation": true,
+          "has_groupby": true
+        },
+        "rank": {
+          "structure_score": 0.4,
+          "cell_f1": {
+            "0.2": 0.0
+          },
+          "query_score": {
+            "0.2": 0.0
+          }
+        },
+        "structure": {
+          "column": {
+            "key": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "measure": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "all": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            }
+          },
+          "row": {
+            "exact": {
+              "P": 0.5,
+              "R": 0.3333333333333333,
+              "F1": 0.4
+            },
+            "normalized": {
+              "P": 0.5,
+              "R": 0.3333333333333333,
+              "F1": 0.4
+            },
+            "semantic": {
+              "P": 0.5,
+              "R": 0.3333333333333333,
+              "F1": 0.4
+            }
+          },
+          "key_alignment_failed": false,
+          "missing_key_columns": [],
+          "structure_score": 0.4
+        },
+        "value": {
+          "row_recall_context": 0.3333333333333333,
+          "rel_err_histogram": {
+            "exact_or_le_1pct": 0.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 1.0,
+            "gt_100pct": 0.0
+          },
+          "range_err_histogram": {
+            "exact_or_le_1pct": 0.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 1.0,
+            "gt_100pct": 0.0
+          },
+          "pass_at_tau": {
+            "0.2": 0.0
+          },
+          "pass_by_operator": {
+            "AVG": {
+              "0.2": 0.0
+            }
+          },
+          "frac_catastrophic": 0.0,
+          "zero_true_count": 0,
+          "column_ranges": {
+            "avg_age": {
+              "min": 62.0,
+              "max": 77.0
+            }
+          }
+        },
+        "grouping": {
+          "merge_rate": 0.0,
+          "split_rate": 0.0
+        },
+        "structure_score": 0.4,
+        "cell_f1": {
+          "0.2": 0.0
+        },
+        "query_score": {
+          "0.2": 0.0
+        },
+        "sql": "SELECT \"t1\".\"nationality\", AVG(\"t1\".\"age\") AS \"avg_age\"\nFROM \"owner\" AS \"t1\"\nGROUP BY \"t1\".\"nationality\"",
+        "row_count": 2
+      },
+      "q17": {
+        "official_query_error": 0.75,
+        "official_accuracy": 0.25,
+        "gold_row_count": 2,
+        "predicted_row_count": 2,
+        "schema": {
+          "key_columns": [
+            "nationality"
+          ],
+          "measure_columns": [
+            "earliest_own_year"
+          ],
+          "operators": {
+            "earliest_own_year": "MIN"
+          },
+          "is_aggregation": true,
+          "has_groupby": true
+        },
+        "rank": {
+          "structure_score": 0.5,
+          "cell_f1": {
+            "0.2": 0.0
+          },
+          "query_score": {
+            "0.2": 0.0
+          }
+        },
+        "structure": {
+          "column": {
+            "key": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "measure": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "all": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            }
+          },
+          "row": {
+            "exact": {
+              "P": 0.5,
+              "R": 0.5,
+              "F1": 0.5
+            },
+            "normalized": {
+              "P": 0.5,
+              "R": 0.5,
+              "F1": 0.5
+            },
+            "semantic": {
+              "P": 0.5,
+              "R": 0.5,
+              "F1": 0.5
+            }
+          },
+          "key_alignment_failed": false,
+          "missing_key_columns": [],
+          "structure_score": 0.5
+        },
+        "value": {
+          "row_recall_context": 0.5,
+          "rel_err_histogram": {
+            "exact_or_le_1pct": 0.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 1.0,
+            "gt_100pct": 0.0
+          },
+          "range_err_histogram": {
+            "exact_or_le_1pct": 0.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 1.0,
+            "gt_100pct": 0.0
+          },
+          "pass_at_tau": {
+            "0.2": 0.0
+          },
+          "pass_by_operator": {
+            "MIN": {
+              "0.2": 0.0
+            }
+          },
+          "frac_catastrophic": 0.0,
+          "zero_true_count": 0,
+          "column_ranges": {
+            "earliest_own_year": {
+              "min": 2000.0,
+              "max": 2019.0
+            }
+          }
+        },
+        "grouping": {
+          "merge_rate": 0.0,
+          "split_rate": 0.0
+        },
+        "structure_score": 0.5,
+        "cell_f1": {
+          "0.2": 0.0
+        },
+        "query_score": {
+          "0.2": 0.0
+        },
+        "sql": "SELECT \"t1\".\"nationality\", MIN(\"t1\".\"year_acquired\") AS \"min_year_acquired\"\nFROM \"owner\" AS \"t1\"\nWHERE \"t1\".\"year_acquired\" >= 2000\nGROUP BY \"t1\".\"nationality\"",
+        "row_count": 2
+      },
+      "q18": {
+        "official_query_error": 1.0,
+        "official_accuracy": 0.0,
+        "gold_row_count": 22,
+        "predicted_row_count": 24,
+        "schema": {
+          "key_columns": [
+            "state_name"
+          ],
+          "measure_columns": [
+            "avg_population"
+          ],
+          "operators": {
+            "avg_population": "AVG"
+          },
+          "is_aggregation": true,
+          "has_groupby": true
+        },
+        "rank": {
+          "structure_score": 0.9565217391304348,
+          "cell_f1": {
+            "0.2": 0.9130434782608695
+          },
+          "query_score": {
+            "0.2": 0.8733459357277883
+          }
+        },
+        "structure": {
+          "column": {
+            "key": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "measure": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "all": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            }
+          },
+          "row": {
+            "exact": {
+              "P": 0.9166666666666666,
+              "R": 1.0,
+              "F1": 0.9565217391304348
+            },
+            "normalized": {
+              "P": 0.9166666666666666,
+              "R": 1.0,
+              "F1": 0.9565217391304348
+            },
+            "semantic": {
+              "P": 0.9166666666666666,
+              "R": 1.0,
+              "F1": 0.9565217391304348
+            }
+          },
+          "key_alignment_failed": false,
+          "missing_key_columns": [],
+          "structure_score": 0.9565217391304348
+        },
+        "value": {
+          "row_recall_context": 1.0,
+          "rel_err_histogram": {
+            "exact_or_le_1pct": 0.8181818181818182,
+            "1_to_5pct": 0.045454545454545456,
+            "5_to_20pct": 0.09090909090909091,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 0.045454545454545456
+          },
+          "range_err_histogram": {
+            "exact_or_le_1pct": 0.8181818181818182,
+            "1_to_5pct": 0.045454545454545456,
+            "5_to_20pct": 0.09090909090909091,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 0.045454545454545456
+          },
+          "pass_at_tau": {
+            "0.2": 0.9545454545454546
+          },
+          "pass_by_operator": {
+            "AVG": {
+              "0.2": 0.9545454545454546
+            }
+          },
+          "frac_catastrophic": 0.045454545454545456,
+          "zero_true_count": 0,
+          "column_ranges": {
+            "avg_population": {
+              "min": 200133.0,
+              "max": 8258035.0
+            }
+          }
+        },
+        "grouping": {
+          "merge_rate": 0.0,
+          "split_rate": 0.0
+        },
+        "structure_score": 0.9565217391304348,
+        "cell_f1": {
+          "0.2": 0.9130434782608695
+        },
+        "query_score": {
+          "0.2": 0.8733459357277883
+        },
+        "sql": "SELECT \"t0\".\"state\", AVG(\"t0\".\"population\") AS \"avg_population\"\nFROM \"city\" AS \"t0\"\nGROUP BY \"t0\".\"state\"",
+        "row_count": 24
+      },
+      "q19": {
+        "official_query_error": 1.0,
+        "official_accuracy": 0.0,
+        "gold_row_count": 7,
+        "predicted_row_count": 6,
+        "schema": {
+          "key_columns": [
+            "state_name"
+          ],
+          "measure_columns": [
+            "max_gdp"
+          ],
+          "operators": {
+            "max_gdp": "MAX"
+          },
+          "is_aggregation": true,
+          "has_groupby": true
+        },
+        "rank": {
+          "structure_score": 0.7692307692307692,
+          "cell_f1": {
+            "0.2": 0.0
+          },
+          "query_score": {
+            "0.2": 0.0
+          }
+        },
+        "structure": {
+          "column": {
+            "key": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "measure": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "all": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            }
+          },
+          "row": {
+            "exact": {
+              "P": 0.8333333333333334,
+              "R": 0.7142857142857143,
+              "F1": 0.7692307692307692
+            },
+            "normalized": {
+              "P": 0.8333333333333334,
+              "R": 0.7142857142857143,
+              "F1": 0.7692307692307692
+            },
+            "semantic": {
+              "P": 0.8333333333333334,
+              "R": 0.7142857142857143,
+              "F1": 0.7692307692307692
+            }
+          },
+          "key_alignment_failed": false,
+          "missing_key_columns": [],
+          "structure_score": 0.7692307692307692
+        },
+        "value": {
+          "row_recall_context": 0.7142857142857143,
+          "rel_err_histogram": {
+            "exact_or_le_1pct": 0.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 1.0
+          },
+          "range_err_histogram": {
+            "exact_or_le_1pct": 0.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 1.0
+          },
+          "pass_at_tau": {
+            "0.2": 0.0
+          },
+          "pass_by_operator": {
+            "MAX": {
+              "0.2": 0.0
+            }
+          },
+          "frac_catastrophic": 1.0,
+          "zero_true_count": 0,
+          "column_ranges": {
+            "max_gdp": {
+              "min": 518.5,
+              "max": 689000.0
+            }
+          }
+        },
+        "grouping": {
+          "merge_rate": 0.0,
+          "split_rate": 0.0
+        },
+        "structure_score": 0.7692307692307692,
+        "cell_f1": {
+          "0.2": 0.0
+        },
+        "query_score": {
+          "0.2": 0.0
+        },
+        "sql": "SELECT \"t0\".\"state\", MAX(\"t0\".\"gdp\") AS \"max_gdp\"\nFROM \"city\" AS \"t0\"\nWHERE \"t0\".\"population\" > 1000000\nGROUP BY \"t0\".\"state\"",
+        "row_count": 6
+      }
+    },
+    "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict": {
+      "q0": {
+        "official_query_error": 1.0,
+        "official_accuracy": 0.0,
+        "gold_row_count": 2,
+        "predicted_row_count": 19,
+        "schema": {
+          "key_columns": [
+            "position"
+          ],
+          "measure_columns": [
+            "avg_age"
+          ],
+          "operators": {
+            "avg_age": "AVG"
+          },
+          "is_aggregation": true,
+          "has_groupby": true
+        },
+        "rank": {
+          "structure_score": 0.0,
+          "cell_f1": {
+            "0.2": 0.0
+          },
+          "query_score": {
+            "0.2": 0.0
+          }
+        },
+        "structure": {
+          "column": {
+            "key": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "measure": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "all": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            }
+          },
+          "row": {
+            "exact": {
+              "P": 0.0,
+              "R": 0.0,
+              "F1": 0.0
+            },
+            "normalized": {
+              "P": 0.0,
+              "R": 0.0,
+              "F1": 0.0
+            },
+            "semantic": {
+              "P": 0.0,
+              "R": 0.0,
+              "F1": 0.0
+            }
+          },
+          "key_alignment_failed": false,
+          "missing_key_columns": [],
+          "structure_score": 0.0
+        },
+        "value": {
+          "row_recall_context": 0.0,
+          "rel_err_histogram": {
+            "exact_or_le_1pct": 0.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 0.0
+          },
+          "range_err_histogram": {
+            "exact_or_le_1pct": 0.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 0.0
+          },
+          "pass_at_tau": {
+            "0.2": 1.0
+          },
+          "pass_by_operator": {},
+          "frac_catastrophic": 0.0,
+          "zero_true_count": 0,
+          "column_ranges": {
+            "avg_age": {
+              "min": 49.096774193548384,
+              "max": 58.644444444444446
+            }
+          }
+        },
+        "grouping": {
+          "merge_rate": 0.0,
+          "split_rate": 0.0
+        },
+        "structure_score": 0.0,
+        "cell_f1": {
+          "0.2": 0.0
+        },
+        "query_score": {
+          "0.2": 0.0
+        },
+        "sql": "SELECT \"t2\".\"position\", AVG(\"t2\".\"age\") AS \"avg_age\"\nFROM \"player\" AS \"t2\"\nWHERE \"t2\".\"position\" IS NOT NULL\nGROUP BY \"t2\".\"position\"",
+        "row_count": 19
+      },
+      "q1": {
+        "official_query_error": 0.5909090909090908,
+        "official_accuracy": 0.40909090909090917,
+        "gold_row_count": 22,
+        "predicted_row_count": 22,
+        "schema": {
+          "key_columns": [
+            "nationality"
+          ],
+          "measure_columns": [
+            "player_count"
+          ],
+          "operators": {
+            "player_count": "COUNT"
+          },
+          "is_aggregation": true,
+          "has_groupby": true
+        },
+        "rank": {
+          "structure_score": 0.8181818181818182,
+          "cell_f1": {
+            "0.2": 0.7727272727272727
+          },
+          "query_score": {
+            "0.2": 0.6322314049586777
+          }
+        },
+        "structure": {
+          "column": {
+            "key": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "measure": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "all": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            }
+          },
+          "row": {
+            "exact": {
+              "P": 0.8181818181818182,
+              "R": 0.8181818181818182,
+              "F1": 0.8181818181818182
+            },
+            "normalized": {
+              "P": 0.8181818181818182,
+              "R": 0.8181818181818182,
+              "F1": 0.8181818181818182
+            },
+            "semantic": {
+              "P": 0.8181818181818182,
+              "R": 0.8181818181818182,
+              "F1": 0.8181818181818182
+            }
+          },
+          "key_alignment_failed": false,
+          "missing_key_columns": [],
+          "structure_score": 0.8181818181818182
+        },
+        "value": {
+          "row_recall_context": 0.8181818181818182,
+          "rel_err_histogram": {
+            "exact_or_le_1pct": 0.8888888888888888,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.05555555555555555,
+            "20_to_100pct": 0.05555555555555555,
+            "gt_100pct": 0.0
+          },
+          "range_err_histogram": {
+            "exact_or_le_1pct": 0.8888888888888888,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.05555555555555555,
+            "20_to_100pct": 0.05555555555555555,
+            "gt_100pct": 0.0
+          },
+          "pass_at_tau": {
+            "0.2": 0.9444444444444444
+          },
+          "pass_by_operator": {
+            "COUNT": {
+              "0.2": 0.9444444444444444
+            }
+          },
+          "frac_catastrophic": 0.0,
+          "zero_true_count": 0,
+          "column_ranges": {
+            "player_count": {
+              "min": 1.0,
+              "max": 116.0
+            }
+          }
+        },
+        "grouping": {
+          "merge_rate": 0.0,
+          "split_rate": 0.0
+        },
+        "structure_score": 0.8181818181818182,
+        "cell_f1": {
+          "0.2": 0.7727272727272727
+        },
+        "query_score": {
+          "0.2": 0.6322314049586777
+        },
+        "sql": "SELECT \"t2\".\"nationality\", COUNT(*) AS \"count_all\"\nFROM \"player\" AS \"t2\"\nGROUP BY \"t2\".\"nationality\"",
+        "row_count": 22
+      },
+      "q2": {
+        "official_query_error": 1.0,
+        "official_accuracy": 0.0,
+        "gold_row_count": 24,
+        "predicted_row_count": 21,
+        "schema": {
+          "key_columns": [
+            "team"
+          ],
+          "measure_columns": [
+            "avg_championships"
+          ],
+          "operators": {
+            "avg_championships": "AVG"
+          },
+          "is_aggregation": true,
+          "has_groupby": true
+        },
+        "rank": {
+          "structure_score": 0.7999999999999999,
+          "cell_f1": {
+            "0.2": 0.08888888888888889
+          },
+          "query_score": {
+            "0.2": 0.07111111111111111
+          }
+        },
+        "structure": {
+          "column": {
+            "key": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "measure": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "all": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            }
+          },
+          "row": {
+            "exact": {
+              "P": 0.8571428571428571,
+              "R": 0.75,
+              "F1": 0.7999999999999999
+            },
+            "normalized": {
+              "P": 0.8571428571428571,
+              "R": 0.75,
+              "F1": 0.7999999999999999
+            },
+            "semantic": {
+              "P": 0.8571428571428571,
+              "R": 0.75,
+              "F1": 0.7999999999999999
+            }
+          },
+          "key_alignment_failed": false,
+          "missing_key_columns": [],
+          "structure_score": 0.7999999999999999
+        },
+        "value": {
+          "row_recall_context": 0.75,
+          "rel_err_histogram": {
+            "exact_or_le_1pct": 0.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.15384615384615385,
+            "20_to_100pct": 0.7692307692307693,
+            "gt_100pct": 0.07692307692307693
+          },
+          "range_err_histogram": {
+            "exact_or_le_1pct": 0.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.15384615384615385,
+            "20_to_100pct": 0.7692307692307693,
+            "gt_100pct": 0.07692307692307693
+          },
+          "pass_at_tau": {
+            "0.2": 0.15384615384615385
+          },
+          "pass_by_operator": {
+            "AVG": {
+              "0.2": 0.15384615384615385
+            }
+          },
+          "frac_catastrophic": 0.07692307692307693,
+          "zero_true_count": 6,
+          "column_ranges": {
+            "avg_championships": {
+              "min": 0.0,
+              "max": 3.111111111111111
+            }
+          }
+        },
+        "grouping": {
+          "merge_rate": 0.0,
+          "split_rate": 0.0
+        },
+        "structure_score": 0.7999999999999999,
+        "cell_f1": {
+          "0.2": 0.08888888888888889
+        },
+        "query_score": {
+          "0.2": 0.07111111111111111
+        },
+        "sql": "SELECT \"t3\".\"name\", AVG(\"t2\".\"championships\") AS \"avg_player_championships\"\nFROM \"team\" AS \"t3\"\nJOIN \"player\" AS \"t2\" ON \"t3\".\"name\" = \"t2\".\"team_name\"\nGROUP BY \"t3\".\"name\"",
+        "row_count": 21
+      },
+      "q3": {
+        "official_query_error": 0.8372093023255813,
+        "official_accuracy": 0.16279069767441867,
+        "gold_row_count": 19,
+        "predicted_row_count": 67,
+        "schema": {
+          "key_columns": [
+            "college"
+          ],
+          "measure_columns": [
+            "max_mvp_awards"
+          ],
+          "operators": {
+            "max_mvp_awards": "MAX"
+          },
+          "is_aggregation": true,
+          "has_groupby": true
+        },
+        "rank": {
+          "structure_score": 0.3488372093023256,
+          "cell_f1": {
+            "0.2": 0.046511627906976744
+          },
+          "query_score": {
+            "0.2": 0.016224986479177934
+          }
+        },
+        "structure": {
+          "column": {
+            "key": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "measure": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "all": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            }
+          },
+          "row": {
+            "exact": {
+              "P": 0.16417910447761194,
+              "R": 0.5789473684210527,
+              "F1": 0.2558139534883721
+            },
+            "normalized": {
+              "P": 0.16417910447761194,
+              "R": 0.5789473684210527,
+              "F1": 0.2558139534883721
+            },
+            "semantic": {
+              "P": 0.22388059701492538,
+              "R": 0.7894736842105263,
+              "F1": 0.3488372093023256
+            }
+          },
+          "key_alignment_failed": false,
+          "missing_key_columns": [],
+          "structure_score": 0.3488372093023256
+        },
+        "value": {
+          "row_recall_context": 0.7894736842105263,
+          "rel_err_histogram": {
+            "exact_or_le_1pct": 0.4,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.6,
+            "gt_100pct": 0.0
+          },
+          "range_err_histogram": {
+            "exact_or_le_1pct": 0.4,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.6,
+            "gt_100pct": 0.0
+          },
+          "pass_at_tau": {
+            "0.2": 0.4
+          },
+          "pass_by_operator": {
+            "MAX": {
+              "0.2": 0.4
+            }
+          },
+          "frac_catastrophic": 0.0,
+          "zero_true_count": 2,
+          "column_ranges": {
+            "max_mvp_awards": {
+              "min": 0.0,
+              "max": 3.0
+            }
+          }
+        },
+        "grouping": {
+          "merge_rate": 0.014925373134328358,
+          "split_rate": 0.10526315789473684
+        },
+        "structure_score": 0.3488372093023256,
+        "cell_f1": {
+          "0.2": 0.046511627906976744
+        },
+        "query_score": {
+          "0.2": 0.016224986479177934
+        },
+        "sql": "SELECT \"t2\".\"college\", MAX(\"t2\".\"mvp_awards\") AS \"max_mvp_awards\"\nFROM \"player\" AS \"t2\"\nGROUP BY \"t2\".\"college\"\nHAVING COUNT(*) >= 1",
+        "row_count": 67
+      },
+      "q4": {
+        "official_query_error": 1.0,
+        "official_accuracy": 0.0,
+        "gold_row_count": 2,
+        "predicted_row_count": 19,
+        "schema": {
+          "key_columns": [
+            "position"
+          ],
+          "measure_columns": [
+            "total_mvp_awards"
+          ],
+          "operators": {
+            "total_mvp_awards": "SUM"
+          },
+          "is_aggregation": true,
+          "has_groupby": true
+        },
+        "rank": {
+          "structure_score": 0.0,
+          "cell_f1": {
+            "0.2": 0.0
+          },
+          "query_score": {
+            "0.2": 0.0
+          }
+        },
+        "structure": {
+          "column": {
+            "key": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "measure": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "all": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            }
+          },
+          "row": {
+            "exact": {
+              "P": 0.0,
+              "R": 0.0,
+              "F1": 0.0
+            },
+            "normalized": {
+              "P": 0.0,
+              "R": 0.0,
+              "F1": 0.0
+            },
+            "semantic": {
+              "P": 0.0,
+              "R": 0.0,
+              "F1": 0.0
+            }
+          },
+          "key_alignment_failed": false,
+          "missing_key_columns": [],
+          "structure_score": 0.0
+        },
+        "value": {
+          "row_recall_context": 0.0,
+          "rel_err_histogram": {
+            "exact_or_le_1pct": 0.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 0.0
+          },
+          "range_err_histogram": {
+            "exact_or_le_1pct": 0.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 0.0
+          },
+          "pass_at_tau": {
+            "0.2": 1.0
+          },
+          "pass_by_operator": {},
+          "frac_catastrophic": 0.0,
+          "zero_true_count": 0,
+          "column_ranges": {
+            "total_mvp_awards": {
+              "min": 7.0,
+              "max": 14.0
+            }
+          }
+        },
+        "grouping": {
+          "merge_rate": 0.0,
+          "split_rate": 0.0
+        },
+        "structure_score": 0.0,
+        "cell_f1": {
+          "0.2": 0.0
+        },
+        "query_score": {
+          "0.2": 0.0
+        },
+        "sql": "SELECT \"t2\".\"position\", SUM(\"t2\".\"mvp_awards\") AS \"sum_mvp_award\"\nFROM \"player\" AS \"t2\"\nWHERE \"t2\".\"position\" IS NOT NULL\nGROUP BY \"t2\".\"position\"",
+        "row_count": 19
+      },
+      "q5": {
+        "official_query_error": 0.6428571428571428,
+        "official_accuracy": 0.3571428571428572,
+        "gold_row_count": 7,
+        "predicted_row_count": 7,
+        "schema": {
+          "key_columns": [
+            "nationality"
+          ],
+          "measure_columns": [
+            "max_championships"
+          ],
+          "operators": {
+            "max_championships": "MAX"
+          },
+          "is_aggregation": true,
+          "has_groupby": true
+        },
+        "rank": {
+          "structure_score": 0.7142857142857143,
+          "cell_f1": {
+            "0.2": 0.5714285714285714
+          },
+          "query_score": {
+            "0.2": 0.40816326530612246
+          }
+        },
+        "structure": {
+          "column": {
+            "key": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "measure": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "all": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            }
+          },
+          "row": {
+            "exact": {
+              "P": 0.7142857142857143,
+              "R": 0.7142857142857143,
+              "F1": 0.7142857142857143
+            },
+            "normalized": {
+              "P": 0.7142857142857143,
+              "R": 0.7142857142857143,
+              "F1": 0.7142857142857143
+            },
+            "semantic": {
+              "P": 0.7142857142857143,
+              "R": 0.7142857142857143,
+              "F1": 0.7142857142857143
+            }
+          },
+          "key_alignment_failed": false,
+          "missing_key_columns": [],
+          "structure_score": 0.7142857142857143
+        },
+        "value": {
+          "row_recall_context": 0.7142857142857143,
+          "rel_err_histogram": {
+            "exact_or_le_1pct": 1.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 0.0
+          },
+          "range_err_histogram": {
+            "exact_or_le_1pct": 1.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 0.0
+          },
+          "pass_at_tau": {
+            "0.2": 1.0
+          },
+          "pass_by_operator": {
+            "MAX": {
+              "0.2": 1.0
+            }
+          },
+          "frac_catastrophic": 0.0,
+          "zero_true_count": 0,
+          "column_ranges": {
+            "max_championships": {
+              "min": 1.0,
+              "max": 1.0
+            }
+          }
+        },
+        "grouping": {
+          "merge_rate": 0.0,
+          "split_rate": 0.0
+        },
+        "structure_score": 0.7142857142857143,
+        "cell_f1": {
+          "0.2": 0.5714285714285714
+        },
+        "query_score": {
+          "0.2": 0.40816326530612246
+        },
+        "sql": "SELECT \"t2\".\"nationality\", MAX(\"t2\".\"nba_championships\") AS \"max_nba_championships\"\nFROM \"player\" AS \"t2\"\nWHERE \"t2\".\"nba_championships\" >= 1\nGROUP BY \"t2\".\"nationality\"",
+        "row_count": 7
+      },
+      "q6": {
+        "official_query_error": 1.0,
+        "official_accuracy": 0.0,
+        "gold_row_count": 14,
+        "predicted_row_count": 0,
+        "schema": {
+          "key_columns": [
+            "draft_year"
+          ],
+          "measure_columns": [
+            "player_count"
+          ],
+          "operators": {
+            "player_count": "COUNT"
+          },
+          "is_aggregation": true,
+          "has_groupby": true
+        },
+        "rank": {
+          "structure_score": 0.0,
+          "cell_f1": {
+            "0.2": 0.0
+          },
+          "query_score": {
+            "0.2": 0.0
+          }
+        },
+        "structure": {
+          "column": {
+            "key": {
+              "P": 0.0,
+              "R": 0.0,
+              "F1": 0.0
+            },
+            "measure": {
+              "P": 0.0,
+              "R": 0.0,
+              "F1": 0.0
+            },
+            "all": {
+              "P": 0.0,
+              "R": 0.0,
+              "F1": 0.0
+            }
+          },
+          "row": {
+            "exact": {
+              "P": 0.0,
+              "R": 0.0,
+              "F1": 0.0
+            },
+            "normalized": {
+              "P": 0.0,
+              "R": 0.0,
+              "F1": 0.0
+            },
+            "semantic": {
+              "P": 0.0,
+              "R": 0.0,
+              "F1": 0.0
+            }
+          },
+          "key_alignment_failed": true,
+          "missing_key_columns": [
+            "draft_year"
+          ],
+          "structure_score": 0.0
+        },
+        "value": {
+          "row_recall_context": 0.0,
+          "rel_err_histogram": {
+            "exact_or_le_1pct": 0.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 0.0
+          },
+          "range_err_histogram": {
+            "exact_or_le_1pct": 0.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 0.0
+          },
+          "pass_at_tau": {
+            "0.2": 1.0
+          },
+          "pass_by_operator": {},
+          "frac_catastrophic": 0.0,
+          "zero_true_count": 0,
+          "column_ranges": {}
+        },
+        "grouping": {
+          "merge_rate": 0.0,
+          "split_rate": 0.0
+        },
+        "structure_score": 0.0,
+        "cell_f1": {
+          "0.2": 0.0
+        },
+        "query_score": {
+          "0.2": 0.0
+        },
+        "sql": "SELECT \"t2\".\"draft_year\", COUNT(*) AS \"count_all\"\nFROM \"player\" AS \"t2\"\nWHERE (\"t2\".\"draft_year\" > 2010 AND \"t2\".\"drafted\" = 1)\nGROUP BY \"t2\".\"draft_year\"",
+        "row_count": 0
+      },
+      "q7": {
+        "official_query_error": 1.0,
+        "official_accuracy": 0.0,
+        "gold_row_count": 19,
+        "predicted_row_count": 21,
+        "schema": {
+          "key_columns": [
+            "team"
+          ],
+          "measure_columns": [
+            "earliest_draft_pick"
+          ],
+          "operators": {
+            "earliest_draft_pick": "MIN"
+          },
+          "is_aggregation": true,
+          "has_groupby": true
+        },
+        "rank": {
+          "structure_score": 0.7500000000000001,
+          "cell_f1": {
+            "0.2": 0.4
+          },
+          "query_score": {
+            "0.2": 0.30000000000000004
+          }
+        },
+        "structure": {
+          "column": {
+            "key": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "measure": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "all": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            }
+          },
+          "row": {
+            "exact": {
+              "P": 0.7142857142857143,
+              "R": 0.7894736842105263,
+              "F1": 0.7500000000000001
+            },
+            "normalized": {
+              "P": 0.7142857142857143,
+              "R": 0.7894736842105263,
+              "F1": 0.7500000000000001
+            },
+            "semantic": {
+              "P": 0.7142857142857143,
+              "R": 0.7894736842105263,
+              "F1": 0.7500000000000001
+            }
+          },
+          "key_alignment_failed": false,
+          "missing_key_columns": [],
+          "structure_score": 0.7500000000000001
+        },
+        "value": {
+          "row_recall_context": 0.7894736842105263,
+          "rel_err_histogram": {
+            "exact_or_le_1pct": 0.3333333333333333,
+            "1_to_5pct": 0.06666666666666667,
+            "5_to_20pct": 0.13333333333333333,
+            "20_to_100pct": 0.4,
+            "gt_100pct": 0.06666666666666667
+          },
+          "range_err_histogram": {
+            "exact_or_le_1pct": 0.3333333333333333,
+            "1_to_5pct": 0.06666666666666667,
+            "5_to_20pct": 0.13333333333333333,
+            "20_to_100pct": 0.4,
+            "gt_100pct": 0.06666666666666667
+          },
+          "pass_at_tau": {
+            "0.2": 0.5333333333333333
+          },
+          "pass_by_operator": {
+            "MIN": {
+              "0.2": 0.5333333333333333
+            }
+          },
+          "frac_catastrophic": 0.06666666666666667,
+          "zero_true_count": 0,
+          "column_ranges": {
+            "earliest_draft_pick": {
+              "min": 1.0,
+              "max": 25.0
+            }
+          }
+        },
+        "grouping": {
+          "merge_rate": 0.0,
+          "split_rate": 0.0
+        },
+        "structure_score": 0.7500000000000001,
+        "cell_f1": {
+          "0.2": 0.4
+        },
+        "query_score": {
+          "0.2": 0.30000000000000004
+        },
+        "sql": "SELECT \"t3\".\"name\", MIN(\"t2\".\"draft_pick\") AS \"min_player_draft_pick\"\nFROM \"team\" AS \"t3\"\nJOIN \"player\" AS \"t2\" ON \"t3\".\"name\" = \"t2\".\"team_name\"\nGROUP BY \"t3\".\"name\"",
+        "row_count": 21
+      },
+      "q8": {
+        "official_query_error": 1.0,
+        "official_accuracy": 0.0,
+        "gold_row_count": 2,
+        "predicted_row_count": 8,
+        "schema": {
+          "key_columns": [
+            "position"
+          ],
+          "measure_columns": [
+            "avg_olympic_golds"
+          ],
+          "operators": {
+            "avg_olympic_golds": "AVG"
+          },
+          "is_aggregation": true,
+          "has_groupby": true
+        },
+        "rank": {
+          "structure_score": 0.0,
+          "cell_f1": {
+            "0.2": 0.0
+          },
+          "query_score": {
+            "0.2": 0.0
+          }
+        },
+        "structure": {
+          "column": {
+            "key": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "measure": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "all": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            }
+          },
+          "row": {
+            "exact": {
+              "P": 0.0,
+              "R": 0.0,
+              "F1": 0.0
+            },
+            "normalized": {
+              "P": 0.0,
+              "R": 0.0,
+              "F1": 0.0
+            },
+            "semantic": {
+              "P": 0.0,
+              "R": 0.0,
+              "F1": 0.0
+            }
+          },
+          "key_alignment_failed": false,
+          "missing_key_columns": [],
+          "structure_score": 0.0
+        },
+        "value": {
+          "row_recall_context": 0.0,
+          "rel_err_histogram": {
+            "exact_or_le_1pct": 0.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 0.0
+          },
+          "range_err_histogram": {
+            "exact_or_le_1pct": 0.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 0.0
+          },
+          "pass_at_tau": {
+            "0.2": 1.0
+          },
+          "pass_by_operator": {},
+          "frac_catastrophic": 0.0,
+          "zero_true_count": 0,
+          "column_ranges": {
+            "avg_olympic_golds": {
+              "min": 1.4444444444444444,
+              "max": 1.5714285714285714
+            }
+          }
+        },
+        "grouping": {
+          "merge_rate": 0.0,
+          "split_rate": 0.0
+        },
+        "structure_score": 0.0,
+        "cell_f1": {
+          "0.2": 0.0
+        },
+        "query_score": {
+          "0.2": 0.0
+        },
+        "sql": "SELECT \"t2\".\"position\", AVG(\"t2\".\"gold_medals\") AS \"avg_gold_medals\"\nFROM \"player\" AS \"t2\"\nWHERE (\"t2\".\"position\" IS NOT NULL AND \"t2\".\"gold_medals\" > 0)\nGROUP BY \"t2\".\"position\"",
+        "row_count": 8
+      },
+      "q9": {
+        "official_query_error": 0.8,
+        "official_accuracy": 0.19999999999999996,
+        "gold_row_count": 24,
+        "predicted_row_count": 16,
+        "schema": {
+          "key_columns": [
+            "college"
+          ],
+          "measure_columns": [
+            "champion_count"
+          ],
+          "operators": {
+            "champion_count": "COUNT"
+          },
+          "is_aggregation": true,
+          "has_groupby": true
+        },
+        "rank": {
+          "structure_score": 0.5499999999999999,
+          "cell_f1": {
+            "0.2": 0.3
+          },
+          "query_score": {
+            "0.2": 0.16499999999999998
+          }
+        },
+        "structure": {
+          "column": {
+            "key": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "measure": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "all": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            }
+          },
+          "row": {
+            "exact": {
+              "P": 0.5,
+              "R": 0.3333333333333333,
+              "F1": 0.4
+            },
+            "normalized": {
+              "P": 0.5,
+              "R": 0.3333333333333333,
+              "F1": 0.4
+            },
+            "semantic": {
+              "P": 0.6875,
+              "R": 0.4583333333333333,
+              "F1": 0.5499999999999999
+            }
+          },
+          "key_alignment_failed": false,
+          "missing_key_columns": [],
+          "structure_score": 0.5499999999999999
+        },
+        "value": {
+          "row_recall_context": 0.4583333333333333,
+          "rel_err_histogram": {
+            "exact_or_le_1pct": 0.6666666666666666,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.3333333333333333,
+            "gt_100pct": 0.0
+          },
+          "range_err_histogram": {
+            "exact_or_le_1pct": 0.6666666666666666,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.3333333333333333,
+            "gt_100pct": 0.0
+          },
+          "pass_at_tau": {
+            "0.2": 0.6666666666666666
+          },
+          "pass_by_operator": {
+            "COUNT": {
+              "0.2": 0.6666666666666666
+            }
+          },
+          "frac_catastrophic": 0.0,
+          "zero_true_count": 0,
+          "column_ranges": {
+            "champion_count": {
+              "min": 1.0,
+              "max": 3.0
+            }
+          }
+        },
+        "grouping": {
+          "merge_rate": 0.0,
+          "split_rate": 0.041666666666666664
+        },
+        "structure_score": 0.5499999999999999,
+        "cell_f1": {
+          "0.2": 0.3
+        },
+        "query_score": {
+          "0.2": 0.16499999999999998
+        },
+        "sql": "SELECT \"t2\".\"college\", COUNT(*) AS \"count_all\"\nFROM \"player\" AS \"t2\"\nWHERE \"t2\".\"nba_championships_won\" >= 1\nGROUP BY \"t2\".\"college\"",
+        "row_count": 16
+      },
+      "q10": {
+        "official_query_error": 1.0,
+        "official_accuracy": 0.0,
+        "gold_row_count": 13,
+        "predicted_row_count": 1,
+        "schema": {
+          "key_columns": [
+            "team"
+          ],
+          "measure_columns": [
+            "total_fiba_titles"
+          ],
+          "operators": {
+            "total_fiba_titles": "SUM"
+          },
+          "is_aggregation": true,
+          "has_groupby": true
+        },
+        "rank": {
+          "structure_score": 0.0,
+          "cell_f1": {
+            "0.2": 0.0
+          },
+          "query_score": {
+            "0.2": 0.0
+          }
+        },
+        "structure": {
+          "column": {
+            "key": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "measure": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "all": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            }
+          },
+          "row": {
+            "exact": {
+              "P": 0.0,
+              "R": 0.0,
+              "F1": 0.0
+            },
+            "normalized": {
+              "P": 0.0,
+              "R": 0.0,
+              "F1": 0.0
+            },
+            "semantic": {
+              "P": 0.0,
+              "R": 0.0,
+              "F1": 0.0
+            }
+          },
+          "key_alignment_failed": false,
+          "missing_key_columns": [],
+          "structure_score": 0.0
+        },
+        "value": {
+          "row_recall_context": 0.0,
+          "rel_err_histogram": {
+            "exact_or_le_1pct": 0.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 0.0
+          },
+          "range_err_histogram": {
+            "exact_or_le_1pct": 0.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 0.0
+          },
+          "pass_at_tau": {
+            "0.2": 1.0
+          },
+          "pass_by_operator": {},
+          "frac_catastrophic": 0.0,
+          "zero_true_count": 0,
+          "column_ranges": {
+            "total_fiba_titles": {
+              "min": 0.0,
+              "max": 4.0
+            }
+          }
+        },
+        "grouping": {
+          "merge_rate": 0.0,
+          "split_rate": 0.0
+        },
+        "structure_score": 0.0,
+        "cell_f1": {
+          "0.2": 0.0
+        },
+        "query_score": {
+          "0.2": 0.0
+        },
+        "sql": "SELECT \"t3\".\"name\", SUM(\"t2\".\"fiba_titles\") AS \"sum_player_fiba_titles\"\nFROM \"team\" AS \"t3\"\nJOIN \"player\" AS \"t2\" ON \"t2\".\"team_id\" = \"t3\".\"id\"\nWHERE \"t2\".\"fiba_titles\" >= 1\nGROUP BY \"t3\".\"name\"",
+        "row_count": 1
+      },
+      "q11": {
+        "official_query_error": 0.59375,
+        "official_accuracy": 0.40625,
+        "gold_row_count": 17,
+        "predicted_row_count": 15,
+        "schema": {
+          "key_columns": [
+            "nationality"
+          ],
+          "measure_columns": [
+            "player_count"
+          ],
+          "operators": {
+            "player_count": "COUNT"
+          },
+          "is_aggregation": true,
+          "has_groupby": true
+        },
+        "rank": {
+          "structure_score": 0.8125,
+          "cell_f1": {
+            "0.2": 0.7500000000000001
+          },
+          "query_score": {
+            "0.2": 0.6093750000000001
+          }
+        },
+        "structure": {
+          "column": {
+            "key": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "measure": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "all": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            }
+          },
+          "row": {
+            "exact": {
+              "P": 0.8666666666666667,
+              "R": 0.7647058823529411,
+              "F1": 0.8125
+            },
+            "normalized": {
+              "P": 0.8666666666666667,
+              "R": 0.7647058823529411,
+              "F1": 0.8125
+            },
+            "semantic": {
+              "P": 0.8666666666666667,
+              "R": 0.7647058823529411,
+              "F1": 0.8125
+            }
+          },
+          "key_alignment_failed": false,
+          "missing_key_columns": [],
+          "structure_score": 0.8125
+        },
+        "value": {
+          "row_recall_context": 0.7647058823529411,
+          "rel_err_histogram": {
+            "exact_or_le_1pct": 0.9230769230769231,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.07692307692307693,
+            "gt_100pct": 0.0
+          },
+          "range_err_histogram": {
+            "exact_or_le_1pct": 0.9230769230769231,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.07692307692307693,
+            "gt_100pct": 0.0
+          },
+          "pass_at_tau": {
+            "0.2": 0.9230769230769231
+          },
+          "pass_by_operator": {
+            "COUNT": {
+              "0.2": 0.9230769230769231
+            }
+          },
+          "frac_catastrophic": 0.0,
+          "zero_true_count": 0,
+          "column_ranges": {
+            "player_count": {
+              "min": 1.0,
+              "max": 49.0
+            }
+          }
+        },
+        "grouping": {
+          "merge_rate": 0.0,
+          "split_rate": 0.0
+        },
+        "structure_score": 0.8125,
+        "cell_f1": {
+          "0.2": 0.7500000000000001
+        },
+        "query_score": {
+          "0.2": 0.6093750000000001
+        },
+        "sql": "SELECT \"t2\".\"nationality\", COUNT(*) AS \"count_all\"\nFROM \"player\" AS \"t2\"\nWHERE (\"t2\".\"age\" >= 20 AND \"t2\".\"age\" <= 40)\nGROUP BY \"t2\".\"nationality\"",
+        "row_count": 15
+      },
+      "q12": {
+        "official_query_error": 1.0,
+        "official_accuracy": 0.0,
+        "gold_row_count": 29,
+        "predicted_row_count": 19,
+        "schema": {
+          "key_columns": [
+            "location"
+          ],
+          "measure_columns": [
+            "max_championships"
+          ],
+          "operators": {
+            "max_championships": "MAX"
+          },
+          "is_aggregation": true,
+          "has_groupby": true
+        },
+        "rank": {
+          "structure_score": 0.6666666666666666,
+          "cell_f1": {
+            "0.2": 0.625
+          },
+          "query_score": {
+            "0.2": 0.41666666666666663
+          }
+        },
+        "structure": {
+          "column": {
+            "key": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "measure": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "all": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            }
+          },
+          "row": {
+            "exact": {
+              "P": 0.8421052631578947,
+              "R": 0.5517241379310345,
+              "F1": 0.6666666666666666
+            },
+            "normalized": {
+              "P": 0.8421052631578947,
+              "R": 0.5517241379310345,
+              "F1": 0.6666666666666666
+            },
+            "semantic": {
+              "P": 0.8421052631578947,
+              "R": 0.5517241379310345,
+              "F1": 0.6666666666666666
+            }
+          },
+          "key_alignment_failed": false,
+          "missing_key_columns": [],
+          "structure_score": 0.6666666666666666
+        },
+        "value": {
+          "row_recall_context": 0.5517241379310345,
+          "rel_err_histogram": {
+            "exact_or_le_1pct": 0.8,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.2,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 0.0
+          },
+          "range_err_histogram": {
+            "exact_or_le_1pct": 0.8,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.2,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 0.0
+          },
+          "pass_at_tau": {
+            "0.2": 1.0
+          },
+          "pass_by_operator": {
+            "MAX": {
+              "0.2": 1.0
+            }
+          },
+          "frac_catastrophic": 0.0,
+          "zero_true_count": 1,
+          "column_ranges": {
+            "max_championships": {
+              "min": 0.0,
+              "max": 18.0
+            }
+          }
+        },
+        "grouping": {
+          "merge_rate": 0.0,
+          "split_rate": 0.0
+        },
+        "structure_score": 0.6666666666666666,
+        "cell_f1": {
+          "0.2": 0.625
+        },
+        "query_score": {
+          "0.2": 0.41666666666666663
+        },
+        "sql": "SELECT \"t0\".\"name\", MAX(\"t3\".\"championships_won\") AS \"max_team_championships_won\"\nFROM \"city\" AS \"t0\"\nJOIN \"team\" AS \"t3\" ON \"t0\".\"name\" = \"t3\".\"city\"\nGROUP BY \"t0\".\"name\"",
+        "row_count": 19
+      },
+      "q13": {
+        "official_query_error": 1.0,
+        "official_accuracy": 0.0,
+        "gold_row_count": 18,
+        "predicted_row_count": 12,
+        "schema": {
+          "key_columns": [
+            "location"
+          ],
+          "measure_columns": [
+            "team_count"
+          ],
+          "operators": {
+            "team_count": "COUNT"
+          },
+          "is_aggregation": true,
+          "has_groupby": true
+        },
+        "rank": {
+          "structure_score": 0.6666666666666667,
+          "cell_f1": {
+            "0.2": 0.6666666666666667
+          },
+          "query_score": {
+            "0.2": 0.44444444444444453
+          }
+        },
+        "structure": {
+          "column": {
+            "key": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "measure": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "all": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            }
+          },
+          "row": {
+            "exact": {
+              "P": 0.8333333333333334,
+              "R": 0.5555555555555556,
+              "F1": 0.6666666666666667
+            },
+            "normalized": {
+              "P": 0.8333333333333334,
+              "R": 0.5555555555555556,
+              "F1": 0.6666666666666667
+            },
+            "semantic": {
+              "P": 0.8333333333333334,
+              "R": 0.5555555555555556,
+              "F1": 0.6666666666666667
+            }
+          },
+          "key_alignment_failed": false,
+          "missing_key_columns": [],
+          "structure_score": 0.6666666666666667
+        },
+        "value": {
+          "row_recall_context": 0.5555555555555556,
+          "rel_err_histogram": {
+            "exact_or_le_1pct": 1.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 0.0
+          },
+          "range_err_histogram": {
+            "exact_or_le_1pct": 1.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 0.0
+          },
+          "pass_at_tau": {
+            "0.2": 1.0
+          },
+          "pass_by_operator": {
+            "COUNT": {
+              "0.2": 1.0
+            }
+          },
+          "frac_catastrophic": 0.0,
+          "zero_true_count": 0,
+          "column_ranges": {
+            "team_count": {
+              "min": 1.0,
+              "max": 1.0
+            }
+          }
+        },
+        "grouping": {
+          "merge_rate": 0.0,
+          "split_rate": 0.0
+        },
+        "structure_score": 0.6666666666666667,
+        "cell_f1": {
+          "0.2": 0.6666666666666667
+        },
+        "query_score": {
+          "0.2": 0.44444444444444453
+        },
+        "sql": "SELECT \"t0\".\"name\", COUNT(*) AS \"count_all\"\nFROM \"city\" AS \"t0\"\nJOIN \"team\" AS \"t3\" ON \"t3\".\"based_in\" = \"t0\".\"name\"\nWHERE \"t3\".\"founded_year\" < 1970\nGROUP BY \"t0\".\"name\"",
+        "row_count": 12
+      },
+      "q14": {
+        "official_query_error": 1.0,
+        "official_accuracy": 0.0,
+        "gold_row_count": 24,
+        "predicted_row_count": 4,
+        "schema": {
+          "key_columns": [
+            "ownership"
+          ],
+          "measure_columns": [
+            "total_championships"
+          ],
+          "operators": {
+            "total_championships": "SUM"
+          },
+          "is_aggregation": true,
+          "has_groupby": true
+        },
+        "rank": {
+          "structure_score": 0.21428571428571427,
+          "cell_f1": {
+            "0.2": 0.07142857142857142
+          },
+          "query_score": {
+            "0.2": 0.01530612244897959
+          }
+        },
+        "structure": {
+          "column": {
+            "key": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "measure": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "all": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            }
+          },
+          "row": {
+            "exact": {
+              "P": 0.25,
+              "R": 0.041666666666666664,
+              "F1": 0.07142857142857142
+            },
+            "normalized": {
+              "P": 0.25,
+              "R": 0.041666666666666664,
+              "F1": 0.07142857142857142
+            },
+            "semantic": {
+              "P": 0.75,
+              "R": 0.125,
+              "F1": 0.21428571428571427
+            }
+          },
+          "key_alignment_failed": false,
+          "missing_key_columns": [],
+          "structure_score": 0.21428571428571427
+        },
+        "value": {
+          "row_recall_context": 0.125,
+          "rel_err_histogram": {
+            "exact_or_le_1pct": 0.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.5,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 0.5
+          },
+          "range_err_histogram": {
+            "exact_or_le_1pct": 0.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.5,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 0.5
+          },
+          "pass_at_tau": {
+            "0.2": 0.5
+          },
+          "pass_by_operator": {
+            "SUM": {
+              "0.2": 0.5
+            }
+          },
+          "frac_catastrophic": 0.5,
+          "zero_true_count": 1,
+          "column_ranges": {
+            "total_championships": {
+              "min": 0.0,
+              "max": 17.0
+            }
+          }
+        },
+        "grouping": {
+          "merge_rate": 0.0,
+          "split_rate": 0.0
+        },
+        "structure_score": 0.21428571428571427,
+        "cell_f1": {
+          "0.2": 0.07142857142857142
+        },
+        "query_score": {
+          "0.2": 0.01530612244897959
+        },
+        "sql": "SELECT \"t1\".\"name\", SUM(\"t3\".\"championships\") AS \"sum_team_championships\"\nFROM \"owner\" AS \"t1\"\nJOIN \"team\" AS \"t3\" ON \"t1\".\"name\" = \"t3\".\"owner_name\"\nGROUP BY \"t1\".\"name\"",
+        "row_count": 4
+      },
+      "q15": {
+        "official_query_error": 1.0,
+        "official_accuracy": 0.0,
+        "gold_row_count": 20,
+        "predicted_row_count": 15,
+        "schema": {
+          "key_columns": [
+            "location"
+          ],
+          "measure_columns": [
+            "avg_championships"
+          ],
+          "operators": {
+            "avg_championships": "AVG"
+          },
+          "is_aggregation": true,
+          "has_groupby": true
+        },
+        "rank": {
+          "structure_score": 0.8,
+          "cell_f1": {
+            "0.2": 0.7428571428571429
+          },
+          "query_score": {
+            "0.2": 0.5942857142857143
+          }
+        },
+        "structure": {
+          "column": {
+            "key": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "measure": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "all": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            }
+          },
+          "row": {
+            "exact": {
+              "P": 0.9333333333333333,
+              "R": 0.7,
+              "F1": 0.8
+            },
+            "normalized": {
+              "P": 0.9333333333333333,
+              "R": 0.7,
+              "F1": 0.8
+            },
+            "semantic": {
+              "P": 0.9333333333333333,
+              "R": 0.7,
+              "F1": 0.8
+            }
+          },
+          "key_alignment_failed": false,
+          "missing_key_columns": [],
+          "structure_score": 0.8
+        },
+        "value": {
+          "row_recall_context": 0.7,
+          "rel_err_histogram": {
+            "exact_or_le_1pct": 0.42857142857142855,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.5,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 0.07142857142857142
+          },
+          "range_err_histogram": {
+            "exact_or_le_1pct": 0.42857142857142855,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.5,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 0.07142857142857142
+          },
+          "pass_at_tau": {
+            "0.2": 0.9285714285714286
+          },
+          "pass_by_operator": {
+            "AVG": {
+              "0.2": 0.9285714285714286
+            }
+          },
+          "frac_catastrophic": 0.07142857142857142,
+          "zero_true_count": 0,
+          "column_ranges": {
+            "avg_championships": {
+              "min": 1.0,
+              "max": 18.0
+            }
+          }
+        },
+        "grouping": {
+          "merge_rate": 0.0,
+          "split_rate": 0.0
+        },
+        "structure_score": 0.8,
+        "cell_f1": {
+          "0.2": 0.7428571428571429
+        },
+        "query_score": {
+          "0.2": 0.5942857142857143
+        },
+        "sql": "SELECT \"t0\".\"name\", AVG(\"t3\".\"championships\") AS \"avg_team_championships\"\nFROM \"city\" AS \"t0\"\nJOIN \"team\" AS \"t3\" ON \"t3\".\"city\" = \"t0\".\"name\"\nWHERE \"t3\".\"championships\" > 0\nGROUP BY \"t0\".\"name\"",
+        "row_count": 15
+      },
+      "q16": {
+        "official_query_error": 0.3996173249396344,
+        "official_accuracy": 0.6003826750603656,
+        "gold_row_count": 3,
+        "predicted_row_count": 5,
+        "schema": {
+          "key_columns": [
+            "nationality"
+          ],
+          "measure_columns": [
+            "avg_age"
+          ],
+          "operators": {
+            "avg_age": "AVG"
+          },
+          "is_aggregation": true,
+          "has_groupby": true
+        },
+        "rank": {
+          "structure_score": 0.7499999999999999,
+          "cell_f1": {
+            "0.2": 0.25
+          },
+          "query_score": {
+            "0.2": 0.18749999999999997
+          }
+        },
+        "structure": {
+          "column": {
+            "key": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "measure": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "all": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            }
+          },
+          "row": {
+            "exact": {
+              "P": 0.6,
+              "R": 1.0,
+              "F1": 0.7499999999999999
+            },
+            "normalized": {
+              "P": 0.6,
+              "R": 1.0,
+              "F1": 0.7499999999999999
+            },
+            "semantic": {
+              "P": 0.6,
+              "R": 1.0,
+              "F1": 0.7499999999999999
+            }
+          },
+          "key_alignment_failed": false,
+          "missing_key_columns": [],
+          "structure_score": 0.7499999999999999
+        },
+        "value": {
+          "row_recall_context": 1.0,
+          "rel_err_histogram": {
+            "exact_or_le_1pct": 0.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 1.0,
+            "gt_100pct": 0.0
+          },
+          "range_err_histogram": {
+            "exact_or_le_1pct": 0.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 1.0,
+            "gt_100pct": 0.0
+          },
+          "pass_at_tau": {
+            "0.2": 0.5
+          },
+          "pass_by_operator": {
+            "AVG": {
+              "0.2": 0.5
+            }
+          },
+          "frac_catastrophic": 0.0,
+          "zero_true_count": 0,
+          "column_ranges": {
+            "avg_age": {
+              "min": 62.0,
+              "max": 77.0
+            }
+          }
+        },
+        "grouping": {
+          "merge_rate": 0.0,
+          "split_rate": 0.0
+        },
+        "structure_score": 0.7499999999999999,
+        "cell_f1": {
+          "0.2": 0.25
+        },
+        "query_score": {
+          "0.2": 0.18749999999999997
+        },
+        "sql": "SELECT \"t1\".\"nationality\", AVG(\"t1\".\"age\") AS \"avg_age\"\nFROM \"owner\" AS \"t1\"\nGROUP BY \"t1\".\"nationality\"",
+        "row_count": 5
+      },
+      "q17": {
+        "official_query_error": 0.6,
+        "official_accuracy": 0.4,
+        "gold_row_count": 2,
+        "predicted_row_count": 3,
+        "schema": {
+          "key_columns": [
+            "nationality"
+          ],
+          "measure_columns": [
+            "earliest_own_year"
+          ],
+          "operators": {
+            "earliest_own_year": "MIN"
+          },
+          "is_aggregation": true,
+          "has_groupby": true
+        },
+        "rank": {
+          "structure_score": 0.8,
+          "cell_f1": {
+            "0.2": 0.4
+          },
+          "query_score": {
+            "0.2": 0.32000000000000006
+          }
+        },
+        "structure": {
+          "column": {
+            "key": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "measure": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "all": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            }
+          },
+          "row": {
+            "exact": {
+              "P": 0.6666666666666666,
+              "R": 1.0,
+              "F1": 0.8
+            },
+            "normalized": {
+              "P": 0.6666666666666666,
+              "R": 1.0,
+              "F1": 0.8
+            },
+            "semantic": {
+              "P": 0.6666666666666666,
+              "R": 1.0,
+              "F1": 0.8
+            }
+          },
+          "key_alignment_failed": false,
+          "missing_key_columns": [],
+          "structure_score": 0.8
+        },
+        "value": {
+          "row_recall_context": 1.0,
+          "rel_err_histogram": {
+            "exact_or_le_1pct": 0.5,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.5,
+            "gt_100pct": 0.0
+          },
+          "range_err_histogram": {
+            "exact_or_le_1pct": 0.5,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.5,
+            "gt_100pct": 0.0
+          },
+          "pass_at_tau": {
+            "0.2": 0.5
+          },
+          "pass_by_operator": {
+            "MIN": {
+              "0.2": 0.5
+            }
+          },
+          "frac_catastrophic": 0.0,
+          "zero_true_count": 0,
+          "column_ranges": {
+            "earliest_own_year": {
+              "min": 2000.0,
+              "max": 2019.0
+            }
+          }
+        },
+        "grouping": {
+          "merge_rate": 0.0,
+          "split_rate": 0.0
+        },
+        "structure_score": 0.8,
+        "cell_f1": {
+          "0.2": 0.4
+        },
+        "query_score": {
+          "0.2": 0.32000000000000006
+        },
+        "sql": "SELECT \"t1\".\"nationality\", MIN(\"t1\".\"year_acquired\") AS \"min_year_acquired\"\nFROM \"owner\" AS \"t1\"\nWHERE \"t1\".\"year_acquired\" >= 2000\nGROUP BY \"t1\".\"nationality\"",
+        "row_count": 3
+      },
+      "q18": {
+        "official_query_error": 1.0,
+        "official_accuracy": 0.0,
+        "gold_row_count": 22,
+        "predicted_row_count": 24,
+        "schema": {
+          "key_columns": [
+            "state_name"
+          ],
+          "measure_columns": [
+            "avg_population"
+          ],
+          "operators": {
+            "avg_population": "AVG"
+          },
+          "is_aggregation": true,
+          "has_groupby": true
+        },
+        "rank": {
+          "structure_score": 0.9565217391304348,
+          "cell_f1": {
+            "0.2": 0.9130434782608695
+          },
+          "query_score": {
+            "0.2": 0.8733459357277883
+          }
+        },
+        "structure": {
+          "column": {
+            "key": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "measure": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "all": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            }
+          },
+          "row": {
+            "exact": {
+              "P": 0.9166666666666666,
+              "R": 1.0,
+              "F1": 0.9565217391304348
+            },
+            "normalized": {
+              "P": 0.9166666666666666,
+              "R": 1.0,
+              "F1": 0.9565217391304348
+            },
+            "semantic": {
+              "P": 0.9166666666666666,
+              "R": 1.0,
+              "F1": 0.9565217391304348
+            }
+          },
+          "key_alignment_failed": false,
+          "missing_key_columns": [],
+          "structure_score": 0.9565217391304348
+        },
+        "value": {
+          "row_recall_context": 1.0,
+          "rel_err_histogram": {
+            "exact_or_le_1pct": 0.8181818181818182,
+            "1_to_5pct": 0.045454545454545456,
+            "5_to_20pct": 0.09090909090909091,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 0.045454545454545456
+          },
+          "range_err_histogram": {
+            "exact_or_le_1pct": 0.8181818181818182,
+            "1_to_5pct": 0.045454545454545456,
+            "5_to_20pct": 0.09090909090909091,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 0.045454545454545456
+          },
+          "pass_at_tau": {
+            "0.2": 0.9545454545454546
+          },
+          "pass_by_operator": {
+            "AVG": {
+              "0.2": 0.9545454545454546
+            }
+          },
+          "frac_catastrophic": 0.045454545454545456,
+          "zero_true_count": 0,
+          "column_ranges": {
+            "avg_population": {
+              "min": 200133.0,
+              "max": 8258035.0
+            }
+          }
+        },
+        "grouping": {
+          "merge_rate": 0.0,
+          "split_rate": 0.0
+        },
+        "structure_score": 0.9565217391304348,
+        "cell_f1": {
+          "0.2": 0.9130434782608695
+        },
+        "query_score": {
+          "0.2": 0.8733459357277883
+        },
+        "sql": "SELECT \"t0\".\"state\", AVG(\"t0\".\"population\") AS \"avg_population\"\nFROM \"city\" AS \"t0\"\nGROUP BY \"t0\".\"state\"",
+        "row_count": 24
+      },
+      "q19": {
+        "official_query_error": 1.0,
+        "official_accuracy": 0.0,
+        "gold_row_count": 7,
+        "predicted_row_count": 6,
+        "schema": {
+          "key_columns": [
+            "state_name"
+          ],
+          "measure_columns": [
+            "max_gdp"
+          ],
+          "operators": {
+            "max_gdp": "MAX"
+          },
+          "is_aggregation": true,
+          "has_groupby": true
+        },
+        "rank": {
+          "structure_score": 0.7692307692307692,
+          "cell_f1": {
+            "0.2": 0.0
+          },
+          "query_score": {
+            "0.2": 0.0
+          }
+        },
+        "structure": {
+          "column": {
+            "key": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "measure": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            },
+            "all": {
+              "P": 1.0,
+              "R": 1.0,
+              "F1": 1.0
+            }
+          },
+          "row": {
+            "exact": {
+              "P": 0.8333333333333334,
+              "R": 0.7142857142857143,
+              "F1": 0.7692307692307692
+            },
+            "normalized": {
+              "P": 0.8333333333333334,
+              "R": 0.7142857142857143,
+              "F1": 0.7692307692307692
+            },
+            "semantic": {
+              "P": 0.8333333333333334,
+              "R": 0.7142857142857143,
+              "F1": 0.7692307692307692
+            }
+          },
+          "key_alignment_failed": false,
+          "missing_key_columns": [],
+          "structure_score": 0.7692307692307692
+        },
+        "value": {
+          "row_recall_context": 0.7142857142857143,
+          "rel_err_histogram": {
+            "exact_or_le_1pct": 0.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 1.0
+          },
+          "range_err_histogram": {
+            "exact_or_le_1pct": 0.0,
+            "1_to_5pct": 0.0,
+            "5_to_20pct": 0.0,
+            "20_to_100pct": 0.0,
+            "gt_100pct": 1.0
+          },
+          "pass_at_tau": {
+            "0.2": 0.0
+          },
+          "pass_by_operator": {
+            "MAX": {
+              "0.2": 0.0
+            }
+          },
+          "frac_catastrophic": 1.0,
+          "zero_true_count": 0,
+          "column_ranges": {
+            "max_gdp": {
+              "min": 518.5,
+              "max": 689000.0
+            }
+          }
+        },
+        "grouping": {
+          "merge_rate": 0.0,
+          "split_rate": 0.0
+        },
+        "structure_score": 0.7692307692307692,
+        "cell_f1": {
+          "0.2": 0.0
+        },
+        "query_score": {
+          "0.2": 0.0
+        },
+        "sql": "SELECT \"t0\".\"state\", MAX(\"t0\".\"gdp\") AS \"max_gdp\"\nFROM \"city\" AS \"t0\"\nWHERE \"t0\".\"population\" > 1000000\nGROUP BY \"t0\".\"state\"",
+        "row_count": 6
+      }
+    }
+  },
+  "routing": {
+    "selected_mean_query_score": 0.22375447598421622,
+    "materialized_oracle_mean_query_score": 0.25268273257143414,
+    "routing_regret": 0.028928256587217926,
+    "best_single_config_id": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+    "best_single_mean_query_score": 0.25268273257143414,
+    "candidate_mean_query_scores": {
+      "schema=snowflake:67e4bd72f719|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive": 0.19774955393572832,
+      "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict": 0.25268273257143414
+    },
+    "oracle_query_to_config": {
+      "q0": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "q1": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "q2": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "q3": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "q4": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "q5": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "q6": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "q7": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "q8": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "q9": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "q10": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "q11": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "q12": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "q13": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "q14": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "q15": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "q16": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "q17": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "q18": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "q19": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict"
+    },
+    "selected_per_query": {
+      "q0": 0.0,
+      "q1": 0.6322314049586777,
+      "q2": 0.07111111111111111,
+      "q3": 0.016224986479177934,
+      "q4": 0.0,
+      "q5": 0.2840236686390532,
+      "q6": 0.0,
+      "q7": 0.30000000000000004,
+      "q8": 0.0,
+      "q9": 0.16499999999999998,
+      "q10": 0.0,
+      "q11": 0.3424494649227111,
+      "q12": 0.41666666666666663,
+      "q13": 0.44444444444444453,
+      "q14": 0.01530612244897959,
+      "q15": 0.5942857142857143,
+      "q16": 0.0,
+      "q17": 0.32000000000000006,
+      "q18": 0.8733459357277883,
+      "q19": 0.0
+    },
+    "oracle_per_query": {
+      "q0": 0.0,
+      "q1": 0.6322314049586777,
+      "q2": 0.07111111111111111,
+      "q3": 0.016224986479177934,
+      "q4": 0.0,
+      "q5": 0.40816326530612246,
+      "q6": 0.0,
+      "q7": 0.30000000000000004,
+      "q8": 0.0,
+      "q9": 0.16499999999999998,
+      "q10": 0.0,
+      "q11": 0.6093750000000001,
+      "q12": 0.41666666666666663,
+      "q13": 0.44444444444444453,
+      "q14": 0.01530612244897959,
+      "q15": 0.5942857142857143,
+      "q16": 0.18749999999999997,
+      "q17": 0.32000000000000006,
+      "q18": 0.8733459357277883,
+      "q19": 0.0
+    }
+  },
+  "decomposition": {
+    "plan_semantic_loss": 0.2221947702036452,
+    "materialization_loss": 0.5336658223975779,
+    "routing_loss": 0.04132608083888273,
+    "basis": "Loss components are means over role-aligned, bindable plan queries only. Unbindable checks are unknown, not zero.",
+    "overall_routing_regret": 0.028928256587217926,
+    "dominant_observed_bottleneck": "materialization_loss",
+    "per_query": {
+      "q0": {
+        "plan_role_aligned_score": 0.6400000000000001,
+        "materialized_oracle_score": 0.0,
+        "selected_route_score": 0.0,
+        "plan_semantic_loss": 0.3599999999999999,
+        "materialization_loss": 0.6400000000000001,
+        "routing_loss": 0.0,
+        "selected_config_id": "schema=snowflake:67e4bd72f719|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+        "oracle_config_id": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict"
+      },
+      "q1": {
+        "plan_role_aligned_score": 0.9560493827160493,
+        "materialized_oracle_score": 0.6322314049586777,
+        "selected_route_score": 0.6322314049586777,
+        "plan_semantic_loss": 0.043950617283950666,
+        "materialization_loss": 0.32381797775737164,
+        "routing_loss": 0.0,
+        "selected_config_id": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+        "oracle_config_id": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict"
+      },
+      "q2": {
+        "plan_role_aligned_score": 1.0,
+        "materialized_oracle_score": 0.07111111111111111,
+        "selected_route_score": 0.07111111111111111,
+        "plan_semantic_loss": 0.0,
+        "materialization_loss": 0.9288888888888889,
+        "routing_loss": 0.0,
+        "selected_config_id": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+        "oracle_config_id": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict"
+      },
+      "q3": {
+        "plan_role_aligned_score": 0.07270408163265306,
+        "materialized_oracle_score": 0.016224986479177934,
+        "selected_route_score": 0.016224986479177934,
+        "plan_semantic_loss": 0.9272959183673469,
+        "materialization_loss": 0.05647909515347513,
+        "routing_loss": 0.0,
+        "selected_config_id": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+        "oracle_config_id": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict"
+      },
+      "q4": {
+        "plan_role_aligned_score": 0.6400000000000001,
+        "materialized_oracle_score": 0.0,
+        "selected_route_score": 0.0,
+        "plan_semantic_loss": 0.3599999999999999,
+        "materialization_loss": 0.6400000000000001,
+        "routing_loss": 0.0,
+        "selected_config_id": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+        "oracle_config_id": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict"
+      },
+      "q5": {
+        "plan_role_aligned_score": 0.8571428571428571,
+        "materialized_oracle_score": 0.40816326530612246,
+        "selected_route_score": 0.2840236686390532,
+        "plan_semantic_loss": 0.1428571428571429,
+        "materialization_loss": 0.44897959183673464,
+        "routing_loss": 0.12413959666706925,
+        "selected_config_id": "schema=snowflake:67e4bd72f719|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+        "oracle_config_id": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict"
+      },
+      "q6": {
+        "plan_role_aligned_score": null,
+        "materialized_oracle_score": 0.0,
+        "selected_route_score": 0.0,
+        "plan_semantic_loss": null,
+        "materialization_loss": null,
+        "routing_loss": 0.0,
+        "selected_config_id": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+        "oracle_config_id": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict"
+      },
+      "q7": {
+        "plan_role_aligned_score": 0.6987560843699296,
+        "materialized_oracle_score": 0.30000000000000004,
+        "selected_route_score": 0.30000000000000004,
+        "plan_semantic_loss": 0.30124391563007036,
+        "materialization_loss": 0.3987560843699296,
+        "routing_loss": 0.0,
+        "selected_config_id": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+        "oracle_config_id": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict"
+      },
+      "q8": {
+        "plan_role_aligned_score": 0.6400000000000001,
+        "materialized_oracle_score": 0.0,
+        "selected_route_score": 0.0,
+        "plan_semantic_loss": 0.3599999999999999,
+        "materialization_loss": 0.6400000000000001,
+        "routing_loss": 0.0,
+        "selected_config_id": "schema=snowflake:67e4bd72f719|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+        "oracle_config_id": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict"
+      },
+      "q9": {
+        "plan_role_aligned_score": null,
+        "materialized_oracle_score": 0.16499999999999998,
+        "selected_route_score": 0.16499999999999998,
+        "plan_semantic_loss": null,
+        "materialization_loss": null,
+        "routing_loss": 0.0,
+        "selected_config_id": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+        "oracle_config_id": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict"
+      },
+      "q10": {
+        "plan_role_aligned_score": 1.0,
+        "materialized_oracle_score": 0.0,
+        "selected_route_score": 0.0,
+        "plan_semantic_loss": 0.0,
+        "materialization_loss": 1.0,
+        "routing_loss": 0.0,
+        "selected_config_id": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+        "oracle_config_id": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict"
+      },
+      "q11": {
+        "plan_role_aligned_score": 1.0,
+        "materialized_oracle_score": 0.6093750000000001,
+        "selected_route_score": 0.3424494649227111,
+        "plan_semantic_loss": 0.0,
+        "materialization_loss": 0.3906249999999999,
+        "routing_loss": 0.266925535077289,
+        "selected_config_id": "schema=snowflake:67e4bd72f719|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+        "oracle_config_id": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict"
+      },
+      "q12": {
+        "plan_role_aligned_score": null,
+        "materialized_oracle_score": 0.41666666666666663,
+        "selected_route_score": 0.41666666666666663,
+        "plan_semantic_loss": null,
+        "materialization_loss": null,
+        "routing_loss": 0.0,
+        "selected_config_id": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+        "oracle_config_id": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict"
+      },
+      "q13": {
+        "plan_role_aligned_score": null,
+        "materialized_oracle_score": 0.44444444444444453,
+        "selected_route_score": 0.44444444444444453,
+        "plan_semantic_loss": null,
+        "materialization_loss": null,
+        "routing_loss": 0.0,
+        "selected_config_id": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+        "oracle_config_id": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict"
+      },
+      "q14": {
+        "plan_role_aligned_score": null,
+        "materialized_oracle_score": 0.01530612244897959,
+        "selected_route_score": 0.01530612244897959,
+        "plan_semantic_loss": null,
+        "materialization_loss": null,
+        "routing_loss": 0.0,
+        "selected_config_id": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+        "oracle_config_id": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict"
+      },
+      "q15": {
+        "plan_role_aligned_score": null,
+        "materialized_oracle_score": 0.5942857142857143,
+        "selected_route_score": 0.5942857142857143,
+        "plan_semantic_loss": null,
+        "materialization_loss": null,
+        "routing_loss": 0.0,
+        "selected_config_id": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+        "oracle_config_id": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict"
+      },
+      "q16": {
+        "plan_role_aligned_score": 1.0,
+        "materialized_oracle_score": 0.18749999999999997,
+        "selected_route_score": 0.0,
+        "plan_semantic_loss": 0.0,
+        "materialization_loss": 0.8125,
+        "routing_loss": 0.18749999999999997,
+        "selected_config_id": "schema=snowflake:67e4bd72f719|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+        "oracle_config_id": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict"
+      },
+      "q17": {
+        "plan_role_aligned_score": 1.0,
+        "materialized_oracle_score": 0.32000000000000006,
+        "selected_route_score": 0.32000000000000006,
+        "plan_semantic_loss": 0.0,
+        "materialization_loss": 0.6799999999999999,
+        "routing_loss": 0.0,
+        "selected_config_id": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+        "oracle_config_id": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict"
+      },
+      "q18": {
+        "plan_role_aligned_score": 0.9560493827160493,
+        "materialized_oracle_score": 0.8733459357277883,
+        "selected_route_score": 0.8733459357277883,
+        "plan_semantic_loss": 0.043950617283950666,
+        "materialization_loss": 0.08270344698826104,
+        "routing_loss": 0.0,
+        "selected_config_id": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+        "oracle_config_id": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict"
+      },
+      "q19": {
+        "plan_role_aligned_score": 0.42857142857142855,
+        "materialized_oracle_score": 0.0,
+        "selected_route_score": 0.0,
+        "plan_semantic_loss": 0.5714285714285714,
+        "materialization_loss": 0.42857142857142855,
+        "routing_loss": 0.0,
+        "selected_config_id": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+        "oracle_config_id": "schema=snowflake:67e4bd72f719|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict"
+      }
+    },
+    "scope_note": "The candidate ceiling ranges over sealed serving databases plus deterministic database artifacts retained in the run's materialized_work directory. Unmaterialized candidate-space points cannot be scored because no database artifact exists."
+  },
+  "verifier_statuses": {
+    "unsupported": 22,
+    "abstain": 341,
+    "entailed": 250,
+    "contradicted": 92
+  }
+}

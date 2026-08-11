@@ -1,0 +1,32 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+Based on the context provided:
+
+1. The file name is "87.txt".
+2. The contents of the file describe a player named Greg Fillmore.
+3. We need to extract information about his college, draft pick, name, and team from the given text.
+
+Let's break down the relevant parts:
+- **Name**: Gregory Paul Fillmore
+- **Draft Pick**: He was drafted during the eighth round of the 1970 NBA draft.
+- **College**: Cheyney University of Pennsylvania
+- **Team**: New York Knicks
+
+Now, let's format this information into the required JSON object.
+
+---
+```json
+{
+  "college": "Cheyney University of Pennsylvania",
+  "draft_pick": 8,
+  "name": "Greg Fillmore",
+  "team": "New York Knicks"
+}
+```
+---
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: For players with draft pick at least 0, list player name, draft pick, college, and team name.. Return a short normalized string.'), 'draft_pick': FieldInfo(annotation=Union[float, Any], required=True, description='draft_pick from the player document for query: For players with draft pick at least 0, list player name, draft pick, college, and team name.. Return a number.'), 'college': FieldInfo(annotation=Union[str, Any], required=True, description='college from the player document for query: For players with draft pick at least 0, list player name, draft pick, college, and team name.. Return a short normalized string.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: For players with draft pick at least 0, list player name, draft pick, college, and team name.. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 1 (char 0)

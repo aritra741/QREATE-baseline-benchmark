@@ -1,0 +1,27 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+The context provides information about Jim Walsh, a basketball player. We need to extract his name and team from the given text for the output fields.
+
+1. **Name Extraction**:
+   - The file contents mention "Jim Walsh (basketball)" at the beginning.
+   - This indicates that the player's name is "Jim Walsh".
+
+2. **Team Extraction**:
+   - The context states that Jim Walsh played one season in the National Basketball Association as a member of the Philadelphia Warriors.
+   - Therefore, his team is "Philadelphia Warriors".
+
+Based on this reasoning, we can fill in the required output fields.
+
+---
+```json
+{
+  "name": "Jim Walsh",
+  "team": "Philadelphia Warriors"
+}
+```
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: List player name with team name, city name, and city state by linking player -> team -> city.. Return a short normalized string.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: List player name with team name, city name, and city state by linking player -> team -> city.. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 1 (char 0)

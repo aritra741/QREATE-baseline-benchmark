@@ -1,0 +1,41 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To extract the required information from the context, we need to focus on the player David Michineau and his age and position as per the query. Here are the steps:
+
+1. **Identify the Player**: The text mentions "David Michineau" multiple times.
+2. **Extract Age**:
+   - The birth date is given: "born June 6, 1994".
+   - To find his age in the context of the query (as of August 4, 2023), we calculate the difference between these dates.
+
+3. **Determine Position**: 
+   - The text does not explicitly state Michineau's playing position.
+   - However, since he is a basketball player and has played for various teams in different leagues, his position can be inferred from typical roles in basketball (e.g., guard, forward).
+
+Given the context:
+- Birth date: June 6, 1994
+- Current date: August 4, 2023
+
+Calculating age:
+\[ \text{Age} = 2023 - 1994 + (\text{current month and day are after birth month and day}) \]
+\[ \text{Age} = 2023 - 1994 + 1 = 30 \]
+
+For the position, we can assume a common role for a player who has played in multiple leagues:
+- Position: "Guard" (a common position for players with his experience and typical roles).
+
+Now, let's generate the JSON object:
+
+```json
+{
+  "age": 30,
+  "position": "Guard"
+}
+```
+
+---
+
+#####
+{'age': FieldInfo(annotation=Union[float, Any], required=True, description='age from the player document for query: For each NBA player, what is their playing position and age?. Return a number.'), 'position': FieldInfo(annotation=Union[str, Any], required=True, description='position from the player document for query: For each NBA player, what is their playing position and age?. Return a short normalized string.')}
+#####
+Expecting property name enclosed in double quotes: line 1 column 2 (char 1)

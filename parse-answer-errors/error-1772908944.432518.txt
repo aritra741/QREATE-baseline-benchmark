@@ -1,0 +1,29 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To find the required information from the context:
+
+- The name of the player is "Bam Adebayo".
+- To determine if he is older than 25, we need his birth year. From the text, it states that Bam Adebayo was born on July 18, 1997.
+- Since 1997 + 25 = 2022, and the current year (as of the context) is 2024, we can confirm he is older than 25.
+
+Now let's extract the required details:
+
+- Name: Bam Adebayo
+- Age: 2024 - 1997 = 27 years old
+
+The output JSON object will be as follows:
+---
+{
+  "age": 27,
+  "name": "Bam Adebayo",
+  "position": "Power Forward",
+  "team": "Miami Heat"
+}
+---
+---
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: For players older than 25, list player name, position, team name, and team founded year.. Return a short normalized string.'), 'position': FieldInfo(annotation=Union[str, Any], required=True, description='position from the player document for query: For players older than 25, list player name, position, team name, and team founded year.. Return a short normalized string.'), 'age': FieldInfo(annotation=Union[float, Any], required=True, description='age from the player document for query: For players older than 25, list player name, position, team name, and team founded year.. Return a number.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: For players older than 25, list player name, position, team name, and team founded year.. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 1 (char 0)

@@ -1,0 +1,28 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To determine the age and position of Austin Reaves, we need to extract this information from the provided context. 
+
+1. **Age Calculation**:
+   - The text states that "Austin Tyler Reaves (born May 29, 1998)".
+   - As of the current date in the context (December 10, 2023), we can calculate his age by subtracting his birth year from the current year: \(2023 - 1998 = 25\).
+
+2. **Position**:
+   - The text mentions that "Reaves is an American professional basketball player for the Los Angeles Lakers of the National Basketball Association (NBA)".
+   - It also states his playing position in various contexts, such as "Forwards" and "Guard".
+
+Given these points, we can fill in the required fields.
+
+---
+```json
+{
+  "age": 25,
+  "position": "Forward/ Guard"
+}
+```
+---
+#####
+{'age': FieldInfo(annotation=Union[float, Any], required=True, description='age from the player document for query: For each NBA player, what is their playing position and age?. Return a number.'), 'position': FieldInfo(annotation=Union[str, Any], required=True, description='position from the player document for query: For each NBA player, what is their playing position and age?. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 1 (char 0)

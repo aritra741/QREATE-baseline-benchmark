@@ -1,0 +1,20 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+The context provides information about an NBA player named Greg Fillmore who played for the New York Knicks. We need to extract his name and the team he played for, then normalize these values into short strings as required by the output fields.
+
+- Name: "Greg Fillmore"
+- Team: "New York Knicks"
+
+Now we will format this information into a JSON object with the specified output fields.
+---
+{
+  "name": "Greg Fillmore",
+  "team": "New York Knicks"
+}
+---
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: For each NBA player, what is their name, which team do they currently play for, and when was that team founded?. Return a short normalized string.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: For each NBA player, what is their name, which team do they currently play for, and when was that team founded?. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 1 (char 0)

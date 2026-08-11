@@ -1,0 +1,446 @@
+{
+  "tables": {
+    "team": {
+      "columns": {
+        "team_name": {
+          "semantic_type": "ORG",
+          "predicates": [
+            "team_name = Detroit Pistons"
+          ],
+          "is_join_key": false,
+          "is_group_by": true,
+          "is_aggregated": false
+        },
+        "founded_year": {
+          "semantic_type": "DATE",
+          "predicates": [
+            "founded_year < 1967",
+            "founded_year > 1989",
+            "founded_year >= 1949",
+            "founded_year <= 1989",
+            "founded_year != 1949"
+          ],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": false
+        },
+        "championship": {
+          "semantic_type": "QUANTITY",
+          "predicates": [
+            "championship > 15",
+            "championship > 5"
+          ],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": true
+        },
+        "location": {
+          "semantic_type": "GPE",
+          "predicates": [
+            "location = Los Angeles",
+            "location != Los Angeles",
+            "location = Boston",
+            "location = Brooklyn"
+          ],
+          "is_join_key": false,
+          "is_group_by": true,
+          "is_aggregated": false
+        },
+        "ownership": {
+          "semantic_type": "ORG",
+          "predicates": [],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": false
+        }
+      },
+      "predicates": [
+        "championship > 15",
+        "location = Los Angeles",
+        "location = Boston",
+        "championship > 5",
+        "founded_year > 1989",
+        "founded_year != 1949",
+        "location = Brooklyn",
+        "founded_year >= 1949",
+        "location != Los Angeles",
+        "founded_year < 1967",
+        "founded_year <= 1989",
+        "team_name = Detroit Pistons"
+      ],
+      "referenced_in_joins": true
+    },
+    "player": {
+      "columns": {
+        "nba_championships": {
+          "semantic_type": "QUANTITY_COUNT",
+          "predicates": [
+            "nba_championships > 0",
+            "nba_championships < 0",
+            "nba_championships > 2",
+            "nba_championships <= 2",
+            "nba_championships < 12"
+          ],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": true
+        },
+        "team": {
+          "semantic_type": "ORG",
+          "predicates": [
+            "team != Milwaukee Bucks",
+            "team != Milwaukee Hawks  "
+          ],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": false
+        },
+        "name": {
+          "semantic_type": "PERSON",
+          "predicates": [
+            "name = LeBron Raymone James Sr.",
+            "name = Anthony Marshon Davis Jr.",
+            "name = Kobe Bean Bryant"
+          ],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": false
+        },
+        "nationality": {
+          "semantic_type": "GPE",
+          "predicates": [
+            "nationality = Cameroonian-American",
+            "nationality != American-Venezuelan",
+            "nationality = Greek-American  ",
+            "nationality = American-born naturalized Azerbaijani  "
+          ],
+          "is_join_key": false,
+          "is_group_by": true,
+          "is_aggregated": false
+        },
+        "age": {
+          "semantic_type": "QUANTITY",
+          "predicates": [
+            "age >= 47",
+            "age <= 66",
+            "age > 25"
+          ],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": true
+        },
+        "mvp_awards": {
+          "semantic_type": "QUANTITY",
+          "predicates": [
+            "mvp_awards < 1",
+            "mvp_awards <= 1"
+          ],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": true
+        },
+        "draft_year": {
+          "semantic_type": "QUANTITY",
+          "predicates": [
+            "draft_year >= 1990",
+            "draft_year > 2000",
+            "draft_year <= 1990",
+            "draft_year != 1990",
+            "draft_year < 2017"
+          ],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": false
+        },
+        "fiba_world_cup": {
+          "semantic_type": "QUANTITY",
+          "predicates": [
+            "fiba_world_cup >= 1",
+            "fiba_world_cup >= 0"
+          ],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": true
+        },
+        "college": {
+          "semantic_type": "ORG",
+          "predicates": [
+            "college = UCLA  ",
+            "college = University of Kentucky"
+          ],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": false
+        },
+        "position": {
+          "semantic_type": "QUANTITY",
+          "predicates": [
+            "position = Backcourt",
+            "position != Backcourt"
+          ],
+          "is_join_key": false,
+          "is_group_by": true,
+          "is_aggregated": false
+        },
+        "olympic_gold_medals": {
+          "semantic_type": "QUANTITY_COUNT",
+          "predicates": [
+            "olympic_gold_medals <= 1",
+            "olympic_gold_medals = 0",
+            "olympic_gold_medals != 0"
+          ],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": true
+        },
+        "draft_pick": {
+          "semantic_type": "QUANTITY",
+          "predicates": [
+            "draft_pick <= 35",
+            "draft_pick != 35"
+          ],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": false
+        },
+        "birth_date": {
+          "semantic_type": "DATE",
+          "predicates": [
+            "birth_date = 1971/10/2",
+            "birth_date = 1972/3/6",
+            "birth_date = 1990/8/17"
+          ],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": false
+        }
+      },
+      "predicates": [
+        "nba_championships < 12",
+        "name = Anthony Marshon Davis Jr.",
+        "name = LeBron Raymone James Sr.",
+        "age > 25",
+        "draft_year > 2000",
+        "age <= 66",
+        "birth_date = 1990/8/17",
+        "nationality = Greek-American  ",
+        "nba_championships < 0",
+        "age >= 47",
+        "nba_championships <= 2",
+        "mvp_awards < 1",
+        "olympic_gold_medals != 0",
+        "nationality = American-born naturalized Azerbaijani  ",
+        "olympic_gold_medals = 0",
+        "nationality = Cameroonian-American",
+        "birth_date = 1972/3/6",
+        "draft_pick <= 35",
+        "draft_year <= 1990",
+        "position = Backcourt",
+        "team != Milwaukee Bucks",
+        "nba_championships > 2",
+        "nba_championships < 0",
+        "team != Milwaukee Hawks  ",
+        "draft_pick != 35",
+        "nba_championships > 0",
+        "nationality != American-Venezuelan",
+        "college = University of Kentucky",
+        "birth_date = 1971/10/2",
+        "olympic_gold_medals <= 1",
+        "position = Backcourt",
+        "draft_year != 1990",
+        "nba_championships < 0",
+        "position != Backcourt",
+        "draft_year >= 1990",
+        "name = Kobe Bean Bryant",
+        "fiba_world_cup >= 0",
+        "olympic_gold_medals = 0",
+        "position != Backcourt",
+        "fiba_world_cup >= 1",
+        "college = UCLA  ",
+        "mvp_awards <= 1",
+        "draft_year < 2017"
+      ],
+      "referenced_in_joins": true
+    },
+    "city": {
+      "columns": {
+        "state_name": {
+          "semantic_type": "GPE",
+          "predicates": [],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": false
+        },
+        "gdp": {
+          "semantic_type": "MONEY",
+          "predicates": [
+            "gdp > 200000",
+            "gdp != 518.5"
+          ],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": true
+        },
+        "area": {
+          "semantic_type": "QUANTITY",
+          "predicates": [
+            "area < 340"
+          ],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": true
+        },
+        "population": {
+          "semantic_type": "QUANTITY",
+          "predicates": [
+            "population > 1000000",
+            "population = 1603797",
+            "population > 500000",
+            "population != 383997"
+          ],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": true
+        },
+        "city_name": {
+          "semantic_type": "GPE",
+          "predicates": [
+            "city_name = Miami"
+          ],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": false
+        }
+      },
+      "predicates": [
+        "gdp > 200000",
+        "area < 340",
+        "population > 1000000",
+        "population > 500000",
+        "population > 1000000",
+        "population = 1603797",
+        "gdp != 518.5",
+        "population != 383997",
+        "city_name = Miami"
+      ],
+      "referenced_in_joins": true
+    },
+    "owner": {
+      "columns": {
+        "nba_team": {
+          "semantic_type": "ORG",
+          "predicates": [],
+          "is_join_key": false,
+          "is_group_by": true,
+          "is_aggregated": false
+        },
+        "name": {
+          "semantic_type": "PERSON",
+          "predicates": [
+            "name = Clay Bennett"
+          ],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": false
+        },
+        "age": {
+          "semantic_type": "QUANTITY",
+          "predicates": [
+            "age > 80"
+          ],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": true
+        },
+        "own_year": {
+          "semantic_type": "DATE",
+          "predicates": [
+            "own_year > 2010.0",
+            "own_year > 2005",
+            "own_year > 2000"
+          ],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": true
+        },
+        "nationality": {
+          "semantic_type": "GPE",
+          "predicates": [
+            "nationality != American  ",
+            "nationality = Israeli-American",
+            "nationality = American"
+          ],
+          "is_join_key": false,
+          "is_group_by": true,
+          "is_aggregated": false
+        }
+      },
+      "predicates": [
+        "own_year > 2010.0",
+        "age > 80",
+        "own_year > 2000",
+        "nationality = American",
+        "own_year > 2005",
+        "nationality = Israeli-American",
+        "nationality != American  ",
+        "name = Clay Bennett"
+      ],
+      "referenced_in_joins": true
+    }
+  },
+  "join_pairs": [
+    [
+      "team",
+      "player"
+    ],
+    [
+      "team",
+      "city"
+    ],
+    [
+      "owner",
+      "team"
+    ],
+    [
+      "player",
+      "team"
+    ],
+    [
+      "team",
+      "owner"
+    ]
+  ],
+  "join_column_pairs": [
+    [
+      "team",
+      "team_name",
+      "player",
+      "team"
+    ],
+    [
+      "team",
+      "location",
+      "city",
+      "city_name"
+    ],
+    [
+      "owner",
+      "nba_team",
+      "team",
+      "team_name"
+    ],
+    [
+      "player",
+      "team",
+      "team",
+      "team_name"
+    ],
+    [
+      "team",
+      "ownership",
+      "owner",
+      "name"
+    ]
+  ],
+  "subsumption_groups": {}
+}

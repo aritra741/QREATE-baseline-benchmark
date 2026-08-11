@@ -1,0 +1,38 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+The context provided does not contain a player document with fields for name, nationality, age, and team. Instead, it contains information about Aaron Williams, a former professional basketball player. However, we can extract the relevant details from this text:
+
+1. **Name**: The name of the player is "Aaron Williams".
+2. **Nationality**: His nationality is given as "American".
+3. **Age**: Since his birth date is provided (October 2, 1971), we need to calculate his age based on the current year. For this example, let's assume the current year is 2023.
+4. **Team**: The text mentions several teams he played for during his career.
+
+Given these points, here’s how we can fill in the required fields:
+
+- **age**: We need to calculate Aaron Williams' age as of 2023 (assuming the current year is 2023).
+- **name**: "Aaron Williams"
+- **nationality**: "American"
+- **team**: Several teams are mentioned, but for simplicity and relevance to the query, we can use one of them. Let's choose "New Jersey Nets" as an example.
+
+Now let’s calculate his age:
+\[ \text{Age} = 2023 - 1971 = 52 \]
+
+Here is the JSON object:
+
+```json
+{
+  "age": 52,
+  "name": "Aaron Williams",
+  "nationality": "American",
+  "team": "New Jersey Nets"
+}
+```
+
+---
+
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description="name from the player document for query: List each player's name, nationality, and age with their team name and team location.. Return a short normalized string."), 'nationality': FieldInfo(annotation=Union[str, Any], required=True, description="nationality from the player document for query: List each player's name, nationality, and age with their team name and team location.. Return a short normalized string."), 'age': FieldInfo(annotation=Union[float, Any], required=True, description="age from the player document for query: List each player's name, nationality, and age with their team name and team location.. Return a number."), 'team': FieldInfo(annotation=Union[str, Any], required=True, description="team from the player document for query: List each player's name, nationality, and age with their team name and team location.. Return a short normalized string.")}
+#####
+Expecting property name enclosed in double quotes: line 1 column 2 (char 1)

@@ -1,0 +1,23 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+The provided context does not contain any information related to players younger than 35 or their positions, cities, and city populations. Therefore, we cannot derive the `location` and `team_name` fields from the given text. However, based on the team document, we can extract the following:
+
+- The team name is "Boston Celtics".
+- There's no specific location mentioned for players via player -> team -> city in the provided context.
+
+Given this analysis, let's generate a JSON object with the available information:
+
+```json
+{
+  "team_name": "Boston Celtics"
+}
+```
+
+---
+
+#####
+{'team_name': FieldInfo(annotation=Union[str, Any], required=True, description='team_name from the team document for query: For players younger than 35, list player name, position, city name, and city population via player -> team -> city.. Return a short normalized string.'), 'location': FieldInfo(annotation=Union[str, Any], required=True, description='location from the team document for query: For players younger than 35, list player name, position, city name, and city population via player -> team -> city.. Return a short normalized string.')}
+#####
+'location'

@@ -1,0 +1,25 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To extract the required information from the context, we need to identify the relevant parts of the text that correspond to the output fields. Here’s a breakdown:
+
+1. **draft_pick**: The text mentions "Lattin was drafted as the number ten pick by the NBA's San Francisco Warriors." This indicates his draft pick is 10.
+2. **olympic_gold_medals**: There is no mention of any Olympic gold medals in the provided context, so we can assume this value to be 0.
+3. **team**: The text states "Under the leadership of Coach Don Haskins, the Miners won the 1966 Division 1 NCAA National Championship." This indicates his team was Texas Western (now known as UTEP).
+
+Based on these observations, we can construct the JSON object.
+
+---
+```json
+{
+  "draft_pick": 10,
+  "olympic_gold_medals": 0,
+  "team": "Texas Western"
+}
+```
+---
+#####
+{'draft_pick': FieldInfo(annotation=Union[float, Any], required=True, description='draft_pick from the player document for query: For each NBA player, which team do they play for, what was their draft pick, and how many Olympic gold medals have they won?. Return a number.'), 'olympic_gold_medals': FieldInfo(annotation=Union[float, Any], required=True, description='olympic_gold_medals from the player document for query: For each NBA player, which team do they play for, what was their draft pick, and how many Olympic gold medals have they won?. Return a number.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: For each NBA player, which team do they play for, what was their draft pick, and how many Olympic gold medals have they won?. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 1 (char 0)

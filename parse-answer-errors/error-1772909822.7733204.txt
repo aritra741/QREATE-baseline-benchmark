@@ -1,0 +1,26 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To derive the required fields from the context:
+
+1. **name**: The name of the player is "Jaden Ivey".
+2. **age**: Jaden Ivey was born on February 13, 2002. To find his age in 2024 (the year when the latest data about him is available), we calculate: 2024 - 2002 = 22 years old.
+3. **position**: The position of Jaden Ivey is not explicitly stated, but he plays basketball as a professional player and has played multiple positions in college (forward/center).
+4. **team**: As of the latest data provided, his team is "Detroit Pistons".
+
+Based on this reasoning, we can fill out the required JSON object.
+
+---
+```json
+{
+  "name": "Jaden Ivey",
+  "age": 22,
+  "position": "forward/center",
+  "team": "Detroit Pistons"
+}
+```
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: For players younger than 35, list player name, position, city name, and city population via player -> team -> city.. Return a short normalized string.'), 'position': FieldInfo(annotation=Union[str, Any], required=True, description='position from the player document for query: For players younger than 35, list player name, position, city name, and city population via player -> team -> city.. Return a short normalized string.'), 'age': FieldInfo(annotation=Union[float, Any], required=True, description='age from the player document for query: For players younger than 35, list player name, position, city name, and city population via player -> team -> city.. Return a number.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: For players younger than 35, list player name, position, city name, and city population via player -> team -> city.. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 1 (char 0)

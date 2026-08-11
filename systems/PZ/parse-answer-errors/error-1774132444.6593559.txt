@@ -1,0 +1,28 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To extract the required information from the context, we need to focus on the relevant parts of the text:
+
+1. **Age**: The birth date is given as "born October 2, 1971". To find the age, we can calculate it based on the current year (assuming the query was made in 2023). However, since the exact current year isn't provided, we will use the information directly from the text if available. The context does not provide a direct way to compute the age without additional date references.
+
+2. **Nationality**: The text states that Aaron Williams is "an American former professional basketball player". Therefore, his nationality is "American".
+
+3. **Position**: The text mentions that he played as a "power forward and center positions". We can normalize this to just "PF/C" for simplicity.
+
+Given the context does not provide an explicit age calculation but gives us clear information about the other fields:
+
+```json
+{
+  "age": 51,  # Assuming current year is 2023 based on birth year 1971
+  "nationality": "American",
+  "position": "PF/C"
+}
+```
+
+---
+
+#####
+{'age': FieldInfo(annotation=Union[float, Any], required=True, description="age from the player document for query: What is each NBA player's playing position, nationality, and age?. Return a number."), 'nationality': FieldInfo(annotation=Union[str, Any], required=True, description="nationality from the player document for query: What is each NBA player's playing position, nationality, and age?. Return a short normalized string."), 'position': FieldInfo(annotation=Union[str, Any], required=True, description="position from the player document for query: What is each NBA player's playing position, nationality, and age?. Return a short normalized string.")}
+#####
+Expecting property name enclosed in double quotes: line 1 column 17 (char 16)

@@ -1,0 +1,42 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To extract the required information from the context, we need to parse the contents of the file. The relevant details are as follows:
+
+1. **Name**: Monti Davis (short normalized string)
+2. **Age**: We can calculate this by subtracting the birth year from the death year.
+3. **Nationality**: American
+4. **Team**: Philadelphia 76ers and Dallas Mavericks
+
+Let's perform these steps to get the correct values.
+
+1. **Name**:
+   - The name is "Monti Davis".
+
+2. **Age**:
+   - Birth date: July 26, 1958.
+   - Death date: June 4, 2013.
+   - Age = 2013 - 1958 = 55 years.
+
+3. **Nationality**:
+   - The text states "American professional basketball player".
+
+4. **Team**:
+   - The teams mentioned are the Philadelphia 76ers and Dallas Mavericks.
+
+Now, let's construct the JSON object with these values.
+---
+```json
+{
+  "age": 55,
+  "name": "Monti Davis",
+  "nationality": "American",
+  "team": "Philadelphia 76ers, Dallas Mavericks"
+}
+```
+---
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description="name from the player document for query: List each player's name, nationality, and age with their team name and team location.. Return a short normalized string."), 'nationality': FieldInfo(annotation=Union[str, Any], required=True, description="nationality from the player document for query: List each player's name, nationality, and age with their team name and team location.. Return a short normalized string."), 'age': FieldInfo(annotation=Union[float, Any], required=True, description="age from the player document for query: List each player's name, nationality, and age with their team name and team location.. Return a number."), 'team': FieldInfo(annotation=Union[str, Any], required=True, description="team from the player document for query: List each player's name, nationality, and age with their team name and team location.. Return a short normalized string.")}
+#####
+Expecting value: line 1 column 1 (char 0)

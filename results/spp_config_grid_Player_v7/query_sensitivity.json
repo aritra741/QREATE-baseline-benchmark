@@ -1,0 +1,943 @@
+{
+  "n_queries": 60,
+  "n_config_sensitive": 46,
+  "n_config_insensitive": 14,
+  "config_sensitive_queries": [
+    {
+      "query_id": "q59",
+      "sql": "SELECT nationality, MIN(age) AS min_age FROM owner WHERE (nba_team != 'Chicago Bulls' AND nationality = 'Israeli-American') OR (name = 'Steven Anthony Ballmer' AND age <= 63) GROUP BY nationality",
+      "tables_used": [
+        "owner"
+      ],
+      "gold_rows": 1,
+      "error_spread": 0.7545882045588139,
+      "min_error": 0.24541179544118608,
+      "max_error": 1.0,
+      "pred_rows_range": [
+        0,
+        1
+      ]
+    },
+    {
+      "query_id": "q48",
+      "sql": "SELECT player.nationality, COUNT(*) AS count_all FROM player JOIN team ON player.team = team.team_name WHERE player.nationality = 'Cameroonian-American' OR player.birth_date = '1972/3/6' GROUP BY player.nationality",
+      "tables_used": [
+        "player",
+        "team"
+      ],
+      "gold_rows": 2,
+      "error_spread": 0.6666666666666666,
+      "min_error": 0.33333333333333337,
+      "max_error": 1.0,
+      "pred_rows_range": [
+        0,
+        1
+      ]
+    },
+    {
+      "query_id": "q26",
+      "sql": "SELECT nationality, SUM(age) AS sum_age FROM owner WHERE age != 76 AND nba_team != 'Houston Rockets' GROUP BY nationality",
+      "tables_used": [
+        "owner"
+      ],
+      "gold_rows": 3,
+      "error_spread": 0.546035410462802,
+      "min_error": 0.12531594088854936,
+      "max_error": 0.6713513513513514,
+      "pred_rows_range": [
+        2,
+        4
+      ]
+    },
+    {
+      "query_id": "q28",
+      "sql": "SELECT nationality, SUM(age) AS sum_age FROM owner WHERE age != 76 AND nba_team != 'Houston Rockets' GROUP BY nationality",
+      "tables_used": [
+        "owner"
+      ],
+      "gold_rows": 3,
+      "error_spread": 0.546035410462802,
+      "min_error": 0.12531594088854936,
+      "max_error": 0.6713513513513514,
+      "pred_rows_range": [
+        2,
+        4
+      ]
+    },
+    {
+      "query_id": "q1",
+      "sql": "SELECT player.nationality, AVG(player.mvp_awards) AS avg_player_mvp_awards FROM player JOIN team ON player.team = team.team_name WHERE player.age <= 66 GROUP BY player.nationality",
+      "tables_used": [
+        "player",
+        "team"
+      ],
+      "gold_rows": 14,
+      "error_spread": 0.5032051282051282,
+      "min_error": 0.4967948717948718,
+      "max_error": 1.0,
+      "pred_rows_range": [
+        0,
+        13
+      ]
+    },
+    {
+      "query_id": "q16",
+      "sql": "SELECT team, nationality, mvp_awards FROM player WHERE mvp_awards < 1 OR birth_date = '1995/10/2'",
+      "tables_used": [
+        "player"
+      ],
+      "gold_rows": 124,
+      "error_spread": 0.3870490742737439,
+      "min_error": 0.4684287812041116,
+      "max_error": 0.8554778554778555,
+      "pred_rows_range": [
+        19,
+        103
+      ]
+    },
+    {
+      "query_id": "q7",
+      "sql": "SELECT position, MAX(mvp_awards) AS max_mvp_awards FROM player WHERE nba_championships = 0 AND draft_year > 2012 AND nba_championships != 2 GROUP BY position",
+      "tables_used": [
+        "player"
+      ],
+      "gold_rows": 3,
+      "error_spread": 0.33333333333333326,
+      "min_error": 0.6666666666666667,
+      "max_error": 1.0,
+      "pred_rows_range": [
+        1,
+        1
+      ]
+    },
+    {
+      "query_id": "q0",
+      "sql": "SELECT nationality, AVG(age) AS avg_age FROM owner WHERE nationality = 'Taiwanese-Canadian' OR own_year <= 2012 OR nba_team != 'Dallas Mavericks' GROUP BY nationality",
+      "tables_used": [
+        "owner"
+      ],
+      "gold_rows": 3,
+      "error_spread": 0.33295038628487394,
+      "min_error": 0.101878923013216,
+      "max_error": 0.43482930929808994,
+      "pred_rows_range": [
+        3,
+        4
+      ]
+    },
+    {
+      "query_id": "q54",
+      "sql": "SELECT nationality, AVG(age) AS avg_age FROM owner GROUP BY nationality",
+      "tables_used": [
+        "owner"
+      ],
+      "gold_rows": 3,
+      "error_spread": 0.32998480444169387,
+      "min_error": 0.101878923013216,
+      "max_error": 0.43186372745490986,
+      "pred_rows_range": [
+        3,
+        4
+      ]
+    },
+    {
+      "query_id": "q8",
+      "sql": "SELECT nationality, MIN(age) AS min_age FROM owner WHERE nba_team != 'Cleveland Cavaliers' GROUP BY nationality",
+      "tables_used": [
+        "owner"
+      ],
+      "gold_rows": 3,
+      "error_spread": 0.326795006583223,
+      "min_error": 0.10177642198820558,
+      "max_error": 0.4285714285714286,
+      "pred_rows_range": [
+        3,
+        4
+      ]
+    },
+    {
+      "query_id": "q53",
+      "sql": "SELECT nationality, MIN(age) AS min_age FROM owner WHERE nba_team != 'Cleveland Cavaliers' GROUP BY nationality",
+      "tables_used": [
+        "owner"
+      ],
+      "gold_rows": 3,
+      "error_spread": 0.326795006583223,
+      "min_error": 0.10177642198820558,
+      "max_error": 0.4285714285714286,
+      "pred_rows_range": [
+        3,
+        4
+      ]
+    },
+    {
+      "query_id": "q58",
+      "sql": "SELECT nationality, COUNT(age) AS count_age FROM owner WHERE name = 'Tom Gores  ' OR own_year >= 1994 GROUP BY nationality",
+      "tables_used": [
+        "owner"
+      ],
+      "gold_rows": 3,
+      "error_spread": 0.3004201680672268,
+      "min_error": 0.03571428571428581,
+      "max_error": 0.33613445378151263,
+      "pred_rows_range": [
+        3,
+        4
+      ]
+    },
+    {
+      "query_id": "q31",
+      "sql": "SELECT position, MIN(fiba_world_cup) AS min_fiba_world_cup FROM player WHERE (fiba_world_cup < 0 AND mvp_awards <= 0) OR (age < 91 AND fiba_world_cup >= 0) GROUP BY position",
+      "tables_used": [
+        "player"
+      ],
+      "gold_rows": 3,
+      "error_spread": 0.2857142857142858,
+      "min_error": 0.7142857142857142,
+      "max_error": 1.0,
+      "pred_rows_range": [
+        3,
+        4
+      ]
+    },
+    {
+      "query_id": "q44",
+      "sql": "SELECT player.position, AVG(player.fiba_world_cup) AS avg_player_fiba_world_cup FROM player JOIN team ON player.team = team.team_name WHERE player.nba_championships < 0 OR player.age >= 47 OR player.nationality = 'Greek-American  ' GROUP BY player.position",
+      "tables_used": [
+        "player",
+        "team"
+      ],
+      "gold_rows": 3,
+      "error_spread": 0.275,
+      "min_error": 0.725,
+      "max_error": 1.0,
+      "pred_rows_range": [
+        0,
+        2
+      ]
+    },
+    {
+      "query_id": "q15",
+      "sql": "SELECT position, AVG(age) AS avg_age FROM player GROUP BY position",
+      "tables_used": [
+        "player"
+      ],
+      "gold_rows": 3,
+      "error_spread": 0.24953286591357293,
+      "min_error": 0.7504671340864271,
+      "max_error": 1.0,
+      "pred_rows_range": [
+        3,
+        4
+      ]
+    },
+    {
+      "query_id": "q17",
+      "sql": "SELECT nationality, MAX(mvp_awards) AS max_mvp_awards FROM player WHERE draft_year > 2012 OR nba_championships > 0 GROUP BY nationality",
+      "tables_used": [
+        "player"
+      ],
+      "gold_rows": 14,
+      "error_spread": 0.24379652605459068,
+      "min_error": 0.45512820512820507,
+      "max_error": 0.6989247311827957,
+      "pred_rows_range": [
+        12,
+        17
+      ]
+    },
+    {
+      "query_id": "q50",
+      "sql": "SELECT player.nationality, MIN(player.olympic_gold_medals) AS min_player_olympic_gold_medals FROM player JOIN team ON player.team = team.team_name WHERE player.fiba_world_cup > 0 GROUP BY player.nationality",
+      "tables_used": [
+        "player",
+        "team"
+      ],
+      "gold_rows": 3,
+      "error_spread": 0.2222222222222222,
+      "min_error": 0.7777777777777778,
+      "max_error": 1.0,
+      "pred_rows_range": [
+        0,
+        13
+      ]
+    },
+    {
+      "query_id": "q57",
+      "sql": "SELECT player.nationality, player.age, team.location, team.team_name FROM player JOIN team ON player.team = team.team_name",
+      "tables_used": [
+        "player",
+        "team"
+      ],
+      "gold_rows": 88,
+      "error_spread": 0.20760233918128657,
+      "min_error": 0.7923976608187134,
+      "max_error": 1.0,
+      "pred_rows_range": [
+        0,
+        93
+      ]
+    },
+    {
+      "query_id": "q40",
+      "sql": "SELECT player.mvp_awards, team.championship, player.draft_year, team.team_name FROM player JOIN team ON player.team = team.team_name WHERE team.location != 'Los Angeles' OR team.founded_year < 1967 OR player.birth_date = '1971/10/2'",
+      "tables_used": [
+        "player",
+        "team"
+      ],
+      "gold_rows": 88,
+      "error_spread": 0.19886363636363635,
+      "min_error": 0.8011363636363636,
+      "max_error": 1.0,
+      "pred_rows_range": [
+        0,
+        88
+      ]
+    },
+    {
+      "query_id": "q12",
+      "sql": "SELECT nationality, MAX(age) AS max_age FROM player GROUP BY nationality",
+      "tables_used": [
+        "player"
+      ],
+      "gold_rows": 23,
+      "error_spread": 0.19216350321976527,
+      "min_error": 0.22829547664259953,
+      "max_error": 0.4204589798623648,
+      "pred_rows_range": [
+        20,
+        21
+      ]
+    },
+    {
+      "query_id": "q32",
+      "sql": "SELECT fiba_world_cup, draft_pick, mvp_awards, name FROM player",
+      "tables_used": [
+        "player"
+      ],
+      "gold_rows": 141,
+      "error_spread": 0.1839080459770115,
+      "min_error": 0.7701149425287357,
+      "max_error": 0.9540229885057472,
+      "pred_rows_range": [
+        120,
+        120
+      ]
+    },
+    {
+      "query_id": "q10",
+      "sql": "SELECT fiba_world_cup, birth_date, nba_championships FROM player WHERE birth_date != '1959/6/10' AND birth_date != '1964/2/15'",
+      "tables_used": [
+        "player"
+      ],
+      "gold_rows": 139,
+      "error_spread": 0.18275418275418276,
+      "min_error": 0.8172458172458172,
+      "max_error": 1.0,
+      "pred_rows_range": [
+        0,
+        120
+      ]
+    },
+    {
+      "query_id": "q6",
+      "sql": "SELECT team, AVG(fiba_world_cup) AS avg_fiba_world_cup FROM player WHERE team = 'New York Knicks  ' OR nba_championships <= 0 OR fiba_world_cup > 0 GROUP BY team",
+      "tables_used": [
+        "player"
+      ],
+      "gold_rows": 67,
+      "error_spread": 0.15383653536546094,
+      "min_error": 0.539063897534972,
+      "max_error": 0.6929004329004329,
+      "pred_rows_range": [
+        36,
+        54
+      ]
+    },
+    {
+      "query_id": "q19",
+      "sql": "SELECT nationality, COUNT(age) AS count_age FROM player WHERE name = 'Antonius Cleveland  ' OR nba_championships >= 0 GROUP BY nationality",
+      "tables_used": [
+        "player"
+      ],
+      "gold_rows": 23,
+      "error_spread": 0.13023527962552361,
+      "min_error": 0.2127525252525252,
+      "max_error": 0.3429878048780488,
+      "pred_rows_range": [
+        18,
+        21
+      ]
+    },
+    {
+      "query_id": "q51",
+      "sql": "SELECT nationality, birth_date, age FROM player WHERE (birth_date != '1994/6/6' AND nationality = 'Dutch  ') OR (nba_championships <= 2 AND age > 91)",
+      "tables_used": [
+        "player"
+      ],
+      "gold_rows": 14,
+      "error_spread": 0.11827956989247312,
+      "min_error": 0.8817204301075269,
+      "max_error": 1.0,
+      "pred_rows_range": [
+        0,
+        48
+      ]
+    },
+    {
+      "query_id": "q24",
+      "sql": "SELECT position, nationality, age FROM player WHERE age < 91",
+      "tables_used": [
+        "player"
+      ],
+      "gold_rows": 126,
+      "error_spread": 0.09500702336866307,
+      "min_error": 0.7723577235772358,
+      "max_error": 0.8673647469458988,
+      "pred_rows_range": [
+        65,
+        120
+      ]
+    },
+    {
+      "query_id": "q49",
+      "sql": "SELECT nationality, COUNT(*) AS count_all FROM player WHERE name = 'Antonius Cleveland' OR nba_championships >= 0 GROUP BY nationality",
+      "tables_used": [
+        "player"
+      ],
+      "gold_rows": 23,
+      "error_spread": 0.08853872295407439,
+      "min_error": 0.2127525252525252,
+      "max_error": 0.3012912482065996,
+      "pred_rows_range": [
+        18,
+        21
+      ]
+    },
+    {
+      "query_id": "q23",
+      "sql": "SELECT olympic_gold_medals, fiba_world_cup, birth_date FROM player WHERE birth_date = '1994/4/25' OR position != 'Frontcourt'",
+      "tables_used": [
+        "player"
+      ],
+      "gold_rows": 96,
+      "error_spread": 0.08024691358024694,
+      "min_error": 0.9197530864197531,
+      "max_error": 1.0,
+      "pred_rows_range": [
+        7,
+        120
+      ]
+    },
+    {
+      "query_id": "q3",
+      "sql": "SELECT position, nationality, olympic_gold_medals FROM player WHERE position != 'Frontcourt' OR draft_pick > 5 OR olympic_gold_medals < 0 OR mvp_awards = 0",
+      "tables_used": [
+        "player"
+      ],
+      "gold_rows": 137,
+      "error_spread": 0.07772312360815414,
+      "min_error": 0.7587548638132295,
+      "max_error": 0.8364779874213837,
+      "pred_rows_range": [
+        75,
+        120
+      ]
+    },
+    {
+      "query_id": "q27",
+      "sql": "SELECT nationality, COUNT(*) AS count_all FROM player GROUP BY nationality",
+      "tables_used": [
+        "player"
+      ],
+      "gold_rows": 23,
+      "error_spread": 0.07196969696969713,
+      "min_error": 0.2127525252525252,
+      "max_error": 0.2847222222222223,
+      "pred_rows_range": [
+        20,
+        21
+      ]
+    },
+    {
+      "query_id": "q30",
+      "sql": "SELECT olympic_gold_medals FROM player",
+      "tables_used": [
+        "player"
+      ],
+      "gold_rows": 141,
+      "error_spread": 0.06130268199233713,
+      "min_error": 0.8850574712643678,
+      "max_error": 0.946360153256705,
+      "pred_rows_range": [
+        120,
+        120
+      ]
+    },
+    {
+      "query_id": "q13",
+      "sql": "SELECT population, state_name, city_name FROM city WHERE (state_name = 'Minnesota' AND population = 887642) OR (area != 976.15 AND area != 976.15)",
+      "tables_used": [
+        "city"
+      ],
+      "gold_rows": 29,
+      "error_spread": 0.05555555555555558,
+      "min_error": 0.9444444444444444,
+      "max_error": 1.0,
+      "pred_rows_range": [
+        10,
+        19
+      ]
+    },
+    {
+      "query_id": "q21",
+      "sql": "SELECT draft_year, age, fiba_world_cup FROM player WHERE draft_year <= 2017 OR olympic_gold_medals >= 0",
+      "tables_used": [
+        "player"
+      ],
+      "gold_rows": 141,
+      "error_spread": 0.05486722728102045,
+      "min_error": 0.933588761174968,
+      "max_error": 0.9884559884559885,
+      "pred_rows_range": [
+        90,
+        120
+      ]
+    },
+    {
+      "query_id": "q43",
+      "sql": "SELECT city.population, player.position, city.city_name, team.founded_year, player.name FROM player JOIN team ON player.team = team.team_name JOIN city ON team.location = city.city_name",
+      "tables_used": [
+        "player",
+        "team",
+        "city"
+      ],
+      "gold_rows": 86,
+      "error_spread": 0.05405405405405406,
+      "min_error": 0.9459459459459459,
+      "max_error": 1.0,
+      "pred_rows_range": [
+        0,
+        62
+      ]
+    },
+    {
+      "query_id": "q18",
+      "sql": "SELECT draft_pick FROM player",
+      "tables_used": [
+        "player"
+      ],
+      "gold_rows": 141,
+      "error_spread": 0.030651340996168508,
+      "min_error": 0.9386973180076629,
+      "max_error": 0.9693486590038314,
+      "pred_rows_range": [
+        120,
+        120
+      ]
+    },
+    {
+      "query_id": "q39",
+      "sql": "SELECT college, age, position FROM player WHERE (age < 47 AND olympic_gold_medals <= 1) OR (team = 'Milwaukee Hawks  ' AND college = 'University of Florida  ')",
+      "tables_used": [
+        "player"
+      ],
+      "gold_rows": 61,
+      "error_spread": 0.02564102564102566,
+      "min_error": 0.9743589743589743,
+      "max_error": 1.0,
+      "pred_rows_range": [
+        17,
+        108
+      ]
+    },
+    {
+      "query_id": "q33",
+      "sql": "SELECT location, founded_year, team_name FROM team WHERE (founded_year >= 1949 AND founded_year = 1949) OR (ownership != 'Paul Allen' AND ownership != 'Glen Taylor')",
+      "tables_used": [
+        "team"
+      ],
+      "gold_rows": 28,
+      "error_spread": 0.02509303561935139,
+      "min_error": 0.9515151515151515,
+      "max_error": 0.9766081871345029,
+      "pred_rows_range": [
+        26,
+        29
+      ]
+    },
+    {
+      "query_id": "q41",
+      "sql": "SELECT city.state_name, city.area, team.founded_year, team.championship FROM team JOIN city ON team.location = city.city_name",
+      "tables_used": [
+        "team",
+        "city"
+      ],
+      "gold_rows": 28,
+      "error_spread": 0.024603174603174627,
+      "min_error": 0.9642857142857143,
+      "max_error": 0.9888888888888889,
+      "pred_rows_range": [
+        14,
+        17
+      ]
+    },
+    {
+      "query_id": "q34",
+      "sql": "SELECT nba_team, name, own_year FROM owner",
+      "tables_used": [
+        "owner"
+      ],
+      "gold_rows": 16,
+      "error_spread": 0.023809523809523836,
+      "min_error": 0.8571428571428571,
+      "max_error": 0.8809523809523809,
+      "pred_rows_range": [
+        12,
+        12
+      ]
+    },
+    {
+      "query_id": "q5",
+      "sql": "SELECT team.location, player.draft_year, team.ownership, player.name FROM player JOIN team ON player.team = team.team_name WHERE team.founded_year <= 1989 OR player.college = 'UCLA  ' OR player.fiba_world_cup >= 1",
+      "tables_used": [
+        "player",
+        "team"
+      ],
+      "gold_rows": 87,
+      "error_spread": 0.021604938271604923,
+      "min_error": 0.9783950617283951,
+      "max_error": 1.0,
+      "pred_rows_range": [
+        0,
+        92
+      ]
+    },
+    {
+      "query_id": "q56",
+      "sql": "SELECT owner.nba_team, team.location, owner.name, team.team_name FROM team JOIN owner ON team.ownership = owner.name",
+      "tables_used": [
+        "team",
+        "owner"
+      ],
+      "gold_rows": 16,
+      "error_spread": 0.02083333333333337,
+      "min_error": 0.9166666666666666,
+      "max_error": 0.9375,
+      "pred_rows_range": [
+        2,
+        8
+      ]
+    },
+    {
+      "query_id": "q37",
+      "sql": "SELECT owner.name, owner.own_year, team.team_name, team.founded_year FROM team JOIN owner ON team.ownership = owner.name",
+      "tables_used": [
+        "team",
+        "owner"
+      ],
+      "gold_rows": 16,
+      "error_spread": 0.014880952380952328,
+      "min_error": 0.9375,
+      "max_error": 0.9523809523809523,
+      "pred_rows_range": [
+        2,
+        8
+      ]
+    },
+    {
+      "query_id": "q55",
+      "sql": "SELECT founded_year, team_name, location FROM team WHERE founded_year < 1949 OR location != 'Oklahoma City'",
+      "tables_used": [
+        "team"
+      ],
+      "gold_rows": 29,
+      "error_spread": 0.012099213551119203,
+      "min_error": 0.9649122807017544,
+      "max_error": 0.9770114942528736,
+      "pred_rows_range": [
+        28,
+        29
+      ]
+    },
+    {
+      "query_id": "q47",
+      "sql": "SELECT team_name, founded_year, ownership FROM team WHERE founded_year > 1967 OR team_name != 'Charlotte Hornets' OR team_name = 'Detroit Pistons' OR founded_year >= 1989",
+      "tables_used": [
+        "team"
+      ],
+      "gold_rows": 30,
+      "error_spread": 0.011299435028248594,
+      "min_error": 0.9774011299435028,
+      "max_error": 0.9887005649717514,
+      "pred_rows_range": [
+        29,
+        29
+      ]
+    },
+    {
+      "query_id": "q22",
+      "sql": "SELECT draft_pick, nba_championships, team FROM player WHERE draft_pick < 17 AND draft_pick >= 5",
+      "tables_used": [
+        "player"
+      ],
+      "gold_rows": 38,
+      "error_spread": 0.00952380952380949,
+      "min_error": 0.7714285714285715,
+      "max_error": 0.780952380952381,
+      "pred_rows_range": [
+        32,
+        61
+      ]
+    },
+    {
+      "query_id": "q38",
+      "sql": "SELECT founded_year, location, team_name, championship FROM team",
+      "tables_used": [
+        "team"
+      ],
+      "gold_rows": 30,
+      "error_spread": 0.008474576271186529,
+      "min_error": 0.9745762711864406,
+      "max_error": 0.9830508474576272,
+      "pred_rows_range": [
+        29,
+        29
+      ]
+    }
+  ],
+  "config_insensitive_queries": [
+    {
+      "query_id": "q2",
+      "sql": "SELECT owner.nationality, MAX(player.nba_championships) AS max_player_nba_championships FROM player JOIN team ON player.team = team.team_name JOIN owner ON team.ownership = owner.name JOIN city ON team.location = city.city_name WHERE city.population = 1603797 AND city.gdp != 518.5 AND player.birth_date = '1990/8/17' GROUP BY owner.nationality",
+      "tables_used": [
+        "player",
+        "team",
+        "owner",
+        "city"
+      ],
+      "gold_rows": 0,
+      "error_spread": 0.0,
+      "min_error": 0.0,
+      "max_error": 0.0,
+      "pred_rows_range": [
+        0,
+        0
+      ]
+    },
+    {
+      "query_id": "q4",
+      "sql": "SELECT owner.nba_team, team.ownership, player.fiba_world_cup, city.city_name FROM player JOIN team ON player.team = team.team_name JOIN owner ON team.ownership = owner.name JOIN city ON team.location = city.city_name WHERE (owner.nationality != 'American  ' AND player.olympic_gold_medals <= 1) OR (player.position = 'Backcourt' AND player.draft_year != 1990)",
+      "tables_used": [
+        "player",
+        "team",
+        "owner",
+        "city"
+      ],
+      "gold_rows": 49,
+      "error_spread": 0.0,
+      "min_error": 1.0,
+      "max_error": 1.0,
+      "pred_rows_range": [
+        0,
+        0
+      ]
+    },
+    {
+      "query_id": "q9",
+      "sql": "SELECT player.college, owner.name, player.position, team.championship, player.fiba_world_cup FROM player JOIN team ON player.team = team.team_name JOIN owner ON team.ownership = owner.name",
+      "tables_used": [
+        "player",
+        "team",
+        "owner"
+      ],
+      "gold_rows": 54,
+      "error_spread": 0.0,
+      "min_error": 1.0,
+      "max_error": 1.0,
+      "pred_rows_range": [
+        0,
+        1
+      ]
+    },
+    {
+      "query_id": "q11",
+      "sql": "SELECT gdp, area, state_name FROM city WHERE area = 976.15 AND gdp != 473000 AND area = 375.78 AND population = 808988",
+      "tables_used": [
+        "city"
+      ],
+      "gold_rows": 0,
+      "error_spread": 0.0,
+      "min_error": 0.0,
+      "max_error": 0.0,
+      "pred_rows_range": [
+        0,
+        0
+      ]
+    },
+    {
+      "query_id": "q14",
+      "sql": "SELECT nationality, MAX(age) AS max_age FROM owner WHERE own_year = 2012 AND nba_team = 'New York Knicks' AND age <= 88 GROUP BY nationality",
+      "tables_used": [
+        "owner"
+      ],
+      "gold_rows": 0,
+      "error_spread": 0.0,
+      "min_error": 0.0,
+      "max_error": 0.0,
+      "pred_rows_range": [
+        0,
+        0
+      ]
+    },
+    {
+      "query_id": "q20",
+      "sql": "SELECT team.location, player.nba_championships, team.team_name, player.team FROM player JOIN team ON player.team = team.team_name WHERE player.nba_championships < 0",
+      "tables_used": [
+        "player",
+        "team"
+      ],
+      "gold_rows": 0,
+      "error_spread": 0.0,
+      "min_error": 0.0,
+      "max_error": 0.0,
+      "pred_rows_range": [
+        0,
+        0
+      ]
+    },
+    {
+      "query_id": "q25",
+      "sql": "SELECT team_name, championship, location FROM team WHERE team_name = 'Golden State Warriors' AND founded_year >= 1989 AND ownership != 'Joseph Tsai' AND location != 'Charlotte'",
+      "tables_used": [
+        "team"
+      ],
+      "gold_rows": 0,
+      "error_spread": 0.0,
+      "min_error": 0.0,
+      "max_error": 0.0,
+      "pred_rows_range": [
+        0,
+        0
+      ]
+    },
+    {
+      "query_id": "q29",
+      "sql": "SELECT team.team_name, city.area, player.position, owner.own_year FROM player JOIN team ON player.team = team.team_name JOIN owner ON team.ownership = owner.name JOIN city ON team.location = city.city_name WHERE (player.mvp_awards <= 1 AND city.city_name = 'Miami') OR (player.draft_year < 2017 AND team.team_name = 'Detroit Pistons')",
+      "tables_used": [
+        "player",
+        "team",
+        "owner",
+        "city"
+      ],
+      "gold_rows": 9,
+      "error_spread": 0.0,
+      "min_error": 1.0,
+      "max_error": 1.0,
+      "pred_rows_range": [
+        0,
+        0
+      ]
+    },
+    {
+      "query_id": "q35",
+      "sql": "SELECT owner.nationality, MAX(player.mvp_awards) AS max_player_mvp_awards FROM player JOIN team ON player.team = team.team_name JOIN owner ON team.ownership = owner.name JOIN city ON team.location = city.city_name WHERE city.population < 1603797 OR team.location != 'Minneapolis' GROUP BY owner.nationality",
+      "tables_used": [
+        "player",
+        "team",
+        "owner",
+        "city"
+      ],
+      "gold_rows": 2,
+      "error_spread": 0.0,
+      "min_error": 1.0,
+      "max_error": 1.0,
+      "pred_rows_range": [
+        0,
+        0
+      ]
+    },
+    {
+      "query_id": "q36",
+      "sql": "SELECT player.position, AVG(player.olympic_gold_medals) AS avg_player_olympic_gold_medals FROM player JOIN team ON player.team = team.team_name JOIN owner ON team.ownership = owner.name JOIN city ON team.location = city.city_name WHERE owner.nationality = 'Israeli-American' AND team.founded_year > 1989 GROUP BY player.position",
+      "tables_used": [
+        "player",
+        "team",
+        "owner",
+        "city"
+      ],
+      "gold_rows": 0,
+      "error_spread": 0.0,
+      "min_error": 0.0,
+      "max_error": 0.0,
+      "pred_rows_range": [
+        0,
+        0
+      ]
+    },
+    {
+      "query_id": "q42",
+      "sql": "SELECT birth_date, olympic_gold_medals, mvp_awards FROM player WHERE (birth_date = '1973/11/25' AND olympic_gold_medals != 0) OR (team = 'Miami Heat' AND nationality = 'Canadian')",
+      "tables_used": [
+        "player"
+      ],
+      "gold_rows": 0,
+      "error_spread": 0.0,
+      "min_error": 0.0,
+      "max_error": 0.0,
+      "pred_rows_range": [
+        0,
+        0
+      ]
+    },
+    {
+      "query_id": "q45",
+      "sql": "SELECT state_name, area, city_name FROM city WHERE area != 1314.80 AND population = 887642",
+      "tables_used": [
+        "city"
+      ],
+      "gold_rows": 1,
+      "error_spread": 0.0,
+      "min_error": 1.0,
+      "max_error": 1.0,
+      "pred_rows_range": [
+        0,
+        0
+      ]
+    },
+    {
+      "query_id": "q46",
+      "sql": "SELECT team, MIN(olympic_gold_medals) AS min_olympic_gold_medals FROM player WHERE draft_pick < 1 GROUP BY team",
+      "tables_used": [
+        "player"
+      ],
+      "gold_rows": 29,
+      "error_spread": 0.0,
+      "min_error": 1.0,
+      "max_error": 1.0,
+      "pred_rows_range": [
+        0,
+        0
+      ]
+    },
+    {
+      "query_id": "q52",
+      "sql": "SELECT player.position, owner.age, team.championship, city.city_name FROM player JOIN team ON player.team = team.team_name JOIN owner ON team.ownership = owner.name JOIN city ON team.location = city.city_name WHERE player.olympic_gold_medals = 0 AND player.position != 'Backcourt' AND owner.name = 'Clay Bennett'",
+      "tables_used": [
+        "player",
+        "team",
+        "owner",
+        "city"
+      ],
+      "gold_rows": 0,
+      "error_spread": 0.0,
+      "min_error": 0.0,
+      "max_error": 0.0,
+      "pred_rows_range": [
+        0,
+        0
+      ]
+    }
+  ],
+  "note": "Config-insensitive queries had identical valid error across every evaluated config. They may be stably correct, extraction-limited, or genuinely unaffected by these axes. They provide no evidence for retaining or pruning an individual config."
+}

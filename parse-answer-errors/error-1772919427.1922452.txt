@@ -1,0 +1,31 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To derive the required information from the context, we need to focus on the player document details provided. The query specifies that we are looking for players older than 25 and then lists specific fields (name, position, team name, and team founded year). However, since there is only one player mentioned in the text, we will use his information.
+
+1. **Age Calculation**: Shawn Respert was born on February 6, 1972. To determine if he is older than 25, we can calculate that as of the current date (assuming the context is recent), he would be over 50 years old.
+2. **Name**: The name from the player document is "Shawn Respert".
+3. **Position**: From the text, there's no explicit mention of his position in the NBA or college basketball, but it can be inferred that as a standout player at Michigan State and having played for multiple teams, he likely played as a guard/forward.
+4. **Team**: The context mentions several teams Shawn Respert has played for: Portland Trail Blazers, Milwaukee Bucks, Toronto Raptors, Dallas Mavericks, Phoenix Suns, Adecco Milano, Fillattice Imola, and Spójnia Stargard Szczeciński. We can use any of these as the team name.
+5. **Team Founded Year**: The context does not provide specific founding years for the teams mentioned.
+
+Given that we need to return a number for age, we will calculate it based on his birth year (1972) and assume the current year is 2023 for simplicity:
+
+- Age: \(2023 - 1972 = 51\)
+
+Now, let's fill in the required fields.
+
+---
+```json
+{
+  "age": 51,
+  "name": "Shawn Respert",
+  "position": "guard/forward",
+  "team": "Portland Trail Blazers"
+}
+```
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: For players older than 25, list player name, position, team name, and team founded year.. Return a short normalized string.'), 'position': FieldInfo(annotation=Union[str, Any], required=True, description='position from the player document for query: For players older than 25, list player name, position, team name, and team founded year.. Return a short normalized string.'), 'age': FieldInfo(annotation=Union[float, Any], required=True, description='age from the player document for query: For players older than 25, list player name, position, team name, and team founded year.. Return a number.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: For players older than 25, list player name, position, team name, and team founded year.. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 1 (char 0)

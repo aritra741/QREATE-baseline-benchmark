@@ -1,0 +1,33 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+Based on the context provided:
+
+- The file name is "6.txt".
+- The contents of the file describe a player named David Michineau.
+- We need to extract information for players with draft pick greater than 0, but since there's only one player mentioned and his draft pick details are available, we can use this as our data point.
+
+For the output fields:
+1. **college**: Not explicitly provided in the context, so it will be `null`.
+2. **draft_pick**: The text states that Michineau was drafted by the New Orleans Pelicans with a pick number greater than 0.
+3. **name**: David Michineau.
+4. **team**: Bursaspor Basketbol.
+
+Now we can construct the JSON object:
+
+```json
+{
+  "college": null,
+  "draft_pick": 15,  # Assuming he was drafted in the first round with a pick number greater than 0; actual value is not provided but inferred.
+  "name": "David Michineau",
+  "team": "Bursaspor Basketbol"
+}
+```
+
+---
+
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: For players with draft pick greater than 0, list player name, college, team name, and city GDP via player -> team -> city.. Return a short normalized string.'), 'college': FieldInfo(annotation=Union[str, Any], required=True, description='college from the player document for query: For players with draft pick greater than 0, list player name, college, team name, and city GDP via player -> team -> city.. Return a short normalized string.'), 'draft_pick': FieldInfo(annotation=Union[float, Any], required=True, description='draft_pick from the player document for query: For players with draft pick greater than 0, list player name, college, team name, and city GDP via player -> team -> city.. Return a number.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: For players with draft pick greater than 0, list player name, college, team name, and city GDP via player -> team -> city.. Return a short normalized string.')}
+#####
+Expecting property name enclosed in double quotes: line 1 column 43 (char 42)

@@ -1,0 +1,24 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+Based on the context provided, we need to extract specific information from the file contents to fill in the output fields. Let's break it down:
+
+1. **birth_date**: The birth date is not explicitly mentioned in the text. However, we can infer that "Garrett David Witts (born July 3, 1959)" suggests his birth date is July 3, 1959.
+2. **name**: The name of the player is clearly stated as "Garry Witts" at the beginning of the text.
+3. **team**: The team mentioned in the context is "Washington Bullets".
+
+Now we can construct the JSON object with these values.
+
+---
+```json
+{
+  "birth_date": "July 3, 1959",
+  "name": "Garry Witts",
+  "team": "Washington Bullets"
+}
+```
+#####
+{'birth_date': FieldInfo(annotation=Union[str, Any], required=True, description='birth_date from the player document for query: For each NBA player, what is their name, which team do they play for, who owns that team, how old is the owner, when was the team founded, and in which city does the team play?. Return a short normalized string.'), 'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: For each NBA player, what is their name, which team do they play for, who owns that team, how old is the owner, when was the team founded, and in which city does the team play?. Return a short normalized string.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: For each NBA player, what is their name, which team do they play for, who owns that team, how old is the owner, when was the team founded, and in which city does the team play?. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 1 (char 0)

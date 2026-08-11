@@ -1,0 +1,31 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To determine the correct values for "city_name" and "population," we need to carefully analyze the provided context:
+
+1. **City Name**:
+   - The text mentions "Denver" multiple times, indicating that Denver is the city being described.
+   
+2. **Population**:
+   - The passage states: "Its population was 715,522 at the 2020 census, a 19.22% increase since 2010."
+     - This directly provides us with the population figure for Denver.
+
+Based on this analysis:
+
+- **city_name**: Denver
+- **population**: 715,522
+
+Now, let's generate the JSON object as per the required format.
+---
+```json
+{
+  "city_name": "Denver",
+  "population": 715522
+}
+```
+---
+#####
+{'city_name': FieldInfo(annotation=Union[str, Any], required=True, description='city_name from the city document for query: For each NBA player, what is their nationality, how many MVP awards have they won, who owns their team, and what city does the team play in?. Return a short normalized string.'), 'population': FieldInfo(annotation=Union[float, Any], required=True, description='population from the city document for query: For each NBA player, what is their nationality, how many MVP awards have they won, who owns their team, and what city does the team play in?. Return a number.')}
+#####
+Expecting value: line 1 column 1 (char 0)

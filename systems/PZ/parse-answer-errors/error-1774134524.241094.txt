@@ -1,0 +1,28 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To determine the city name and population for the given context, we need to carefully extract this information:
+
+1. **City Name**: The text clearly states "Cleveland" multiple times as the subject of discussion.
+2. **Population**: We can find the population in the following sentence:
+   - "The city anchors the Cleveland metropolitan area, the 33rd-largest in the U.S. at 2.18 million residents..."
+
+From this information, we can derive that:
+
+- The city name is "Cleveland".
+- The population of Cleveland is 2,180,000.
+
+Now, let's format this into a JSON object as required.
+---
+```json
+{
+  "city_name": "Cleveland",
+  "population": 2180000
+}
+```
+---
+#####
+{'city_name': FieldInfo(annotation=Union[str, Any], required=True, description='city_name from the city document for query: For each NBA player, what is their nationality, how many MVP awards have they won, who owns their team, and what city does the team play in?. Return a short normalized string.'), 'population': FieldInfo(annotation=Union[float, Any], required=True, description='population from the city document for query: For each NBA player, what is their nationality, how many MVP awards have they won, who owns their team, and what city does the team play in?. Return a number.')}
+#####
+Expecting value: line 1 column 1 (char 0)

@@ -1,0 +1,3103 @@
+{
+  "entity_vocabulary": [
+    "city",
+    "owner",
+    "player",
+    "team"
+  ],
+  "attribute_vocabulary": {
+    "city": [
+      "area",
+      "city_name",
+      "gdp",
+      "population",
+      "state_name"
+    ],
+    "owner": [
+      "age",
+      "name",
+      "nationality",
+      "nba_team",
+      "own_year"
+    ],
+    "player": [
+      "age",
+      "birth_date",
+      "college",
+      "draft_pick",
+      "draft_year",
+      "fiba_world_cup",
+      "mvp_awards",
+      "name",
+      "nationality",
+      "nba_championships",
+      "olympic_gold_medals",
+      "position",
+      "team"
+    ],
+    "team": [
+      "championship",
+      "founded_year",
+      "location",
+      "ownership",
+      "team_name"
+    ]
+  },
+  "workload_intent": {
+    "requirements": [
+      {
+        "query_id": "agg_only_gen_125",
+        "text": "For each combination of playing position and college, how many NBA championships have those players won altogether?",
+        "entities": [
+          "player"
+        ],
+        "attributes": [
+          "position",
+          "college",
+          "nba_championships"
+        ],
+        "attribute_bindings": [
+          [
+            "player",
+            "position"
+          ],
+          [
+            "player",
+            "college"
+          ],
+          [
+            "player",
+            "nba_championships"
+          ]
+        ],
+        "relationships": [],
+        "operators": [
+          "count",
+          "sum"
+        ],
+        "units": [],
+        "plan": {
+          "projections": [
+            {
+              "entity": "player",
+              "attribute": "position",
+              "semantic_type": "text"
+            },
+            {
+              "entity": "player",
+              "attribute": "college",
+              "semantic_type": "text"
+            }
+          ],
+          "group_by": [
+            {
+              "entity": "team",
+              "attribute": "championship",
+              "semantic_type": "text"
+            }
+          ],
+          "aggregates": [
+            {
+              "function": "sum",
+              "attribute": {
+                "entity": "player",
+                "attribute": "nba_championships",
+                "semantic_type": "integer"
+              },
+              "alias": "sum_nba_championships",
+              "distinct": false
+            }
+          ],
+          "predicate": null,
+          "joins": [
+            {
+              "left": {
+                "entity": "team",
+                "attribute": "team_name",
+                "semantic_type": "text"
+              },
+              "right": {
+                "entity": "player",
+                "attribute": "team",
+                "semantic_type": "text"
+              },
+              "join_type": "inner"
+            }
+          ]
+        }
+      },
+      {
+        "query_id": "agg_only_gen_104",
+        "text": "Break the players down by nationality and team, and tell me the total number of MVP awards in each group.",
+        "entities": [
+          "player",
+          "team"
+        ],
+        "attributes": [
+          "nationality",
+          "team_name",
+          "mvp_awards",
+          "team"
+        ],
+        "attribute_bindings": [
+          [
+            "player",
+            "nationality"
+          ],
+          [
+            "team",
+            "team_name"
+          ],
+          [
+            "player",
+            "mvp_awards"
+          ],
+          [
+            "player",
+            "team"
+          ]
+        ],
+        "relationships": [],
+        "operators": [
+          "sum",
+          "group_by",
+          "join"
+        ],
+        "units": [],
+        "plan": {
+          "projections": [
+            {
+              "entity": "player",
+              "attribute": "nationality",
+              "semantic_type": "text"
+            },
+            {
+              "entity": "team",
+              "attribute": "team_name",
+              "semantic_type": "text"
+            }
+          ],
+          "group_by": [
+            {
+              "entity": "player",
+              "attribute": "nationality",
+              "semantic_type": "text"
+            },
+            {
+              "entity": "team",
+              "attribute": "team_name",
+              "semantic_type": "text"
+            }
+          ],
+          "aggregates": [
+            {
+              "function": "sum",
+              "attribute": {
+                "entity": "player",
+                "attribute": "mvp_awards",
+                "semantic_type": "integer"
+              },
+              "alias": "sum_mvp_awards",
+              "distinct": false
+            }
+          ],
+          "predicate": null,
+          "joins": [
+            {
+              "left": {
+                "entity": "team",
+                "attribute": "team_name",
+                "semantic_type": "text"
+              },
+              "right": {
+                "entity": "player",
+                "attribute": "team",
+                "semantic_type": "text"
+              },
+              "join_type": "inner"
+            }
+          ]
+        }
+      },
+      {
+        "query_id": "agg_only_gen_94",
+        "text": "For every nationality-and-team combination, what is the players' combined number of Olympic gold medals?",
+        "entities": [
+          "player",
+          "team"
+        ],
+        "attributes": [
+          "nationality",
+          "team_name",
+          "olympic_gold_medals",
+          "team"
+        ],
+        "attribute_bindings": [
+          [
+            "player",
+            "nationality"
+          ],
+          [
+            "team",
+            "team_name"
+          ],
+          [
+            "player",
+            "olympic_gold_medals"
+          ],
+          [
+            "player",
+            "team"
+          ]
+        ],
+        "relationships": [],
+        "operators": [
+          "sum",
+          "group_by",
+          "join"
+        ],
+        "units": [],
+        "plan": {
+          "projections": [
+            {
+              "entity": "player",
+              "attribute": "nationality",
+              "semantic_type": "text"
+            }
+          ],
+          "group_by": [
+            {
+              "entity": "player",
+              "attribute": "nationality",
+              "semantic_type": "text"
+            },
+            {
+              "entity": "team",
+              "attribute": "team_name",
+              "semantic_type": "text"
+            }
+          ],
+          "aggregates": [
+            {
+              "function": "sum",
+              "attribute": {
+                "entity": "player",
+                "attribute": "olympic_gold_medals",
+                "semantic_type": "integer"
+              },
+              "alias": "sum_olympic_gold_medals",
+              "distinct": false
+            }
+          ],
+          "predicate": null,
+          "joins": [
+            {
+              "left": {
+                "entity": "team",
+                "attribute": "team_name",
+                "semantic_type": "text"
+              },
+              "right": {
+                "entity": "player",
+                "attribute": "team",
+                "semantic_type": "text"
+              },
+              "join_type": "inner"
+            }
+          ]
+        }
+      },
+      {
+        "query_id": "agg_only_expanded_15",
+        "text": "On each team, what is the largest number of NBA championships won by any one player?",
+        "entities": [
+          "team",
+          "player"
+        ],
+        "attributes": [
+          "team_name",
+          "nba_championships",
+          "team"
+        ],
+        "attribute_bindings": [
+          [
+            "team",
+            "team_name"
+          ],
+          [
+            "player",
+            "nba_championships"
+          ],
+          [
+            "player",
+            "team"
+          ]
+        ],
+        "relationships": [],
+        "operators": [
+          "max",
+          "group_by",
+          "join"
+        ],
+        "units": [],
+        "plan": {
+          "projections": [
+            {
+              "entity": "team",
+              "attribute": "team_name",
+              "semantic_type": "text"
+            }
+          ],
+          "group_by": [
+            {
+              "entity": "team",
+              "attribute": "team_name",
+              "semantic_type": "text"
+            }
+          ],
+          "aggregates": [
+            {
+              "function": "max",
+              "attribute": {
+                "entity": "player",
+                "attribute": "nba_championships",
+                "semantic_type": "integer"
+              },
+              "alias": "max_nba_championships",
+              "distinct": false
+            }
+          ],
+          "predicate": null,
+          "joins": [
+            {
+              "left": {
+                "entity": "team",
+                "attribute": "team_name",
+                "semantic_type": "text"
+              },
+              "right": {
+                "entity": "player",
+                "attribute": "team",
+                "semantic_type": "text"
+              },
+              "join_type": "inner"
+            }
+          ]
+        }
+      },
+      {
+        "query_id": "agg_only_gen_57",
+        "text": "What is the average number of FIBA World Cup titles among players from each college?",
+        "entities": [
+          "player"
+        ],
+        "attributes": [
+          "college",
+          "fiba_world_cup"
+        ],
+        "attribute_bindings": [
+          [
+            "player",
+            "college"
+          ],
+          [
+            "player",
+            "fiba_world_cup"
+          ]
+        ],
+        "relationships": [],
+        "operators": [
+          "avg",
+          "group_by"
+        ],
+        "units": [],
+        "plan": {
+          "projections": [],
+          "group_by": [
+            {
+              "entity": "player",
+              "attribute": "college",
+              "semantic_type": "text"
+            }
+          ],
+          "aggregates": [
+            {
+              "function": "avg",
+              "attribute": {
+                "entity": "player",
+                "attribute": "fiba_world_cup",
+                "semantic_type": "integer"
+              },
+              "alias": "avg_fiba_world_cup",
+              "distinct": false
+            }
+          ],
+          "predicate": null,
+          "joins": []
+        }
+      },
+      {
+        "query_id": "agg_filter_gen_186",
+        "text": "What is the average age of Lokomotiv Kuban players who are not Nigerian-American?",
+        "entities": [
+          "player"
+        ],
+        "attributes": [
+          "age",
+          "nationality"
+        ],
+        "attribute_bindings": [],
+        "relationships": [],
+        "operators": [],
+        "units": [],
+        "plan": null
+      },
+      {
+        "query_id": "mixed_queries_filter_agg_player_1",
+        "text": "Among players whose draft-pick number is below one, what is the fewest Olympic gold medals held by a player on each team?",
+        "entities": [
+          "player",
+          "team"
+        ],
+        "attributes": [
+          "team_name",
+          "olympic_gold_medals",
+          "draft_pick",
+          "team"
+        ],
+        "attribute_bindings": [
+          [
+            "team",
+            "team_name"
+          ],
+          [
+            "player",
+            "olympic_gold_medals"
+          ],
+          [
+            "player",
+            "draft_pick"
+          ],
+          [
+            "player",
+            "team"
+          ]
+        ],
+        "relationships": [],
+        "operators": [
+          "<",
+          "min",
+          "group_by",
+          "filter",
+          "join"
+        ],
+        "units": [],
+        "plan": {
+          "projections": [
+            {
+              "entity": "team",
+              "attribute": "team_name",
+              "semantic_type": "text"
+            }
+          ],
+          "group_by": [
+            {
+              "entity": "team",
+              "attribute": "team_name",
+              "semantic_type": "text"
+            }
+          ],
+          "aggregates": [
+            {
+              "function": "min",
+              "attribute": {
+                "entity": "player",
+                "attribute": "olympic_gold_medals",
+                "semantic_type": "integer"
+              },
+              "alias": "min_olympic_gold_medals",
+              "distinct": false
+            }
+          ],
+          "predicate": {
+            "kind": "predicate",
+            "attribute": {
+              "entity": "player",
+              "attribute": "draft_pick",
+              "semantic_type": "integer"
+            },
+            "operator": "<",
+            "value": 1,
+            "children": []
+          },
+          "joins": [
+            {
+              "left": {
+                "entity": "team",
+                "attribute": "team_name",
+                "semantic_type": "text"
+              },
+              "right": {
+                "entity": "player",
+                "attribute": "team",
+                "semantic_type": "text"
+              },
+              "join_type": "inner"
+            }
+          ]
+        }
+      },
+      {
+        "query_id": "agg_filter_gen_85",
+        "text": "How many French players are there at each playing position?",
+        "entities": [
+          "player"
+        ],
+        "attributes": [
+          "position",
+          "nationality"
+        ],
+        "attribute_bindings": [
+          [
+            "player",
+            "position"
+          ],
+          [
+            "player",
+            "nationality"
+          ]
+        ],
+        "relationships": [],
+        "operators": [
+          "count",
+          "group_by",
+          "filter"
+        ],
+        "units": [],
+        "plan": {
+          "projections": [
+            {
+              "entity": "player",
+              "attribute": "position",
+              "semantic_type": "text"
+            }
+          ],
+          "group_by": [
+            {
+              "entity": "player",
+              "attribute": "position",
+              "semantic_type": "text"
+            }
+          ],
+          "aggregates": [
+            {
+              "function": "count",
+              "attribute": null,
+              "alias": "count_all",
+              "distinct": false
+            }
+          ],
+          "predicate": {
+            "kind": "predicate",
+            "attribute": {
+              "entity": "player",
+              "attribute": "nationality",
+              "semantic_type": "text"
+            },
+            "operator": "=",
+            "value": "French",
+            "children": []
+          },
+          "joins": []
+        }
+      },
+      {
+        "query_id": "agg_filter_gen_1",
+        "text": "How many American players are in the dataset?",
+        "entities": [
+          "player"
+        ],
+        "attributes": [
+          "name",
+          "nationality"
+        ],
+        "attribute_bindings": [
+          [
+            "player",
+            "name"
+          ],
+          [
+            "player",
+            "nationality"
+          ]
+        ],
+        "relationships": [],
+        "operators": [
+          "count",
+          "filter"
+        ],
+        "units": [],
+        "plan": {
+          "projections": [
+            {
+              "entity": "player",
+              "attribute": "name",
+              "semantic_type": "text"
+            }
+          ],
+          "group_by": [],
+          "aggregates": [
+            {
+              "function": "count",
+              "attribute": null,
+              "alias": "count_all",
+              "distinct": true
+            }
+          ],
+          "predicate": {
+            "kind": "predicate",
+            "attribute": {
+              "entity": "player",
+              "attribute": "nationality",
+              "semantic_type": "text"
+            },
+            "operator": "=",
+            "value": "American",
+            "children": []
+          },
+          "joins": []
+        }
+      },
+      {
+        "query_id": "agg_filter_gen_196",
+        "text": "For each team, total the Olympic gold medals of players who are either Nigerian-American but not Croatian, or who do not play for Bursaspor Basketbol.",
+        "entities": [
+          "team",
+          "player",
+          "owner"
+        ],
+        "attributes": [
+          "team_name",
+          "olympic_gold_medals",
+          "team",
+          "nationality",
+          "name"
+        ],
+        "attribute_bindings": [
+          [
+            "team",
+            "team_name"
+          ],
+          [
+            "player",
+            "olympic_gold_medals"
+          ],
+          [
+            "player",
+            "team"
+          ],
+          [
+            "player",
+            "nationality"
+          ],
+          [
+            "owner",
+            "name"
+          ]
+        ],
+        "relationships": [],
+        "operators": [
+          "{'kind': 'and', 'children': [{'kind': 'or', 'children': [{'kind': 'and', 'children': [{'kind': 'contains', 'entity': 'player.nationality', 'value': 'nigerian-american'}, {'kind': 'is_not_null', 'entity': 'player.nationality', 'value': none}]}, {'kind': 'and', 'children': [{'kind': 'not_contains', 'entity': 'player.nationality', 'value': 'croatian'}, {'kind': 'is_not_null', 'entity': 'player.nationality', 'value': none}]}]}, {'kind': 'and', 'children': [{'kind': 'not_equal', 'entity': 'team.team_name', 'value': 'bursaspor basketbol'}, {'kind': 'is_not_null', 'entity': 'team.team_name', 'value': none}]}]}",
+          "sum",
+          "group_by",
+          "join"
+        ],
+        "units": [],
+        "plan": {
+          "projections": [
+            {
+              "entity": "team",
+              "attribute": "team_name",
+              "semantic_type": "text"
+            }
+          ],
+          "group_by": [
+            {
+              "entity": "team",
+              "attribute": "team_name",
+              "semantic_type": "text"
+            }
+          ],
+          "aggregates": [
+            {
+              "function": "sum",
+              "attribute": {
+                "entity": "player",
+                "attribute": "olympic_gold_medals",
+                "semantic_type": "integer"
+              },
+              "alias": "sum_olympic_gold_medals",
+              "distinct": false
+            }
+          ],
+          "predicate": null,
+          "joins": [
+            {
+              "left": {
+                "entity": "team",
+                "attribute": "team_name",
+                "semantic_type": "text"
+              },
+              "right": {
+                "entity": "player",
+                "attribute": "team",
+                "semantic_type": "text"
+              },
+              "join_type": "inner"
+            }
+          ]
+        }
+      },
+      {
+        "query_id": "agg_join_gen_28",
+        "text": "Considering players with matching team and home-city records, how many have a known age for each college?",
+        "entities": [
+          "player",
+          "team",
+          "city"
+        ],
+        "attributes": [
+          "college",
+          "age",
+          "location"
+        ],
+        "attribute_bindings": [
+          [
+            "player",
+            "college"
+          ],
+          [
+            "player",
+            "age"
+          ],
+          [
+            "team",
+            "location"
+          ]
+        ],
+        "relationships": [],
+        "operators": [
+          "count",
+          "group_by",
+          "filter"
+        ],
+        "units": [],
+        "plan": {
+          "projections": [
+            {
+              "entity": "player",
+              "attribute": "college",
+              "semantic_type": "text"
+            },
+            {
+              "entity": "player",
+              "attribute": "age",
+              "semantic_type": "integer"
+            }
+          ],
+          "group_by": [
+            {
+              "entity": "player",
+              "attribute": "college",
+              "semantic_type": "text"
+            }
+          ],
+          "aggregates": [
+            {
+              "function": "count",
+              "attribute": {
+                "entity": "owner",
+                "attribute": "age",
+                "semantic_type": "text"
+              },
+              "alias": "count_age",
+              "distinct": false
+            }
+          ],
+          "predicate": {
+            "kind": "predicate",
+            "attribute": {
+              "entity": "player",
+              "attribute": "age",
+              "semantic_type": "integer"
+            },
+            "operator": "is_not_null",
+            "value": null,
+            "children": []
+          },
+          "joins": [
+            {
+              "left": {
+                "entity": "team",
+                "attribute": "team_name",
+                "semantic_type": "text"
+              },
+              "right": {
+                "entity": "player",
+                "attribute": "team",
+                "semantic_type": "text"
+              },
+              "join_type": "inner"
+            },
+            {
+              "left": {
+                "entity": "team",
+                "attribute": "location",
+                "semantic_type": "text"
+              },
+              "right": {
+                "entity": "city",
+                "attribute": "city_name",
+                "semantic_type": "text"
+              },
+              "join_type": "inner"
+            },
+            {
+              "left": {
+                "entity": "owner",
+                "attribute": "nba_team",
+                "semantic_type": "text"
+              },
+              "right": {
+                "entity": "team",
+                "attribute": "team_name",
+                "semantic_type": "text"
+              },
+              "join_type": "inner"
+            }
+          ]
+        }
+      },
+      {
+        "query_id": "agg_join_expanded_3",
+        "text": "For each playing position, what is the average championship count of the players' teams, considering teams with a matching home-city record?",
+        "entities": [
+          "player",
+          "team",
+          "city"
+        ],
+        "attributes": [
+          "position",
+          "championship",
+          "team",
+          "location"
+        ],
+        "attribute_bindings": [
+          [
+            "player",
+            "position"
+          ],
+          [
+            "team",
+            "championship"
+          ],
+          [
+            "player",
+            "team"
+          ],
+          [
+            "team",
+            "location"
+          ]
+        ],
+        "relationships": [],
+        "operators": [
+          "avg",
+          "group_by",
+          "join"
+        ],
+        "units": [],
+        "plan": {
+          "projections": [
+            {
+              "entity": "player",
+              "attribute": "position",
+              "semantic_type": "text"
+            }
+          ],
+          "group_by": [
+            {
+              "entity": "player",
+              "attribute": "position",
+              "semantic_type": "text"
+            }
+          ],
+          "aggregates": [
+            {
+              "function": "avg",
+              "attribute": {
+                "entity": "team",
+                "attribute": "championship",
+                "semantic_type": "integer"
+              },
+              "alias": "avg_championship",
+              "distinct": false
+            }
+          ],
+          "predicate": null,
+          "joins": [
+            {
+              "left": {
+                "entity": "team",
+                "attribute": "team_name",
+                "semantic_type": "text"
+              },
+              "right": {
+                "entity": "player",
+                "attribute": "team",
+                "semantic_type": "text"
+              },
+              "join_type": "inner"
+            }
+          ]
+        }
+      },
+      {
+        "query_id": "agg_join_gen_40",
+        "text": "For every player nationality, what is the lowest championship count among their teams that have a matching home-city record?",
+        "entities": [
+          "player",
+          "team",
+          "city"
+        ],
+        "attributes": [
+          "nationality",
+          "championship",
+          "team",
+          "team_name",
+          "location",
+          "city_name"
+        ],
+        "attribute_bindings": [
+          [
+            "player",
+            "nationality"
+          ],
+          [
+            "team",
+            "championship"
+          ],
+          [
+            "player",
+            "team"
+          ],
+          [
+            "team",
+            "team_name"
+          ],
+          [
+            "team",
+            "location"
+          ],
+          [
+            "city",
+            "city_name"
+          ]
+        ],
+        "relationships": [],
+        "operators": [
+          "min",
+          "group_by",
+          "join"
+        ],
+        "units": [],
+        "plan": {
+          "projections": [
+            {
+              "entity": "player",
+              "attribute": "nationality",
+              "semantic_type": "text"
+            }
+          ],
+          "group_by": [
+            {
+              "entity": "player",
+              "attribute": "nationality",
+              "semantic_type": "text"
+            }
+          ],
+          "aggregates": [
+            {
+              "function": "min",
+              "attribute": {
+                "entity": "team",
+                "attribute": "championship",
+                "semantic_type": "integer"
+              },
+              "alias": "min_championship",
+              "distinct": false
+            }
+          ],
+          "predicate": null,
+          "joins": [
+            {
+              "left": {
+                "entity": "team",
+                "attribute": "team_name",
+                "semantic_type": "text"
+              },
+              "right": {
+                "entity": "player",
+                "attribute": "team",
+                "semantic_type": "text"
+              },
+              "join_type": "inner"
+            }
+          ]
+        }
+      },
+      {
+        "query_id": "agg_join_gen_4",
+        "text": "Among players with a matching team record, what is the highest number of MVP awards won by a player at each position?",
+        "entities": [
+          "player",
+          "team"
+        ],
+        "attributes": [
+          "position",
+          "mvp_awards",
+          "team",
+          "team_name"
+        ],
+        "attribute_bindings": [
+          [
+            "player",
+            "position"
+          ],
+          [
+            "player",
+            "mvp_awards"
+          ],
+          [
+            "player",
+            "team"
+          ],
+          [
+            "team",
+            "team_name"
+          ]
+        ],
+        "relationships": [],
+        "operators": [
+          "max",
+          "group_by",
+          "join"
+        ],
+        "units": [],
+        "plan": {
+          "projections": [
+            {
+              "entity": "player",
+              "attribute": "position",
+              "semantic_type": "text"
+            }
+          ],
+          "group_by": [
+            {
+              "entity": "player",
+              "attribute": "position",
+              "semantic_type": "text"
+            }
+          ],
+          "aggregates": [
+            {
+              "function": "max",
+              "attribute": {
+                "entity": "player",
+                "attribute": "mvp_awards",
+                "semantic_type": "integer"
+              },
+              "alias": "max_mvp_awards",
+              "distinct": false
+            }
+          ],
+          "predicate": null,
+          "joins": []
+        }
+      },
+      {
+        "query_id": "agg_join_gen_17",
+        "text": "Group teams by their home location and report the total MVP awards won by their players.",
+        "entities": [
+          "team",
+          "player",
+          "city"
+        ],
+        "attributes": [
+          "team_name",
+          "mvp_awards",
+          "location",
+          "city_name",
+          "team"
+        ],
+        "attribute_bindings": [
+          [
+            "team",
+            "team_name"
+          ],
+          [
+            "player",
+            "mvp_awards"
+          ],
+          [
+            "team",
+            "location"
+          ],
+          [
+            "city",
+            "city_name"
+          ],
+          [
+            "player",
+            "team"
+          ]
+        ],
+        "relationships": [],
+        "operators": [
+          "group_by",
+          "sum",
+          "join"
+        ],
+        "units": [],
+        "plan": {
+          "projections": [
+            {
+              "entity": "team",
+              "attribute": "team_name",
+              "semantic_type": "text"
+            }
+          ],
+          "group_by": [
+            {
+              "entity": "team",
+              "attribute": "location",
+              "semantic_type": "text"
+            }
+          ],
+          "aggregates": [
+            {
+              "function": "sum",
+              "attribute": {
+                "entity": "player",
+                "attribute": "mvp_awards",
+                "semantic_type": "integer"
+              },
+              "alias": "sum_mvp_awards",
+              "distinct": false
+            }
+          ],
+          "predicate": null,
+          "joins": [
+            {
+              "left": {
+                "entity": "team",
+                "attribute": "team_name",
+                "semantic_type": "text"
+              },
+              "right": {
+                "entity": "player",
+                "attribute": "team",
+                "semantic_type": "text"
+              },
+              "join_type": "inner"
+            }
+          ]
+        }
+      },
+      {
+        "query_id": "agg_filter_join_gen_318",
+        "text": "For each team location, what is the fewest Olympic gold medals held by an eligible player when either the home city's GDP is above 100 or the player is American?",
+        "entities": [
+          "team",
+          "city",
+          "player"
+        ],
+        "attributes": [
+          "location",
+          "olympic_gold_medals",
+          "gdp",
+          "nationality",
+          "city_name",
+          "team",
+          "team_name"
+        ],
+        "attribute_bindings": [
+          [
+            "team",
+            "location"
+          ],
+          [
+            "player",
+            "olympic_gold_medals"
+          ],
+          [
+            "city",
+            "gdp"
+          ],
+          [
+            "player",
+            "nationality"
+          ],
+          [
+            "city",
+            "city_name"
+          ],
+          [
+            "player",
+            "team"
+          ],
+          [
+            "team",
+            "team_name"
+          ]
+        ],
+        "relationships": [],
+        "operators": [
+          "min",
+          "filter",
+          "join"
+        ],
+        "units": [],
+        "plan": {
+          "projections": [
+            {
+              "entity": "team",
+              "attribute": "location",
+              "semantic_type": "text"
+            }
+          ],
+          "group_by": [
+            {
+              "entity": "team",
+              "attribute": "location",
+              "semantic_type": "text"
+            }
+          ],
+          "aggregates": [
+            {
+              "function": "min",
+              "attribute": {
+                "entity": "player",
+                "attribute": "olympic_gold_medals",
+                "semantic_type": "integer"
+              },
+              "alias": "min_olympic_gold_medals",
+              "distinct": false
+            }
+          ],
+          "predicate": {
+            "kind": "or",
+            "attribute": null,
+            "operator": "=",
+            "value": null,
+            "children": [
+              {
+                "kind": "predicate",
+                "attribute": {
+                  "entity": "city",
+                  "attribute": "gdp",
+                  "semantic_type": "real"
+                },
+                "operator": ">=",
+                "value": 100,
+                "children": []
+              },
+              {
+                "kind": "predicate",
+                "attribute": {
+                  "entity": "player",
+                  "attribute": "nationality",
+                  "semantic_type": "text"
+                },
+                "operator": "=",
+                "value": "American",
+                "children": []
+              }
+            ]
+          },
+          "joins": [
+            {
+              "left": {
+                "entity": "team",
+                "attribute": "team_name",
+                "semantic_type": "text"
+              },
+              "right": {
+                "entity": "player",
+                "attribute": "team",
+                "semantic_type": "text"
+              },
+              "join_type": "inner"
+            },
+            {
+              "left": {
+                "entity": "team",
+                "attribute": "location",
+                "semantic_type": "text"
+              },
+              "right": {
+                "entity": "city",
+                "attribute": "city_name",
+                "semantic_type": "text"
+              },
+              "join_type": "inner"
+            }
+          ]
+        }
+      },
+      {
+        "query_id": "agg_filter_join_gen_288",
+        "text": "What is the average player age for each team when the team is based in Los Angeles or the player has won at least one MVP award?",
+        "entities": [
+          "player",
+          "team"
+        ],
+        "attributes": [
+          "team_name",
+          "age",
+          "location",
+          "mvp_awards",
+          "team"
+        ],
+        "attribute_bindings": [
+          [
+            "team",
+            "team_name"
+          ],
+          [
+            "player",
+            "age"
+          ],
+          [
+            "team",
+            "location"
+          ],
+          [
+            "player",
+            "mvp_awards"
+          ],
+          [
+            "player",
+            "team"
+          ]
+        ],
+        "relationships": [],
+        "operators": [
+          "avg",
+          "group_by",
+          "filter",
+          "join"
+        ],
+        "units": [],
+        "plan": {
+          "projections": [
+            {
+              "entity": "team",
+              "attribute": "team_name",
+              "semantic_type": "text"
+            }
+          ],
+          "group_by": [
+            {
+              "entity": "team",
+              "attribute": "team_name",
+              "semantic_type": "text"
+            }
+          ],
+          "aggregates": [
+            {
+              "function": "avg",
+              "attribute": {
+                "entity": "player",
+                "attribute": "age",
+                "semantic_type": "integer"
+              },
+              "alias": "avg_age",
+              "distinct": false
+            }
+          ],
+          "predicate": {
+            "kind": "or",
+            "attribute": null,
+            "operator": "=",
+            "value": null,
+            "children": [
+              {
+                "kind": "predicate",
+                "attribute": {
+                  "entity": "team",
+                  "attribute": "location",
+                  "semantic_type": "text"
+                },
+                "operator": "=",
+                "value": "Los Angeles",
+                "children": []
+              },
+              {
+                "kind": "predicate",
+                "attribute": {
+                  "entity": "player",
+                  "attribute": "mvp_awards",
+                  "semantic_type": "integer"
+                },
+                "operator": ">",
+                "value": 0,
+                "children": []
+              }
+            ]
+          },
+          "joins": [
+            {
+              "left": {
+                "entity": "team",
+                "attribute": "team_name",
+                "semantic_type": "text"
+              },
+              "right": {
+                "entity": "player",
+                "attribute": "team",
+                "semantic_type": "text"
+              },
+              "join_type": "inner"
+            }
+          ]
+        }
+      },
+      {
+        "query_id": "agg_filter_join_gen_291",
+        "text": "For each team, how many players either play for a team based in San Antonio or have no Olympic gold medals?",
+        "entities": [
+          "team",
+          "player"
+        ],
+        "attributes": [
+          "team_name",
+          "location",
+          "olympic_gold_medals",
+          "team"
+        ],
+        "attribute_bindings": [
+          [
+            "team",
+            "team_name"
+          ],
+          [
+            "team",
+            "location"
+          ],
+          [
+            "player",
+            "olympic_gold_medals"
+          ],
+          [
+            "player",
+            "team"
+          ]
+        ],
+        "relationships": [],
+        "operators": [
+          "count",
+          "group_by",
+          "filter",
+          "join"
+        ],
+        "units": [],
+        "plan": {
+          "projections": [
+            {
+              "entity": "team",
+              "attribute": "team_name",
+              "semantic_type": "text"
+            }
+          ],
+          "group_by": [
+            {
+              "entity": "team",
+              "attribute": "team_name",
+              "semantic_type": "text"
+            }
+          ],
+          "aggregates": [
+            {
+              "function": "count",
+              "attribute": null,
+              "alias": "count_all",
+              "distinct": false
+            }
+          ],
+          "predicate": {
+            "kind": "or",
+            "attribute": null,
+            "operator": "=",
+            "value": null,
+            "children": [
+              {
+                "kind": "predicate",
+                "attribute": {
+                  "entity": "team",
+                  "attribute": "location",
+                  "semantic_type": "text"
+                },
+                "operator": "=",
+                "value": "San Antonio",
+                "children": []
+              },
+              {
+                "kind": "predicate",
+                "attribute": {
+                  "entity": "player",
+                  "attribute": "olympic_gold_medals",
+                  "semantic_type": "integer"
+                },
+                "operator": "is_null",
+                "value": null,
+                "children": []
+              }
+            ]
+          },
+          "joins": [
+            {
+              "left": {
+                "entity": "team",
+                "attribute": "team_name",
+                "semantic_type": "text"
+              },
+              "right": {
+                "entity": "player",
+                "attribute": "team",
+                "semantic_type": "text"
+              },
+              "join_type": "inner"
+            }
+          ]
+        }
+      },
+      {
+        "query_id": "agg_filter_join_gen_202",
+        "text": "Among players whose teams are based in cities with fewer than two million residents, how many players are there of each nationality?",
+        "entities": [
+          "player",
+          "city",
+          "team"
+        ],
+        "attributes": [
+          "nationality",
+          "population",
+          "location",
+          "team",
+          "team_name",
+          "city_name"
+        ],
+        "attribute_bindings": [
+          [
+            "player",
+            "nationality"
+          ],
+          [
+            "city",
+            "population"
+          ],
+          [
+            "team",
+            "location"
+          ],
+          [
+            "player",
+            "team"
+          ],
+          [
+            "team",
+            "team_name"
+          ],
+          [
+            "city",
+            "city_name"
+          ]
+        ],
+        "relationships": [],
+        "operators": [
+          "count",
+          "group_by",
+          "filter",
+          "join"
+        ],
+        "units": [],
+        "plan": {
+          "projections": [
+            {
+              "entity": "player",
+              "attribute": "nationality",
+              "semantic_type": "text"
+            }
+          ],
+          "group_by": [
+            {
+              "entity": "player",
+              "attribute": "nationality",
+              "semantic_type": "text"
+            }
+          ],
+          "aggregates": [
+            {
+              "function": "count",
+              "attribute": null,
+              "alias": "count_all",
+              "distinct": false
+            }
+          ],
+          "predicate": {
+            "kind": "predicate",
+            "attribute": {
+              "entity": "city",
+              "attribute": "population",
+              "semantic_type": "integer"
+            },
+            "operator": "<",
+            "value": 2000000,
+            "children": []
+          },
+          "joins": [
+            {
+              "left": {
+                "entity": "team",
+                "attribute": "team_name",
+                "semantic_type": "text"
+              },
+              "right": {
+                "entity": "player",
+                "attribute": "team",
+                "semantic_type": "text"
+              },
+              "join_type": "inner"
+            },
+            {
+              "left": {
+                "entity": "team",
+                "attribute": "location",
+                "semantic_type": "text"
+              },
+              "right": {
+                "entity": "city",
+                "attribute": "city_name",
+                "semantic_type": "text"
+              },
+              "join_type": "inner"
+            }
+          ]
+        }
+      },
+      {
+        "query_id": "agg_filter_join_gen_172",
+        "text": "For teams based in Boston, what is the highest championship count at each team location?",
+        "entities": [
+          "team",
+          "city"
+        ],
+        "attributes": [
+          "team_name",
+          "city_name",
+          "championship",
+          "location"
+        ],
+        "attribute_bindings": [
+          [
+            "team",
+            "team_name"
+          ],
+          [
+            "city",
+            "city_name"
+          ],
+          [
+            "team",
+            "championship"
+          ],
+          [
+            "team",
+            "location"
+          ]
+        ],
+        "relationships": [],
+        "operators": [
+          "max",
+          "group_by",
+          "filter",
+          "join"
+        ],
+        "units": [],
+        "plan": {
+          "projections": [
+            {
+              "entity": "team",
+              "attribute": "team_name",
+              "semantic_type": "text"
+            },
+            {
+              "entity": "city",
+              "attribute": "city_name",
+              "semantic_type": "text"
+            }
+          ],
+          "group_by": [
+            {
+              "entity": "city",
+              "attribute": "city_name",
+              "semantic_type": "text"
+            }
+          ],
+          "aggregates": [
+            {
+              "function": "max",
+              "attribute": {
+                "entity": "team",
+                "attribute": "championship",
+                "semantic_type": "integer"
+              },
+              "alias": "max_championship",
+              "distinct": false
+            }
+          ],
+          "predicate": {
+            "kind": "predicate",
+            "attribute": {
+              "entity": "city",
+              "attribute": "city_name",
+              "semantic_type": "text"
+            },
+            "operator": "=",
+            "value": "Boston",
+            "children": []
+          },
+          "joins": [
+            {
+              "left": {
+                "entity": "team",
+                "attribute": "location",
+                "semantic_type": "text"
+              },
+              "right": {
+                "entity": "city",
+                "attribute": "city_name",
+                "semantic_type": "text"
+              },
+              "join_type": "inner"
+            }
+          ]
+        }
+      },
+      {
+        "query_id": "mixed_queries_filter_agg_join_11",
+        "text": "By nationality, total the MVP awards for players who are not on the Milwaukee Bucks, have won more than two NBA championships, or play for a team founded in a year other than 1949.",
+        "entities": [
+          "player",
+          "team",
+          "owner"
+        ],
+        "attributes": [
+          "nationality",
+          "mvp_awards",
+          "nba_team",
+          "nba_championships",
+          "founded_year",
+          "team_name"
+        ],
+        "attribute_bindings": [
+          [
+            "player",
+            "nationality"
+          ],
+          [
+            "player",
+            "mvp_awards"
+          ],
+          [
+            "owner",
+            "nba_team"
+          ],
+          [
+            "player",
+            "nba_championships"
+          ],
+          [
+            "team",
+            "founded_year"
+          ],
+          [
+            "team",
+            "team_name"
+          ]
+        ],
+        "relationships": [],
+        "operators": [
+          "sum",
+          "group_by",
+          "filter",
+          "join"
+        ],
+        "units": [],
+        "plan": {
+          "projections": [
+            {
+              "entity": "player",
+              "attribute": "nationality",
+              "semantic_type": "text"
+            }
+          ],
+          "group_by": [
+            {
+              "entity": "player",
+              "attribute": "nationality",
+              "semantic_type": "text"
+            }
+          ],
+          "aggregates": [
+            {
+              "function": "sum",
+              "attribute": {
+                "entity": "player",
+                "attribute": "mvp_awards",
+                "semantic_type": "integer"
+              },
+              "alias": "sum_mvp_awards",
+              "distinct": false
+            }
+          ],
+          "predicate": {
+            "kind": "and",
+            "attribute": null,
+            "operator": "=",
+            "value": null,
+            "children": [
+              {
+                "kind": "predicate",
+                "attribute": {
+                  "entity": "owner",
+                  "attribute": "nba_team",
+                  "semantic_type": "text"
+                },
+                "operator": "=",
+                "value": [
+                  "Milwaukee Bucks"
+                ],
+                "children": []
+              },
+              {
+                "kind": "predicate",
+                "attribute": {
+                  "entity": "player",
+                  "attribute": "nba_championships",
+                  "semantic_type": "integer"
+                },
+                "operator": ">",
+                "value": 2,
+                "children": []
+              },
+              {
+                "kind": "predicate",
+                "attribute": {
+                  "entity": "team",
+                  "attribute": "founded_year",
+                  "semantic_type": "integer"
+                },
+                "operator": "=",
+                "value": 1949,
+                "children": []
+              }
+            ]
+          },
+          "joins": [
+            {
+              "left": {
+                "entity": "team",
+                "attribute": "team_name",
+                "semantic_type": "text"
+              },
+              "right": {
+                "entity": "player",
+                "attribute": "team",
+                "semantic_type": "text"
+              },
+              "join_type": "inner"
+            },
+            {
+              "left": {
+                "entity": "team",
+                "attribute": "location",
+                "semantic_type": "text"
+              },
+              "right": {
+                "entity": "city",
+                "attribute": "city_name",
+                "semantic_type": "text"
+              },
+              "join_type": "inner"
+            },
+            {
+              "left": {
+                "entity": "owner",
+                "attribute": "nba_team",
+                "semantic_type": "text"
+              },
+              "right": {
+                "entity": "team",
+                "attribute": "team_name",
+                "semantic_type": "text"
+              },
+              "join_type": "inner"
+            }
+          ]
+        }
+      },
+      {
+        "query_id": "agg_temporal_expanded_10",
+        "text": "Among players born on March 23, 1919, what is the highest draft-pick number at each position?",
+        "entities": [
+          "player"
+        ],
+        "attributes": [
+          "position",
+          "draft_pick",
+          "birth_date"
+        ],
+        "attribute_bindings": [
+          [
+            "player",
+            "position"
+          ],
+          [
+            "player",
+            "draft_pick"
+          ],
+          [
+            "player",
+            "birth_date"
+          ]
+        ],
+        "relationships": [],
+        "operators": [
+          "max",
+          "group_by",
+          "filter"
+        ],
+        "units": [],
+        "plan": {
+          "projections": [
+            {
+              "entity": "player",
+              "attribute": "position",
+              "semantic_type": "text"
+            }
+          ],
+          "group_by": [
+            {
+              "entity": "player",
+              "attribute": "position",
+              "semantic_type": "text"
+            }
+          ],
+          "aggregates": [
+            {
+              "function": "max",
+              "attribute": {
+                "entity": "player",
+                "attribute": "draft_pick",
+                "semantic_type": "integer"
+              },
+              "alias": "max_draft_pick",
+              "distinct": false
+            }
+          ],
+          "predicate": {
+            "kind": "predicate",
+            "attribute": {
+              "entity": "player",
+              "attribute": "birth_date",
+              "semantic_type": "date"
+            },
+            "operator": "=",
+            "value": "1919-03-23",
+            "children": []
+          },
+          "joins": []
+        }
+      },
+      {
+        "query_id": "agg_temporal_expanded_4",
+        "text": "How many players are there at each position whose teams were founded after 1946?",
+        "entities": [
+          "player",
+          "team"
+        ],
+        "attributes": [
+          "position",
+          "team_name",
+          "founded_year",
+          "team"
+        ],
+        "attribute_bindings": [
+          [
+            "player",
+            "position"
+          ],
+          [
+            "team",
+            "team_name"
+          ],
+          [
+            "team",
+            "founded_year"
+          ],
+          [
+            "player",
+            "team"
+          ]
+        ],
+        "relationships": [],
+        "operators": [
+          "count",
+          "group_by",
+          "filter",
+          "join"
+        ],
+        "units": [],
+        "plan": {
+          "projections": [
+            {
+              "entity": "player",
+              "attribute": "position",
+              "semantic_type": "text"
+            },
+            {
+              "entity": "team",
+              "attribute": "team_name",
+              "semantic_type": "text"
+            }
+          ],
+          "group_by": [
+            {
+              "entity": "player",
+              "attribute": "position",
+              "semantic_type": "text"
+            }
+          ],
+          "aggregates": [
+            {
+              "function": "count",
+              "attribute": null,
+              "alias": "count_all",
+              "distinct": false
+            }
+          ],
+          "predicate": {
+            "kind": "predicate",
+            "attribute": {
+              "entity": "team",
+              "attribute": "founded_year",
+              "semantic_type": "integer"
+            },
+            "operator": ">",
+            "value": 1946,
+            "children": []
+          },
+          "joins": [
+            {
+              "left": {
+                "entity": "team",
+                "attribute": "team_name",
+                "semantic_type": "text"
+              },
+              "right": {
+                "entity": "player",
+                "attribute": "team",
+                "semantic_type": "text"
+              },
+              "join_type": "inner"
+            }
+          ]
+        }
+      },
+      {
+        "query_id": "agg_temporal_gen_514",
+        "text": "For every team founded in 1946 or earlier, how many players are on that team?",
+        "entities": [
+          "team",
+          "player"
+        ],
+        "attributes": [
+          "team_name",
+          "founded_year",
+          "team"
+        ],
+        "attribute_bindings": [
+          [
+            "team",
+            "team_name"
+          ],
+          [
+            "team",
+            "founded_year"
+          ],
+          [
+            "team",
+            "founded_year"
+          ],
+          [
+            "player",
+            "team"
+          ]
+        ],
+        "relationships": [],
+        "operators": [
+          "count",
+          "group_by",
+          "filter",
+          "join"
+        ],
+        "units": [],
+        "plan": {
+          "projections": [
+            {
+              "entity": "team",
+              "attribute": "team_name",
+              "semantic_type": "text"
+            }
+          ],
+          "group_by": [
+            {
+              "entity": "team",
+              "attribute": "founded_year",
+              "semantic_type": "integer"
+            }
+          ],
+          "aggregates": [
+            {
+              "function": "count",
+              "attribute": null,
+              "alias": "count_all",
+              "distinct": false
+            }
+          ],
+          "predicate": {
+            "kind": "predicate",
+            "attribute": {
+              "entity": "team",
+              "attribute": "founded_year",
+              "semantic_type": "text"
+            },
+            "operator": "<=",
+            "value": 1946,
+            "children": []
+          },
+          "joins": []
+        }
+      },
+      {
+        "query_id": "agg_temporal_gen_507",
+        "text": "For players on teams founded after 1946, what is the average player age for each nationality?",
+        "entities": [
+          "player",
+          "team"
+        ],
+        "attributes": [
+          "nationality",
+          "age",
+          "founded_year",
+          "team"
+        ],
+        "attribute_bindings": [
+          [
+            "player",
+            "nationality"
+          ],
+          [
+            "player",
+            "age"
+          ],
+          [
+            "team",
+            "founded_year"
+          ],
+          [
+            "player",
+            "team"
+          ]
+        ],
+        "relationships": [],
+        "operators": [
+          "avg",
+          "group_by",
+          "filter",
+          "join"
+        ],
+        "units": [],
+        "plan": {
+          "projections": [
+            {
+              "entity": "player",
+              "attribute": "nationality",
+              "semantic_type": "text"
+            }
+          ],
+          "group_by": [
+            {
+              "entity": "player",
+              "attribute": "nationality",
+              "semantic_type": "text"
+            }
+          ],
+          "aggregates": [
+            {
+              "function": "avg",
+              "attribute": {
+                "entity": "player",
+                "attribute": "age",
+                "semantic_type": "integer"
+              },
+              "alias": "avg_age",
+              "distinct": false
+            }
+          ],
+          "predicate": {
+            "kind": "predicate",
+            "attribute": {
+              "entity": "team",
+              "attribute": "founded_year",
+              "semantic_type": "integer"
+            },
+            "operator": ">",
+            "value": 1946,
+            "children": []
+          },
+          "joins": [
+            {
+              "left": {
+                "entity": "team",
+                "attribute": "team_name",
+                "semantic_type": "text"
+              },
+              "right": {
+                "entity": "player",
+                "attribute": "team",
+                "semantic_type": "text"
+              },
+              "join_type": "inner"
+            }
+          ]
+        }
+      }
+    ],
+    "entity_frequency": {
+      "player": 24,
+      "team": 19,
+      "owner": 2,
+      "city": 7
+    },
+    "attribute_frequency": {
+      "position": 6,
+      "college": 3,
+      "nba_championships": 3,
+      "nationality": 11,
+      "team_name": 16,
+      "mvp_awards": 5,
+      "team": 16,
+      "olympic_gold_medals": 5,
+      "fiba_world_cup": 1,
+      "age": 4,
+      "draft_pick": 2,
+      "name": 2,
+      "location": 9,
+      "championship": 3,
+      "city_name": 5,
+      "gdp": 1,
+      "population": 1,
+      "nba_team": 1,
+      "founded_year": 4,
+      "birth_date": 1
+    },
+    "operator_frequency": {
+      "count": 8,
+      "sum": 6,
+      "group_by": 21,
+      "join": 18,
+      "max": 4,
+      "avg": 4,
+      "<": 1,
+      "min": 3,
+      "filter": 14,
+      "{'kind': 'and', 'children': [{'kind': 'or', 'children': [{'kind': 'and', 'children': [{'kind': 'contains', 'entity': 'player.nationality', 'value': 'nigerian-american'}, {'kind': 'is_not_null', 'entity': 'player.nationality', 'value': none}]}, {'kind': 'and', 'children': [{'kind': 'not_contains', 'entity': 'player.nationality', 'value': 'croatian'}, {'kind': 'is_not_null', 'entity': 'player.nationality', 'value': none}]}]}, {'kind': 'and', 'children': [{'kind': 'not_equal', 'entity': 'team.team_name', 'value': 'bursaspor basketbol'}, {'kind': 'is_not_null', 'entity': 'team.team_name', 'value': none}]}]}": 1
+    }
+  },
+  "tokens": {
+    "total_budget": 500000,
+    "actual_spent": 64499,
+    "reserved_outstanding": 0,
+    "available": 435501,
+    "by_stage": {
+      "workload_analysis": 64499
+    },
+    "by_config": {},
+    "by_query": {},
+    "charges": [
+      {
+        "reservation_id": "ed459548d72445f49558eb864a797184",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 5564,
+        "input_tokens": 702,
+        "output_tokens": 234,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657309.1606445,
+        "reconciled_at": 1784657316.876844
+      },
+      {
+        "reservation_id": "83b8ae24ab7b43538cb0fefe246253ca",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 5612,
+        "input_tokens": 775,
+        "output_tokens": 362,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657316.8789659,
+        "reconciled_at": 1784657322.9929552
+      },
+      {
+        "reservation_id": "56433b59af594e318bf4192042d6be1c",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 5559,
+        "input_tokens": 705,
+        "output_tokens": 393,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657322.9951086,
+        "reconciled_at": 1784657329.4536715
+      },
+      {
+        "reservation_id": "b2036b20d8404ed092d292213555e625",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 5898,
+        "input_tokens": 937,
+        "output_tokens": 451,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657329.4557662,
+        "reconciled_at": 1784657337.1734953
+      },
+      {
+        "reservation_id": "6d834ae938824f699bd3f0d81acfa272",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 5558,
+        "input_tokens": 701,
+        "output_tokens": 342,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657337.1755679,
+        "reconciled_at": 1784657343.1708336
+      },
+      {
+        "reservation_id": "f5449543a6da45ef91d88de25f8f2baf",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 5860,
+        "input_tokens": 912,
+        "output_tokens": 433,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657343.1726682,
+        "reconciled_at": 1784657350.7437313
+      },
+      {
+        "reservation_id": "71100f4e58444da6ac181fa0785337cb",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 5550,
+        "input_tokens": 701,
+        "output_tokens": 334,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657350.7453773,
+        "reconciled_at": 1784657356.3625767
+      },
+      {
+        "reservation_id": "ae3fbfd0f3ab4660a549c3a2361ef681",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 5746,
+        "input_tokens": 861,
+        "output_tokens": 494,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657356.3643212,
+        "reconciled_at": 1784657364.789321
+      },
+      {
+        "reservation_id": "ee600fb1aa63416a8eb091f1e3eb91f5",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 5548,
+        "input_tokens": 700,
+        "output_tokens": 185,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657364.7914286,
+        "reconciled_at": 1784657367.9710681
+      },
+      {
+        "reservation_id": "4def6f535ae147539a7a26de90eef70c",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 5490,
+        "input_tokens": 731,
+        "output_tokens": 269,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657367.9725542,
+        "reconciled_at": 1784657372.370988
+      },
+      {
+        "reservation_id": "73c3d7a25610494593122def5eb3fc4d",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 5548,
+        "input_tokens": 702,
+        "output_tokens": 410,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657372.3724084,
+        "reconciled_at": 1784657378.8662288
+      },
+      {
+        "reservation_id": "6c8a091287564648911885fb823e1b79",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 5185,
+        "input_tokens": 566,
+        "output_tokens": 244,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657378.8674088,
+        "reconciled_at": 1784657382.7856262
+      },
+      {
+        "reservation_id": "5cc5a567fc2d4ca1bdd107328610abc0",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 5575,
+        "input_tokens": 710,
+        "output_tokens": 412,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657382.7870426,
+        "reconciled_at": 1784657389.2654696
+      },
+      {
+        "reservation_id": "e333f9f2eac24f8e87a2d108ab8a0e71",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 6138,
+        "input_tokens": 1037,
+        "output_tokens": 636,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657389.2675843,
+        "reconciled_at": 1784657399.2635422
+      },
+      {
+        "reservation_id": "3534e5befa094d4fb4f40d5d7d7b6de6",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 5536,
+        "input_tokens": 693,
+        "output_tokens": 340,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657399.265088,
+        "reconciled_at": 1784657404.8747685
+      },
+      {
+        "reservation_id": "149751503a72432ea0f4f45c4987de85",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 5888,
+        "input_tokens": 916,
+        "output_tokens": 331,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657404.8767822,
+        "reconciled_at": 1784657410.470337
+      },
+      {
+        "reservation_id": "c85a2b3d0ed8479d8be47ed0b1d16ed4",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 5529,
+        "input_tokens": 690,
+        "output_tokens": 187,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657410.4720225,
+        "reconciled_at": 1784657413.7356136
+      },
+      {
+        "reservation_id": "dfb3f455d07542f3a60f102169b26643",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 5583,
+        "input_tokens": 766,
+        "output_tokens": 248,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657413.7371924,
+        "reconciled_at": 1784657417.9099078
+      },
+      {
+        "reservation_id": "3480deebefca4aebbab3921fbc01f857",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 5582,
+        "input_tokens": 716,
+        "output_tokens": 989,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657417.911745,
+        "reconciled_at": 1784657434.68694
+      },
+      {
+        "reservation_id": "e8b0085feef44cfb81c74910e0a7ad9e",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 6342,
+        "input_tokens": 1198,
+        "output_tokens": 668,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657434.6909778,
+        "reconciled_at": 1784657446.5376782
+      },
+      {
+        "reservation_id": "9417e02516b94a6ebafbb45019db2c41",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 5558,
+        "input_tokens": 702,
+        "output_tokens": 414,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657446.5398464,
+        "reconciled_at": 1784657453.5839128
+      },
+      {
+        "reservation_id": "c0696509c0ac435b8cbd84524f141365",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 6249,
+        "input_tokens": 1059,
+        "output_tokens": 661,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657453.5861096,
+        "reconciled_at": 1784657464.9183655
+      },
+      {
+        "reservation_id": "28c5d2170e714ec69ae0330cbc77dea7",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 5578,
+        "input_tokens": 708,
+        "output_tokens": 319,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657464.9200175,
+        "reconciled_at": 1784657470.3894818
+      },
+      {
+        "reservation_id": "73e5c4e12b604d23857d908835f6d0d0",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 5826,
+        "input_tokens": 879,
+        "output_tokens": 622,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657470.3912952,
+        "reconciled_at": 1784657480.9301116
+      },
+      {
+        "reservation_id": "fcd366283ead4b3b9477090a3e9d9637",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 5568,
+        "input_tokens": 704,
+        "output_tokens": 461,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657480.9324565,
+        "reconciled_at": 1784657489.0723617
+      },
+      {
+        "reservation_id": "a44aa7f839b942fc9c18ad84476e36f0",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 6027,
+        "input_tokens": 983,
+        "output_tokens": 631,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657489.0745125,
+        "reconciled_at": 1784657499.9536517
+      },
+      {
+        "reservation_id": "15cf89ed59f642ac924980707c9d2abf",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 5564,
+        "input_tokens": 705,
+        "output_tokens": 323,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657499.9559355,
+        "reconciled_at": 1784657505.3339546
+      },
+      {
+        "reservation_id": "4f35286d552d471eb85b7c5bc0305951",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 5794,
+        "input_tokens": 881,
+        "output_tokens": 448,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657505.335748,
+        "reconciled_at": 1784657512.6111586
+      },
+      {
+        "reservation_id": "7f5340f0a0b94801ae565e87d779cb6f",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 5550,
+        "input_tokens": 699,
+        "output_tokens": 374,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657512.6127481,
+        "reconciled_at": 1784657518.5124562
+      },
+      {
+        "reservation_id": "21c933ce3cf14e4e95e6c57d95db57e0",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 5894,
+        "input_tokens": 934,
+        "output_tokens": 463,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657518.5145829,
+        "reconciled_at": 1784657525.8798566
+      },
+      {
+        "reservation_id": "d4931081f60d4424859d3fa5793ba6cf",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 5590,
+        "input_tokens": 721,
+        "output_tokens": 537,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657525.882008,
+        "reconciled_at": 1784657534.2666965
+      },
+      {
+        "reservation_id": "3759acd13bc44c28bdb38ca0bc6f86cc",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 6504,
+        "input_tokens": 1209,
+        "output_tokens": 690,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657534.2691107,
+        "reconciled_at": 1784657545.2251487
+      },
+      {
+        "reservation_id": "3834b22047674ef188261724b3167e71",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 5574,
+        "input_tokens": 712,
+        "output_tokens": 512,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657545.227625,
+        "reconciled_at": 1784657553.310533
+      },
+      {
+        "reservation_id": "abeb6a5c1071432083cc0d3d11d9fb08",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 6482,
+        "input_tokens": 1190,
+        "output_tokens": 574,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657553.3130083,
+        "reconciled_at": 1784657562.527614
+      },
+      {
+        "reservation_id": "f9953a45e3604470a411558e2451d6c3",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 5563,
+        "input_tokens": 707,
+        "output_tokens": 621,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657562.5292084,
+        "reconciled_at": 1784657573.3410542
+      },
+      {
+        "reservation_id": "e19a7472961b4834885b708a05196273",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 6297,
+        "input_tokens": 1097,
+        "output_tokens": 671,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657573.3433259,
+        "reconciled_at": 1784657584.0782194
+      },
+      {
+        "reservation_id": "4fe89bc88dfe42428c21fa91a56e32f7",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 5576,
+        "input_tokens": 708,
+        "output_tokens": 384,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657584.079846,
+        "reconciled_at": 1784657590.3105292
+      },
+      {
+        "reservation_id": "b20b1b0c88a94a0788d4614f4ba830dd",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 6146,
+        "input_tokens": 1034,
+        "output_tokens": 760,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657590.313211,
+        "reconciled_at": 1784657602.7868319
+      },
+      {
+        "reservation_id": "bd08aa45a47949fba94b8f1609baee4e",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 5554,
+        "input_tokens": 701,
+        "output_tokens": 334,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657602.7884696,
+        "reconciled_at": 1784657608.0348337
+      },
+      {
+        "reservation_id": "47e547f3976e49a0ab3688a67dee3ba7",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 5828,
+        "input_tokens": 893,
+        "output_tokens": 594,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657608.0366697,
+        "reconciled_at": 1784657617.5213408
+      },
+      {
+        "reservation_id": "3b13b6258d2e4b4bb9dd21a80929b984",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 5604,
+        "input_tokens": 726,
+        "output_tokens": 501,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657617.5232446,
+        "reconciled_at": 1784657625.2723129
+      },
+      {
+        "reservation_id": "ee34e20bb8d64c2190977ea863674199",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 6459,
+        "input_tokens": 1206,
+        "output_tokens": 735,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657625.2756343,
+        "reconciled_at": 1784657637.0229943
+      },
+      {
+        "reservation_id": "81ec11c31d0340478a07fd3414042d01",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 5557,
+        "input_tokens": 711,
+        "output_tokens": 379,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657637.0256252,
+        "reconciled_at": 1784657643.3711145
+      },
+      {
+        "reservation_id": "4abb6704921947359b68e7dcabf0fe86",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 6015,
+        "input_tokens": 1002,
+        "output_tokens": 438,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657643.373194,
+        "reconciled_at": 1784657650.9768367
+      },
+      {
+        "reservation_id": "fc226e71074647a7a3453be7c71ac967",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 5550,
+        "input_tokens": 702,
+        "output_tokens": 382,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657650.9783826,
+        "reconciled_at": 1784657657.1799726
+      },
+      {
+        "reservation_id": "25ccde5041004dd293a5e85856400996",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 6070,
+        "input_tokens": 1005,
+        "output_tokens": 549,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657657.1820714,
+        "reconciled_at": 1784657666.4283931
+      },
+      {
+        "reservation_id": "11031a007f2b4cbfaf4cb2a6bd73f9c9",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 5547,
+        "input_tokens": 705,
+        "output_tokens": 340,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657666.429991,
+        "reconciled_at": 1784657672.0073261
+      },
+      {
+        "reservation_id": "d44bbb31e8574d829d352109eebad9f1",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 5753,
+        "input_tokens": 876,
+        "output_tokens": 404,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657672.0091438,
+        "reconciled_at": 1784657678.8537424
+      },
+      {
+        "reservation_id": "0da720c9d1434f7caf38f1f1a02739be",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 5555,
+        "input_tokens": 706,
+        "output_tokens": 437,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657678.8552716,
+        "reconciled_at": 1784657686.0344698
+      },
+      {
+        "reservation_id": "d7a2f853b7d8498ea4dc67c03a9ff0d2",
+        "stage": "workload_analysis",
+        "operation": "llm_generate",
+        "reserved_tokens": 5771,
+        "input_tokens": 875,
+        "output_tokens": 520,
+        "status": "completed",
+        "config_id": null,
+        "query_id": null,
+        "shared_key": null,
+        "error": null,
+        "created_at": 1784657686.0367234,
+        "reconciled_at": 1784657694.8860872
+      }
+    ]
+  }
+}

@@ -1,0 +1,33 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To find the required information, we need to follow these steps:
+
+1. Identify the player document and extract relevant details.
+2. Traverse the city -> team -> player structure as specified by the query.
+3. Extract the name, college, age (from birth year), and team from the player document.
+
+From the context provided:
+- The player is Kobe Bryant.
+- His birthday is August 23, 1978.
+- He played for the Los Angeles Lakers.
+- His college was not explicitly mentioned in the text but can be inferred as he went directly to the NBA after high school.
+
+Now let's fill in the required fields:
+
+```json
+{
+  "age": 2020 - 1978, 
+  "college": "Not specified (went directly from high school to NBA)",
+  "name": "Kobe Bryant",
+  "team": "Los Angeles Lakers"
+}
+```
+
+---
+
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: Starting from city and traversing city -> team -> player, list city name, state, team name, player name, and player college for players older than 20.. Return a short normalized string.'), 'college': FieldInfo(annotation=Union[str, Any], required=True, description='college from the player document for query: Starting from city and traversing city -> team -> player, list city name, state, team name, player name, and player college for players older than 20.. Return a short normalized string.'), 'age': FieldInfo(annotation=Union[float, Any], required=True, description='age from the player document for query: Starting from city and traversing city -> team -> player, list city name, state, team name, player name, and player college for players older than 20.. Return a number.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: Starting from city and traversing city -> team -> player, list city name, state, team name, player name, and player college for players older than 20.. Return a short normalized string.')}
+#####
+Expecting ',' delimiter: line 1 column 17 (char 16)

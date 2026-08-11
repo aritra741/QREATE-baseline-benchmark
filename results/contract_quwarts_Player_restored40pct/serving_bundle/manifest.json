@@ -1,0 +1,240 @@
+{
+  "version": 1,
+  "portfolio": {
+    "selected_config_ids": [
+      "schema=snowflake:37414670ed37|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive"
+    ],
+    "query_to_config": {
+      "q0": "schema=snowflake:37414670ed37|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+      "q1": "schema=snowflake:37414670ed37|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+      "q2": "schema=snowflake:37414670ed37|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+      "q3": "schema=snowflake:37414670ed37|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+      "q4": "schema=snowflake:37414670ed37|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+      "q5": "schema=snowflake:37414670ed37|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+      "q6": "schema=snowflake:37414670ed37|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+      "q7": "schema=snowflake:37414670ed37|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+      "q8": "schema=snowflake:37414670ed37|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+      "q9": "schema=snowflake:37414670ed37|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+      "q10": "schema=snowflake:37414670ed37|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+      "q11": "schema=snowflake:37414670ed37|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+      "q12": "schema=snowflake:37414670ed37|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+      "q13": "schema=snowflake:37414670ed37|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+      "q14": "schema=snowflake:37414670ed37|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+      "q15": "schema=snowflake:37414670ed37|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+      "q16": "schema=snowflake:37414670ed37|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+      "q17": "schema=snowflake:37414670ed37|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+      "q18": "schema=snowflake:37414670ed37|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+      "q19": "schema=snowflake:37414670ed37|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive"
+    },
+    "query_scores": {
+      "q0": 0.0,
+      "q1": 0.0,
+      "q2": 0.0,
+      "q3": 0.0,
+      "q4": 0.0,
+      "q5": 0.0,
+      "q6": 0.0,
+      "q7": 0.0,
+      "q8": 0.0,
+      "q9": 0.0,
+      "q10": 0.0,
+      "q11": 0.0,
+      "q12": 0.6608185115746193,
+      "q13": 0.0,
+      "q14": 0.0,
+      "q15": 0.6649644989711663,
+      "q16": 0.0,
+      "q17": 0.0,
+      "q18": 0.0,
+      "q19": 0.0
+    },
+    "construction_tokens": 21036918,
+    "objective_value": 1.3257830105457855
+  },
+  "databases": [
+    {
+      "config_id": "schema=snowflake:37414670ed37|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+      "filename": "databases/a698351a10e97b15.sqlite",
+      "sha256": "f07919f090ed17a439df89808234aca58e8f4442d424edb6a3ef82f3eacaafa0",
+      "size_bytes": 90112
+    }
+  ],
+  "queries": [
+    {
+      "query_id": "q0",
+      "natural_language_query": "Among players with a known position, what is the average age at each position?",
+      "config_id": "schema=snowflake:37414670ed37|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+      "sql": "SELECT \"t11\".\"position\", AVG(\"t11\".\"age\") AS \"avg_age\"\nFROM \"player\" AS \"t11\"\nWHERE (\"t11\".\"position_id\" IS NOT NULL AND \"t11\".\"position\" IS NOT NULL)\nGROUP BY \"t11\".\"position\"",
+      "sql_sha256": "e64ab6543287bd45fc7a46158235789f885fdf19667fdc4283014ff2dce67a86",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q1",
+      "natural_language_query": "How many players are there for each nationality?",
+      "config_id": "schema=snowflake:37414670ed37|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+      "sql": "SELECT \"t11\".\"nationality\", COUNT(*) AS \"count_all\"\nFROM \"player\" AS \"t11\"\nGROUP BY \"t11\".\"nationality\"",
+      "sql_sha256": "3aedb90d91cf3f886b0eb77e9d9202577f1e4df74d2d81d11cc9270ffdcb7703",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q2",
+      "natural_language_query": "For each current NBA team, what is the average number of NBA championships won by its listed players?",
+      "config_id": "schema=snowflake:37414670ed37|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+      "sql": "SELECT \"t16\".\"name\", AVG(\"t11\".\"championships\") AS \"avg_championships\"\nFROM \"team\" AS \"t16\"\nJOIN \"player\" AS \"t11\" ON \"t11\".\"team_name\" = \"t16\".\"current_nba_team_name\"\nGROUP BY \"t16\".\"name\"",
+      "sql_sha256": "585e61935a597ef4a7d7c2d35c3d144f7b8c5dd5a290e277e0efd0807d934106",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q3",
+      "natural_language_query": "Among colleges with more than one player in the league, what is the highest number of MVP awards won by any of its players?",
+      "config_id": "schema=snowflake:37414670ed37|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+      "sql": "SELECT \"t1\".\"college\", MAX(\"t4\".\"awards\") AS \"max_mvp_award_awards\"\nFROM \"college\" AS \"t1\"\nJOIN \"player\" AS \"t11\" ON \"t1\".\"college\" = \"t11\".\"college_id\"\nJOIN \"league\" AS \"t3\" ON \"t3\".\"name\" = \"t11\".\"college_id\"\nJOIN \"mvp_award\" AS \"t4\" ON \"t4\".\"player_id\" = \"t11\".\"id\"\nGROUP BY \"t1\".\"college\"\nHAVING COUNT(*) > 1",
+      "sql_sha256": "8a1d46cec02968d6cae0614c443d3dad389132eda110b2c5225f1c8cacaf68df",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q4",
+      "natural_language_query": "Among players with a known position, what is the total number of MVP awards won at each position?",
+      "config_id": "schema=snowflake:37414670ed37|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+      "sql": "SELECT \"t11\".\"position\", SUM(\"t4\".\"none\") AS \"sum_mvp_award_none\"\nFROM \"player\" AS \"t11\"\nJOIN \"mvp_award\" AS \"t4\" ON \"t11\".\"position\" = \"t4\".\"player_id\"\nWHERE \"t11\".\"position\" IS NOT NULL\nGROUP BY \"t11\".\"position\"",
+      "sql_sha256": "35ce4ae592015e819f35ff614e933c2c270f6ddc5795f54a09b0ba3c5756c216",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q5",
+      "natural_language_query": "Among players with at least one NBA championship, what is the most championships won by any player of each nationality?",
+      "config_id": "schema=snowflake:37414670ed37|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+      "sql": "SELECT \"t11\".\"nationality\", MAX(\"t11\".\"championships\") AS \"max_championships\"\nFROM \"player\" AS \"t11\"\nWHERE \"t11\".\"championships\" >= 1\nGROUP BY \"t11\".\"nationality\"",
+      "sql_sha256": "7d3a98d3c035224a12847832546f1993aae0dd74d53ec3b3ab6ffe6ea531aaaf",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q6",
+      "natural_language_query": "How many players were drafted in each year after 2010?",
+      "config_id": "schema=snowflake:37414670ed37|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+      "sql": "SELECT \"t2\".\"draft_year\", COUNT(*) AS \"count_all\"\nFROM \"draft\" AS \"t2\"\nWHERE \"t2\".\"draft_year\" > 2010\nGROUP BY \"t2\".\"draft_year\"",
+      "sql_sha256": "87896c243b861736e249efe3fdc9fd9236821e0cf16c00bc84ed4dbbd9879271",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q7",
+      "natural_language_query": "For each current NBA team, what is the earliest (lowest) draft pick among its drafted players?",
+      "config_id": "schema=snowflake:37414670ed37|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+      "sql": "SELECT \"t16\".\"team_id\", MIN(\"t11\".\"draft_pick\") AS \"min_draft_pick\"\nFROM \"team\" AS \"t16\"\nJOIN \"player\" AS \"t11\" ON \"t11\".\"team_name\" = \"t16\".\"current_nba_team_name\"\nGROUP BY \"t16\".\"team_id\"",
+      "sql_sha256": "893a9a56bf5d967905e220008a46fd5ad29cde07deca9d081233b71f77b5e6e5",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q8",
+      "natural_language_query": "Among players with a known position and at least one Olympic gold medal, what is the average number of Olympic golds at each position?",
+      "config_id": "schema=snowflake:37414670ed37|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+      "sql": "SELECT \"t11\".\"position\", AVG(\"t11\".\"olympic_medal.gold_count\") AS \"avg_olympic_medal.gold_count\"\nFROM \"player\" AS \"t11\"\nWHERE \"t11\".\"position\" IS NOT NULL\nGROUP BY \"t11\".\"position\"",
+      "sql_sha256": "0d24a9549bad7bbeb01bd393561f781c0c8043cd9c8dfc5c8910a90f2ed96bbd",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q9",
+      "natural_language_query": "For each college, how many of its players have won at least one NBA championship?",
+      "config_id": "schema=snowflake:37414670ed37|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+      "sql": "SELECT \"t1\".\"college\", COUNT(*) AS \"count_all\"\nFROM \"college\" AS \"t1\"\nJOIN \"player\" AS \"t11\" ON \"t1\".\"college\" = \"t11\".\"college_id\"\nWHERE \"t11\".\"nba_championships_won\" >= 1\nGROUP BY \"t1\".\"college\"",
+      "sql_sha256": "c16036a0ae4bde4b8c66278cde50595403655492cc4a84d1c9c0a2220eade8c0",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q10",
+      "natural_language_query": "Among players with at least one FIBA World Cup title, what is the total number of FIBA titles for each current NBA team?",
+      "config_id": "schema=snowflake:37414670ed37|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+      "sql": "SELECT \"t16\".\"current_nba_team_name\", SUM(\"t11\".\"fiba_title_count\") AS \"sum_player_fiba_title_count\"\nFROM \"team\" AS \"t16\"\nJOIN \"player\" AS \"t11\" ON \"t11\".\"team_name\" = \"t16\".\"current_nba_team_name\"\nWHERE (\"t11\".\"fiba_title_count\" > 0 AND \"t11\".\"current_nba_team\" IS NOT NULL)\nGROUP BY \"t16\".\"current_nba_team_name\"",
+      "sql_sha256": "3c2062d85e8fb7e4e1544d9c9dee64126cd6080f1b943ebf7d808a897facb293",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q11",
+      "natural_language_query": "How many players aged 20 to 40 are there for each nationality?",
+      "config_id": "schema=snowflake:37414670ed37|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+      "sql": "SELECT \"t11\".\"nationality\", COUNT(*) AS \"count_all\"\nFROM \"player\" AS \"t11\"\nWHERE (\"t11\".\"age\" >= 20 AND \"t11\".\"age\" <= 40)\nGROUP BY \"t11\".\"nationality\"",
+      "sql_sha256": "38c1056bd468674caea734d7bf64c1292073edd8b83998b76c20ed8a904b00c0",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q12",
+      "natural_language_query": "For each city that hosts an NBA team, what is the most championships won by any team there?",
+      "config_id": "schema=snowflake:37414670ed37|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+      "sql": "SELECT \"t0\".\"name\", MAX(\"t16\".\"championships_won\") AS \"max_nba_team_championships_won\"\nFROM \"city\" AS \"t0\"\nJOIN \"team\" AS \"t16\" ON \"t0\".\"name\" = \"t16\".\"name\"\nGROUP BY \"t0\".\"name\"",
+      "sql_sha256": "cc0d1cfe6b7a80ffd2a6e77382b4c64098f70df006673511eaa8d26a7d6f0282",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q13",
+      "natural_language_query": "How many teams founded before 1970 are based in each city?",
+      "config_id": "schema=snowflake:37414670ed37|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+      "sql": "SELECT \"t0\".\"name\", COUNT(*) AS \"count_all\"\nFROM \"city\" AS \"t0\"\nJOIN \"team\" AS \"t16\" ON \"t16\".\"name\" = \"t0\".\"name\"\nWHERE \"t16\".\"based_city\" < 1970\nGROUP BY \"t0\".\"name\"",
+      "sql_sha256": "6fb111521648e4e005df00754c3cd62eea20f8ff6d1fff8c41952c79df49c3bd",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q14",
+      "natural_language_query": "How many championships has each owner\u2019s team(s) won in total?",
+      "config_id": "schema=snowflake:37414670ed37|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+      "sql": "SELECT \"t9\".\"name\", SUM(\"t16\".\"championships_won\") AS \"sum_team_championships_won\"\nFROM \"owner\" AS \"t9\"\nJOIN \"team\" AS \"t16\" ON \"t9\".\"name\" = \"t16\".\"owner_name\"\nGROUP BY \"t9\".\"name\"",
+      "sql_sha256": "1a968e0566e9e357734afa74d8eed8bb9c539d5ce9639a627ad73ee94b2f97c4",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q15",
+      "natural_language_query": "Among teams with at least one championship, what is the average number of championships for teams in each city?",
+      "config_id": "schema=snowflake:37414670ed37|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+      "sql": "SELECT \"t0\".\"name\", AVG(\"t16\".\"championships\") AS \"avg_team_championships\"\nFROM \"city\" AS \"t0\"\nJOIN \"team\" AS \"t16\" ON \"t16\".\"name\" = \"t0\".\"name\"\nWHERE \"t16\".\"championships\" >= 1\nGROUP BY \"t0\".\"name\"",
+      "sql_sha256": "aee444464b0c8240ba54ba9c76ecc7389172166ccc5a2364eb3f5fe2e38a6885",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q16",
+      "natural_language_query": "What is the average owner age for each nationality?",
+      "config_id": "schema=snowflake:37414670ed37|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+      "sql": "SELECT \"t9\".\"nationality\", AVG(\"t9\".\"age\") AS \"avg_age\"\nFROM \"owner\" AS \"t9\"\nGROUP BY \"t9\".\"nationality\"",
+      "sql_sha256": "acfdc2af29fa89226e171213f0507d0e0fabee7844015ed4a2f1b8935acaebf9",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q17",
+      "natural_language_query": "Among owners who acquired their team in 2000 or later, what is the earliest acquisition year for each nationality?",
+      "config_id": "schema=snowflake:37414670ed37|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+      "sql": "SELECT \"t9\".\"nationality\", MIN(\"t16\".\"nationality\") AS \"min_team_nationality\"\nFROM \"owner\" AS \"t9\"\nJOIN \"team\" AS \"t16\" ON \"t9\".\"team_id\" = \"t16\".\"id\"\nWHERE \"t9\".\"acquisition_year\" >= 2000\nGROUP BY \"t9\".\"nationality\"",
+      "sql_sha256": "508e827b739962f393901ccedbc6ebf9bccb05542170d4efdf526b13563d0d87",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q18",
+      "natural_language_query": "What is the average city population for each state?",
+      "config_id": "schema=snowflake:37414670ed37|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+      "sql": "SELECT \"t0\".\"state\", AVG(\"t0\".\"population\") AS \"avg_population\"\nFROM \"city\" AS \"t0\"\nGROUP BY \"t0\".\"state\"",
+      "sql_sha256": "a6c77b637ba95ff454dc522872f1da52e3db4f7f21d1b61299991265abbd4842",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q19",
+      "natural_language_query": "Among cities with more than one million people, what is the highest GDP in each state?",
+      "config_id": "schema=snowflake:37414670ed37|pre=whole_document|er=evidence|norm=contract_mapping|unit=contract_unit|miss=drop|coerce=permissive",
+      "sql": "SELECT \"t15\".\"state\", MAX(\"t0\".\"gdp\") AS \"max_city_gdp\"\nFROM \"state\" AS \"t15\"\nJOIN \"city\" AS \"t0\" ON \"t0\".\"state_id\" = \"t15\".\"id\"\nWHERE \"t0\".\"population\" > 1000000\nGROUP BY \"t15\".\"state\"",
+      "sql_sha256": "a51ffd3826a3775e735d65b70007abb9be772d9f284d30c93c84ee4918b9cf56",
+      "compilation_error": null
+    }
+  ],
+  "token_ledger_sha256": "4a6600fa7922c1dbea2a39ad4a1b191475e675257baedf42ea406184af7b518d",
+  "synthesis_manifest_sha256": "3129f686430d7e0a614826deb8643ddf0af423691be41d6cd2cd2972f4e41f57",
+  "evidence_manifest": {
+    "path": "/uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/results/contract_quwarts_Player_restored40pct/evidence.sqlite",
+    "sha256": "92dc6df94014a80a27041215d8b65562065ae1969e4fd0ed6e21de0b3368c78b",
+    "counts": {
+      "documents": 216,
+      "anchors": 1961,
+      "cell_provenance": 3270,
+      "shared_artifacts": 3,
+      "contract_evidence": 277,
+      "conflict_sets": 0,
+      "validation_outcomes": 313,
+      "derivation_lineage": 1
+    }
+  }
+}

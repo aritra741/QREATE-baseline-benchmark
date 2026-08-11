@@ -1,0 +1,33 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+The context provided does not contain a player document with fields for age, name, nationality, and team. Instead, it contains information about Tom Copa, including his birth date, college career, professional career, and some references. We need to extract the relevant details from this text.
+
+1. **Name**: The name of the person is "Thomas James Copa" or commonly known as "Tom Copa".
+2. **Nationality**: His nationality is mentioned as "American".
+3. **Age**: To calculate his age, we can use his birth date which is given as October 30, 1964.
+4. **Team**: The text mentions several teams he played for: Maccabi Brussels, San Antonio Spurs (as a free agent), Houston Rockets, La Crosse Bobcats, and Saski Baskonia.
+
+Since the output fields require specific values from the player document and not the entire context, we will focus on the name, nationality, and age. The team information is not directly asked for in the query but can be included if necessary.
+
+Let's calculate his age based on the birth date provided:
+- Current year: 2023
+- Birth year: 1964
+
+Age = 2023 - 1964 = 59 years old
+
+Now, we will generate the JSON object with the required fields.
+
+---
+{
+  "age": 59,
+  "name": "Thomas James Copa",
+  "nationality": "American",
+  "team": "Maccabi Brussels, San Antonio Spurs (free agent), Houston Rockets, La Crosse Bobcats, Saski Baskonia"
+}
+---
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description="name from the player document for query: List each player's name, nationality, and age with their team name and team location.. Return a short normalized string."), 'nationality': FieldInfo(annotation=Union[str, Any], required=True, description="nationality from the player document for query: List each player's name, nationality, and age with their team name and team location.. Return a short normalized string."), 'age': FieldInfo(annotation=Union[float, Any], required=True, description="age from the player document for query: List each player's name, nationality, and age with their team name and team location.. Return a number."), 'team': FieldInfo(annotation=Union[str, Any], required=True, description="team from the player document for query: List each player's name, nationality, and age with their team name and team location.. Return a short normalized string.")}
+#####
+Expecting value: line 1 column 1 (char 0)

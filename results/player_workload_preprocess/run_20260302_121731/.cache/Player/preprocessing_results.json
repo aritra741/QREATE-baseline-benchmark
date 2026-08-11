@@ -1,0 +1,766 @@
+{
+  "tables": {
+    "player": {
+      "columns": {
+        "position": {
+          "semantic_type": "PERSON",
+          "predicates": [
+            "position != Frontcourt",
+            "position != Backcourt",
+            "position = Backcourt",
+            "position = Frontcourt"
+          ],
+          "is_join_key": false,
+          "is_group_by": true,
+          "is_aggregated": false
+        },
+        "nationality": {
+          "semantic_type": "GPE",
+          "predicates": [
+            "nationality = American-born naturalized Azerbaijani  ",
+            "nationality = Dutch  ",
+            "nationality != Croatian  ",
+            "nationality = Canadian",
+            "nationality = German",
+            "nationality != French  ",
+            "nationality = Cameroonian-American",
+            "nationality = Greek-American  ",
+            "nationality != American-Venezuelan",
+            "nationality = American-Venezuelan  ",
+            "nationality =  "
+          ],
+          "is_join_key": false,
+          "is_group_by": true,
+          "is_aggregated": false
+        },
+        "mvp_awards": {
+          "semantic_type": "OTHER",
+          "predicates": [
+            "mvp_awards = 0",
+            "mvp_awards <= 1",
+            "mvp_awards <= 0",
+            "mvp_awards < 1",
+            "mvp_awards > 0",
+            "mvp_awards >= 1"
+          ],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": true
+        },
+        "draft_pick": {
+          "semantic_type": "CODE",
+          "predicates": [
+            "draft_pick != 35",
+            "draft_pick < 1",
+            "draft_pick > 5",
+            "draft_pick = 17",
+            "draft_pick >= 5",
+            "draft_pick < 17",
+            "draft_pick >= 17",
+            "draft_pick <= 35",
+            "draft_pick <= 5"
+          ],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": false
+        },
+        "fiba_world_cup": {
+          "semantic_type": "OTHER",
+          "predicates": [
+            "fiba_world_cup >= 0",
+            "fiba_world_cup < 0",
+            "fiba_world_cup >= 1",
+            "fiba_world_cup = 1",
+            "fiba_world_cup <= 0",
+            "fiba_world_cup > 0",
+            "fiba_world_cup != 0"
+          ],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": true
+        },
+        "age": {
+          "semantic_type": "QUANTITY",
+          "predicates": [
+            "age <= 91",
+            "age <= 66",
+            "age != 47",
+            "age < 47",
+            "age > 47",
+            "age > 91",
+            "age < 91",
+            "age >= 47"
+          ],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": true
+        },
+        "name": {
+          "semantic_type": "PERSON",
+          "predicates": [
+            "name = Antonius Cleveland  ",
+            "name != Toby Kimball  ",
+            "name = Erick Strickland  ",
+            "name = Donta Hall  ",
+            "name = Dewayne \"D. J.\" White, Jr.",
+            "name = Walter Berry ",
+            "name = Antonius Cleveland",
+            "name != Fran Curran Francis Hugh Curran Sr.",
+            "name = Kobe Bean Bryant"
+          ],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": false
+        },
+        "birth_date": {
+          "semantic_type": "DATE",
+          "predicates": [
+            "birth_date != 1950/1/29",
+            "birth_date = 1992/12/17",
+            "birth_date = 1972/3/6",
+            "birth_date = 1990/8/17",
+            "birth_date = 1997/8/7",
+            "birth_date > 1994/2/2",
+            "birth_date != 1994/6/6",
+            "birth_date = 1994/4/25",
+            "birth_date = 1971/10/2",
+            "birth_date = 1973/11/25",
+            "birth_date = 1995/10/2",
+            "birth_date != 1959/6/10",
+            "birth_date != 1973/11/25",
+            "birth_date != 1943/12/23",
+            "birth_date != 1964/2/15",
+            "birth_date != 1971/12/3"
+          ],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": false
+        },
+        "team": {
+          "semantic_type": "OTHER",
+          "predicates": [
+            "team = Miami Heat",
+            "team != San Antonio Spurs",
+            "team = Phoenix Suns",
+            "team != Milwaukee Bucks",
+            "team = Milwaukee Hawks  ",
+            "team = Guaros de Lara",
+            "team != Philadelphia 76ers  ",
+            "team = New York Knicks  ",
+            "team != Miami Heat  ",
+            "team != Milwaukee Hawks  "
+          ],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": false
+        },
+        "nba_championships": {
+          "semantic_type": "QUANTITY",
+          "predicates": [
+            "nba_championships < 0",
+            "nba_championships > 2",
+            "nba_championships <= 2",
+            "nba_championships <= 0",
+            "nba_championships != 0",
+            "nba_championships = 0",
+            "nba_championships < 2",
+            "nba_championships > 0",
+            "nba_championships != 2",
+            "nba_championships >= 0",
+            "nba_championships = 2"
+          ],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": true
+        },
+        "college": {
+          "semantic_type": "ORG",
+          "predicates": [
+            "college = Wake Forest University",
+            "college = UCLA  ",
+            "college = University of Florida  ",
+            "college = University of Kentucky",
+            "college = University of Florida",
+            "college != Duke University"
+          ],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": false
+        },
+        "draft_year": {
+          "semantic_type": "DATE",
+          "predicates": [
+            "draft_year < 2017",
+            "draft_year >= 1990",
+            "draft_year != 1990",
+            "draft_year <= 2017",
+            "draft_year > 2012",
+            "draft_year <= 1990",
+            "draft_year != 2017"
+          ],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": false
+        },
+        "olympic_gold_medals": {
+          "semantic_type": "OTHER",
+          "predicates": [
+            "olympic_gold_medals > 1",
+            "olympic_gold_medals > 0",
+            "olympic_gold_medals < 0",
+            "olympic_gold_medals != 0",
+            "olympic_gold_medals >= 1",
+            "olympic_gold_medals < 1",
+            "olympic_gold_medals <= 1",
+            "olympic_gold_medals != 1",
+            "olympic_gold_medals = 0",
+            "olympic_gold_medals <= 0",
+            "olympic_gold_medals >= 0"
+          ],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": true
+        }
+      },
+      "predicates": [
+        "fiba_world_cup <= 0",
+        "age < 91",
+        "mvp_awards >= 1",
+        "team = Phoenix Suns",
+        "nba_championships = 0",
+        "birth_date = 1973/11/25",
+        "draft_year <= 2017",
+        "fiba_world_cup > 0",
+        "fiba_world_cup > 0",
+        "nationality != French  ",
+        "draft_pick < 17",
+        "draft_pick >= 5",
+        "age > 91",
+        "mvp_awards > 0",
+        "birth_date != 1959/6/10",
+        "birth_date != 1964/2/15",
+        "olympic_gold_medals < 1",
+        "draft_pick = 17",
+        "mvp_awards < 1",
+        "birth_date = 1995/10/2",
+        "draft_year <= 2017",
+        "olympic_gold_medals >= 0",
+        "college = UCLA  ",
+        "birth_date != 1971/12/3",
+        "birth_date = 1994/4/25",
+        "position != Frontcourt",
+        "draft_pick <= 5",
+        "college = Wake Forest University",
+        "olympic_gold_medals > 1",
+        "position != Frontcourt",
+        "mvp_awards < 1",
+        "mvp_awards <= 0",
+        "draft_pick >= 17",
+        "age >= 47",
+        "name != Toby Kimball  ",
+        "olympic_gold_medals != 1",
+        "nba_championships > 2",
+        "olympic_gold_medals >= 0",
+        "fiba_world_cup >= 0",
+        "draft_year > 2012",
+        "olympic_gold_medals >= 1",
+        "college = UCLA  ",
+        "birth_date = 1992/12/17",
+        "nba_championships < 2",
+        "olympic_gold_medals > 0",
+        "birth_date != 1943/12/23",
+        "name = Walter Berry ",
+        "age != 47",
+        "birth_date != 1950/1/29",
+        "college = University of Florida",
+        "mvp_awards = 0",
+        "olympic_gold_medals != 0",
+        "nationality != Croatian  ",
+        "olympic_gold_medals < 0",
+        "nba_championships = 2",
+        "college != Duke University",
+        "age <= 66",
+        "birth_date = 1997/8/7",
+        "fiba_world_cup = 1",
+        "name = Dewayne \"D. J.\" White, Jr.",
+        "age > 47",
+        "name != Fran Curran Francis Hugh Curran Sr.",
+        "team != Philadelphia 76ers  ",
+        "nationality =  ",
+        "nba_championships = 0",
+        "team != Miami Heat  ",
+        "olympic_gold_medals > 1",
+        "mvp_awards = 0",
+        "age <= 91",
+        "team = Guaros de Lara",
+        "nba_championships < 0",
+        "nba_championships <= 0",
+        "age >= 47",
+        "team != San Antonio Spurs",
+        "mvp_awards = 0",
+        "olympic_gold_medals < 0",
+        "position != Frontcourt",
+        "draft_pick > 5",
+        "nationality = American-Venezuelan  ",
+        "position = Frontcourt",
+        "draft_pick >= 17",
+        "draft_pick >= 17",
+        "fiba_world_cup != 0",
+        "name = Erick Strickland  ",
+        "birth_date != 1973/11/25",
+        "nba_championships >= 0",
+        "age < 47",
+        "olympic_gold_medals <= 1",
+        "team = Milwaukee Hawks  ",
+        "college = University of Florida  ",
+        "draft_year != 2017",
+        "nationality != Croatian  ",
+        "name = Donta Hall  ",
+        "nba_championships != 0",
+        "birth_date = 1973/11/25",
+        "olympic_gold_medals != 0",
+        "team = Miami Heat",
+        "nationality = Canadian",
+        "birth_date != 1994/6/6",
+        "nationality = Dutch  ",
+        "nba_championships <= 2",
+        "age > 91",
+        "name = Antonius Cleveland",
+        "nba_championships >= 0",
+        "draft_year > 2012",
+        "nba_championships > 0",
+        "fiba_world_cup < 0",
+        "team = New York Knicks  ",
+        "nba_championships <= 0",
+        "fiba_world_cup < 0",
+        "mvp_awards <= 0",
+        "age < 91",
+        "fiba_world_cup >= 0",
+        "fiba_world_cup > 0",
+        "age <= 66",
+        "birth_date = 1990/8/17",
+        "nationality = Greek-American  ",
+        "nba_championships < 0",
+        "age >= 47",
+        "nba_championships <= 2",
+        "mvp_awards < 1",
+        "olympic_gold_medals != 0",
+        "nationality = American-born naturalized Azerbaijani  ",
+        "olympic_gold_medals = 0",
+        "nationality = Cameroonian-American",
+        "birth_date = 1972/3/6",
+        "draft_pick <= 35",
+        "draft_year <= 1990",
+        "position = Backcourt",
+        "team != Milwaukee Bucks",
+        "nba_championships > 2",
+        "nba_championships < 0",
+        "team != Milwaukee Hawks  ",
+        "draft_pick != 35",
+        "draft_pick < 1",
+        "nationality = German",
+        "olympic_gold_medals <= 0",
+        "name = Antonius Cleveland  ",
+        "nba_championships >= 0",
+        "nba_championships != 2",
+        "nba_championships = 0",
+        "draft_year > 2012",
+        "fiba_world_cup > 0",
+        "team = New York Knicks  ",
+        "nba_championships <= 0",
+        "fiba_world_cup > 0",
+        "mvp_awards <= 0",
+        "age < 91",
+        "fiba_world_cup >= 0",
+        "fiba_world_cup > 0",
+        "birth_date > 1994/2/2",
+        "nba_championships > 0",
+        "nationality != American-Venezuelan",
+        "college = University of Kentucky",
+        "birth_date = 1971/10/2",
+        "olympic_gold_medals <= 1",
+        "position = Backcourt",
+        "draft_year != 1990",
+        "nba_championships < 0",
+        "position != Backcourt",
+        "draft_year >= 1990",
+        "name = Kobe Bean Bryant",
+        "fiba_world_cup >= 0",
+        "olympic_gold_medals = 0",
+        "position != Backcourt",
+        "fiba_world_cup >= 1",
+        "college = UCLA  ",
+        "mvp_awards <= 1",
+        "draft_year < 2017"
+      ],
+      "referenced_in_joins": true
+    },
+    "owner": {
+      "columns": {
+        "nationality": {
+          "semantic_type": "GPE",
+          "predicates": [
+            "nationality = Israeli-American",
+            "nationality = Taiwanese-Canadian",
+            "nationality != American  ",
+            "nationality != Israeli-American"
+          ],
+          "is_join_key": false,
+          "is_group_by": true,
+          "is_aggregated": false
+        },
+        "age": {
+          "semantic_type": "QUANTITY",
+          "predicates": [
+            "age <= 63",
+            "age < 63",
+            "age <= 76",
+            "age >= 63",
+            "age = 63",
+            "age <= 88",
+            "age != 76",
+            "age >= 66"
+          ],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": false
+        },
+        "nba_team": {
+          "semantic_type": "ORG",
+          "predicates": [
+            "nba_team != Houston Rockets",
+            "nba_team != Dallas Mavericks",
+            "nba_team != Indiana Pacers",
+            "nba_team = Miami Heat",
+            "nba_team != Cleveland Cavaliers",
+            "nba_team != Golden State Warriors",
+            "nba_team = New York Knicks",
+            "nba_team != Chicago Bulls",
+            "nba_team != New Orleans Pelicans"
+          ],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": false
+        },
+        "name": {
+          "semantic_type": "PERSON",
+          "predicates": [
+            "name = Clay Bennett",
+            "name = Tom Gores  ",
+            "name = Joseph Chung-Hsin Tsai",
+            "name = Steven Anthony Ballmer"
+          ],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": false
+        },
+        "own_year": {
+          "semantic_type": "DATE",
+          "predicates": [
+            "own_year <= 2012",
+            "own_year >= 1994",
+            "own_year = 2012",
+            "own_year = 2017",
+            "own_year != 2008",
+            "own_year != 2012"
+          ],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": false
+        }
+      },
+      "predicates": [
+        "nba_team != Cleveland Cavaliers",
+        "nba_team != Golden State Warriors",
+        "age >= 66",
+        "age < 63",
+        "nationality != Israeli-American",
+        "nationality != American  ",
+        "nationality != American  ",
+        "nba_team = Miami Heat",
+        "own_year != 2008",
+        "own_year = 2017",
+        "own_year != 2012",
+        "age <= 76",
+        "name = Joseph Chung-Hsin Tsai",
+        "age >= 63",
+        "age = 63",
+        "nba_team != Indiana Pacers",
+        "nba_team != New Orleans Pelicans",
+        "nba_team != Cleveland Cavaliers",
+        "age != 76",
+        "nba_team != Houston Rockets",
+        "nationality = Israeli-American",
+        "nba_team != Cleveland Cavaliers",
+        "age != 76",
+        "nba_team != Houston Rockets",
+        "name = Tom Gores  ",
+        "own_year >= 1994",
+        "age <= 88",
+        "own_year = 2012",
+        "nba_team = New York Knicks",
+        "nba_team != Dallas Mavericks",
+        "nationality = Taiwanese-Canadian",
+        "own_year <= 2012",
+        "nba_team != Chicago Bulls",
+        "nationality = Israeli-American",
+        "name = Steven Anthony Ballmer",
+        "age <= 63",
+        "nationality != American  ",
+        "name = Clay Bennett"
+      ],
+      "referenced_in_joins": true
+    },
+    "city": {
+      "columns": {
+        "state_name": {
+          "semantic_type": "GPE",
+          "predicates": [
+            "state_name != Ontario",
+            "state_name = Minnesota",
+            "state_name != Indiana"
+          ],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": false
+        },
+        "area": {
+          "semantic_type": "GPE",
+          "predicates": [
+            "area != 1314.80",
+            "area != 976.15",
+            "area = 976.15",
+            "area = 375.78"
+          ],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": false
+        },
+        "city_name": {
+          "semantic_type": "GPE",
+          "predicates": [
+            "city_name = Minneapolis",
+            "city_name = Miami"
+          ],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": false
+        },
+        "population": {
+          "semantic_type": "QUANTITY",
+          "predicates": [
+            "population = 1603797",
+            "population != 372,624",
+            "population > 715522",
+            "population = 808988",
+            "population < 1603797",
+            "population = 887642",
+            "population != 383,997"
+          ],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": false
+        },
+        "gdp": {
+          "semantic_type": "MONEY",
+          "predicates": [
+            "gdp != 518.5",
+            "gdp != 102,000,000,000",
+            "gdp != 473,000",
+            "gdp !=  "
+          ],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": false
+        }
+      },
+      "predicates": [
+        "area = 375.78",
+        "area != 1314.80",
+        "population = 887642",
+        "state_name != Indiana",
+        "population != 372,624",
+        "population = 808988",
+        "area = 375.78",
+        "area = 976.15",
+        "gdp != 473,000",
+        "gdp !=  ",
+        "gdp != 102,000,000,000",
+        "state_name != Ontario",
+        "city_name = Minneapolis",
+        "state_name = Minnesota",
+        "population = 887642",
+        "area != 976.15",
+        "area != 976.15",
+        "population < 1603797",
+        "population = 1603797",
+        "gdp != 518.5",
+        "population > 715522",
+        "population != 383,997",
+        "city_name = Miami"
+      ],
+      "referenced_in_joins": true
+    },
+    "team": {
+      "columns": {
+        "founded_year": {
+          "semantic_type": "DATE",
+          "predicates": [
+            "founded_year >= 1989",
+            "founded_year < 1967",
+            "founded_year > 1967",
+            "founded_year >= 1967",
+            "founded_year < 1949",
+            "founded_year <= 1978",
+            "founded_year = 1967",
+            "founded_year >= 1949",
+            "founded_year != 1949",
+            "founded_year <= 1989",
+            "founded_year > 1989",
+            "founded_year < 1989",
+            "founded_year = 1949"
+          ],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": false
+        },
+        "ownership": {
+          "semantic_type": "OTHER",
+          "predicates": [
+            "ownership != Joseph Tsai",
+            "ownership = James L. Dolan",
+            "ownership != Gabe Plotkin and Rick Schnall",
+            "ownership !=   ",
+            "ownership != Glen Taylor",
+            "ownership != Jerry Buss (from 1979)",
+            "ownership != Harris Blitzer Sports & Entertainment (HBSE)  ",
+            "ownership != Professional Basketball Club LLC, a group of Oklahoma City investors led by Clay Bennett  ",
+            "ownership =  ",
+            "ownership = Glen Taylor",
+            "ownership != Paul Allen"
+          ],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": false
+        },
+        "team_name": {
+          "semantic_type": "ORG",
+          "predicates": [
+            "team_name != Miami Heat",
+            "team_name != Charlotte Hornets",
+            "team_name = Dallas Mavericks",
+            "team_name = Golden State Warriors",
+            "team_name = Detroit Pistons"
+          ],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": false
+        },
+        "championship": {
+          "semantic_type": "EVENT",
+          "predicates": [],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": true
+        },
+        "location": {
+          "semantic_type": "GPE",
+          "predicates": [
+            "location != Oklahoma City",
+            "location != Los Angeles",
+            "location != Brooklyn",
+            "location != Charlotte",
+            "location = Houston",
+            "location != Minneapolis",
+            "location = Memphis",
+            "location = Brooklyn"
+          ],
+          "is_join_key": false,
+          "is_group_by": false,
+          "is_aggregated": false
+        }
+      },
+      "predicates": [
+        "ownership !=   ",
+        "founded_year < 1989",
+        "ownership != Harris Blitzer Sports & Entertainment (HBSE)  ",
+        "founded_year >= 1967",
+        "location = Brooklyn",
+        "location = Memphis",
+        "founded_year < 1949",
+        "location != Oklahoma City",
+        "ownership != Professional Basketball Club LLC, a group of Oklahoma City investors led by Clay Bennett  ",
+        "ownership != Jerry Buss (from 1979)",
+        "location != Brooklyn",
+        "location = Houston",
+        "ownership = James L. Dolan",
+        "ownership = Glen Taylor",
+        "location != Charlotte",
+        "ownership != Joseph Tsai",
+        "team_name = Golden State Warriors",
+        "founded_year >= 1989",
+        "team_name != Miami Heat",
+        "location != Minneapolis",
+        "founded_year <= 1978",
+        "team_name = Dallas Mavericks",
+        "founded_year >= 1989",
+        "team_name = Detroit Pistons",
+        "founded_year > 1967",
+        "team_name != Charlotte Hornets",
+        "founded_year >= 1949",
+        "founded_year = 1949",
+        "ownership != Paul Allen",
+        "ownership != Glen Taylor",
+        "founded_year > 1989",
+        "ownership != Gabe Plotkin and Rick Schnall",
+        "ownership =  ",
+        "founded_year = 1967",
+        "location != Minneapolis",
+        "founded_year > 1989",
+        "founded_year != 1949",
+        "location = Brooklyn",
+        "founded_year >= 1949",
+        "location != Los Angeles",
+        "founded_year < 1967",
+        "founded_year <= 1989",
+        "team_name = Detroit Pistons"
+      ],
+      "referenced_in_joins": true
+    }
+  },
+  "join_pairs": [
+    [
+      "player",
+      "team"
+    ],
+    [
+      "team",
+      "owner"
+    ],
+    [
+      "team",
+      "city"
+    ]
+  ],
+  "join_column_pairs": [
+    [
+      "player",
+      "team",
+      "team",
+      "team_name"
+    ],
+    [
+      "team",
+      "ownership",
+      "owner",
+      "name"
+    ],
+    [
+      "team",
+      "location",
+      "city",
+      "city_name"
+    ]
+  ],
+  "subsumption_groups": {}
+}

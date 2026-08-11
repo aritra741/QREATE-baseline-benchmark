@@ -1,0 +1,25 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+The context provides information about Bill Hewitt, a former NBA player. We need to extract his name and the team he played for most recently (as per the query).
+
+1. **Name Extraction**: The full name of the player is "William Severlyn Hewitt". For normalization, we can use just the first and last name: "Bill Hewitt".
+
+2. **Team Extraction**: Bill Hewitt played for multiple teams during his career, but to answer which team he currently plays for (as per the query), we need to consider the most recent one mentioned in the text. The last team mentioned is "Chicago Bulls".
+
+3. **Output JSON Construction**:
+   - name: "Bill Hewitt"
+   - team: "Chicago Bulls"
+
+---
+```json
+{
+  "name": "Bill Hewitt",
+  "team": "Chicago Bulls"
+}
+```
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: For each NBA player, what is their name, which team do they currently play for, and when was that team founded?. Return a short normalized string.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: For each NBA player, what is their name, which team do they currently play for, and when was that team founded?. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 1 (char 0)

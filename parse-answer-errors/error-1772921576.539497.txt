@@ -1,0 +1,30 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To derive the required fields from the context, we need to identify relevant information about a player who is older than 20. However, the provided text does not contain any explicit query results or player details that match the specified conditions (older than 20). Therefore, we will use the available information about Marv Roberts.
+
+1. **age**: The context provides Marv Roberts' birth date as January 29, 1950. To calculate his age, we can assume the current year is 2023.
+   - Age = 2023 - 1950 = 73
+
+2. **college**: From the context, Marv Roberts played at Utah State University (USU).
+
+3. **name**: The name of the player is "Marvin Roberts".
+
+4. **team**: The team he played for during his college career was "Aggies" (shortened from Utah State University).
+
+Now we can construct the JSON object with these values.
+
+---
+```json
+{
+  "age": 73,
+  "college": "Utah State University",
+  "name": "Marvin Roberts",
+  "team": "Aggies"
+}
+```
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: Starting from city and traversing city -> team -> player, list city name, state, team name, player name, and player college for players older than 20.. Return a short normalized string.'), 'college': FieldInfo(annotation=Union[str, Any], required=True, description='college from the player document for query: Starting from city and traversing city -> team -> player, list city name, state, team name, player name, and player college for players older than 20.. Return a short normalized string.'), 'age': FieldInfo(annotation=Union[float, Any], required=True, description='age from the player document for query: Starting from city and traversing city -> team -> player, list city name, state, team name, player name, and player college for players older than 20.. Return a number.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: Starting from city and traversing city -> team -> player, list city name, state, team name, player name, and player college for players older than 20.. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 1 (char 0)

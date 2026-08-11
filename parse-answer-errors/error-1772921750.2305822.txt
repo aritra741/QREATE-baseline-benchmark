@@ -1,0 +1,39 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To solve this problem, we need to extract specific information from the provided context. Let's break it down:
+
+### Step 1: Identify the Player Document
+The player document is embedded within the contents of the file. We can see that Lavoy Allen is the subject.
+
+### Step 2: Extract Information for Each Output Field
+
+- **age**: The query asks for players older than 20. Lavoy Allen was born on February 4, 1989. To find his age in the context of the query, we need to calculate how old he would be if the current year is after 2015 (since the file name suggests a date around that time). Assuming the current year is 2023:
+  \[
+  \text{Age} = 2023 - 1989 = 34
+  \]
+- **college**: The college Allen attended was Temple University.
+- **name**: The name of the player is Lavoy Allen.
+- **team**: During his time at Temple, Allen played for the Temple Owls.
+
+### Step 3: Generate JSON Output
+
+Based on the extracted information:
+
+```json
+{
+  "age": 34,
+  "college": "Temple",
+  "name": "Lavoy Allen",
+  "team": "Temple Owls"
+}
+```
+
+---
+
+This is the final output in a valid JSON format.
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: Starting from city and traversing city -> team -> player, list city name, state, team name, player name, and player college for players older than 20.. Return a short normalized string.'), 'college': FieldInfo(annotation=Union[str, Any], required=True, description='college from the player document for query: Starting from city and traversing city -> team -> player, list city name, state, team name, player name, and player college for players older than 20.. Return a short normalized string.'), 'age': FieldInfo(annotation=Union[float, Any], required=True, description='age from the player document for query: Starting from city and traversing city -> team -> player, list city name, state, team name, player name, and player college for players older than 20.. Return a number.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: Starting from city and traversing city -> team -> player, list city name, state, team name, player name, and player college for players older than 20.. Return a short normalized string.')}
+#####
+Expecting property name enclosed in double quotes: line 1 column 2 (char 1)

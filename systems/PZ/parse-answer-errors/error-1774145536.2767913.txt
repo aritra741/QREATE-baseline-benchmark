@@ -1,0 +1,28 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+The context provided does not contain specific information about NBA teams or their cities. However, based on the instructions and the fields we need to fill, let's assume that Charlotte is one of those cities where an NBA team (Charlotte Hornets) is based. We will use this assumption to provide answers for the required output fields.
+
+1. **area**: The geographic area of Charlotte can be derived from the context: "As of 2024, 66% of the city's area is occupied by green spaces." So, we can assume an approximate total area and calculate the green space area.
+2. **city_name**: The name of the city is clearly stated as "Charlotte".
+3. **population**: From the context: "The population was 874,579 at the 2020 census."
+4. **state_name**: The state where Charlotte is located is mentioned as North Carolina.
+
+Based on these steps and assumptions:
+
+```json
+{
+  "area": 66 * (312.00 / 0.63),  # Assuming total area of 312 sq miles, 66% green space
+  "city_name": "Charlotte",
+  "population": 874579,
+  "state_name": "North Carolina"
+}
+```
+
+---
+
+#####
+{'area': FieldInfo(annotation=Union[float, Any], required=True, description='area from the city document for query: What is the name, state, and geographic area of each city where an NBA team is based?. Return a number.'), 'city_name': FieldInfo(annotation=Union[str, Any], required=True, description='city_name from the city document for query: What is the name, state, and geographic area of each city where an NBA team is based?. Return a short normalized string.'), 'population': FieldInfo(annotation=Union[float, Any], required=True, description='population from the city document for query: What is the name, state, and geographic area of each city where an NBA team is based?. Return a number.'), 'state_name': FieldInfo(annotation=Union[str, Any], required=True, description='state_name from the city document for query: What is the name, state, and geographic area of each city where an NBA team is based?. Return a short normalized string.')}
+#####
+Expecting ',' delimiter: line 1 column 16 (char 15)

@@ -1,0 +1,247 @@
+{
+  "version": 1,
+  "portfolio": {
+    "selected_config_ids": [
+      "schema=snowflake:7aec4169cbb9|pre=whole_document|er=evidence|norm=contract_mapping|unit=none|miss=drop|coerce=permissive",
+      "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict"
+    ],
+    "query_to_config": {
+      "q0": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "q1": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=evidence|norm=contract_mapping|unit=none|miss=drop|coerce=permissive",
+      "q2": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "q3": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "q4": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "q5": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "q6": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "q7": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "q8": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "q9": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "q10": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "q11": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "q12": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "q13": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "q14": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "q15": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "q16": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "q17": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "q18": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "q19": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict"
+    },
+    "query_scores": {
+      "q0": 0.0,
+      "q1": 0.7338532226876754,
+      "q2": 0.1884509456428809,
+      "q3": 0.6065637699783103,
+      "q4": 0.0,
+      "q5": 0.5802856866789784,
+      "q6": 0.6625429200291648,
+      "q7": 0.22840642900827468,
+      "q8": 0.0,
+      "q9": 0.6230387194034009,
+      "q10": 0.16607514041889182,
+      "q11": 0.5864211505085005,
+      "q12": 0.6271662026530984,
+      "q13": 0.6822874656690826,
+      "q14": 0.6628810720515355,
+      "q15": 0.6299925826861497,
+      "q16": 0.5486265856945431,
+      "q17": 0.804714222484413,
+      "q18": 0.5956045586204862,
+      "q19": 0.44403047190919764
+    },
+    "construction_tokens": 3974729,
+    "objective_value": 9.370941146124585
+  },
+  "databases": [
+    {
+      "config_id": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=evidence|norm=contract_mapping|unit=none|miss=drop|coerce=permissive",
+      "filename": "databases/7c911cdf8632ae1f.sqlite",
+      "sha256": "5076c5170b848bda6be8c0f4209d232156de310dc33743a15d31be828280c298",
+      "size_bytes": 32768
+    },
+    {
+      "config_id": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "filename": "databases/20638ee22ec180fe.sqlite",
+      "sha256": "8a2dbd605f2bef942612289b710446bd11f79ea5627e3de242488ae90f7e186e",
+      "size_bytes": 32768
+    }
+  ],
+  "queries": [
+    {
+      "query_id": "q0",
+      "natural_language_query": "SELECT position, AVG(age) AS avg_age FROM player WHERE position IN ('Frontcourt', 'Backcourt') GROUP BY position",
+      "config_id": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "sql": "SELECT \"t2\".\"position\", AVG(\"t2\".\"age\") AS \"avg_age\"\nFROM \"player\" AS \"t2\"\nWHERE (\"t2\".\"position\" = 'Frontcourt' OR \"t2\".\"position\" = 'Backcourt')\nGROUP BY \"t2\".\"position\"",
+      "sql_sha256": "792c66e7417be0084b2abf14506990411c99bc84e7b596eb9192c94c3776d951",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q1",
+      "natural_language_query": "SELECT nationality, COUNT(*) AS player_count FROM player WHERE nationality != '' GROUP BY nationality",
+      "config_id": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=evidence|norm=contract_mapping|unit=none|miss=drop|coerce=permissive",
+      "sql": "SELECT nationality, COUNT(*) AS player_count FROM player WHERE nationality != '' GROUP BY nationality",
+      "sql_sha256": "09c687347c5a6e8e7b87f5cea315fa584fda5c9993451993ced9cf1da31f23a6",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q2",
+      "natural_language_query": "SELECT p.team, AVG(p.nba_championships) AS avg_championships FROM player p JOIN team t ON p.team = t.team_name GROUP BY p.team",
+      "config_id": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "sql": "SELECT p.team, AVG(p.nba_championships) AS avg_championships FROM player p JOIN team t ON p.team = t.team_name GROUP BY p.team",
+      "sql_sha256": "7c07cc855d74803b67f5eac5481c43a80483e142e0f76366424ad6b79ebe5919",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q3",
+      "natural_language_query": "SELECT college, MAX(mvp_awards) AS max_mvp_awards FROM player WHERE college != '' GROUP BY college HAVING COUNT(*) > 1",
+      "config_id": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "sql": "SELECT college, MAX(mvp_awards) AS max_mvp_awards FROM player WHERE college != '' GROUP BY college HAVING COUNT(*) > 1",
+      "sql_sha256": "d14ec56daa531c741741ab2e2c902e080b42bb4de72b592d76589f4a5aa69990",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q4",
+      "natural_language_query": "SELECT position, SUM(mvp_awards) AS total_mvp_awards FROM player WHERE position IN ('Frontcourt', 'Backcourt') GROUP BY position",
+      "config_id": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "sql": "SELECT \"t2\".\"position\", SUM(\"t2\".\"mvp_awards\") AS \"total_mvp_awards\"\nFROM \"player\" AS \"t2\"\nWHERE (\"t2\".\"position\" = 'Frontcourt' OR \"t2\".\"position\" = 'Backcourt')\nGROUP BY \"t2\".\"position\"",
+      "sql_sha256": "c37ac689d9f87311c94a57339ce11ae0b034c8084b9eb16d81ef4fae3acb4097",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q5",
+      "natural_language_query": "SELECT nationality, MAX(nba_championships) AS max_championships FROM player WHERE nba_championships >= 1 AND nationality != '' GROUP BY nationality",
+      "config_id": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "sql": "SELECT nationality, MAX(nba_championships) AS max_championships FROM player WHERE nba_championships >= 1 AND nationality != '' GROUP BY nationality",
+      "sql_sha256": "b667425a4061e2d65d4ba3af1477de26e00d8d32bdabe5c199caa93c076d03ab",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q6",
+      "natural_language_query": "SELECT draft_year, COUNT(*) AS player_count FROM player WHERE draft_year > 2010 GROUP BY draft_year",
+      "config_id": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "sql": "SELECT draft_year, COUNT(*) AS player_count FROM player WHERE draft_year > 2010 GROUP BY draft_year",
+      "sql_sha256": "f51c19e7f7effabd06e6c1acb6cd56e0ce37002424a671b0210460f83f1ace23",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q7",
+      "natural_language_query": "SELECT p.team, MIN(p.draft_pick) AS earliest_draft_pick FROM player p JOIN team t ON p.team = t.team_name WHERE p.draft_pick > 0 GROUP BY p.team",
+      "config_id": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "sql": "SELECT p.team, MIN(p.draft_pick) AS earliest_draft_pick FROM player p JOIN team t ON p.team = t.team_name WHERE p.draft_pick > 0 GROUP BY p.team",
+      "sql_sha256": "2362d47a6282a3f8984a8c0543d0f18ef228498e2ff3a3638a2e47c186b2fc55",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q8",
+      "natural_language_query": "SELECT position, AVG(olympic_gold_medals) AS avg_olympic_golds FROM player WHERE olympic_gold_medals >= 1 AND position IN ('Frontcourt', 'Backcourt') GROUP BY position",
+      "config_id": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "sql": "SELECT \"t2\".\"position\", AVG(\"t2\".\"olympic_gold_medals\") AS \"avg_olympic_golds\"\nFROM \"player\" AS \"t2\"\nWHERE (\"t2\".\"olympic_gold_medals\" >= 1 AND (\"t2\".\"position\" = 'Frontcourt' OR \"t2\".\"position\" = 'Backcourt'))\nGROUP BY \"t2\".\"position\"",
+      "sql_sha256": "6a863a7a26da8dc5013df0949596523f2404ea8ea735bc1806a9b1087e2a63c6",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q9",
+      "natural_language_query": "SELECT college, COUNT(*) AS champion_count FROM player WHERE nba_championships >= 1 AND college != '' GROUP BY college",
+      "config_id": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "sql": "SELECT college, COUNT(*) AS champion_count FROM player WHERE nba_championships >= 1 AND college != '' GROUP BY college",
+      "sql_sha256": "f09e6b1d8f2bea64eb5610b01354b5a5eeb76985a7e4c44bc950260106307927",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q10",
+      "natural_language_query": "SELECT p.team, SUM(p.fiba_world_cup) AS total_fiba_titles FROM player p JOIN team t ON p.team = t.team_name WHERE p.fiba_world_cup >= 1 GROUP BY p.team",
+      "config_id": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "sql": "SELECT p.team, SUM(p.fiba_world_cup) AS total_fiba_titles FROM player p JOIN team t ON p.team = t.team_name WHERE p.fiba_world_cup >= 1 GROUP BY p.team",
+      "sql_sha256": "363a8017b13c58f029db0e49e3761ab5093b296db807f1e6e7cf0bca6454b6c7",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q11",
+      "natural_language_query": "SELECT nationality, COUNT(*) AS player_count FROM player WHERE age BETWEEN 20 AND 40 AND nationality != '' GROUP BY nationality",
+      "config_id": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "sql": "SELECT \"t2\".\"nationality\", COUNT(*) AS \"player_count\"\nFROM \"player\" AS \"t2\"\nWHERE ((\"t2\".\"age\" >= 20 AND \"t2\".\"age\" <= 40) AND \"t2\".\"nationality\" != '')\nGROUP BY \"t2\".\"nationality\"",
+      "sql_sha256": "36e2a78f75646694ccdb7dc1720343669dba36f97c82a733e4bc624304f7d2f9",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q12",
+      "natural_language_query": "SELECT location, MAX(championship) AS max_championships FROM team WHERE location != '' GROUP BY location",
+      "config_id": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "sql": "SELECT location, MAX(championship) AS max_championships FROM team WHERE location != '' GROUP BY location",
+      "sql_sha256": "4222bfe74487de58d5fe27a375a86e33111feea8c867418423686183d7c1c8e8",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q13",
+      "natural_language_query": "SELECT location, COUNT(*) AS team_count FROM team WHERE founded_year < 1970 AND location != '' GROUP BY location",
+      "config_id": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "sql": "SELECT location, COUNT(*) AS team_count FROM team WHERE founded_year < 1970 AND location != '' GROUP BY location",
+      "sql_sha256": "8bd00c72d537cecf2b3ad82dfb67b1468267c3c6179e1f252c120aed5b883bd6",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q14",
+      "natural_language_query": "SELECT ownership, SUM(championship) AS total_championships FROM team WHERE ownership != '' GROUP BY ownership",
+      "config_id": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "sql": "SELECT ownership, SUM(championship) AS total_championships FROM team WHERE ownership != '' GROUP BY ownership",
+      "sql_sha256": "68e214fb5ae26fc4089fbfd8d33e2ce9e8a98f48811593b3138dc89452e6d135",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q15",
+      "natural_language_query": "SELECT location, AVG(championship) AS avg_championships FROM team WHERE championship >= 1 AND location != '' GROUP BY location",
+      "config_id": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "sql": "SELECT location, AVG(championship) AS avg_championships FROM team WHERE championship >= 1 AND location != '' GROUP BY location",
+      "sql_sha256": "45a891bc5bbf08a7aeecb321ce36d1d35065ccf10d2634e49ed71752d7a1d32d",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q16",
+      "natural_language_query": "SELECT nationality, AVG(age) AS avg_age FROM owner GROUP BY nationality",
+      "config_id": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "sql": "SELECT nationality, AVG(age) AS avg_age FROM owner GROUP BY nationality",
+      "sql_sha256": "ac7c42542402b2072cd84c952557972c34040e54eea2bab668f7597504bdb06f",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q17",
+      "natural_language_query": "SELECT nationality, MIN(own_year) AS earliest_own_year FROM owner WHERE own_year >= 2000 GROUP BY nationality",
+      "config_id": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "sql": "SELECT nationality, MIN(own_year) AS earliest_own_year FROM owner WHERE own_year >= 2000 GROUP BY nationality",
+      "sql_sha256": "8fb09a92a34f24586797022fc8b2fb4256baa6e3135eab84924a8d1710219733",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q18",
+      "natural_language_query": "SELECT state_name, AVG(population) AS avg_population FROM city WHERE state_name != '' GROUP BY state_name",
+      "config_id": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "sql": "SELECT state_name, AVG(population) AS avg_population FROM city WHERE state_name != '' GROUP BY state_name",
+      "sql_sha256": "4f948c2fb90c6a28e34869c4b48e07b62c661cd20a937d031f951007030f8ab0",
+      "compilation_error": null
+    },
+    {
+      "query_id": "q19",
+      "natural_language_query": "SELECT state_name, MAX(gdp) AS max_gdp FROM city WHERE population > 1000000 AND state_name != '' GROUP BY state_name",
+      "config_id": "schema=snowflake:7aec4169cbb9|pre=whole_document|er=raw|norm=raw|unit=none|miss=drop|coerce=strict",
+      "sql": "SELECT state_name, MAX(gdp) AS max_gdp FROM city WHERE population > 1000000 AND state_name != '' GROUP BY state_name",
+      "sql_sha256": "c682f3b417a84e54784496a2457cdb02510ecb4627e47f12e2cc8d50a4287608",
+      "compilation_error": null
+    }
+  ],
+  "token_ledger_sha256": "5fec9518dc604240c7cbae20d3e85625784943b21488865d4101c3be16256122",
+  "synthesis_manifest_sha256": "6ab0a7be89973d23b89103fdeff9f6b0955eca6285f71462a570a116b574943f",
+  "evidence_manifest": {
+    "path": "/uufs/chpc.utah.edu/common/home/u1592362/Downloads/UDA-Bench-main/UDA-Bench-main/results/contract_quwarts_Player_sqlcontract40pct/evidence.sqlite",
+    "sha256": "70e917441b754b038f61e43c2b8ea32e5e17a708edfe90049cdb0f4be193ebca",
+    "counts": {
+      "documents": 216,
+      "anchors": 1800,
+      "cell_provenance": 2928,
+      "shared_artifacts": 2211,
+      "contract_evidence": 492,
+      "conflict_sets": 20,
+      "validation_outcomes": 901,
+      "derivation_lineage": 6
+    }
+  }
+}

@@ -1,0 +1,30 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To determine the location from the team document for the query "List player name with team name, city name, and city state by linking player -> team -> city," we need to identify the relevant information about the team's location. The context mentions that the Indiana Pacers are based in Indianapolis, which is a city in the state of Indiana.
+
+1. **Identify Team Name**: The team name from the passage is "Indiana Pacers."
+2. **Determine City and State**:
+   - The passage states: "The Indiana Pacers are an American professional basketball team based in Indianapolis." 
+   - Indianapolis is the city, and it's located in the state of Indiana.
+
+Given this information, we can construct a short normalized string for the location as follows:
+
+- **Location**: "Indianapolis, IN"
+
+For the `team_name`, it is explicitly mentioned that the team name is "Indiana Pacers."
+
+Now, let's format the output JSON object with these values.
+---
+```json
+{
+  "location": "Indianapolis, IN",
+  "team_name": "Indiana Pacers"
+}
+```
+---
+#####
+{'team_name': FieldInfo(annotation=Union[str, Any], required=True, description='team_name from the team document for query: List player name with team name, city name, and city state by linking player -> team -> city.. Return a short normalized string.'), 'location': FieldInfo(annotation=Union[str, Any], required=True, description='location from the team document for query: List player name with team name, city name, and city state by linking player -> team -> city.. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 1 (char 0)

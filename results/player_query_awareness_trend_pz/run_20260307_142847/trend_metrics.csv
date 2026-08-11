@@ -1,0 +1,44 @@
+query_id,query_text,nl_query,success,delta_type,latency_s,result_rows,prompt_tokens,completion_tokens,total_tokens,macro_f1,macro_precision,macro_recall,gt_result_count,matched_rows,is_agg,error
+Q1,"SELECT player.name, player.nationality, player.age, team.team_name, team.location
+FROM player
+JOIN team ON player.team = team.team_name;","List each player's name, nationality, and age with their team name and team location.",True,PZ,281.6842575073242,65,548734,25721,574455,0.46797385620915033,0.5507692307692308,0.40681818181818186,88,54,False,
+Q2,"SELECT player.name, player.position, team.team_name, team.founded_year
+FROM player
+JOIN team ON player.team = team.team_name
+WHERE player.age > 25;","For players older than 25, list player name, position, team name, and team founded year.",True,PZ,306.19837498664856,52,585598,28195,613793,0.44573643410852715,0.5528846153846154,0.37337662337662336,77,46,False,
+Q3,"SELECT player.name, player.draft_pick, player.college, team.team_name
+FROM player
+JOIN team ON player.team = team.team_name
+WHERE player.draft_pick >= 0;","For players with draft pick at least 0, list player name, draft pick, college, and team name.",True,PZ,255.96459579467773,51,548364,23738,572102,0.4492753623188406,0.6078431372549019,0.3563218390804598,87,39,False,
+Q4,"SELECT team.team_name, team.location, city.city_name, city.state_name
+FROM team
+JOIN city ON team.location = city.city_name;",List team name and location with the matched city name and state name.,True,PZ,74.15384197235107,12,249379,4758,254137,0.3,0.5,0.21428571428571427,28,6,False,
+Q5,"SELECT player.name, team.team_name, city.city_name, city.state_name
+FROM player
+JOIN team ON player.team = team.team_name
+JOIN city ON team.location = city.city_name;","List player name with team name, city name, and city state by linking player -> team -> city.",True,PZ,237.33127570152283,21,589410,20721,610131,0.3317757009345795,0.8452380952380952,0.20639534883720928,86,20,False,
+Q6,"SELECT player.name, player.position, city.city_name, city.population
+FROM player
+JOIN team ON player.team = team.team_name
+JOIN city ON team.location = city.city_name
+WHERE player.age < 35;","For players younger than 35, list player name, position, city name, and city population via player -> team -> city.",True,PZ,341.79565048217773,135,772868,29836,802704,0.07309941520467837,0.046296296296296294,0.1736111111111111,36,18,False,
+Q7,"SELECT player.name, player.college, team.team_name, city.gdp
+FROM player
+JOIN team ON player.team = team.team_name
+JOIN city ON team.location = city.city_name
+WHERE player.draft_pick > 0;","For players with draft pick greater than 0, list player name, college, team name, and city GDP via player -> team -> city.",True,PZ,394.8321132659912,33,810352,35336,845688,0.27884615384615385,0.4393939393939394,0.20422535211267606,71,23,False,
+Q8,"SELECT player.name, player.birth_date, team.team_name, city.area
+FROM player
+JOIN team ON player.team = team.team_name
+JOIN city ON team.location = city.city_name
+WHERE city.area > 100;","For cities with area greater than 100, list player name, player birth date, team name, and city area via player -> team -> city.",True,PZ,318.2811896800995,0,774827,26876,801703,0.0,0.0,0.0,67,0,False,
+Q9,"SELECT city.city_name, city.state_name, team.team_name, player.name
+FROM city
+JOIN team ON city.city_name = team.location
+JOIN player ON player.team = team.team_name
+WHERE player.age < 40;","Starting from city and traversing city -> team -> player, list city name, state, team name, and player name for players younger than 40.",True,PZ,319.44977259635925,17,604454,30641,635095,0.015625,0.029411764705882353,0.010638297872340425,47,1,False,
+Q10,"SELECT city.city_name, city.state_name, team.team_name, player.name, player.college
+FROM city
+JOIN team ON city.city_name = team.location
+JOIN player ON player.team = team.team_name
+WHERE player.age > 20;","Starting from city and traversing city -> team -> player, list city name, state, team name, player name, and player college for players older than 20.",True,PZ,334.54304933547974,158,700292,30914,731206,0.006557377049180328,0.005063291139240506,0.009302325581395349,86,2,False,

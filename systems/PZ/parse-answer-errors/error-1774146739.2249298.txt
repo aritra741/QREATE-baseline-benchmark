@@ -1,0 +1,24 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+The context provides information about Garfield Smith, an NBA player. We need to extract his name and the team he played for from this text to fill the output fields.
+
+1. **Name**: The name of the player is clearly mentioned as "Garfield Smith".
+2. **Team**: Since the question asks for the current team (which isn't specified in the context) and when it was founded, we can infer that the relevant information might be about his last known team or a significant one from his career. However, based on the given text, there is no specific mention of which NBA team he played for currently or its founding date.
+
+Given these points:
+
+```json
+{
+  "name": "Garfield Smith",
+  "team": "Boston Celtics"  # Assuming this as the last known NBA team from his draft information.
+}
+```
+
+---
+
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: For each NBA player, what is their name, which team do they currently play for, and when was that team founded?. Return a short normalized string.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: For each NBA player, what is their name, which team do they currently play for, and when was that team founded?. Return a short normalized string.')}
+#####
+Expecting ',' delimiter: line 1 column 59 (char 58)

@@ -1,0 +1,22 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+The context provides information about David Michineau, including his name and current team. We need to extract this information for both output fields.
+
+1. **name**: The player's name is "David Michineau".
+2. **team**: According to the latest update in the contents, he currently plays for Bursaspor Basketbol of the Turkish Basketbol Süper Ligi (BSL).
+
+Now we can construct the JSON object with these values.
+
+---
+```json
+{
+  "name": "David Michineau",
+  "team": "Bursaspor"
+}
+```
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: For each NBA player, what is their name, which team do they currently play for, and when was that team founded?. Return a short normalized string.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: For each NBA player, what is their name, which team do they currently play for, and when was that team founded?. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 1 (char 0)

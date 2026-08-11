@@ -1,0 +1,399 @@
+{
+  "dataset": "Med",
+  "required_tables": [
+    "drug"
+  ],
+  "num_docs": 20,
+  "num_configs": 8,
+  "num_pairs": 10,
+  "num_eval_queries": 3,
+  "glass_box_vs_true": {
+    "spearman": 0.0,
+    "kendall": 0.0,
+    "top3_overlap": 0.3333333333333333,
+    "proxy_top3": [
+      "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict",
+      "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict",
+      "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive"
+    ],
+    "true_top3": [
+      "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+      "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive",
+      "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict"
+    ]
+  },
+  "btl_vs_true": {
+    "spearman": -0.43905703995876133,
+    "kendall": -0.3849001794597505,
+    "top3_overlap": 0.0,
+    "proxy_top3": [
+      "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict",
+      "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict",
+      "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive"
+    ],
+    "true_top3": [
+      "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+      "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive",
+      "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict"
+    ]
+  },
+  "btl_report": {
+    "win_counts": {
+      "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm": 3,
+      "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": 2,
+      "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm": 1,
+      "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict": 1,
+      "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+      "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive": 1,
+      "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": 2,
+      "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 0
+    },
+    "loss_counts": {
+      "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm": 1,
+      "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": 2,
+      "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm": 2,
+      "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict": 0,
+      "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 1,
+      "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive": 1,
+      "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": 1,
+      "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 2
+    },
+    "tie_counts": {
+      "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm": 0,
+      "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+      "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm": 0,
+      "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict": 0,
+      "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+      "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive": 0,
+      "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": 0,
+      "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 0
+    },
+    "win_matrix": {
+      "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm": {
+        "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm": 0,
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": 1,
+        "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm": 0,
+        "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict": 0,
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 1,
+        "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive": 0,
+        "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": 0,
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 1
+      },
+      "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": {
+        "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm": 0,
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm": 1,
+        "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict": 0,
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive": 1,
+        "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": 0,
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 0
+      },
+      "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm": {
+        "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm": 0,
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm": 0,
+        "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict": 0,
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive": 0,
+        "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": 0,
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 1
+      },
+      "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict": {
+        "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm": 0,
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": 1,
+        "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm": 0,
+        "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict": 0,
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive": 0,
+        "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": 0,
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 0
+      },
+      "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": {
+        "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm": 0,
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm": 0,
+        "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict": 0,
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive": 0,
+        "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": 0,
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 0
+      },
+      "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive": {
+        "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm": 0,
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm": 0,
+        "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict": 0,
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive": 0,
+        "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": 1,
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 0
+      },
+      "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": {
+        "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm": 1,
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm": 1,
+        "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict": 0,
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive": 0,
+        "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": 0,
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 0
+      },
+      "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": {
+        "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm": 0,
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm": 0,
+        "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict": 0,
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 0,
+        "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive": 0,
+        "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": 0,
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 0
+      }
+    },
+    "comparison_edges": [
+      {
+        "winner": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict",
+        "loser": "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm"
+      },
+      {
+        "winner": "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive",
+        "loser": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict"
+      },
+      {
+        "winner": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict",
+        "loser": "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive"
+      },
+      {
+        "winner": "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm",
+        "loser": "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive"
+      },
+      {
+        "winner": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict",
+        "loser": "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm"
+      },
+      {
+        "winner": "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm",
+        "loser": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict"
+      },
+      {
+        "winner": "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict",
+        "loser": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict"
+      },
+      {
+        "winner": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict",
+        "loser": "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm"
+      },
+      {
+        "winner": "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm",
+        "loser": "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive"
+      },
+      {
+        "winner": "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm",
+        "loser": "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict"
+      }
+    ],
+    "comparison_graph_connected": true,
+    "num_components": 1,
+    "components": [
+      [
+        "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+        "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive",
+        "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict",
+        "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm",
+        "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive",
+        "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm",
+        "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict",
+        "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict"
+      ]
+    ],
+    "isolated_configs": [],
+    "btl_scores": {
+      "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict": 9.949292056486663e-07,
+      "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive": 0.04072527962182658,
+      "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict": 7.836941816056714,
+      "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm": 0.0406879661703732,
+      "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive": 9.949292056486663e-07,
+      "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm": 0.00014775350535225408,
+      "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict": 0.04095992851859427,
+      "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict": 0.04053526626872831
+    }
+  },
+  "config_table": [
+    {
+      "config_id": "er=embedding_0.8|norm=llm|unit=unit|miss=drop|coerce=llm",
+      "glass_box_score": 0.6461397058823529,
+      "btl_score": 0.0406879661703732,
+      "true_error": 1.0,
+      "numeric_type_success_rate": 0.0,
+      "required_table_row_count": {
+        "drug": 52
+      },
+      "numeric_column_checks": [
+        {
+          "table": "drug",
+          "column": "dosage_frequency",
+          "castable_rate": 0.0
+        },
+        {
+          "table": "drug",
+          "column": "recommended_usage",
+          "castable_rate": 0.0
+        }
+      ]
+    },
+    {
+      "config_id": "er=llm|norm=dictionary|unit=none|miss=mode|coerce=strict",
+      "glass_box_score": 0.6976574283559578,
+      "btl_score": 0.04053526626872831,
+      "true_error": 0.8376068376068376,
+      "numeric_type_success_rate": 0.0,
+      "required_table_row_count": {
+        "drug": 52
+      },
+      "numeric_column_checks": [
+        {
+          "table": "drug",
+          "column": "dosage_frequency",
+          "castable_rate": 0.0
+        },
+        {
+          "table": "drug",
+          "column": "recommended_usage",
+          "castable_rate": 0.0
+        }
+      ]
+    },
+    {
+      "config_id": "er=embedding_0.9|norm=llm|unit=none|miss=mode|coerce=llm",
+      "glass_box_score": 0.6461397058823529,
+      "btl_score": 0.00014775350535225408,
+      "true_error": 1.0,
+      "numeric_type_success_rate": 0.0,
+      "required_table_row_count": {
+        "drug": 52
+      },
+      "numeric_column_checks": [
+        {
+          "table": "drug",
+          "column": "dosage_frequency",
+          "castable_rate": 0.0
+        },
+        {
+          "table": "drug",
+          "column": "recommended_usage",
+          "castable_rate": 0.0
+        }
+      ]
+    },
+    {
+      "config_id": "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=strict",
+      "glass_box_score": 0.6461397058823529,
+      "btl_score": 7.836941816056714,
+      "true_error": 1.0,
+      "numeric_type_success_rate": 0.0,
+      "required_table_row_count": {
+        "drug": 52
+      },
+      "numeric_column_checks": [
+        {
+          "table": "drug",
+          "column": "dosage_frequency",
+          "castable_rate": 0.0
+        },
+        {
+          "table": "drug",
+          "column": "recommended_usage",
+          "castable_rate": 0.0
+        }
+      ]
+    },
+    {
+      "config_id": "er=embedding_0.8|norm=dictionary|unit=none|miss=mode|coerce=strict",
+      "glass_box_score": 0.5726574283559578,
+      "btl_score": 9.949292056486663e-07,
+      "true_error": 0.8376068376068376,
+      "numeric_type_success_rate": 0.0,
+      "required_table_row_count": {
+        "drug": 52
+      },
+      "numeric_column_checks": [
+        {
+          "table": "drug",
+          "column": "dosage_frequency",
+          "castable_rate": 0.0
+        },
+        {
+          "table": "drug",
+          "column": "recommended_usage",
+          "castable_rate": 0.0
+        }
+      ]
+    },
+    {
+      "config_id": "er=embedding_0.8|norm=llm|unit=none|miss=median|coerce=permissive",
+      "glass_box_score": 0.6461397058823529,
+      "btl_score": 0.04072527962182658,
+      "true_error": 1.0,
+      "numeric_type_success_rate": 0.0,
+      "required_table_row_count": {
+        "drug": 52
+      },
+      "numeric_column_checks": [
+        {
+          "table": "drug",
+          "column": "dosage_frequency",
+          "castable_rate": 0.0
+        },
+        {
+          "table": "drug",
+          "column": "recommended_usage",
+          "castable_rate": 0.0
+        }
+      ]
+    },
+    {
+      "config_id": "er=llm|norm=dictionary|unit=none|miss=mean|coerce=strict",
+      "glass_box_score": 0.6953203557063852,
+      "btl_score": 0.04095992851859427,
+      "true_error": 0.8376068376068376,
+      "numeric_type_success_rate": 0.0,
+      "required_table_row_count": {
+        "drug": 52
+      },
+      "numeric_column_checks": [
+        {
+          "table": "drug",
+          "column": "dosage_frequency",
+          "castable_rate": 0.0
+        },
+        {
+          "table": "drug",
+          "column": "recommended_usage",
+          "castable_rate": 0.0
+        }
+      ]
+    },
+    {
+      "config_id": "er=embedding_0.9|norm=dictionary|unit=none|miss=median|coerce=permissive",
+      "glass_box_score": 0.5703203557063852,
+      "btl_score": 9.949292056486663e-07,
+      "true_error": 0.8376068376068376,
+      "numeric_type_success_rate": 0.0,
+      "required_table_row_count": {
+        "drug": 52
+      },
+      "numeric_column_checks": [
+        {
+          "table": "drug",
+          "column": "dosage_frequency",
+          "castable_rate": 0.0
+        },
+        {
+          "table": "drug",
+          "column": "recommended_usage",
+          "castable_rate": 0.0
+        }
+      ]
+    }
+  ]
+}

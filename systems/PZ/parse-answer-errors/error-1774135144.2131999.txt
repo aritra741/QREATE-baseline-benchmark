@@ -1,0 +1,27 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+To determine the age of the owner (Stan Kroenke) and his name, we need to extract this information from the provided context. 
+
+1. **Name**: The full name is given as "Stan Kroenke". For the output field `name`, we should return a short normalized string which would be just "Stan Kroenke".
+
+2. **Age**: His date of birth is mentioned in the text: "Enos Stanley Kroenke (/\u02c8kr\u0252\u014bki/; born July 29, 1947)". To calculate his age as of 2023:
+   - Current year: 2023
+   - Year of birth: 1947
+   - Age = 2023 - 1947 = 76
+
+Now we can fill in the required fields.
+
+---
+```json
+{
+  "age": 76,
+  "name": "Stan Kroenke"
+}
+```
+---
+#####
+{'age': FieldInfo(annotation=Union[float, Any], required=True, description='age from the owner document for query: For each NBA player, what is their name, which team do they play for, who owns that team, how old is the owner, when was the team founded, and in which city does the team play?. Return a number.'), 'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the owner document for query: For each NBA player, what is their name, which team do they play for, who owns that team, how old is the owner, when was the team founded, and in which city does the team play?. Return a short normalized string.')}
+#####
+Expecting value: line 1 column 1 (char 0)

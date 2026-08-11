@@ -1,0 +1,28 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+The context provides information about Garry Witts, an American former professional basketball player. We need to extract his nationality and position from the given text for the specified query.
+
+1. **Nationality**: The text states that Garrett David Witts is "American."
+2. **Position**: While the exact position isn't explicitly mentioned in the provided context, it can be inferred since he played as a basketball player.
+3. **Age**: We need to calculate his age based on his birth date (July 3, 1959).
+
+Let's perform these steps:
+
+- Nationality: "American"
+- Position: Since he was a professional basketball player, we can assume the position is "Guard" or "Forward," but without explicit mention, we'll use "Player."
+- Age: To calculate his age in 2023 (assuming current year), we subtract 1959 from 2023.
+
+Now let's fill in the JSON object with these values.
+---
+{
+  "age": 64,
+  "nationality": "American",
+  "position": "Player"
+}
+---
+#####
+{'age': FieldInfo(annotation=Union[float, Any], required=True, description="age from the player document for query: What is each NBA player's playing position, nationality, and age?. Return a number."), 'nationality': FieldInfo(annotation=Union[str, Any], required=True, description="nationality from the player document for query: What is each NBA player's playing position, nationality, and age?. Return a short normalized string."), 'position': FieldInfo(annotation=Union[str, Any], required=True, description="position from the player document for query: What is each NBA player's playing position, nationality, and age?. Return a short normalized string.")}
+#####
+Expecting value: line 1 column 1 (char 0)

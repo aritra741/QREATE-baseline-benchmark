@@ -1,0 +1,28 @@
+ollama/qwen2.5:7b-instruct
+#####
+PromptStrategy.MAP
+#####
+The context provided does not contain a player document or any information about players younger than 35. However, we can still extract some of the required fields from the contents:
+
+1. **name**: The name "Garry Witts" is mentioned in the text.
+2. **position**: There's no explicit mention of his position, but as he played in the NBA, it could be assumed to be a basketball player (forward, guard, etc.), but we don't have enough information to specify.
+3. **team**: The team "Washington Bullets" is mentioned where he played.
+4. **age**: His birth year is 1959, so his age in the context of this query would not be younger than 35.
+
+Given these points and the lack of specific player document information:
+
+```json
+{
+  "name": "Garry Witts",
+  "position": "basketball player",
+  "team": "Washington Bullets",
+  "age": 64  # Assuming current year is 2023, which is an approximation as we don't have the exact date of birth.
+}
+```
+
+---
+
+#####
+{'name': FieldInfo(annotation=Union[str, Any], required=True, description='name from the player document for query: For players younger than 35, list player name, position, city name, and city population via player -> team -> city.. Return a short normalized string.'), 'position': FieldInfo(annotation=Union[str, Any], required=True, description='position from the player document for query: For players younger than 35, list player name, position, city name, and city population via player -> team -> city.. Return a short normalized string.'), 'age': FieldInfo(annotation=Union[float, Any], required=True, description='age from the player document for query: For players younger than 35, list player name, position, city name, and city population via player -> team -> city.. Return a number.'), 'team': FieldInfo(annotation=Union[str, Any], required=True, description='team from the player document for query: For players younger than 35, list player name, position, city name, and city population via player -> team -> city.. Return a short normalized string.')}
+#####
+Expecting ',' delimiter: line 1 column 108 (char 107)
