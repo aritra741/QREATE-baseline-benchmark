@@ -5213,12 +5213,14 @@ class ContractBackend:
                     else 1.0
                 )
                 coverages.append(coverage)
-                field_aligned = (
-                    purity
-                    and (
-                        not requires_mapping
-                        or semantic
-                    )
+                # A semantic candidate is safe to execute even when extraction
+                # left unknown/noncanonical rows: the query's explicit value
+                # predicate prevents those rows from entering its output.
+                # Missing canonical values are a coverage/quality loss, not a
+                # structural route incompatibility. Raw candidates still need
+                # an already aligned vocabulary.
+                field_aligned = semantic or (
+                    purity and not requires_mapping
                 )
                 aligned = aligned and field_aligned
             if constrained:

@@ -3245,7 +3245,7 @@ def test_optional_query_mapping_does_not_invalidate_raw_candidate():
     assert semantic_result.components["contract_mapping_alignment"] == 1.0
 
 
-def test_required_predicate_vocabulary_forces_semantic_candidate():
+def test_required_predicate_vocabulary_forces_semantic_candidate(monkeypatch):
     position = AttributeRef("player", "position", "text")
     requirement = QueryRequirement(
         query_id="q0",
@@ -3415,6 +3415,20 @@ def test_required_predicate_vocabulary_forces_semantic_candidate():
     assert empty_estimate.route_eligible
     assert empty_estimate.recall_proxy == 0.0
     assert empty_estimate.components["contract_vocabulary_coverage"] == 0.0
+
+    monkeypatch.setattr(
+        backend,
+        "_derived_semantic_tables",
+        lambda _tables: {
+            "player": ({"row_id": "1", "position": "point guard"},)
+        },
+    )
+    impure_estimate = backend._apply_mapping_contract(
+        semantic,
+        {"q0": assessment(semantic)},
+    )["q0"].estimate
+    assert impure_estimate.route_eligible
+    assert impure_estimate.recall_proxy == 0.0
 
 
 def test_semantic_overlay_cannot_win_by_dropping_required_cells():
