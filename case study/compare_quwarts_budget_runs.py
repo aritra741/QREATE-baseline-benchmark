@@ -5,8 +5,9 @@ Default: 25% DocETL-budget runs vs a new 50% DocETL-budget root.
 
 Example:
   python3 "case study/compare_quwarts_budget_runs.py" \\
-    --new-root "case study/workloads/runs/quwarts_forced_taxonomy_50pct_YYYYMMDD" \\
-    --output "case study/workloads/runs/quwarts_forced_taxonomy_50pct_YYYYMMDD/budget_compare.json"
+    --baseline-root "case study/workloads/runs/quwarts_controlled_25pct_20260811" \\
+    --new-root "case study/workloads/runs/quwarts_controlled_50pct_20260811" \\
+    --output "case study/workloads/runs/quwarts_controlled_50pct_20260811/budget_compare.json"
 """
 
 from __future__ import annotations
@@ -97,6 +98,15 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--new-root", type=Path, required=True)
     parser.add_argument(
+        "--baseline-root",
+        type=Path,
+        default=None,
+        help=(
+            "Root containing results/<workload>/evaluation.json for the "
+            "baseline budget. Defaults to the hardcoded prior 25% paths."
+        ),
+    )
+    parser.add_argument(
         "--baseline-label",
         default="25pct",
         help="Label for the previous budget setting.",
@@ -116,13 +126,19 @@ def main() -> int:
     new_root = args.new_root
     if not new_root.is_absolute():
         new_root = (ROOT / new_root).resolve()
+    baseline_root = args.baseline_root
+    if baseline_root is not None and not baseline_root.is_absolute():
+        baseline_root = (ROOT / baseline_root).resolve()
     output = args.output or (new_root / "budget_compare.json")
     if not output.is_absolute():
         output = (ROOT / output).resolve()
 
     rows: list[dict[str, Any]] = []
     for workload_id in WORKLOADS:
-        baseline_path = DEFAULT_BASELINE[workload_id]
+        if baseline_root is not None:
+            baseline_path = _find_evaluation(baseline_root, workload_id)
+        else:
+            baseline_path = DEFAULT_BASELINE[workload_id]
         new_path = _find_evaluation(new_root, workload_id)
         baseline = _metrics(_read(baseline_path))
         current = _metrics(_read(new_path))
@@ -167,6 +183,7 @@ def main() -> int:
         "title": f"QuWARTS budget comparison: {args.baseline_label} vs {args.new_label}",
         "baseline_label": args.baseline_label,
         "new_label": args.new_label,
+        "baseline_root": None if baseline_root is None else str(baseline_root),
         "new_root": str(new_root),
         "workloads": rows,
     }
