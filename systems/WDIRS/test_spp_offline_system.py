@@ -2647,6 +2647,30 @@ def test_column_batch_merge_preserves_field_local_spans():
     ]
 
 
+def test_bulk_extractor_does_not_cache_budget_boundary_errors(tmp_path):
+    extractor = object.__new__(ConstrainedExtractor)
+    extractor.cache_dir = tmp_path
+    failed = ExtractionResult(
+        chunk_id="doc-1",
+        records=[],
+        schema_keys=set(),
+        extraction_time=0.0,
+        error=(
+            "cannot reserve 6000 tokens for "
+            "wdirs_bulk_extraction:llm_generate"
+        ),
+    )
+
+    extractor._cache_result(
+        "doc-1",
+        "player",
+        failed,
+        schema={"position": "text"},
+    )
+
+    assert list(tmp_path.iterdir()) == []
+
+
 def test_sqlite_delete_journal_mode_is_configurable(tmp_path, monkeypatch):
     monkeypatch.setenv("WDIRS_SQLITE_JOURNAL_MODE", "DELETE")
     layer = DataLayer(f"sqlite:///{tmp_path / 'journal.sqlite'}")

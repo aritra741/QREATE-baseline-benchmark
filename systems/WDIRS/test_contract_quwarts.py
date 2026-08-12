@@ -495,6 +495,99 @@ def test_mapping_escrow_is_released_for_taxonomy(tmp_path):
     assert ledger.charges()[0].status == "cancelled"
 
 
+def test_extract_holds_mapping_escrow_until_combined_mapping_pass(
+    tmp_path, monkeypatch
+):
+    ledger = GlobalBudgetLedger(1_000)
+    reservation_id = ledger.reserve(
+        stage="contract_extraction",
+        operation="required_taxonomy_escrow",
+        input_tokens=0,
+        max_output_tokens=900,
+    )
+
+    class NoCallClient:
+        model = "fixture"
+
+        def __init__(self):
+            self.ledger = ledger
+
+        def generate(self, *_args, **_kwargs):
+            raise AssertionError("fixture must not call the LLM")
+
+    document = type(
+        "Document",
+        (),
+        {
+            "document_id": "player/1.txt",
+            "text": "Center",
+            "metadata": {},
+        },
+    )()
+    contract = WorkloadContract(
+        entities=(EntityContract("player"),),
+        attributes=(),
+        relationships=(),
+    )
+    supplemental = ExtractionRecord(
+        "player",
+        "position",
+        "1",
+        "Center",
+        "Center",
+        None,
+        "player/1.txt",
+        "u1",
+        0,
+        6,
+    )
+    with EvidenceStore(tmp_path / "held-escrow.sqlite") as evidence:
+        extractor = ContractExtractor(
+            (document,), NoCallClient(), evidence, max_workers=1
+        )
+        extractor.set_mapping_escrow(reservation_id)
+
+        def entities(_contract):
+            assert ledger.available == 100
+            return ()
+
+        def mappings(_contract, records):
+            assert ledger.available == 1_000
+            assert records == (supplemental,)
+            return ()
+
+        monkeypatch.setattr(extractor, "extract_entities", entities)
+        monkeypatch.setattr(
+            extractor,
+            "extract_relationships",
+            lambda _contract, _entities: (),
+        )
+        monkeypatch.setattr(
+            extractor,
+            "_derive_heading_attributes",
+            lambda _contract, _entities: (),
+        )
+        monkeypatch.setattr(
+            extractor,
+            "extract_attributes",
+            lambda _contract, _entities: (),
+        )
+        monkeypatch.setattr(
+            extractor,
+            "_derive_calculated_attributes",
+            lambda _contract, _entities, _attributes: (),
+        )
+        monkeypatch.setattr(extractor, "derive_mappings", mappings)
+
+        result = extractor.extract(
+            contract,
+            supplemental_mapping_records=(supplemental,),
+        )
+
+    assert result.complete
+    assert ledger.charges()[0].status == "cancelled"
+
+
 def test_filtered_grouping_uses_sql_category_targets_for_taxonomy(tmp_path):
     class PositionTaxonomyClient:
         model = "fixture"

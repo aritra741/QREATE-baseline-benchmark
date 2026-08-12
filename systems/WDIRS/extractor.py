@@ -933,10 +933,35 @@ class ConstrainedExtractor:
             + (f", entity_col='{entity_col}'" if entity_col else "")
         )
 
-        future_to_key: Dict = {}
+        tasks = [
+            (
+                group_texts,
+                group_ids,
+                batch_idx,
+                col_batch,
+                batch_ck,
+                batch_nh,
+            )
+            for group_texts, group_ids in groups
+            for batch_idx, (col_batch, batch_ck, batch_nh) in enumerate(
+                col_batches
+            )
+        ]
+        completed = 0
         with ThreadPoolExecutor(max_workers=MAX_PARALLEL_REQUESTS) as executor:
-            for group_texts, group_ids in groups:
-                for batch_idx, (col_batch, batch_ck, batch_nh) in enumerate(col_batches):
+            for wave_start in range(0, len(tasks), MAX_PARALLEL_REQUESTS):
+                wave = tasks[
+                    wave_start : wave_start + MAX_PARALLEL_REQUESTS
+                ]
+                future_to_key: Dict = {}
+                for (
+                    group_texts,
+                    group_ids,
+                    batch_idx,
+                    col_batch,
+                    batch_ck,
+                    batch_nh,
+                ) in wave:
                     if len(group_texts) == 1:
                         future = executor.submit(
                             self._extract_single_chunk_safe,
@@ -951,44 +976,84 @@ class ConstrainedExtractor:
                         )
                     future_to_key[future] = (group_ids, batch_idx)
 
-            completed = 0
-            for future in as_completed(future_to_key):
-                group_ids, batch_idx = future_to_key[future]
-                completed += 1
-                if completed % 100 == 0 or completed == total_tasks:
-                    logger.info(f"  {completed}/{total_tasks} tasks done")
-                try:
-                    raw_result = future.result()
-                    group_results = (
-                        [raw_result] if isinstance(raw_result, ExtractionResult)
-                        else raw_result
-                    )
-                    for er in group_results:
-                        chunk_batch_map[er.chunk_id][batch_idx] = er
-                except Exception as e:
-                    logger.error(f"Error in group {group_ids} batch {batch_idx}: {e}")
-                    for cid in group_ids:
-                        chunk_batch_map[cid][batch_idx] = ExtractionResult(
-                            chunk_id=cid,
-                            records=[],
-                            schema_keys=set(),
-                            extraction_time=0.0,
-                            error=str(e),
+                budget_boundary = False
+                for future in as_completed(future_to_key):
+                    group_ids, batch_idx = future_to_key[future]
+                    completed += 1
+                    if completed % 100 == 0 or completed == total_tasks:
+                        logger.info(f"  {completed}/{total_tasks} tasks done")
+                    try:
+                        raw_result = future.result()
+                        group_results = (
+                            [raw_result]
+                            if isinstance(raw_result, ExtractionResult)
+                            else raw_result
                         )
+                        for er in group_results:
+                            chunk_batch_map[er.chunk_id][batch_idx] = er
+                            if er.error and "cannot reserve" in er.error:
+                                budget_boundary = True
+                    except Exception as e:
+                        logger.error(
+                            f"Error in group {group_ids} "
+                            f"batch {batch_idx}: {e}"
+                        )
+                        for cid in group_ids:
+                            chunk_batch_map[cid][batch_idx] = ExtractionResult(
+                                chunk_id=cid,
+                                records=[],
+                                schema_keys=set(),
+                                extraction_time=0.0,
+                                error=str(e),
+                            )
+                        if "cannot reserve" in str(e):
+                            budget_boundary = True
+                if budget_boundary:
+                    remaining = tasks[wave_start + len(wave) :]
+                    logger.warning(
+                        "Bulk extraction reached the token boundary; "
+                        "skipping %d undispatched calls while preserving "
+                        "the completion reserve.",
+                        len(remaining),
+                    )
+                    for (
+                        _texts,
+                        group_ids,
+                        batch_idx,
+                        _columns,
+                        _keys,
+                        _hints,
+                    ) in remaining:
+                        for cid in group_ids:
+                            chunk_batch_map[cid][batch_idx] = ExtractionResult(
+                                chunk_id=cid,
+                                records=[],
+                                schema_keys=set(),
+                                extraction_time=0.0,
+                                error=(
+                                    "budget boundary: extraction call "
+                                    "not dispatched"
+                                ),
+                            )
+                    break
 
         # Merge column batches per chunk and cache the unified result.
         all_results: List[ExtractionResult] = list(pre_cached)
         for chunk_id, batch_map in chunk_batch_map.items():
             merged = self._merge_column_batches(chunk_id, batch_map, n_col_batches)
-            self._cache_result(
-                chunk_id,
-                table_name,
-                merged,
-                schema=schema,
-                constrained_keys=constrained_keys,
-                normalization_hints=normalization_hints,
-                entity_col=entity_col,
-            )
+            # Reservation failures are resumable budget boundaries, not valid
+            # empty extractions. Caching them permanently poisoned later runs
+            # that reused the same scratch directory.
+            if not merged.error:
+                self._cache_result(
+                    chunk_id,
+                    table_name,
+                    merged,
+                    schema=schema,
+                    constrained_keys=constrained_keys,
+                    normalization_hints=normalization_hints,
+                    entity_col=entity_col,
+                )
             all_results.append(merged)
 
         return all_results
@@ -2093,6 +2158,8 @@ class ConstrainedExtractor:
         **cache_context: Any,
     ) -> None:
         """Cache extraction result."""
+        if result.error:
+            return
         cache_key = self._get_cache_key(chunk_id, table_name, **cache_context)
         cache_file = self.cache_dir / f"{cache_key}.json"
         

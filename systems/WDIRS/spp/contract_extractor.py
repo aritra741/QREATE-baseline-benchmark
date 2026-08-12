@@ -2831,7 +2831,12 @@ class ContractExtractor:
             )
         raise ValueError(f"unsupported repair phase: {phase}")
 
-    def extract(self, contract: WorkloadContract) -> ContractExtraction:
+    def extract(
+        self,
+        contract: WorkloadContract,
+        *,
+        supplemental_mapping_records: Sequence[ExtractionRecord] = (),
+    ) -> ContractExtraction:
         """Return all affordable progress instead of raising on budget exhaustion."""
 
         self._budget_exhausted = False
@@ -2879,8 +2884,15 @@ class ContractExtractor:
                 direct_attribute_records,
             ),
         )
+        # Bulk extraction and contract extraction share one mapping pass. Keep
+        # the taxonomy escrow held through all ordinary extraction calls, then
+        # release it immediately before the required closed-vocabulary work.
+        # Releasing it in the backend before extraction allowed relationship,
+        # attribute, and calculation calls to consume the taxonomy reserve.
+        self.release_mapping_escrow()
         derivation_mappings = self.derive_mappings(
-            contract, attribute_records
+            contract,
+            (*attribute_records, *supplemental_mapping_records),
         )
         return ContractExtraction(
             contract_fingerprint=contract.fingerprint,

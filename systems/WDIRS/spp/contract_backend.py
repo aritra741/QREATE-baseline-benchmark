@@ -88,8 +88,8 @@ from spp.workload_contract import (
 from token_counter import count_tokens
 
 
-BACKEND_VERSION = 30
-HYBRID_BULK_VERSION = 5
+BACKEND_VERSION = 31
+HYBRID_BULK_VERSION = 6
 
 logger = logging.getLogger(__name__)
 
@@ -3268,17 +3268,15 @@ class ContractBackend:
             },
         )
 
-    def _bulk_derivation_mappings(
+    def _bulk_mapping_records(
         self,
-        extractor: object,
         bulk: Optional[SharedExtraction],
-    ) -> Tuple[object, ...]:
-        """Induce contract mappings over the bulk extractor's observed values."""
+    ) -> Tuple[ExtractionRecord, ...]:
+        """Convert bulk observations for the shared contract mapping pass."""
 
-        derive = getattr(extractor, "derive_mappings", None)
-        if bulk is None or not callable(derive):
+        if bulk is None:
             return ()
-        records = tuple(
+        return tuple(
             ExtractionRecord(
                 entity=cell.relation,
                 attribute=cell.column,
@@ -3300,7 +3298,17 @@ class ContractBackend:
             # this pass to restored spans can otherwise leave every semantic
             # value NULL and make all constrained routes ineligible.
         )
-        if not records:
+
+    def _bulk_derivation_mappings(
+        self,
+        extractor: object,
+        bulk: Optional[SharedExtraction],
+    ) -> Tuple[object, ...]:
+        """Induce contract mappings over the bulk extractor's observed values."""
+
+        derive = getattr(extractor, "derive_mappings", None)
+        records = self._bulk_mapping_records(bulk)
+        if not records or not callable(derive):
             return ()
         return tuple(derive(self.contract, records))
 
@@ -4249,27 +4257,20 @@ class ContractBackend:
                         reason="extractor has no mapping escrow support",
                     )
                     taxonomy_escrow = None
-                release_mapping_escrow = getattr(
-                    extractor, "release_mapping_escrow", None
+                bulk_mapping_records = self._bulk_mapping_records(
+                    bulk_shared
                 )
-                if callable(release_mapping_escrow):
-                    release_mapping_escrow()
-                    taxonomy_escrow = None
-                bulk_mappings = self._bulk_derivation_mappings(
-                    extractor,
-                    bulk_shared,
+                result = extractor.extract(
+                    self.contract,
+                    supplemental_mapping_records=bulk_mapping_records,
                 )
-                result = extractor.extract(self.contract)
+                # extract() releases and consumes the mapping escrow immediately
+                # before its single combined bulk+contract mapping pass.
+                taxonomy_escrow = None
                 result, validation_issues = self._adaptive_repair(
                     extractor,
                     result,
                     ledger,
-                )
-                result = self._add_bulk_derivation_mappings(
-                    extractor,
-                    result,
-                    bulk_shared,
-                    induced=bulk_mappings,
                 )
             finally:
                 if taxonomy_escrow is not None:
