@@ -954,11 +954,15 @@ class ContractExtractor:
         prompt: str,
         unit: DocumentUnit,
     ) -> str:
-        model = getattr(
-            getattr(self.llm_client, "client", self.llm_client),
-            "model",
-            type(getattr(self.llm_client, "client", self.llm_client)).__name__,
+        underlying_client = getattr(
+            self.llm_client, "client", self.llm_client
         )
+        model = getattr(
+            underlying_client,
+            "model",
+            type(underlying_client).__name__,
+        )
+        base_seed = getattr(underlying_client, "seed", None)
         artifact_version = (
             f"{_PROMPT_VERSION}.entity-{_ENTITY_ARTIFACT_VERSION}"
             if phase == "entity"
@@ -966,7 +970,9 @@ class ContractExtractor:
         )
         payload = (
             f"workload-contract-extraction-v{artifact_version}\0{phase}\0"
-            f"{model}\0{unit.unit_id}\0{prompt}"
+            f"{model}\0base-seed={base_seed}\0seed-policy=call-key-sha256-v1\0"
+            f"append-only={os.getenv('SPP_APPEND_ONLY_EVIDENCE', '0')}\0"
+            f"{unit.unit_id}\0{prompt}"
         )
         return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 

@@ -208,6 +208,75 @@ def test_budgeted_client_prefers_call_local_provider_usage():
     assert ledger.actual_spent == 10
 
 
+def test_budgeted_client_derives_stable_seed_from_call_key():
+    class SeedClient:
+        model = "test"
+        seed = 42
+
+        def __init__(self):
+            self.requests = []
+            self.usage = None
+
+        def clear_last_usage(self):
+            self.usage = None
+
+        def consume_last_usage(self):
+            usage, self.usage = self.usage, None
+            return usage
+
+        def generate(self, *_args, **kwargs):
+            self.requests.append(kwargs)
+            self.usage = (7, 3)
+            return "ok"
+
+    raw = SeedClient()
+    client = BudgetedLLMClient(
+        raw,
+        GlobalBudgetLedger(10_000),
+        default_stage="test",
+    )
+    client.generate("same prompt", max_tokens=100)
+    first = raw.requests[-1]
+    client.generate("same prompt", max_tokens=100)
+    second = raw.requests[-1]
+    client.generate("different prompt", max_tokens=100)
+    third = raw.requests[-1]
+
+    assert first["request_key"] == second["request_key"]
+    assert first["request_seed"] == second["request_seed"]
+    assert first["request_key"] != third["request_key"]
+    assert first["request_seed"] != third["request_seed"]
+    assert 0 <= first["request_seed"] <= 0x7FFFFFFF
+
+
+def test_bulk_cache_key_tracks_seed_and_append_only_policy(monkeypatch):
+    class Client:
+        model = "test"
+        seed = 42
+
+    extractor = object.__new__(ConstrainedExtractor)
+    extractor.llm_client = Client()
+    seeded = extractor._get_cache_key(
+        "chunk",
+        "entity",
+        schema={"name": "text"},
+    )
+    extractor.llm_client.seed = 43
+    different_seed = extractor._get_cache_key(
+        "chunk",
+        "entity",
+        schema={"name": "text"},
+    )
+    monkeypatch.setenv("SPP_APPEND_ONLY_EVIDENCE", "1")
+    append_only = extractor._get_cache_key(
+        "chunk",
+        "entity",
+        schema={"name": "text"},
+    )
+    assert seeded != different_seed
+    assert different_seed != append_only
+
+
 def _config(label: str, requirement: QueryRequirement) -> SynthesisConfig:
     relation = RelationSpec(
         name="player", attributes=("name",), primary_key="name"

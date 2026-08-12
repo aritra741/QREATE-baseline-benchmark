@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import time
 from dataclasses import asdict, replace
@@ -236,6 +237,32 @@ def run_contract_pipeline(args: Any) -> int:
     intent_source = str(getattr(args, "intent_source", "nl"))
     if intent_source not in {"nl", "sql-contract"}:
         raise ValueError(f"unsupported contract intent source: {intent_source}")
+    controlled_prefix = bool(
+        getattr(args, "controlled_prefix", False)
+    )
+    if controlled_prefix:
+        if getattr(args, "seed", None) is None:
+            raise ValueError("--controlled-prefix requires --seed")
+        required_environment = {
+            "MAX_PARALLEL_REQUESTS": "1",
+            "SPP_CONTRACT_MAX_WORKERS": "1",
+            "SPP_INTENT_MAX_WORKERS": "1",
+            "SPP_APPEND_ONLY_EVIDENCE": "1",
+            "SPP_CONTROLLED_PREFIX": "1",
+        }
+        mismatches = {
+            name: os.getenv(name)
+            for name, expected in required_environment.items()
+            if os.getenv(name) != expected
+        }
+        if mismatches:
+            raise ValueError(
+                "controlled-prefix environment is incomplete: "
+                + ", ".join(
+                    f"{name}={value!r}"
+                    for name, value in sorted(mismatches.items())
+                )
+            )
     source_root = Path(config_module.SOURCE_DATA_DIR) / str(args.dataset)
     documents = _load_documents(source_root)
     queries = (
@@ -373,6 +400,8 @@ def run_contract_pipeline(args: Any) -> int:
                 "queries": queries,
                 "model": args.model,
                 "intent_workers": args.intent_workers,
+                "base_seed": getattr(args, "seed", None),
+                "controlled_prefix": controlled_prefix,
             },
             sort_keys=True,
             separators=(",", ":"),
@@ -430,6 +459,41 @@ def run_contract_pipeline(args: Any) -> int:
         ],
     )
     finished_at = datetime.now(timezone.utc)
+    call_audit = client.call_audit()
+    call_audit_payload = {
+        "version": 1,
+        "seed_policy": (
+            "sha256(base_seed + NUL + call_key), first 32 bits masked to 31"
+            if getattr(args, "seed", None) is not None
+            else "provider default"
+        ),
+        "base_seed": getattr(args, "seed", None),
+        "controlled_prefix": controlled_prefix,
+        "calls": call_audit,
+    }
+    call_audit_text = json.dumps(
+        call_audit_payload,
+        indent=2,
+        sort_keys=True,
+        default=str,
+    )
+    call_audit_path = output / "llm_call_manifest.json"
+    call_audit_path.write_text(call_audit_text, encoding="utf-8")
+    call_sequence_digest = hashlib.sha256(
+        json.dumps(
+            [
+                {
+                    "request_key": row.get("request_key"),
+                    "seed": row.get("seed"),
+                    "prompt_sha256": row.get("prompt_sha256"),
+                    "response_sha256": row.get("response_sha256"),
+                }
+                for row in call_audit
+            ],
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()
     summary = {
         "pipeline": "contract",
         "intent_source": intent_source,
@@ -439,6 +503,16 @@ def run_contract_pipeline(args: Any) -> int:
         "selected_config_ids": list(result.portfolio.selected_config_ids),
         "candidate_count": result.candidate_count,
         "tokens": result.token_summary,
+        "controlled_prefix": {
+            "enabled": controlled_prefix,
+            "base_seed": getattr(args, "seed", None),
+            "call_count": len(call_audit),
+            "call_sequence_sha256": call_sequence_digest,
+            "call_manifest": str(call_audit_path),
+            "append_only_evidence": (
+                os.getenv("SPP_APPEND_ONLY_EVIDENCE", "0") == "1"
+            ),
+        },
         "intent_cache": {
             "version": CONTRACT_INTENT_CACHE_VERSION,
             "fingerprint": intent_fingerprint,

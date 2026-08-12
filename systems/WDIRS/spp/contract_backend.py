@@ -88,8 +88,8 @@ from spp.workload_contract import (
 from token_counter import count_tokens
 
 
-BACKEND_VERSION = 31
-HYBRID_BULK_VERSION = 6
+BACKEND_VERSION = 32
+HYBRID_BULK_VERSION = 7
 
 logger = logging.getLogger(__name__)
 
@@ -236,6 +236,19 @@ def _member(value: object, *names: str, default: object = None) -> object:
         if hasattr(value, name):
             return getattr(value, name)
     return default
+
+
+def _mapping_source_key(mapping: object) -> Tuple[str, str, str, str]:
+    return (
+        str(_member(mapping, "entity", default="")),
+        str(_member(mapping, "attribute", default="")),
+        json.dumps(
+            _jsonable(_member(mapping, "source_value", default=None)),
+            sort_keys=True,
+            separators=(",", ":"),
+        ),
+        str(_member(mapping, "mapping_kind", default="")),
+    )
 
 
 def _normalize_documents(
@@ -1722,6 +1735,7 @@ def _merge_shared_extractions(
 ) -> SharedExtraction:
     """Fill high-recall bulk rows with validated contract-only evidence."""
 
+    append_only = os.getenv("SPP_APPEND_ONLY_EVIDENCE", "0") == "1"
     secondary_supported = {
         (
             cell.relation,
@@ -1759,7 +1773,8 @@ def _merge_shared_extractions(
                     ):
                         target[column] = value
                     elif (
-                        source_index == 1
+                        not append_only
+                        and source_index == 1
                         and value not in (None, "")
                         and (
                             name,
@@ -1791,6 +1806,7 @@ def _merge_shared_extractions(
     metadata.update(
         {
             "extraction_strategy": "wdirs_bulk_plus_contract",
+            "append_only_evidence": append_only,
             "bulk": _jsonable(primary.metadata),
         }
     )
@@ -3330,6 +3346,23 @@ class ContractBackend:
         existing = tuple(
             _member(result, "derivation_mappings", default=()) or ()
         )
+        if os.getenv("SPP_APPEND_ONLY_EVIDENCE", "0") == "1":
+            ordered_mappings = []
+            seen_sources = set()
+            for mapping in (*existing, *bulk_mappings):
+                source_key = _mapping_source_key(mapping)
+                if source_key in seen_sources:
+                    continue
+                seen_sources.add(source_key)
+                ordered_mappings.append(mapping)
+            if is_dataclass(result) and hasattr(
+                result, "derivation_mappings"
+            ):
+                return replace(
+                    result,
+                    derivation_mappings=tuple(ordered_mappings),
+                )
+            return result
         mappings: Dict[str, object] = {}
         for mapping in (*existing, *bulk_mappings):
             mappings[_fingerprint(_jsonable(mapping))] = mapping
@@ -3558,6 +3591,11 @@ class ContractBackend:
                         "model",
                         type(self.llm_client).__name__,
                     )
+                ),
+                "base_seed": getattr(self.llm_client, "seed", None),
+                "request_seed_policy": "call_key_sha256_v1",
+                "append_only_evidence": (
+                    os.getenv("SPP_APPEND_ONLY_EVIDENCE", "0") == "1"
                 ),
             },
             "documents": [
@@ -4183,7 +4221,11 @@ class ContractBackend:
             merged_mappings = []
             seen_mappings = set()
             for mapping in (*existing_mappings, *refreshed_mappings):
-                key = mapping_key(mapping)
+                key = (
+                    _mapping_source_key(mapping)
+                    if os.getenv("SPP_APPEND_ONLY_EVIDENCE", "0") == "1"
+                    else mapping_key(mapping)
+                )
                 if key in seen_mappings:
                     continue
                 seen_mappings.add(key)

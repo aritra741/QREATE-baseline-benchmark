@@ -123,6 +123,14 @@ def main() -> int:
         help="Optional inference seed for reproducible fresh LLM runs.",
     )
     parser.add_argument(
+        "--controlled-prefix",
+        action="store_true",
+        help=(
+            "Require serial call ordering, call-key-derived seeds, and "
+            "append-only evidence for paired budget experiments."
+        ),
+    )
+    parser.add_argument(
         "--sqlite-journal-mode",
         choices=("WAL", "DELETE"),
         default="DELETE",
@@ -178,6 +186,23 @@ def main() -> int:
         ),
     )
     args = parser.parse_args()
+    if args.controlled_prefix:
+        if args.seed is None:
+            raise ValueError("--controlled-prefix requires --seed")
+        os.environ.update(
+            {
+                "MAX_PARALLEL_REQUESTS": "1",
+                "SPP_CONTRACT_MAX_WORKERS": "1",
+                "SPP_INTENT_MAX_WORKERS": "1",
+                "SPP_APPEND_ONLY_EVIDENCE": "1",
+                "SPP_CONTROLLED_PREFIX": "1",
+            }
+        )
+        # config is imported before argument parsing in this entry point.
+        # Keep runtime imports and existing aliases consistent with the mode.
+        config_module.MAX_PARALLEL_REQUESTS = 1
+        config_module.EXTRACTION_MAX_WORKERS = 1
+        args.intent_workers = 1
     if args.pipeline == "contract":
         if args.schema_workload is not None:
             raise ValueError(

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import inspect
 from typing import Any, Optional
 
 from spp.budget_ledger import GlobalBudgetLedger
@@ -26,6 +28,17 @@ class BudgetedLLMClient:
         self.config_id = config_id
         self.query_id = query_id
         self.model = getattr(client, "model", type(client).__name__)
+        try:
+            parameters = inspect.signature(client.generate).parameters
+        except (TypeError, ValueError):
+            parameters = {}
+        self._supports_request_identity = (
+            "request_seed" in parameters
+            and "request_key" in parameters
+        ) or any(
+            parameter.kind == inspect.Parameter.VAR_KEYWORD
+            for parameter in parameters.values()
+        )
         # Prevent the wrapped client from hiding unaccounted retry attempts.
         setattr(self.client, "external_budget_retry_control", True)
 
@@ -56,8 +69,27 @@ class BudgetedLLMClient:
             # conservative character-based upper estimate instead.
             local_estimate = conservative_estimate
         input_estimate = max(local_estimate, conservative_estimate)
+        stage_name = stage or self.default_stage
+        call_key = hashlib.sha256(
+            (
+                f"{shared_key or ''}\0{stage_name}\0{operation}\0{self.model}\0"
+                f"{max_tokens}\0{temperature}\0{input_text}"
+            ).encode("utf-8")
+        ).hexdigest()
+        base_seed = getattr(self.client, "seed", None)
+        request_seed = (
+            int.from_bytes(
+                hashlib.sha256(
+                    f"{int(base_seed)}\0{call_key}".encode("utf-8")
+                ).digest()[:4],
+                "big",
+            )
+            & 0x7FFFFFFF
+            if base_seed is not None
+            else None
+        )
         reservation_id = self.ledger.reserve(
-            stage=stage or self.default_stage,
+            stage=stage_name,
             operation=operation,
             input_tokens=input_estimate,
             max_output_tokens=max_tokens,
@@ -77,11 +109,20 @@ class BudgetedLLMClient:
         before_in = GLOBAL_COUNTER.input_tokens
         before_out = GLOBAL_COUNTER.output_tokens
         try:
+            request_identity = (
+                {
+                    "request_seed": request_seed,
+                    "request_key": call_key,
+                }
+                if self._supports_request_identity
+                else {}
+            )
             response = self.client.generate(
                 prompt,
                 max_tokens=max_tokens,
                 temperature=temperature,
                 system_prompt=system_prompt,
+                **request_identity,
             )
         except Exception as exc:
             # Provider usage may be unavailable after transport failures. Charge

@@ -5,6 +5,7 @@ Implements LLM-based extraction with schema stabilization and batching.
 
 import json
 import logging
+import os
 import re
 import threading
 import time
@@ -94,6 +95,9 @@ class OllamaClient:
         self.extra_body = dict(extra_body or {})
         self.seed = int(seed) if seed is not None else None
         self._usage_local = threading.local()
+        self._call_audit_lock = threading.Lock()
+        self._call_audit: List[Dict[str, Any]] = []
+        self._call_sequence = 0
         
         # Initialize OpenAI client (Ollama uses OpenAI-compatible API)
         self.client = OpenAI(
@@ -110,13 +114,28 @@ class OllamaClient:
         value = getattr(self._usage_local, "value", None)
         self._usage_local.value = None
         return value
+
+    def call_audit(self) -> List[Dict[str, Any]]:
+        """Return deterministic request provenance in dispatch order."""
+
+        with self._call_audit_lock:
+            return [
+                dict(row)
+                for row in sorted(
+                    self._call_audit,
+                    key=lambda item: int(item["sequence"]),
+                )
+            ]
     
     def generate(
         self,
         prompt: str,
         max_tokens: int = EXTRACTION_MAX_TOKENS,
         temperature: float = EXTRACTION_TEMPERATURE,
-        system_prompt: Optional[str] = None
+        system_prompt: Optional[str] = None,
+        *,
+        request_seed: Optional[int] = None,
+        request_key: Optional[str] = None,
     ) -> str:
         """
         Generate completion from Ollama.
@@ -137,6 +156,9 @@ class OllamaClient:
         
         messages.append({"role": "user", "content": prompt})
         input_text = " ".join(m["content"] for m in messages)
+        with self._call_audit_lock:
+            sequence = self._call_sequence
+            self._call_sequence += 1
         if GLOBAL_COUNTER.has_budget:
             GLOBAL_COUNTER.ensure_can_spend(count_tokens(input_text), max_tokens)
 
@@ -157,8 +179,13 @@ class OllamaClient:
                     "temperature": temperature,
                     "timeout": self.timeout,
                 }
-                if self.seed is not None:
-                    request["seed"] = self.seed
+                effective_seed = (
+                    int(request_seed)
+                    if request_seed is not None
+                    else self.seed
+                )
+                if effective_seed is not None:
+                    request["seed"] = effective_seed
                 if self.extra_body:
                     request["extra_body"] = self.extra_body
                 response = self.client.chat.completions.create(
@@ -196,6 +223,23 @@ class OllamaClient:
                     int(recorded_in),
                     int(recorded_out),
                 )
+                with self._call_audit_lock:
+                    self._call_audit.append(
+                        {
+                            "sequence": sequence,
+                            "request_key": request_key,
+                            "seed": effective_seed,
+                            "model": self.model,
+                            "prompt_sha256": hashlib.sha256(
+                                input_text.encode("utf-8")
+                            ).hexdigest(),
+                            "response_sha256": hashlib.sha256(
+                                (content or "").encode("utf-8")
+                            ).hexdigest(),
+                            "input_tokens": int(recorded_in),
+                            "output_tokens": int(recorded_out),
+                        }
+                    )
 
                 return content
 
@@ -2113,8 +2157,11 @@ class ConstrainedExtractor:
         workload schema could therefore replay a narrower cached extraction
         and permanently leave newly requested columns empty.
         """
+        underlying_client = getattr(
+            self.llm_client, "client", self.llm_client
+        )
         payload = {
-            "format_version": 4,
+            "format_version": 5,
             "chunk_id": chunk_id,
             "table_name": table_name,
             "schema": sorted((schema or {}).items()),
@@ -2122,6 +2169,15 @@ class ConstrainedExtractor:
             "normalization_hints": normalization_hints or {},
             "entity_col": entity_col,
             "model": getattr(self.llm_client, "model", None),
+            "base_seed": getattr(underlying_client, "seed", None),
+            "request_seed_policy": (
+                "call_key_sha256_v1"
+                if getattr(underlying_client, "seed", None) is not None
+                else "provider_default"
+            ),
+            "append_only_evidence": (
+                os.getenv("SPP_APPEND_ONLY_EVIDENCE", "0") == "1"
+            ),
         }
         encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"))
         return hashlib.md5(encoded.encode()).hexdigest()

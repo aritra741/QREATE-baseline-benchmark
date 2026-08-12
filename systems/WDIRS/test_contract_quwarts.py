@@ -2951,6 +2951,51 @@ def test_supported_contract_cell_overrides_conflicting_bulk_value():
     assert merged.raw_tables["entity"][0]["name"] == "Canonical"
 
 
+def test_controlled_prefix_merge_is_append_only(monkeypatch):
+    monkeypatch.setenv("SPP_APPEND_ONLY_EVIDENCE", "1")
+    primary = SharedExtraction(
+        raw_tables={
+            "entity": (
+                {"row_id": "r1", "name": "First", "category": None},
+            )
+        },
+        evidence=(),
+    )
+    secondary = SharedExtraction(
+        raw_tables={
+            "entity": (
+                {
+                    "row_id": "r1",
+                    "name": "Later",
+                    "category": "Added",
+                },
+            )
+        },
+        evidence=(
+            SharedCellEvidence(
+                relation="entity",
+                row_identity="r1",
+                column="name",
+                value="Later",
+                anchor_id="a1",
+                document_id="entity/1.txt",
+                anchor_text="Later",
+                start=0,
+                end=5,
+                entailed=True,
+                span_restored=True,
+            ),
+        ),
+    )
+    merged = _merge_shared_extractions(primary, secondary)
+    assert merged.raw_tables["entity"][0] == {
+        "row_id": "r1",
+        "name": "First",
+        "category": "Added",
+    }
+    assert merged.metadata["append_only_evidence"] is True
+
+
 def test_bulk_scalar_gate_enforces_declared_types_without_semantic_ranges():
     relation = RelationSpec(
         "entity",

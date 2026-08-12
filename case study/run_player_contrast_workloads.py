@@ -253,6 +253,8 @@ def build_command(
         command.extend(["--base-url", args.base_url])
     if args.seed is not None:
         command.extend(["--seed", str(args.seed)])
+    if args.controlled_prefix:
+        command.append("--controlled-prefix")
     if args.intent_only:
         command.append("--intent-only")
     if args.max_documents_per_entity is not None:
@@ -267,7 +269,11 @@ def build_command(
     return command
 
 
-def isolated_env(scratch_parent: Path) -> dict[str, str]:
+def isolated_env(
+    scratch_parent: Path,
+    *,
+    controlled_prefix: bool = False,
+) -> dict[str, str]:
     """Clone the process environment with per-workload local caches."""
 
     env = os.environ.copy()
@@ -283,6 +289,14 @@ def isolated_env(scratch_parent: Path) -> dict[str, str]:
     env["TMPDIR"] = str(cache_root / "tmp")
     env["TMP"] = env["TMPDIR"]
     env["TEMP"] = env["TMPDIR"]
+    if controlled_prefix:
+        # A single dispatch lane makes the affordable call prefix independent
+        # of completion timing. Per-call seeds make each shared call identical.
+        env["MAX_PARALLEL_REQUESTS"] = "1"
+        env["SPP_CONTRACT_MAX_WORKERS"] = "1"
+        env["SPP_INTENT_MAX_WORKERS"] = "1"
+        env["SPP_APPEND_ONLY_EVIDENCE"] = "1"
+        env["SPP_CONTROLLED_PREFIX"] = "1"
     (cache_root / "tmp").mkdir(parents=True, exist_ok=True)
     return env
 
@@ -347,7 +361,10 @@ def run_one(
 
     log_path = output_root / "logs" / f"{workload_id}.log"
     log_path.parent.mkdir(parents=True, exist_ok=True)
-    env = isolated_env(scratch_parent)
+    env = isolated_env(
+        scratch_parent,
+        controlled_prefix=args.controlled_prefix,
+    )
     print(f"\n=== {workload_id} ===", flush=True)
     print(" ".join(command), flush=True)
     with log_path.open("w", encoding="utf-8") as log_handle:
@@ -479,6 +496,14 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Optional inference seed for reproducible fresh runs.",
     )
+    parser.add_argument(
+        "--controlled-prefix",
+        action="store_true",
+        help=(
+            "Run a serial, call-key-seeded, append-only extraction protocol "
+            "for paired budget comparisons (requires --seed)."
+        ),
+    )
     parser.add_argument("--bulk-column-batch-size", type=int, default=10)
     parser.add_argument("--bulk-min-column-coverage", type=float, default=0.0)
     parser.add_argument("--intent-only", action="store_true")
@@ -511,6 +536,8 @@ def maybe_regenerate() -> None:
 
 def main() -> int:
     args = parse_args()
+    if args.controlled_prefix and args.seed is None:
+        raise SystemExit("--controlled-prefix requires --seed")
     if args.regenerate_workloads:
         maybe_regenerate()
 
@@ -574,6 +601,7 @@ def main() -> int:
         "model": args.model,
         "base_url": args.base_url,
         "seed": args.seed,
+        "controlled_prefix": args.controlled_prefix,
         "intent_only": args.intent_only,
         "dry_run": args.dry_run,
     }
