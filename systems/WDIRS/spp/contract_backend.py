@@ -4413,7 +4413,15 @@ class ContractBackend:
             return conservative
 
     def _required_taxonomy_escrow_tokens(self) -> int:
-        """Estimate the two-call worst case from workload and routed sources."""
+        """Estimate required mapping calls from prompt-shaped label bounds.
+
+        Taxonomy prompts contain distinct observed categorical labels, not the
+        source documents themselves. The previous estimate tokenized and
+        reserved three copies of the entire routed corpus, which could exceed
+        the total run budget before extraction began. Reserve a generous
+        concise-label allowance per routed document instead of embedding
+        source-prose length in the estimate.
+        """
 
         closed = self._closed_workload_vocabularies()
         if not closed or self.contract is None:
@@ -4453,7 +4461,6 @@ class ContractBackend:
                 for document_id, document in documents.items()
                 if not routed_ids or document_id in routed_ids
             ]
-            source_text = "\n".join(document.text for document in relevant)
             metadata_text = json.dumps(
                 {
                     "entity": field[0],
@@ -4467,17 +4474,25 @@ class ContractBackend:
                 },
                 sort_keys=True,
             )
-            source_tokens = self._token_upper_bound(source_text)
             metadata_tokens = self._token_upper_bound(metadata_text)
-            # The initial prompt can contain every observed source surface.
-            # The targeted retry can contain those surfaces twice: once in the
-            # accepted map and once in the missing list. Both calls allow at
-            # most 2,048 output tokens.
-            total += (
+            # Taxonomy extraction accepts concise scalar category values. Use
+            # a 256-character upper bound per routed document; this bounds the
+            # observed/missing label arrays without tokenizing source prose.
+            per_label_tokens = self._token_upper_bound("x" * 256)
+            observed_label_tokens = (
+                max(len(relevant), 1) * per_label_tokens
+            )
+            prompt_tokens = (
                 scaffold_tokens
-                + 3 * source_tokens
-                + 2 * metadata_tokens
-                + 2 * 2_048
+                + metadata_tokens
+                + observed_label_tokens
+            )
+            # Initial mapping + its format retry + targeted completion + its
+            # format retry. The two format retries also include the preceding
+            # response, so six 2,048-token response allowances are charged.
+            total += (
+                4 * prompt_tokens
+                + 6 * 2_048
             )
         return total
 

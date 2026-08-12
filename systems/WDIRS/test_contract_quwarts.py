@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+import spp.contract_backend as contract_backend_module
 from spp.calculation_tools import operands_are_grounded
 from spp.cell_verifier import (
     BudgetAwareCellVerifier,
@@ -493,6 +494,49 @@ def test_mapping_escrow_is_released_for_taxonomy(tmp_path):
 
     assert ledger.available == 20_000
     assert ledger.charges()[0].status == "cancelled"
+
+
+def test_required_taxonomy_escrow_does_not_tokenize_source_corpus(
+    tmp_path, monkeypatch
+):
+    documents = tuple(
+        ContractDocument(
+            f"item/{index}.txt",
+            "Item category details. " + ("source prose " * 20_000),
+        )
+        for index in range(3)
+    )
+    backend = ContractBackend(
+        documents,
+        type("Client", (), {})(),
+        scratch_dir=tmp_path,
+    )
+    backend.contract = WorkloadContract(
+        entities=(EntityContract("item"),),
+        attributes=(AttributeContract("item", "category"),),
+        relationships=(),
+    )
+    monkeypatch.setattr(
+        backend,
+        "_closed_workload_vocabularies",
+        lambda: {("item", "category"): ("Broad", "Detailed")},
+    )
+    tokenized_lengths = []
+
+    def bounded_count_tokens(text):
+        tokenized_lengths.append(len(text))
+        assert len(text) < len(documents[0].text)
+        return max(1, len(text) // 4)
+
+    monkeypatch.setattr(
+        contract_backend_module, "count_tokens", bounded_count_tokens
+    )
+
+    escrow_tokens = backend._required_taxonomy_escrow_tokens()
+
+    assert escrow_tokens > 0
+    assert escrow_tokens < 100_000
+    assert tokenized_lengths
 
 
 def test_extract_holds_mapping_escrow_until_combined_mapping_pass(
