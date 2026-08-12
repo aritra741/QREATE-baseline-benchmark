@@ -2079,7 +2079,7 @@ class ContractExtractor:
             case_variants = len(
                 {" ".join(value.casefold().split()) for value in values}
             )
-            if case_variants < 2:
+            if case_variants < 2 and not target_values:
                 continue
             target_instruction = (
                 "The SQL workload explicitly defines the canonical target "

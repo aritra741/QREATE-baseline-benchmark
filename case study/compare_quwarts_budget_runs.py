@@ -98,12 +98,17 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--new-root", type=Path, required=True)
     parser.add_argument(
+        "--only",
+        default="",
+        help="Comma-separated workload ids to compare (default: all four).",
+    )
+    parser.add_argument(
         "--baseline-root",
         type=Path,
         default=None,
         help=(
             "Root containing results/<workload>/evaluation.json for the "
-            "baseline budget. Defaults to the hardcoded prior 25% paths."
+            "baseline budget. Defaults to the hardcoded prior 25%% paths."
         ),
     )
     parser.add_argument(
@@ -132,9 +137,21 @@ def main() -> int:
     output = args.output or (new_root / "budget_compare.json")
     if not output.is_absolute():
         output = (ROOT / output).resolve()
+    selected_workloads = (
+        tuple(
+            workload_id.strip()
+            for workload_id in args.only.split(",")
+            if workload_id.strip()
+        )
+        if args.only
+        else WORKLOADS
+    )
+    unknown = sorted(set(selected_workloads) - set(WORKLOADS))
+    if unknown:
+        raise ValueError(f"unknown workload ids: {', '.join(unknown)}")
 
     rows: list[dict[str, Any]] = []
-    for workload_id in WORKLOADS:
+    for workload_id in selected_workloads:
         if baseline_root is not None:
             baseline_path = _find_evaluation(baseline_root, workload_id)
         else:
