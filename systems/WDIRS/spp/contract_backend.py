@@ -3878,6 +3878,8 @@ class ContractBackend:
         extractor: object,
         extraction: object,
         ledger: GlobalBudgetLedger,
+        *,
+        supplemental_mapping_records: Sequence[ExtractionRecord] = (),
     ) -> Tuple[object, Tuple[ValidationIssue, ...]]:
         """Repair only novel, document-local contract violations."""
         assert self.contract is not None
@@ -4135,13 +4137,16 @@ class ContractBackend:
             refreshed_mappings = tuple(
                 derive_mappings(
                     self.contract,
-                    tuple(
-                        _member(
-                            current,
-                            "attribute_records",
-                            default=(),
-                        )
-                        or ()
+                    (
+                        *tuple(
+                            _member(
+                                current,
+                                "attribute_records",
+                                default=(),
+                            )
+                            or ()
+                        ),
+                        *supplemental_mapping_records,
                     ),
                 )
             )
@@ -4271,6 +4276,7 @@ class ContractBackend:
                     extractor,
                     result,
                     ledger,
+                    supplemental_mapping_records=bulk_mapping_records,
                 )
             finally:
                 if taxonomy_escrow is not None:
@@ -5211,7 +5217,7 @@ class ContractBackend:
                     purity
                     and (
                         not requires_mapping
-                        or (semantic and bool(canonical_values))
+                        or semantic
                     )
                 )
                 aligned = aligned and field_aligned
@@ -5232,7 +5238,24 @@ class ContractBackend:
                     components=components,
                 )
                 if constrained and not aligned
-                else replace(estimate, components=components)
+                else (
+                    replace(
+                        estimate,
+                        recall_proxy=min(
+                            estimate.recall_proxy,
+                            min(coverages) if coverages else 0.0,
+                        ),
+                        uncertainty=max(
+                            estimate.uncertainty,
+                            1.0 - (
+                                min(coverages) if coverages else 0.0
+                            ),
+                        ),
+                        components=components,
+                    )
+                    if constrained and semantic
+                    else replace(estimate, components=components)
+                )
             )
             adjusted[query_id] = replace(
                 assessment, estimate=updated_estimate

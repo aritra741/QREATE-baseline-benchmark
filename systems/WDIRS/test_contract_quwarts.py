@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 import json
 from pathlib import Path
 
@@ -2047,6 +2048,69 @@ def test_adaptive_repair_requires_novel_violation_and_preserves_reserve():
     )
 
 
+def test_adaptive_repair_refreshes_mappings_with_bulk_observations(
+    tmp_path, monkeypatch
+):
+    direct = ExtractionRecord(
+        "item",
+        "category",
+        "item-1",
+        "Detailed",
+        "Detailed",
+        None,
+        "item/1.txt",
+        "item/1.txt",
+        0,
+        8,
+    )
+    bulk = replace(
+        direct,
+        value="Bulk category",
+        exact_span="Bulk category",
+        derivation_kind="wdirs_bulk_observation",
+    )
+    contract = WorkloadContract(
+        entities=(EntityContract("item"),),
+        attributes=(AttributeContract("item", "category"),),
+        relationships=(),
+    )
+    backend = ContractBackend(
+        (ContractDocument("item/1.txt", "Detailed Bulk category"),),
+        type("Client", (), {})(),
+        scratch_dir=tmp_path,
+    )
+    backend.contract = contract
+    extraction = ContractExtraction(
+        contract.fingerprint,
+        (),
+        (direct,),
+    )
+    observed = []
+
+    class MappingExtractor:
+        def derive_mappings(self, _contract, records):
+            observed.extend(records)
+            return ()
+
+    monkeypatch.setattr(
+        contract_backend_module,
+        "validate_extraction",
+        lambda *_args, **_kwargs: (),
+    )
+
+    backend._adaptive_repair(
+        MappingExtractor(),
+        extraction,
+        GlobalBudgetLedger(10_000),
+        supplemental_mapping_records=(bulk,),
+    )
+
+    assert {record.value for record in observed} == {
+        "Detailed",
+        "Bulk category",
+    }
+
+
 def test_uncovered_attribute_creates_one_document_local_repair_target():
     balance = AttributeRef("account", "balance", "real")
     requirement = QueryRequirement(
@@ -3324,6 +3388,33 @@ def test_required_predicate_vocabulary_forces_semantic_candidate():
         },
     )["q0"].estimate
     assert retained.validity == 1.0
+
+    backend._shared = replace(
+        backend._shared,
+        metadata={
+            "derivation_mappings": tuple(
+                {
+                    "entity": "player",
+                    "attribute": "position",
+                    "source_value": value,
+                    "target_value": None,
+                    "mapping_kind": "taxonomy",
+                }
+                for value in ("point guard", "center", "player")
+            )
+        },
+    )
+    empty_semantic = backend._derived_semantic_tables(
+        backend._shared.raw_tables
+    )
+    empty_estimate = backend._apply_mapping_contract(
+        semantic,
+        {"q0": assessment(semantic)},
+        empty_semantic,
+    )["q0"].estimate
+    assert empty_estimate.route_eligible
+    assert empty_estimate.recall_proxy == 0.0
+    assert empty_estimate.components["contract_vocabulary_coverage"] == 0.0
 
 
 def test_semantic_overlay_cannot_win_by_dropping_required_cells():
