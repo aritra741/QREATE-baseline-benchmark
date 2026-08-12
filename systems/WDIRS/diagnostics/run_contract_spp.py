@@ -255,6 +255,8 @@ def run_contract_pipeline(args: Any) -> int:
         client_kwargs["base_url"] = args.base_url
     if args.model:
         client_kwargs["model"] = args.model
+    if getattr(args, "seed", None) is not None:
+        client_kwargs["seed"] = int(args.seed)
     client = OllamaClient(**client_kwargs)
     if intent_source == "sql-contract":
         exact_sql_intent = analyze_sql_contract_workload(queries)

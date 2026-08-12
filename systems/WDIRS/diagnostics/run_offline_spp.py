@@ -117,6 +117,12 @@ def main() -> int:
     parser.add_argument("--base-url")
     parser.add_argument("--model")
     parser.add_argument(
+        "--seed",
+        type=int,
+        default=None,
+        help="Optional inference seed for reproducible fresh LLM runs.",
+    )
+    parser.add_argument(
         "--sqlite-journal-mode",
         choices=("WAL", "DELETE"),
         default="DELETE",

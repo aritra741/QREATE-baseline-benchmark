@@ -80,6 +80,7 @@ class OllamaClient:
         timeout: int = OLLAMA_TIMEOUT,
         api_key: Optional[str] = None,
         extra_body: Optional[Dict[str, Any]] = None,
+        seed: Optional[int] = None,
     ):
         """Initialize an OpenAI-compatible client.
 
@@ -91,6 +92,7 @@ class OllamaClient:
         self.model = model
         self.timeout = timeout
         self.extra_body = dict(extra_body or {})
+        self.seed = int(seed) if seed is not None else None
         self._usage_local = threading.local()
         
         # Initialize OpenAI client (Ollama uses OpenAI-compatible API)
@@ -155,6 +157,8 @@ class OllamaClient:
                     "temperature": temperature,
                     "timeout": self.timeout,
                 }
+                if self.seed is not None:
+                    request["seed"] = self.seed
                 if self.extra_body:
                     request["extra_body"] = self.extra_body
                 response = self.client.chat.completions.create(

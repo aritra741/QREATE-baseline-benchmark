@@ -251,6 +251,8 @@ def build_command(
         command.extend(["--model", args.model])
     if args.base_url:
         command.extend(["--base-url", args.base_url])
+    if args.seed is not None:
+        command.extend(["--seed", str(args.seed)])
     if args.intent_only:
         command.append("--intent-only")
     if args.max_documents_per_entity is not None:
@@ -471,6 +473,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--beta", type=float, default=1.0)
     parser.add_argument("--model")
     parser.add_argument("--base-url")
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=None,
+        help="Optional inference seed for reproducible fresh runs.",
+    )
     parser.add_argument("--bulk-column-batch-size", type=int, default=10)
     parser.add_argument("--bulk-min-column-coverage", type=float, default=0.0)
     parser.add_argument("--intent-only", action="store_true")
@@ -565,6 +573,7 @@ def main() -> int:
         "token_budget": args.token_budget,
         "model": args.model,
         "base_url": args.base_url,
+        "seed": args.seed,
         "intent_only": args.intent_only,
         "dry_run": args.dry_run,
     }
