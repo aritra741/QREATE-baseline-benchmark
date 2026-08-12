@@ -255,6 +255,21 @@ def build_command(
         command.extend(["--seed", str(args.seed)])
     if args.controlled_prefix:
         command.append("--controlled-prefix")
+    if args.replay_root is not None:
+        replay_root = args.replay_root.expanduser()
+        if not replay_root.is_absolute():
+            replay_root = (ROOT / replay_root).resolve()
+        command.extend(
+            [
+                "--llm-replay-path",
+                str(
+                    replay_root
+                    / "results"
+                    / row["workload_id"]
+                    / "llm_response_cache.jsonl"
+                ),
+            ]
+        )
     if args.intent_only:
         command.append("--intent-only")
     if args.max_documents_per_entity is not None:
@@ -504,6 +519,15 @@ def parse_args() -> argparse.Namespace:
             "for paired budget comparisons (requires --seed)."
         ),
     )
+    parser.add_argument(
+        "--replay-root",
+        type=Path,
+        default=None,
+        help=(
+            "Prior controlled run root whose per-workload LLM response caches "
+            "should be replayed before making new calls."
+        ),
+    )
     parser.add_argument("--bulk-column-batch-size", type=int, default=10)
     parser.add_argument("--bulk-min-column-coverage", type=float, default=0.0)
     parser.add_argument("--intent-only", action="store_true")
@@ -602,6 +626,9 @@ def main() -> int:
         "base_url": args.base_url,
         "seed": args.seed,
         "controlled_prefix": args.controlled_prefix,
+        "replay_root": (
+            str(args.replay_root) if args.replay_root is not None else None
+        ),
         "intent_only": args.intent_only,
         "dry_run": args.dry_run,
     }

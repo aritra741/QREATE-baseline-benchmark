@@ -284,6 +284,8 @@ def run_contract_pipeline(args: Any) -> int:
         client_kwargs["model"] = args.model
     if getattr(args, "seed", None) is not None:
         client_kwargs["seed"] = int(args.seed)
+    if getattr(args, "llm_replay_path", None) is not None:
+        client_kwargs["replay_path"] = args.llm_replay_path
     client = OllamaClient(**client_kwargs)
     if intent_source == "sql-contract":
         exact_sql_intent = analyze_sql_contract_workload(queries)
@@ -459,6 +461,9 @@ def run_contract_pipeline(args: Any) -> int:
         ],
     )
     finished_at = datetime.now(timezone.utc)
+    response_cache_path = client.save_response_cache(
+        output / "llm_response_cache.jsonl"
+    )
     call_audit = client.call_audit()
     call_audit_payload = {
         "version": 1,
@@ -509,6 +514,12 @@ def run_contract_pipeline(args: Any) -> int:
             "call_count": len(call_audit),
             "call_sequence_sha256": call_sequence_digest,
             "call_manifest": str(call_audit_path),
+            "response_cache": str(response_cache_path),
+            "replay_source": (
+                str(Path(args.llm_replay_path).expanduser().resolve())
+                if getattr(args, "llm_replay_path", None) is not None
+                else None
+            ),
             "append_only_evidence": (
                 os.getenv("SPP_APPEND_ONLY_EVIDENCE", "0") == "1"
             ),

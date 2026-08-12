@@ -12,7 +12,7 @@ from sqlalchemy import text
 
 from data_layer import DataLayer
 from lattice_planner import LatticePlanner
-from extractor import ConstrainedExtractor, ExtractionResult
+from extractor import ConstrainedExtractor, ExtractionResult, OllamaClient
 from spp.budget_ledger import BudgetExhausted, GlobalBudgetLedger
 from spp.budgeted_llm import BudgetedLLMClient
 from spp.corpus_subset import build_representative_subset
@@ -275,6 +275,43 @@ def test_bulk_cache_key_tracks_seed_and_append_only_policy(monkeypatch):
     )
     assert seeded != different_seed
     assert different_seed != append_only
+
+
+def test_ollama_client_replays_exact_response_without_provider_call():
+    import threading
+
+    request_key = "request-key"
+    client = object.__new__(OllamaClient)
+    client.model = "test"
+    client.seed = 42
+    client._usage_local = threading.local()
+    client._call_audit_lock = threading.Lock()
+    client._call_audit = []
+    client._call_sequence = 0
+    client._response_cache = []
+    client._replay_by_key = {
+        request_key: [
+            {
+                "request_key": request_key,
+                "seed": 123,
+                "response": "cached response",
+                "input_tokens": 7,
+                "output_tokens": 3,
+            }
+        ]
+    }
+    client._replay_offsets = {}
+
+    response = client.generate(
+        "prompt",
+        request_seed=123,
+        request_key=request_key,
+    )
+
+    assert response == "cached response"
+    assert client.consume_last_usage() == (7, 3)
+    assert client.call_audit()[0]["replayed"] is True
+    assert client._replay_offsets[request_key] == 1
 
 
 def _config(label: str, requirement: QueryRequirement) -> SynthesisConfig:

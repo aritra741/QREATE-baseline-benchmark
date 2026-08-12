@@ -131,6 +131,15 @@ def main() -> int:
         ),
     )
     parser.add_argument(
+        "--llm-replay-path",
+        type=Path,
+        default=None,
+        help=(
+            "Replay matching deterministic calls from a prior response cache; "
+            "used by controlled paired-budget runs."
+        ),
+    )
+    parser.add_argument(
         "--sqlite-journal-mode",
         choices=("WAL", "DELETE"),
         default="DELETE",

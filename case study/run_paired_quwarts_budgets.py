@@ -17,6 +17,13 @@ ROOT = Path(__file__).resolve().parents[1]
 CASE = Path(__file__).resolve().parent
 RUNNER = CASE / "run_player_contrast_workloads.py"
 COMPARATOR = CASE / "compare_quwarts_budget_runs.py"
+EVALUATOR = (
+    ROOT
+    / "systems"
+    / "WDIRS"
+    / "diagnostics"
+    / "evaluate_native_spp_bundle.py"
+)
 
 
 def _command(
@@ -24,6 +31,7 @@ def _command(
     budget: int,
     output_root: Path,
     args: argparse.Namespace,
+    replay_root: Path | None = None,
 ) -> list[str]:
     command = [
         sys.executable,
@@ -41,6 +49,8 @@ def _command(
         str(output_root),
         "--quality-floor",
         str(args.quality_floor),
+        "--dataset",
+        args.dataset,
         "--bulk-column-batch-size",
         str(args.bulk_column_batch_size),
         "--bulk-min-column-coverage",
@@ -52,7 +62,30 @@ def _command(
         command.extend(["--base-url", args.base_url])
     if args.force:
         command.append("--force")
+    if replay_root is not None:
+        command.extend(["--replay-root", str(replay_root)])
     return command
+
+
+def _evaluation_command(
+    *,
+    root: Path,
+    workload_id: str,
+    dataset: str,
+) -> list[str]:
+    result_dir = root / "results" / workload_id
+    return [
+        sys.executable,
+        str(EVALUATOR),
+        "--bundle",
+        str(result_dir / "serving_bundle"),
+        "--reference-workload",
+        str(CASE / "workloads" / workload_id / "query_manifest.json"),
+        "--dataset",
+        dataset,
+        "--output",
+        str(result_dir / "evaluation.json"),
+    ]
 
 
 def _load_calls(root: Path, workload_id: str) -> list[dict[str, Any]]:
@@ -123,6 +156,10 @@ def _audit_workload(
     ]
     low_only = set(low_by_id) - shared
     high_only = set(high_by_id) - shared
+    shared_replayed = sum(
+        bool(high_by_id[identity].get("replayed"))
+        for identity in shared
+    )
     manifests_present = bool(low_calls) and bool(high_calls)
     return {
         "workload_id": workload_id,
@@ -131,17 +168,20 @@ def _audit_workload(
         "shared_call_count": len(shared),
         "low_only_call_count": len(low_only),
         "high_only_call_count": len(high_only),
+        "shared_replayed_call_count": shared_replayed,
         "shared_order_identical": low_shared_order == high_shared_order,
         "shared_response_mismatches": mismatches,
         "verified": (
             manifests_present
             and not mismatches
             and low_shared_order == high_shared_order
+            and shared_replayed == len(shared)
         ),
         "note": (
             "verified requires every call shared by both runs to have "
             "identical seed, prompt, response, usage, and relative order; "
-            "budget-dependent prompts are reported as low-only/high-only"
+            "the high run must replay each shared response; budget-dependent "
+            "prompts are reported as low-only/high-only"
         ),
     }
 
@@ -159,6 +199,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--model")
     parser.add_argument("--base-url")
+    parser.add_argument("--dataset", default="Player")
     parser.add_argument("--output-root", type=Path, default=None)
     parser.add_argument("--quality-floor", type=float, default=0.0)
     parser.add_argument("--bulk-column-batch-size", type=int, default=10)
@@ -197,15 +238,32 @@ def main() -> int:
         budget=args.high_budget,
         output_root=high_root,
         args=args,
+        replay_root=low_root,
     )
+    evaluation_commands = [
+        _evaluation_command(
+            root=root,
+            workload_id=workload_id,
+            dataset=args.dataset,
+        )
+        for root in (low_root, high_root)
+        for workload_id in workloads
+    ]
     if args.dry_run:
         print(" ".join(low_command))
         print(" ".join(high_command))
+        for command in evaluation_commands:
+            print(" ".join(command))
         return 0
 
     pair_root.mkdir(parents=True, exist_ok=True)
     low_result = subprocess.run(low_command, cwd=ROOT, check=False)
     high_result = subprocess.run(high_command, cwd=ROOT, check=False)
+    evaluation_return_codes = []
+    if low_result.returncode == 0 and high_result.returncode == 0:
+        for command in evaluation_commands:
+            completed = subprocess.run(command, cwd=ROOT, check=False)
+            evaluation_return_codes.append(completed.returncode)
     audits = [
         _audit_workload(low_root, high_root, workload_id)
         for workload_id in workloads
@@ -227,10 +285,14 @@ def main() -> int:
         "--output",
         str(comparison_path),
     ]
-    compare_result = subprocess.run(
-        compare_command,
-        cwd=ROOT,
-        check=False,
+    evaluations_ok = (
+        len(evaluation_return_codes) == len(evaluation_commands)
+        and all(code == 0 for code in evaluation_return_codes)
+    )
+    compare_result = (
+        subprocess.run(compare_command, cwd=ROOT, check=False)
+        if evaluations_ok
+        else None
     )
     payload = {
         "version": 1,
@@ -240,6 +302,7 @@ def main() -> int:
             "serial_dispatch": True,
             "call_key_derived_seeds": True,
             "append_only_evidence_merge": True,
+            "shared_response_replay": True,
             "base_seed": args.seed,
         },
         "low_budget": args.low_budget,
@@ -250,17 +313,25 @@ def main() -> int:
         "commands": {
             "low": low_command,
             "high": high_command,
+            "evaluations": evaluation_commands,
             "compare": compare_command,
         },
         "return_codes": {
             "low": low_result.returncode,
             "high": high_result.returncode,
-            "compare": compare_result.returncode,
+            "evaluations": evaluation_return_codes,
+            "compare": (
+                compare_result.returncode
+                if compare_result is not None
+                else None
+            ),
         },
         "call_audits": audits,
         "verified": (
             low_result.returncode == 0
             and high_result.returncode == 0
+            and evaluations_ok
+            and compare_result is not None
             and compare_result.returncode == 0
             and all(audit["verified"] for audit in audits)
         ),

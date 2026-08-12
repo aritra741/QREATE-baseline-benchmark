@@ -82,6 +82,7 @@ class OllamaClient:
         api_key: Optional[str] = None,
         extra_body: Optional[Dict[str, Any]] = None,
         seed: Optional[int] = None,
+        replay_path: Optional[str | Path] = None,
     ):
         """Initialize an OpenAI-compatible client.
 
@@ -98,6 +99,31 @@ class OllamaClient:
         self._call_audit_lock = threading.Lock()
         self._call_audit: List[Dict[str, Any]] = []
         self._call_sequence = 0
+        self._response_cache: List[Dict[str, Any]] = []
+        self._replay_by_key: Dict[str, List[Dict[str, Any]]] = {}
+        self._replay_offsets: Dict[str, int] = {}
+        self.replay_path = (
+            Path(replay_path).expanduser().resolve()
+            if replay_path is not None
+            else None
+        )
+        if self.replay_path is not None:
+            if not self.replay_path.is_file():
+                raise FileNotFoundError(
+                    f"LLM replay cache does not exist: {self.replay_path}"
+                )
+            for line in self.replay_path.read_text(
+                encoding="utf-8"
+            ).splitlines():
+                if not line.strip():
+                    continue
+                row = json.loads(line)
+                key = str(row.get("request_key") or "")
+                if not key or "response" not in row:
+                    raise ValueError(
+                        f"invalid LLM replay row in {self.replay_path}"
+                    )
+                self._replay_by_key.setdefault(key, []).append(row)
         
         # Initialize OpenAI client (Ollama uses OpenAI-compatible API)
         self.client = OpenAI(
@@ -126,6 +152,27 @@ class OllamaClient:
                     key=lambda item: int(item["sequence"]),
                 )
             ]
+
+    def save_response_cache(self, path: str | Path) -> Path:
+        """Persist successful responses for exact paired-run replay."""
+
+        destination = Path(path).expanduser().resolve()
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        with self._call_audit_lock:
+            rows = sorted(
+                self._response_cache,
+                key=lambda item: int(item["sequence"]),
+            )
+        temporary = destination.with_suffix(destination.suffix + ".tmp")
+        temporary.write_text(
+            "".join(
+                json.dumps(row, ensure_ascii=False) + "\n"
+                for row in rows
+            ),
+            encoding="utf-8",
+        )
+        temporary.replace(destination)
+        return destination
     
     def generate(
         self,
@@ -161,6 +208,57 @@ class OllamaClient:
             self._call_sequence += 1
         if GLOBAL_COUNTER.has_budget:
             GLOBAL_COUNTER.ensure_can_spend(count_tokens(input_text), max_tokens)
+        effective_seed = (
+            int(request_seed)
+            if request_seed is not None
+            else self.seed
+        )
+        if request_key:
+            with self._call_audit_lock:
+                candidates = self._replay_by_key.get(request_key, [])
+                offset = self._replay_offsets.get(request_key, 0)
+                replay = (
+                    candidates[offset] if offset < len(candidates) else None
+                )
+                if replay is not None:
+                    replay_seed = replay.get("seed")
+                    if replay_seed != effective_seed:
+                        raise ValueError(
+                            "LLM replay seed mismatch for request "
+                            f"{request_key}: cached={replay_seed!r}, "
+                            f"requested={effective_seed!r}"
+                        )
+                    self._replay_offsets[request_key] = offset + 1
+            if replay is not None:
+                content = str(replay["response"])
+                recorded_in = int(replay["input_tokens"])
+                recorded_out = int(replay["output_tokens"])
+                GLOBAL_COUNTER.record(
+                    input_tokens=recorded_in,
+                    output_tokens=recorded_out,
+                )
+                self._usage_local.value = (recorded_in, recorded_out)
+                audit = {
+                    "sequence": sequence,
+                    "request_key": request_key,
+                    "seed": effective_seed,
+                    "model": self.model,
+                    "prompt_sha256": hashlib.sha256(
+                        input_text.encode("utf-8")
+                    ).hexdigest(),
+                    "response_sha256": hashlib.sha256(
+                        content.encode("utf-8")
+                    ).hexdigest(),
+                    "input_tokens": recorded_in,
+                    "output_tokens": recorded_out,
+                    "replayed": True,
+                }
+                with self._call_audit_lock:
+                    self._call_audit.append(audit)
+                    self._response_cache.append(
+                        {**audit, "response": content}
+                    )
+                return content
 
         # The new offline SPP system wraps this client with an external ledger.
         # In that mode each failed dispatch must be visible and charged as its
@@ -179,11 +277,6 @@ class OllamaClient:
                     "temperature": temperature,
                     "timeout": self.timeout,
                 }
-                effective_seed = (
-                    int(request_seed)
-                    if request_seed is not None
-                    else self.seed
-                )
                 if effective_seed is not None:
                     request["seed"] = effective_seed
                 if self.extra_body:
@@ -224,21 +317,24 @@ class OllamaClient:
                     int(recorded_out),
                 )
                 with self._call_audit_lock:
-                    self._call_audit.append(
-                        {
-                            "sequence": sequence,
-                            "request_key": request_key,
-                            "seed": effective_seed,
-                            "model": self.model,
-                            "prompt_sha256": hashlib.sha256(
-                                input_text.encode("utf-8")
-                            ).hexdigest(),
-                            "response_sha256": hashlib.sha256(
-                                (content or "").encode("utf-8")
-                            ).hexdigest(),
-                            "input_tokens": int(recorded_in),
-                            "output_tokens": int(recorded_out),
-                        }
+                    audit = {
+                        "sequence": sequence,
+                        "request_key": request_key,
+                        "seed": effective_seed,
+                        "model": self.model,
+                        "prompt_sha256": hashlib.sha256(
+                            input_text.encode("utf-8")
+                        ).hexdigest(),
+                        "response_sha256": hashlib.sha256(
+                            (content or "").encode("utf-8")
+                        ).hexdigest(),
+                        "input_tokens": int(recorded_in),
+                        "output_tokens": int(recorded_out),
+                        "replayed": False,
+                    }
+                    self._call_audit.append(audit)
+                    self._response_cache.append(
+                        {**audit, "response": content or ""}
                     )
 
                 return content
