@@ -614,6 +614,7 @@ def main() -> int:
                 }
             )
             batch["pairs"].append(summary)
+            _write_index(output_root / "cross_eval_index.csv", index_rows)
     finally:
         connection.close()
 

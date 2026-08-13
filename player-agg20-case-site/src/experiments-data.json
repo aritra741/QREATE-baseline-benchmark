@@ -175,10 +175,10 @@
     "method": "For each train workload, reuse that run’s sealed serving_bundle databases. Compile each other workload’s SQL-contract queries onto the train schemas, execute read-only SQL, and score against the test workload’s gold tables. No re-extraction.",
     "script": "case study/run_player_contrast_cross_eval.py",
     "pair_count": 12,
-    "status": "protocol implemented; off-diagonal scores are filled when a cross_eval_index.csv is harvested. The diagonal below is the in-workload 25% taxonomy result (train = test).",
+    "status": "Off-diagonal cells stay pending until HPC harvest writes this JSON. Run python3 \"case study/run_and_harvest_player_cross_eval.py\" --run (or --harvest-only if the 12 pairs already finished).",
     "pairs": []
   },
   "remaining": [
-    "Harvest the 12 cross-workload transfer evaluations into this page."
+    "On HPC, after git pull: python3 \"case study/run_and_harvest_player_cross_eval.py\" --check && python3 \"case study/run_and_harvest_player_cross_eval.py\" --run. If the 12 pairs already finished, use --harvest-only. Then commit player-agg20-case-site/src/experiments-data.json and player-agg20-case-site/src/cross_eval_index.csv and pull on the laptop."
   ]
 }

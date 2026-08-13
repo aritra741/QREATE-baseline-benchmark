@@ -294,14 +294,16 @@ export default function ExperimentsPage() {
         <ContrastSection />
         <LineageSection />
         <CrossEvalSection />
-        <section className="exp-section" id="remaining">
-          <h2>Still open</h2>
-          <ul>
-            {data.remaining.map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
-        </section>
+        {(data.remaining || []).length > 0 ? (
+          <section className="exp-section" id="remaining">
+            <h2>Still open</h2>
+            <ul>
+              {data.remaining.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
       </main>
       <footer className="footer">
         <p>

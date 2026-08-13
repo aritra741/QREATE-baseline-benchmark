@@ -53,18 +53,42 @@ python3 "case study/harvest_player_contrast_results.py" \
 Fallback mode includes all 80 manifest queries but labels per-query system
 metrics as unavailable.
 
-## Refresh the experiments page
+## Cross-workload transfer on HPC
 
-The `/experiments` page is driven by
-`player-agg20-case-site/src/experiments-data.json`. After a cross-workload run
-on HPC:
+The `/experiments` matrix stays `pending` until scores are harvested into
+`player-agg20-case-site/src/experiments-data.json`. Raw run folders under
+`case study/workloads/runs/` are gitignored, so finishing the eval on HPC is
+not enough by itself.
+
+From the repo root, with the WDIRS venv active:
 
 ```bash
-python3 "case study/harvest_player_experiments.py"
+git pull
+
+python3 "case study/run_and_harvest_player_cross_eval.py" --check
+python3 "case study/run_and_harvest_player_cross_eval.py" --run
 ```
 
-That overlays `cross_eval_*/cross_eval_index.csv` when it exists. The curated
-timeline is kept.
+If the 12 pairs already finished and you only need the website files:
+
+```bash
+python3 "case study/run_and_harvest_player_cross_eval.py" --harvest-only
+```
+
+Then commit the two tracked files the script prints:
+
+```bash
+git add player-agg20-case-site/src/experiments-data.json \
+        player-agg20-case-site/src/cross_eval_index.csv
+git commit -m "Harvest Player cross-workload transfer scores"
+git push
+```
+
+On the laptop, `git pull` and reload `/experiments`.
+
+`--check` verifies the four sealed 25% taxonomy `serving_bundle` databases.
+`--run` reuses those DBs (no re-extraction), scores all 12 train→test pairs,
+and harvests the site JSON.
 
 ## Comments
 
