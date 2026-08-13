@@ -28,15 +28,48 @@ export function setAuthorName(name) {
   return cleaned;
 }
 
+function parseThreadList(raw) {
+  if (!raw) return [];
+  const parsed = JSON.parse(raw);
+  if (Array.isArray(parsed)) return parsed;
+  if (Array.isArray(parsed?.threads)) return parsed.threads;
+  return [];
+}
+
 export function loadLocalThreads() {
   try {
-    const raw = localStorage.getItem(THREADS_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    const collected = [];
+    const keys = new Set([THREADS_KEY]);
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith("quwarts-case-threads")) keys.add(key);
+    }
+    for (const key of keys) {
+      collected.push(...parseThreadList(localStorage.getItem(key)));
+    }
+    return mergeThreads(collected, []);
   } catch {
     return [];
   }
+}
+
+export function localHasUnsynced(localThreads, remoteThreads) {
+  const remoteThreadIds = new Set((remoteThreads || []).map((thread) => thread?.id).filter(Boolean));
+  const remoteCommentIds = new Set(
+    (remoteThreads || []).flatMap((thread) =>
+      (thread?.comments || []).map((comment) => comment?.id).filter(Boolean)
+    )
+  );
+  for (const thread of localThreads || []) {
+    if (!thread?.id) continue;
+    if (!remoteThreadIds.has(thread.id)) return true;
+    const remote = (remoteThreads || []).find((item) => item.id === thread.id);
+    if (remote && Boolean(remote.resolved) !== Boolean(thread.resolved)) return true;
+    for (const comment of thread.comments || []) {
+      if (comment?.id && !remoteCommentIds.has(comment.id)) return true;
+    }
+  }
+  return false;
 }
 
 export function saveLocalThreads(threads) {

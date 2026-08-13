@@ -9,6 +9,7 @@ import {
   formatRelativeTime,
   getAuthorName,
   loadLocalThreads,
+  localHasUnsynced,
   mergeThreads,
   pushSharedThreads,
   resolveThread,
@@ -313,6 +314,7 @@ export default function CommentsSystem({ children }) {
   const skipPush = useRef(true);
   const pushTimer = useRef(null);
   const remoteUpdatedAt = useRef(null);
+  const [syncReady, setSyncReady] = useState(false);
 
   useEffect(() => {
     saveLocalThreads(threads);
@@ -336,16 +338,28 @@ export default function CommentsSystem({ children }) {
   useEffect(() => {
     let cancelled = false;
     async function boot() {
+      const local = loadLocalThreads();
       try {
         const remote = await fetchSharedThreads();
         if (cancelled) return;
-        applyRemote(remote.threads, remote.updatedAt, remote.shared);
-      } catch (error) {
+        const merged = mergeThreads(local, remote.threads);
+        applyRemote(merged, remote.updatedAt, remote.shared);
+        if (remote.shared && localHasUnsynced(local, remote.threads)) {
+          const latest = await fetchSharedThreads();
+          if (cancelled) return;
+          const outgoing = mergeThreads(merged, latest.threads);
+          const saved = await pushSharedThreads(outgoing);
+          if (cancelled) return;
+          applyRemote(saved.threads, saved.updatedAt, saved.shared);
+        }
+      } catch {
         if (cancelled) return;
         setSyncState({
           shared: false,
           status: "Local only (shared storage unavailable)",
         });
+      } finally {
+        if (!cancelled) setSyncReady(true);
       }
     }
     boot();
@@ -355,6 +369,7 @@ export default function CommentsSystem({ children }) {
   }, [applyRemote]);
 
   useEffect(() => {
+    if (!syncReady) return;
     if (skipPush.current) {
       skipPush.current = false;
       return;
@@ -393,7 +408,7 @@ export default function CommentsSystem({ children }) {
     return () => {
       if (pushTimer.current) window.clearTimeout(pushTimer.current);
     };
-  }, [threads]);
+  }, [threads, syncReady]);
 
   useEffect(() => {
     const timer = window.setInterval(async () => {

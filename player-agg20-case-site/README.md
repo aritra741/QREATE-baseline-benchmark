@@ -139,3 +139,5 @@ Or set the Vercel project root to `player-agg20-case-site`.
 3. Redeploy.
 
 Until KV is connected, the site still works, but comments stay local to each browser.
+The next time someone with older browser-only comments opens the site, those comments
+are copied into shared storage so everyone can see them.
