@@ -197,6 +197,9 @@ function QueryCard({ workloadId, query }) {
 
 export default function ContrastPage() {
   const workloads = Object.entries(data.workloads || {});
+  const allQueries = workloads.flatMap(([, row]) => row.queries || []);
+  const q = systemMeans(allQueries, "quwarts");
+  const d = systemMeans(allQueries, "docetl");
   const qTokens = workloads.reduce((sum, [, row]) => {
     const value = row.quwarts?.tokens_actual;
     return value == null ? sum : (sum ?? 0) + Number(value);
@@ -217,10 +220,36 @@ export default function ContrastPage() {
         </p>
       </header>
       <main>
-        <section className="contrast-token-summary">
-          <div><span>QuWARTS tokens</span><strong>{tokens(qTokens)}</strong></div>
-          <div><span>DocETL tokens</span><strong>{tokens(dTokens)}</strong></div>
-          <div><span>QuWARTS share</span><strong>{dTokens ? pct(qTokens / dTokens) : "—"}</strong></div>
+        <section className="contrast-overall">
+          <p className="eyebrow">Across all 80 questions</p>
+          <div className="contrast-aggregate-grid">
+            {[
+              ["QuWARTS", q, qTokens],
+              ["DocETL", d, dTokens],
+            ].map(([name, scores, tokenCount]) => (
+              <article key={name}>
+                <h3>{name}</h3>
+                <dl>
+                  <div>
+                    <dt>Score</dt>
+                    <dd className={leadClass(scores.score, name === "QuWARTS" ? d.score : q.score)}>{pct(scores.score)}</dd>
+                  </div>
+                  <div>
+                    <dt>Structure</dt>
+                    <dd className={leadClass(scores.structure, name === "QuWARTS" ? d.structure : q.structure)}>{pct(scores.structure)}</dd>
+                  </div>
+                  <div>
+                    <dt>Accuracy</dt>
+                    <dd className={leadClass(scores.accuracy, name === "QuWARTS" ? d.accuracy : q.accuracy)}>{pct(scores.accuracy)}</dd>
+                  </div>
+                  <div>
+                    <dt>Tokens</dt>
+                    <dd>{tokens(tokenCount)}</dd>
+                  </div>
+                </dl>
+              </article>
+            ))}
+          </div>
         </section>
         {workloads.map(([workloadId, row]) => {
           const q = row.quwarts?.scores || {};
