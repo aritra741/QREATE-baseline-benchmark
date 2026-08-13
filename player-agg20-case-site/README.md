@@ -3,7 +3,9 @@
 Static site that compares QuWARTS and DocETL on 20 Player questions.
 
 The original case study is served at `/`; the four-workload, 80-query comparison
-is served at `/contrasts`.
+is served at `/contrasts`; lineage and cross-workload transfer are served at
+`/experiments`. Gold, predicted, missing-group, extra-group, and wrong-value
+tables stay on `/contrasts`.
 
 ## Harvest contrast results
 
@@ -50,6 +52,19 @@ python3 "case study/harvest_player_contrast_results.py" \
 
 Fallback mode includes all 80 manifest queries but labels per-query system
 metrics as unavailable.
+
+## Refresh the experiments page
+
+The `/experiments` page is driven by
+`player-agg20-case-site/src/experiments-data.json`. After a cross-workload run
+on HPC:
+
+```bash
+python3 "case study/harvest_player_experiments.py"
+```
+
+That overlays `cross_eval_*/cross_eval_index.csv` when it exists. The curated
+timeline is kept.
 
 ## Comments
 

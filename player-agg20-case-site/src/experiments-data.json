@@ -1,0 +1,184 @@
+{
+  "title": "Player experiments log",
+  "subtitle": "Everything run so far on the four contrast workloads: DocETL comparison, QuWARTS lineage, and cross-workload transfer.",
+  "generated_at_utc": "2026-08-13T00:10:00+00:00",
+  "model": "qwen2.5:7b-instruct",
+  "primary_error_level": "0.2",
+  "score_definitions": [
+    {
+      "id": "main",
+      "name": "Main score @20%",
+      "formula": "structure F2 × cell F1 at 20% relative error"
+    },
+    {
+      "id": "cell",
+      "name": "Cell F1 @20%",
+      "formula": "matched-cell accuracy within 20% relative error"
+    },
+    {
+      "id": "official",
+      "name": "UDA-Bench accuracy",
+      "formula": "column macro-F1; reference only, not the ranking score"
+    }
+  ],
+  "workloads": [
+    {
+      "id": "player_join20",
+      "short": "join",
+      "focus": "join depth 1–3"
+    },
+    {
+      "id": "player_groupby20",
+      "short": "groupby",
+      "focus": "GROUP BY variety + closed position vocabulary"
+    },
+    {
+      "id": "player_multiagg20",
+      "short": "multiagg",
+      "focus": "multiple aggregates + HAVING"
+    },
+    {
+      "id": "player_filterjoin20",
+      "short": "filterjoin",
+      "focus": "selective filters with light joins"
+    }
+  ],
+  "docetl_tokens": {
+    "player_join20": 28462525,
+    "player_groupby20": 20540522,
+    "player_multiagg20": 22680169,
+    "player_filterjoin20": 24456613
+  },
+  "timeline": [
+    {
+      "when": "2026-08-08 / 08-09",
+      "title": "First QuWARTS vs DocETL contrast",
+      "detail": "QuWARTS used roughly 25% of DocETL tokens. Join beat DocETL; groupby, multiagg, and filterjoin lost, mostly because Frontcourt/Backcourt filters returned empty tables."
+    },
+    {
+      "when": "2026-08-09 / 08-10",
+      "title": "Expression IR + forced closed-vocabulary taxonomy",
+      "detail": "Same 25% budgets. All four workloads then beat DocETL. Groupby and filterjoin are the largest gains."
+    },
+    {
+      "when": "2026-08-11 / 08-12",
+      "title": "Cross-workload transfer script",
+      "detail": "Leave-one-in protocol: reuse each train workload’s sealed database, compile the other three workloads’ SQL onto that schema, execute, and score. Twelve off-diagonal pairs; no re-extraction."
+    }
+  ],
+  "contrast_25pct": {
+    "label": "Forced-taxonomy QuWARTS at ~25% of DocETL tokens",
+    "run_roots": {
+      "player_join20": "quwarts_forced_taxonomy_25pct_20260810",
+      "player_groupby20": "quwarts_forced_taxonomy_25pct_20260809",
+      "player_multiagg20": "quwarts_forced_taxonomy_25pct_20260810",
+      "player_filterjoin20": "quwarts_forced_taxonomy_25pct_20260810"
+    },
+    "rows": [
+      {
+        "workload_id": "player_join20",
+        "quwarts": {
+          "accuracy": 0.49228151794099895,
+          "structure": 0.5586805762274495,
+          "query_score": 0.16413843599367223,
+          "tokens": 6041288
+        },
+        "docetl": {
+          "accuracy": 0.32446243293904076,
+          "structure": 0.3676453321401924,
+          "query_score": 0.11462318231978723,
+          "tokens": 28462525
+        }
+      },
+      {
+        "workload_id": "player_groupby20",
+        "quwarts": {
+          "accuracy": 0.7473731292311598,
+          "structure": 0.8500751845507654,
+          "query_score": 0.43776265093172856,
+          "tokens": 5124260
+        },
+        "docetl": {
+          "accuracy": 0.3770782284175267,
+          "structure": 0.43740458641846147,
+          "query_score": 0.15042181051766282,
+          "tokens": 20540522
+        }
+      },
+      {
+        "workload_id": "player_multiagg20",
+        "quwarts": {
+          "accuracy": 0.3475298343881894,
+          "structure": 0.4755764101840681,
+          "query_score": 0.16035335564596087,
+          "tokens": 5654147
+        },
+        "docetl": {
+          "accuracy": 0.3422181547851679,
+          "structure": 0.4147765995814347,
+          "query_score": 0.1108514051425222,
+          "tokens": 22680169
+        }
+      },
+      {
+        "workload_id": "player_filterjoin20",
+        "quwarts": {
+          "accuracy": 0.7470135076231319,
+          "structure": 0.8359633648316578,
+          "query_score": 0.2840903445404683,
+          "tokens": 6087245
+        },
+        "docetl": {
+          "accuracy": 0.43241339623260266,
+          "structure": 0.4858513366889326,
+          "query_score": 0.10559926555693379,
+          "tokens": 24456613
+        }
+      }
+    ]
+  },
+  "prior_quwarts": {
+    "label": "Earlier QuWARTS contrast, before expression IR and forced taxonomy",
+    "rows": [
+      {
+        "workload_id": "player_join20",
+        "accuracy": 0.567,
+        "structure": 0.673,
+        "query_score": 0.296,
+        "tokens": 9207824
+      },
+      {
+        "workload_id": "player_groupby20",
+        "accuracy": 0.14,
+        "structure": 0.152,
+        "query_score": 0.092,
+        "tokens": 5133540
+      },
+      {
+        "workload_id": "player_multiagg20",
+        "accuracy": 0.254,
+        "structure": 0.378,
+        "query_score": 0.124,
+        "tokens": 5668033
+      },
+      {
+        "workload_id": "player_filterjoin20",
+        "accuracy": 0.139,
+        "structure": 0.141,
+        "query_score": 0.087,
+        "tokens": 6112574
+      }
+    ]
+  },
+  "cross_eval": {
+    "label": "Leave-one-in / leave-three-out transfer",
+    "method": "For each train workload, reuse that run’s sealed serving_bundle databases. Compile each other workload’s SQL-contract queries onto the train schemas, execute read-only SQL, and score against the test workload’s gold tables. No re-extraction.",
+    "script": "case study/run_player_contrast_cross_eval.py",
+    "pair_count": 12,
+    "status": "protocol implemented; off-diagonal scores are filled when a cross_eval_index.csv is harvested. The diagonal below is the in-workload 25% taxonomy result (train = test).",
+    "pairs": []
+  },
+  "remaining": [
+    "Harvest the 12 cross-workload transfer evaluations into this page."
+  ]
+}

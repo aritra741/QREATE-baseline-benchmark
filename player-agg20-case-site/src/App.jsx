@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import CommentsSystem from "./Comments.jsx";
 import ContrastPage from "./ContrastPage.jsx";
+import ExperimentsPage from "./ExperimentsPage.jsx";
 import data from "./data.json";
 import { DiffBlock, ResultTable, WrongValues } from "./tableViews.jsx";
 
@@ -214,11 +215,17 @@ function QueryPanel({ query, open, onToggle }) {
   );
 }
 
+function currentPath() {
+  return window.location.pathname.replace(/\/+$/, "") || "/";
+}
+
 function SiteNav() {
+  const path = currentPath();
   return (
     <nav className="site-nav" aria-label="Case study pages">
-      <a href="/" className={window.location.pathname === "/" ? "active" : ""}>Agg20 case study</a>
-      <a href="/contrasts" className={window.location.pathname === "/contrasts" ? "active" : ""}>Contrast results</a>
+      <a href="/" className={path === "/" ? "active" : ""}>Agg20 case study</a>
+      <a href="/contrasts" className={path === "/contrasts" ? "active" : ""}>Contrast results</a>
+      <a href="/experiments" className={path === "/experiments" ? "active" : ""}>Experiments</a>
     </nav>
   );
 }
@@ -336,11 +343,19 @@ function CaseStudyPage() {
 }
 
 export default function App() {
-  const contrasts = window.location.pathname.replace(/\/+$/, "") === "/contrasts";
+  const path = currentPath();
+  const page =
+    path === "/contrasts" ? (
+      <ContrastPage />
+    ) : path === "/experiments" ? (
+      <ExperimentsPage />
+    ) : (
+      <CaseStudyPage />
+    );
   return (
     <CommentsSystem>
       <SiteNav />
-      {contrasts ? <ContrastPage /> : <CaseStudyPage />}
+      {page}
     </CommentsSystem>
   );
 }

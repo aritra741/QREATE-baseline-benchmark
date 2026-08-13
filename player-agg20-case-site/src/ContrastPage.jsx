@@ -15,7 +15,14 @@ function tokens(value) {
 function metric(record, key) {
   if (!record) return null;
   if (key === "structure_score") return record.structure_score ?? record.rank?.structure_score;
+  if (key === "official_accuracy") {
+    return record.official_accuracy ?? record.mean_official_accuracy ?? null;
+  }
   return record[key]?.[LEVEL] ?? record.rank?.[key]?.[LEVEL] ?? null;
+}
+
+function mainScore(record) {
+  return metric(record, "query_score");
 }
 
 function listOrNone(values) {
@@ -72,8 +79,8 @@ function QueryCard({ workloadId, query }) {
   const schema = query.schema || metrics.quwarts?.schema || metrics.docetl?.schema || {};
   const tables = query.tables || {};
   const differences = query.differences || {};
-  const qScore = metric(metrics.quwarts, "query_score");
-  const dScore = metric(metrics.docetl, "query_score");
+  const qScore = mainScore(metrics.quwarts) ?? metric(metrics.quwarts, "query_score");
+  const dScore = mainScore(metrics.docetl) ?? metric(metrics.docetl, "query_score");
   const winner =
     qScore == null || dScore == null
       ? "Awaiting detailed metrics"
@@ -101,7 +108,8 @@ function QueryCard({ workloadId, query }) {
               <dl>
                 <div><dt>Structure</dt><dd>{pct(metric(record, "structure_score"))}</dd></div>
                 <div><dt>Cell F1 @20%</dt><dd>{pct(metric(record, "cell_f1"))}</dd></div>
-                <div><dt>Query score @20%</dt><dd>{pct(metric(record, "query_score"))}</dd></div>
+                <div><dt>Main score @20%</dt><dd>{pct(metric(record, "query_score"))}</dd></div>
+                <div><dt>UDA-Bench accuracy</dt><dd>{pct(metric(record, "official_accuracy"))}</dd></div>
               </dl>
             </section>
           ))}
@@ -182,7 +190,10 @@ export default function ContrastPage() {
       <header className="contrast-hero">
         <p className="eyebrow">Four workloads · {data.query_count} queries</p>
         <h1>Player contrast results</h1>
-        <p className="lede">{data.subtitle}. {data.score_note}</p>
+        <p className="lede">
+          {data.subtitle}. Main score is structure F2 × cell F1 at 20% relative error. Official
+          UDA-Bench accuracy is shown only as a reference metric.
+        </p>
         {!data.per_query_metrics_complete ? (
           <p className="contrast-notice">This local bundle uses audited aggregate results. Query SQL and descriptions are complete; per-query system metrics will appear after the strict HPC harvest.</p>
         ) : null}
@@ -200,7 +211,17 @@ export default function ContrastPage() {
         </section>
         <section className="contrast-method">
           <h2>Methodology</h2>
-          <p>Aggregate cards compare official accuracy, structure score, and the structure × cell-F1 query score at 20% relative-error tolerance. Expanded queries show ground truth, system outputs, missing groups, extra groups, and wrong values when those tables are harvested.</p>
+          <p>
+            Aggregate cards compare structure F2, cell F1 @20%, and the main score (structure ×
+            cell F1). Official UDA-Bench accuracy is listed separately and is not the ranking
+            score. Expanded queries show ground truth, system outputs, missing groups, extra
+            groups, and wrong values when those tables are harvested.
+          </p>
+          <p>
+            Taxonomy lineage and cross-workload transfer are on the{" "}
+            <a href="/experiments">experiments page</a>.
+            Gold, predicted, missing-group, extra-group, and wrong-value tables stay on this page.
+          </p>
         </section>
         {workloads.map(([workloadId, row]) => {
           const q = row.quwarts?.scores || {};
@@ -220,9 +241,10 @@ export default function ContrastPage() {
                   <article key={name}>
                     <h3>{name}</h3>
                     <dl>
-                      <div><dt>Official accuracy</dt><dd>{pct(scores.mean_official_accuracy)}</dd></div>
                       <div><dt>Structure</dt><dd>{pct(scores.mean_structure_score)}</dd></div>
-                      <div><dt>Query score @20%</dt><dd>{pct(scores.mean_query_score?.[LEVEL])}</dd></div>
+                      <div><dt>Cell F1 @20%</dt><dd>{pct(scores.mean_cell_f1?.[LEVEL])}</dd></div>
+                      <div><dt>Main score @20%</dt><dd>{pct(scores.mean_query_score?.[LEVEL])}</dd></div>
+                      <div><dt>UDA-Bench accuracy</dt><dd>{pct(scores.mean_official_accuracy)}</dd></div>
                       <div><dt>Tokens</dt><dd>{tokens(tokenCount)}</dd></div>
                     </dl>
                   </article>
