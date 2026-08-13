@@ -34,8 +34,8 @@ WORKLOADS = (
 INDEX_FIELDS = (
     "train_workload",
     "test_workload",
-    "mean_official_accuracy",
     "mean_structure_score",
+    "mean_cell_f1_0.2",
     "mean_query_score_0.2",
     "compiled_ok_count",
     "query_count",
@@ -58,8 +58,8 @@ def _write_index(path: Path, pairs: list[dict[str, Any]]) -> None:
                 {
                     "train_workload": pair.get("train"),
                     "test_workload": pair.get("test"),
-                    "mean_official_accuracy": pair.get("accuracy"),
                     "mean_structure_score": pair.get("structure"),
+                    "mean_cell_f1_0.2": pair.get("cell_f1"),
                     "mean_query_score_0.2": pair.get("query_score"),
                     "compiled_ok_count": pair.get("compiled_ok_count"),
                     "query_count": pair.get("query_count"),
@@ -97,7 +97,7 @@ def _pair_from_csv_row(row: dict[str, str], source: Path) -> dict[str, Any] | No
     return {
         "train": train,
         "test": test,
-        "accuracy": _float_or_none(row.get("mean_official_accuracy")),
+        "cell_f1": _float_or_none(row.get("mean_cell_f1_0.2")),
         "structure": _float_or_none(row.get("mean_structure_score")),
         "query_score": _float_or_none(row.get("mean_query_score_0.2")),
         "compiled_ok_count": _int_or_none(row.get("compiled_ok_count")),
@@ -121,10 +121,13 @@ def _pair_from_eval(path: Path) -> dict[str, Any] | None:
     query_score = payload.get("mean_query_score") or {}
     if isinstance(query_score, dict):
         query_score = query_score.get("0.2")
+    cell_f1 = payload.get("mean_cell_f1") or {}
+    if isinstance(cell_f1, dict):
+        cell_f1 = cell_f1.get("0.2")
     return {
         "train": train,
         "test": test,
-        "accuracy": _float_or_none(payload.get("mean_official_accuracy")),
+        "cell_f1": _float_or_none(cell_f1),
         "structure": _float_or_none(payload.get("mean_structure_score")),
         "query_score": _float_or_none(query_score),
         "compiled_ok_count": _int_or_none(payload.get("compiled_ok_count")),

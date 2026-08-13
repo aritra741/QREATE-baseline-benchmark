@@ -23,9 +23,6 @@ function tokens(value) {
 function metric(record, key) {
   if (!record) return null;
   if (key === "structure_score") return record.structure_score ?? record.rank?.structure_score;
-  if (key === "official_accuracy") {
-    return record.official_accuracy ?? record.mean_official_accuracy ?? null;
-  }
   return record[key]?.[LEVEL] ?? record.rank?.[key]?.[LEVEL] ?? null;
 }
 
@@ -43,9 +40,16 @@ function systemMeans(queries, system) {
   return {
     score: mean(queries.map((query) => mainScore(query.metrics?.[system]))),
     structure: mean(queries.map((query) => metric(query.metrics?.[system], "structure_score"))),
-    values: mean(queries.map((query) => metric(query.metrics?.[system], "cell_f1"))),
-    accuracy: mean(queries.map((query) => metric(query.metrics?.[system], "official_accuracy"))),
+    accuracy: mean(queries.map((query) => metric(query.metrics?.[system], "cell_f1"))),
   };
+}
+
+function leadClass(self, other) {
+  if (self == null || other == null) return "";
+  const a = Number(self);
+  const b = Number(other);
+  if (Number.isNaN(a) || Number.isNaN(b) || a < b) return "";
+  return "cell-lead";
 }
 
 function VariantTables({ workloadId, queries }) {
@@ -62,12 +66,12 @@ function VariantTables({ workloadId, queries }) {
                 <tr>
                   <th>Variation</th>
                   <th className="num">Questions</th>
-                  <th className="num">QuWARTS score</th>
-                  <th className="num">DocETL score</th>
                   <th className="num">QuWARTS structure</th>
-                  <th className="num">DocETL structure</th>
                   <th className="num">QuWARTS accuracy</th>
+                  <th className="num">QuWARTS score</th>
+                  <th className="num">DocETL structure</th>
                   <th className="num">DocETL accuracy</th>
+                  <th className="num">DocETL score</th>
                 </tr>
               </thead>
               <tbody>
@@ -78,12 +82,12 @@ function VariantTables({ workloadId, queries }) {
                     <tr key={row.label}>
                       <td>{row.label}</td>
                       <td className="num">{row.queries.length}</td>
-                      <td className="num">{pct(q.score)}</td>
-                      <td className="num">{pct(d.score)}</td>
-                      <td className="num">{pct(q.structure)}</td>
-                      <td className="num">{pct(d.structure)}</td>
-                      <td className="num">{pct(q.accuracy)}</td>
-                      <td className="num">{pct(d.accuracy)}</td>
+                      <td className={`num ${leadClass(q.structure, d.structure)}`}>{pct(q.structure)}</td>
+                      <td className={`num ${leadClass(q.accuracy, d.accuracy)}`}>{pct(q.accuracy)}</td>
+                      <td className={`num ${leadClass(q.score, d.score)}`}>{pct(q.score)}</td>
+                      <td className={`num ${leadClass(d.structure, q.structure)}`}>{pct(d.structure)}</td>
+                      <td className={`num ${leadClass(d.accuracy, q.accuracy)}`}>{pct(d.accuracy)}</td>
+                      <td className={`num ${leadClass(d.score, q.score)}`}>{pct(d.score)}</td>
                     </tr>
                   );
                 })}
@@ -131,8 +135,7 @@ function QueryCard({ workloadId, query }) {
               <dl>
                 <div><dt>Score</dt><dd>{pct(metric(record, "query_score"))}</dd></div>
                 <div><dt>Structure</dt><dd>{pct(metric(record, "structure_score"))}</dd></div>
-                <div><dt>Values</dt><dd>{pct(metric(record, "cell_f1"))}</dd></div>
-                <div><dt>Accuracy</dt><dd>{pct(metric(record, "official_accuracy"))}</dd></div>
+                <div><dt>Accuracy</dt><dd>{pct(metric(record, "cell_f1"))}</dd></div>
               </dl>
             </section>
           ))}
@@ -243,8 +246,7 @@ export default function ContrastPage() {
                     <dl>
                       <div><dt>Score</dt><dd>{pct(scores.mean_query_score?.[LEVEL])}</dd></div>
                       <div><dt>Structure</dt><dd>{pct(scores.mean_structure_score)}</dd></div>
-                      <div><dt>Values</dt><dd>{pct(scores.mean_cell_f1?.[LEVEL])}</dd></div>
-                      <div><dt>Accuracy</dt><dd>{pct(scores.mean_official_accuracy)}</dd></div>
+                      <div><dt>Accuracy</dt><dd>{pct(scores.mean_cell_f1?.[LEVEL])}</dd></div>
                       <div><dt>Tokens</dt><dd>{tokens(tokenCount)}</dd></div>
                     </dl>
                   </article>

@@ -41,6 +41,14 @@ function shortName(workloadId) {
   return NAMES[workloadId] || WORKLOADS.find((row) => row.id === workloadId)?.short || workloadId;
 }
 
+function leadClass(self, other) {
+  if (self == null || other == null) return "";
+  const a = Number(self);
+  const b = Number(other);
+  if (Number.isNaN(a) || Number.isNaN(b) || a < b) return "";
+  return "cell-lead";
+}
+
 function ScoreTable({ columns, rows }) {
   return (
     <div className="exp-table-wrap">
@@ -92,8 +100,8 @@ function ComparisonSection() {
       <ScoreTable
         columns={[
           { key: "w", label: "Questions", render: (row) => shortName(row.workload_id) },
-          { key: "qs", label: "QuWARTS score", numeric: true, render: (row) => pct(row.qScore) },
-          { key: "ds", label: "DocETL score", numeric: true, render: (row) => pct(row.dScore) },
+          { key: "qs", label: "QuWARTS score", numeric: true, className: (row) => leadClass(row.qScore, row.dScore), render: (row) => pct(row.qScore) },
+          { key: "ds", label: "DocETL score", numeric: true, className: (row) => leadClass(row.dScore, row.qScore), render: (row) => pct(row.dScore) },
           {
             key: "delta",
             label: "Difference",
@@ -101,10 +109,10 @@ function ComparisonSection() {
             className: (row) => deltaClass(row.delta),
             render: (row) => signedPct(row.delta),
           },
-          { key: "qst", label: "QuWARTS structure", numeric: true, render: (row) => pct(row.quwarts.structure) },
-          { key: "dst", label: "DocETL structure", numeric: true, render: (row) => pct(row.docetl.structure) },
-          { key: "qa", label: "QuWARTS accuracy", numeric: true, render: (row) => pct(row.quwarts.accuracy) },
-          { key: "da", label: "DocETL accuracy", numeric: true, render: (row) => pct(row.docetl.accuracy) },
+          { key: "qst", label: "QuWARTS structure", numeric: true, className: (row) => leadClass(row.quwarts.structure, row.docetl.structure), render: (row) => pct(row.quwarts.structure) },
+          { key: "dst", label: "DocETL structure", numeric: true, className: (row) => leadClass(row.docetl.structure, row.quwarts.structure), render: (row) => pct(row.docetl.structure) },
+          { key: "qa", label: "QuWARTS accuracy", numeric: true, className: (row) => leadClass(row.quwarts.cell_f1, row.docetl.cell_f1), render: (row) => pct(row.quwarts.cell_f1) },
+          { key: "da", label: "DocETL accuracy", numeric: true, className: (row) => leadClass(row.docetl.cell_f1, row.quwarts.cell_f1), render: (row) => pct(row.docetl.cell_f1) },
           { key: "qt", label: "QuWARTS tokens", numeric: true, render: (row) => tokens(row.quwarts.tokens) },
           { key: "dt", label: "DocETL tokens", numeric: true, render: (row) => tokens(row.docetl.tokens) },
         ]}
@@ -120,7 +128,8 @@ function TransferSection() {
     data.contrast_25pct.rows.map((row) => [
       row.workload_id,
       {
-        accuracy: row.quwarts.accuracy,
+        accuracy: row.quwarts.cell_f1,
+        cell_f1: row.quwarts.cell_f1,
         structure: row.quwarts.structure,
         query_score: row.quwarts.query_score,
         kind: "same",
@@ -174,7 +183,9 @@ function TransferSection() {
                         <>
                           <strong>{pct(score(value))}</strong>
                           <small>
-                            {pct(value.accuracy)} accuracy · {pct(value.structure)} structure
+                            {value.cell_f1 != null
+                              ? `${pct(value.cell_f1)} accuracy · ${pct(value.structure)} structure`
+                              : `${pct(value.structure)} structure`}
                           </small>
                         </>
                       )}
@@ -193,7 +204,7 @@ function TransferSection() {
             { key: "te", label: "Questions", render: (row) => shortName(row.test) },
             { key: "m", label: "Score", numeric: true, render: (row) => pct(score(row)) },
             { key: "s", label: "Structure", numeric: true, render: (row) => pct(row.structure) },
-            { key: "a", label: "Accuracy", numeric: true, render: (row) => pct(row.accuracy) },
+            { key: "a", label: "Accuracy", numeric: true, render: (row) => pct(row.cell_f1) },
           ]}
           rows={(data.cross_eval.pairs || []).map((pair) => ({
             key: `${pair.train}:${pair.test}`,

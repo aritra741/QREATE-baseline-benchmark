@@ -100,7 +100,7 @@ function SystemScoreCard({ title, scores }) {
             <tr>
               <th>Error level</th>
               <th>Structure</th>
-              <th>Values</th>
+              <th>Accuracy</th>
               <th>Score</th>
             </tr>
           </thead>
@@ -264,11 +264,11 @@ function CaseStudyPage() {
               <strong>{pct(data.means.docetl.structure_f2)}</strong>
             </div>
             <div>
-              <span className="metric-label">QuWARTS values</span>
+              <span className="metric-label">QuWARTS accuracy</span>
               <strong>{pct(data.means.quwarts.cell_f1["0.2"])}</strong>
             </div>
             <div>
-              <span className="metric-label">DocETL values</span>
+              <span className="metric-label">DocETL accuracy</span>
               <strong>{pct(data.means.docetl.cell_f1["0.2"])}</strong>
             </div>
             <div>
