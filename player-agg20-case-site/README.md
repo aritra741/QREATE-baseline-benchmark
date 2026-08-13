@@ -2,10 +2,8 @@
 
 Static site that compares QuWARTS and DocETL on 20 Player questions.
 
-The original case study is served at `/`; the four-workload, 80-query comparison
-is served at `/contrasts`; lineage and cross-workload transfer are served at
-`/experiments`. Gold, predicted, missing-group, extra-group, and wrong-value
-tables stay on `/contrasts`.
+The original 20-question case study is at `/`. The four sets of questions are at
+`/contrasts`. Transfer scores are at `/experiments`.
 
 ## Harvest contrast results
 

@@ -1,5 +1,12 @@
 import data from "./experiments-data.json";
 
+const NAMES = {
+  player_join20: "Joins",
+  player_groupby20: "Group by",
+  player_multiagg20: "Aggregates",
+  player_filterjoin20: "Filters",
+};
+
 const WORKLOADS = data.workloads || [];
 
 function pct(value) {
@@ -12,7 +19,7 @@ function tokens(value) {
   return Number(value).toLocaleString("en-US");
 }
 
-function mainScore(row) {
+function score(row) {
   if (row?.query_score != null) return Number(row.query_score);
   if (row?.structure == null || row?.cell_f1 == null) return null;
   return Number(row.structure) * Number(row.cell_f1);
@@ -31,7 +38,7 @@ function signedPct(value) {
 }
 
 function shortName(workloadId) {
-  return WORKLOADS.find((row) => row.id === workloadId)?.short || workloadId;
+  return NAMES[workloadId] || WORKLOADS.find((row) => row.id === workloadId)?.short || workloadId;
 }
 
 function ScoreTable({ columns, rows }) {
@@ -66,90 +73,40 @@ function ScoreTable({ columns, rows }) {
   );
 }
 
-function ContrastSection() {
+function ComparisonSection() {
   const rows = data.contrast_25pct.rows.map((row) => {
-    const qMain = mainScore(row.quwarts);
-    const dMain = mainScore(row.docetl);
+    const qScore = score(row.quwarts);
+    const dScore = score(row.docetl);
     return {
       key: row.workload_id,
       ...row,
-      qMain,
-      dMain,
-      dMainDelta: qMain - dMain,
+      qScore,
+      dScore,
+      delta: qScore - dScore,
     };
   });
   return (
-    <section className="exp-section" id="contrast">
-      <h2>QuWARTS vs DocETL at 25% tokens</h2>
-      <p>
-        Published contrast harvest. QuWARTS used about one quarter of DocETL’s tokens and still
-        wins every workload on the main score.
-      </p>
+    <section className="exp-section" id="comparison">
+      <h2>QuWARTS vs DocETL</h2>
+      <p>QuWARTS used about a quarter of the tokens and scored higher on every set of questions.</p>
       <ScoreTable
         columns={[
-          { key: "w", label: "Workload", render: (row) => shortName(row.workload_id) },
-          { key: "qa", label: "Q acc", numeric: true, render: (row) => pct(row.quwarts.accuracy) },
-          { key: "da", label: "D acc", numeric: true, render: (row) => pct(row.docetl.accuracy) },
-          { key: "qs", label: "Q structure", numeric: true, render: (row) => pct(row.quwarts.structure) },
-          { key: "ds", label: "D structure", numeric: true, render: (row) => pct(row.docetl.structure) },
-          { key: "qm", label: "Q main @20%", numeric: true, render: (row) => pct(row.qMain) },
-          { key: "dm", label: "D main @20%", numeric: true, render: (row) => pct(row.dMain) },
+          { key: "w", label: "Questions", render: (row) => shortName(row.workload_id) },
+          { key: "qs", label: "QuWARTS score", numeric: true, render: (row) => pct(row.qScore) },
+          { key: "ds", label: "DocETL score", numeric: true, render: (row) => pct(row.dScore) },
           {
             key: "delta",
-            label: "Main Δ",
-            numeric: true,
-            className: (row) => deltaClass(row.dMainDelta),
-            render: (row) => signedPct(row.dMainDelta),
-          },
-          { key: "qt", label: "Q tokens", numeric: true, render: (row) => tokens(row.quwarts.tokens) },
-          { key: "dt", label: "D tokens", numeric: true, render: (row) => tokens(row.docetl.tokens) },
-        ]}
-        rows={rows}
-      />
-    </section>
-  );
-}
-
-function LineageSection() {
-  const prior = Object.fromEntries(data.prior_quwarts.rows.map((row) => [row.workload_id, row]));
-  const current = Object.fromEntries(data.contrast_25pct.rows.map((row) => [row.workload_id, row.quwarts]));
-  const rows = WORKLOADS.map((workload) => {
-    const before = prior[workload.id];
-    const after = current[workload.id];
-    const beforeMain = mainScore(before);
-    const afterMain = mainScore(after);
-    return {
-      key: workload.id,
-      workload_id: workload.id,
-      before,
-      after,
-      beforeMain,
-      afterMain,
-      delta: afterMain - beforeMain,
-    };
-  });
-  return (
-    <section className="exp-section" id="lineage">
-      <h2>QuWARTS before and after taxonomy</h2>
-      <p>
-        Same ~25% budgets. The earlier contrast lost groupby and filterjoin because closed
-        position vocabularies were not mapped. Forced taxonomy reversed that, except join, which
-        dropped from a stronger earlier run.
-      </p>
-      <ScoreTable
-        columns={[
-          { key: "w", label: "Workload", render: (row) => shortName(row.workload_id) },
-          { key: "ba", label: "Before acc", numeric: true, render: (row) => pct(row.before.accuracy) },
-          { key: "aa", label: "After acc", numeric: true, render: (row) => pct(row.after.accuracy) },
-          { key: "bm", label: "Before main", numeric: true, render: (row) => pct(row.beforeMain) },
-          { key: "am", label: "After main", numeric: true, render: (row) => pct(row.afterMain) },
-          {
-            key: "delta",
-            label: "Main Δ",
+            label: "Difference",
             numeric: true,
             className: (row) => deltaClass(row.delta),
             render: (row) => signedPct(row.delta),
           },
+          { key: "qst", label: "QuWARTS structure", numeric: true, render: (row) => pct(row.quwarts.structure) },
+          { key: "dst", label: "DocETL structure", numeric: true, render: (row) => pct(row.docetl.structure) },
+          { key: "qa", label: "QuWARTS accuracy", numeric: true, render: (row) => pct(row.quwarts.accuracy) },
+          { key: "da", label: "DocETL accuracy", numeric: true, render: (row) => pct(row.docetl.accuracy) },
+          { key: "qt", label: "QuWARTS tokens", numeric: true, render: (row) => tokens(row.quwarts.tokens) },
+          { key: "dt", label: "DocETL tokens", numeric: true, render: (row) => tokens(row.docetl.tokens) },
         ]}
         rows={rows}
       />
@@ -157,7 +114,7 @@ function LineageSection() {
   );
 }
 
-function CrossEvalSection() {
+function TransferSection() {
   const ids = WORKLOADS.map((row) => row.id);
   const inWorkload = Object.fromEntries(
     data.contrast_25pct.rows.map((row) => [
@@ -166,8 +123,7 @@ function CrossEvalSection() {
         accuracy: row.quwarts.accuracy,
         structure: row.quwarts.structure,
         query_score: row.quwarts.query_score,
-        main: mainScore(row.quwarts),
-        kind: "in-workload",
+        kind: "same",
       },
     ])
   );
@@ -182,15 +138,17 @@ function CrossEvalSection() {
   }
 
   return (
-    <section className="exp-section" id="cross-eval">
-      <h2>Cross-workload transfer</h2>
-      <p>{data.cross_eval.method}</p>
-      <p>{data.cross_eval.status}</p>
+    <section className="exp-section" id="transfer">
+      <h2>Asking one set of questions on a database built for another</h2>
+      <p>
+        Each row is a database built from one set of questions. Each column is a set of questions
+        asked against that database. The highlighted diagonal is the matching pair.
+      </p>
       <div className="exp-table-wrap">
         <table className="exp-table exp-matrix">
           <thead>
             <tr>
-              <th>Train ↓ / test →</th>
+              <th>Database from ↓ / questions →</th>
               {ids.map((id) => (
                 <th key={id} className="num">
                   {shortName(id)}
@@ -204,7 +162,6 @@ function CrossEvalSection() {
                 <th>{shortName(train)}</th>
                 {ids.map((test) => {
                   const value = cell(train, test);
-                  const score = value.main ?? mainScore(value);
                   const pending = value.kind === "pending";
                   return (
                     <td
@@ -212,12 +169,12 @@ function CrossEvalSection() {
                       className={`num ${train === test ? "matrix-diag" : ""} ${pending ? "matrix-pending" : ""}`}
                     >
                       {pending ? (
-                        <span>pending</span>
+                        <span>—</span>
                       ) : (
                         <>
-                          <strong>{pct(score)}</strong>
+                          <strong>{pct(score(value))}</strong>
                           <small>
-                            {pct(value.accuracy)} acc · {pct(value.structure)} F2
+                            {pct(value.accuracy)} accuracy · {pct(value.structure)} structure
                           </small>
                         </>
                       )}
@@ -232,31 +189,18 @@ function CrossEvalSection() {
       {(data.cross_eval.pairs || []).length > 0 ? (
         <ScoreTable
           columns={[
-            { key: "tr", label: "Train", render: (row) => shortName(row.train) },
-            { key: "te", label: "Test", render: (row) => shortName(row.test) },
-            { key: "a", label: "Accuracy", numeric: true, render: (row) => pct(row.accuracy) },
+            { key: "tr", label: "Database from", render: (row) => shortName(row.train) },
+            { key: "te", label: "Questions", render: (row) => shortName(row.test) },
+            { key: "m", label: "Score", numeric: true, render: (row) => pct(score(row)) },
             { key: "s", label: "Structure", numeric: true, render: (row) => pct(row.structure) },
-            { key: "m", label: "Main", numeric: true, render: (row) => pct(mainScore(row)) },
-            { key: "q", label: "QS @20%", numeric: true, render: (row) => pct(row.query_score) },
-            {
-              key: "ok",
-              label: "Compiled",
-              numeric: true,
-              render: (row) => (row.compiled_ok_count == null ? "—" : String(row.compiled_ok_count)),
-            },
+            { key: "a", label: "Accuracy", numeric: true, render: (row) => pct(row.accuracy) },
           ]}
           rows={(data.cross_eval.pairs || []).map((pair) => ({
             key: `${pair.train}:${pair.test}`,
             ...pair,
           }))}
         />
-      ) : (
-        <p className="exp-caveat">
-          Off-diagonal cells fill automatically after{" "}
-          <code>python3 "case study/harvest_player_experiments.py"</code> sees a
-          <code> cross_eval_index.csv</code> on HPC.
-        </p>
-      )}
+      ) : null}
     </section>
   );
 }
@@ -266,51 +210,17 @@ export default function ExperimentsPage() {
     <div className="page contrast-page experiments-page">
       <div className="atmosphere" aria-hidden="true" />
       <header className="contrast-hero">
-        <p className="eyebrow">Four workloads · transfer</p>
-        <h1>{data.title}</h1>
-        <p className="lede">{data.subtitle}</p>
-        <div className="hero-metrics">
-          {data.score_definitions.map((item) => (
-            <div key={item.id}>
-              <span className="metric-label">{item.name}</span>
-              <strong>{item.formula}</strong>
-            </div>
-          ))}
-        </div>
+        <p className="eyebrow">Joins · group by · aggregates · filters</p>
+        <h1>Transfer</h1>
+        <p className="lede">
+          QuWARTS vs DocETL on four sets of Player questions, then the same databases asked a
+          different set of questions.
+        </p>
       </header>
       <main>
-        <section className="exp-section" id="timeline">
-          <h2>What we tried</h2>
-          <ol className="exp-timeline">
-            {data.timeline.map((item) => (
-              <li key={item.title}>
-                <span>{item.when}</span>
-                <h3>{item.title}</h3>
-                <p>{item.detail}</p>
-              </li>
-            ))}
-          </ol>
-        </section>
-        <ContrastSection />
-        <LineageSection />
-        <CrossEvalSection />
-        {(data.remaining || []).length > 0 ? (
-          <section className="exp-section" id="remaining">
-            <h2>Still open</h2>
-            <ul>
-              {data.remaining.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
+        <ComparisonSection />
+        <TransferSection />
       </main>
-      <footer className="footer">
-        <p>
-          Numbers are taken from harvested evaluations and the HPC logs pasted into this case
-          study. Main score is structure F2 × cell F1 at 20% relative error.
-        </p>
-      </footer>
     </div>
   );
 }

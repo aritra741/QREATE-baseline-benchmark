@@ -82,10 +82,9 @@ function SystemScoreCard({ title, scores }) {
   return (
     <div className="score-card">
       <h3>{title}</h3>
-      <p className="score-formula">Main score = structure F2 × cell accuracy</p>
       <dl className="score-meta">
         <div>
-          <dt>Structure F2</dt>
+          <dt>Structure</dt>
           <dd>{pct(scores.structure_f2)}</dd>
         </div>
         <div>
@@ -100,9 +99,9 @@ function SystemScoreCard({ title, scores }) {
           <thead>
             <tr>
               <th>Error level</th>
-              <th>Structure F2</th>
-              <th>Cell accuracy</th>
-              <th>Main score</th>
+              <th>Structure</th>
+              <th>Values</th>
+              <th>Score</th>
             </tr>
           </thead>
           <tbody>
@@ -139,10 +138,10 @@ function QueryPanel({ query, open, onToggle }) {
         </div>
         <p className="query-nl">{query.nl}</p>
         <div className="query-scores">
-          <ScoreChip label="QuWARTS F2" value={q.structure_f2} tone="quwarts" />
-          <ScoreChip label={`QuWARTS @20%`} value={qMain} tone="quwarts" />
-          <ScoreChip label="DocETL F2" value={d.structure_f2} tone="docetl" />
-          <ScoreChip label={`DocETL @20%`} value={dMain} tone="docetl" />
+          <ScoreChip label="QuWARTS structure" value={q.structure_f2} tone="quwarts" />
+          <ScoreChip label="QuWARTS score" value={qMain} tone="quwarts" />
+          <ScoreChip label="DocETL structure" value={d.structure_f2} tone="docetl" />
+          <ScoreChip label="DocETL score" value={dMain} tone="docetl" />
           <span className="chevron" aria-hidden="true" />
         </div>
       </button>
@@ -223,9 +222,9 @@ function SiteNav() {
   const path = currentPath();
   return (
     <nav className="site-nav" aria-label="Case study pages">
-      <a href="/" className={path === "/" ? "active" : ""}>Agg20 case study</a>
-      <a href="/contrasts" className={path === "/contrasts" ? "active" : ""}>Contrast results</a>
-      <a href="/experiments" className={path === "/experiments" ? "active" : ""}>Experiments</a>
+      <a href="/" className={path === "/" ? "active" : ""}>Case study</a>
+      <a href="/contrasts" className={path === "/contrasts" ? "active" : ""}>Results</a>
+      <a href="/experiments" className={path === "/experiments" ? "active" : ""}>Transfer</a>
     </nav>
   );
 }
@@ -252,34 +251,32 @@ function CaseStudyPage() {
         <header className="hero">
           <h1>QuWARTS case study Aug 6, 2026</h1>
           <p className="lede">
-            Compare QuWARTS and DocETL on 20 Player questions. The main score is structure F2 times
-            cell accuracy, shown at 1%, 5%, and 20% error. Open a question to see the ground truth,
-            both answers, and a plain explanation of what went wrong. Select any text to leave a
-            comment.
+            Compare QuWARTS and DocETL on 20 Player questions. Open a question to see the ground
+            truth, both answers, and what went wrong. Select any text to leave a comment.
           </p>
           <div className="hero-metrics">
             <div>
-              <span className="metric-label">QuWARTS structure F2</span>
+              <span className="metric-label">QuWARTS structure</span>
               <strong>{pct(data.means.quwarts.structure_f2)}</strong>
             </div>
             <div>
-              <span className="metric-label">DocETL structure F2</span>
+              <span className="metric-label">DocETL structure</span>
               <strong>{pct(data.means.docetl.structure_f2)}</strong>
             </div>
             <div>
-              <span className="metric-label">QuWARTS cell accuracy @20% error</span>
+              <span className="metric-label">QuWARTS values</span>
               <strong>{pct(data.means.quwarts.cell_f1["0.2"])}</strong>
             </div>
             <div>
-              <span className="metric-label">DocETL cell accuracy @20% error</span>
+              <span className="metric-label">DocETL values</span>
               <strong>{pct(data.means.docetl.cell_f1["0.2"])}</strong>
             </div>
             <div>
-              <span className="metric-label">QuWARTS main score @20% error</span>
+              <span className="metric-label">QuWARTS score</span>
               <strong>{pct(data.means.quwarts.query_score["0.2"])}</strong>
             </div>
             <div>
-              <span className="metric-label">DocETL main score @20% error</span>
+              <span className="metric-label">DocETL score</span>
               <strong>{pct(data.means.docetl.query_score["0.2"])}</strong>
             </div>
             <div>
@@ -334,8 +331,8 @@ function CaseStudyPage() {
 
         <footer className="footer">
           <p>
-            Built from the QuWARTS and DocETL Player runs. Open a question to see where each system
-            missed a group, added a group, or got a value wrong, and why.
+            Open a question to see where each system missed a group, added a group, or got a value
+            wrong.
           </p>
         </footer>
       </div>

@@ -1,6 +1,6 @@
 {
-  "title": "Player experiments log",
-  "subtitle": "Everything run so far on the four contrast workloads: DocETL comparison, QuWARTS lineage, and cross-workload transfer.",
+  "title": "Transfer",
+  "subtitle": "QuWARTS vs DocETL on four sets of Player questions, then the same databases asked a different set of questions.",
   "generated_at_utc": "2026-08-13T02:20:16.276111+00:00",
   "model": "qwen2.5:7b-instruct",
   "primary_error_level": "0.2",
@@ -67,7 +67,7 @@
     }
   ],
   "contrast_25pct": {
-    "label": "Forced-taxonomy QuWARTS at ~25% of DocETL tokens",
+    "label": "QuWARTS vs DocETL",
     "run_roots": {
       "player_join20": "quwarts_forced_taxonomy_25pct_20260810",
       "player_groupby20": "quwarts_forced_taxonomy_25pct_20260809",
@@ -171,8 +171,8 @@
     ]
   },
   "cross_eval": {
-    "label": "Leave-one-in / leave-three-out transfer",
-    "method": "For each train workload, reuse that run\u2019s sealed serving_bundle databases. Compile each other workload\u2019s SQL-contract queries onto the train schemas, execute read-only SQL, and score against the test workload\u2019s gold tables. No re-extraction.",
+    "label": "Transfer",
+    "method": "Each row is a database built from one set of questions. Each column is a set of questions asked against that database.",
     "script": "case study/run_player_contrast_cross_eval.py",
     "pair_count": 12,
     "status": "Harvested 12 of 12 transfer pairs.",
