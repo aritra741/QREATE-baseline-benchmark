@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import CommentsSystem from "./Comments.jsx";
 import ContrastPage from "./ContrastPage.jsx";
 import ExperimentsPage from "./ExperimentsPage.jsx";
+import caseStudyNarratives from "./case-study-narratives.json";
 import data from "./data.json";
 import { DiffBlock, ResultTable, WrongValues } from "./tableViews.jsx";
 
@@ -39,41 +40,14 @@ function ScoreChip({ label, value, tone }) {
   );
 }
 
-function ReasonPanel({ system, reason }) {
-  if (!reason) return null;
+function QuestionCaseStudy({ queryId }) {
+  const narrative = caseStudyNarratives[queryId];
+  if (!narrative) return null;
   return (
-    <article className={`reason reason-${system}`}>
-      <header>
-        <h4>{system === "quwarts" ? "QuWARTS" : "DocETL"} system analysis</h4>
-      </header>
-      <dl className="analysis-list">
-        <div>
-          <dt>System component</dt>
-          <dd>{reason.component}</dd>
-        </div>
-        <div>
-          <dt>Root cause</dt>
-          <dd>{reason.root_cause}</dd>
-        </div>
-        <div>
-          <dt>Pipeline behavior behind it</dt>
-          <dd>{reason.design_choice}</dd>
-        </div>
-        <div>
-          <dt>Why validation allowed it</dt>
-          <dd>{reason.why_checks_missed}</dd>
-        </div>
-        <div>
-          <dt>How it affected the result</dt>
-          <dd>{reason.failure_path}</dd>
-        </div>
-      </dl>
-      <h5>What I found in the final and working tables</h5>
-      <ul>
-        {(reason.evidence || []).map((item) => (
-          <li key={item}>{item}</li>
-        ))}
-      </ul>
+    <article className="question-case-study" aria-label="Question analysis">
+      {narrative.paragraphs.map((paragraph) => (
+        <p key={paragraph}>{paragraph}</p>
+      ))}
     </article>
   );
 }
@@ -205,10 +179,7 @@ function QueryPanel({ query, open, onToggle }) {
           </div>
         </div>
 
-        <div className="reasons">
-          <ReasonPanel system="quwarts" reason={query.reasons.quwarts} />
-          <ReasonPanel system="docetl" reason={query.reasons.docetl} />
-        </div>
+        <QuestionCaseStudy queryId={query.query_id} />
       </div>
     </section>
   );

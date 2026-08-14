@@ -295,11 +295,14 @@ def isolated_env(
     cache_root = scratch_parent / "local_cache"
     cache_root.mkdir(parents=True, exist_ok=True)
     env["PYTHONPATH"] = str(WDIRS)
-    # Keep HF / sentence-transformers / QuWARTS caches from colliding across
-    # workloads while still allowing model-weight reuse under the run root.
-    env["HF_HOME"] = str(cache_root / "hf")
-    env["TRANSFORMERS_CACHE"] = str(cache_root / "transformers")
-    env["SENTENCE_TRANSFORMERS_HOME"] = str(cache_root / "sentence_transformers")
+    # Reuse a pre-downloaded Hugging Face cache when the caller set one.
+    # Otherwise isolate under the run scratch, and keep HF_HOME /
+    # TRANSFORMERS_CACHE on the same tree so local_files_only can see models.
+    hf_home = env.get("HF_HOME") or str(cache_root / "hf")
+    env["HF_HOME"] = hf_home
+    env.setdefault("HUGGINGFACE_HUB_CACHE", str(Path(hf_home) / "hub"))
+    env.setdefault("TRANSFORMERS_CACHE", hf_home)
+    env.setdefault("SENTENCE_TRANSFORMERS_HOME", hf_home)
     env["XDG_CACHE_HOME"] = str(cache_root / "xdg")
     env["TMPDIR"] = str(cache_root / "tmp")
     env["TMP"] = env["TMPDIR"]
