@@ -1,0 +1,82 @@
+[
+  {
+    "query_id": "q0",
+    "sql": "SELECT CASE WHEN field LIKE '%Painting%' THEN 'Painting' WHEN field LIKE '%Sculpture%' THEN 'Sculpture' WHEN field LIKE '%Photography%' THEN 'Photography' ELSE 'Other' END AS field_family, century, COUNT(*) AS artist_count FROM art WHERE field != '' AND century != '' GROUP BY field_family, century"
+  },
+  {
+    "query_id": "q1",
+    "sql": "SELECT birth_continent, CASE WHEN teaching = 1 THEN 'taught' ELSE 'did_not_teach' END AS teaching_status, COUNT(*) AS artist_count FROM art WHERE birth_continent != '' AND teaching IS NOT NULL GROUP BY birth_continent, teaching_status"
+  },
+  {
+    "query_id": "q2",
+    "sql": "SELECT century, CASE WHEN age < 50 THEN 'under_50' WHEN age < 75 THEN '50_to_74' ELSE '75_or_older' END AS age_band, COUNT(*) AS artist_count FROM art WHERE century != '' AND age BETWEEN 25 AND 105 GROUP BY century, age_band"
+  },
+  {
+    "query_id": "q3",
+    "sql": "SELECT birth_continent, CASE WHEN tone IN ('Neutral', 'Bright', 'Dark', 'Warm') THEN tone WHEN tone != '' THEN 'Other' END AS tone_family, COUNT(*) AS artist_count FROM art WHERE birth_continent != '' AND tone != '' GROUP BY birth_continent, tone_family"
+  },
+  {
+    "query_id": "q4",
+    "sql": "SELECT CASE WHEN awards = 0 THEN 'no_awards' WHEN awards = 1 THEN 'one_award' ELSE 'multiple_awards' END AS award_band, teaching, COUNT(*) AS artist_count FROM art WHERE teaching IS NOT NULL AND awards IS NOT NULL GROUP BY award_band, teaching"
+  },
+  {
+    "query_id": "q5",
+    "sql": "SELECT image_genre, CASE WHEN awards >= 1 THEN 'awarded' ELSE 'unawarded' END AS award_status, COUNT(*) AS artist_count FROM art WHERE image_genre IN ('Portrait', 'Landscape', 'Still Life', 'Abstract', 'Sculpture', 'Figurative') GROUP BY image_genre, award_status"
+  },
+  {
+    "query_id": "q6",
+    "sql": "SELECT CASE WHEN field LIKE '%Painting%' THEN 'Painting' WHEN field LIKE '%Sculpture%' THEN 'Sculpture' WHEN field LIKE '%Photography%' THEN 'Photography' ELSE 'Other' END AS field_family, CASE WHEN color IN ('Earth Tones', 'Blue', 'Green', 'Red', 'Black And White', 'Brown', 'Yellow') THEN color WHEN color != '' THEN 'Other' END AS color_family, COUNT(*) AS artist_count FROM art WHERE field != '' AND color != '' GROUP BY field_family, color_family"
+  },
+  {
+    "query_id": "q7",
+    "sql": "SELECT century, CASE WHEN nationality = 'American' THEN 'American' WHEN nationality != '' THEN 'non_American' END AS nationality_group, COUNT(*) AS artist_count FROM art WHERE century != '' AND nationality != '' GROUP BY century, nationality_group"
+  },
+  {
+    "query_id": "q8",
+    "sql": "SELECT birth_continent, CASE WHEN death_country != '' AND death_country != birth_country THEN 'died_abroad' WHEN death_country != '' THEN 'died_in_birth_country' ELSE 'death_country_unknown' END AS death_place, COUNT(*) AS artist_count FROM art WHERE birth_continent != '' GROUP BY birth_continent, death_place"
+  },
+  {
+    "query_id": "q9",
+    "sql": "SELECT style, century, COUNT(*) AS artist_count FROM art WHERE style IN ('Expressionism', 'Romanticism', 'Impressionism', 'Realism', 'Surrealism', 'Abstract Expressionism') AND century != '' GROUP BY style, century"
+  },
+  {
+    "query_id": "q10",
+    "sql": "SELECT CASE WHEN tone IN ('Neutral', 'Bright', 'Dark', 'Warm') THEN tone WHEN tone != '' THEN 'Other' END AS tone_family, image_genre, COUNT(*) AS artist_count FROM art WHERE tone != '' AND image_genre IN ('Portrait', 'Landscape', 'Still Life', 'Abstract') GROUP BY tone_family, image_genre"
+  },
+  {
+    "query_id": "q11",
+    "sql": "SELECT style, CASE WHEN teaching = 1 THEN 'taught' ELSE 'did_not_teach' END AS teaching_status, COUNT(*) AS artist_count FROM art WHERE style IN ('Expressionism', 'Romanticism', 'Impressionism', 'Realism', 'Surrealism', 'Abstract Expressionism') AND teaching IS NOT NULL GROUP BY style, teaching_status"
+  },
+  {
+    "query_id": "q12",
+    "sql": "SELECT birth_country, century, COUNT(*) AS artist_count FROM art WHERE birth_country IN ('United States', 'France', 'United Kingdom', 'Germany', 'Italy') AND century != '' GROUP BY birth_country, century"
+  },
+  {
+    "query_id": "q13",
+    "sql": "SELECT CASE WHEN field LIKE '%Painting%' THEN 'Painting' WHEN field LIKE '%Sculpture%' THEN 'Sculpture' WHEN field LIKE '%Photography%' THEN 'Photography' ELSE 'Other' END AS field_family, CASE WHEN age < 60 THEN 'under_60' ELSE '60_or_older' END AS age_band, COUNT(*) AS artist_count FROM art WHERE field != '' AND age BETWEEN 25 AND 105 GROUP BY field_family, age_band"
+  },
+  {
+    "query_id": "q14",
+    "sql": "SELECT birth_country, CASE WHEN teaching = 1 THEN 'taught' ELSE 'did_not_teach' END AS teaching_status, COUNT(*) AS artist_count FROM art WHERE birth_country IN ('United States', 'France', 'United Kingdom', 'Germany', 'Italy') AND teaching IS NOT NULL GROUP BY birth_country, teaching_status"
+  },
+  {
+    "query_id": "q15",
+    "sql": "SELECT CASE WHEN birth_continent IN ('Europe', 'North America') THEN birth_continent ELSE 'Other' END AS continent_group, CASE WHEN awards >= 1 THEN 'awarded' ELSE 'unawarded' END AS award_status, COUNT(*) AS artist_count FROM art WHERE birth_continent != '' GROUP BY continent_group, award_status"
+  },
+  {
+    "query_id": "q16",
+    "sql": "SELECT image_genre, CASE WHEN color IN ('Earth Tones', 'Blue', 'Green', 'Red') THEN color ELSE 'Other' END AS color_group, COUNT(*) AS artist_count FROM art WHERE image_genre IN ('Portrait', 'Landscape', 'Still Life', 'Abstract') AND color != '' GROUP BY image_genre, color_group"
+  },
+  {
+    "query_id": "q17",
+    "sql": "SELECT century, CASE WHEN art_institution != '' THEN 'known_institution' ELSE 'institution_unknown' END AS institution_status, COUNT(*) AS artist_count FROM art WHERE century != '' GROUP BY century, institution_status"
+  },
+  {
+    "query_id": "q18",
+    "sql": "SELECT CASE WHEN field LIKE '%Painting%' THEN 'Painting' WHEN field LIKE '%Sculpture%' THEN 'Sculpture' WHEN field LIKE '%Photography%' THEN 'Photography' ELSE 'Other' END AS field_family, CASE WHEN awards >= 1 THEN 'awarded' ELSE 'unawarded' END AS award_status, COUNT(*) AS artist_count FROM art WHERE field != '' GROUP BY field_family, award_status"
+  },
+  {
+    "query_id": "q19",
+    "sql": "SELECT style, CASE WHEN tone IN ('Neutral', 'Bright', 'Dark') THEN tone ELSE 'Other' END AS tone_group, COUNT(*) AS artist_count FROM art WHERE style IN ('Expressionism', 'Romanticism', 'Impressionism', 'Realism', 'Surrealism') AND tone != '' GROUP BY style, tone_group"
+  }
+]

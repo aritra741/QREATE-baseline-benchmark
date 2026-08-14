@@ -1,0 +1,42 @@
+[
+  {
+    "query_id": "q0",
+    "sql": "SELECT CASE WHEN plaintiff_current_status IN ('Company', 'Organization', 'Government') THEN plaintiff_current_status WHEN plaintiff_current_status != '' THEN 'Individual_or_other' END AS plaintiff_family, CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END AS verdict_family, COUNT(*) AS case_count FROM legal WHERE plaintiff_current_status != '' GROUP BY plaintiff_family, verdict_family"
+  },
+  {
+    "query_id": "q1",
+    "sql": "SELECT first_judge, COUNT(*) AS case_count, AVG(legal_basis_num) AS avg_statutes, AVG(case_number) AS avg_precedents, SUM(CASE WHEN verdict = 'Dismissed' THEN 1 ELSE 0 END) AS dismissed_count FROM legal WHERE first_judge IS NOT NULL AND case_number IS NOT NULL GROUP BY first_judge"
+  },
+  {
+    "query_id": "q2",
+    "sql": "SELECT evidence, COUNT(*) AS case_count, AVG(legal_basis_num) AS avg_statutes, AVG(case_number) AS avg_precedents, MAX(case_number) AS max_precedents FROM legal WHERE evidence IS NOT NULL AND case_number IS NOT NULL GROUP BY evidence"
+  },
+  {
+    "query_id": "q3",
+    "sql": "SELECT CASE WHEN nationality_for_applicant IN ('Australia', 'China', 'India', 'Bangladesh') THEN nationality_for_applicant WHEN nationality_for_applicant != '' THEN 'Other' END AS applicant_nation, COUNT(*) AS case_count FROM legal WHERE nationality_for_applicant != '' GROUP BY applicant_nation"
+  },
+  {
+    "query_id": "q4",
+    "sql": "SELECT CASE WHEN nationality_for_applicant IN ('Australia', 'China', 'India', 'Bangladesh') THEN nationality_for_applicant WHEN nationality_for_applicant != '' THEN 'Other' END AS applicant_nation, AVG(legal_basis_num) AS avg_statutes FROM legal WHERE case_type = 'Administrative Case' AND nationality_for_applicant != '' GROUP BY applicant_nation"
+  },
+  {
+    "query_id": "q5",
+    "sql": "SELECT judge_name, CASE WHEN verdict = 'Dismissed' THEN 'Dismissed' ELSE 'not_dismissed' END AS dismissal_status, COUNT(*) AS case_count FROM legal WHERE judge_name IN ('Flick', 'Tracey', 'Greenwood', 'Marshall', 'Moore', 'Heerey') GROUP BY judge_name, dismissal_status"
+  },
+  {
+    "query_id": "q6",
+    "sql": "SELECT judgment_year, CASE WHEN verdict = 'Dismissed' THEN 'Dismissed' ELSE 'not_dismissed' END AS dismissal_status, COUNT(*) AS case_count FROM legal WHERE judgment_year BETWEEN 2006 AND 2009 GROUP BY judgment_year, dismissal_status"
+  },
+  {
+    "query_id": "q7",
+    "sql": "SELECT CASE WHEN defendant_current_status IN ('Government', 'Company', 'Organization') THEN defendant_current_status WHEN defendant_current_status != '' THEN 'Other' END AS defendant_family, COUNT(*) AS case_count FROM legal WHERE legal_basis_num >= 3 AND defendant_current_status != '' GROUP BY defendant_family"
+  },
+  {
+    "query_id": "q8",
+    "sql": "SELECT CASE WHEN case_type IN ('Administrative Case', 'Civil Case', 'Commercial Case') THEN case_type ELSE 'Other' END AS case_family, CASE WHEN verdict IN ('Dismissed', 'Approved', 'Others') THEN verdict ELSE 'Other' END AS verdict_family, COUNT(*) AS case_count, AVG(legal_basis_num) AS avg_statutes, AVG(case_number) AS avg_precedents FROM legal WHERE case_number IS NOT NULL GROUP BY case_family, verdict_family HAVING COUNT(*) >= 5"
+  },
+  {
+    "query_id": "q9",
+    "sql": "SELECT evidence, first_judge, COUNT(*) AS case_count FROM legal WHERE evidence IS NOT NULL AND first_judge IS NOT NULL GROUP BY evidence, first_judge"
+  }
+]

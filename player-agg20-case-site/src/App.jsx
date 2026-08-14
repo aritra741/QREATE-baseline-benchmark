@@ -6,7 +6,6 @@ import caseStudyNarratives from "./case-study-narratives.json";
 import data from "./data.json";
 import { DiffBlock, ResultTable, WrongValues } from "./tableViews.jsx";
 
-const ERROR_LEVELS = data.error_levels || ["0.01", "0.05", "0.2"];
 const PRIMARY_LEVEL = data.primary_error_level || "0.2";
 
 function pct(value) {
@@ -16,10 +15,6 @@ function pct(value) {
 
 function formatTokens(value) {
   return Number(value).toLocaleString("en-US");
-}
-
-function errorLabel(level) {
-  return `${Math.round(Number(level) * 100)}% error`;
 }
 
 function questionLabel(queryId) {
@@ -72,21 +67,17 @@ function SystemScoreCard({ title, scores }) {
         <table className="score-table">
           <thead>
             <tr>
-              <th>Error level</th>
               <th>Structure</th>
-              <th>Accuracy</th>
-              <th>Score</th>
+              <th>Official accuracy</th>
+              <th>Score at 20% error</th>
             </tr>
           </thead>
           <tbody>
-            {ERROR_LEVELS.map((level) => (
-              <tr key={level} className={level === PRIMARY_LEVEL ? "primary-level" : ""}>
-                <td>{errorLabel(level)}</td>
-                <td>{pct(scores.structure_f2)}</td>
-                <td>{pct(scores.cell_f1[level])}</td>
-                <td>{pct(scores.query_score[level])}</td>
-              </tr>
-            ))}
+            <tr className="primary-level">
+              <td>{pct(scores.structure_f2)}</td>
+              <td>{pct(scores.official_accuracy)}</td>
+              <td>{pct(scores.query_score[PRIMARY_LEVEL])}</td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -220,10 +211,17 @@ function CaseStudyPage() {
       <div className="page">
         <div className="atmosphere" aria-hidden="true" />
         <header className="hero">
-          <h1>QuWARTS case study Aug 6, 2026</h1>
+          <h1>{data.title}</h1>
           <p className="lede">
             Compare QuWARTS and DocETL on 20 Player questions. Open a question to see the ground
             truth, both answers, and what went wrong. Select any text to leave a comment.
+          </p>
+          <p className="paper-note">
+            DocETL claims are cited to the relevant section of{" "}
+            <a href={data.paper.url} target="_blank" rel="noreferrer">
+              the DocETL paper
+            </a>
+            ; runner-specific behavior is identified separately.
           </p>
           <div className="hero-metrics">
             <div>
@@ -235,12 +233,12 @@ function CaseStudyPage() {
               <strong>{pct(data.means.docetl.structure_f2)}</strong>
             </div>
             <div>
-              <span className="metric-label">QuWARTS accuracy</span>
-              <strong>{pct(data.means.quwarts.cell_f1["0.2"])}</strong>
+              <span className="metric-label">QuWARTS official accuracy</span>
+              <strong>{pct(data.means.quwarts.official_accuracy)}</strong>
             </div>
             <div>
-              <span className="metric-label">DocETL accuracy</span>
-              <strong>{pct(data.means.docetl.cell_f1["0.2"])}</strong>
+              <span className="metric-label">DocETL official accuracy</span>
+              <strong>{pct(data.means.docetl.official_accuracy)}</strong>
             </div>
             <div>
               <span className="metric-label">QuWARTS score</span>

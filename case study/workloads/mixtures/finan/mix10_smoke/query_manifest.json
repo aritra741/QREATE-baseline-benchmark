@@ -1,0 +1,42 @@
+[
+  {
+    "query_id": "q0",
+    "sql": "SELECT CASE WHEN principal_activities LIKE '%Finance%' THEN 'Finance' WHEN principal_activities LIKE '%Healthcare%' THEN 'Healthcare' WHEN principal_activities LIKE '%Technology%' THEN 'Technology' WHEN principal_activities LIKE '%Retail%' THEN 'Retail' WHEN principal_activities LIKE '%Mining%' THEN 'Mining' WHEN principal_activities != '' THEN 'Other' END AS activity_family, COUNT(*) AS company_count, AVG(total_assets) AS avg_assets, MAX(revenue) AS max_revenue FROM finance WHERE principal_activities != '' AND total_assets IS NOT NULL AND revenue > 0 GROUP BY activity_family"
+  },
+  {
+    "query_id": "q1",
+    "sql": "SELECT CASE WHEN auditor LIKE '%Ernst & Young%' OR auditor LIKE 'EY%' THEN 'EY' WHEN auditor LIKE '%KPMG%' THEN 'KPMG' WHEN auditor LIKE '%Pricewaterhouse%' OR auditor LIKE '%PwC%' THEN 'PwC' WHEN auditor LIKE '%Deloitte%' THEN 'Deloitte' WHEN auditor != '' THEN 'Other' END AS auditor_family, CASE WHEN exchange_code LIKE '%NASDAQ%' THEN 'NASDAQ' WHEN exchange_code LIKE '%NYSE%' THEN 'NYSE' WHEN exchange_code LIKE '%ASX%' THEN 'ASX' WHEN exchange_code LIKE '%LSE%' OR exchange_code LIKE '%AIM%' THEN 'London' WHEN exchange_code != '' THEN 'Other' END AS exchange_family, COUNT(*) AS company_count, AVG(revenue) AS avg_revenue, AVG(net_profit_or_loss) AS avg_profit FROM finance WHERE auditor != '' AND exchange_code != '' AND revenue > 0 AND net_profit_or_loss IS NOT NULL GROUP BY auditor_family, exchange_family HAVING COUNT(*) >= 2"
+  },
+  {
+    "query_id": "q2",
+    "sql": "SELECT CASE WHEN exchange_code LIKE '%NASDAQ%' THEN 'NASDAQ' WHEN exchange_code LIKE '%NYSE%' THEN 'NYSE' WHEN exchange_code LIKE '%ASX%' THEN 'ASX' WHEN exchange_code LIKE '%LSE%' OR exchange_code LIKE '%AIM%' THEN 'London' WHEN exchange_code != '' THEN 'Other' END AS exchange_family, CASE WHEN principal_activities LIKE '%Finance%' THEN 'Finance' WHEN principal_activities LIKE '%Healthcare%' THEN 'Healthcare' WHEN principal_activities LIKE '%Technology%' THEN 'Technology' WHEN principal_activities LIKE '%Retail%' THEN 'Retail' WHEN principal_activities LIKE '%Mining%' THEN 'Mining' WHEN principal_activities != '' THEN 'Other' END AS activity_family, COUNT(*) AS company_count FROM finance WHERE exchange_code != '' AND principal_activities != '' GROUP BY exchange_family, activity_family HAVING COUNT(*) >= 2"
+  },
+  {
+    "query_id": "q3",
+    "sql": "SELECT CASE WHEN exchange_code LIKE '%NASDAQ%' THEN 'NASDAQ' WHEN exchange_code LIKE '%NYSE%' THEN 'NYSE' WHEN exchange_code LIKE '%ASX%' THEN 'ASX' WHEN exchange_code LIKE '%LSE%' OR exchange_code LIKE '%AIM%' THEN 'London' WHEN exchange_code != '' THEN 'Other' END AS exchange_family, CASE WHEN cash_reserves >= 100000000 THEN 'high_cash' ELSE 'lower_cash' END AS cash_band, COUNT(*) AS company_count FROM finance WHERE exchange_code != '' AND cash_reserves IS NOT NULL GROUP BY exchange_family, cash_band"
+  },
+  {
+    "query_id": "q4",
+    "sql": "SELECT CASE WHEN auditor LIKE '%Ernst & Young%' OR auditor LIKE 'EY%' THEN 'EY' WHEN auditor LIKE '%KPMG%' THEN 'KPMG' WHEN auditor LIKE '%Pricewaterhouse%' OR auditor LIKE '%PwC%' THEN 'PwC' WHEN auditor LIKE '%Deloitte%' THEN 'Deloitte' WHEN auditor != '' THEN 'Other' END AS auditor_family, COUNT(*) AS company_count, AVG(total_assets) AS avg_assets, MAX(total_assets) AS max_assets, AVG(net_profit_or_loss) AS avg_profit FROM finance WHERE auditor != '' AND total_assets IS NOT NULL AND net_profit_or_loss IS NOT NULL GROUP BY auditor_family HAVING COUNT(*) >= 3"
+  },
+  {
+    "query_id": "q5",
+    "sql": "SELECT CASE WHEN auditor LIKE '%Ernst & Young%' OR auditor LIKE 'EY%' THEN 'EY' WHEN auditor LIKE '%KPMG%' THEN 'KPMG' WHEN auditor LIKE '%Pricewaterhouse%' OR auditor LIKE '%PwC%' THEN 'PwC' WHEN auditor LIKE '%Deloitte%' THEN 'Deloitte' WHEN auditor != '' THEN 'Other' END AS auditor_family, COUNT(*) AS company_count FROM finance WHERE auditor != '' GROUP BY auditor_family"
+  },
+  {
+    "query_id": "q6",
+    "sql": "SELECT CASE WHEN principal_activities LIKE '%Finance%' THEN 'Finance' WHEN principal_activities LIKE '%Healthcare%' THEN 'Healthcare' WHEN principal_activities LIKE '%Technology%' THEN 'Technology' WHEN principal_activities LIKE '%Retail%' THEN 'Retail' WHEN principal_activities LIKE '%Mining%' THEN 'Mining' WHEN principal_activities != '' THEN 'Other' END AS activity_family, CASE WHEN dividend_per_share > 0 THEN 'pays_dividend' ELSE 'no_dividend' END AS dividend_status, COUNT(*) AS company_count FROM finance WHERE principal_activities != '' AND dividend_per_share IS NOT NULL GROUP BY activity_family, dividend_status"
+  },
+  {
+    "query_id": "q7",
+    "sql": "SELECT CASE WHEN principal_activities LIKE '%Finance%' THEN 'Finance' WHEN principal_activities LIKE '%Healthcare%' THEN 'Healthcare' WHEN principal_activities LIKE '%Technology%' THEN 'Technology' WHEN principal_activities LIKE '%Retail%' THEN 'Retail' WHEN principal_activities LIKE '%Mining%' THEN 'Mining' WHEN principal_activities != '' THEN 'Other' END AS activity_family, COUNT(*) AS company_count FROM finance WHERE cash_reserves > total_debt AND principal_activities != '' AND cash_reserves IS NOT NULL AND total_debt IS NOT NULL GROUP BY activity_family"
+  },
+  {
+    "query_id": "q8",
+    "sql": "SELECT CASE WHEN auditor LIKE '%Ernst & Young%' OR auditor LIKE 'EY%' THEN 'EY' WHEN auditor LIKE '%KPMG%' THEN 'KPMG' WHEN auditor LIKE '%Pricewaterhouse%' OR auditor LIKE '%PwC%' THEN 'PwC' WHEN auditor LIKE '%Deloitte%' THEN 'Deloitte' WHEN auditor != '' THEN 'Other' END AS auditor_family, MAX(net_profit_or_loss) AS max_profit FROM finance WHERE auditor != '' AND net_profit_or_loss IS NOT NULL GROUP BY auditor_family"
+  },
+  {
+    "query_id": "q9",
+    "sql": "SELECT CASE WHEN auditor LIKE '%Ernst & Young%' OR auditor LIKE 'EY%' THEN 'EY' WHEN auditor LIKE '%KPMG%' THEN 'KPMG' WHEN auditor LIKE '%Pricewaterhouse%' OR auditor LIKE '%PwC%' THEN 'PwC' WHEN auditor LIKE '%Deloitte%' THEN 'Deloitte' WHEN auditor != '' THEN 'Other' END AS auditor_family, CASE WHEN exchange_code LIKE '%NASDAQ%' THEN 'NASDAQ' WHEN exchange_code LIKE '%NYSE%' THEN 'NYSE' WHEN exchange_code LIKE '%ASX%' THEN 'ASX' WHEN exchange_code LIKE '%LSE%' OR exchange_code LIKE '%AIM%' THEN 'London' WHEN exchange_code != '' THEN 'Other' END AS exchange_family, COUNT(*) AS company_count FROM finance WHERE auditor != '' AND exchange_code != '' GROUP BY auditor_family, exchange_family"
+  }
+]

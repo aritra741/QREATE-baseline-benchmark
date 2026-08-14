@@ -1,0 +1,82 @@
+[
+  {
+    "query_id": "q0",
+    "sql": "SELECT century, COUNT(*) AS artist_count FROM art WHERE teaching = 1 AND century != '' GROUP BY century"
+  },
+  {
+    "query_id": "q1",
+    "sql": "SELECT CASE WHEN birth_continent IN ('Europe', 'North America', 'Asia') THEN birth_continent ELSE 'Other' END AS continent_group, COUNT(*) AS artist_count, AVG(awards) AS avg_awards, MAX(awards) AS max_awards, SUM(CASE WHEN teaching = 1 THEN 1 ELSE 0 END) AS teacher_count FROM art WHERE birth_continent != '' GROUP BY continent_group"
+  },
+  {
+    "query_id": "q2",
+    "sql": "SELECT century, AVG(awards) AS avg_awards FROM art WHERE art_institution != '' AND century != '' GROUP BY century"
+  },
+  {
+    "query_id": "q3",
+    "sql": "SELECT birth_country, century, COUNT(*) AS artist_count FROM art WHERE birth_country IN ('United States', 'France', 'United Kingdom', 'Germany', 'Italy') AND century != '' GROUP BY birth_country, century"
+  },
+  {
+    "query_id": "q4",
+    "sql": "SELECT image_genre, CASE WHEN color IN ('Earth Tones', 'Blue', 'Green', 'Red') THEN color ELSE 'Other' END AS color_group, COUNT(*) AS artist_count FROM art WHERE image_genre IN ('Portrait', 'Landscape', 'Still Life', 'Abstract') AND color != '' GROUP BY image_genre, color_group"
+  },
+  {
+    "query_id": "q5",
+    "sql": "SELECT birth_continent, CASE WHEN death_country != '' AND death_country != birth_country THEN 'died_abroad' WHEN death_country != '' THEN 'died_in_birth_country' ELSE 'death_country_unknown' END AS death_place, COUNT(*) AS artist_count FROM art WHERE birth_continent != '' GROUP BY birth_continent, death_place"
+  },
+  {
+    "query_id": "q6",
+    "sql": "SELECT CASE WHEN field LIKE '%Painting%' THEN 'Painting' WHEN field LIKE '%Sculpture%' THEN 'Sculpture' WHEN field LIKE '%Photography%' THEN 'Photography' ELSE 'Other' END AS field_family, century, COUNT(*) AS artist_count, AVG(age) AS avg_age, AVG(awards) AS avg_awards FROM art WHERE field != '' AND century != '' AND age BETWEEN 25 AND 105 GROUP BY field_family, century HAVING COUNT(*) >= 5"
+  },
+  {
+    "query_id": "q7",
+    "sql": "SELECT CASE WHEN death_country != '' AND death_country != birth_country THEN 'died_abroad' WHEN death_country != '' THEN 'died_in_birth_country' ELSE 'death_country_unknown' END AS death_place, COUNT(*) AS artist_count, AVG(age) AS avg_age, SUM(CASE WHEN teaching = 1 THEN 1 ELSE 0 END) AS teacher_count FROM art WHERE age BETWEEN 25 AND 105 GROUP BY death_place"
+  },
+  {
+    "query_id": "q8",
+    "sql": "SELECT century, CASE WHEN art_institution != '' THEN 'known_institution' ELSE 'institution_unknown' END AS institution_status, COUNT(*) AS artist_count FROM art WHERE century != '' GROUP BY century, institution_status"
+  },
+  {
+    "query_id": "q9",
+    "sql": "SELECT teaching, COUNT(*) AS artist_count, AVG(age) AS avg_age, AVG(awards) AS avg_awards, MAX(awards) AS max_awards FROM art WHERE teaching IS NOT NULL AND age BETWEEN 25 AND 105 GROUP BY teaching"
+  },
+  {
+    "query_id": "q10",
+    "sql": "SELECT teaching, AVG(awards) AS avg_awards FROM art WHERE teaching IS NOT NULL GROUP BY teaching"
+  },
+  {
+    "query_id": "q11",
+    "sql": "SELECT birth_country, CASE WHEN teaching = 1 THEN 'taught' ELSE 'did_not_teach' END AS teaching_status, COUNT(*) AS artist_count FROM art WHERE birth_country IN ('United States', 'France', 'United Kingdom', 'Germany', 'Italy') AND teaching IS NOT NULL GROUP BY birth_country, teaching_status"
+  },
+  {
+    "query_id": "q12",
+    "sql": "SELECT teaching, COUNT(*) AS artist_count FROM art WHERE teaching IS NOT NULL GROUP BY teaching"
+  },
+  {
+    "query_id": "q13",
+    "sql": "SELECT style, century, COUNT(*) AS artist_count FROM art WHERE style IN ('Expressionism', 'Romanticism', 'Impressionism', 'Realism', 'Surrealism', 'Abstract Expressionism') AND century != '' GROUP BY style, century"
+  },
+  {
+    "query_id": "q14",
+    "sql": "SELECT image_genre, CASE WHEN awards >= 1 THEN 'awarded' ELSE 'unawarded' END AS award_status, COUNT(*) AS artist_count FROM art WHERE image_genre IN ('Portrait', 'Landscape', 'Still Life', 'Abstract', 'Sculpture', 'Figurative') GROUP BY image_genre, award_status"
+  },
+  {
+    "query_id": "q15",
+    "sql": "SELECT image_genre, AVG(age) AS avg_age FROM art WHERE image_genre != '' AND age BETWEEN 25 AND 105 GROUP BY image_genre HAVING COUNT(*) >= 10"
+  },
+  {
+    "query_id": "q16",
+    "sql": "SELECT birth_continent, COUNT(*) AS artist_count, AVG(age) AS avg_age, SUM(awards) AS total_awards FROM art WHERE birth_continent != '' AND age BETWEEN 25 AND 105 GROUP BY birth_continent HAVING COUNT(*) >= 5"
+  },
+  {
+    "query_id": "q17",
+    "sql": "SELECT century, MIN(age) AS youngest FROM art WHERE century != '' AND age BETWEEN 25 AND 105 GROUP BY century"
+  },
+  {
+    "query_id": "q18",
+    "sql": "SELECT century, COUNT(*) AS artist_count, SUM(CASE WHEN awards >= 1 THEN 1 ELSE 0 END) AS awarded_count, SUM(CASE WHEN teaching = 1 THEN 1 ELSE 0 END) AS teacher_count, AVG(age) AS avg_age FROM art WHERE century != '' AND age BETWEEN 25 AND 105 GROUP BY century"
+  },
+  {
+    "query_id": "q19",
+    "sql": "SELECT century, COUNT(*) AS artist_count, AVG(age) AS avg_age, MAX(awards) AS max_awards FROM art WHERE century != '' AND age BETWEEN 25 AND 105 GROUP BY century"
+  }
+]

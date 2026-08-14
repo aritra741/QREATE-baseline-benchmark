@@ -1,0 +1,42 @@
+[
+  {
+    "query_id": "q0",
+    "sql": "SELECT c.ticker, f.fiscal_period, COUNT(*) AS filing_count FROM filing_metrics m JOIN company c ON m.company_id = c.company_id JOIN filing f ON m.filing_id = f.filing_id GROUP BY c.ticker, f.fiscal_period"
+  },
+  {
+    "query_id": "q1",
+    "sql": "SELECT state_of_incorporation, COUNT(*) AS filing_count, AVG(revenue_usd) AS avg_revenue, AVG(assets_usd) AS avg_assets FROM filing_metrics WHERE revenue_usd IS NOT NULL AND assets_usd IS NOT NULL GROUP BY state_of_incorporation"
+  },
+  {
+    "query_id": "q2",
+    "sql": "SELECT CASE WHEN con.concept_name LIKE '%RevenueFromContract%' THEN 'contract_revenue' WHEN con.concept_name LIKE '%Revenue%' THEN 'revenues' ELSE 'other_concept' END AS concept_family, f.form_type, COUNT(*) AS filing_count FROM filing_metrics m JOIN filing f ON m.filing_id = f.filing_id JOIN concept con ON m.revenue_usd_concept_id = con.concept_id GROUP BY concept_family, f.form_type"
+  },
+  {
+    "query_id": "q3",
+    "sql": "SELECT c.ticker, COUNT(*) AS filing_count FROM filing_metrics m JOIN company c ON m.company_id = c.company_id GROUP BY c.ticker"
+  },
+  {
+    "query_id": "q4",
+    "sql": "SELECT c.ticker, f.fiscal_year, con.concept_name, COUNT(*) AS filing_count FROM filing_metrics m JOIN company c ON m.company_id = c.company_id JOIN filing f ON m.filing_id = f.filing_id JOIN concept con ON m.revenue_usd_concept_id = con.concept_id WHERE f.fiscal_year BETWEEN 2022 AND 2025 GROUP BY c.ticker, f.fiscal_year, con.concept_name"
+  },
+  {
+    "query_id": "q5",
+    "sql": "SELECT ticker, CASE WHEN net_income_usd > 0 THEN 'profitable' ELSE 'loss_or_zero' END AS profit_status, COUNT(*) AS filing_count FROM filing_metrics WHERE net_income_usd IS NOT NULL GROUP BY ticker, profit_status"
+  },
+  {
+    "query_id": "q6",
+    "sql": "SELECT f.fiscal_period, AVG(m.operating_cash_flow_usd) AS avg_ocf FROM filing_metrics m JOIN filing f ON m.filing_id = f.filing_id WHERE m.operating_cash_flow_usd IS NOT NULL GROUP BY f.fiscal_period"
+  },
+  {
+    "query_id": "q7",
+    "sql": "SELECT c.ticker, COUNT(*) AS filing_count FROM filing_metrics m JOIN company c ON m.company_id = c.company_id JOIN filing f ON m.filing_id = f.filing_id JOIN concept con ON m.revenue_usd_concept_id = con.concept_id WHERE f.fiscal_year BETWEEN 2023 AND 2025 AND m.assets_usd >= 300000000000 GROUP BY c.ticker"
+  },
+  {
+    "query_id": "q8",
+    "sql": "SELECT form_type, COUNT(*) AS filing_count FROM filing_metrics WHERE state_of_incorporation = 'DE' AND operating_cash_flow_usd > 0 GROUP BY form_type"
+  },
+  {
+    "query_id": "q9",
+    "sql": "SELECT fiscal_period, AVG(operating_cash_flow_usd) AS avg_ocf FROM filing_metrics WHERE operating_cash_flow_usd IS NOT NULL GROUP BY fiscal_period"
+  }
+]

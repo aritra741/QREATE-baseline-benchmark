@@ -1,0 +1,42 @@
+[
+  {
+    "query_id": "q0",
+    "sql": "SELECT birth_continent, COUNT(*) AS artist_count FROM art WHERE awards >= 1 AND birth_continent != '' GROUP BY birth_continent"
+  },
+  {
+    "query_id": "q1",
+    "sql": "SELECT century, CASE WHEN art_institution != '' THEN 'known_institution' ELSE 'institution_unknown' END AS institution_status, COUNT(*) AS artist_count FROM art WHERE century != '' GROUP BY century, institution_status"
+  },
+  {
+    "query_id": "q2",
+    "sql": "SELECT style, century, COUNT(*) AS artist_count FROM art WHERE style IN ('Expressionism', 'Romanticism', 'Impressionism', 'Realism', 'Surrealism', 'Abstract Expressionism') AND century != '' GROUP BY style, century"
+  },
+  {
+    "query_id": "q3",
+    "sql": "SELECT CASE WHEN field LIKE '%Painting%' THEN 'Painting' WHEN field LIKE '%Sculpture%' THEN 'Sculpture' WHEN field LIKE '%Photography%' THEN 'Photography' ELSE 'Other' END AS field_family, COUNT(*) AS artist_count FROM art WHERE birth_country IN ('United States', 'France', 'United Kingdom', 'Germany', 'Italy') AND field != '' GROUP BY field_family"
+  },
+  {
+    "query_id": "q4",
+    "sql": "SELECT CASE WHEN field LIKE '%Painting%' THEN 'Painting' WHEN field LIKE '%Sculpture%' THEN 'Sculpture' WHEN field LIKE '%Photography%' THEN 'Photography' ELSE 'Other' END AS field_family, CASE WHEN color IN ('Earth Tones', 'Blue', 'Green', 'Red', 'Black And White', 'Brown', 'Yellow') THEN color WHEN color != '' THEN 'Other' END AS color_family, COUNT(*) AS artist_count FROM art WHERE field != '' AND color != '' GROUP BY field_family, color_family"
+  },
+  {
+    "query_id": "q5",
+    "sql": "SELECT CASE WHEN awards = 0 THEN 'no_awards' WHEN awards = 1 THEN 'one_award' ELSE 'multiple_awards' END AS award_band, COUNT(*) AS artist_count, AVG(age) AS avg_age, SUM(CASE WHEN teaching = 1 THEN 1 ELSE 0 END) AS teacher_count FROM art WHERE awards IS NOT NULL AND age BETWEEN 25 AND 105 GROUP BY award_band"
+  },
+  {
+    "query_id": "q6",
+    "sql": "SELECT century, CASE WHEN age < 50 THEN 'under_50' WHEN age < 75 THEN '50_to_74' ELSE '75_or_older' END AS age_band, COUNT(*) AS artist_count FROM art WHERE century != '' AND age BETWEEN 25 AND 105 GROUP BY century, age_band"
+  },
+  {
+    "query_id": "q7",
+    "sql": "SELECT style, COUNT(*) AS artist_count, AVG(age) AS avg_age, SUM(CASE WHEN awards >= 1 THEN 1 ELSE 0 END) AS awarded_count FROM art WHERE style != '' AND age BETWEEN 25 AND 105 GROUP BY style HAVING COUNT(*) >= 12"
+  },
+  {
+    "query_id": "q8",
+    "sql": "SELECT CASE WHEN field LIKE '%Painting%' THEN 'Painting' WHEN field LIKE '%Sculpture%' THEN 'Sculpture' WHEN field LIKE '%Photography%' THEN 'Photography' ELSE 'Other' END AS field_family, COUNT(*) AS artist_count, AVG(age) AS avg_age, SUM(CASE WHEN teaching = 1 THEN 1 ELSE 0 END) AS teacher_count FROM art WHERE field != '' AND age BETWEEN 25 AND 105 GROUP BY field_family"
+  },
+  {
+    "query_id": "q9",
+    "sql": "SELECT century, SUM(awards) AS total_awards FROM art WHERE century != '' GROUP BY century"
+  }
+]

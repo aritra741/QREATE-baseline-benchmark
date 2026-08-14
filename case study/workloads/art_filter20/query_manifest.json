@@ -1,0 +1,82 @@
+[
+  {
+    "query_id": "q0",
+    "sql": "SELECT CASE WHEN field LIKE '%Painting%' THEN 'Painting' WHEN field LIKE '%Sculpture%' THEN 'Sculpture' WHEN field LIKE '%Photography%' THEN 'Photography' ELSE 'Other' END AS field_family, COUNT(*) AS artist_count FROM art WHERE century IN ('20th', '20th-21st') AND field != '' GROUP BY field_family"
+  },
+  {
+    "query_id": "q1",
+    "sql": "SELECT birth_continent, COUNT(*) AS artist_count FROM art WHERE awards >= 1 AND birth_continent != '' GROUP BY birth_continent"
+  },
+  {
+    "query_id": "q2",
+    "sql": "SELECT century, COUNT(*) AS artist_count FROM art WHERE teaching = 1 AND century != '' GROUP BY century"
+  },
+  {
+    "query_id": "q3",
+    "sql": "SELECT birth_continent, AVG(age) AS avg_age FROM art WHERE awards >= 1 AND age BETWEEN 25 AND 105 AND birth_continent != '' GROUP BY birth_continent"
+  },
+  {
+    "query_id": "q4",
+    "sql": "SELECT century, COUNT(*) AS artist_count FROM art WHERE nationality IN ('American', 'French', 'British', 'German') AND age BETWEEN 40 AND 90 AND century != '' GROUP BY century"
+  },
+  {
+    "query_id": "q5",
+    "sql": "SELECT CASE WHEN tone IN ('Neutral', 'Bright', 'Dark', 'Warm') THEN tone WHEN tone != '' THEN 'Other' END AS tone_family, COUNT(*) AS artist_count FROM art WHERE image_genre = 'Portrait' AND color IN ('Earth Tones', 'Blue', 'Red', 'Black And White') GROUP BY tone_family"
+  },
+  {
+    "query_id": "q6",
+    "sql": "SELECT image_genre, COUNT(*) AS artist_count FROM art WHERE teaching = 1 AND awards = 0 AND image_genre != '' GROUP BY image_genre HAVING COUNT(*) >= 3"
+  },
+  {
+    "query_id": "q7",
+    "sql": "SELECT CASE WHEN color IN ('Earth Tones', 'Blue', 'Green', 'Red', 'Black And White', 'Brown', 'Yellow') THEN color WHEN color != '' THEN 'Other' END AS color_family, COUNT(*) AS artist_count FROM art WHERE style IN ('Expressionism', 'Impressionism', 'Surrealism', 'Realism') AND color != '' GROUP BY color_family"
+  },
+  {
+    "query_id": "q8",
+    "sql": "SELECT century, COUNT(*) AS artist_count FROM art WHERE awards >= 1 AND teaching = 1 AND century != '' GROUP BY century"
+  },
+  {
+    "query_id": "q9",
+    "sql": "SELECT birth_continent, COUNT(*) AS artist_count FROM art WHERE field LIKE '%Painting%' AND age BETWEEN 50 AND 90 AND birth_continent != '' GROUP BY birth_continent"
+  },
+  {
+    "query_id": "q10",
+    "sql": "SELECT century, AVG(awards) AS avg_awards FROM art WHERE art_institution != '' AND century != '' GROUP BY century"
+  },
+  {
+    "query_id": "q11",
+    "sql": "SELECT century, COUNT(*) AS artist_count FROM art WHERE birth_continent = 'Europe' AND awards >= 1 AND century != '' GROUP BY century"
+  },
+  {
+    "query_id": "q12",
+    "sql": "SELECT CASE WHEN field LIKE '%Painting%' THEN 'Painting' WHEN field LIKE '%Sculpture%' THEN 'Sculpture' WHEN field LIKE '%Photography%' THEN 'Photography' ELSE 'Other' END AS field_family, COUNT(*) AS artist_count FROM art WHERE birth_country IN ('United States', 'France', 'United Kingdom', 'Germany', 'Italy') AND field != '' GROUP BY field_family"
+  },
+  {
+    "query_id": "q13",
+    "sql": "SELECT style, COUNT(*) AS artist_count FROM art WHERE tone IN ('Bright', 'Dark') AND style != '' GROUP BY style HAVING COUNT(*) >= 5"
+  },
+  {
+    "query_id": "q14",
+    "sql": "SELECT birth_continent, COUNT(*) AS artist_count FROM art WHERE death_country != '' AND death_country != birth_country AND birth_continent != '' GROUP BY birth_continent"
+  },
+  {
+    "query_id": "q15",
+    "sql": "SELECT century, COUNT(*) AS artist_count FROM art WHERE genre IN ('Abstract', 'Landscape', 'Portrait') AND century != '' GROUP BY century"
+  },
+  {
+    "query_id": "q16",
+    "sql": "SELECT teaching, COUNT(*) AS artist_count FROM art WHERE age >= 80 AND age <= 105 AND teaching IS NOT NULL GROUP BY teaching"
+  },
+  {
+    "query_id": "q17",
+    "sql": "SELECT CASE WHEN tone IN ('Neutral', 'Bright', 'Dark', 'Warm') THEN tone WHEN tone != '' THEN 'Other' END AS tone_family, AVG(age) AS avg_age FROM art WHERE image_genre IN ('Portrait', 'Landscape', 'Still Life', 'Abstract') AND age BETWEEN 25 AND 105 GROUP BY tone_family"
+  },
+  {
+    "query_id": "q18",
+    "sql": "SELECT nationality, COUNT(*) AS artist_count FROM art WHERE awards >= 2 AND nationality != '' GROUP BY nationality HAVING COUNT(*) >= 2"
+  },
+  {
+    "query_id": "q19",
+    "sql": "SELECT century, COUNT(*) AS artist_count FROM art WHERE composition LIKE '%Asymmetrical%' AND century != '' GROUP BY century"
+  }
+]

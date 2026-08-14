@@ -1,0 +1,82 @@
+[
+  {
+    "query_id": "q0",
+    "sql": "SELECT use_agent, COUNT(*) AS paper_count FROM cspaper WHERE reasoning_depth = 'multi-hop' AND uses_reranker IN ('Yes', 'No') AND use_agent IN ('Yes', 'No') GROUP BY use_agent"
+  },
+  {
+    "query_id": "q1",
+    "sql": "SELECT uses_reranker, COUNT(*) AS paper_count FROM cspaper WHERE uses_knowledge_graph = 'Yes' AND uses_reranker IN ('Yes', 'No') GROUP BY uses_reranker"
+  },
+  {
+    "query_id": "q2",
+    "sql": "SELECT multi_turn_retrieval, COUNT(*) AS paper_count FROM cspaper WHERE use_agent = 'Yes' AND multi_turn_retrieval IN ('Yes', 'No') GROUP BY multi_turn_retrieval"
+  },
+  {
+    "query_id": "q3",
+    "sql": "SELECT CASE WHEN retrieval_method LIKE '%Hybrid%' THEN 'Hybrid' WHEN retrieval_method LIKE '%Graph-based%' THEN 'Graph-based' WHEN retrieval_method LIKE '%Dense%' THEN 'Dense' WHEN retrieval_method LIKE '%Sparse%' THEN 'Sparse' WHEN retrieval_method LIKE '%Web Search%' THEN 'Web Search' WHEN retrieval_method != '' THEN 'Other' END AS retrieval_family, COUNT(*) AS paper_count FROM cspaper WHERE reasoning_depth = 'multi-hop' AND retrieval_method != '' GROUP BY retrieval_family"
+  },
+  {
+    "query_id": "q4",
+    "sql": "SELECT reasoning_depth, AVG(baseline_amount) AS avg_baselines FROM cspaper WHERE baseline_amount >= 4 AND reasoning_depth IN ('single-hop', 'multi-hop') GROUP BY reasoning_depth"
+  },
+  {
+    "query_id": "q5",
+    "sql": "SELECT CASE WHEN application_domain LIKE '%Medical%' THEN 'Medical' WHEN application_domain LIKE '%Education%' THEN 'Education' WHEN application_domain LIKE '%Finance%' THEN 'Finance' WHEN application_domain LIKE '%Academic%' THEN 'Academic' WHEN application_domain LIKE '%General%' THEN 'General' WHEN application_domain != '' THEN 'Other' END AS domain_family, COUNT(*) AS paper_count FROM cspaper WHERE uses_reranker = 'Yes' AND application_domain != '' GROUP BY domain_family"
+  },
+  {
+    "query_id": "q6",
+    "sql": "SELECT uses_knowledge_graph, COUNT(*) AS paper_count FROM cspaper WHERE retrieval_method LIKE '%Graph-based%' AND uses_knowledge_graph IN ('Yes', 'No') GROUP BY uses_knowledge_graph"
+  },
+  {
+    "query_id": "q7",
+    "sql": "SELECT CASE WHEN data_modality LIKE '%Image%' OR data_modality LIKE '%Audio%' OR data_modality LIKE '%Table%' OR data_modality LIKE '%Code%' THEN 'multimodal_or_structured' WHEN data_modality LIKE '%Text%' THEN 'text_only' WHEN data_modality != '' THEN 'Other' END AS modality_family, COUNT(*) AS paper_count FROM cspaper WHERE use_agent = 'Yes' AND data_modality != '' GROUP BY modality_family"
+  },
+  {
+    "query_id": "q8",
+    "sql": "SELECT reasoning_depth, COUNT(*) AS paper_count FROM cspaper WHERE application_domain LIKE '%Medical%' AND reasoning_depth IN ('single-hop', 'multi-hop') GROUP BY reasoning_depth"
+  },
+  {
+    "query_id": "q9",
+    "sql": "SELECT use_agent, COUNT(*) AS paper_count FROM cspaper WHERE multi_turn_retrieval = 'Yes' AND use_agent IN ('Yes', 'No') GROUP BY use_agent"
+  },
+  {
+    "query_id": "q10",
+    "sql": "SELECT CASE WHEN retrieval_method LIKE '%Hybrid%' THEN 'Hybrid' WHEN retrieval_method LIKE '%Graph-based%' THEN 'Graph-based' WHEN retrieval_method LIKE '%Dense%' THEN 'Dense' WHEN retrieval_method LIKE '%Sparse%' THEN 'Sparse' WHEN retrieval_method LIKE '%Web Search%' THEN 'Web Search' WHEN retrieval_method != '' THEN 'Other' END AS retrieval_family, AVG(baseline_amount) AS avg_baselines FROM cspaper WHERE uses_reranker = 'No' AND baseline_amount IS NOT NULL AND retrieval_method != '' GROUP BY retrieval_family"
+  },
+  {
+    "query_id": "q11",
+    "sql": "SELECT agent_framework, COUNT(*) AS paper_count FROM cspaper WHERE use_agent = 'Yes' AND agent_framework IN ('CoT', 'ToT', 'Multi-Agent Collaboration', 'Other') GROUP BY agent_framework"
+  },
+  {
+    "query_id": "q12",
+    "sql": "SELECT uses_reranker, COUNT(*) AS paper_count FROM cspaper WHERE data_modality LIKE '%Image%' AND uses_reranker IN ('Yes', 'No') GROUP BY uses_reranker"
+  },
+  {
+    "query_id": "q13",
+    "sql": "SELECT CASE WHEN application_domain LIKE '%Medical%' THEN 'Medical' WHEN application_domain LIKE '%Education%' THEN 'Education' WHEN application_domain LIKE '%Finance%' THEN 'Finance' WHEN application_domain LIKE '%Academic%' THEN 'Academic' WHEN application_domain LIKE '%General%' THEN 'General' WHEN application_domain != '' THEN 'Other' END AS domain_family, COUNT(*) AS paper_count FROM cspaper WHERE baseline_amount BETWEEN 2 AND 6 AND application_domain != '' GROUP BY domain_family"
+  },
+  {
+    "query_id": "q14",
+    "sql": "SELECT reasoning_depth, COUNT(*) AS paper_count FROM cspaper WHERE retrieval_method LIKE '%Dense%' AND uses_knowledge_graph = 'No' AND reasoning_depth IN ('single-hop', 'multi-hop') GROUP BY reasoning_depth"
+  },
+  {
+    "query_id": "q15",
+    "sql": "SELECT multi_turn_retrieval, AVG(baseline_amount) AS avg_baselines FROM cspaper WHERE use_agent = 'No' AND multi_turn_retrieval IN ('Yes', 'No') AND baseline_amount IS NOT NULL GROUP BY multi_turn_retrieval"
+  },
+  {
+    "query_id": "q16",
+    "sql": "SELECT CASE WHEN retrieval_method LIKE '%Hybrid%' THEN 'Hybrid' WHEN retrieval_method LIKE '%Graph-based%' THEN 'Graph-based' WHEN retrieval_method LIKE '%Dense%' THEN 'Dense' WHEN retrieval_method LIKE '%Sparse%' THEN 'Sparse' WHEN retrieval_method LIKE '%Web Search%' THEN 'Web Search' WHEN retrieval_method != '' THEN 'Other' END AS retrieval_family, COUNT(*) AS paper_count FROM cspaper WHERE application_domain LIKE '%General%' AND retrieval_method != '' GROUP BY retrieval_family"
+  },
+  {
+    "query_id": "q17",
+    "sql": "SELECT uses_knowledge_graph, COUNT(*) AS paper_count FROM cspaper WHERE reasoning_depth = 'multi-hop' AND use_agent = 'Yes' AND uses_knowledge_graph IN ('Yes', 'No') GROUP BY uses_knowledge_graph"
+  },
+  {
+    "query_id": "q18",
+    "sql": "SELECT uses_reranker, COUNT(*) AS paper_count FROM cspaper WHERE baseline_amount >= 5 AND uses_reranker IN ('Yes', 'No') GROUP BY uses_reranker"
+  },
+  {
+    "query_id": "q19",
+    "sql": "SELECT CASE WHEN data_modality LIKE '%Image%' OR data_modality LIKE '%Audio%' OR data_modality LIKE '%Table%' OR data_modality LIKE '%Code%' THEN 'multimodal_or_structured' WHEN data_modality LIKE '%Text%' THEN 'text_only' WHEN data_modality != '' THEN 'Other' END AS modality_family, COUNT(*) AS paper_count FROM cspaper WHERE retrieval_method LIKE '%Hybrid%' AND data_modality != '' GROUP BY modality_family"
+  }
+]

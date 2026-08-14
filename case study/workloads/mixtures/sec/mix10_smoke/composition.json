@@ -1,0 +1,151 @@
+{
+  "workload_id": "sec_mix10_smoke",
+  "seed": 42,
+  "stratum_counts": {
+    "filtered": 2,
+    "multigroup": 1,
+    "multiagg": 1,
+    "join1": 2,
+    "join2": 2,
+    "join3": 2
+  },
+  "source_counts": {
+    "agg": 1,
+    "filterjoin": 2,
+    "groupby": 3,
+    "join": 3,
+    "multiagg": 1
+  },
+  "picks": [
+    {
+      "query_id": "q0",
+      "source": "groupby",
+      "source_query_id": "q13",
+      "stratum": "join2",
+      "properties": {
+        "join_depth": 2,
+        "aggregate_count": 1,
+        "group_key_count": 2,
+        "has_where": false,
+        "has_having": false
+      }
+    },
+    {
+      "query_id": "q1",
+      "source": "multiagg",
+      "source_query_id": "q4",
+      "stratum": "multiagg",
+      "properties": {
+        "join_depth": 0,
+        "aggregate_count": 3,
+        "group_key_count": 1,
+        "has_where": true,
+        "has_having": false
+      }
+    },
+    {
+      "query_id": "q2",
+      "source": "groupby",
+      "source_query_id": "q15",
+      "stratum": "join2",
+      "properties": {
+        "join_depth": 2,
+        "aggregate_count": 1,
+        "group_key_count": 2,
+        "has_where": false,
+        "has_having": false
+      }
+    },
+    {
+      "query_id": "q3",
+      "source": "join",
+      "source_query_id": "q0",
+      "stratum": "join1",
+      "properties": {
+        "join_depth": 1,
+        "aggregate_count": 1,
+        "group_key_count": 1,
+        "has_where": false,
+        "has_having": false
+      }
+    },
+    {
+      "query_id": "q4",
+      "source": "join",
+      "source_query_id": "q16",
+      "stratum": "join3",
+      "properties": {
+        "join_depth": 3,
+        "aggregate_count": 1,
+        "group_key_count": 3,
+        "has_where": true,
+        "has_having": false
+      }
+    },
+    {
+      "query_id": "q5",
+      "source": "groupby",
+      "source_query_id": "q4",
+      "stratum": "multigroup",
+      "properties": {
+        "join_depth": 0,
+        "aggregate_count": 1,
+        "group_key_count": 2,
+        "has_where": true,
+        "has_having": false
+      }
+    },
+    {
+      "query_id": "q6",
+      "source": "join",
+      "source_query_id": "q6",
+      "stratum": "join1",
+      "properties": {
+        "join_depth": 1,
+        "aggregate_count": 1,
+        "group_key_count": 1,
+        "has_where": true,
+        "has_having": false
+      }
+    },
+    {
+      "query_id": "q7",
+      "source": "filterjoin",
+      "source_query_id": "q16",
+      "stratum": "join3",
+      "properties": {
+        "join_depth": 3,
+        "aggregate_count": 1,
+        "group_key_count": 1,
+        "has_where": true,
+        "has_having": false
+      }
+    },
+    {
+      "query_id": "q8",
+      "source": "filterjoin",
+      "source_query_id": "q2",
+      "stratum": "filtered",
+      "properties": {
+        "join_depth": 0,
+        "aggregate_count": 1,
+        "group_key_count": 1,
+        "has_where": true,
+        "has_having": false
+      }
+    },
+    {
+      "query_id": "q9",
+      "source": "agg",
+      "source_query_id": "q9",
+      "stratum": "filtered",
+      "properties": {
+        "join_depth": 0,
+        "aggregate_count": 1,
+        "group_key_count": 1,
+        "has_where": true,
+        "has_having": false
+      }
+    }
+  ]
+}

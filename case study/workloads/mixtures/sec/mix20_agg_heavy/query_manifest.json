@@ -1,0 +1,82 @@
+[
+  {
+    "query_id": "q0",
+    "sql": "SELECT form_type, fiscal_year, COUNT(*) AS filing_count, AVG(revenue_usd) AS avg_revenue, AVG(net_income_usd) AS avg_net_income FROM filing_metrics WHERE fiscal_year BETWEEN 2022 AND 2025 AND revenue_usd IS NOT NULL AND net_income_usd IS NOT NULL GROUP BY form_type, fiscal_year"
+  },
+  {
+    "query_id": "q1",
+    "sql": "SELECT ticker, COUNT(*) AS filing_count, SUM(CASE WHEN net_income_usd > 0 THEN 1 ELSE 0 END) AS profitable_count, AVG(revenue_usd) AS avg_revenue, MAX(net_income_usd) AS max_net_income FROM filing_metrics WHERE revenue_usd IS NOT NULL AND net_income_usd IS NOT NULL GROUP BY ticker"
+  },
+  {
+    "query_id": "q2",
+    "sql": "SELECT fiscal_year, MAX(assets_usd) AS max_assets FROM filing_metrics WHERE fiscal_year BETWEEN 2022 AND 2025 GROUP BY fiscal_year"
+  },
+  {
+    "query_id": "q3",
+    "sql": "SELECT CASE WHEN m.sic_description LIKE '%Computer%' OR m.sic_description LIKE '%Software%' OR m.sic_description LIKE '%Semiconductor%' THEN 'Technology' WHEN m.sic_description LIKE '%Retail%' THEN 'Retail' WHEN m.sic_description LIKE '%Bank%' THEN 'Financial' WHEN m.sic_description LIKE '%Petroleum%' THEN 'Energy' WHEN m.sic_description LIKE '%Pharmaceutical%' THEN 'Healthcare' WHEN m.sic_description LIKE '%Motor%' THEN 'Automotive' ELSE 'Other' END AS industry_family, fiscal_period, COUNT(*) AS filing_count FROM filing_metrics m GROUP BY industry_family, fiscal_period"
+  },
+  {
+    "query_id": "q4",
+    "sql": "SELECT state_of_incorporation, CASE WHEN assets_usd >= 500000000000 THEN 'assets_500b_plus' ELSE 'assets_under_500b' END AS asset_band, COUNT(*) AS filing_count FROM filing_metrics WHERE assets_usd IS NOT NULL GROUP BY state_of_incorporation, asset_band"
+  },
+  {
+    "query_id": "q5",
+    "sql": "SELECT CASE WHEN m.sic_description LIKE '%Computer%' OR m.sic_description LIKE '%Software%' OR m.sic_description LIKE '%Semiconductor%' THEN 'Technology' WHEN m.sic_description LIKE '%Retail%' THEN 'Retail' WHEN m.sic_description LIKE '%Bank%' THEN 'Financial' WHEN m.sic_description LIKE '%Petroleum%' THEN 'Energy' WHEN m.sic_description LIKE '%Pharmaceutical%' THEN 'Healthcare' WHEN m.sic_description LIKE '%Motor%' THEN 'Automotive' ELSE 'Other' END AS industry_family, COUNT(*) AS filing_count, AVG(revenue_usd) AS avg_revenue, AVG(net_income_usd) AS avg_net_income, SUM(CASE WHEN m.net_income_usd > 0 THEN 1 ELSE 0 END) AS profitable_count FROM filing_metrics m WHERE revenue_usd IS NOT NULL AND net_income_usd IS NOT NULL GROUP BY industry_family"
+  },
+  {
+    "query_id": "q6",
+    "sql": "SELECT form_type, CASE WHEN operating_cash_flow_usd > 0 THEN 'positive_ocf' ELSE 'nonpositive_ocf' END AS ocf_status, COUNT(*) AS filing_count FROM filing_metrics WHERE operating_cash_flow_usd IS NOT NULL GROUP BY form_type, ocf_status"
+  },
+  {
+    "query_id": "q7",
+    "sql": "SELECT form_type, AVG(net_income_usd) AS avg_net_income FROM filing_metrics WHERE net_income_usd IS NOT NULL GROUP BY form_type"
+  },
+  {
+    "query_id": "q8",
+    "sql": "SELECT fiscal_year, COUNT(*) AS filing_count, SUM(CASE WHEN net_income_usd > 0 THEN 1 ELSE 0 END) AS profitable_count, SUM(CASE WHEN operating_cash_flow_usd > 0 THEN 1 ELSE 0 END) AS positive_ocf_count, AVG(revenue_usd) AS avg_revenue FROM filing_metrics WHERE fiscal_year BETWEEN 2022 AND 2025 AND revenue_usd IS NOT NULL GROUP BY fiscal_year"
+  },
+  {
+    "query_id": "q9",
+    "sql": "SELECT state_of_incorporation, COUNT(*) AS filing_count, AVG(revenue_usd) AS avg_revenue, AVG(assets_usd) AS avg_assets FROM filing_metrics WHERE revenue_usd IS NOT NULL AND assets_usd IS NOT NULL GROUP BY state_of_incorporation"
+  },
+  {
+    "query_id": "q10",
+    "sql": "SELECT CASE WHEN m.sic_description LIKE '%Computer%' OR m.sic_description LIKE '%Software%' OR m.sic_description LIKE '%Semiconductor%' THEN 'Technology' WHEN m.sic_description LIKE '%Retail%' THEN 'Retail' WHEN m.sic_description LIKE '%Bank%' THEN 'Financial' WHEN m.sic_description LIKE '%Petroleum%' THEN 'Energy' WHEN m.sic_description LIKE '%Pharmaceutical%' THEN 'Healthcare' WHEN m.sic_description LIKE '%Motor%' THEN 'Automotive' ELSE 'Other' END AS industry_family, form_type, COUNT(*) AS filing_count FROM filing_metrics m GROUP BY industry_family, form_type"
+  },
+  {
+    "query_id": "q11",
+    "sql": "SELECT c.state_of_incorporation, con.concept_name, COUNT(*) AS filing_count FROM filing_metrics m JOIN company c ON m.company_id = c.company_id JOIN concept con ON m.revenue_usd_concept_id = con.concept_id GROUP BY c.state_of_incorporation, con.concept_name"
+  },
+  {
+    "query_id": "q12",
+    "sql": "SELECT fiscal_period, COUNT(*) AS filing_count, AVG(net_income_usd) AS avg_net_income, MIN(net_income_usd) AS min_net_income, MAX(net_income_usd) AS max_net_income FROM filing_metrics WHERE net_income_usd IS NOT NULL GROUP BY fiscal_period"
+  },
+  {
+    "query_id": "q13",
+    "sql": "SELECT ticker, COUNT(*) AS filing_count, AVG(operating_cash_flow_usd) AS avg_ocf, AVG(investing_cash_flow_usd) AS avg_icf, AVG(financing_cash_flow_usd) AS avg_fcf FROM filing_metrics WHERE operating_cash_flow_usd IS NOT NULL AND investing_cash_flow_usd IS NOT NULL AND financing_cash_flow_usd IS NOT NULL GROUP BY ticker"
+  },
+  {
+    "query_id": "q14",
+    "sql": "SELECT c.state_of_incorporation, COUNT(*) AS filing_count FROM filing_metrics m JOIN company c ON m.company_id = c.company_id WHERE m.net_income_usd >= 10000000000 GROUP BY c.state_of_incorporation"
+  },
+  {
+    "query_id": "q15",
+    "sql": "SELECT fiscal_year, COUNT(*) AS filing_count FROM filing_metrics WHERE operating_cash_flow_usd >= 20000000000 AND net_income_usd > 0 AND fiscal_year BETWEEN 2022 AND 2025 GROUP BY fiscal_year"
+  },
+  {
+    "query_id": "q16",
+    "sql": "SELECT CASE WHEN m.state_of_incorporation = 'DE' THEN 'Delaware' WHEN m.state_of_incorporation != '' THEN 'other_state' END AS state_family, COUNT(*) AS filing_count, AVG(net_income_usd) AS avg_net_income, MAX(assets_usd) AS max_assets FROM filing_metrics m WHERE net_income_usd IS NOT NULL AND assets_usd IS NOT NULL GROUP BY state_family"
+  },
+  {
+    "query_id": "q17",
+    "sql": "SELECT c.state_of_incorporation, COUNT(*) AS filing_count FROM filing_metrics m JOIN company c ON m.company_id = c.company_id JOIN filing f ON m.filing_id = f.filing_id JOIN concept con ON m.revenue_usd_concept_id = con.concept_id WHERE f.form_type = '10-K' AND m.operating_cash_flow_usd > 0 AND m.net_income_usd > 0 GROUP BY c.state_of_incorporation"
+  },
+  {
+    "query_id": "q18",
+    "sql": "SELECT ticker, COUNT(*) AS filing_count FROM filing_metrics WHERE form_type = '10-Q' AND net_income_usd > 0 GROUP BY ticker"
+  },
+  {
+    "query_id": "q19",
+    "sql": "SELECT form_type, COUNT(*) AS filing_count, AVG(assets_usd) AS avg_assets, AVG(liabilities_usd) AS avg_liabilities, AVG(net_income_usd) AS avg_net_income FROM filing_metrics WHERE assets_usd IS NOT NULL AND liabilities_usd IS NOT NULL AND net_income_usd IS NOT NULL GROUP BY form_type"
+  }
+]

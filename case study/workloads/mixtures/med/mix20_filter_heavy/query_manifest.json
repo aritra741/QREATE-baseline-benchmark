@@ -1,0 +1,82 @@
+[
+  {
+    "query_id": "q0",
+    "sql": "SELECT CASE WHEN LOWER(dr.pharmaceutical_form) LIKE '%tablet%' THEN 'tablet' WHEN LOWER(dr.pharmaceutical_form) LIKE '%injection%' THEN 'injection' WHEN LOWER(dr.pharmaceutical_form) LIKE '%capsule%' THEN 'capsule' WHEN dr.pharmaceutical_form != '' THEN 'other' END AS form_family, CASE WHEN LOWER(d.treatments) LIKE '%oral_medication%' THEN 'oral_treatment_disease' ELSE 'other_treatment_disease' END AS treatment_group, COUNT(DISTINCT dr.id) AS drug_count FROM drug dr JOIN disease d ON ( LOWER(TRIM(dr.disease_name)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(dr.disease_name), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%' ) WHERE dr.pharmaceutical_form != '' AND d.treatments != '' GROUP BY form_family, treatment_group"
+  },
+  {
+    "query_id": "q1",
+    "sql": "SELECT CASE WHEN LOWER(i.institution_type) LIKE '%university%' THEN 'university_affiliated' WHEN LOWER(i.institution_type) LIKE '%public%' THEN 'public' WHEN i.institution_type != '' THEN 'other' END AS inst_type, COUNT(DISTINCT dr.id) AS drug_count FROM drug dr JOIN disease d ON ( LOWER(TRIM(dr.disease_name)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(dr.disease_name), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%' ) JOIN institution i ON ( LOWER(TRIM(i.research_diseases)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(i.research_diseases), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%' ) WHERE i.institution_type != '' GROUP BY inst_type"
+  },
+  {
+    "query_id": "q2",
+    "sql": "SELECT CASE WHEN LOWER(d.disease_type) LIKE '%infectious%' THEN 'infectious' WHEN LOWER(d.disease_type) LIKE '%neoplastic%' THEN 'neoplastic' WHEN LOWER(d.disease_type) LIKE '%inflammatory%' THEN 'inflammatory' WHEN LOWER(d.disease_type) LIKE '%psychiatric%' THEN 'psychiatric' WHEN d.disease_type != '' THEN 'other' END AS type_family, COUNT(*) AS disease_count FROM disease d WHERE d.disease_type != '' GROUP BY type_family"
+  },
+  {
+    "query_id": "q3",
+    "sql": "SELECT CASE WHEN LOWER(dr.pharmaceutical_form) LIKE '%tablet%' THEN 'tablet' WHEN LOWER(dr.pharmaceutical_form) LIKE '%injection%' THEN 'injection' WHEN LOWER(dr.pharmaceutical_form) LIKE '%capsule%' THEN 'capsule' WHEN dr.pharmaceutical_form != '' THEN 'other' END AS form_family, COUNT(*) AS drug_count, SUM(CASE WHEN LOWER(dr.administration_route) LIKE '%oral%' THEN 1 ELSE 0 END) AS oral_count, SUM(CASE WHEN dr.manufacturer != '' THEN 1 ELSE 0 END) AS known_mfr_count FROM drug dr WHERE dr.pharmaceutical_form != '' GROUP BY form_family"
+  },
+  {
+    "query_id": "q4",
+    "sql": "SELECT CASE WHEN LOWER(unsuitable_population) LIKE '%pregnant%' THEN 'mentions_pregnancy' WHEN unsuitable_population != '' THEN 'other_restriction' END AS restriction_group, COUNT(*) AS drug_count FROM drug WHERE unsuitable_population != '' GROUP BY restriction_group"
+  },
+  {
+    "query_id": "q5",
+    "sql": "SELECT CASE WHEN LOWER(i.research_fields) LIKE '%oncology%' THEN 'oncology' WHEN LOWER(i.research_fields) LIKE '%neuroscience%' THEN 'neuroscience' WHEN LOWER(i.research_fields) LIKE '%immunology%' OR LOWER(i.research_fields) LIKE '%microbiology%' THEN 'immuno_micro' WHEN LOWER(i.research_fields) LIKE '%clinical_research%' THEN 'clinical_research' WHEN i.research_fields != '' THEN 'other' END AS field_family, COUNT(*) AS institution_count FROM institution i WHERE i.research_fields != '' GROUP BY field_family"
+  },
+  {
+    "query_id": "q6",
+    "sql": "SELECT CASE WHEN LOWER(quality_of_life_impact) LIKE '%quality_of_life_decline%' THEN 'qol_decline' WHEN quality_of_life_impact != '' THEN 'other_impact' END AS qol_group, COUNT(*) AS disease_count FROM disease WHERE quality_of_life_impact != '' GROUP BY qol_group"
+  },
+  {
+    "query_id": "q7",
+    "sql": "SELECT CASE WHEN LOWER(treatments) LIKE '%injection%' THEN 'uses_injection' WHEN treatments != '' THEN 'no_injection' END AS treatment_group, COUNT(*) AS disease_count FROM disease WHERE treatments != '' GROUP BY treatment_group"
+  },
+  {
+    "query_id": "q8",
+    "sql": "SELECT CASE WHEN LOWER(administration_route) LIKE '%intravenous%' OR LOWER(administration_route) LIKE '%subcutaneous%' THEN 'injectable_route' WHEN administration_route != '' THEN 'other_route' END AS route_group, COUNT(*) AS drug_count FROM drug WHERE administration_route != '' GROUP BY route_group"
+  },
+  {
+    "query_id": "q9",
+    "sql": "SELECT CASE WHEN LOWER(prognosis) LIKE '%high_mortality%' THEN 'high_mortality' WHEN LOWER(prognosis) LIKE '%chronic%' THEN 'chronic' ELSE 'other' END AS prognosis_group, COUNT(*) AS disease_count, SUM(CASE WHEN LOWER(treatments) LIKE '%injection%' THEN 1 ELSE 0 END) AS injection_count, SUM(CASE WHEN quality_of_life_impact != '' THEN 1 ELSE 0 END) AS qol_recorded_count FROM disease WHERE prognosis != '' GROUP BY prognosis_group"
+  },
+  {
+    "query_id": "q10",
+    "sql": "SELECT CASE WHEN LOWER(pathogenesis) LIKE '%infectious%' THEN 'infectious' WHEN LOWER(pathogenesis) LIKE '%inflammatory%' THEN 'inflammatory' WHEN pathogenesis != '' THEN 'other' END AS path_group, COUNT(*) AS disease_count FROM disease WHERE pathogenesis != '' GROUP BY path_group"
+  },
+  {
+    "query_id": "q11",
+    "sql": "SELECT CASE WHEN LOWER(dr.administration_route) LIKE '%oral%' THEN 'oral' WHEN dr.administration_route != '' THEN 'non_oral' END AS route_family, COUNT(*) AS drug_count FROM drug dr WHERE dr.administration_route != '' GROUP BY route_family"
+  },
+  {
+    "query_id": "q12",
+    "sql": "SELECT CASE WHEN i.institution_country LIKE '%USA%' THEN 'USA' WHEN i.institution_country != '' THEN 'outside_USA' END AS country_family, COUNT(*) AS institution_count FROM institution i WHERE i.institution_country != '' GROUP BY country_family"
+  },
+  {
+    "query_id": "q13",
+    "sql": "SELECT CASE WHEN LOWER(d.disease_type) LIKE '%infectious%' THEN 'infectious' WHEN LOWER(d.disease_type) LIKE '%neoplastic%' THEN 'neoplastic' WHEN LOWER(d.disease_type) LIKE '%inflammatory%' THEN 'inflammatory' WHEN LOWER(d.disease_type) LIKE '%psychiatric%' THEN 'psychiatric' WHEN d.disease_type != '' THEN 'other' END AS type_family, COUNT(*) AS disease_count FROM disease d WHERE LOWER(d.treatments) LIKE '%oral_medication%' AND d.disease_type != '' GROUP BY type_family"
+  },
+  {
+    "query_id": "q14",
+    "sql": "SELECT CASE WHEN LOWER(d.disease_type) LIKE '%infectious%' THEN 'infectious' WHEN LOWER(d.disease_type) LIKE '%neoplastic%' THEN 'neoplastic' WHEN LOWER(d.disease_type) LIKE '%inflammatory%' THEN 'inflammatory' WHEN LOWER(d.disease_type) LIKE '%psychiatric%' THEN 'psychiatric' WHEN d.disease_type != '' THEN 'other' END AS type_family, CASE WHEN i.institution_country LIKE '%USA%' THEN 'USA' WHEN i.institution_country != '' THEN 'outside_USA' END AS country_family, COUNT(DISTINCT dr.id) AS drug_count FROM drug dr JOIN disease d ON ( LOWER(TRIM(dr.disease_name)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(dr.disease_name), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%' ) JOIN institution i ON ( LOWER(TRIM(i.research_diseases)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(i.research_diseases), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%' ) WHERE d.disease_type != '' AND i.institution_country != '' GROUP BY type_family, country_family"
+  },
+  {
+    "query_id": "q15",
+    "sql": "SELECT CASE WHEN LOWER(prognosis) LIKE '%high_mortality%' THEN 'high_mortality' WHEN LOWER(prognosis) LIKE '%chronic%' THEN 'chronic' WHEN prognosis != '' THEN 'other' END AS prognosis_group, COUNT(*) AS disease_count FROM disease WHERE prognosis != '' GROUP BY prognosis_group"
+  },
+  {
+    "query_id": "q16",
+    "sql": "SELECT CASE WHEN i.institution_country LIKE '%USA%' THEN 'USA' WHEN i.institution_country != '' THEN 'outside_USA' END AS country_family, COUNT(DISTINCT i.id) AS institution_count FROM institution i JOIN disease d ON ( LOWER(TRIM(i.research_diseases)) = LOWER(TRIM(d.disease_name)) OR '|' || REPLACE(REPLACE(LOWER(i.research_diseases), ' || ', '||'), '||', '|') || '|' LIKE '%|' || LOWER(TRIM(d.disease_name)) || '|%' ) WHERE i.institution_country != '' GROUP BY country_family"
+  },
+  {
+    "query_id": "q17",
+    "sql": "SELECT CASE WHEN LOWER(i.institution_type) LIKE '%university%' THEN 'university_affiliated' WHEN LOWER(i.institution_type) LIKE '%public%' THEN 'public' WHEN i.institution_type != '' THEN 'other' END AS inst_type, COUNT(*) AS institution_count FROM institution i WHERE i.institution_type != '' GROUP BY inst_type"
+  },
+  {
+    "query_id": "q18",
+    "sql": "SELECT CASE WHEN LOWER(diagnostic_methods) LIKE '%clinical_evaluation%' THEN 'clinical_evaluation' ELSE 'other_methods' END AS dx_group, CASE WHEN LOWER(prognosis) LIKE '%high_mortality%' THEN 'high_mortality' WHEN prognosis != '' THEN 'other_prognosis' END AS prognosis_group, COUNT(*) AS disease_count FROM disease WHERE diagnostic_methods != '' AND prognosis != '' GROUP BY dx_group, prognosis_group"
+  },
+  {
+    "query_id": "q19",
+    "sql": "SELECT CASE WHEN LOWER(dr.pharmaceutical_form) LIKE '%tablet%' THEN 'tablet' WHEN LOWER(dr.pharmaceutical_form) LIKE '%injection%' THEN 'injection' WHEN LOWER(dr.pharmaceutical_form) LIKE '%capsule%' THEN 'capsule' WHEN dr.pharmaceutical_form != '' THEN 'other' END AS form_family, CASE WHEN manufacturer != '' THEN 'known_manufacturer' ELSE 'manufacturer_unknown' END AS mfr_status, COUNT(*) AS drug_count FROM drug dr WHERE dr.pharmaceutical_form != '' GROUP BY form_family, mfr_status"
+  }
+]

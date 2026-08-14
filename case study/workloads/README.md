@@ -1,3 +1,43 @@
+# Case-study contrast workloads
+
+Curated 20-query workloads for QuWARTS / DocETL-style evaluation. Every query is a
+realistic analytical question, executed and validated against the source CSVs.
+
+Cross-dataset inventory: `workloads/contrast_workloads.csv`.
+
+## Other datasets (Art, CSPaper, Finan, Legal, Med, SEC)
+
+The same contrast axes as Player, adapted to each schema:
+
+| Axis | Single-table (Art, CSPaper, Finan, Legal) | Multi-table (Med, SEC) |
+|---|---|---|
+| Baseline | `{ds}_agg20` — one aggregate, simple `GROUP BY` | same |
+| Filters | `{ds}_filter20` — selective `WHERE` | `{ds}_filterjoin20` — filters plus light joins |
+| Group-by shape | `{ds}_groupby20` — multi-column and banded keys | same, including joined keys |
+| Multi-aggregation | `{ds}_multiagg20` — several aggregates, often `HAVING` | same |
+| Join depth | not applicable | `{ds}_join20` — 1–2 joins (Med) or 1–3 joins (SEC) |
+
+Questions are written as something a real user of that domain would ask: a curator
+counting awarded painters, an IR researcher comparing multi-hop RAG setups, an
+analyst slicing profitable filers, a legal researcher looking at dismissed
+administrative cases, and so on. Sparse or dirty keys are collapsed into
+families (exchange, auditor, disease type, industry) so groups stay useful.
+
+Med joins use token matching on `drug.disease_name` and
+`institution.research_diseases` against `disease.disease_name`. SEC joins use
+`company_id`, `filing_id`, and `revenue_usd_concept_id`.
+
+```bash
+python3 "case study/build_contrast_workloads.py"
+python3 "case study/build_contrast_workloads.py" --only art,legal
+python3 "case study/mix_contrast_workloads.py"
+python3 "case study/mix_contrast_workloads.py" --dataset sec --only mix20_balanced
+```
+
+Mixtures for these datasets live under `workloads/mixtures/<dataset>/`.
+Single-table mixtures use `filtered` / `multigroup` / `multiagg` strata. Med
+omits `join3` because the schema has only three tables.
+
 # Player case-study workloads
 
 Five curated 20-query Player workloads for QuWARTS / DocETL-style evaluation.

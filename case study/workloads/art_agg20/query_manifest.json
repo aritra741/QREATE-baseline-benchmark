@@ -1,0 +1,82 @@
+[
+  {
+    "query_id": "q0",
+    "sql": "SELECT birth_continent, COUNT(*) AS artist_count FROM art WHERE birth_continent != '' GROUP BY birth_continent"
+  },
+  {
+    "query_id": "q1",
+    "sql": "SELECT century, COUNT(*) AS artist_count FROM art WHERE century != '' GROUP BY century"
+  },
+  {
+    "query_id": "q2",
+    "sql": "SELECT CASE WHEN art_institution != '' THEN 'known_institution' ELSE 'institution_unknown' END AS institution_status, COUNT(*) AS artist_count FROM art GROUP BY institution_status"
+  },
+  {
+    "query_id": "q3",
+    "sql": "SELECT teaching, COUNT(*) AS artist_count FROM art WHERE teaching IS NOT NULL GROUP BY teaching"
+  },
+  {
+    "query_id": "q4",
+    "sql": "SELECT century, AVG(age) AS avg_age FROM art WHERE century != '' AND age BETWEEN 25 AND 105 GROUP BY century"
+  },
+  {
+    "query_id": "q5",
+    "sql": "SELECT birth_continent, AVG(age) AS avg_age FROM art WHERE birth_continent != '' AND age BETWEEN 25 AND 105 GROUP BY birth_continent"
+  },
+  {
+    "query_id": "q6",
+    "sql": "SELECT CASE WHEN field LIKE '%Painting%' THEN 'Painting' WHEN field LIKE '%Sculpture%' THEN 'Sculpture' WHEN field LIKE '%Photography%' THEN 'Photography' ELSE 'Other' END AS field_family, COUNT(*) AS artist_count FROM art WHERE field != '' GROUP BY field_family"
+  },
+  {
+    "query_id": "q7",
+    "sql": "SELECT image_genre, COUNT(*) AS artist_count FROM art WHERE image_genre != '' GROUP BY image_genre HAVING COUNT(*) >= 10"
+  },
+  {
+    "query_id": "q8",
+    "sql": "SELECT style, COUNT(*) AS artist_count FROM art WHERE style != '' GROUP BY style HAVING COUNT(*) >= 15"
+  },
+  {
+    "query_id": "q9",
+    "sql": "SELECT CASE WHEN color IN ('Earth Tones', 'Blue', 'Green', 'Red', 'Black And White', 'Brown', 'Yellow') THEN color WHEN color != '' THEN 'Other' END AS color_family, COUNT(*) AS artist_count FROM art WHERE color != '' GROUP BY color_family"
+  },
+  {
+    "query_id": "q10",
+    "sql": "SELECT CASE WHEN tone IN ('Neutral', 'Bright', 'Dark', 'Warm') THEN tone WHEN tone != '' THEN 'Other' END AS tone_family, COUNT(*) AS artist_count FROM art WHERE tone != '' GROUP BY tone_family"
+  },
+  {
+    "query_id": "q11",
+    "sql": "SELECT CASE WHEN awards >= 1 THEN 'awarded' ELSE 'unawarded' END AS award_status, COUNT(*) AS artist_count FROM art WHERE awards IS NOT NULL GROUP BY award_status"
+  },
+  {
+    "query_id": "q12",
+    "sql": "SELECT birth_continent, MAX(awards) AS max_awards FROM art WHERE birth_continent != '' GROUP BY birth_continent"
+  },
+  {
+    "query_id": "q13",
+    "sql": "SELECT century, SUM(awards) AS total_awards FROM art WHERE century != '' GROUP BY century"
+  },
+  {
+    "query_id": "q14",
+    "sql": "SELECT teaching, AVG(awards) AS avg_awards FROM art WHERE teaching IS NOT NULL GROUP BY teaching"
+  },
+  {
+    "query_id": "q15",
+    "sql": "SELECT nationality, COUNT(*) AS artist_count FROM art WHERE nationality != '' GROUP BY nationality HAVING COUNT(*) >= 10"
+  },
+  {
+    "query_id": "q16",
+    "sql": "SELECT birth_country, COUNT(*) AS artist_count FROM art WHERE birth_country != '' GROUP BY birth_country HAVING COUNT(*) >= 10"
+  },
+  {
+    "query_id": "q17",
+    "sql": "SELECT image_genre, AVG(age) AS avg_age FROM art WHERE image_genre != '' AND age BETWEEN 25 AND 105 GROUP BY image_genre HAVING COUNT(*) >= 10"
+  },
+  {
+    "query_id": "q18",
+    "sql": "SELECT style, AVG(awards) AS avg_awards FROM art WHERE style != '' GROUP BY style HAVING COUNT(*) >= 15"
+  },
+  {
+    "query_id": "q19",
+    "sql": "SELECT century, MIN(age) AS youngest FROM art WHERE century != '' AND age BETWEEN 25 AND 105 GROUP BY century"
+  }
+]
