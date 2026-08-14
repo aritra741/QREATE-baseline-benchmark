@@ -528,6 +528,26 @@ def load_redd_nl_query_specs(redd_path: Path) -> Dict[str, str]:
     return {str(k): str(v) for k, v in raw.items()}
 
 
+def _select_expression_aliases(tree: exp.Expression) -> set[str]:
+    """Names introduced by SELECT … AS alias, not base table columns.
+
+    GROUP BY / ORDER BY often repeat those aliases (type_family, form_family).
+    They are computed after extraction and must not be treated as document fields.
+    """
+
+    aliases: set[str] = set()
+    for select in tree.find_all(exp.Select):
+        for expr in select.expressions:
+            alias = (expr.alias or "").strip().lower()
+            if not alias:
+                continue
+            inner = expr.this if isinstance(expr, exp.Alias) else expr
+            if isinstance(inner, exp.Column) and (inner.name or "").strip().lower() == alias:
+                continue
+            aliases.add(alias)
+    return aliases
+
+
 def columns_per_table_from_sql(sql_text: str) -> Dict[str, List[str]]:
     """
     Collect table -> column names referenced as table.col in the benchmark SQL.
@@ -552,6 +572,7 @@ def columns_per_table_from_sql(sql_text: str) -> Dict[str, List[str]]:
     if not tables_in_query:
         raise ValueError("No base tables found in SQL query")
 
+    select_aliases = _select_expression_aliases(tree)
     by_table: Dict[str, set[str]] = defaultdict(set)
     unqualified_cols: List[str] = []
 
@@ -560,6 +581,8 @@ def columns_per_table_from_sql(sql_text: str) -> Dict[str, List[str]]:
         if not cname:
             continue
         tname = (col.table or "").strip().lower()
+        if not tname and cname in select_aliases:
+            continue
         if tname:
             resolved = alias_to_table.get(tname, tname)
             by_table[resolved].add(cname)
@@ -570,6 +593,8 @@ def columns_per_table_from_sql(sql_text: str) -> Dict[str, List[str]]:
     # - single-table query: assign to that table
     # - multi-table query: assign when exactly one table schema contains it
     for cname in unqualified_cols:
+        if cname in select_aliases:
+            continue
         if len(tables_in_query) == 1:
             by_table[tables_in_query[0]].add(cname)
             continue
