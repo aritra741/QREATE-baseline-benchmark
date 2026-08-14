@@ -1825,6 +1825,193 @@ def test_bulk_heading_fallback_never_overwrites_nonidentity_location(
     assert shared.raw_tables["group"][0]["location"] == "Actual Place"
 
 
+def test_bulk_scheduler_preserves_every_relation_at_budget_boundary(
+    tmp_path,
+    monkeypatch,
+):
+    from threading import Lock
+
+    calls = []
+    successful_documents = 0
+    lock = Lock()
+
+    class BudgetLimitedBulkExtractor:
+        def extract_batch(
+            self,
+            texts,
+            document_ids,
+            relation,
+            schema,
+            *_args,
+            **_kwargs,
+        ):
+            nonlocal successful_documents
+            results = []
+            for text, document_id in zip(texts, document_ids):
+                with lock:
+                    calls.append((relation, document_id))
+                    allowed = successful_documents < 5
+                    if allowed:
+                        successful_documents += 1
+                if not allowed:
+                    results.append(
+                        type(
+                            "Result",
+                            (),
+                            {
+                                "chunk_id": document_id,
+                                "records": (),
+                                "spans": (),
+                                "error": (
+                                    "global token budget boundary reached; "
+                                    "cannot reserve another request"
+                                ),
+                            },
+                        )()
+                    )
+                    continue
+                heading = text.splitlines()[1]
+                record = {
+                    column: (
+                        heading if column == "name" else f"{relation}-value"
+                    )
+                    for column in schema
+                }
+                results.append(
+                    type(
+                        "Result",
+                        (),
+                        {
+                            "chunk_id": document_id,
+                            "records": (record,),
+                            "spans": ({},),
+                            "error": None,
+                        },
+                    )()
+                )
+            return results
+
+    relations = ("alpha", "beta", "gamma")
+    documents_by_relation = {
+        relation: tuple(
+            ContractDocument(
+                f"{relation}/{index}.txt",
+                f"\n{relation.title()} {index}\n\n{relation} value",
+            )
+            for index in range(1, 5)
+        )
+        for relation in relations
+    }
+    requirements = [
+        *(
+            QueryRequirement(
+                f"q{index}",
+                f"List {relation} values.",
+                entities=(relation,),
+                attribute_bindings=((relation, "name"), (relation, "value")),
+                plan=QueryPlan(
+                    projections=(
+                        AttributeRef(relation, "name", "text"),
+                        AttributeRef(relation, "value", "text"),
+                    ),
+                ),
+            )
+            for index, relation in enumerate(relations)
+        ),
+        QueryRequirement(
+            "q3",
+            "List alpha names again.",
+            entities=("alpha",),
+            attribute_bindings=(("alpha", "name"),),
+            plan=QueryPlan(
+                projections=(AttributeRef("alpha", "name", "text"),),
+            ),
+        ),
+        QueryRequirement(
+            "q4",
+            "List alpha values again.",
+            entities=("alpha",),
+            attribute_bindings=(("alpha", "value"),),
+            plan=QueryPlan(
+                projections=(AttributeRef("alpha", "value", "text"),),
+            ),
+        ),
+    ]
+    intent = _intent(*requirements)
+    backend = ContractBackend(
+        tuple(
+            document
+            for documents in documents_by_relation.values()
+            for document in documents
+        ),
+        type("Client", (), {"generate": lambda self, *_args, **_kwargs: ""})(),
+        scratch_dir=tmp_path,
+        use_bulk_extraction=True,
+        bulk_extractor_factory=lambda _client, _cache: (
+            BudgetLimitedBulkExtractor()
+        ),
+        bulk_column_batch_size=1,
+        verify_extracted_cells=False,
+    )
+    backend.intent = intent
+    backend.contract = WorkloadContract(
+        entities=tuple(EntityContract(relation) for relation in relations),
+        attributes=tuple(
+            AttributeContract(relation, column)
+            for relation in relations
+            for column in ("detail", "value", "name")
+        ),
+        relationships=(),
+    )
+    backend.relation_graph = WorkloadRelationGraph(
+        relations=tuple(
+            RelationSpec(
+                relation,
+                ("detail", "value", "name"),
+                primary_key="name",
+            )
+            for relation in relations
+        ),
+        edges=(),
+        covered_query_ids=("q0", "q1", "q2", "q3", "q4"),
+    )
+    monkeypatch.setattr(
+        backend,
+        "_bulk_documents_for_relation",
+        lambda relation: documents_by_relation[relation.name],
+    )
+
+    shared = backend._bulk_extract_shared(GlobalBudgetLedger(10_000))
+
+    assert [relation for relation, _document_id in calls[:3]] == list(
+        relations
+    )
+    assert {
+        relation for relation, _document_id in calls[3:6]
+    } == set(relations)
+    assert {relation: len(shared.raw_tables[relation]) for relation in relations} == {
+        "alpha": 1,
+        "beta": 1,
+        "gamma": 1,
+    }
+    assert all(
+        "detail" in shared.raw_tables[relation][0]
+        for relation in relations
+    )
+    assert sum(
+        "value" in shared.raw_tables[relation][0]
+        for relation in relations
+    ) == 2
+    scheduler = shared.metadata["relation_balanced_scheduler"]
+    assert scheduler["budget_boundary_reached"] is True
+    assert scheduler["policy"] == "relation_round_robin_column_batch"
+    assert scheduler["attempted_units"] == {
+        "alpha": 2,
+        "beta": 2,
+        "gamma": 2,
+    }
+
+
 def test_attribute_canonicalization_uses_each_documents_identity(tmp_path):
     class AttributeClient:
         def __init__(self):

@@ -88,8 +88,8 @@ from spp.workload_contract import (
 from token_counter import count_tokens
 
 
-BACKEND_VERSION = 32
-HYBRID_BULK_VERSION = 7
+BACKEND_VERSION = 33
+HYBRID_BULK_VERSION = 8
 
 logger = logging.getLogger(__name__)
 
@@ -3011,7 +3011,7 @@ class ContractBackend:
         coverage_manifest: Dict[str, Dict[str, float]] = {}
         coverage_targets: Dict[str, Dict[str, float]] = {}
         error_manifest: Dict[str, List[str]] = {}
-
+        relation_inputs = []
         for relation in self.relation_graph.relations:
             documents = self._bulk_documents_for_relation(relation)
             if not documents:
@@ -3024,18 +3024,169 @@ class ContractBackend:
             if not schema:
                 raw_tables[relation.name] = ()
                 continue
-            texts = [document.text for document in documents]
-            document_ids = [document.document_id for document in documents]
-            results = extractor.extract_batch(
-                texts,
-                document_ids,
-                relation.name,
-                schema,
-                set(schema),
-                normalization_hints={},
-                entity_col=relation.primary_key,
-                col_batch_size_override=self.bulk_column_batch_size,
+            relation_inputs.append((relation, documents, schema))
+
+        # Extractors charge one request per document-group and column batch.
+        # Schedule at that same granularity: every relation receives one unit
+        # before any relation receives another, so a large relation cannot
+        # consume the affordable prefix of a shared run.
+        prefetched: Dict[str, List[object]] = {
+            relation.name: [] for relation, _documents, _schema in relation_inputs
+        }
+        work_queues: Dict[
+            str,
+            List[Tuple[ContractDocument, Mapping[str, str]]],
+        ] = {}
+        column_batch_counts: Dict[str, int] = {}
+        attempted_units: Dict[str, int] = {
+            relation.name: 0
+            for relation, _documents, _schema in relation_inputs
+        }
+        attempted_documents: Dict[str, set[str]] = {
+            relation.name: set()
+            for relation, _documents, _schema in relation_inputs
+        }
+        for relation, documents, schema in relation_inputs:
+            items = list(schema.items())
+            column_batches = [
+                dict(
+                    items[
+                        offset : offset + self.bulk_column_batch_size
+                    ]
+                )
+                for offset in range(
+                    0, len(items), self.bulk_column_batch_size
+                )
+            ]
+            column_batch_counts[relation.name] = len(column_batches)
+            work_queues[relation.name] = [
+                (document, column_batch)
+                for document in sorted(
+                    documents,
+                    key=lambda item: item.document_id,
+                )
+                for column_batch in column_batches
+            ]
+        queue_positions = {
+            relation.name: 0
+            for relation, _documents, _schema in relation_inputs
+        }
+        budget_boundary = False
+
+        def dispatch_unit(
+            relation: RelationSpec,
+            document: ContractDocument,
+            column_batch: Mapping[str, str],
+        ) -> List[object]:
+            return list(
+                extractor.extract_batch(
+                    [document.text],
+                    [document.document_id],
+                    relation.name,
+                    dict(column_batch),
+                    set(column_batch),
+                    normalization_hints={},
+                    entity_col=relation.primary_key,
+                    # The schema is already one column batch. Its width forces
+                    # exactly one extraction task, including for wide schemas.
+                    col_batch_size_override=max(1, len(column_batch)),
+                )
             )
+
+        def record_dispatch(
+            relation: RelationSpec,
+            document: ContractDocument,
+            results: Sequence[object],
+        ) -> None:
+            nonlocal budget_boundary
+            prefetched[relation.name].extend(results)
+            attempted_units[relation.name] += 1
+            attempted_documents[relation.name].add(document.document_id)
+            for result in results:
+                error = str(getattr(result, "error", "") or "").lower()
+                if "cannot reserve" in error or "budget boundary" in error:
+                    budget_boundary = True
+
+        # Keep the first sweep sequential: if the budget only permits one unit
+        # per relation, fixed relation order still guarantees the starvation
+        # guard instead of making reservation order depend on thread timing.
+        for relation, documents, schema in relation_inputs:
+            queue = work_queues[relation.name]
+            if not queue:
+                continue
+            document, column_batch = queue[0]
+            queue_positions[relation.name] = 1
+            results = dispatch_unit(relation, document, column_batch)
+            record_dispatch(relation, document, results)
+            if budget_boundary:
+                break
+
+        # Subsequent sweeps can run one unit per active relation concurrently.
+        # Once only one relation remains, fill a worker wave from that relation
+        # so generous-budget runs retain parallel extraction throughput.
+        from concurrent.futures import ThreadPoolExecutor
+        from config import MAX_PARALLEL_REQUESTS
+
+        relation_by_name = {
+            relation.name: relation
+            for relation, _documents, _schema in relation_inputs
+        }
+        with ThreadPoolExecutor(
+            max_workers=max(1, MAX_PARALLEL_REQUESTS)
+        ) as scheduler_executor:
+            while not budget_boundary:
+                active_names = [
+                    relation.name
+                    for relation, _documents, _schema in relation_inputs
+                    if queue_positions[relation.name]
+                    < len(work_queues[relation.name])
+                ]
+                if not active_names:
+                    break
+                selected = []
+                if len(active_names) == 1:
+                    name = active_names[0]
+                    start = queue_positions[name]
+                    end = min(
+                        len(work_queues[name]),
+                        start + max(1, MAX_PARALLEL_REQUESTS),
+                    )
+                    selected.extend(
+                        (name, unit)
+                        for unit in work_queues[name][start:end]
+                    )
+                    queue_positions[name] = end
+                else:
+                    for name in active_names:
+                        position = queue_positions[name]
+                        selected.append(
+                            (name, work_queues[name][position])
+                        )
+                        queue_positions[name] = position + 1
+
+                futures = [
+                    (
+                        name,
+                        document,
+                        scheduler_executor.submit(
+                            dispatch_unit,
+                            relation_by_name[name],
+                            document,
+                            column_batch,
+                        ),
+                    )
+                    for name, (document, column_batch) in selected
+                ]
+                for name, document, future in futures:
+                    record_dispatch(
+                        relation_by_name[name],
+                        document,
+                        future.result(),
+                    )
+
+        for relation, documents, schema in relation_inputs:
+            document_ids = [document.document_id for document in documents]
+            results = list(prefetched[relation.name])
             records_by_document: Dict[str, List[dict]] = {
                 document_id: [] for document_id in document_ids
             }
@@ -3087,8 +3238,16 @@ class ContractBackend:
                             incoming_spans[index]
                         )
 
+            seen_documents: set[str] = set()
             for result in results:
-                absorb(result, fill_only=False)
+                document_id = str(
+                    getattr(result, "chunk_id", "") or ""
+                )
+                absorb(
+                    result,
+                    fill_only=document_id in seen_documents,
+                )
+                seen_documents.add(document_id)
 
             coverage: Dict[str, float] = {}
             targets: Dict[str, float] = {}
@@ -3105,7 +3264,10 @@ class ContractBackend:
                 targets[column] = self._bulk_coverage_floor(
                     relation, column
                 )
-                if coverage[column] >= targets[column]:
+                if (
+                    budget_boundary
+                    or coverage[column] >= targets[column]
+                ):
                     continue
                 missing = [
                     document
@@ -3281,6 +3443,18 @@ class ContractBackend:
                 "column_coverage": coverage_manifest,
                 "column_coverage_targets": coverage_targets,
                 "errors": error_manifest,
+                "relation_balanced_scheduler": {
+                    "policy": "relation_round_robin_column_batch",
+                    "column_batch_size": self.bulk_column_batch_size,
+                    "column_batches": column_batch_counts,
+                    "attempted_units": attempted_units,
+                    "attempted_documents": {
+                        relation: len(document_ids)
+                        for relation, document_ids
+                        in attempted_documents.items()
+                    },
+                    "budget_boundary_reached": budget_boundary,
+                },
             },
         )
 
