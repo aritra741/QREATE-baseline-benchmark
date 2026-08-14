@@ -38,6 +38,40 @@ Mixtures for these datasets live under `workloads/mixtures/<dataset>/`.
 Single-table mixtures use `filtered` / `multigroup` / `multiagg` strata. Med
 omits `join3` because the schema has only three tables.
 
+## Batch QuWARTS / DocETL runs
+
+Inventory CSV: `workloads/contrast_workloads.csv`.
+
+Pure/baseline rows are `enabled=1`; mixtures are `enabled=0`. Player rows in
+that CSV are skipped unless you pass `--include-player`. Finan and Med source
+documents are read from `source_data/Finance` and `source_data/Healthcare`.
+
+```bash
+# refresh inventory only
+python3 "case study/run_contrast_workloads.py" --write-csv
+
+# dry-run enabled Art/CSPaper/Finan/Legal/Med/SEC packs
+python3 "case study/run_contrast_workloads.py" --dry-run
+
+# one dataset
+python3 "case study/run_contrast_workloads.py" --run --datasets art \
+  --token-budget 2000000 --model qwen2.5:72b
+
+# specific workloads
+python3 "case study/run_contrast_workloads.py" --run \
+  --only art_agg20,med_join20 --token-budget 2000000
+```
+
+```bash
+python3 "case study/run_contrast_docetl.py" --dry-run --only art_agg20
+python3 "case study/run_contrast_docetl.py" --run --datasets art \
+  --model qwen2.5:7b-instruct --threads 4 --force
+```
+
+Outputs land under `case study/workloads/runs/<utc_timestamp>/` (QuWARTS) or
+`.../runs/<utc_timestamp>/docetl` (DocETL), with the same per-workload
+`results/`, `logs/`, and `run_index.csv` layout as the Player runners.
+
 # Player case-study workloads
 
 Five curated 20-query Player workloads for QuWARTS / DocETL-style evaluation.

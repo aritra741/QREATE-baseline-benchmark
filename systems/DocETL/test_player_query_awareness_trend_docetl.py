@@ -77,6 +77,41 @@ REDD_TREND_FILE = PROJECT_ROOT / "systems" / "ReDD" / "test_player_query_awarene
 GROUND_TRUTH_DIR = PROJECT_ROOT / "Data" / "Player"
 ATTRIBUTES_FILE = PROJECT_ROOT / "Query" / DATASET_QUERY / "Player_attributes.json"
 SOURCE_DATA_PLAYER_DIR = PROJECT_ROOT / "source_data" / "Player"
+SOURCE_DATA_DIR = SOURCE_DATA_PLAYER_DIR
+TABLE_SOURCE_SUBDIRS: Dict[str, str] = {}
+
+_SOURCE_DATASET = {
+    "Player": "Player",
+    "Art": "Art",
+    "CSPaper": "CSPaper",
+    "Finan": "Finance",
+    "Legal": "Legal",
+    "Med": "Healthcare",
+    "SEC": "SEC",
+}
+_TABLE_SOURCE_SUBDIRS = {
+    "Player": {"player": "player", "team": "team", "owner": "owner", "city": "city"},
+    "Art": {"art": "wikiart"},
+    "CSPaper": {"cspaper": "txt"},
+    "Finan": {"finance": "finance"},
+    "Legal": {"legal": "legal_case"},
+    "Med": {
+        "disease": "disease_small",
+        "drug": "drug_small",
+        "institution": "institutes_small",
+    },
+    "SEC": {
+        "company": "company",
+        "filing": "filing",
+        "filing_metrics": "filing_metrics",
+        "concept": "concept",
+    },
+}
+_ATTR_TABLE_ALIASES = {
+    "Art": {"Art": "art", "art": "art"},
+    "CSPaper": {"paper": "cspaper", "cspaper": "cspaper"},
+    "Legal": {"legal_case": "legal", "legal": "legal"},
+}
 
 RESULTS_BASE_DIR = RESULTS_DIR / "player_query_awareness_trend_docetl"
 
@@ -149,6 +184,73 @@ IDENTITY_COLUMNS: Dict[str, str] = {
     "team": "team_name",
     "owner": "name",
 }
+
+_PLAYER_TABLE_COLUMNS = {name: set(cols) for name, cols in TABLE_COLUMNS.items()}
+_PLAYER_NUMERIC_FIELDS = set(NUMERIC_FIELDS)
+
+
+def configure_dataset(eval_dataset: str) -> str:
+    """Point source-doc extraction at a UDA-Bench dataset.
+
+    ``eval_dataset`` is the ground-truth / attributes name (Finan, Med).
+    Source documents may live under a different folder (Finance, Healthcare).
+    """
+
+    global SOURCE_DATA_DIR, TABLE_COLUMNS, NUMERIC_FIELDS, TABLE_SOURCE_SUBDIRS
+    global DATASET_QUERY, GROUND_TRUTH_DIR, ATTRIBUTES_FILE
+
+    name = (eval_dataset or "Player").strip() or "Player"
+    DATASET_QUERY = name
+    GROUND_TRUTH_DIR = PROJECT_ROOT / "Data" / name
+    attr_dir = PROJECT_ROOT / "Query" / name
+    matches = sorted(attr_dir.glob("*_attributes.json")) if attr_dir.is_dir() else []
+    ATTRIBUTES_FILE = matches[0] if matches else attr_dir / f"{name}_attributes.json"
+    source_name = _SOURCE_DATASET.get(name, name)
+    SOURCE_DATA_DIR = PROJECT_ROOT / "source_data" / source_name
+    TABLE_SOURCE_SUBDIRS = dict(_TABLE_SOURCE_SUBDIRS.get(name, {}))
+
+    if name == "Player":
+        TABLE_COLUMNS = {key: set(cols) for key, cols in _PLAYER_TABLE_COLUMNS.items()}
+        NUMERIC_FIELDS = set(_PLAYER_NUMERIC_FIELDS)
+        return name
+
+    table_columns: Dict[str, set[str]] = {}
+    numeric_fields: set[str] = set()
+    aliases = _ATTR_TABLE_ALIASES.get(name, {})
+    try:
+        from diagnostics.run_config_grid import load_attributes, load_ground_truth
+
+        attributes = load_attributes(name)
+        for raw_table, columns in attributes.items():
+            sql_table = aliases.get(raw_table, raw_table.lower())
+            table_columns.setdefault(sql_table, set()).update(
+                str(col).strip().lower() for col in columns
+            )
+            for col, spec in columns.items():
+                value_type = str((spec or {}).get("value_type") or "").lower()
+                if value_type in {"int", "integer", "float", "number", "real"}:
+                    numeric_fields.add(str(col).strip().lower())
+        ground_truth = load_ground_truth(name)
+        for table, rows in ground_truth.items():
+            sql_table = aliases.get(table, table.lower())
+            if rows:
+                table_columns.setdefault(sql_table, set()).update(
+                    str(col).strip().lower() for col in rows[0]
+                )
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Could not load schema for %s: %s", name, exc)
+
+    if table_columns:
+        TABLE_COLUMNS = table_columns
+    if numeric_fields:
+        NUMERIC_FIELDS = numeric_fields
+    logger.info(
+        "DocETL dataset=%s source_dir=%s tables=%s",
+        name,
+        SOURCE_DATA_DIR,
+        sorted(TABLE_COLUMNS),
+    )
+    return name
 
 
 @dataclass
@@ -255,15 +357,22 @@ def patch_docetl_for_token_tracking(token_tracker: TokenTracker) -> None:
 
 def _raw_doc_records_for_table(table: str) -> List[Dict[str, Any]]:
     """One JSON object per source document (for DocETL memory datasets)."""
-    table_dir = SOURCE_DATA_PLAYER_DIR / table
+    subdir = TABLE_SOURCE_SUBDIRS.get(table, table)
+    table_dir = SOURCE_DATA_DIR / subdir
     if not table_dir.exists():
         raise FileNotFoundError(f"Missing source table directory: {table_dir}")
+    files = list(table_dir.glob("*.txt"))
+    if not files:
+        raise RuntimeError(f"No source files found for table: {table}")
+
+    def _stem_key(path: Path) -> tuple:
+        stem = path.stem
+        return (0, int(stem)) if stem.isdigit() else (1, stem)
+
     rows: List[Dict[str, Any]] = []
-    for p in sorted(table_dir.glob("*.txt"), key=lambda x: int(x.stem)):
+    for p in sorted(files, key=_stem_key):
         txt = p.read_text(errors="ignore")
         rows.append({"doc_id": p.stem, "text": txt})
-    if not rows:
-        raise RuntimeError(f"No source files found for table: {table}")
     return rows
 
 
@@ -282,7 +391,7 @@ def _coerce_numeric_columns(table: str, df: pd.DataFrame) -> pd.DataFrame:
         "team": ["founded_year", "championship"],
         "city": ["population", "gdp", "area"],
         "owner": ["age", "own_year"],
-    }.get(table, [])
+    }.get(table, [col for col in out.columns if col in NUMERIC_FIELDS])
     for col in numeric_cols:
         if col in out.columns:
             out[col] = (
@@ -895,7 +1004,7 @@ def main() -> int:
         "then benchmark SQL on SQLite."
     )
     logger.info(f"Per-query pipeline artifacts: {run_dir / 'docetl_pipelines'}/<query_id>/")
-    logger.info(f"Source data dir: {SOURCE_DATA_PLAYER_DIR}")
+    logger.info(f"Source data dir: {SOURCE_DATA_DIR}")
     logger.info(f"Model: {DOCETL_MODEL} @ {OLLAMA_BASE_URL}")
     logger.info(f"Identity columns (for eval): {IDENTITY_COLUMNS}")
 

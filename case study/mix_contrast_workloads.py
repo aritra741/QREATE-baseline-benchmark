@@ -325,7 +325,7 @@ def write_inventory() -> Path:
                 if not meta_path.exists():
                     continue
                 meta = _load_json(meta_path)
-                rel = directory.relative_to(CASE)
+                rel = directory.relative_to(CASE.parent)
                 rows.append(
                     {
                         "workload_id": meta.get("workload_id", directory.name),
@@ -391,6 +391,7 @@ def main() -> None:
         mix_dataset(key, args.seed, args.only)
     path = write_inventory()
     print(f"wrote {path}")
+
 
 
 if __name__ == "__main__":

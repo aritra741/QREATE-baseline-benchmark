@@ -181,7 +181,7 @@ def _add_run_metadata(
 ) -> Dict[str, Any]:
     summary.update(
         {
-            "dataset": "Player",
+            "dataset": args.dataset,
             "grid_results": str(grid_path),
             "model": docetl_runner.DOCETL_MODEL,
             "ollama_base_url": docetl_runner.OLLAMA_BASE_URL,
@@ -203,6 +203,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--grid-results", required=True, type=Path)
     parser.add_argument("--out", required=True, type=Path)
+    parser.add_argument(
+        "--dataset",
+        default="Player",
+        help="Evaluation dataset name (Art, CSPaper, Finan, Legal, Med, SEC, Player).",
+    )
     parser.add_argument("--model", default="qwen2.5:7b-instruct")
     parser.add_argument("--ollama-base-url", default="http://localhost:11434")
     parser.add_argument("--threads", type=int, default=4)
@@ -269,8 +274,9 @@ def main() -> int:
         "queries do not have natural-language descriptions."
     )
 
-    ground_truth = load_ground_truth("Player")
-    attributes = load_attributes("Player")
+    docetl_runner.configure_dataset(args.dataset)
+    ground_truth = load_ground_truth(args.dataset)
+    attributes = load_attributes(args.dataset)
     gt_conn = _build_in_memory_db(ground_truth)
 
     token_tracker = docetl_runner.TokenTracker()
