@@ -482,13 +482,15 @@ def main() -> int:
     parser.add_argument("--quwarts-run", type=Path, default=DEFAULT_QUWARTS)
     parser.add_argument("--docetl-run", type=Path, default=DEFAULT_DOCETL)
     parser.add_argument("--old-quwarts-run", type=Path, default=DEFAULT_OLD_QUWARTS)
-    parser.add_argument("--output", type=Path, default=None)
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=ROOT / "case study" / "player_agg20_case_pack.json",
+    )
     args = parser.parse_args()
     old_run = args.old_quwarts_run if args.old_quwarts_run.exists() else None
     payload = pack(args.quwarts_run, args.docetl_run, old_run)
-    output = args.output or (
-        args.quwarts_run / "player_agg20_case_pack.json"
-    )
+    output = args.output
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(payload, indent=2, default=str), encoding="utf-8")
     print(output.resolve())
