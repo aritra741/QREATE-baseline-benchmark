@@ -300,9 +300,11 @@ def isolated_env(
     # TRANSFORMERS_CACHE on the same tree so local_files_only can see models.
     hf_home = env.get("HF_HOME") or str(cache_root / "hf")
     env["HF_HOME"] = hf_home
-    env.setdefault("HUGGINGFACE_HUB_CACHE", str(Path(hf_home) / "hub"))
-    env.setdefault("TRANSFORMERS_CACHE", hf_home)
-    env.setdefault("SENTENCE_TRANSFORMERS_HOME", hf_home)
+    env["HUGGINGFACE_HUB_CACHE"] = str(Path(hf_home) / "hub")
+    # TRANSFORMERS_CACHE is a legacy override. If it points at the HF_HOME
+    # root instead of hub/, local_files_only cannot see the snapshot.
+    env.pop("TRANSFORMERS_CACHE", None)
+    env.pop("SENTENCE_TRANSFORMERS_HOME", None)
     env["XDG_CACHE_HOME"] = str(cache_root / "xdg")
     env["TMPDIR"] = str(cache_root / "tmp")
     env["TMP"] = env["TMPDIR"]

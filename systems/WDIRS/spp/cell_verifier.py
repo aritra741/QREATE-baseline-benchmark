@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 import json
 import logging
 import os
+from pathlib import Path
 from typing import Dict, Mapping, Optional, Sequence, Tuple
 
 from spp.budget_ledger import BudgetExhausted, GlobalBudgetLedger
@@ -24,6 +25,42 @@ _ALLOWED_STATUSES = {
 
 class NLIUnavailableError(RuntimeError):
     """Raised when required NLI verification cannot run."""
+
+
+def _resolve_local_nli_source(model_name: str) -> str:
+    """Return a local snapshot directory when the Hub cache already has it."""
+
+    candidate = Path(model_name).expanduser()
+    if candidate.is_dir() and (candidate / "config.json").is_file():
+        return str(candidate)
+    repo = model_name.replace("/", "--")
+    roots = []
+    hub_cache = os.getenv("HUGGINGFACE_HUB_CACHE", "").strip()
+    hf_home = os.getenv("HF_HOME", "").strip()
+    if hub_cache:
+        roots.append(Path(hub_cache))
+    if hf_home:
+        roots.append(Path(hf_home) / "hub")
+        roots.append(Path(hf_home))
+    roots.append(Path.home() / ".cache" / "huggingface" / "hub")
+    seen = set()
+    for root in roots:
+        resolved = root.expanduser()
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        model_root = resolved / f"models--{repo}"
+        ref = model_root / "refs" / "main"
+        snapshots = model_root / "snapshots"
+        if ref.is_file() and snapshots.is_dir():
+            snap = snapshots / ref.read_text(encoding="utf-8").strip()
+            if snap.is_dir() and (snap / "config.json").is_file():
+                return str(snap)
+        if snapshots.is_dir():
+            for snap in sorted(snapshots.iterdir(), reverse=True):
+                if snap.is_dir() and (snap / "config.json").is_file():
+                    return str(snap)
+    return model_name
 
 
 @dataclass(frozen=True)
@@ -324,9 +361,10 @@ class BudgetAwareCellVerifier:
         try:
             from sentence_transformers import CrossEncoder
 
+            source = _resolve_local_nli_source(self.nli_model)
             self._nli = CrossEncoder(
-                self.nli_model,
-                local_files_only=self.nli_local_only,
+                source,
+                local_files_only=self.nli_local_only and source == self.nli_model,
             )
         except Exception as exc:
             self._nli_unavailable = True
