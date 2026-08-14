@@ -9,6 +9,7 @@ Examples:
   python3 "case study/run_contrast_docetl.py" --dry-run --only art_agg20
   python3 "case study/run_contrast_docetl.py" --run --datasets art \\
       --model qwen2.5:7b-instruct --threads 4 --force
+  python3 "case study/run_contrast_docetl.py" --run --datasets med --retry-failed
   python3 "case study/run_contrast_docetl.py" --run --only med_join20 \\
       --continue-on-error
 """
@@ -74,17 +75,57 @@ def write_grid_shim(sql_manifest: Path, shim_path: Path, workload_id: str) -> Pa
     return shim_path
 
 
-def prepare_output_dir(output_root: Path, workload_id: str, *, force: bool) -> Path:
+def prepare_output_dir(
+    output_root: Path,
+    workload_id: str,
+    *,
+    force: bool,
+    resume: bool,
+) -> Path:
     output_dir = output_root / "results" / workload_id
+    if resume:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        return output_dir
     if output_dir.exists():
         if not force and any(output_dir.iterdir()):
             raise FileExistsError(
-                f"{output_dir} already exists; pass --force to replace"
+                f"{output_dir} already exists; pass --force to replace "
+                "or --retry-failed to rerun only failed queries"
             )
         if force:
             shutil.rmtree(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     return output_dir
+
+
+def latest_docetl_root(workload_ids: set[str]) -> Path | None:
+    runs_dir = WORKLOADS / "runs"
+    if not runs_dir.is_dir():
+        return None
+    stamps = sorted(
+        (path for path in runs_dir.iterdir() if path.is_dir()),
+        key=lambda path: path.name,
+        reverse=True,
+    )
+    for stamp in stamps:
+        docetl = stamp / "docetl"
+        if any((docetl / "results" / workload_id).is_dir() for workload_id in workload_ids):
+            return docetl.resolve()
+    return None
+
+
+def failed_query_ids(output_dir: Path) -> list[str] | None:
+    checkpoint = output_dir / "query_results.json"
+    if not checkpoint.is_file():
+        return None
+    payload = json.loads(checkpoint.read_text(encoding="utf-8"))
+    if not isinstance(payload, list):
+        return None
+    return [
+        str(row["query_id"])
+        for row in payload
+        if isinstance(row, dict) and not row.get("success")
+    ]
 
 
 def run_one(
@@ -115,6 +156,7 @@ def run_one(
     output_dir = output_root / "results" / workload_id
     shim_path = output_dir / "docetl_grid_shim.json"
     eval_output = output_dir / "evaluation.json"
+    retry_failed = bool(args.retry_failed)
     run_command = [
         sys.executable,
         str(RUNNER),
@@ -134,8 +176,9 @@ def run_one(
         str(args.timeout),
         "--retries",
         str(args.retries),
-        "--fresh",
     ]
+    if args.force:
+        run_command.append("--fresh")
     eval_command = [
         sys.executable,
         str(EVALUATOR),
@@ -162,6 +205,35 @@ def run_one(
     if not args.skip_eval:
         print(" ".join(eval_command), flush=True)
 
+    if retry_failed:
+        pending = failed_query_ids(output_dir)
+        record["retry_failed_query_ids"] = pending
+        if pending is None:
+            record.update(
+                {
+                    "status": "skipped_no_checkpoint",
+                    "finished_at_utc": datetime.now(timezone.utc).isoformat(),
+                    "wall_clock_seconds": round(time.monotonic() - started, 3),
+                }
+            )
+            print(f"{workload_id}: no query_results.json; skip", flush=True)
+            return record
+        if not pending:
+            record.update(
+                {
+                    "status": "skipped_all_ok",
+                    "finished_at_utc": datetime.now(timezone.utc).isoformat(),
+                    "wall_clock_seconds": round(time.monotonic() - started, 3),
+                }
+            )
+            print(f"{workload_id}: all queries already succeeded; skip", flush=True)
+            return record
+        print(
+            f"{workload_id}: retrying {len(pending)} failed queries: "
+            + ", ".join(pending),
+            flush=True,
+        )
+
     if args.dry_run:
         record.update(
             {
@@ -173,7 +245,12 @@ def run_one(
         return record
 
     try:
-        prepare_output_dir(output_root, workload_id, force=args.force)
+        prepare_output_dir(
+            output_root,
+            workload_id,
+            force=args.force,
+            resume=retry_failed,
+        )
     except FileExistsError as exc:
         record.update(
             {
@@ -192,7 +269,8 @@ def run_one(
 
     env = os.environ.copy()
     summary_path = output_dir / "summary.json"
-    with log_path.open("w", encoding="utf-8") as log_handle:
+    log_mode = "a" if retry_failed and log_path.exists() else "w"
+    with log_path.open(log_mode, encoding="utf-8") as log_handle:
         log_handle.write("RUN COMMAND:\n" + " ".join(run_command) + "\n\n")
         log_handle.flush()
         completed = subprocess.run(
@@ -325,6 +403,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--include-disabled", action="store_true")
     parser.add_argument("--output-root", type=Path, default=None)
     parser.add_argument("--force", action="store_true")
+    parser.add_argument(
+        "--retry-failed",
+        action="store_true",
+        help=(
+            "Reuse an existing result dir and rerun only queries whose "
+            "checkpoint success=false. Skips packs that already finished. "
+            "Uses --output-root, or the latest workloads/runs/*/docetl."
+        ),
+    )
     parser.add_argument("--continue-on-error", action="store_true")
     parser.add_argument("--skip-eval", action="store_true")
     parser.add_argument("--model", default="qwen2.5:7b-instruct")
@@ -339,6 +426,8 @@ def main() -> int:
     args = parse_args()
     if not args.run and not args.dry_run:
         raise SystemExit("Pass --run and/or --dry-run")
+    if args.force and args.retry_failed:
+        raise SystemExit("Use either --force or --retry-failed, not both")
     if not RUNNER.is_file() or not EVALUATOR.is_file():
         raise SystemExit(f"DocETL scripts missing under {DOCETL}")
 
@@ -363,6 +452,14 @@ def main() -> int:
         output_root = args.output_root.expanduser()
         if not output_root.is_absolute():
             output_root = (ROOT / output_root).resolve()
+    elif args.retry_failed:
+        found = latest_docetl_root({row["workload_id"] for row in rows})
+        if found is None:
+            raise SystemExit(
+                "No prior DocETL run found under case study/workloads/runs. "
+                "Pass --output-root pointing at the previous .../docetl directory."
+            )
+        output_root = found
     else:
         stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
         output_root = (WORKLOADS / "runs" / stamp / "docetl").resolve()

@@ -66,6 +66,7 @@ python3 "case study/run_contrast_workloads.py" --run \
 python3 "case study/run_contrast_docetl.py" --dry-run --only art_agg20
 python3 "case study/run_contrast_docetl.py" --run --datasets art \
   --model qwen2.5:7b-instruct --threads 4 --force
+python3 "case study/run_contrast_docetl.py" --run --datasets med --retry-failed
 ```
 
 Outputs land under `case study/workloads/runs/<utc_timestamp>/` (QuWARTS) or
