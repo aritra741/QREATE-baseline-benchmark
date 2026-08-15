@@ -2178,7 +2178,9 @@ def test_bulk_scheduler_preserves_every_relation_at_budget_boundary(
             results = []
             for text, document_id in zip(texts, document_ids):
                 with lock:
-                    calls.append((relation, document_id))
+                    calls.append(
+                        (relation, document_id, tuple(schema))
+                    )
                     allowed = successful_documents < 5
                     if allowed:
                         successful_documents += 1
@@ -2312,33 +2314,165 @@ def test_bulk_scheduler_preserves_every_relation_at_budget_boundary(
 
     shared = backend._bulk_extract_shared(GlobalBudgetLedger(10_000))
 
-    assert [relation for relation, _document_id in calls[:3]] == list(
-        relations
-    )
+    assert [
+        relation for relation, _document_id, _columns in calls[:3]
+    ] == list(relations)
     assert {
-        relation for relation, _document_id in calls[3:6]
+        relation for relation, _document_id, _columns in calls[3:6]
     } == set(relations)
-    assert {relation: len(shared.raw_tables[relation]) for relation in relations} == {
-        "alpha": 1,
-        "beta": 1,
-        "gamma": 1,
+    assert all(columns == ("name",) for _, _, columns in calls[:6])
+    row_counts = {
+        relation: len(shared.raw_tables[relation])
+        for relation in relations
     }
+    assert sum(row_counts.values()) == 5
+    assert all(count >= 1 for count in row_counts.values())
     assert all(
-        "detail" in shared.raw_tables[relation][0]
+        "name" in shared.raw_tables[relation][0]
         for relation in relations
     )
-    assert sum(
-        "value" in shared.raw_tables[relation][0]
-        for relation in relations
-    ) == 2
     scheduler = shared.metadata["relation_balanced_scheduler"]
     assert scheduler["budget_boundary_reached"] is True
-    assert scheduler["policy"] == "relation_round_robin_column_batch"
+    assert scheduler["policy"] == (
+        "relation_round_robin_role_priority_batch_major"
+    )
+    assert all(
+        batches[0] == ("name",)
+        for batches in scheduler["column_batch_order"].values()
+    )
     assert scheduler["attempted_units"] == {
         "alpha": 2,
         "beta": 2,
         "gamma": 2,
     }
+    assert scheduler["attempted_documents"] == {
+        "alpha": 2,
+        "beta": 2,
+        "gamma": 2,
+    }
+
+
+def test_bulk_scheduler_windows_long_documents_one_at_a_time(
+    tmp_path,
+    monkeypatch,
+):
+    calls = []
+
+    class WindowExtractor:
+        def extract_batch(
+            self,
+            texts,
+            document_ids,
+            _relation,
+            _schema,
+            *_args,
+            **_kwargs,
+        ):
+            calls.append((tuple(texts), tuple(document_ids)))
+            results = []
+            for text, document_id in zip(texts, document_ids):
+                record = {}
+                if "Alpha" in text:
+                    record["name"] = "Alpha"
+                if "OMEGA" in text:
+                    record["detail"] = "OMEGA detail"
+                results.append(
+                    type(
+                        "Result",
+                        (),
+                        {
+                            "chunk_id": document_id,
+                            "records": (record,),
+                            "spans": ({},),
+                            "error": None,
+                        },
+                    )()
+                )
+            return results
+
+    document = ContractDocument(
+        "record/1.txt",
+        "\nAlpha\n\n" + ("middle text " * 8) + "\nOMEGA detail",
+    )
+    backend = ContractBackend(
+        (document,),
+        type("Client", (), {"generate": lambda self, *_args, **_kwargs: ""})(),
+        scratch_dir=tmp_path,
+        use_bulk_extraction=True,
+        bulk_extractor_factory=lambda _client, _cache: WindowExtractor(),
+        verify_extracted_cells=False,
+    )
+    backend.preprocessing_policy = PreprocessingPolicy(
+        "chunked",
+        chunk_size=32,
+        chunk_overlap=8,
+    )
+    backend.contract = WorkloadContract(
+        entities=(EntityContract("record"),),
+        attributes=(
+            AttributeContract("record", "name"),
+            AttributeContract("record", "detail"),
+        ),
+        relationships=(),
+    )
+    backend.relation_graph = WorkloadRelationGraph(
+        relations=(
+            RelationSpec(
+                "record",
+                ("name", "detail"),
+                primary_key="name",
+            ),
+        ),
+        edges=(),
+        covered_query_ids=("q0",),
+    )
+    monkeypatch.setattr(
+        backend,
+        "_bulk_documents_for_relation",
+        lambda _relation: (document,),
+    )
+
+    shared = backend._bulk_extract_shared(GlobalBudgetLedger(100_000))
+
+    assert len(calls) > 1
+    assert all(len(texts) == len(document_ids) == 1 for texts, document_ids in calls)
+    assert all(len(texts[0]) <= 32 for texts, _document_ids in calls)
+    assert len({document_ids[0] for _texts, document_ids in calls}) == len(calls)
+    assert shared.raw_tables["record"][0]["name"] == "Alpha"
+    assert shared.raw_tables["record"][0]["detail"] == "OMEGA detail"
+    scheduler = shared.metadata["relation_balanced_scheduler"]
+    assert scheduler["single_document_windows"] is True
+    assert scheduler["preprocessing_policy"]["strategy"] == "chunked"
+    assert scheduler["window_counts"]["record"] == len(calls)
+    assert scheduler["attempted_documents"]["record"] == 1
+
+
+def test_contract_backend_selects_context_safe_preprocessing(monkeypatch):
+    backend = ContractBackend(
+        (ContractDocument("record/1.txt", "short"),),
+        object(),
+    )
+
+    monkeypatch.setenv("SPP_CONTRACT_CONTEXT_CHARS", "3600")
+    assert backend._select_preprocessing_policy(
+        (1200,)
+    ) == PreprocessingPolicy("whole_document")
+    assert backend._select_preprocessing_policy(
+        (12_000,)
+    ) == PreprocessingPolicy(
+        "chunked",
+        chunk_size=2000,
+        chunk_overlap=200,
+    )
+
+    monkeypatch.setenv("SPP_CONTRACT_CONTEXT_CHARS", "5000")
+    assert backend._select_preprocessing_policy(
+        (12_000,)
+    ) == PreprocessingPolicy(
+        "chunked",
+        chunk_size=4000,
+        chunk_overlap=400,
+    )
 
 
 def test_attribute_canonicalization_uses_each_documents_identity(tmp_path):
@@ -3606,6 +3740,73 @@ def test_bulk_count_type_comes_from_workload_role_not_column_name():
     assert backend._bulk_semantic_type(relation, "period") == "QUANTITY"
     assert backend._bulk_coverage_floor(relation, "metric") == 0.10
     assert backend._bulk_coverage_floor(relation, "period") == 0.75
+
+
+def test_bulk_column_priority_frontloads_query_critical_roles():
+    backend = ContractBackend(
+        (ContractDocument("record/1.txt", "Example"),),
+        object(),
+    )
+    backend.contract = WorkloadContract(
+        entities=(EntityContract("record"),),
+        attributes=(
+            AttributeContract(
+                "record",
+                "join_key",
+                contexts=(("q0", ("join:left",)),),
+            ),
+            AttributeContract(
+                "record",
+                "group_key",
+                contexts=(("q0", ("group_by",)),),
+            ),
+            AttributeContract(
+                "record",
+                "filter_value",
+                contexts=(("q0", ("filter:ilike",)),),
+            ),
+            AttributeContract(
+                "record",
+                "measure",
+                contexts=(("q0", ("aggregate:sum",)),),
+            ),
+            AttributeContract(
+                "record",
+                "display",
+                contexts=(("q0", ("projection",)),),
+            ),
+        ),
+        relationships=(),
+    )
+    relation = RelationSpec(
+        "record",
+        (
+            "unused",
+            "display",
+            "measure",
+            "filter_value",
+            "group_key",
+            "join_key",
+        ),
+    )
+    ordered = sorted(
+        relation.attributes,
+        key=lambda column: backend._bulk_column_priority(
+            relation, column
+        ),
+    )
+    assert ordered == [
+        "join_key",
+        "group_key",
+        "filter_value",
+        "measure",
+        "display",
+        "unused",
+    ]
+    # Sparse predicate and measure fields receive early attempts without
+    # requiring the source to contain a nonblank value in most documents.
+    assert backend._bulk_coverage_floor(relation, "filter_value") == 0.10
+    assert backend._bulk_coverage_floor(relation, "measure") == 0.10
 
 
 def test_post_merge_scalar_gate_preserves_raw_and_filters_projection():

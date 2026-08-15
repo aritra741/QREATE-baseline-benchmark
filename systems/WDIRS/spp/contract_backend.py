@@ -60,7 +60,10 @@ from spp.query_quality import (
     execute_readonly,
     assess_workload_quality,
 )
-from spp.schema_design import generate_schema_designs
+from spp.schema_design import (
+    generate_preprocessing_policies,
+    generate_schema_designs,
+)
 from spp.schema_materializer import (
     SQLITE_INTEGER_MAX,
     SQLITE_INTEGER_MIN,
@@ -88,8 +91,8 @@ from spp.workload_contract import (
 from token_counter import count_tokens
 
 
-BACKEND_VERSION = 36
-HYBRID_BULK_VERSION = 10
+BACKEND_VERSION = 37
+HYBRID_BULK_VERSION = 11
 
 logger = logging.getLogger(__name__)
 
@@ -3025,6 +3028,65 @@ class ContractBackend:
             if document.document_id in document_ids
         )
 
+    def _bulk_document_windows(
+        self,
+        documents: Sequence[ContractDocument],
+    ) -> Tuple[ContractDocument, ...]:
+        """Apply the selected preprocessing policy without mixing documents."""
+
+        windows: List[ContractDocument] = []
+        policy = self.preprocessing_policy
+        for document in documents:
+            text = document.text
+            if policy.strategy == "whole_document":
+                windows.append(
+                    ContractDocument(
+                        document.document_id,
+                        text,
+                        {
+                            **dict(document.metadata),
+                            "source_document_id": document.document_id,
+                            "window_index": 0,
+                            "window_start": 0,
+                            "window_end": len(text),
+                        },
+                    )
+                )
+                continue
+            assert policy.chunk_size is not None
+            step = policy.chunk_size - policy.chunk_overlap
+            for index, start in enumerate(
+                range(0, max(len(text), 1), step)
+            ):
+                end = min(start + policy.chunk_size, len(text))
+                window_id = (
+                    f"{document.document_id}::{policy.policy_id}:"
+                    f"{index}:{start}:{end}"
+                )
+                windows.append(
+                    ContractDocument(
+                        window_id,
+                        text[start:end],
+                        {
+                            **dict(document.metadata),
+                            "source_document_id": document.document_id,
+                            "window_index": index,
+                            "window_start": start,
+                            "window_end": end,
+                        },
+                    )
+                )
+        return tuple(
+            sorted(
+                windows,
+                key=lambda item: (
+                    int(item.metadata.get("window_index", 0)),
+                    str(item.metadata.get("source_document_id", "")),
+                    item.document_id,
+                ),
+            )
+        )
+
     def _bulk_extractor(
         self,
         ledger: GlobalBudgetLedger,
@@ -3056,6 +3118,31 @@ class ContractBackend:
         floor = self.bulk_min_column_coverage
         if relation.primary_key == column:
             floor = max(floor, 0.95)
+        roles = self._bulk_column_roles(relation, column)
+        if "group_by" in roles or any(
+            role.startswith("join:") for role in roles
+        ):
+            floor = max(floor, 0.75)
+        elif "projection" in roles or "binding" in roles:
+            floor = max(floor, 0.50)
+        elif any(
+            role.startswith(("aggregate:", "having:", "filter:"))
+            for role in roles
+        ):
+            # A nonblank target above this level is unsafe for sparse source
+            # fields. Critical columns instead receive early extraction
+            # attempts through _bulk_column_priority.
+            floor = max(floor, 0.10)
+        return min(1.0, max(0.0, floor))
+
+    def _bulk_column_roles(
+        self,
+        relation: RelationSpec,
+        column: str,
+    ) -> set[str]:
+        """Return workload roles attached to one physical relation column."""
+
+        roles: set[str] = set()
         attributes = (
             getattr(self.contract, "attributes", ())
             if self.contract is not None
@@ -3071,25 +3158,58 @@ class ContractBackend:
                 }
             ):
                 continue
-            roles = {
+            roles.update(
                 role
                 for _query_id, query_roles in getattr(
                     attribute, "contexts", ()
                 )
                 for role in query_roles
+            )
+        return roles
+
+    def _bulk_column_priority(
+        self,
+        relation: RelationSpec,
+        column: str,
+    ) -> Tuple[int, int, str]:
+        """Order extraction by workload impact before optional enrichment."""
+
+        roles = self._bulk_column_roles(relation, column)
+        if any(role.startswith("join:") for role in roles):
+            priority = 0
+        elif "group_by" in roles:
+            priority = 1
+        elif any(role.startswith("filter:") for role in roles):
+            priority = 2
+        elif any(
+            role.startswith(("aggregate:", "having:")) for role in roles
+        ):
+            priority = 3
+        elif relation.primary_key == column:
+            priority = 4
+        elif "projection" in roles or "binding" in roles:
+            priority = 5
+        else:
+            priority = 6
+        # Columns used by more queries go first within the same role.
+        query_count = sum(
+            1
+            for attribute in (
+                getattr(self.contract, "attributes", ())
+                if self.contract is not None
+                else ()
+            )
+            if _symbol_key(attribute.name) == _symbol_key(column)
+            and _symbol_key(relation.name)
+            in {
+                _symbol_key(owner)
+                for owner in getattr(attribute, "owners", ())
             }
-            if "group_by" in roles or any(
-                role.startswith("join:") for role in roles
-            ):
-                floor = max(floor, 0.75)
-            elif "projection" in roles or "binding" in roles:
-                floor = max(floor, 0.50)
-            elif any(
-                role.startswith(("aggregate:", "filter:"))
-                for role in roles
-            ):
-                floor = max(floor, 0.10)
-        return min(1.0, max(0.0, floor))
+            for _query_id, _query_roles in getattr(
+                attribute, "contexts", ()
+            )
+        )
+        return priority, -query_count, column
 
     def _bulk_extract_shared(
         self,
@@ -3126,6 +3246,8 @@ class ContractBackend:
         # Schedule at that same granularity: every relation receives one unit
         # before any relation receives another, so a large relation cannot
         # consume the affordable prefix of a shared run.
+        from config import MAX_PARALLEL_REQUESTS
+
         prefetched: Dict[str, List[object]] = {
             relation.name: [] for relation, _documents, _schema in relation_inputs
         }
@@ -3134,6 +3256,9 @@ class ContractBackend:
             List[Tuple[ContractDocument, Mapping[str, str]]],
         ] = {}
         column_batch_counts: Dict[str, int] = {}
+        column_batch_order: Dict[str, List[Tuple[str, ...]]] = {}
+        window_origins: Dict[str, Dict[str, str]] = {}
+        window_counts: Dict[str, int] = {}
         attempted_units: Dict[str, int] = {
             relation.name: 0
             for relation, _documents, _schema in relation_inputs
@@ -3143,7 +3268,12 @@ class ContractBackend:
             for relation, _documents, _schema in relation_inputs
         }
         for relation, documents, schema in relation_inputs:
-            items = list(schema.items())
+            items = sorted(
+                schema.items(),
+                key=lambda item: self._bulk_column_priority(
+                    relation, item[0]
+                ),
+            )
             column_batches = [
                 dict(
                     items[
@@ -3155,13 +3285,24 @@ class ContractBackend:
                 )
             ]
             column_batch_counts[relation.name] = len(column_batches)
+            column_batch_order[relation.name] = [
+                tuple(column_batch)
+                for column_batch in column_batches
+            ]
+            ordered_documents = self._bulk_document_windows(documents)
+            window_origins[relation.name] = {
+                document.document_id: str(
+                    document.metadata.get(
+                        "source_document_id", document.document_id
+                    )
+                )
+                for document in ordered_documents
+            }
+            window_counts[relation.name] = len(ordered_documents)
             work_queues[relation.name] = [
                 (document, column_batch)
-                for document in sorted(
-                    documents,
-                    key=lambda item: item.document_id,
-                )
                 for column_batch in column_batches
+                for document in ordered_documents
             ]
         queue_positions = {
             relation.name: 0
@@ -3197,7 +3338,12 @@ class ContractBackend:
             nonlocal budget_boundary
             prefetched[relation.name].extend(results)
             attempted_units[relation.name] += 1
-            attempted_documents[relation.name].add(document.document_id)
+            attempted_documents[relation.name].add(
+                window_origins.get(relation.name, {}).get(
+                    document.document_id,
+                    document.document_id,
+                )
+            )
             for result in results:
                 error = str(getattr(result, "error", "") or "").lower()
                 if "cannot reserve" in error or "budget boundary" in error:
@@ -3221,8 +3367,6 @@ class ContractBackend:
         # Once only one relation remains, fill a worker wave from that relation
         # so generous-budget runs retain parallel extraction throughput.
         from concurrent.futures import ThreadPoolExecutor
-        from config import MAX_PARALLEL_REQUESTS
-
         relation_by_name = {
             relation.name: relation
             for relation, _documents, _schema in relation_inputs
@@ -3243,13 +3387,32 @@ class ContractBackend:
                 if len(active_names) == 1:
                     name = active_names[0]
                     start = queue_positions[name]
-                    end = min(
-                        len(work_queues[name]),
+                    queue = work_queues[name]
+                    first_batch = queue[start][1]
+                    first_window_index = int(
+                        queue[start][0].metadata.get(
+                            "window_index", 0
+                        )
+                    )
+                    end = start
+                    wave_limit = min(
+                        len(queue),
                         start + max(1, MAX_PARALLEL_REQUESTS),
                     )
+                    while (
+                        end < wave_limit
+                        and queue[end][1] is first_batch
+                        and int(
+                            queue[end][0].metadata.get(
+                                "window_index", 0
+                            )
+                        )
+                        == first_window_index
+                    ):
+                        end += 1
                     selected.extend(
                         (name, unit)
-                        for unit in work_queues[name][start:end]
+                        for unit in queue[start:end]
                     )
                     queue_positions[name] = end
                 else:
@@ -3291,15 +3454,25 @@ class ContractBackend:
             }
             errors: List[str] = []
 
-            def absorb(result: object, *, fill_only: bool) -> None:
-                document_id = str(
+            def source_document_id(result: object) -> str:
+                window_id = str(
                     getattr(result, "chunk_id", "") or ""
                 )
+                return window_origins.get(relation.name, {}).get(
+                    window_id,
+                    window_id,
+                )
+
+            def absorb(result: object, *, fill_only: bool) -> None:
+                window_id = str(
+                    getattr(result, "chunk_id", "") or ""
+                )
+                document_id = source_document_id(result)
                 if document_id not in records_by_document:
                     return
                 error = getattr(result, "error", None)
                 if error:
-                    errors.append(f"{document_id}: {error}")
+                    errors.append(f"{window_id}: {error}")
                 incoming = [
                     dict(record)
                     for record in (getattr(result, "records", ()) or ())
@@ -3336,9 +3509,7 @@ class ContractBackend:
 
             seen_documents: set[str] = set()
             for result in results:
-                document_id = str(
-                    getattr(result, "chunk_id", "") or ""
-                )
+                document_id = source_document_id(result)
                 absorb(
                     result,
                     fill_only=document_id in seen_documents,
@@ -3372,18 +3543,19 @@ class ContractBackend:
                 ]
                 if not missing:
                     continue
-                repair_results = extractor.extract_batch(
-                    [document.text for document in missing],
-                    [document.document_id for document in missing],
-                    relation.name,
-                    {column: schema[column]},
-                    {column},
-                    normalization_hints={},
-                    entity_col=None,
-                    col_batch_size_override=1,
-                )
-                for result in repair_results:
-                    absorb(result, fill_only=True)
+                for window in self._bulk_document_windows(missing):
+                    repair_results = extractor.extract_batch(
+                        [window.text],
+                        [window.document_id],
+                        relation.name,
+                        {column: schema[column]},
+                        {column},
+                        normalization_hints={},
+                        entity_col=None,
+                        col_batch_size_override=1,
+                    )
+                    for result in repair_results:
+                        absorb(result, fill_only=True)
                 coverage[column] = sum(
                     any(
                         record.get(column) not in (None, "")
@@ -3545,9 +3717,17 @@ class ContractBackend:
                 "column_coverage_targets": coverage_targets,
                 "errors": error_manifest,
                 "relation_balanced_scheduler": {
-                    "policy": "relation_round_robin_column_batch",
+                    "policy": (
+                        "relation_round_robin_role_priority_batch_major"
+                    ),
+                    "single_document_windows": True,
+                    "preprocessing_policy": asdict(
+                        self.preprocessing_policy
+                    ),
+                    "window_counts": window_counts,
                     "column_batch_size": self.bulk_column_batch_size,
                     "column_batches": column_batch_counts,
+                    "column_batch_order": column_batch_order,
                     "attempted_units": attempted_units,
                     "attempted_documents": {
                         relation: len(document_ids)
@@ -3765,6 +3945,54 @@ class ContractBackend:
             or grouped_categorical
         )
 
+    def _select_preprocessing_policy(
+        self,
+        observed_document_lengths: Optional[Sequence[int]] = None,
+    ) -> PreprocessingPolicy:
+        """Choose the largest context-safe policy from the formal policy set."""
+
+        lengths = tuple(
+            int(length)
+            for length in (
+                observed_document_lengths
+                if observed_document_lengths is not None
+                else (len(document.text) for document in self.documents)
+            )
+            if int(length) >= 0
+        )
+        policies = generate_preprocessing_policies(
+            observed_document_lengths=lengths,
+            exhaustive=False,
+        )
+        context_limit = max(
+            1200,
+            int(os.getenv("SPP_CONTRACT_CONTEXT_CHARS", "3600")),
+        )
+        longest = max(lengths, default=0)
+        if longest <= context_limit:
+            return next(
+                policy
+                for policy in policies
+                if policy.strategy == "whole_document"
+            )
+        safe_chunked = [
+            policy
+            for policy in policies
+            if policy.strategy == "chunked"
+            and policy.chunk_size is not None
+            and policy.chunk_size <= context_limit
+        ]
+        if not safe_chunked:
+            raise ContractIntegrationError(
+                "no chunked preprocessing policy can fit long documents"
+            )
+        # Prefer the largest context-safe window to minimize repeated
+        # prompt overhead while preserving single-document extraction.
+        return max(
+            safe_chunked,
+            key=lambda policy: int(policy.chunk_size or 0),
+        )
+
     def generate_configs(
         self,
         intent: WorkloadIntent,
@@ -3772,12 +4000,8 @@ class ContractBackend:
     ) -> Sequence[SynthesisConfig]:
         """Generate a minimal raw/semantic candidate set for the workload."""
         self._ensure_contract(intent)
-        _ = observed_document_lengths
-        # ContractExtractor currently validates absolute source offsets over
-        # whole documents. Advertising a chunked policy would make cache and
-        # reproducibility metadata false even if values happened to match.
-        self.preprocessing_policy = PreprocessingPolicy(
-            strategy="whole_document"
+        self.preprocessing_policy = self._select_preprocessing_policy(
+            observed_document_lengths
         )
         schema = self._validated_schema(intent)
         raw = SynthesisConfig(
@@ -6088,6 +6312,10 @@ class ContractBackend:
             "bulk_extraction": {
                 "version": HYBRID_BULK_VERSION,
                 "column_batch_size": self.bulk_column_batch_size,
+                "single_document_windows": True,
+                "preprocessing_policy": asdict(
+                    self.preprocessing_policy
+                ),
                 "minimum_column_coverage": self.bulk_min_column_coverage,
                 "raw_layer_immutable": True,
                 "physical_scalar_gate": "declared_types_only",
