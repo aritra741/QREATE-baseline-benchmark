@@ -11,10 +11,10 @@ still uses the CSV dataset name (Finan, Med).
 Examples:
   python3 "case study/run_contrast_workloads.py" --dry-run
   python3 "case study/run_contrast_workloads.py" --run --datasets art,legal \\
-      --token-budget 2000000 --model qwen2.5:72b
+      --token-budget 2000000 --model qwen2.5:7b-instruct
   python3 "case study/run_contrast_workloads.py" --run --only art_agg20,med_join20
   python3 "case study/run_contrast_workloads.py" --run --datasets med \\
-      --budget-from-docetl --budget-fraction 0.25 --model qwen2.5:72b
+      --budget-from-docetl --budget-fraction 0.25 --model qwen2.5:7b-instruct
 """
 
 from __future__ import annotations
@@ -476,7 +476,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--quality-floor", type=float, default=0.0)
     parser.add_argument("--beta", type=float, default=1.0)
-    parser.add_argument("--model")
+    parser.add_argument("--model", default="qwen2.5:7b-instruct")
     parser.add_argument("--base-url")
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--controlled-prefix", action="store_true")

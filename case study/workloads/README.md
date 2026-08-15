@@ -55,7 +55,7 @@ python3 "case study/run_contrast_workloads.py" --dry-run
 
 # one dataset
 python3 "case study/run_contrast_workloads.py" --run --datasets art \
-  --token-budget 2000000 --model qwen2.5:72b
+  --token-budget 2000000 --model qwen2.5:7b-instruct
 
 # specific workloads
 python3 "case study/run_contrast_workloads.py" --run \
@@ -63,7 +63,7 @@ python3 "case study/run_contrast_workloads.py" --run \
 
 # 25% of each pack's DocETL tokens (reads latest .../docetl or --docetl-root)
 python3 "case study/run_contrast_workloads.py" --run --datasets med \
-  --budget-from-docetl --budget-fraction 0.25 --model qwen2.5:72b
+  --budget-from-docetl --budget-fraction 0.25 --model qwen2.5:7b-instruct
 ```
 
 ```bash
