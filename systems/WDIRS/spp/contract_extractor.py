@@ -36,7 +36,7 @@ from token_counter import count_tokens
 
 _PROMPT_VERSION = 12
 _ENTITY_ARTIFACT_VERSION = 3
-_CONTEXT_ROUTING_VERSION = 5
+_CONTEXT_ROUTING_VERSION = 6
 CORPUS_REFERENCE_YEAR = 2026
 _CONTEXT_STOPWORDS = frozenset(
     {
@@ -548,6 +548,220 @@ class ContractExtractor:
             for unit in self.units
             if unit.document_id in routed_ids
         )
+
+    def set_document_routes(
+        self,
+        routes: Mapping[str, Sequence[str]],
+    ) -> None:
+        """Install precomputed, content-only routes shared with bulk extraction."""
+
+        known_documents = {
+            document.document_id for document in self.documents
+        }
+        self._entity_document_ids = {
+            entity_name: tuple(
+                document_id
+                for document_id in dict.fromkeys(
+                    str(value) for value in document_ids
+                )
+                if document_id in known_documents
+            )
+            for entity_name, document_ids in routes.items()
+        }
+
+    @staticmethod
+    def _routing_contract_payload(contract: WorkloadContract) -> List[dict]:
+        return [
+            {
+                "relation": entity.name,
+                "relation_aliases": list(entity.alternatives),
+                "identity_fields": list(entity.identity_attributes),
+                "query_hints": dict(entity.query_hints),
+                "required_fields": [
+                    {
+                        "field": attribute.name,
+                        "aliases": list(attribute.alternatives),
+                        "semantic_types": list(attribute.semantic_types),
+                        "query_hints": dict(attribute.query_hints),
+                        "query_roles": {
+                            query_id: list(roles)
+                            for query_id, roles in attribute.contexts
+                        },
+                    }
+                    for attribute in contract.attributes_for(entity.name)
+                ],
+                "related_relations": sorted(
+                    {
+                        relationship.right_entity
+                        for relationship in contract.relationships
+                        if relationship.left_entity == entity.name
+                    }
+                    | {
+                        relationship.left_entity
+                        for relationship in contract.relationships
+                        if relationship.right_entity == entity.name
+                    }
+                ),
+            }
+            for entity in contract.entities
+        ]
+
+    def _semantic_route_one(
+        self,
+        document: SourceDocument,
+        contract: WorkloadContract,
+        fallback: Mapping[str, Sequence[str]],
+    ) -> Tuple[str, ...]:
+        terms = [
+            symbol
+            for entity in contract.entities
+            for symbol in entity.symbols
+        ]
+        terms.extend(
+            symbol
+            for attribute in contract.attributes
+            for symbol in attribute.symbols
+        )
+        terms.extend(
+            text
+            for entity in contract.entities
+            for _query_id, text in entity.query_hints
+        )
+        terms.extend(
+            text
+            for attribute in contract.attributes
+            for _query_id, text in attribute.query_hints
+        )
+        excerpt = self._focused_unit(
+            _document_unit(document),
+            terms=terms,
+        ).text
+        payload = self._routing_contract_payload(contract)
+        prompt = (
+            "Route this source document using only its text and the complete "
+            "workload contract. Return only a JSON array of objects, each with "
+            'exactly one key named "relation". Include a relation only when the '
+            "document states relation-specific fields about at least one "
+            "instance that can populate an analytical row. A related entity "
+            "mention alone is not enough. Include multiple relations when the "
+            "document independently supports rows for each; do not resolve "
+            "ambiguity by choosing whichever entity word occurs first. Copy "
+            "relation names exactly from relation_contracts. Return [] only "
+            "when no relation has grounded fields.\n\n"
+            f"Relation contracts:\n{json.dumps(payload, sort_keys=True)}\n\n"
+            f"Source text excerpts:\n{excerpt}"
+        )
+        underlying = getattr(self.llm_client, "client", self.llm_client)
+        model = getattr(underlying, "model", type(underlying).__name__)
+        seed = getattr(underlying, "seed", None)
+        key = hashlib.sha256(
+            (
+                f"semantic-document-routing-v{_CONTEXT_ROUTING_VERSION}\0"
+                f"{model}\0{seed}\0{contract.fingerprint}\0{prompt}"
+            ).encode("utf-8")
+        ).hexdigest()
+        cached = self.evidence_store.get_shared_artifact(key)
+        relation_lookup = {
+            _symbol_key(entity.name): entity.name for entity in contract.entities
+        }
+        rows: Sequence[Mapping[str, object]]
+        valid_response = False
+        if isinstance(cached, list):
+            rows = [
+                row for row in cached if isinstance(row, Mapping)
+            ]
+            valid_response = True
+        else:
+            ledger = getattr(self.llm_client, "ledger", None)
+            before = int(getattr(ledger, "actual_spent", 0))
+            response = self.llm_client.generate(
+                prompt,
+                max_tokens=max(96, 32 * len(contract.entities)),
+                temperature=0.0,
+                system_prompt=(
+                    "You are a source-grounded workload router. Use no file "
+                    "names, paths, metadata, or outside knowledge. Output JSON "
+                    "only."
+                ),
+                operation="contract_semantic_document_routing",
+                shared_key=key,
+            )
+            try:
+                rows = self._parse_response(response)
+                valid_response = True
+            except ValueError:
+                rows = ()
+            if valid_response:
+                self.evidence_store.put_shared_artifact(
+                    key,
+                    stage="contract_semantic_document_routing",
+                    payload=[dict(row) for row in rows],
+                    producer_tokens=max(
+                        0,
+                        int(getattr(ledger, "actual_spent", before)) - before,
+                    ),
+                )
+        selected = tuple(
+            dict.fromkeys(
+                relation_lookup[relation_key]
+                for row in rows
+                if set(row) == {"relation"}
+                and (
+                    relation_key := _symbol_key(row.get("relation", ""))
+                )
+                in relation_lookup
+            )
+        )
+        if selected or (valid_response and not rows):
+            return selected
+        return tuple(
+            entity.name
+            for entity in contract.entities
+            if document.document_id in fallback.get(entity.name, ())
+        )
+
+    def infer_document_routes(
+        self,
+        contract: WorkloadContract,
+    ) -> Dict[str, Tuple[str, ...]]:
+        """Infer multi-label routes from grounded contract-field support."""
+
+        fallback = route_documents_by_content(self.documents, contract)
+
+        def route(document: SourceDocument) -> Tuple[str, ...]:
+            try:
+                return self._semantic_route_one(
+                    document, contract, fallback
+                )
+            except (BudgetExhausted, RuntimeError) as exc:
+                logger.warning(
+                    "Semantic routing fell back for document %s: %s",
+                    document.document_id,
+                    exc,
+                )
+                return tuple(
+                    entity.name
+                    for entity in contract.entities
+                    if document.document_id in fallback.get(entity.name, ())
+                )
+
+        with ThreadPoolExecutor(
+            max_workers=min(self.max_workers, len(self.documents)),
+            thread_name_prefix="contract-route",
+        ) as executor:
+            selections = tuple(executor.map(route, self.documents))
+        routes: Dict[str, List[str]] = {
+            entity.name: [] for entity in contract.entities
+        }
+        for document, selected in zip(self.documents, selections):
+            for entity_name in selected:
+                routes[entity_name].append(document.document_id)
+        inferred = {
+            entity_name: tuple(document_ids)
+            for entity_name, document_ids in routes.items()
+        }
+        self.set_document_routes(inferred)
+        return inferred
 
     @staticmethod
     def _search_phrases(values: Iterable[object]) -> Tuple[str, ...]:
@@ -2349,13 +2563,40 @@ class ContractExtractor:
         def alias_compatible(source: str, target: str) -> bool:
             """Require lexical containment or an initialism, not shared context."""
 
-            source_tokens = tuple(_symbol_key(source).split("_"))
-            target_tokens = tuple(_symbol_key(target).split("_"))
+            source_tokens = tuple(
+                normalized
+                for token in _symbol_key(source).split("_")
+                if (
+                    normalized := _routing_token(token)
+                )
+                and len(normalized) >= 2
+            )
+            target_tokens = tuple(
+                normalized
+                for token in _symbol_key(target).split("_")
+                if (
+                    normalized := _routing_token(token)
+                )
+                and len(normalized) >= 2
+            )
             source_set = set(source_tokens)
             target_set = set(target_tokens)
             if not source_set or not target_set:
                 return False
-            if source_set <= target_set or target_set <= source_set:
+            distinctive = (
+                source_set & target_set
+            ) - {
+                "condition",
+                "disease",
+                "disorder",
+                "institution",
+                "medicine",
+                "syndrome",
+                "treatment",
+            }
+            if distinctive and (
+                source_set <= target_set or target_set <= source_set
+            ):
                 return True
             source_only = source_set - target_set
             target_only = target_set - source_set
@@ -2387,13 +2628,37 @@ class ContractExtractor:
         def exact_overlap(
             values: Mapping[Node, set[str]],
         ) -> Dict[Tuple[Node, Node], int]:
+            def executable_match(left: str, right: str) -> bool:
+                left_key = surface_key(left)
+                right_key = surface_key(right)
+                if left_key == right_key:
+                    return True
+                # Composite targets are emitted only by the grounded
+                # multi-value mapping below. Their delimiter makes containment
+                # explicit instead of treating arbitrary prose as a join hit.
+                return (
+                    " | " in left
+                    and any(
+                        surface_key(part) == right_key
+                        for part in left.split(" | ")
+                    )
+                ) or (
+                    " | " in right
+                    and any(
+                        surface_key(part) == left_key
+                        for part in right.split(" | ")
+                    )
+                )
+
             overlaps: Dict[Tuple[Node, Node], int] = {}
             for left in sorted(adjacency):
                 for right in sorted(adjacency[left]):
                     if left >= right:
                         continue
-                    overlaps[(left, right)] = len(
-                        values.get(left, set()) & values.get(right, set())
+                    overlaps[(left, right)] = sum(
+                        executable_match(left_value, right_value)
+                        for left_value in values.get(left, set())
+                        for right_value in values.get(right, set())
                     )
             return overlaps
 
@@ -2428,12 +2693,28 @@ class ContractExtractor:
             if len(populated_nodes) < 2:
                 continue
 
-            # Prefer a central relationship key. For a single edge, the
-            # smaller distinct domain is usually the referenced dimension.
+            def identity_endpoint_rank(node: Node) -> int:
+                entity_tokens = set(node[0].split("_"))
+                attribute_tokens = set(node[1].split("_"))
+                if entity_tokens & attribute_tokens and attribute_tokens & {
+                    "id",
+                    "identifier",
+                    "name",
+                }:
+                    return 0
+                if attribute_tokens & {"id", "identifier", "name"}:
+                    return 1
+                return 2
+
+            # Prefer a central relationship key. For a single edge, anchor the
+            # dictionary on the endpoint that names its own entity (for
+            # example disease.disease_name, not drug.disease_name). Distinct
+            # domain size is only a final tie-breaker.
             pivot = min(
                 populated_nodes,
                 key=lambda node: (
                     -len(adjacency[node] & set(component)),
+                    identity_endpoint_rank(node),
                     len(values_by_node[node]),
                     node,
                 ),
@@ -2458,7 +2739,18 @@ class ContractExtractor:
                             proposed.append((node, source, target))
                             proposed_keys.add((node, source))
                     elif source not in allowed_targets:
-                        unresolved.append((node, source))
+                        contained = tuple(
+                            target
+                            for target in canonical_values
+                            if alias_compatible(source, target)
+                        )
+                        if contained:
+                            target = " | ".join(contained)
+                            if source != target:
+                                proposed.append((node, source, target))
+                                proposed_keys.add((node, source))
+                        else:
+                            unresolved.append((node, source))
 
             if unresolved and canonical_values:
                 source_payload = [
@@ -2847,10 +3139,11 @@ class ContractExtractor:
 
         self._budget_exhausted = False
         self._pending_target = None
-        self._entity_document_ids = route_documents_by_content(
-            self.documents,
-            contract,
-        )
+        if not self._entity_document_ids:
+            self._entity_document_ids = route_documents_by_content(
+                self.documents,
+                contract,
+            )
         entity_records = self.extract_entities(contract)
         relationship_records = self.extract_relationships(
             contract, entity_records

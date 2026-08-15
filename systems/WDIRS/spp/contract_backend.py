@@ -88,8 +88,8 @@ from spp.workload_contract import (
 from token_counter import count_tokens
 
 
-BACKEND_VERSION = 33
-HYBRID_BULK_VERSION = 8
+BACKEND_VERSION = 34
+HYBRID_BULK_VERSION = 9
 
 logger = logging.getLogger(__name__)
 
@@ -1006,6 +1006,23 @@ def _row_identity(
     ).hexdigest()
 
 
+def _surrogate_key_column(
+    relation: RelationSpec,
+) -> Optional[str]:
+    """Return an opaque-ID primary key that is safe to synthesize."""
+
+    column = relation.primary_key
+    if not column:
+        return None
+    key = _symbol_key(column)
+    relation_key = _symbol_key(relation.name)
+    return (
+        column
+        if key in {"id", f"{relation_key}id", "identifier"}
+        else None
+    )
+
+
 def _normalize_table_identities(
     tables: Mapping[str, Sequence[Mapping[str, object]]],
     graph: WorkloadRelationGraph,
@@ -1043,6 +1060,19 @@ def _normalize_table_identities(
                 if identity not in (None, "")
                 else _row_identity(relation, row, index)
             )
+            surrogate_column = _surrogate_key_column(relation)
+            if (
+                surrogate_column is not None
+                and row.get(surrogate_column) in (None, "")
+            ):
+                # The source firewall deliberately hides file names and paths.
+                # COUNT(DISTINCT id) still needs a stable per-entity key when
+                # no official identifier is present in source text. Derive it
+                # from the path-agnostic row identity rather than inventing an
+                # external identifier.
+                row[surrogate_column] = (
+                    f"quwarts:{_symbol_key(relation.name)}:{row['row_id']}"
+                )
             normalized.append(row)
         result[name] = normalized
     for relation in graph.relations:
@@ -1838,6 +1868,7 @@ class ContractBackend:
         bulk_extractor_factory: Optional[Callable[[object, Path], object]] = None,
         bulk_min_column_coverage: float = 0.0,
         bulk_column_batch_size: Optional[int] = None,
+        semantic_document_routing: bool = False,
         verify_extracted_cells: Optional[bool] = None,
         cell_verifier_factory: Optional[Callable[..., object]] = None,
     ):
@@ -1853,6 +1884,7 @@ class ContractBackend:
         self.max_query_rows = int(max_query_rows)
         self.bootstrap_folds = int(bootstrap_folds)
         self.use_bulk_extraction = bool(use_bulk_extraction)
+        self.semantic_document_routing = bool(semantic_document_routing)
         self.bulk_extractor_factory = bulk_extractor_factory
         self.bulk_min_column_coverage = float(bulk_min_column_coverage)
         self.verify_extracted_cells = (
@@ -3431,7 +3463,12 @@ class ContractBackend:
                 "version": HYBRID_BULK_VERSION,
                 "extractor": "wdirs_constrained_bulk",
                 "document_routing": {
-                    "policy": "content_contract_terms",
+                    "policy": (
+                        "workload_semantic_field_support"
+                        if self.semantic_document_routing
+                        else "content_contract_terms"
+                    ),
+                    "multi_label": self.semantic_document_routing,
                     "uses_document_identifiers": False,
                     "document_counts": {
                         name: len(document_ids)
@@ -3725,6 +3762,10 @@ class ContractBackend:
                 "version": HYBRID_BULK_VERSION,
                 "min_column_coverage": self.bulk_min_column_coverage,
                 "column_batch_size": self.bulk_column_batch_size,
+            },
+            "semantic_document_routing": {
+                "enabled": self.semantic_document_routing,
+                "version": 1,
             },
             "cell_verification": {
                 "enabled": self.verify_extracted_cells,
@@ -4446,6 +4487,15 @@ class ContractBackend:
             )
         else:
             before = ledger.actual_spent
+            extractor = self._extractor(evidence_store, ledger)
+            if self.semantic_document_routing:
+                infer_routes = getattr(
+                    extractor, "infer_document_routes", None
+                )
+                if callable(infer_routes):
+                    self._content_document_routes = dict(
+                        infer_routes(self.contract)
+                    )
             taxonomy_escrow_tokens = (
                 self._required_taxonomy_escrow_tokens()
             )
@@ -4459,14 +4509,12 @@ class ContractBackend:
                 if taxonomy_escrow_tokens > 0
                 else None
             )
-            extractor = None
             try:
                 bulk_shared = (
                     self._bulk_extract_shared(ledger)
                     if self.use_bulk_extraction
                     else None
                 )
-                extractor = self._extractor(evidence_store, ledger)
                 set_mapping_escrow = getattr(
                     extractor, "set_mapping_escrow", None
                 )
@@ -4648,7 +4696,9 @@ class ContractBackend:
         closed = self._closed_workload_vocabularies()
         if not closed or self.contract is None:
             return 0
-        routes = route_documents_by_content(self.documents, self.contract)
+        routes = self._content_document_routes or route_documents_by_content(
+            self.documents, self.contract
+        )
         documents = {
             document.document_id: document for document in self.documents
         }
@@ -4681,7 +4731,11 @@ class ContractBackend:
             relevant = [
                 document
                 for document_id, document in documents.items()
-                if not routed_ids or document_id in routed_ids
+                if (
+                    document_id in routed_ids
+                    if self._content_document_routes is not None
+                    else not routed_ids or document_id in routed_ids
+                )
             ]
             metadata_text = json.dumps(
                 {

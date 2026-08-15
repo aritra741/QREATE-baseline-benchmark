@@ -442,6 +442,7 @@ def run_contract_pipeline(args: Any) -> int:
         client,
         scratch_dir=scratch_dir,
         use_bulk_extraction=True,
+        semantic_document_routing=True,
         bulk_column_batch_size=args.bulk_column_batch_size,
         bulk_min_column_coverage=args.bulk_min_column_coverage,
     )

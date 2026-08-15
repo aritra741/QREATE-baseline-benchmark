@@ -37,6 +37,7 @@ from spp.contract_backend import (
     WorkloadRelationGraph,
     _contract_extraction_parts,
     _merge_shared_extractions,
+    _normalize_table_identities,
     build_workload_relation_graph,
 )
 from spp.contract_validation import (
@@ -143,6 +144,242 @@ def test_content_routing_uses_primary_subject_before_related_entities():
 
     assert routes["member"] == ("opaque-1",)
     assert routes["organization"] == ("opaque-2",)
+
+
+def test_semantic_routing_uses_contract_fields_and_supports_multiple_labels(
+    tmp_path,
+):
+    class RoutingClient:
+        model = "fixture"
+        seed = 7
+        ledger = type("Ledger", (), {"actual_spent": 0})()
+
+        def __init__(self):
+            self.prompts = []
+
+        def generate(self, prompt, **_kwargs):
+            self.prompts.append(prompt)
+            return json.dumps(
+                [
+                    {"relation": "institution"},
+                    {"relation": "disease"},
+                ]
+            )
+
+    contract = WorkloadContract(
+        entities=(
+            EntityContract("disease"),
+            EntityContract("institution"),
+        ),
+        attributes=(
+            AttributeContract("disease", "diagnostic_methods"),
+            AttributeContract("institution", "institution_country"),
+            AttributeContract("institution", "research_fields"),
+        ),
+        relationships=(
+            RelationshipContract(
+                "studies",
+                "institution",
+                "disease",
+                left_attributes=("research_diseases",),
+                right_attributes=("disease_name",),
+            ),
+        ),
+    )
+    document = SourceDocument(
+        "disease/misleading-path.txt",
+        (
+            "Cancer is studied by Northbank University. The university is a "
+            "public institution in Canada with oncology research programs."
+        ),
+    )
+    client = RoutingClient()
+    with EvidenceStore(tmp_path / "routing.sqlite") as store:
+        extractor = ContractExtractor((document,), client, store)
+        routes = extractor.infer_document_routes(contract)
+
+    assert routes["institution"] == (document.document_id,)
+    assert routes["disease"] == (document.document_id,)
+    assert len(client.prompts) == 1
+    assert document.document_id not in client.prompts[0]
+    assert "institution_country" in client.prompts[0]
+    assert "diagnostic_methods" in client.prompts[0]
+
+
+def test_missing_opaque_primary_keys_receive_stable_surrogates():
+    relation = RelationSpec(
+        name="disease",
+        attributes=("id", "disease_name"),
+        primary_key="id",
+        semantic_types=(("id", "text"), ("disease_name", "text")),
+    )
+    graph = WorkloadRelationGraph(
+        relations=(relation,), edges=(), covered_query_ids=()
+    )
+    tables = {
+        "disease": (
+            {"row_id": "row-a", "disease_name": "Alpha syndrome"},
+            {"row_id": "row-b", "disease_name": "Beta syndrome"},
+        )
+    }
+
+    first = _normalize_table_identities(tables, graph)
+    second = _normalize_table_identities(tables, graph)
+
+    assert first == second
+    assert first["disease"][0]["id"] == "quwarts:disease:row-a"
+    assert first["disease"][1]["id"] == "quwarts:disease:row-b"
+    assert len({row["id"] for row in first["disease"]}) == 2
+
+
+def test_join_key_mappings_ground_scalar_and_multivalue_aliases(tmp_path):
+    class NoCallClient:
+        model = "fixture"
+        ledger = type("Ledger", (), {"actual_spent": 0})()
+
+        def generate(self, *_args, **_kwargs):
+            raise AssertionError("lexically grounded aliases need no LLM call")
+
+    contract = WorkloadContract(
+        entities=(
+            EntityContract("disease"),
+            EntityContract("drug"),
+            EntityContract("institution"),
+        ),
+        attributes=(
+            AttributeContract("disease", "disease_name"),
+            AttributeContract("drug", "disease_name"),
+            AttributeContract("institution", "research_diseases"),
+        ),
+        relationships=(
+            RelationshipContract(
+                "drug_disease",
+                "drug",
+                "disease",
+                left_attributes=("disease_name",),
+                right_attributes=("disease_name",),
+            ),
+            RelationshipContract(
+                "institution_disease",
+                "institution",
+                "disease",
+                left_attributes=("research_diseases",),
+                right_attributes=("disease_name",),
+            ),
+        ),
+    )
+    values = (
+        ("disease", "disease_name", "Alzheimer's disease", "d1"),
+        ("disease", "disease_name", "Parkinson disease", "d2"),
+        ("drug", "disease_name", "Alzheimer disease", "rx"),
+        (
+            "institution",
+            "research_diseases",
+            "Alzheimer disease, Parkinson disease",
+            "i1",
+        ),
+    )
+    records = tuple(
+        ExtractionRecord(
+            entity,
+            attribute,
+            identity,
+            value,
+            value,
+            None,
+            identity,
+            identity,
+            0,
+            len(value),
+        )
+        for entity, attribute, value, identity in values
+    )
+    documents = tuple(
+        SourceDocument(identity, value)
+        for _entity, _attribute, value, identity in values
+    )
+    with EvidenceStore(tmp_path / "joins.sqlite") as store:
+        extractor = ContractExtractor(documents, NoCallClient(), store)
+        mappings = extractor._join_key_mappings(contract, records)
+
+    mapped = {
+        (mapping.entity, mapping.attribute, mapping.source_value):
+        mapping.target_value
+        for mapping in mappings
+    }
+    assert mapped[
+        ("drug", "disease_name", "Alzheimer disease")
+    ] == "Alzheimer's disease"
+    institution_target = mapped[
+        (
+            "institution",
+            "research_diseases",
+            "Alzheimer disease, Parkinson disease",
+        )
+    ]
+    assert institution_target == (
+        "Alzheimer's disease | Parkinson disease"
+    )
+
+
+def test_join_dictionary_prefers_the_self_named_identity_endpoint(tmp_path):
+    class NoCallClient:
+        model = "fixture"
+        ledger = type("Ledger", (), {"actual_spent": 0})()
+
+        def generate(self, *_args, **_kwargs):
+            raise AssertionError("lexically grounded aliases need no LLM call")
+
+    contract = WorkloadContract(
+        entities=(EntityContract("disease"), EntityContract("drug")),
+        attributes=(
+            AttributeContract("disease", "disease_name"),
+            AttributeContract("drug", "disease_name"),
+        ),
+        relationships=(
+            RelationshipContract(
+                "treats",
+                "drug",
+                "disease",
+                left_attributes=("disease_name",),
+                right_attributes=("disease_name",),
+            ),
+        ),
+    )
+    values = (
+        ("disease", "Alzheimer's disease", "d1"),
+        ("disease", "Parkinson disease", "d2"),
+        ("drug", "Alzheimer disease", "rx"),
+    )
+    records = tuple(
+        ExtractionRecord(
+            entity,
+            "disease_name",
+            identity,
+            value,
+            value,
+            None,
+            identity,
+            identity,
+            0,
+            len(value),
+        )
+        for entity, value, identity in values
+    )
+    documents = tuple(
+        SourceDocument(identity, value)
+        for _entity, value, identity in values
+    )
+    with EvidenceStore(tmp_path / "identity-dictionary.sqlite") as store:
+        extractor = ContractExtractor(documents, NoCallClient(), store)
+        mappings = extractor._join_key_mappings(contract, records)
+
+    assert any(
+        mapping.entity == "drug"
+        and mapping.source_value == "Alzheimer disease"
+        and mapping.target_value == "Alzheimer's disease"
+        for mapping in mappings
+    )
 
 
 def test_workload_contract_preserves_shared_query_roles_and_join_edges():
