@@ -237,6 +237,43 @@ def test_semantic_routing_uses_contract_fields_and_supports_multiple_labels(
     assert "diagnostic_methods" in client.prompts[0]
 
 
+def test_semantic_routing_abstentions_use_nonempty_fallback_routes(tmp_path):
+    class AbstainingClient:
+        model = "fixture"
+        seed = 9
+        ledger = type("Ledger", (), {"actual_spent": 0})()
+
+        def generate(self, _prompt, **_kwargs):
+            return "[]"
+
+    contract = WorkloadContract(
+        entities=(EntityContract("vehicle"), EntityContract("place")),
+        attributes=(
+            AttributeContract("vehicle", "wheel_count"),
+            AttributeContract("place", "population"),
+        ),
+        relationships=(),
+    )
+    documents = (
+        SourceDocument(
+            "opaque-vehicle",
+            "This vehicle has four wheels and a wheel count of four.",
+        ),
+        SourceDocument(
+            "opaque-place",
+            "This place has a population of 12000 residents.",
+        ),
+    )
+    with EvidenceStore(tmp_path / "routing-abstention.sqlite") as store:
+        extractor = ContractExtractor(
+            documents, AbstainingClient(), store
+        )
+        routes = extractor.infer_document_routes(contract)
+
+    assert routes["vehicle"] == ("opaque-vehicle",)
+    assert routes["place"] == ("opaque-place",)
+
+
 def test_missing_opaque_primary_keys_receive_pathless_stable_surrogates():
     relation = RelationSpec(
         name="disease",

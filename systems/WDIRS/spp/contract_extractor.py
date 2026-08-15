@@ -36,7 +36,7 @@ from token_counter import count_tokens
 
 _PROMPT_VERSION = 12
 _ENTITY_ARTIFACT_VERSION = 3
-_CONTEXT_ROUTING_VERSION = 7
+_CONTEXT_ROUTING_VERSION = 8
 CORPUS_REFERENCE_YEAR = 2026
 _CONTEXT_STOPWORDS = frozenset(
     {
@@ -780,8 +780,11 @@ class ContractExtractor:
                 in relation_lookup
             )
         )
-        if selected or (valid_response and not rows):
+        if selected:
             return selected
+        # A valid [] is an abstention, not evidence that the document belongs
+        # nowhere. Treat it like malformed output so a weak routing model
+        # cannot starve every downstream relation.
         return tuple(
             entity.name
             for entity in contract.entities
@@ -824,6 +827,22 @@ class ContractExtractor:
         for document, selected in zip(self.documents, selections):
             for entity_name in selected:
                 routes[entity_name].append(document.document_id)
+        all_document_ids = tuple(
+            document.document_id for document in self.documents
+        )
+        for entity in contract.entities:
+            if routes[entity.name]:
+                continue
+            replacement = tuple(fallback.get(entity.name, ()))
+            routes[entity.name].extend(
+                replacement or all_document_ids
+            )
+            logger.warning(
+                "Semantic routing produced no documents for relation %s; "
+                "restored %d deterministic fallback documents",
+                entity.name,
+                len(routes[entity.name]),
+            )
         inferred = {
             entity_name: tuple(document_ids)
             for entity_name, document_ids in routes.items()
