@@ -47,6 +47,7 @@ _BINARY_EXPRESSION_OPERATORS = {
     "+", "-", "*", "/", "%",
     "=", "!=", "<", "<=", ">", ">=",
     "and", "or", "between", "in",
+    "like", "ilike",
 }
 _UNARY_EXPRESSION_OPERATORS = {"not", "neg", "is_null", "is_not_null"}
 _CAST_TYPES = {"integer", "real", "text", "numeric", "date", "boolean"}

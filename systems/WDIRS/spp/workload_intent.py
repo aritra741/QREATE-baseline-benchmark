@@ -3772,6 +3772,17 @@ def _sql_requirement(query_id: str, sql: str) -> QueryRequirement:
                 operator="and" if isinstance(node, exp.And) else "or",
                 arguments=(left, right),
             )
+        if isinstance(node, (exp.Like, exp.ILike)):
+            left = scalar_expression(node.this, "text")
+            right = scalar_expression(node.expression, "text")
+            if left is None or right is None:
+                return None
+            return ExpressionSpec(
+                kind="binary",
+                semantic_type="boolean",
+                operator="ilike" if isinstance(node, exp.ILike) else "like",
+                arguments=(left, right),
+            )
         if isinstance(node, exp.Between):
             target = scalar_expression(node.this, semantic_hint)
             low = scalar_expression(node.args.get("low"), semantic_hint)

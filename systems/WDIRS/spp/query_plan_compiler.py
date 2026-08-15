@@ -95,6 +95,12 @@ def compile_query_plan(
                 )
             if expression.operator == "in":
                 return f"({arguments[0]} IN ({', '.join(arguments[1:])}))"
+            if expression.operator == "like":
+                return f"({arguments[0]} LIKE {arguments[1]})"
+            if expression.operator == "ilike":
+                return (
+                    f"(LOWER({arguments[0]}) LIKE LOWER({arguments[1]}))"
+                )
             return (
                 f"({arguments[0]} {expression.operator.upper()} "
                 f"{arguments[1]})"

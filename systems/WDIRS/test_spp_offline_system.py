@@ -97,6 +97,7 @@ from spp.workload_intent import (
     _finalize_requirement_plan,
     _normalize_plan_with_schema,
     _parse_llm_payload,
+    _plan_contract_diagnostics,
     _plan_contract_score,
     _plan_from_clause_ledger,
     analyze_sql_contract_workload,
@@ -672,6 +673,30 @@ def test_sql_contract_preserves_sum_case_when_aggregates():
     assert indicator.plan.having[0].aggregate.expression == (
         indicator_aggregate.expression
     )
+
+
+def test_sql_contract_preserves_case_like_group_aliases():
+    """Searched CASE ... LIKE families must remain GROUP BY dimensions."""
+
+    sql = (
+        "SELECT CASE WHEN LOWER(d.disease_type) LIKE '%infectious%' "
+        "THEN 'infectious' WHEN LOWER(d.disease_type) LIKE '%neoplastic%' "
+        "THEN 'neoplastic' WHEN d.disease_type != '' THEN 'other' "
+        "END AS type_family, COUNT(*) AS disease_count "
+        "FROM disease d WHERE d.disease_type != '' GROUP BY type_family"
+    )
+    intent = analyze_sql_contract_workload(
+        [{"query_id": "q0", "sql": sql}]
+    )
+    requirement = intent.requirements[0]
+    assert requirement.plan is not None
+    assert requirement.plan.group_by
+    grouped = requirement.plan.group_by[0]
+    assert isinstance(grouped, ExpressionSpec)
+    assert grouped.alias == "type_family"
+    assert grouped.kind == "case"
+    assert AttributeRef("disease", "disease_type", "text") in grouped.attributes()
+    assert _plan_contract_diagnostics(requirement) == ()
 
 
 def test_sql_contract_executes_derived_groups_and_indicator_sums(
