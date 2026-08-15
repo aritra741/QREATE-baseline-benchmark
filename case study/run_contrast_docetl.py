@@ -36,6 +36,7 @@ from contrast_run_lib import (  # noqa: E402
     DEFAULT_CSV,
     ROOT,
     WORKLOADS,
+    latest_docetl_root,
     load_csv,
     parse_datasets,
     parse_only,
@@ -96,22 +97,6 @@ def prepare_output_dir(
             shutil.rmtree(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     return output_dir
-
-
-def latest_docetl_root(workload_ids: set[str]) -> Path | None:
-    runs_dir = WORKLOADS / "runs"
-    if not runs_dir.is_dir():
-        return None
-    stamps = sorted(
-        (path for path in runs_dir.iterdir() if path.is_dir()),
-        key=lambda path: path.name,
-        reverse=True,
-    )
-    for stamp in stamps:
-        docetl = stamp / "docetl"
-        if any((docetl / "results" / workload_id).is_dir() for workload_id in workload_ids):
-            return docetl.resolve()
-    return None
 
 
 def failed_query_ids(output_dir: Path) -> list[str] | None:

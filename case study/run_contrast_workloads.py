@@ -13,6 +13,8 @@ Examples:
   python3 "case study/run_contrast_workloads.py" --run --datasets art,legal \\
       --token-budget 2000000 --model qwen2.5:72b
   python3 "case study/run_contrast_workloads.py" --run --only art_agg20,med_join20
+  python3 "case study/run_contrast_workloads.py" --run --datasets med \\
+      --budget-from-docetl --budget-fraction 0.25 --model qwen2.5:72b
 """
 
 from __future__ import annotations
@@ -37,10 +39,13 @@ from contrast_run_lib import (  # noqa: E402
     DEFAULT_CSV,
     ROOT,
     WORKLOADS,
+    docetl_total_tokens,
     load_csv,
     parse_datasets,
     parse_only,
+    quwarts_budget_from_docetl,
     rel,
+    resolve_docetl_root,
     resolve_repo_path,
     select_rows,
     stamp_source_dataset,
@@ -48,6 +53,7 @@ from contrast_run_lib import (  # noqa: E402
 
 WDIRS = ROOT / "systems" / "WDIRS"
 RUNNER = WDIRS / "diagnostics" / "run_offline_spp.py"
+EVALUATOR = WDIRS / "diagnostics" / "evaluate_native_spp_bundle.py"
 
 
 def ensure_manifest(row: dict[str, str]) -> Path:
@@ -110,7 +116,7 @@ def build_command(
         "--scratch-dir",
         str(scratch_parent),
         "--token-budget",
-        str(args.token_budget),
+        str(row.get("token_budget") or args.token_budget),
         "--quality-floor",
         str(args.quality_floor),
         "--beta",
@@ -157,6 +163,26 @@ def build_command(
     return command
 
 
+def evaluate_command(
+    row: dict[str, str],
+    *,
+    sql_manifest: Path,
+    output_dir: Path,
+) -> list[str]:
+    return [
+        sys.executable,
+        str(EVALUATOR),
+        "--bundle",
+        str(output_dir / "serving_bundle"),
+        "--reference-workload",
+        str(sql_manifest),
+        "--dataset",
+        str(row.get("dataset") or ""),
+        "--output",
+        str(output_dir / "evaluation.json"),
+    ]
+
+
 def isolated_env(
     scratch_parent: Path,
     *,
@@ -201,9 +227,13 @@ def run_one(
         "source_dataset": row.get("source_dataset", ""),
         "sql_manifest": rel(sql_manifest),
         "n_queries": row.get("n_queries", ""),
+        "token_budget": int(row.get("token_budget") or args.token_budget),
         "started_at_utc": datetime.now(timezone.utc).isoformat(),
         "status": "pending",
     }
+    if row.get("docetl_tokens"):
+        record["docetl_tokens"] = int(row["docetl_tokens"])
+        record["budget_fraction"] = float(row.get("budget_fraction") or 0)
 
     try:
         output_dir, scratch_parent = prepare_isolated_dirs(
@@ -267,6 +297,50 @@ def run_one(
     record["finished_at_utc"] = datetime.now(timezone.utc).isoformat()
     record["wall_clock_seconds"] = round(time.monotonic() - started, 3)
     record["status"] = "ok" if completed.returncode == 0 else "failed"
+    if (
+        completed.returncode == 0
+        and not args.dry_run
+        and not args.skip_eval
+        and (output_dir / "serving_bundle" / "SEALED").is_file()
+    ):
+        eval_cmd = evaluate_command(
+            row,
+            sql_manifest=sql_manifest,
+            output_dir=output_dir,
+        )
+        record["eval_command"] = eval_cmd
+        print(" ".join(eval_cmd), flush=True)
+        with log_path.open("a", encoding="utf-8") as log_handle:
+            log_handle.write("\n\nEVAL COMMAND:\n" + " ".join(eval_cmd) + "\n\n")
+            log_handle.flush()
+            evaluated = subprocess.run(
+                eval_cmd,
+                cwd=str(WDIRS),
+                env=env,
+                stdout=log_handle,
+                stderr=subprocess.STDOUT,
+                check=False,
+            )
+        record["eval_exit_code"] = evaluated.returncode
+        eval_output = output_dir / "evaluation.json"
+        if evaluated.returncode == 0 and eval_output.is_file():
+            try:
+                report = json.loads(eval_output.read_text(encoding="utf-8"))
+                record["evaluation"] = {
+                    "mean_official_accuracy": report.get("mean_official_accuracy"),
+                    "mean_structure_score": report.get("mean_structure_score"),
+                    "mean_query_score": report.get("mean_query_score"),
+                    "construction_tokens": report.get("construction_tokens"),
+                    "total_token_budget": report.get("total_token_budget"),
+                    "output": rel(eval_output),
+                }
+                print(json.dumps(record["evaluation"], indent=2), flush=True)
+            except json.JSONDecodeError:
+                record["status"] = "eval_failed"
+                record["exit_code"] = 1
+        else:
+            record["status"] = "eval_failed"
+            record["exit_code"] = evaluated.returncode or 1
     if completed.returncode != 0:
         try:
             log_text = log_path.read_text(encoding="utf-8", errors="replace")
@@ -309,6 +383,8 @@ def write_index(output_root: Path, records: list[dict[str, Any]]) -> None:
         "n_queries",
         "dataset",
         "source_dataset",
+        "token_budget",
+        "docetl_tokens",
         "output_dir",
         "scratch_dir",
         "log_path",
@@ -371,6 +447,33 @@ def parse_args() -> argparse.Namespace:
         help="Override source_data directory for every selected row.",
     )
     parser.add_argument("--token-budget", type=int, default=2_000_000)
+    parser.add_argument(
+        "--budget-from-docetl",
+        action="store_true",
+        help=(
+            "Set each workload's QuWARTS token budget to a fraction of that "
+            "pack's DocETL total_tokens."
+        ),
+    )
+    parser.add_argument(
+        "--docetl-root",
+        type=Path,
+        default=None,
+        help=(
+            "DocETL batch root (.../docetl or .../<stamp>). "
+            "Default with --budget-from-docetl: latest run covering the "
+            "selected workloads."
+        ),
+    )
+    parser.add_argument(
+        "--budget-fraction",
+        type=float,
+        default=None,
+        help=(
+            "Fraction of each pack's DocETL tokens to give QuWARTS. "
+            "Default: 0.25 with --budget-from-docetl."
+        ),
+    )
     parser.add_argument("--quality-floor", type=float, default=0.0)
     parser.add_argument("--beta", type=float, default=1.0)
     parser.add_argument("--model")
@@ -385,6 +488,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-document-characters", type=int, default=8000)
     parser.add_argument("--force", action="store_true")
     parser.add_argument("--continue-on-error", action="store_true")
+    parser.add_argument("--skip-eval", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     return parser.parse_args()
 
@@ -444,6 +548,58 @@ def main() -> int:
         )
     ]
 
+    use_docetl_budget = (
+        args.budget_from_docetl
+        or args.docetl_root is not None
+        or args.budget_fraction is not None
+    )
+    budget_plan: dict[str, Any] | None = None
+    if use_docetl_budget:
+        fraction = (
+            0.25 if args.budget_fraction is None else float(args.budget_fraction)
+        )
+        if not 0 < fraction <= 1:
+            raise SystemExit("--budget-fraction must be in (0, 1]")
+        docetl_root = resolve_docetl_root(
+            args.docetl_root,
+            {row["workload_id"] for row in selected},
+        )
+        missing: list[str] = []
+        planned: dict[str, dict[str, Any]] = {}
+        for row in selected:
+            tokens = docetl_total_tokens(docetl_root, row["workload_id"])
+            if tokens is None:
+                missing.append(row["workload_id"])
+                continue
+            budget = quwarts_budget_from_docetl(tokens, fraction)
+            row["docetl_tokens"] = str(tokens)
+            row["token_budget"] = str(budget)
+            row["budget_fraction"] = str(fraction)
+            planned[row["workload_id"]] = {
+                "docetl_tokens": tokens,
+                "token_budget": budget,
+                "budget_fraction": fraction,
+            }
+            print(
+                f"{row['workload_id']}: DocETL {tokens} tokens → "
+                f"QuWARTS budget {budget} ({fraction:.0%})",
+                flush=True,
+            )
+        if missing:
+            raise SystemExit(
+                "No DocETL total_tokens for: "
+                + ", ".join(missing)
+                + f" under {docetl_root}"
+            )
+        budget_plan = {
+            "docetl_root": rel(docetl_root),
+            "budget_fraction": fraction,
+            "workloads": planned,
+        }
+    else:
+        for row in selected:
+            row["token_budget"] = str(args.token_budget)
+
     if args.output_root is None:
         stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
         output_root = WORKLOADS / "runs" / stamp
@@ -462,6 +618,8 @@ def main() -> int:
         "datasets": sorted({row["dataset"] for row in selected}),
         "source_datasets": sorted({row["source_dataset"] for row in selected}),
         "token_budget": args.token_budget,
+        "budget_from_docetl": use_docetl_budget,
+        "budget_plan": budget_plan,
         "model": args.model,
         "base_url": args.base_url,
         "seed": args.seed,
@@ -476,6 +634,11 @@ def main() -> int:
         json.dumps(batch_manifest, indent=2, default=str),
         encoding="utf-8",
     )
+    if budget_plan is not None:
+        (output_root / "budget_plan.json").write_text(
+            json.dumps(budget_plan, indent=2, default=str),
+            encoding="utf-8",
+        )
     import csv
 
     with (output_root / "workloads_used.csv").open(
@@ -500,7 +663,7 @@ def main() -> int:
             ),
             flush=True,
         )
-        if record["status"] == "failed":
+        if record["status"] in {"failed", "eval_failed"}:
             failures += 1
             if not args.continue_on_error:
                 break

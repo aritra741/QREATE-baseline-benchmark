@@ -60,6 +60,10 @@ python3 "case study/run_contrast_workloads.py" --run --datasets art \
 # specific workloads
 python3 "case study/run_contrast_workloads.py" --run \
   --only art_agg20,med_join20 --token-budget 2000000
+
+# 25% of each pack's DocETL tokens (reads latest .../docetl or --docetl-root)
+python3 "case study/run_contrast_workloads.py" --run --datasets med \
+  --budget-from-docetl --budget-fraction 0.25 --model qwen2.5:72b
 ```
 
 ```bash

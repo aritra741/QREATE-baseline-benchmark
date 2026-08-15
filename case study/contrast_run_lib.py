@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import csv
+import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -164,3 +165,119 @@ def stamp_source_dataset(row: dict[str, str], override: str | None = None) -> di
     eval_name = str(out.get("dataset") or "").strip()
     out["source_dataset"] = (override or source_dataset(eval_name) or eval_name)
     return out
+
+
+def latest_docetl_root(workload_ids: set[str]) -> Path | None:
+    runs_dir = WORKLOADS / "runs"
+    if not runs_dir.is_dir():
+        return None
+    stamps = sorted(
+        (path for path in runs_dir.iterdir() if path.is_dir()),
+        key=lambda path: path.name,
+        reverse=True,
+    )
+    for stamp in stamps:
+        docetl = stamp / "docetl"
+        if any((docetl / "results" / workload_id).is_dir() for workload_id in workload_ids):
+            return docetl.resolve()
+    return None
+
+
+def resolve_docetl_root(raw: Path | None, workload_ids: set[str]) -> Path:
+    if raw is not None:
+        path = raw.expanduser()
+        if not path.is_absolute():
+            path = (ROOT / path).resolve()
+        if (path / "results").is_dir():
+            return path.resolve()
+        nested = path / "docetl"
+        if (nested / "results").is_dir():
+            return nested.resolve()
+        raise SystemExit(f"no DocETL results under {path}")
+    found = latest_docetl_root(workload_ids)
+    if found is None:
+        raise SystemExit(
+            "No DocETL run found under case study/workloads/runs. "
+            "Pass --docetl-root pointing at the previous .../docetl directory."
+        )
+    return found
+
+
+def _positive_int(value: object) -> int | None:
+    if value is None or value == "":
+        return None
+    try:
+        tokens = int(value)
+    except (TypeError, ValueError):
+        return None
+    return tokens if tokens > 0 else None
+
+
+def docetl_total_tokens(docetl_root: Path, workload_id: str) -> int | None:
+    result_dir = docetl_root / "results" / workload_id
+    for name in ("summary.json", "session_token_cost.json"):
+        path = result_dir / name
+        if not path.is_file():
+            continue
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            payload = {}
+        if isinstance(payload, dict):
+            tokens = _positive_int(payload.get("total_tokens"))
+            if tokens is not None:
+                return tokens
+    index_path = docetl_root / "run_index.json"
+    if index_path.is_file():
+        try:
+            records = json.loads(index_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            records = []
+        if isinstance(records, list):
+            for record in records:
+                if not isinstance(record, dict):
+                    continue
+                if str(record.get("workload_id") or "") != workload_id:
+                    continue
+                summary = record.get("docetl_summary")
+                tokens = None
+                if isinstance(summary, dict):
+                    tokens = _positive_int(summary.get("total_tokens"))
+                if tokens is None:
+                    tokens = _positive_int(record.get("total_tokens"))
+                if tokens is not None:
+                    return tokens
+    query_results = result_dir / "query_results.json"
+    if query_results.is_file():
+        try:
+            payload = json.loads(query_results.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            payload = None
+        rows = payload
+        if isinstance(payload, dict):
+            rows = (
+                payload.get("queries")
+                or payload.get("results")
+                or payload.get("per_query")
+            )
+        if isinstance(rows, list):
+            total = 0
+            found = False
+            for row in rows:
+                if not isinstance(row, dict):
+                    continue
+                tokens = _positive_int(row.get("total_tokens"))
+                if tokens is not None:
+                    total += tokens
+                    found = True
+            if found and total > 0:
+                return total
+    return None
+
+
+def quwarts_budget_from_docetl(tokens: int, fraction: float) -> int:
+    if tokens <= 0:
+        raise ValueError(f"DocETL tokens must be positive, got {tokens}")
+    if fraction <= 0:
+        raise ValueError(f"budget fraction must be positive, got {fraction}")
+    return max(1, int(tokens * fraction))
