@@ -287,7 +287,14 @@ def _semantic_validation_errors(
                 errors.append(f"missing predicate attribute {attribute}")
             if (
                 value_is_explicit
-                and predicate.operator not in {"is_null", "is_not_null", "contains"}
+                and predicate.operator
+                not in {
+                    "is_null",
+                    "is_not_null",
+                    "contains",
+                    "like",
+                    "ilike",
+                }
                 and value_rendered not in normalized_sql
             ):
                 errors.append(f"missing predicate literal {value!r}")

@@ -536,12 +536,35 @@ def validate_sql(
                 f"undeclared or wrong join edge {rendered} ({join_type})"
             )
 
+    def normalized_predicate_operator(operator: str) -> str:
+        return "like" if operator == "contains" else operator
+
+    def unwrap_predicate_column(
+        node: Optional[exp.Expression],
+    ) -> Optional[exp.Column]:
+        current = node
+        while isinstance(current, (exp.Paren, exp.Lower, exp.Trim)):
+            current = current.this
+        return current if isinstance(current, exp.Column) else None
+
+    def unwrap_predicate_value(node: Optional[exp.Expression]) -> object:
+        current = node
+        while isinstance(current, (exp.Paren, exp.Lower, exp.Trim)):
+            current = current.this
+        return _literal_value(current)
+
+    def like_operator(comparison: exp.Expression) -> str:
+        lowered = isinstance(comparison, exp.ILike) or isinstance(
+            comparison.this, exp.Lower
+        ) or isinstance(comparison.expression, exp.Lower)
+        return "ilike" if lowered else "like"
+
     expected_predicates: Counter[
         tuple[Optional[PhysicalColumn], str, object]
     ] = Counter(
         (
             bound.get(leaf.attribute),
-            leaf.operator,
+            normalized_predicate_operator(leaf.operator),
             _hashable(
                 f"%{leaf.value}%"
                 if leaf.operator == "contains"
@@ -558,7 +581,7 @@ def validate_sql(
     if where is not None:
         comparison_types = (
             exp.EQ, exp.NEQ, exp.GT, exp.GTE, exp.LT, exp.LTE,
-            exp.Like, exp.Is,
+            exp.Like, exp.ILike, exp.Is,
         )
         operator_by_type = {
             exp.EQ: "=",
@@ -567,26 +590,28 @@ def validate_sql(
             exp.GTE: ">=",
             exp.LT: "<",
             exp.LTE: "<=",
-            exp.Like: "contains",
         }
         for comparison in where.find_all(comparison_types):
             if _has_ancestor(comparison, comparison_types, stop=where):
                 continue
-            left, right = comparison.this, comparison.expression
-            if isinstance(left, exp.Column):
+            left = unwrap_predicate_column(comparison.this)
+            right = comparison.expression
+            if left is not None:
                 if isinstance(comparison, exp.Is):
                     operator = (
                         "is_not_null"
                         if isinstance(comparison.parent, exp.Not)
                         else "is_null"
                     )
+                elif isinstance(comparison, (exp.Like, exp.ILike)):
+                    operator = like_operator(comparison)
                 else:
                     operator = operator_by_type[type(comparison)]
                 actual_predicates[
                     (
                         resolved.get(id(left)),
                         operator,
-                        _hashable(_literal_value(right)),
+                        _hashable(unwrap_predicate_value(right)),
                     )
                 ] += 1
     if actual_predicates != expected_predicates:
@@ -645,7 +670,7 @@ def validate_sql(
         return (
             "leaf",
             bound.get(predicate.attribute),
-            predicate.operator,
+            normalized_predicate_operator(predicate.operator),
             _hashable(value),
         )
 
@@ -672,14 +697,24 @@ def validate_sql(
                     None,
                 )
         for comparison_type, operator in operator_by_type.items():
-            if isinstance(node, comparison_type) and isinstance(
-                node.this, exp.Column
-            ):
+            if isinstance(node, comparison_type):
+                column = unwrap_predicate_column(node.this)
+                if column is None:
+                    continue
                 return (
                     "leaf",
-                    resolved.get(id(node.this)),
+                    resolved.get(id(column)),
                     operator,
-                    _hashable(_literal_value(node.expression)),
+                    _hashable(unwrap_predicate_value(node.expression)),
+                )
+        if isinstance(node, (exp.Like, exp.ILike)):
+            column = unwrap_predicate_column(node.this)
+            if column is not None:
+                return (
+                    "leaf",
+                    resolved.get(id(column)),
+                    like_operator(node),
+                    _hashable(unwrap_predicate_value(node.expression)),
                 )
         if isinstance(node, exp.Is) and isinstance(node.this, exp.Column):
             return (

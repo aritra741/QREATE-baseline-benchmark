@@ -243,7 +243,7 @@ class PredicateSpec:
                 raise ValueError("leaf predicate requires an attribute")
             if self.operator not in {
                 "=", "!=", "<", "<=", ">", ">=", "contains",
-                "is_null", "is_not_null",
+                "like", "ilike", "is_null", "is_not_null",
             }:
                 raise ValueError(
                     f"unsupported predicate operator: {self.operator}"
@@ -261,10 +261,15 @@ class JoinSpec:
     join_type: str = "inner"
     left_expression: Optional[ExpressionSpec] = None
     right_expression: Optional[ExpressionSpec] = None
+    match_mode: str = "equality"
 
     def __post_init__(self) -> None:
         if self.join_type not in {"inner", "left"}:
             raise ValueError(f"unsupported join type: {self.join_type}")
+        if self.match_mode not in {"equality", "token_membership"}:
+            raise ValueError(
+                f"unsupported join match mode: {self.match_mode}"
+            )
 
 
 @dataclass(frozen=True)

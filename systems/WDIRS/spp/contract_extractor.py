@@ -37,6 +37,7 @@ from token_counter import count_tokens
 _PROMPT_VERSION = 12
 _ENTITY_ARTIFACT_VERSION = 3
 _CONTEXT_ROUTING_VERSION = 8
+_MAPPING_VERSION = 2
 CORPUS_REFERENCE_YEAR = 2026
 _CONTEXT_STOPWORDS = frozenset(
     {
@@ -497,7 +498,7 @@ class ContractExtractor:
 
     version = (
         f"{_PROMPT_VERSION}.entity-{_ENTITY_ARTIFACT_VERSION}."
-        f"context-{_CONTEXT_ROUTING_VERSION}"
+        f"context-{_CONTEXT_ROUTING_VERSION}.mapping-{_MAPPING_VERSION}"
     )
 
     def __init__(
@@ -2715,6 +2716,13 @@ class ContractExtractor:
         def exact_overlap(
             values: Mapping[Node, set[str]],
         ) -> Dict[Tuple[Node, Node], int]:
+            def compound_parts(value: str) -> Tuple[str, ...]:
+                return tuple(
+                    part.strip()
+                    for part in re.split(r"\s*\|\|?\s*", value)
+                    if part.strip()
+                )
+
             def executable_match(left: str, right: str) -> bool:
                 left_key = surface_key(left)
                 right_key = surface_key(right)
@@ -2723,17 +2731,19 @@ class ContractExtractor:
                 # Composite targets are emitted only by the grounded
                 # multi-value mapping below. Their delimiter makes containment
                 # explicit instead of treating arbitrary prose as a join hit.
+                left_parts = compound_parts(left)
+                right_parts = compound_parts(right)
                 return (
-                    " | " in left
+                    len(left_parts) > 1
                     and any(
                         surface_key(part) == right_key
-                        for part in left.split(" | ")
+                        for part in left_parts
                     )
                 ) or (
-                    " | " in right
+                    len(right_parts) > 1
                     and any(
                         surface_key(part) == left_key
-                        for part in right.split(" | ")
+                        for part in right_parts
                     )
                 )
 
@@ -2832,7 +2842,7 @@ class ContractExtractor:
                             if alias_compatible(source, target)
                         )
                         if contained:
-                            target = " | ".join(contained)
+                            target = "||".join(contained)
                             if source != target:
                                 proposed.append((node, source, target))
                                 proposed_keys.add((node, source))

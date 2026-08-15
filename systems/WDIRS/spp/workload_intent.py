@@ -108,7 +108,7 @@ class WorkloadIntent:
 def workload_intent_to_payload(intent: WorkloadIntent) -> dict:
     """Serialize a canonical intent for deterministic scratch reuse."""
     return {
-        "version": 2,
+        "version": 3,
         "requirements": [asdict(item) for item in intent.requirements],
         "entity_frequency": dict(intent.entity_frequency),
         "attribute_frequency": dict(intent.attribute_frequency),
@@ -121,7 +121,7 @@ def workload_intent_from_payload(payload: object) -> WorkloadIntent:
     """Restore a canonical intent previously produced by this module."""
     if (
         not isinstance(payload, Mapping)
-        or payload.get("version") not in {1, 2}
+        or payload.get("version") not in {1, 2, 3}
     ):
         raise ValueError("unsupported cached workload intent")
     raw_requirements = payload.get("requirements")
@@ -822,8 +822,15 @@ def _query_plan(
                         left,
                         right,
                         join_type,
-                        expression(value.get("left_expression")),
-                        expression(value.get("right_expression")),
+                        left_expression=expression(
+                            value.get("left_expression")
+                        ),
+                        right_expression=expression(
+                            value.get("right_expression")
+                        ),
+                        match_mode=str(
+                            value.get("match_mode", "equality")
+                        ).strip().lower(),
                     )
                 )
             except ValueError:
@@ -4166,6 +4173,19 @@ def _sql_requirement(query_id: str, sql: str) -> QueryRequirement:
                 kind="and" if isinstance(node, exp.And) else "or",
                 children=children,
             )
+        if isinstance(node, (exp.Like, exp.ILike)):
+            target_column = unwrap_column(node.this)
+            if target_column is not None and isinstance(
+                node.expression, exp.Literal
+            ):
+                case_insensitive = isinstance(node, exp.ILike) or any(
+                    node.this.find_all(exp.Lower)
+                )
+                return PredicateSpec(
+                    attribute=column_ref(target_column, "text"),
+                    operator="ilike" if case_insensitive else "like",
+                    value=literal_value(node.expression),
+                )
         if isinstance(node, exp.In) and isinstance(node.this, exp.Column):
             values = tuple(literal_value(item) for item in node.expressions)
             children = tuple(
@@ -4303,6 +4323,19 @@ def _sql_requirement(query_id: str, sql: str) -> QueryRequirement:
             left = unwrap_column(equality.left)
             right = unwrap_column(equality.right)
             if left is not None and right is not None:
+                equality_columns = {
+                    (left.table, left.name),
+                    (right.table, right.name),
+                }
+                match_mode = "equality"
+                for membership in on_expr.find_all(exp.Like, exp.ILike):
+                    membership_columns = {
+                        (column.table, column.name)
+                        for column in membership.find_all(exp.Column)
+                    }
+                    if equality_columns <= membership_columns:
+                        match_mode = "token_membership"
+                        break
                 left_expression = (
                     scalar_expression(equality.left)
                     if not isinstance(equality.left, exp.Column)
@@ -4322,6 +4355,7 @@ def _sql_requirement(query_id: str, sql: str) -> QueryRequirement:
                         else "inner",
                         left_expression=left_expression,
                         right_expression=right_expression,
+                        match_mode=match_mode,
                     )
                 )
     plan = QueryPlan(
@@ -4730,11 +4764,12 @@ def analyze_workload(
             "entity, attribute, semantic_type, operator, value}; boolean nodes "
             "are {kind:'and'|'or', children:[...]};\n"
             "- joins: array of {left:{entity,attribute,semantic_type}, "
-            "right:{...}, join_type:'inner'|'left'}.\n"
+            "right:{...}, join_type:'inner'|'left', "
+            "match_mode:'equality'|'token_membership'}.\n"
             "Allowed semantic types are text, integer, real, date, boolean. "
             "Allowed predicate operators are =, !=, <, <=, >, >=, contains, "
-            "is_null, is_not_null. Bind each property to the entity that "
-            "grammatically owns it in the question. Represent an implied "
+            "like, ilike, is_null, is_not_null. Bind each property to the "
+            "entity that grammatically owns it in the question. Represent an implied "
             "relationship as a join only when the question requires combining "
             "entities. Do not use corpus contents, database metadata, or "
             "ground-truth data, and do not invent domain facts.\n\nQueries:\n"

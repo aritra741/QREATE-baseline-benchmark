@@ -88,7 +88,7 @@ from spp.workload_contract import (
 from token_counter import count_tokens
 
 
-BACKEND_VERSION = 35
+BACKEND_VERSION = 36
 HYBRID_BULK_VERSION = 10
 
 logger = logging.getLogger(__name__)
@@ -2294,6 +2294,13 @@ class ContractBackend:
                     )
             joins = []
             for join in plan.joins:
+                # SQL-contract token membership identifies both endpoint
+                # columns explicitly. Whole-value overlap is expected to be
+                # low for compound values (for example "A||B") and must not
+                # trigger an incidental-column rebind.
+                if join.match_mode == "token_membership":
+                    joins.append(join)
+                    continue
                 left_rows = [
                     dict(row)
                     for row in self._shared.raw_tables.get(
@@ -2375,6 +2382,7 @@ class ContractBackend:
                             if join.right_expression is not None
                             else None
                         ),
+                        match_mode=join.match_mode,
                     )
                 )
                 changed.append(

@@ -206,9 +206,23 @@ def compile_query_plan(
             keyword = "LEFT JOIN" if join.join_type == "left" else "JOIN"
             left = join.left_expression or join.left
             right = join.right_expression or join.right
+            left_sql = expression_sql(left)
+            right_sql = expression_sql(right)
+            if join.match_mode == "token_membership":
+                normalized_left = (
+                    "REPLACE(REPLACE(REPLACE("
+                    f"{left_sql}, ' || ', '||'), ' | ', '|'), '||', '|')"
+                )
+                condition = (
+                    f"(({left_sql} = {right_sql}) OR "
+                    f"('|' || {normalized_left} || '|') "
+                    f"LIKE ('%|' || {right_sql} || '|%'))"
+                )
+            else:
+                condition = f"{left_sql} = {right_sql}"
             join_sql.append(
                 f"{keyword} {_quote(target)} AS {_quote(aliases[target])} "
-                f"ON {expression_sql(left)} = {expression_sql(right)}"
+                f"ON {condition}"
             )
             included.add(target)
             pending.remove(join)
@@ -230,6 +244,13 @@ def compile_query_plan(
             return f"{target} IS NOT NULL"
         if predicate.operator == "contains":
             return f"{target} LIKE {_literal('%' + str(predicate.value) + '%')}"
+        if predicate.operator == "like":
+            return f"{target} LIKE {_literal(predicate.value)}"
+        if predicate.operator == "ilike":
+            return (
+                f"LOWER({target}) LIKE "
+                f"LOWER({_literal(predicate.value)})"
+            )
         return f"{target} {predicate.operator} {_literal(predicate.value)}"
 
     sql = "SELECT " + ", ".join(select_parts)

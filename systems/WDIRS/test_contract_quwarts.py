@@ -410,7 +410,7 @@ def test_join_key_mappings_ground_scalar_and_multivalue_aliases(tmp_path):
         )
     ]
     assert institution_target == (
-        "Alzheimer's disease | Parkinson disease"
+        "Alzheimer's disease||Parkinson disease"
     )
 
 

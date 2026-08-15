@@ -103,6 +103,8 @@ from spp.workload_intent import (
     analyze_sql_contract_workload,
     analyze_workload,
     schema_vocabulary_from_sql,
+    workload_intent_from_payload,
+    workload_intent_to_payload,
 )
 from spp.wdirs_backend import WDIRSPrimitiveBackend
 from spp.population_config import PopulationConfig
@@ -616,6 +618,130 @@ def test_sql_contract_preserves_count_distinct_and_trim_case_joins():
     assert city_join.right == AttributeRef("team", "location")
     assert city_join.right_expression is not None
     assert city_join.right_expression.kind == "case"
+
+
+def test_sql_contract_executes_delimited_token_membership_joins(
+    tmp_path: Path,
+):
+    sql_query = (
+        "SELECT CASE WHEN LOWER(d.disease_type) LIKE '%infectious%' "
+        "THEN 'infectious' WHEN d.disease_type != '' THEN 'other' END "
+        "AS type_family, COUNT(DISTINCT dr.id) AS drug_count "
+        "FROM drug dr JOIN disease d ON ("
+        "LOWER(TRIM(dr.disease_name)) = LOWER(TRIM(d.disease_name)) OR "
+        "'|' || REPLACE(REPLACE(LOWER(dr.disease_name), ' || ', '||'), "
+        "'||', '|') || '|' LIKE '%|' || "
+        "LOWER(TRIM(d.disease_name)) || '|%') "
+        "WHERE d.disease_type != '' AND "
+        "LOWER(dr.pharmaceutical_form) LIKE '%tablet%' "
+        "GROUP BY type_family"
+    )
+    intent = analyze_sql_contract_workload(
+        [{"query_id": "med", "sql": sql_query}]
+    )
+    requirement = intent.requirements[0]
+    assert requirement.plan is not None
+    assert len(requirement.plan.joins) == 1
+    assert requirement.plan.joins[0].match_mode == "token_membership"
+    restored = workload_intent_from_payload(
+        workload_intent_to_payload(intent)
+    )
+    assert (
+        restored.requirements[0].plan.joins[0].match_mode
+        == "token_membership"
+    )
+    assert requirement.plan.predicate is not None
+    assert any(
+        child.operator == "ilike"
+        and child.value == "%tablet%"
+        for child in requirement.plan.predicate.children
+    )
+
+    schema = SchemaDesign(
+        "snowflake",
+        (
+            RelationSpec(
+                "disease",
+                ("disease_name", "disease_type"),
+            ),
+            RelationSpec(
+                "drug",
+                ("id", "disease_name", "pharmaceutical_form"),
+                primary_key="id",
+            ),
+        ),
+        ("med",),
+    )
+    config = SynthesisConfig(
+        schema,
+        PopulationConfig(),
+        PreprocessingPolicy("whole_document"),
+    )
+    compiled = compile_query_plan(requirement.plan, config)
+    assert compiled is not None
+    assert " LIKE " in compiled
+    assert "REPLACE(REPLACE(REPLACE(" in compiled
+
+    database = write_sqlite_database(
+        tmp_path / "med-membership.sqlite",
+        {
+            "disease": (
+                {
+                    "disease_name": "Alpha",
+                    "disease_type": "infectious",
+                },
+                {"disease_name": "Beta", "disease_type": "other"},
+            ),
+            "drug": (
+                {
+                    "id": "rx1",
+                    "disease_name": "Alpha||Beta",
+                    "pharmaceutical_form": "Tablet",
+                },
+                {
+                    "id": "rx2",
+                    "disease_name": "Alpha||Beta",
+                    "pharmaceutical_form": "Injection",
+                },
+            ),
+        },
+        config.schema,
+    )
+    assert validate_sql(
+        requirement, config, database, compiled
+    ).errors == ()
+    connection = sqlite3.connect(database)
+    assert connection.execute(compiled).fetchall() == [
+        ("infectious", 1),
+        ("other", 1),
+    ]
+
+
+def test_sql_contract_scopes_token_membership_to_matching_join_edge():
+    intent = analyze_sql_contract_workload(
+        [
+            {
+                "query_id": "mixed_joins",
+                "sql": (
+                    "SELECT d.disease_name, COUNT(DISTINCT dr.id) "
+                    "FROM drug dr JOIN disease d ON ("
+                    "LOWER(TRIM(dr.disease_name)) = "
+                    "LOWER(TRIM(d.disease_name)) OR "
+                    "'|' || REPLACE(LOWER(dr.disease_name), '||', '|') "
+                    "|| '|' LIKE '%|' || "
+                    "LOWER(TRIM(d.disease_name)) || '|%') "
+                    "JOIN manufacturer m ON dr.manufacturer = m.name "
+                    "GROUP BY d.disease_name"
+                ),
+            }
+        ]
+    )
+    plan = intent.requirements[0].plan
+    assert plan is not None
+    assert tuple(join.match_mode for join in plan.joins) == (
+        "token_membership",
+        "equality",
+    )
 
 
 def test_sql_contract_preserves_sum_case_when_aggregates():
