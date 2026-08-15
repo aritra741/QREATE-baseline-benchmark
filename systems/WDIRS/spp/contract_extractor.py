@@ -36,7 +36,7 @@ from token_counter import count_tokens
 
 _PROMPT_VERSION = 12
 _ENTITY_ARTIFACT_VERSION = 3
-_CONTEXT_ROUTING_VERSION = 6
+_CONTEXT_ROUTING_VERSION = 7
 CORPUS_REFERENCE_YEAR = 2026
 _CONTEXT_STOPWORDS = frozenset(
     {
@@ -261,9 +261,12 @@ def route_documents_by_content(
 
     profiles: Dict[str, Dict[str, float]] = {}
     entity_tokens: Dict[str, set[str]] = {}
+    field_tokens: Dict[str, set[str]] = {}
+    field_token_owners: Dict[str, set[str]] = defaultdict(set)
     for entity in contract.entities:
         weights: Dict[str, float] = defaultdict(float)
         primary_tokens: set[str] = set()
+        owned_field_tokens: set[str] = set()
         for symbol in entity.symbols:
             for token in _symbol_key(symbol).split("_"):
                 normalized = _routing_token(token)
@@ -276,19 +279,24 @@ def route_documents_by_content(
                     normalized = _routing_token(token)
                     if normalized and normalized not in _ROUTING_STOPWORDS:
                         weights[normalized] += 1.0
+                        owned_field_tokens.add(normalized)
+                        field_token_owners[normalized].add(entity.name)
         profiles[entity.name] = dict(weights)
         entity_tokens[entity.name] = primary_tokens
+        field_tokens[entity.name] = owned_field_tokens
 
     document_tokens: Dict[str, Counter[str]] = {}
+    lead_tokens: Dict[str, Counter[str]] = {}
     document_token_order: Dict[str, Tuple[str, ...]] = {}
     document_frequency: Counter[str] = Counter()
     for document in documents:
         document_id = str(getattr(document, "document_id"))
+        text = str(getattr(document, "text", ""))
         ordered_tokens = tuple(
             normalized
             for token in re.findall(
                 r"[A-Za-z][A-Za-z0-9'-]*",
-                str(getattr(document, "text", "")),
+                text,
             )
             if (
                 normalized := _routing_token(token)
@@ -297,13 +305,47 @@ def route_documents_by_content(
         )
         tokens = Counter(ordered_tokens)
         document_tokens[document_id] = tokens
+        lead_tokens[document_id] = Counter(
+            normalized
+            for token in re.findall(
+                r"[A-Za-z][A-Za-z0-9'-]*",
+                text[:1_500],
+            )
+            if (
+                normalized := _routing_token(token)
+            )
+            and normalized not in _ROUTING_STOPWORDS
+        )
         document_token_order[document_id] = ordered_tokens
         document_frequency.update(tokens.keys())
 
     routes: Dict[str, List[str]] = {
         entity.name: [] for entity in contract.entities
     }
+    all_primary_tokens = {
+        token for tokens in entity_tokens.values() for token in tokens
+    }
     document_count = max(1, len(document_tokens))
+
+    def token_mass(
+        profile: Mapping[str, float],
+        counts: Mapping[str, int],
+        selected_tokens: Iterable[str],
+    ) -> float:
+        return sum(
+            profile[token]
+            * (1.0 + math.log1p(counts[token]))
+            * (
+                1.0
+                + math.log(
+                    (document_count + 1)
+                    / (document_frequency[token] + 1)
+                )
+            )
+            for token in selected_tokens
+            if counts.get(token, 0)
+        )
+
     for document_id, tokens in document_tokens.items():
         token_positions: Dict[str, int] = {}
         for position, token in enumerate(document_token_order[document_id]):
@@ -319,7 +361,35 @@ def route_documents_by_content(
             )
             for entity_name, primary_tokens in entity_tokens.items()
         }
-        earliest_explicit = min(
+        scores: Dict[str, float] = {}
+        discriminative_mass: Dict[str, float] = {}
+        for entity_name, profile in profiles.items():
+            body_mass = token_mass(profile, tokens, profile)
+            lead_mass = token_mass(
+                profile, lead_tokens[document_id], profile
+            )
+            unique_fields = {
+                token
+                for token in field_tokens[entity_name]
+                if len(field_token_owners[token]) == 1
+                and token not in all_primary_tokens
+            }
+            discriminative_mass[entity_name] = token_mass(
+                profile, tokens, unique_fields
+            )
+            position = explicit_positions[entity_name]
+            position_bonus = (
+                5.0 / (1.0 + float(position) / 25.0)
+                if position is not None
+                else 0.0
+            )
+            scores[entity_name] = (
+                body_mass
+                + lead_mass
+                + 1.5 * discriminative_mass[entity_name]
+                + position_bonus
+            )
+        earliest_position = min(
             (
                 position
                 for position in explicit_positions.values()
@@ -327,40 +397,38 @@ def route_documents_by_content(
             ),
             default=None,
         )
-        scores = {}
-        for entity_name, profile in profiles.items():
-            scores[entity_name] = sum(
-                weight
-                * (1.0 + math.log1p(tokens[token]))
-                * (
-                    1.0
-                    + math.log(
-                        (document_count + 1)
-                        / (document_frequency[token] + 1)
-                    )
-                )
-                for token, weight in profile.items()
-                if tokens[token]
-            )
-        if earliest_explicit is not None:
-            # The first explicit entity type normally describes the document's
-            # primary subject; later entity mentions are commonly relationships.
-            # Attribute evidence only handles documents with no explicit type.
-            selected = tuple(
-                entity_name
-                for entity_name, position in explicit_positions.items()
-                if position == earliest_explicit
-            )
+        if earliest_position is not None:
+            for entity_name, position in explicit_positions.items():
+                if (
+                    position is not None
+                    and position > earliest_position
+                    and discriminative_mass[entity_name] <= 0.0
+                ):
+                    scores[entity_name] *= 0.6
+        best = max(scores.values(), default=0.0)
+        if best <= 0.0:
+            selected = tuple(scores)
         else:
-            best = max(scores.values(), default=0.0)
-            if best <= 0.0:
-                selected = tuple(scores)
-            else:
-                selected = tuple(
+            selected_names = {
+                entity_name
+                for entity_name, score in scores.items()
+                if score >= best * 0.92
+            }
+            best_discriminative = max(
+                discriminative_mass.values(), default=0.0
+            )
+            if best_discriminative > 0.0:
+                selected_names.update(
                     entity_name
-                    for entity_name, score in scores.items()
-                    if score >= best * 0.92
+                    for entity_name, mass in discriminative_mass.items()
+                    if mass >= best_discriminative * 0.85
+                    and scores[entity_name] >= best * 0.65
                 )
+            selected = tuple(
+                entity.name
+                for entity in contract.entities
+                if entity.name in selected_names
+            )
         for entity_name in selected:
             routes[entity_name].append(document_id)
     return {

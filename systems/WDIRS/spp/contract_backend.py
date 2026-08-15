@@ -88,8 +88,8 @@ from spp.workload_contract import (
 from token_counter import count_tokens
 
 
-BACKEND_VERSION = 34
-HYBRID_BULK_VERSION = 9
+BACKEND_VERSION = 35
+HYBRID_BULK_VERSION = 10
 
 logger = logging.getLogger(__name__)
 
@@ -1023,6 +1023,62 @@ def _surrogate_key_column(
     )
 
 
+def _surrogate_primary_key(
+    relation: RelationSpec,
+    row: Mapping[str, object],
+) -> Optional[str]:
+    """Derive a path- and order-independent key from observable row content."""
+
+    primary_key = relation.primary_key
+    excluded = {
+        "row_id",
+        "_row_identity",
+        str(primary_key or ""),
+    }
+    relation_key = _symbol_key(relation.name)
+    preferred_columns = [
+        column
+        for column in relation.attributes
+        if _symbol_key(column) in {
+            "name",
+            f"{relation_key}name",
+        }
+    ]
+    natural = next(
+        (
+            row.get(column)
+            for column in preferred_columns
+            if row.get(column) not in (None, "")
+        ),
+        None,
+    )
+    payload = (
+        {
+            "relation": relation.name,
+            "natural": _symbol_key(natural),
+        }
+        if natural not in (None, "")
+        else {
+            "relation": relation.name,
+            "attributes": {
+                column: _jsonable(row.get(column))
+                for column in sorted(relation.attributes)
+                if column not in excluded
+                and row.get(column) not in (None, "")
+            },
+        }
+    )
+    if not payload.get("natural") and not payload.get("attributes"):
+        return None
+    digest = hashlib.sha256(
+        (
+            "quwarts-surrogate-v1\0"
+            + json.dumps(payload, sort_keys=True, separators=(",", ":"))
+        ).encode("utf-8")
+    ).hexdigest()
+    return f"quwarts:{relation_key}:{digest}"
+
+
 def _normalize_table_identities(
     tables: Mapping[str, Sequence[Mapping[str, object]]],
     graph: WorkloadRelationGraph,
@@ -1068,11 +1124,11 @@ def _normalize_table_identities(
                 # The source firewall deliberately hides file names and paths.
                 # COUNT(DISTINCT id) still needs a stable per-entity key when
                 # no official identifier is present in source text. Derive it
-                # from the path-agnostic row identity rather than inventing an
-                # external identifier.
-                row[surrogate_column] = (
-                    f"quwarts:{_symbol_key(relation.name)}:{row['row_id']}"
-                )
+                # from observable natural/content fields rather than inventing
+                # an external identifier or inheriting a source path.
+                surrogate = _surrogate_primary_key(relation, row)
+                if surrogate is not None:
+                    row[surrogate_column] = surrogate
             normalized.append(row)
         result[name] = normalized
     for relation in graph.relations:

@@ -146,6 +146,37 @@ def test_content_routing_uses_primary_subject_before_related_entities():
     assert routes["organization"] == ("opaque-2",)
 
 
+def test_content_routing_fallback_uses_discriminative_fields_after_early_mention(
+):
+    contract = WorkloadContract(
+        entities=(
+            EntityContract("disease"),
+            EntityContract("institution"),
+        ),
+        attributes=(
+            AttributeContract("disease", "diagnostic_methods"),
+            AttributeContract("disease", "treatments"),
+            AttributeContract("institution", "institution_country"),
+            AttributeContract("institution", "institution_type"),
+            AttributeContract("institution", "research_fields"),
+        ),
+        relationships=(),
+    )
+    document = SourceDocument(
+        "opaque-med",
+        (
+            "Disease burden is mentioned as background. Northbank is an "
+            "institution. Its institution country is Canada, its institution "
+            "type is university, and its research fields include oncology."
+        ),
+    )
+
+    routes = route_documents_by_content((document,), contract)
+
+    assert routes["institution"] == (document.document_id,)
+    assert routes["disease"] == ()
+
+
 def test_semantic_routing_uses_contract_fields_and_supports_multiple_labels(
     tmp_path,
 ):
@@ -206,7 +237,7 @@ def test_semantic_routing_uses_contract_fields_and_supports_multiple_labels(
     assert "diagnostic_methods" in client.prompts[0]
 
 
-def test_missing_opaque_primary_keys_receive_stable_surrogates():
+def test_missing_opaque_primary_keys_receive_pathless_stable_surrogates():
     relation = RelationSpec(
         name="disease",
         attributes=("id", "disease_name"),
@@ -225,10 +256,34 @@ def test_missing_opaque_primary_keys_receive_stable_surrogates():
 
     first = _normalize_table_identities(tables, graph)
     second = _normalize_table_identities(tables, graph)
+    relocated = _normalize_table_identities(
+        {
+            "disease": (
+                {
+                    "row_id": "different-source-b",
+                    "disease_name": "Beta syndrome",
+                },
+                {
+                    "row_id": "different-source-a",
+                    "disease_name": "Alpha syndrome",
+                },
+            )
+        },
+        graph,
+    )
 
     assert first == second
-    assert first["disease"][0]["id"] == "quwarts:disease:row-a"
-    assert first["disease"][1]["id"] == "quwarts:disease:row-b"
+    by_name = {
+        row["disease_name"]: row["id"] for row in first["disease"]
+    }
+    relocated_by_name = {
+        row["disease_name"]: row["id"] for row in relocated["disease"]
+    }
+    assert by_name == relocated_by_name
+    assert all(
+        value.startswith("quwarts:disease:")
+        for value in by_name.values()
+    )
     assert len({row["id"] for row in first["disease"]}) == 2
 
 
