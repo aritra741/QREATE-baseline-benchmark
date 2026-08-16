@@ -2464,14 +2464,6 @@ class ContractBackend:
             self.documents,
             budgeted_client,
             evidence_store,
-            max_context_characters=(
-                self.preprocessing_policy.chunk_size
-                if self.preprocessing_policy.strategy == "chunked"
-                else max(
-                    (len(document.text) for document in self.documents),
-                    default=1200,
-                )
-            ),
         )
         return self.extractor
 
@@ -3985,9 +3977,12 @@ class ContractBackend:
             observed_document_lengths=lengths,
             exhaustive=False,
         )
+        # Bulk traversal and semantic routing have different prompt shapes.
+        # Keep this independent from SPP_CONTRACT_CONTEXT_CHARS so increasing
+        # extraction windows cannot silently enlarge hundreds of route calls.
         context_limit = max(
             1200,
-            int(os.getenv("SPP_CONTRACT_CONTEXT_CHARS", "16000")),
+            int(os.getenv("SPP_BULK_WINDOW_CHARS", "16000")),
         )
         longest = max(lengths, default=0)
         if longest <= context_limit:

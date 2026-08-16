@@ -17,6 +17,7 @@ import re
 from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, dataclass, field
+from threading import Event
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 from json_repair import repair_json
@@ -799,23 +800,39 @@ class ContractExtractor:
         """Infer multi-label routes from grounded contract-field support."""
 
         fallback = route_documents_by_content(self.documents, contract)
+        semantic_unavailable = Event()
 
         def route(document: SourceDocument) -> Tuple[str, ...]:
+            fallback_routes = tuple(
+                entity.name
+                for entity in contract.entities
+                if document.document_id in fallback.get(entity.name, ())
+            )
+            if semantic_unavailable.is_set():
+                return fallback_routes
             try:
                 return self._semantic_route_one(
                     document, contract, fallback
                 )
-            except (BudgetExhausted, RuntimeError) as exc:
-                logger.warning(
-                    "Semantic routing fell back for document %s: %s",
-                    document.document_id,
-                    exc,
-                )
-                return tuple(
-                    entity.name
-                    for entity in contract.entities
-                    if document.document_id in fallback.get(entity.name, ())
-                )
+            except Exception as exc:
+                first_failure = not semantic_unavailable.is_set()
+                semantic_unavailable.set()
+                if first_failure:
+                    logger.warning(
+                        "Semantic routing provider failed for document %s "
+                        "(%s: %s); disabling semantic routing and using "
+                        "deterministic routes for remaining documents",
+                        document.document_id,
+                        type(exc).__name__,
+                        exc,
+                    )
+                else:
+                    logger.debug(
+                        "Concurrent semantic routing call failed for %s: %s",
+                        document.document_id,
+                        exc,
+                    )
+                return fallback_routes
 
         with ThreadPoolExecutor(
             max_workers=min(self.max_workers, len(self.documents)),

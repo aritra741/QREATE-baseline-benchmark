@@ -274,6 +274,59 @@ def test_semantic_routing_abstentions_use_nonempty_fallback_routes(tmp_path):
     assert routes["place"] == ("opaque-place",)
 
 
+def test_semantic_routing_timeout_opens_fallback_circuit(tmp_path):
+    class TimingOutClient:
+        model = "fixture"
+        seed = 11
+        ledger = type("Ledger", (), {"actual_spent": 0})()
+
+        def __init__(self):
+            self.calls = 0
+
+        def generate(self, _prompt, **_kwargs):
+            self.calls += 1
+            raise TimeoutError("provider timed out")
+
+    contract = WorkloadContract(
+        entities=(EntityContract("vehicle"), EntityContract("place")),
+        attributes=(
+            AttributeContract("vehicle", "wheel_count"),
+            AttributeContract("place", "population"),
+        ),
+        relationships=(),
+    )
+    documents = (
+        SourceDocument(
+            "opaque-vehicle-a",
+            "This vehicle has a wheel count of four.",
+        ),
+        SourceDocument(
+            "opaque-place",
+            "This place has a population of 12000 residents.",
+        ),
+        SourceDocument(
+            "opaque-vehicle-b",
+            "This vehicle has a wheel count of six.",
+        ),
+    )
+    client = TimingOutClient()
+    with EvidenceStore(tmp_path / "routing-timeout.sqlite") as store:
+        extractor = ContractExtractor(
+            documents,
+            client,
+            store,
+            max_workers=1,
+        )
+        routes = extractor.infer_document_routes(contract)
+
+    assert client.calls == 1
+    assert routes["vehicle"] == (
+        "opaque-vehicle-a",
+        "opaque-vehicle-b",
+    )
+    assert routes["place"] == ("opaque-place",)
+
+
 def test_missing_opaque_primary_keys_receive_pathless_stable_surrogates():
     relation = RelationSpec(
         name="disease",
@@ -2454,7 +2507,7 @@ def test_contract_backend_selects_context_safe_preprocessing(monkeypatch):
         object(),
     )
 
-    monkeypatch.setenv("SPP_CONTRACT_CONTEXT_CHARS", "3600")
+    monkeypatch.setenv("SPP_BULK_WINDOW_CHARS", "3600")
     assert backend._select_preprocessing_policy(
         (1200,)
     ) == PreprocessingPolicy("whole_document")
@@ -2466,7 +2519,7 @@ def test_contract_backend_selects_context_safe_preprocessing(monkeypatch):
         chunk_overlap=200,
     )
 
-    monkeypatch.setenv("SPP_CONTRACT_CONTEXT_CHARS", "5000")
+    monkeypatch.setenv("SPP_BULK_WINDOW_CHARS", "5000")
     assert backend._select_preprocessing_policy(
         (12_000,)
     ) == PreprocessingPolicy(
@@ -2475,7 +2528,7 @@ def test_contract_backend_selects_context_safe_preprocessing(monkeypatch):
         chunk_overlap=400,
     )
 
-    monkeypatch.delenv("SPP_CONTRACT_CONTEXT_CHARS")
+    monkeypatch.delenv("SPP_BULK_WINDOW_CHARS")
     assert backend._select_preprocessing_policy(
         (80_000,)
     ) == PreprocessingPolicy(
