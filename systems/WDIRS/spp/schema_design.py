@@ -327,6 +327,15 @@ def generate_preprocessing_policies(
                 PreprocessingPolicy(
                     strategy="chunked", chunk_size=4_000, chunk_overlap=400
                 ),
+                PreprocessingPolicy(
+                    strategy="chunked", chunk_size=8_000, chunk_overlap=400
+                ),
+                PreprocessingPolicy(
+                    strategy="chunked", chunk_size=12_000, chunk_overlap=600
+                ),
+                PreprocessingPolicy(
+                    strategy="chunked", chunk_size=16_000, chunk_overlap=800
+                ),
             ]
         )
     return policies

@@ -91,8 +91,8 @@ from spp.workload_contract import (
 from token_counter import count_tokens
 
 
-BACKEND_VERSION = 37
-HYBRID_BULK_VERSION = 11
+BACKEND_VERSION = 38
+HYBRID_BULK_VERSION = 12
 
 logger = logging.getLogger(__name__)
 
@@ -2464,6 +2464,14 @@ class ContractBackend:
             self.documents,
             budgeted_client,
             evidence_store,
+            max_context_characters=(
+                self.preprocessing_policy.chunk_size
+                if self.preprocessing_policy.strategy == "chunked"
+                else max(
+                    (len(document.text) for document in self.documents),
+                    default=1200,
+                )
+            ),
         )
         return self.extractor
 
@@ -3032,7 +3040,7 @@ class ContractBackend:
         self,
         documents: Sequence[ContractDocument],
     ) -> Tuple[ContractDocument, ...]:
-        """Apply the selected preprocessing policy without mixing documents."""
+        """Exhaustively apply the policy without mixing or dropping source text."""
 
         windows: List[ContractDocument] = []
         policy = self.preprocessing_policy
@@ -3554,8 +3562,20 @@ class ContractBackend:
                         entity_col=None,
                         col_batch_size_override=1,
                     )
+                    denied = False
                     for result in repair_results:
                         absorb(result, fill_only=True)
+                        error = str(
+                            getattr(result, "error", "") or ""
+                        ).lower()
+                        if (
+                            "cannot reserve" in error
+                            or "budget boundary" in error
+                        ):
+                            budget_boundary = True
+                            denied = True
+                    if denied:
+                        break
                 coverage[column] = sum(
                     any(
                         record.get(column) not in (None, "")
@@ -3724,6 +3744,7 @@ class ContractBackend:
                     "preprocessing_policy": asdict(
                         self.preprocessing_policy
                     ),
+                    "window_selection": "exhaustive_policy_units",
                     "window_counts": window_counts,
                     "column_batch_size": self.bulk_column_batch_size,
                     "column_batches": column_batch_counts,
@@ -3966,7 +3987,7 @@ class ContractBackend:
         )
         context_limit = max(
             1200,
-            int(os.getenv("SPP_CONTRACT_CONTEXT_CHARS", "3600")),
+            int(os.getenv("SPP_CONTRACT_CONTEXT_CHARS", "16000")),
         )
         longest = max(lengths, default=0)
         if longest <= context_limit:

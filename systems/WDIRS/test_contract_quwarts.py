@@ -2442,6 +2442,7 @@ def test_bulk_scheduler_windows_long_documents_one_at_a_time(
     assert shared.raw_tables["record"][0]["detail"] == "OMEGA detail"
     scheduler = shared.metadata["relation_balanced_scheduler"]
     assert scheduler["single_document_windows"] is True
+    assert scheduler["window_selection"] == "exhaustive_policy_units"
     assert scheduler["preprocessing_policy"]["strategy"] == "chunked"
     assert scheduler["window_counts"]["record"] == len(calls)
     assert scheduler["attempted_documents"]["record"] == 1
@@ -2472,6 +2473,15 @@ def test_contract_backend_selects_context_safe_preprocessing(monkeypatch):
         "chunked",
         chunk_size=4000,
         chunk_overlap=400,
+    )
+
+    monkeypatch.delenv("SPP_CONTRACT_CONTEXT_CHARS")
+    assert backend._select_preprocessing_policy(
+        (80_000,)
+    ) == PreprocessingPolicy(
+        "chunked",
+        chunk_size=16000,
+        chunk_overlap=800,
     )
 
 
