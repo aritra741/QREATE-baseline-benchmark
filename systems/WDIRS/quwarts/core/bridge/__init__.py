@@ -8,6 +8,7 @@ from typing import Iterable
 
 from quwarts.core.domain import _atomic, _surfaces
 from quwarts.core.extract import _parse_llm_object
+from quwarts.core.ledger import BudgetExhausted
 from quwarts.core.models import EvidenceRecord, Workload
 
 KEEP_RELATIONS = frozenset({"rename", "alias", "abbreviation", "historical_name"})
@@ -215,7 +216,10 @@ def _typed_links(
 ) -> list[tuple[str, str, str]]:
     """Keep a single-model link when its relation is an identity type."""
 
-    mapped = _llm_link(values, targets, caller, left, right)
+    try:
+        mapped = _llm_link(values, targets, caller, left, right)
+    except BudgetExhausted:
+        return []
     kept: list[tuple[str, str, str]] = []
     for source, (dest, relation) in mapped.items():
         if relation not in KEEP_RELATIONS:

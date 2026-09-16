@@ -11,6 +11,7 @@ from collections import defaultdict
 from typing import Any, Iterable
 
 from quwarts.core.extract import _parse_llm_object
+from quwarts.core.ledger import BudgetExhausted
 from quwarts.core.models import EvidenceRecord, Workload
 
 JOIN_JACCARD_GATE = 0.05
@@ -309,7 +310,11 @@ def build_domain_maps(
             else:
                 unknown.append(value)
         if unknown and caller is not None:
-            mapping.update(_llm_map(unknown, domain, caller, name))
+            try:
+                mapping.update(_llm_map(unknown, domain, caller, name))
+            except BudgetExhausted:
+                # Remaining values stay unmapped; do not abort the corpus.
+                pass
         _remember(name, mapping)
 
     for component in identity_components(workload):
@@ -406,7 +411,10 @@ def _llm_identity_map(
         "When several values name the same entity, use the same representative. "
         "Prefer the longest representative. Return a JSON object. No commentary."
     )
-    text = caller.complete(prompt, purpose="identity_map", attribute=label)
+    try:
+        text = caller.complete(prompt, purpose="identity_map", attribute=label)
+    except BudgetExhausted:
+        return {}
     payload = _parse_llm_object(text)
     mapped: dict[str, str] = {}
     allowed = {item.lower(): item for item in representatives}

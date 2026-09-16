@@ -25,7 +25,7 @@ from quwarts.core.extract import (
     ground_constrained_records,
     prefer_constrained_records,
 )
-from quwarts.core.ledger import BudgetedCaller, TokenLedger
+from quwarts.core.ledger import BudgetExhausted, BudgetedCaller, TokenLedger
 from quwarts.core.logical import infer_logical_schema
 from quwarts.core.materialize import file_sha256, materialize
 from quwarts.core.models import (
@@ -302,7 +302,10 @@ def compile_workload(
     except TypeUnificationError:
         # Do not abort a corpus. Irreconcilable joins stay infeasible and score 0.
         pass
-    maps, identity_report = build_domain_maps(records, workload, caller, logical)
+    try:
+        maps, identity_report = build_domain_maps(records, workload, caller, logical)
+    except BudgetExhausted:
+        maps, identity_report = {}, {}
     selected_configs: list[Configuration] = []
     selected_dbs = []
     rejected_disjoint: list[dict[str, object]] = []
