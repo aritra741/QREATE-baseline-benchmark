@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from quwarts.core.extract import validate_cell
 from quwarts.core.logical import infer_logical_schema, is_coarsening
+from quwarts.core.population import _as_number
 from quwarts.core.models import SliceSpec
 from quwarts.core.pipeline import compile_workload, load_documents
 from quwarts.core.schema import _pk_for, generate_physical_schemas
@@ -1091,3 +1092,12 @@ def test_physical_keys_are_never_coarsenings() -> None:
     for schema in generate_physical_schemas(logical):
         for keys in schema.primary_keys.values():
             assert not any(is_coarsening(item.split(".")[-1]) for item in keys)
+
+
+def test_numeric_surfaces_absorb_currency_and_scale() -> None:
+    assert _as_number("$8,998.1m") == 8_998_100_000
+    assert _as_number("Over £6m") == 6_000_000
+    assert _as_number("$9,808 million") == 9_808_000_000
+    assert _as_number("12.1cps") == 12.1
+    assert _as_number("1700") == 1700
+    assert _as_number("not a number") is None

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections import defaultdict
 from typing import Any
 
@@ -128,16 +129,52 @@ def _canonical(record: EvidenceRecord, pop: PopulationPolicy, surface: Any) -> A
     return apply_domain(surface, norm.params.get("map") or {}, [])
 
 
+_UNIT_SCALE = {
+    "k": 1_000,
+    "thousand": 1_000,
+    "m": 1_000_000,
+    "mn": 1_000_000,
+    "mm": 1_000_000,
+    "million": 1_000_000,
+    "b": 1_000_000_000,
+    "bn": 1_000_000_000,
+    "billion": 1_000_000_000,
+}
+_NUMBER_PREFIX = re.compile(
+    r"^(over|about|approx(?:imately)?|under|around|nearly|more than|less than)\s+",
+    re.I,
+)
+_NUMBER_TOKEN = re.compile(
+    r"([+-]?\d+(?:\.\d+)?(?:e[+-]?\d+)?)\s*"
+    r"(thousand|million|billion|bn|mn|mm|k|m|b)?",
+    re.I,
+)
+
+
 def _as_number(value: Any) -> Any:
+    """Parse a numeric surface, including currency marks and scale suffixes."""
+
     if value is None:
+        return None
+    if isinstance(value, bool):
         return None
     if isinstance(value, (int, float)):
         return value
-    try:
-        text = str(value).replace(",", "").replace("$", "")
-        return float(text) if "." in text else int(text)
-    except ValueError:
+    text = str(value).strip()
+    if not text:
         return None
+    text = text.replace(",", "").replace("$", "").replace("£", "").replace("€", "")
+    text = _NUMBER_PREFIX.sub("", text)
+    match = _NUMBER_TOKEN.search(text)
+    if match is None:
+        return None
+    raw, suffix = match.group(1), (match.group(2) or "").lower()
+    number = float(raw) if ("." in raw or "e" in raw.lower()) else int(raw)
+    scale = _UNIT_SCALE.get(suffix, 1)
+    scaled = number * scale
+    if isinstance(scaled, float) and scaled.is_integer():
+        return int(scaled)
+    return scaled
 
 
 def _merge(rows: list[dict[str, Any]], config: Configuration, workload: Workload) -> list[dict[str, Any]]:

@@ -12,6 +12,7 @@ Derived from `T`, `Q`, and `theta` only. No gold tables, gold row counts, or dat
 6. **Constrained referencing extract.** Extract the authority identity first, from documents that assert that entity. Extract the referencing column as a closed choice over that set plus `other`. A constrained assignment must appear in the extract span; otherwise emit `other`. Free-form leftovers are not populated.
 7. **Join-yield gating.** Rewrite feasibility uses filtered-left join yield, not set Jaccard. Zero-yield empties score zero. Failed rewrite scores zero.
 8. **Slice-safety.** Unsafe templates do not admit on a predicate slice. Anti-join / `EXCEPT` / `NOT EXISTS` shapes are slice-unsafe.
+9. **Unit standardization.** Numeric commit parses currency marks and scale suffixes (`k`/`m`/`b`, million, billion) into ones. SQL comparison literals already live in that family. Unparseable surfaces stay null. Added after the Finan smoke, before held-out.
 
 Operator split: `GROUP BY` may use a canonical form; joins use surface values and consult the bridge per left value.
 
