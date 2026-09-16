@@ -19,6 +19,7 @@ from quwarts.core.extract import (
     EvidenceStore,
     StagedExtractor,
     allocate_tiers,
+    complete_authority,
     prefer_constrained_records,
 )
 from quwarts.core.ledger import BudgetedCaller, TokenLedger
@@ -133,7 +134,11 @@ def synthesize(
             extractor.extract(documents, workload, config.pre, tiers, logical=logical)
         except Exception:
             continue
-        records = prefer_constrained_records(list(store.records.values()))
+        records = complete_authority(
+            prefer_constrained_records(list(store.records.values())),
+            workload,
+            logical,
+        )
         db = materialize(config, records, workload, documents, db_dir, tokens_spent=ledger.spent)
         report = U_hat(db, config, documents, workload, stage1_rate=extractor.stage1_rate)
         db.surrogate = report
@@ -273,7 +278,11 @@ def compile_workload(
         extractor.extract(documents, workload, policy, tiers, logical=logical)
 
     schema = canonical_schema(logical)
-    records = prefer_constrained_records(list(store.records.values()))
+    records = complete_authority(
+        prefer_constrained_records(list(store.records.values())),
+        workload,
+        logical,
+    )
     classify_declared_domains(workload, records)
     unify_join_types(workload, records)
     maps, identity_report = build_domain_maps(records, workload, caller, logical)
@@ -334,6 +343,7 @@ def compile_workload(
         workload,
         caller,
         linkage=identity_report.get("linkage") or {},
+        documents=documents,
     )
     for db in selected_dbs:
         write_bridges(db.sqlite_path, bridges)

@@ -209,6 +209,65 @@ def prefer_constrained_records(records: list[EvidenceRecord]) -> list[EvidenceRe
     return list(best.values())
 
 
+def complete_authority(
+    records: list[EvidenceRecord],
+    workload: Workload,
+    logical=None,
+) -> list[EvidenceRecord]:
+    """Populate the identity side of each equijoin from unmatched references.
+
+    A missing authority row cannot be bridged. Atomic referencing values
+    with no identity-side match become authority evidence so the join
+    has a right-hand row.
+    """
+
+    refs = join_authority(workload, logical)
+    if not refs:
+        return records
+    have: dict[str, set[str]] = {}
+    for record in records:
+        text = (record.surface_value or "").strip()
+        if not text:
+            continue
+        have.setdefault(record.attribute, set()).add(text.lower())
+        have.setdefault(record.attribute.split(".")[-1], set()).add(text.lower())
+    extra: list[EvidenceRecord] = []
+    for ref, auth in refs.items():
+        seen = set(have.get(auth) or ())
+        seen.update(have.get(auth.split(".")[-1]) or ())
+        entity = auth.split(".", 1)[0]
+        for record in records:
+            if record.attribute != ref:
+                continue
+            value = (record.surface_value or "").strip()
+            if not value or "," in value or value.lower() in seen:
+                continue
+            slug = _slug(value)
+            extra.append(
+                EvidenceRecord(
+                    key=evidence_key(
+                        f"join_complete:{auth}:{slug}", auth, "join_complete", "cheap",
+                    ),
+                    segment_id=f"join_complete:{auth}:{slug}",
+                    doc_id=f"{entity}/join_complete/{slug}",
+                    attribute=auth,
+                    surface_value=value,
+                    parsed_value=value,
+                    candidate_keys={"surface": value, "completed": "join"},
+                    extractor_cfg_hash="join_complete",
+                    quality_tier="cheap",
+                    stage=2,
+                )
+            )
+            seen.add(value.lower())
+    return list(records) + extra
+
+
+def _slug(value: str) -> str:
+    text = "".join(ch.lower() if ch.isalnum() else "-" for ch in value)
+    return "-".join(part for part in text.split("-") if part)[:80] or "value"
+
+
 def join_authority(workload: Workload, logical=None) -> dict[str, str]:
     """Referencing join column -> identity (authority) column.
 

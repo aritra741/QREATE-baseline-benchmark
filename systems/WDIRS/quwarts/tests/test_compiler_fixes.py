@@ -729,6 +729,126 @@ def test_constrained_cell_vocab_and_other() -> None:
     assert surface == "Cincinnati Royals"
 
 
+def test_complete_authority_adds_missing_identity_row() -> None:
+    from quwarts.core.extract import complete_authority
+    from quwarts.core.models import EvidenceRecord
+    from quwarts.core.workload import analyze_workload
+
+    _, workload = analyze_workload(
+        ["SELECT t.team_name FROM player p JOIN team t ON p.team = t.team_name"]
+    )
+    records = [
+        EvidenceRecord(
+            key="p",
+            segment_id="s",
+            doc_id="player/1",
+            attribute="player.team",
+            surface_value="Rochester Royals",
+            extractor_cfg_hash="h",
+            quality_tier="cheap",
+            stage=2,
+        ),
+        EvidenceRecord(
+            key="t",
+            segment_id="s2",
+            doc_id="team/1",
+            attribute="team.team_name",
+            surface_value="Sacramento Kings",
+            extractor_cfg_hash="h",
+            quality_tier="cheap",
+            stage=2,
+        ),
+    ]
+    completed = complete_authority(records, workload)
+    names = {
+        row.surface_value
+        for row in completed
+        if row.attribute == "team.team_name"
+    }
+    assert "Sacramento Kings" in names
+    assert "Rochester Royals" in names
+    assert any(
+        row.doc_id.startswith("team/join_complete/")
+        and row.surface_value == "Rochester Royals"
+        for row in completed
+    )
+
+
+def test_bridge_rename_requires_comention() -> None:
+    from quwarts.core.bridge import build_bridges
+    from quwarts.core.models import EvidenceRecord, SourceDocument
+    from quwarts.core.workload import analyze_workload
+
+    _, workload = analyze_workload(
+        ["SELECT t.team_name FROM player p JOIN team t ON p.team = t.team_name"]
+    )
+    records = [
+        EvidenceRecord(
+            key="p",
+            segment_id="s",
+            doc_id="player/1",
+            attribute="player.team",
+            surface_value="Philadelphia Warriors",
+            extractor_cfg_hash="h",
+            quality_tier="cheap",
+            stage=2,
+        ),
+        EvidenceRecord(
+            key="t",
+            segment_id="s2",
+            doc_id="team/1",
+            attribute="team.team_name",
+            surface_value="Philadelphia 76ers",
+            extractor_cfg_hash="h",
+            quality_tier="cheap",
+            stage=2,
+        ),
+    ]
+
+    class Caller:
+        def complete(self, prompt, purpose, **kwargs):
+            return (
+                '{"Philadelphia Warriors": {"right": "Philadelphia 76ers",'
+                ' "relation": "rename"},'
+                ' "Sonics": {"right": "Philadelphia 76ers", "relation": "alias"}}'
+            )
+
+    silent = [SourceDocument(doc_id="d", text="A player for the club.")]
+    both = [
+        SourceDocument(
+            doc_id="d",
+            text="The Philadelphia Warriors later became distinct from the Philadelphia 76ers.",
+        )
+    ]
+    dropped = build_bridges(
+        [("player.team", "team.team_name")],
+        records,
+        workload,
+        caller=Caller(),
+        documents=silent,
+    )
+    rows = dropped.get(("player.team", "team.team_name")) or []
+    assert not any(
+        row["left_value"] == "Philadelphia Warriors"
+        and row.get("relation") == "rename"
+        for row in rows
+    )
+    kept = build_bridges(
+        [("player.team", "team.team_name")],
+        records,
+        workload,
+        caller=Caller(),
+        documents=both,
+    )
+    rows = kept[("player.team", "team.team_name")]
+    assert any(
+        row["left_value"] == "Philadelphia Warriors"
+        and row["right_value"] == "Philadelphia 76ers"
+        and row.get("relation") == "rename"
+        for row in rows
+    )
+
+
 def test_prefer_constrained_replaces_freeform_cache() -> None:
     from quwarts.core.extract import prefer_constrained_records
     from quwarts.core.models import EvidenceRecord

@@ -27,12 +27,16 @@ def build_bridges(
     workload: Workload,
     caller=None,
     linkage: dict[str, str] | None = None,
+    documents=None,
 ) -> dict[tuple[str, str], list[dict[str, str]]]:
     """One bridge per equijoin pair. Corroboration is not applied."""
 
     surfaces = _surfaces(records)
     aliases = dict(workload.literal_aliases)
     aliases.update(linkage or {})
+    texts = None
+    if documents is not None:
+        texts = [str(getattr(doc, "text", "") or "").lower() for doc in documents]
     built: dict[tuple[str, str], list[dict[str, str]]] = {}
     for left, right in pairs:
         key = (left, right)
@@ -58,6 +62,12 @@ def build_bridges(
             for source, dest, relation in mapped:
                 pair = (source.lower(), dest.lower())
                 if pair in matched:
+                    continue
+                if (
+                    texts is not None
+                    and relation in {"rename", "historical_name"}
+                    and not _co_mentioned(source, dest, texts)
+                ):
                     continue
                 rows.append(
                     {
@@ -187,6 +197,13 @@ def _alias_rows(
                 }
             )
     return rows
+
+
+def _co_mentioned(left: str, right: str, texts: list[str]) -> bool:
+    a, b = left.strip().lower(), right.strip().lower()
+    if not a or not b:
+        return False
+    return any(a in text and b in text for text in texts)
 
 
 def _typed_links(
