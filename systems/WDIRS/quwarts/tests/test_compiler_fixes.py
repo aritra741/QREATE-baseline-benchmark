@@ -545,6 +545,54 @@ def test_equijoin_type_unification_errors_when_irreconcilable() -> None:
     raise AssertionError("expected TypeUnificationError")
 
 
+def test_bridge_keeps_identity_relations_and_cardinality() -> None:
+    from quwarts.core.bridge import KEEP_RELATIONS, _agreed_links, _enforce_left_function
+
+    class Caller:
+        def __init__(self, first, second):
+            self.payloads = [first, second]
+            self.i = 0
+
+        def complete(self, prompt, purpose, **kwargs):
+            text = self.payloads[min(self.i, len(self.payloads) - 1)]
+            self.i += 1
+            return text
+
+    caller = Caller(
+        (
+            '{"Royals": {"right": "Kings", "relation": "historical_name"},'
+            ' "Wizards": {"right": "Go-Go", "relation": "affiliate"},'
+            ' "Lakers": {"right": "Lakers", "relation": "alias"}}'
+        ),
+        (
+            '{"Royals": {"right": "Kings", "relation": "rename"},'
+            ' "Wizards": {"right": "Go-Go", "relation": "affiliate"},'
+            ' "Lakers": {"right": "Clippers", "relation": "rename"}}'
+        ),
+    )
+    agreed = _agreed_links(
+        ["Royals", "Wizards", "Lakers"],
+        ["Kings", "Go-Go", "Lakers", "Clippers"],
+        caller,
+        "player.team",
+        "team.team_name",
+    )
+    pairs = {(src, dest, rel) for src, dest, rel in agreed}
+    assert ("Royals", "Kings", "historical_name") in pairs
+    assert not any(src == "Wizards" for src, _, _ in agreed)
+    assert not any(src == "Lakers" for src, _, _ in agreed)
+    assert all(rel in KEEP_RELATIONS for _, _, rel in agreed)
+
+    rows = _enforce_left_function(
+        [
+            {"left_value": "Royals", "right_value": "Kings"},
+            {"left_value": "Royals", "right_value": "Cavaliers"},
+            {"left_value": "Hawks", "right_value": "Hawks"},
+        ]
+    )
+    assert [row["left_value"] for row in rows] == ["Hawks"]
+
+
 def test_rename_is_bridge_not_within_column_merge() -> None:
     from quwarts.core.bridge import build_bridges
     from quwarts.core.domain import build_domain_maps

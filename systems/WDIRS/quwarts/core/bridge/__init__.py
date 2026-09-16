@@ -10,6 +10,9 @@ from quwarts.core.domain import _atomic, _surfaces
 from quwarts.core.extract import _parse_llm_object
 from quwarts.core.models import EvidenceRecord, Workload
 
+KEEP_RELATIONS = frozenset({"rename", "alias", "abbreviation", "historical_name"})
+BRIDGE_AGREE_MODEL = "mistralai/mistral-7b-instruct"
+
 
 def bridge_table_name(left: str, right: str) -> str:
     return f"bridge_{left.replace('.', '_')}__{right.replace('.', '_')}"
@@ -52,8 +55,8 @@ def build_bridges(
         ]
         targets = sorted(_atomic(right_vals) or right_vals)
         if unknown and targets and caller is not None:
-            mapped = _llm_link(unknown, targets, caller, left, right)
-            for source, dest in mapped.items():
+            mapped = _agreed_links(unknown, targets, caller, left, right)
+            for source, dest, relation in mapped:
                 pair = (source.lower(), dest.lower())
                 if pair in matched:
                     continue
@@ -61,11 +64,13 @@ def build_bridges(
                     {
                         "left_value": source,
                         "right_value": dest,
-                        "evidence": f"equijoin:{left}={right}",
+                        "evidence": f"{relation}:{left}={right}",
                         "confidence": "0.7",
+                        "relation": relation,
                     }
                 )
                 matched.add(pair)
+        rows = _enforce_left_function(rows)
         if rows:
             built[key] = rows
     return built
@@ -185,35 +190,90 @@ def _alias_rows(
     return rows
 
 
+def _agreed_links(
+    values: list[str],
+    targets: list[str],
+    caller,
+    left: str,
+    right: str,
+) -> list[tuple[str, str, str]]:
+    first = _llm_link(values, targets, caller, left, right)
+    second = _llm_link(
+        values, targets, caller, left, right, model=BRIDGE_AGREE_MODEL,
+    )
+    agreed: list[tuple[str, str, str]] = []
+    for source, (dest, relation) in first.items():
+        other = second.get(source)
+        if other is None:
+            continue
+        dest_b, rel_b = other
+        if dest.lower() != dest_b.lower():
+            continue
+        if relation not in KEEP_RELATIONS or rel_b not in KEEP_RELATIONS:
+            continue
+        agreed.append((source, dest, relation))
+    return agreed
+
+
 def _llm_link(
     values: list[str],
     targets: list[str],
     caller,
     left: str,
     right: str,
-) -> dict[str, str]:
+    model: str | None = None,
+) -> dict[str, tuple[str, str]]:
     prompt = (
         "SQL equijoins these columns, so a LEFT value may co-denote a RIGHT "
-        "value even when the strings differ (renames, abbreviations). "
-        "Map each LEFT value to exactly one RIGHT value, or null if none correspond. "
-        "Use only names from RIGHT.\n"
+        "value even when the strings differ. This is identity, not association: "
+        "renames, aliases, abbreviations, and historical names only. "
+        "Do not link affiliates, locations, owners, or parents.\n"
         f"LEFT COLUMN: {left}\n"
         f"RIGHT COLUMN: {right}\n"
         f"LEFT: {json.dumps(values)}\n"
         f"RIGHT: {json.dumps(targets)}\n"
-        "Return a JSON object. No commentary."
+        "Return a JSON object mapping each LEFT value to "
+        '{"right": <RIGHT value or null>, "relation": '
+        '"rename"|"alias"|"abbreviation"|"historical_name"|"affiliate"'
+        '|"located_in"|"owned_by"|"parent_of"|"none"}. No commentary.'
     )
-    text = caller.complete(prompt, purpose="join_bridge", attribute=f"{left}={right}")
+    kwargs = {"purpose": "join_bridge", "attribute": f"{left}={right}"}
+    if model:
+        kwargs["model"] = model
+    text = caller.complete(prompt, **kwargs)
     payload = _parse_llm_object(text)
     allowed = {item.lower(): item for item in targets}
-    mapped: dict[str, str] = {}
+    mapped: dict[str, tuple[str, str]] = {}
     for value in values:
         raw = payload.get(value)
         if raw is None:
             raw = payload.get(value.lower())
-        if raw in (None, "", "null"):
+        dest, relation = _split_link(raw)
+        if dest in (None, "", "null"):
             continue
-        hit = allowed.get(str(raw).strip().lower())
-        if hit is not None:
-            mapped[value] = hit
+        hit = allowed.get(str(dest).strip().lower())
+        if hit is None:
+            continue
+        mapped[value] = (hit, relation)
     return mapped
+
+
+def _split_link(raw) -> tuple[str | None, str]:
+    if raw in (None, "", "null"):
+        return None, "none"
+    if isinstance(raw, dict):
+        dest = raw.get("right") or raw.get("value") or raw.get("target")
+        relation = str(raw.get("relation") or "none").strip().lower()
+        return (None if dest in (None, "", "null") else str(dest).strip()), relation
+    return str(raw).strip(), "none"
+
+
+def _enforce_left_function(rows: list[dict[str, str]]) -> list[dict[str, str]]:
+    """Drop left values that map to more than one right value."""
+
+    rights: dict[str, set[str]] = {}
+    for row in rows:
+        left = row["left_value"].strip().lower()
+        rights.setdefault(left, set()).add(row["right_value"].strip().lower())
+    banned = {left for left, dests in rights.items() if len(dests) > 1}
+    return [row for row in rows if row["left_value"].strip().lower() not in banned]
