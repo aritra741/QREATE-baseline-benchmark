@@ -711,6 +711,32 @@ def test_join_authority_picks_identity_side() -> None:
     assert "city.city_name" not in refs
 
 
+def test_ungrounded_constrained_value_becomes_other() -> None:
+    from quwarts.core.extract import find_surface_span, ground_constrained
+    from quwarts.core.models import EvidenceRecord
+
+    assert find_surface_span("He played for the Sacramento Kings.", "Sacramento Kings")
+    assert find_surface_span("He played for the Kings.", "Sacramento Kings") is None
+    record = EvidenceRecord(
+        key="k",
+        segment_id="s",
+        doc_id="player/1",
+        attribute="player.team",
+        surface_value="Atlanta Hawks",
+        extractor_cfg_hash="h",
+        quality_tier="cheap",
+        stage=2,
+        candidate_keys={"constrained": "vocab"},
+    )
+    dropped = ground_constrained(record, "A biography with no franchise name.")
+    assert dropped.surface_value is None
+    assert dropped.null_reason == "ungrounded"
+    assert dropped.candidate_keys.get("constrained") == "other"
+    kept = ground_constrained(record, "Drafted by the Atlanta Hawks in 1999.")
+    assert kept.surface_value == "Atlanta Hawks"
+    assert kept.span is not None
+
+
 def test_constrained_cell_vocab_and_other() -> None:
     from quwarts.core.extract import constrained_cell
 
@@ -1040,7 +1066,7 @@ def test_constrained_extract_uses_authority_vocab() -> None:
         store=store, ledger=TokenLedger(theta=10000, seed=0), caller=caller, seed=0,
     )
     extractor.extract(
-        [SourceDocument(doc_id="player/1", text="He played for the Cincinnati Royals.")],
+        [SourceDocument(doc_id="player/1", text="He played for the Sacramento Kings.")],
         workload,
         PreprocessPolicy(mode="whole_document"),
         {name: "cheap" for name in workload.requirements},

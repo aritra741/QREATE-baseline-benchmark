@@ -187,6 +187,63 @@ def constrained_cell(
     return surface, parsed, reason, True
 
 
+def find_surface_span(text: str, value: str | None) -> tuple[int, int] | None:
+    """Offset of ``value`` in ``text``, or None if the surface is absent."""
+
+    if not text or value in (None, ""):
+        return None
+    needle = str(value).strip()
+    if not needle:
+        return None
+    index = text.lower().find(needle.lower())
+    if index < 0:
+        return None
+    return (index, index + len(needle))
+
+
+def ground_constrained(
+    record: EvidenceRecord,
+    text: str,
+) -> EvidenceRecord:
+    """Drop a constrained assignment that does not appear in the source span."""
+
+    flag = (record.candidate_keys or {}).get("constrained")
+    if flag not in {"vocab", "other"}:
+        return record
+    span = find_surface_span(text, record.surface_value)
+    keys = dict(record.candidate_keys or {})
+    if record.surface_value and span is None:
+        keys["constrained"] = "other"
+        keys["grounded"] = "0"
+        return record.model_copy(
+            update={
+                "surface_value": None,
+                "parsed_value": None,
+                "null_reason": "ungrounded",
+                "span": None,
+                "candidate_keys": keys,
+                "confidence": 0.2,
+            }
+        )
+    if span is not None:
+        keys["grounded"] = "1"
+        return record.model_copy(update={"span": span, "candidate_keys": keys})
+    return record
+
+
+def ground_constrained_records(
+    records: list[EvidenceRecord],
+    documents: list[SourceDocument],
+) -> list[EvidenceRecord]:
+    texts = {doc.doc_id: doc.text for doc in documents}
+    grounded: list[EvidenceRecord] = []
+    for record in records:
+        text = texts.get(record.doc_id) or ""
+        limit = 12000 if record.quality_tier == "expensive" else 4000
+        grounded.append(ground_constrained(record, text[:limit] if text else ""))
+    return grounded
+
+
 def prefer_constrained_records(
     records: list[EvidenceRecord],
     workload: Workload | None = None,
@@ -628,15 +685,23 @@ class StagedExtractor:
                     "other" if residue else ("vocab" if attribute in vocab_for else None),
                 )
 
+        clip = segment.text
         for attribute in missing:
             surface, parsed, reason, tokens, constrained = extracted[attribute]
             cfg_hash, tier = cfg_for[attribute]
+            limit = 12000 if tier == "expensive" else 4000
+            window = clip[:limit]
+            span = find_surface_span(window, surface)
+            if constrained and surface and span is None:
+                surface, parsed, reason = None, None, "ungrounded"
+                constrained = "other"
             keys = {
                 "surface": str(surface) if surface is not None else "",
                 "doc_id": segment.doc_id,
             }
             if constrained:
                 keys["constrained"] = constrained
+                keys["grounded"] = "0" if reason == "ungrounded" else "1"
             record = EvidenceRecord(
                 key=evidence_key(segment.segment_id, attribute, cfg_hash, tier),
                 segment_id=segment.segment_id,
@@ -648,7 +713,7 @@ class StagedExtractor:
                 original_unit=_guess_unit(surface),
                 null_reason=None if surface is not None else (reason or "not_found"),
                 candidate_keys=keys,
-                span=None,
+                span=span,
                 confidence=0.9 if surface is not None else 0.2,
                 extractor_cfg_hash=cfg_hash,
                 quality_tier=tier,  # type: ignore[arg-type]

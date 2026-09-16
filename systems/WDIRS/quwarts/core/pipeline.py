@@ -10,6 +10,7 @@ from quwarts.core.amplify import attach_amplification, allocation_weights
 from quwarts.core.bridge import build_bridges, write_bridges
 from quwarts.core.conflict import cluster_templates, conflict_graph, conflict_mix
 from quwarts.core.domain import (
+    TypeUnificationError,
     build_domain_maps,
     classify_declared_domains,
     disjoint_attributes,
@@ -21,6 +22,7 @@ from quwarts.core.extract import (
     allocate_tiers,
     authority_domains,
     complete_authority,
+    ground_constrained_records,
     prefer_constrained_records,
 )
 from quwarts.core.ledger import BudgetedCaller, TokenLedger
@@ -136,7 +138,10 @@ def synthesize(
         except Exception:
             continue
         records = complete_authority(
-            prefer_constrained_records(list(store.records.values()), workload, logical),
+            ground_constrained_records(
+                prefer_constrained_records(list(store.records.values()), workload, logical),
+                documents,
+            ),
             workload,
             logical,
         )
@@ -283,13 +288,20 @@ def compile_workload(
 
     schema = canonical_schema(logical)
     records = complete_authority(
-        prefer_constrained_records(list(store.records.values()), workload, logical),
+        ground_constrained_records(
+            prefer_constrained_records(list(store.records.values()), workload, logical),
+            documents,
+        ),
         workload,
         logical,
     )
     authority = authority_domains(records, workload, logical)
     classify_declared_domains(workload, records)
-    unify_join_types(workload, records)
+    try:
+        unify_join_types(workload, records)
+    except TypeUnificationError:
+        # Do not abort a corpus. Irreconcilable joins stay infeasible and score 0.
+        pass
     maps, identity_report = build_domain_maps(records, workload, caller, logical)
     selected_configs: list[Configuration] = []
     selected_dbs = []
