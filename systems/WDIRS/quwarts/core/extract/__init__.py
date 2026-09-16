@@ -9,6 +9,8 @@ import re
 from pathlib import Path
 from typing import Any, Callable, Iterable
 
+from collections import defaultdict
+
 from quwarts.core.ledger import BudgetExhausted, BudgetedCaller, TokenLedger
 from quwarts.core.models import (
     AttributeRequirement,
@@ -21,6 +23,8 @@ from quwarts.core.models import (
 )
 from quwarts.core.preprocess import Segment, segment_documents, policy_hash
 from quwarts.core.models import PreprocessPolicy
+
+_OTHER = "other"
 
 
 ExtractorFn = Callable[[Segment, str, str], tuple[str | None, Any, int]]
@@ -142,6 +146,80 @@ def validate_cell(value: Any, dtype: str = "string") -> tuple[str | None, Any, s
     return text, _parse(text), None
 
 
+def constrained_cell(
+    raw: Any,
+    vocab: list[str],
+    dtype: str = "string",
+) -> tuple[str | None, Any, str | None, bool]:
+    """Parse a closed-choice extract. residue=True means not in vocab."""
+
+    allowed = {item.lower(): item for item in vocab if item}
+    value = raw
+    extra = None
+    if isinstance(raw, dict):
+        value = raw.get("value")
+        if value is None:
+            value = raw.get("choice") or raw.get("right")
+        extra = raw.get("surface") or raw.get("other")
+        if extra in (None, "", "null", "none"):
+            extra = None
+        else:
+            extra = str(extra).strip()
+    if value in (None, "", "null", "none"):
+        return None, None, "not_found", False
+    text = str(value).strip()
+    if not text:
+        return None, None, "not_found", False
+    if text.lower() == _OTHER:
+        if extra and extra.lower() != _OTHER:
+            surface, parsed, reason = validate_cell(extra, dtype)
+            return surface, parsed, reason, True
+        return None, None, "other", True
+    hit = allowed.get(text.lower())
+    if hit is not None:
+        surface, parsed, reason = validate_cell(hit, dtype)
+        return surface, parsed, reason, False
+    if extra and extra.lower() != _OTHER:
+        surface, parsed, reason = validate_cell(extra, dtype)
+        if surface is not None:
+            return surface, parsed, reason, True
+    surface, parsed, reason = validate_cell(text, dtype)
+    return surface, parsed, reason, True
+
+
+def join_authority(workload: Workload, logical=None) -> dict[str, str]:
+    """Referencing join column -> identity (authority) column.
+
+    The authority side is the entity's own identity attribute (``id``,
+    ``name``, ``*_id``, ``*_name``). ``logical`` is accepted so the AST key
+    can be consulted; a one-attribute entity must not promote a foreign
+    key to identity, so the test is structural, not ``identity_name``'s
+    fallback.
+    """
+
+    _ = logical
+    mapping: dict[str, str] = {}
+    seen: set[tuple[str, str]] = set()
+    for template in workload.templates:
+        for left, right in template.join_pairs:
+            key = tuple(sorted((left, right)))
+            if key in seen or left == right:
+                continue
+            seen.add(key)
+            left_id = _structural_identity(left)
+            right_id = _structural_identity(right)
+            if left_id and not right_id:
+                mapping[right] = left
+            elif right_id and not left_id:
+                mapping[left] = right
+    return mapping
+
+
+def _structural_identity(qualified: str) -> bool:
+    bare = qualified.split(".")[-1].lower()
+    return bare in {"id", "name"} or bare.endswith("_name") or bare.endswith("_id")
+
+
 def _parse_llm_value(text: str, dtype: str = "string") -> tuple[str | None, Any, str | None]:
     cleaned = (text or "").strip()
     if not cleaned or cleaned.lower() in {"null", "none", "n/a"}:
@@ -220,6 +298,7 @@ class StagedExtractor:
         self.seed = seed
         self.stage1_admitted: set[str] = set()
         self.stage1_rate: float = 1.0
+        self.constraints: dict[str, str] = {}
 
     def extract(
         self,
@@ -228,9 +307,11 @@ class StagedExtractor:
         policy: PreprocessPolicy,
         tiers: dict[str, str],
         format_clusters: dict[str, str] | None = None,
+        logical=None,
     ) -> dict[str, int]:
         segments = segment_documents(documents, policy)
         format_clusters = format_clusters or cluster_document_formats(documents)
+        self.constraints = join_authority(workload, logical)
         counts = {"stage1": 0, "stage2": 0, "stage3": 0}
         admitted_docs: set[str] = set()
         try:
@@ -266,6 +347,17 @@ class StagedExtractor:
             )
         }
         dtypes = {name: req.dtype for name, req in workload.requirements.items()}
+        authority = [
+            name
+            for name in workload.requirements
+            if name in set(self.constraints.values())
+        ]
+        for segment in segments:
+            self._extract_many(
+                segment, authority, tiers, stage=1,
+                format_clusters=format_clusters, policy=policy, dtypes=dtypes,
+            )
+            counts["stage1"] += len(authority)
         for segment in segments:
             keep = False
             records = self._extract_many(
@@ -342,10 +434,18 @@ class StagedExtractor:
         records: list[EvidenceRecord] = []
         missing: list[str] = []
         cfg_for: dict[str, tuple[str, str]] = {}
+        vocab_for: dict[str, list[str]] = {}
         for attribute in attributes:
             tier = tiers.get(attribute, "cheap")
+            auth = self.constraints.get(attribute)
+            vocab = self._authority_vocab(auth) if auth else []
+            if auth and vocab:
+                vocab_for[attribute] = vocab
+                tag = f"|constrained|{auth}"
+            else:
+                tag = ""
             cfg_hash = hashlib.sha256(
-                f"{policy_hash(policy)}|{tier}|{extractor_name}".encode()
+                f"{policy_hash(policy)}|{tier}|{extractor_name}{tag}".encode()
             ).hexdigest()[:12]
             cfg_for[attribute] = (cfg_hash, tier)
             cached = self.store.get(segment.segment_id, attribute, cfg_hash, tier)
@@ -357,53 +457,58 @@ class StagedExtractor:
         if not missing:
             return records
 
-        extracted: dict[str, tuple[str | None, Any, str | None, int]] = {}
+        extracted: dict[str, tuple[str | None, Any, str | None, int, str | None]] = {}
         if self.caller is not None:
-            tier = "expensive" if any(cfg_for[name][1] == "expensive" for name in missing) else "cheap"
-            limit = 12000 if tier == "expensive" else 4000
-            clip = segment.text[:limit]
-            listed = ", ".join(missing)
-            prompt = (
-                "Extract the following attributes from the document. "
-                "Return one JSON object mapping each attribute name to a scalar or null. "
-                "No commentary, no nested objects.\n"
-                f"ATTRIBUTES: {listed}\n\nDOCUMENT:\n{clip}"
-            )
-            try:
-                text = self.caller.complete(
-                    prompt, purpose="extract", attributes=missing, tier=tier,
+            free = [name for name in missing if name not in vocab_for]
+            grouped: dict[str, list[str]] = defaultdict(list)
+            for name in missing:
+                if name in vocab_for:
+                    grouped[self.constraints[name]].append(name)
+            if free:
+                extracted.update(
+                    self._llm_extract_free(segment, free, cfg_for, dtypes)
                 )
-            except Exception:
-                for attribute in missing:
-                    extracted[attribute] = (None, None, "provider_error", 0)
-            else:
-                payload = _parse_llm_object(text)
-                tokens = max(1, (len(prompt) + len(text)) // 4)
-                share = max(1, tokens // max(len(missing), 1))
-                for attribute in missing:
-                    raw = payload.get(attribute)
-                    if raw is None:
-                        raw = payload.get(attribute.split(".")[-1])
-                    surface, parsed, reason = validate_cell(raw, dtypes.get(attribute, "string"))
-                    extracted[attribute] = (surface, parsed, reason, share)
+            for auth, names in grouped.items():
+                extracted.update(
+                    self._llm_extract_constrained(
+                        segment, names, vocab_for[names[0]], cfg_for, dtypes,
+                    )
+                )
         else:
             for attribute in missing:
                 surface, parsed, tokens = self.extractor(
                     segment, attribute, cfg_for[attribute][1],
                 )
-                surface, parsed, reason = validate_cell(
-                    parsed if surface is None else surface,
-                    dtypes.get(attribute, "string"),
-                )
+                if attribute in vocab_for:
+                    surface, parsed, reason, residue = constrained_cell(
+                        surface if surface is not None else parsed,
+                        vocab_for[attribute],
+                        dtypes.get(attribute, "string"),
+                    )
+                else:
+                    surface, parsed, reason = validate_cell(
+                        parsed if surface is None else surface,
+                        dtypes.get(attribute, "string"),
+                    )
+                    residue = False
                 self.ledger.spend(
                     tokens, purpose="extract", attribute=attribute,
                     tier=cfg_for[attribute][1], stage=stage,
                 )
-                extracted[attribute] = (surface, parsed, reason, tokens)
+                extracted[attribute] = (
+                    surface, parsed, reason, tokens,
+                    "other" if residue else ("vocab" if attribute in vocab_for else None),
+                )
 
         for attribute in missing:
-            surface, parsed, reason, tokens = extracted[attribute]
+            surface, parsed, reason, tokens, constrained = extracted[attribute]
             cfg_hash, tier = cfg_for[attribute]
+            keys = {
+                "surface": str(surface) if surface is not None else "",
+                "doc_id": segment.doc_id,
+            }
+            if constrained:
+                keys["constrained"] = constrained
             record = EvidenceRecord(
                 key=evidence_key(segment.segment_id, attribute, cfg_hash, tier),
                 segment_id=segment.segment_id,
@@ -414,10 +519,7 @@ class StagedExtractor:
                 parsed_value=parsed,
                 original_unit=_guess_unit(surface),
                 null_reason=None if surface is not None else (reason or "not_found"),
-                candidate_keys={
-                    "surface": str(surface) if surface is not None else "",
-                    "doc_id": segment.doc_id,
-                },
+                candidate_keys=keys,
                 span=None,
                 confidence=0.9 if surface is not None else 0.2,
                 extractor_cfg_hash=cfg_hash,
@@ -427,6 +529,105 @@ class StagedExtractor:
             )
             records.append(self.store.put(record))
         return records
+
+    def _authority_vocab(self, auth: str | None) -> list[str]:
+        if not auth:
+            return []
+        values: list[str] = []
+        seen: set[str] = set()
+        for record in self.store.for_attribute(auth):
+            text = (record.surface_value or "").strip()
+            if not text or "," in text:
+                continue
+            key = text.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            values.append(text)
+        return sorted(values, key=str.lower)
+
+    def _llm_extract_free(
+        self,
+        segment: Segment,
+        missing: list[str],
+        cfg_for: dict[str, tuple[str, str]],
+        dtypes: dict[str, str],
+    ) -> dict[str, tuple[str | None, Any, str | None, int, str | None]]:
+        extracted: dict[str, tuple[str | None, Any, str | None, int, str | None]] = {}
+        tier = "expensive" if any(cfg_for[name][1] == "expensive" for name in missing) else "cheap"
+        limit = 12000 if tier == "expensive" else 4000
+        clip = segment.text[:limit]
+        listed = ", ".join(missing)
+        prompt = (
+            "Extract the following attributes from the document. "
+            "Return one JSON object mapping each attribute name to a scalar or null. "
+            "No commentary, no nested objects.\n"
+            f"ATTRIBUTES: {listed}\n\nDOCUMENT:\n{clip}"
+        )
+        try:
+            text = self.caller.complete(
+                prompt, purpose="extract", attributes=missing, tier=tier,
+            )
+        except Exception:
+            for attribute in missing:
+                extracted[attribute] = (None, None, "provider_error", 0, None)
+            return extracted
+        payload = _parse_llm_object(text)
+        tokens = max(1, (len(prompt) + len(text)) // 4)
+        share = max(1, tokens // max(len(missing), 1))
+        for attribute in missing:
+            raw = payload.get(attribute)
+            if raw is None:
+                raw = payload.get(attribute.split(".")[-1])
+            surface, parsed, reason = validate_cell(raw, dtypes.get(attribute, "string"))
+            extracted[attribute] = (surface, parsed, reason, share, None)
+        return extracted
+
+    def _llm_extract_constrained(
+        self,
+        segment: Segment,
+        missing: list[str],
+        vocab: list[str],
+        cfg_for: dict[str, tuple[str, str]],
+        dtypes: dict[str, str],
+    ) -> dict[str, tuple[str | None, Any, str | None, int, str | None]]:
+        extracted: dict[str, tuple[str | None, Any, str | None, int, str | None]] = {}
+        tier = "expensive" if any(cfg_for[name][1] == "expensive" for name in missing) else "cheap"
+        limit = 12000 if tier == "expensive" else 4000
+        clip = segment.text[:limit]
+        listed = ", ".join(missing)
+        prompt = (
+            "Extract the following attributes from the document. "
+            "Each value must be exactly one of the allowed values, or the token "
+            f"{_OTHER} if the document uses a name that is not listed. "
+            "Return one JSON object mapping each attribute name to an allowed "
+            f"value, null, or {_OTHER}. If {_OTHER}, return "
+            '{"value": "other", "surface": "<name as written>"}. '
+            "No commentary.\n"
+            f"ATTRIBUTES: {listed}\n"
+            f"ALLOWED: {json.dumps(vocab)}\n\nDOCUMENT:\n{clip}"
+        )
+        try:
+            text = self.caller.complete(
+                prompt, purpose="extract", attributes=missing, tier=tier,
+            )
+        except Exception:
+            for attribute in missing:
+                extracted[attribute] = (None, None, "provider_error", 0, None)
+            return extracted
+        payload = _parse_llm_object(text)
+        tokens = max(1, (len(prompt) + len(text)) // 4)
+        share = max(1, tokens // max(len(missing), 1))
+        for attribute in missing:
+            raw = payload.get(attribute)
+            if raw is None:
+                raw = payload.get(attribute.split(".")[-1])
+            surface, parsed, reason, residue = constrained_cell(
+                raw, vocab, dtypes.get(attribute, "string"),
+            )
+            mark = None if surface is None else ("other" if residue else "vocab")
+            extracted[attribute] = (surface, parsed, reason, share, mark)
+        return extracted
 
 
 def _template(workload: Workload, template_id: str) -> Template:

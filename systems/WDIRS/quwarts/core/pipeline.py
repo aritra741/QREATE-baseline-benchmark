@@ -125,7 +125,7 @@ def synthesize(
         new_attrs = set(workload.requirements)
         cost = marginal_cost(config, seen_pre, seen_attrs, new_attrs)
         try:
-            extractor.extract(documents, workload, config.pre, tiers)
+            extractor.extract(documents, workload, config.pre, tiers, logical=logical)
         except Exception:
             continue
         records = list(store.records.values())
@@ -265,7 +265,7 @@ def compile_workload(
     policy = PreprocessPolicy(mode="whole_document")
     if extract:
         extractor = StagedExtractor(store=store, ledger=ledger, caller=caller, seed=seed)
-        extractor.extract(documents, workload, policy, tiers)
+        extractor.extract(documents, workload, policy, tiers, logical=logical)
 
     schema = canonical_schema(logical)
     records = list(store.records.values())

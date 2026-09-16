@@ -546,42 +546,28 @@ def test_equijoin_type_unification_errors_when_irreconcilable() -> None:
 
 
 def test_bridge_keeps_identity_relations_and_cardinality() -> None:
-    from quwarts.core.bridge import KEEP_RELATIONS, _agreed_links, _enforce_left_function
+    from quwarts.core.bridge import KEEP_RELATIONS, _enforce_left_function, _typed_links
 
     class Caller:
-        def __init__(self, first, second):
-            self.payloads = [first, second]
-            self.i = 0
-
         def complete(self, prompt, purpose, **kwargs):
-            text = self.payloads[min(self.i, len(self.payloads) - 1)]
-            self.i += 1
-            return text
+            return (
+                '{"Royals": {"right": "Kings", "relation": "historical_name"},'
+                ' "Wizards": {"right": "Go-Go", "relation": "affiliate"},'
+                ' "Lakers": {"right": "Lakers", "relation": "alias"}}'
+            )
 
-    caller = Caller(
-        (
-            '{"Royals": {"right": "Kings", "relation": "historical_name"},'
-            ' "Wizards": {"right": "Go-Go", "relation": "affiliate"},'
-            ' "Lakers": {"right": "Lakers", "relation": "alias"}}'
-        ),
-        (
-            '{"Royals": {"right": "Kings", "relation": "rename"},'
-            ' "Wizards": {"right": "Go-Go", "relation": "affiliate"},'
-            ' "Lakers": {"right": "Clippers", "relation": "rename"}}'
-        ),
-    )
-    agreed = _agreed_links(
+    kept = _typed_links(
         ["Royals", "Wizards", "Lakers"],
         ["Kings", "Go-Go", "Lakers", "Clippers"],
-        caller,
+        Caller(),
         "player.team",
         "team.team_name",
     )
-    pairs = {(src, dest, rel) for src, dest, rel in agreed}
+    pairs = {(src, dest, rel) for src, dest, rel in kept}
     assert ("Royals", "Kings", "historical_name") in pairs
-    assert not any(src == "Wizards" for src, _, _ in agreed)
-    assert not any(src == "Lakers" for src, _, _ in agreed)
-    assert all(rel in KEEP_RELATIONS for _, _, rel in agreed)
+    assert ("Lakers", "Lakers", "alias") in pairs
+    assert not any(src == "Wizards" for src, _, _ in kept)
+    assert all(rel in KEEP_RELATIONS for _, _, rel in kept)
 
     rows = _enforce_left_function(
         [
@@ -706,6 +692,91 @@ def test_bridge_rewrite_keeps_surface_columns(tmp_path) -> None:
     )
     mixed_sql = apply_bridges(mixed, str(path))
     assert join_yield(mixed_sql, str(path)) == 1.0
+
+
+def test_join_authority_picks_identity_side() -> None:
+    from quwarts.core.extract import join_authority
+    from quwarts.core.workload import analyze_workload
+
+    logical, workload = analyze_workload(
+        [
+            "SELECT t.team_name FROM player p JOIN team t ON p.team = t.team_name",
+            "SELECT t.location FROM team t JOIN city c ON c.city_name = t.location",
+        ]
+    )
+    refs = join_authority(workload, logical)
+    assert refs.get("player.team") == "team.team_name"
+    assert refs.get("team.location") == "city.city_name"
+    assert "team.team_name" not in refs
+    assert "city.city_name" not in refs
+
+
+def test_constrained_cell_vocab_and_other() -> None:
+    from quwarts.core.extract import constrained_cell
+
+    vocab = ["Golden State Warriors", "Sacramento Kings"]
+    surface, _parsed, reason, residue = constrained_cell("Golden State Warriors", vocab)
+    assert reason is None
+    assert residue is False
+    assert surface == "Golden State Warriors"
+    surface, _parsed, _reason, residue = constrained_cell(
+        {"value": "other", "surface": "Philadelphia Warriors"}, vocab
+    )
+    assert residue is True
+    assert surface == "Philadelphia Warriors"
+    surface, _parsed, _reason, residue = constrained_cell("Cincinnati Royals", vocab)
+    assert residue is True
+    assert surface == "Cincinnati Royals"
+
+
+def test_constrained_extract_uses_authority_vocab() -> None:
+    from quwarts.core.extract import EvidenceStore, StagedExtractor
+    from quwarts.core.ledger import TokenLedger
+    from quwarts.core.models import EvidenceRecord, PreprocessPolicy, SourceDocument
+    from quwarts.core.workload import analyze_workload
+
+    class Caller:
+        def __init__(self) -> None:
+            self.prompts: list[str] = []
+
+        def complete(self, prompt, purpose, **kwargs):
+            self.prompts.append(prompt)
+            return '{"player.team": "Sacramento Kings"}'
+
+    logical, workload = analyze_workload(
+        ["SELECT t.team_name FROM player p JOIN team t ON p.team = t.team_name"]
+    )
+    store = EvidenceStore()
+    store.put(
+        EvidenceRecord(
+            key="auth",
+            segment_id="team-s",
+            doc_id="team/1",
+            attribute="team.team_name",
+            surface_value="Sacramento Kings",
+            extractor_cfg_hash="h",
+            quality_tier="cheap",
+            stage=1,
+        )
+    )
+    caller = Caller()
+    extractor = StagedExtractor(
+        store=store, ledger=TokenLedger(theta=10000, seed=0), caller=caller, seed=0,
+    )
+    extractor.extract(
+        [SourceDocument(doc_id="player/1", text="He played for the Cincinnati Royals.")],
+        workload,
+        PreprocessPolicy(mode="whole_document"),
+        {name: "cheap" for name in workload.requirements},
+        logical=logical,
+    )
+    constrained = [prompt for prompt in caller.prompts if "ALLOWED" in prompt]
+    assert constrained
+    assert "Sacramento Kings" in constrained[0]
+    records = [row for row in store.records.values() if row.attribute == "player.team"]
+    assert records
+    assert records[0].surface_value == "Sacramento Kings"
+    assert records[0].candidate_keys.get("constrained") == "vocab"
 
 
 def test_physical_keys_are_never_coarsenings() -> None:
