@@ -42,6 +42,9 @@ def policy_from_demands(
         pop.miss.setdefault(name, ModuleConfig(strategy="nulls_preserved", params={}))
         pop.er.setdefault(name, ModuleConfig(strategy="no_merge", params={}))
         pop.grain.setdefault(req.entity_type, req.finest_grain)
+    for name, dtype in workload.join_types.items():
+        pop.type[name] = ModuleConfig(strategy=dtype, params={})
+        pop.type[name.split(".")[-1]] = pop.type[name]
     return pop
 
 
@@ -101,9 +104,7 @@ def _commit(record: EvidenceRecord, pop: PopulationPolicy) -> Any:
         value = record.parsed_value
     typ = pop.type.get(record.attribute)
     if typ and typ.strategy == "numeric":
-        number = _as_number(record.parsed_value if record.parsed_value is not None else value)
-        if number is not None:
-            value = number
+        value = _as_number(record.parsed_value if record.parsed_value is not None else value)
     elif isinstance(record.parsed_value, (int, float)) and typ and typ.strategy in {"numeric"}:
         value = record.parsed_value
     norm = pop.norm.get(record.attribute) or pop.norm.get(record.attribute.split(".")[-1])

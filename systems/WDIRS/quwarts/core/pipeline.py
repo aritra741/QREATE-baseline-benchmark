@@ -13,6 +13,7 @@ from quwarts.core.domain import (
     build_domain_maps,
     classify_declared_domains,
     disjoint_attributes,
+    unify_join_types,
 )
 from quwarts.core.extract import EvidenceStore, StagedExtractor, allocate_tiers
 from quwarts.core.ledger import BudgetedCaller, TokenLedger
@@ -269,6 +270,7 @@ def compile_workload(
     schema = canonical_schema(logical)
     records = list(store.records.values())
     classify_declared_domains(workload, records)
+    unify_join_types(workload, records)
     maps, identity_report = build_domain_maps(records, workload, caller, logical)
     selected_configs: list[Configuration] = []
     selected_dbs = []

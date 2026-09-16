@@ -16,6 +16,11 @@ from quwarts.core.models import EvidenceRecord, Workload
 JOIN_JACCARD_GATE = 0.05
 IDENTITY_ALIGNED = 0.5
 IDENTITY_MIN_CANON_RATIO = 0.25
+_STRING_TYPES = frozenset({"string", "categorical", "multivalued"})
+
+
+class TypeUnificationError(ValueError):
+    """Equijoin sides could not resolve to a single type."""
 
 
 def jaccard(left: Iterable[str], right: Iterable[str]) -> float:
@@ -157,6 +162,84 @@ def _corroborate(mapping: dict[str, str], records: list[EvidenceRecord]) -> dict
         if len(docs.get(source, set())) >= 2:
             kept[source] = dest
     return kept
+
+
+def unify_join_types(
+    workload: Workload,
+    records: list[EvidenceRecord] | None = None,
+) -> dict[str, str]:
+    """An equijoin asserts co-denotation, so both sides share one type.
+
+    String literals or non-numeric evidence on either side force string.
+    Raises TypeUnificationError when a pair cannot be resolved.
+    """
+
+    surfaces = _surfaces(records or [])
+    aliases = {item.lower() for item in workload.literal_aliases} | {
+        item.lower() for item in workload.literal_aliases.values()
+    }
+    seen: set[tuple[str, str]] = set()
+    errors: list[str] = []
+    for template in workload.templates:
+        for left, right in template.join_pairs:
+            key = tuple(sorted((left, right)))
+            if key in seen or left == right:
+                continue
+            seen.add(key)
+            try:
+                unified = _unify_pair(left, right, workload, surfaces, aliases)
+            except TypeUnificationError as exc:
+                errors.append(str(exc))
+                continue
+            for name in (left, right):
+                workload.join_types[name] = unified
+                req = workload.requirements.get(name)
+                if req is not None:
+                    req.dtype = unified
+    if errors:
+        workload.binding_failures.extend(errors)
+        raise TypeUnificationError("; ".join(errors))
+    return dict(workload.join_types)
+
+
+def _unify_pair(
+    left: str,
+    right: str,
+    workload: Workload,
+    surfaces: dict[str, set[str]],
+    aliases: set[str],
+) -> str:
+    declared = []
+    for name in (left, right):
+        req = workload.requirements.get(name)
+        declared.append(req.dtype if req is not None else "string")
+    left_vals = surfaces.get(left) or surfaces.get(left.split(".")[-1]) or set()
+    right_vals = surfaces.get(right) or surfaces.get(right.split(".")[-1]) or set()
+    values = set(left_vals) | set(right_vals)
+    string_forced = any(dtype in _STRING_TYPES for dtype in declared)
+    if aliases:
+        string_forced = True
+    if any(not _looks_numeric(item) for item in values):
+        string_forced = True
+    if string_forced:
+        return "string"
+    unique = {dtype for dtype in declared if dtype}
+    if len(unique) <= 1:
+        return next(iter(unique), "string")
+    raise TypeUnificationError(
+        f"equijoin {left} = {right} cannot unify types {sorted(unique)}"
+    )
+
+
+def _looks_numeric(value: str) -> bool:
+    text = str(value).replace(",", "").replace("$", "").strip()
+    if not text:
+        return False
+    try:
+        float(text)
+    except ValueError:
+        return False
+    return True
 
 
 def classify_declared_domains(workload: Workload, records: list[EvidenceRecord]) -> None:

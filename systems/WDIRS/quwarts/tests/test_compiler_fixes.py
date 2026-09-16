@@ -468,47 +468,81 @@ def test_join_yield_and_corroboration(tmp_path) -> None:
     assert kept["Lakers"] == "Los Angeles Lakers"
 
 
-def test_numeric_type_does_not_null_join_key() -> None:
-    from quwarts.core.models import (
-        Configuration,
-        EvidenceRecord,
-        PopulationPolicy,
-        PreprocessPolicy,
-        ModuleConfig,
-    )
-    from quwarts.core.population import apply_population
-    from quwarts.core.schema import canonical_schema
+def test_equijoin_unifies_type_to_string() -> None:
+    from quwarts.core.conflict import cluster_templates
+    from quwarts.core.domain import unify_join_types
+    from quwarts.core.models import EvidenceRecord, Role
+    from quwarts.core.population import policy_from_demands
     from quwarts.core.workload import analyze_workload
 
-    logical, workload = analyze_workload(
-        ["SELECT t.team_name FROM player p JOIN team t ON p.team = t.team_name"]
-    )
-    pop = PopulationPolicy()
-    pop.type["team.team_name"] = ModuleConfig(strategy="numeric")
-    config = Configuration(
-        id="c",
-        schema=canonical_schema(logical),
-        pop=pop,
-        pre=PreprocessPolicy(mode="whole_document"),
-        cluster_id="c0",
-    )
-    rows = apply_population(
+    _, workload = analyze_workload(
         [
-            EvidenceRecord(
-                key="a",
-                segment_id="s",
-                doc_id="team/1",
-                attribute="team.team_name",
-                surface_value="Sacramento Kings",
-                extractor_cfg_hash="h",
-                quality_tier="cheap",
-                stage=1,
-            )
-        ],
-        config,
-        workload,
+            "SELECT t.team_name, COUNT(t.team_name) FROM player p "
+            "JOIN team t ON p.team = t.team_name GROUP BY t.team_name"
+        ]
     )
-    assert rows[0]["team.team_name"] == "Sacramento Kings"
+    records = [
+        EvidenceRecord(
+            key="a",
+            segment_id="s",
+            doc_id="team/1",
+            attribute="team.team_name",
+            surface_value="Sacramento Kings",
+            extractor_cfg_hash="h",
+            quality_tier="cheap",
+            stage=1,
+        )
+    ]
+    if "team.team_name" in workload.requirements:
+        workload.requirements["team.team_name"].roles.add(Role.AGG_ADDITIVE)
+        workload.requirements["team.team_name"].dtype = "numeric"
+    unify_join_types(workload, records)
+    assert workload.join_types["team.team_name"] == "string"
+    assert workload.join_types["player.team"] == "string"
+    clusters = cluster_templates(workload)
+    pop = policy_from_demands(clusters[0].resolved_demands, workload)
+    assert pop.type["team.team_name"].strategy == "string"
+
+
+def test_equijoin_type_unification_errors_when_irreconcilable() -> None:
+    from quwarts.core.domain import TypeUnificationError, unify_join_types
+    from quwarts.core.models import EvidenceRecord
+    from quwarts.core.workload import analyze_workload
+
+    _, workload = analyze_workload(
+        ["SELECT a.x FROM a JOIN b ON a.x = b.y"]
+    )
+    if "a.x" in workload.requirements:
+        workload.requirements["a.x"].dtype = "numeric"
+    if "b.y" in workload.requirements:
+        workload.requirements["b.y"].dtype = "date"
+    records = [
+        EvidenceRecord(
+            key="a",
+            segment_id="s",
+            doc_id="d1",
+            attribute="a.x",
+            surface_value="2020",
+            extractor_cfg_hash="h",
+            quality_tier="cheap",
+            stage=1,
+        ),
+        EvidenceRecord(
+            key="b",
+            segment_id="s",
+            doc_id="d2",
+            attribute="b.y",
+            surface_value="1995",
+            extractor_cfg_hash="h",
+            quality_tier="cheap",
+            stage=1,
+        ),
+    ]
+    try:
+        unify_join_types(workload, records)
+    except TypeUnificationError:
+        return
+    raise AssertionError("expected TypeUnificationError")
 
 
 def test_rename_is_bridge_not_within_column_merge() -> None:

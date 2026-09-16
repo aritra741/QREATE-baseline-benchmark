@@ -205,6 +205,7 @@ class Workload(VersionedModel):
     binding_failures: list[str] = Field(default_factory=list)
     in_lists: dict[str, list[list[str]]] = Field(default_factory=dict)
     literal_aliases: dict[str, str] = Field(default_factory=dict)
+    join_types: dict[str, str] = Field(default_factory=dict)
 
 
 class Presupposition(VersionedModel):
