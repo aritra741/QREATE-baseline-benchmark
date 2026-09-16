@@ -17,6 +17,7 @@ from quwarts.core.models import (
     SurrogateReport,
     Workload,
 )
+from quwarts.core.extract import _slug
 from quwarts.core.population import apply_population
 
 
@@ -127,6 +128,99 @@ def file_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def stamp_authority_domains(sqlite_path: str, domains: dict[str, list[str]]) -> None:
+    """Write the same authority identity set into every database."""
+
+    if not domains:
+        return
+    conn = sqlite3.connect(sqlite_path)
+    try:
+        tables = {
+            row[0]
+            for row in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            )
+        }
+        for auth, values in domains.items():
+            if "." not in auth:
+                continue
+            entity, bare = auth.split(".", 1)
+            if entity not in tables or bare in {"", }:
+                continue
+            cols = [row[1] for row in conn.execute(f'PRAGMA table_info("{entity}")')]
+            if bare not in cols:
+                continue
+            wanted: list[str] = []
+            seen: set[str] = set()
+            for value in values:
+                text = str(value).strip()
+                if not text or text.lower() in seen:
+                    continue
+                seen.add(text.lower())
+                wanted.append(text)
+            existing = [
+                str(row[0]).strip()
+                for row in conn.execute(f'SELECT "{bare}" FROM "{entity}"')
+                if row[0] not in (None, "")
+            ]
+            have = {item.lower() for item in existing}
+            for value in wanted:
+                if value.lower() in have:
+                    continue
+                _insert_identity_row(conn, entity, cols, bare, value)
+                have.add(value.lower())
+            if wanted:
+                marks = ", ".join("?" for _ in wanted)
+                conn.execute(
+                    f'DELETE FROM "{entity}" WHERE "{bare}" IS NULL OR '
+                    f'lower("{bare}") NOT IN ({marks})',
+                    [item.lower() for item in wanted],
+                )
+            for value in wanted:
+                conn.execute(
+                    f'UPDATE "{entity}" SET "{bare}"=? WHERE lower("{bare}")=?',
+                    (value, value.lower()),
+                )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def authority_column_values(sqlite_path: str, auth: str) -> tuple[str, ...]:
+    if "." not in auth:
+        return ()
+    entity, bare = auth.split(".", 1)
+    conn = sqlite3.connect(sqlite_path)
+    try:
+        rows = conn.execute(
+            f'SELECT DISTINCT "{bare}" FROM "{entity}" WHERE "{bare}" IS NOT NULL'
+        ).fetchall()
+    except sqlite3.Error:
+        return ()
+    finally:
+        conn.close()
+    return tuple(sorted({str(row[0]) for row in rows if row[0] not in (None, "")}))
+
+
+def _insert_identity_row(
+    conn: sqlite3.Connection,
+    table: str,
+    cols: list[str],
+    bare: str,
+    value: str,
+) -> None:
+    payload = {name: None for name in cols}
+    if "doc_id" in payload:
+        payload["doc_id"] = f"{table}/join_complete/{_slug(value)}"
+    payload[bare] = value
+    quoted = ", ".join(f'"{name}"' for name in cols)
+    marks = ", ".join("?" for _ in cols)
+    conn.execute(
+        f'INSERT INTO "{table}" ({quoted}) VALUES ({marks})',
+        [payload[name] for name in cols],
+    )
+
+
 def materialize(
     config: Configuration,
     records: list[EvidenceRecord],
@@ -135,9 +229,21 @@ def materialize(
     output_dir: Path,
     tokens_spent: int,
     surrogate: SurrogateReport | None = None,
+    authority: dict[str, list[str]] | None = None,
 ) -> MaterializedDB:
     rows = apply_population(records, config, workload)
     path, counts = write_sqlite(config, rows, output_dir)
+    if authority:
+        stamp_authority_domains(str(path), authority)
+        counts = {}
+        conn = sqlite3.connect(path)
+        try:
+            for name, in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            ):
+                counts[name] = conn.execute(f'SELECT COUNT(*) FROM "{name}"').fetchone()[0]
+        finally:
+            conn.close()
     digest = file_sha256(path)
     coverage = coverage_set(records, config, workload, documents)
     return MaterializedDB(

@@ -729,6 +729,83 @@ def test_constrained_cell_vocab_and_other() -> None:
     assert surface == "Cincinnati Royals"
 
 
+def test_authority_sets_are_identical_across_clusters(tmp_path) -> None:
+    from quwarts.core.extract import join_authority
+    from quwarts.core.materialize import authority_column_values, stamp_authority_domains
+    from quwarts.core.pipeline import compile_workload
+    from quwarts.core.models import SourceDocument
+    from quwarts.core.workload import analyze_workload
+
+    documents = [
+        SourceDocument(doc_id="team/1", text="team_name: Sacramento Kings\n"),
+        SourceDocument(doc_id="player/1", text="team: Rochester Royals\n"),
+        SourceDocument(doc_id="player/2", text="team: Sacramento Kings\n"),
+    ]
+    sqls = [
+        "SELECT t.team_name FROM player p JOIN team t ON p.team = t.team_name",
+        "SELECT team FROM player GROUP BY team",
+    ]
+    portfolio = compile_workload(
+        documents, sqls, theta=8000, seed=0, artifact_root=tmp_path,
+    )
+    assert len(portfolio.databases) >= 2
+    _, workload = analyze_workload(sqls, portfolio.logical_schema)
+    for auth in set(join_authority(workload, portfolio.logical_schema).values()):
+        sets = [
+            authority_column_values(db.sqlite_path, auth)
+            for db in portfolio.databases
+        ]
+        assert sets
+        assert len(set(sets)) == 1
+
+    import sqlite3
+
+    first = tmp_path / "a.db"
+    second = tmp_path / "b.db"
+    for path, names in (
+        (first, ["Kings"]),
+        (second, ["Kings", "Royals", "Extra"]),
+    ):
+        conn = sqlite3.connect(path)
+        conn.execute("CREATE TABLE team (doc_id TEXT, team_name TEXT)")
+        conn.executemany("INSERT INTO team VALUES (?, ?)", [("team/x", n) for n in names])
+        conn.commit()
+        conn.close()
+    domain = {"team.team_name": ["Kings", "Royals"]}
+    stamp_authority_domains(str(first), domain)
+    stamp_authority_domains(str(second), domain)
+    assert authority_column_values(str(first), "team.team_name") == (
+        "Kings",
+        "Royals",
+    )
+    assert authority_column_values(str(first), "team.team_name") == (
+        authority_column_values(str(second), "team.team_name")
+    )
+
+
+def test_referencing_freeform_is_dropped_when_join_declared() -> None:
+    from quwarts.core.extract import prefer_constrained_records
+    from quwarts.core.models import EvidenceRecord
+    from quwarts.core.workload import analyze_workload
+
+    _, workload = analyze_workload(
+        ["SELECT t.team_name FROM player p JOIN team t ON p.team = t.team_name"]
+    )
+    free = EvidenceRecord(
+        key="old",
+        segment_id="s",
+        doc_id="player/1",
+        attribute="player.team",
+        surface_value="Philadelphia Warriors",
+        extractor_cfg_hash="old",
+        quality_tier="cheap",
+        stage=2,
+        candidate_keys={"surface": "Philadelphia Warriors"},
+    )
+    kept = prefer_constrained_records([free], workload)
+    assert kept == []
+
+
 def test_complete_authority_adds_missing_identity_row() -> None:
     from quwarts.core.extract import complete_authority
     from quwarts.core.models import EvidenceRecord

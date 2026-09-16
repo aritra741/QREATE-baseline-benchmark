@@ -19,6 +19,7 @@ from quwarts.core.extract import (
     EvidenceStore,
     StagedExtractor,
     allocate_tiers,
+    authority_domains,
     complete_authority,
     prefer_constrained_records,
 )
@@ -135,11 +136,14 @@ def synthesize(
         except Exception:
             continue
         records = complete_authority(
-            prefer_constrained_records(list(store.records.values())),
+            prefer_constrained_records(list(store.records.values()), workload, logical),
             workload,
             logical,
         )
-        db = materialize(config, records, workload, documents, db_dir, tokens_spent=ledger.spent)
+        db = materialize(
+            config, records, workload, documents, db_dir, tokens_spent=ledger.spent,
+            authority=authority_domains(records, workload, logical),
+        )
         report = U_hat(db, config, documents, workload, stage1_rate=extractor.stage1_rate)
         db.surrogate = report
         databases.append(db)
@@ -279,10 +283,11 @@ def compile_workload(
 
     schema = canonical_schema(logical)
     records = complete_authority(
-        prefer_constrained_records(list(store.records.values())),
+        prefer_constrained_records(list(store.records.values()), workload, logical),
         workload,
         logical,
     )
+    authority = authority_domains(records, workload, logical)
     classify_declared_domains(workload, records)
     unify_join_types(workload, records)
     maps, identity_report = build_domain_maps(records, workload, caller, logical)
@@ -327,7 +332,10 @@ def compile_workload(
             )
 
     for config, _cluster in pending:
-        db = materialize(config, records, workload, documents, db_dir, tokens_spent=ledger.spent)
+        db = materialize(
+            config, records, workload, documents, db_dir, tokens_spent=ledger.spent,
+            authority=authority,
+        )
         selected_configs.append(config)
         selected_dbs.append(db)
 

@@ -187,8 +187,16 @@ def constrained_cell(
     return surface, parsed, reason, True
 
 
-def prefer_constrained_records(records: list[EvidenceRecord]) -> list[EvidenceRecord]:
-    """One record per cell. A constrained extract replaces free-form cache."""
+def prefer_constrained_records(
+    records: list[EvidenceRecord],
+    workload: Workload | None = None,
+    logical=None,
+) -> list[EvidenceRecord]:
+    """One record per cell. A constrained extract replaces free-form cache.
+
+    Referencing join columns may not keep an unconstrained leftover once
+    the equijoin domain is declared.
+    """
 
     best: dict[tuple[str, str], EvidenceRecord] = {}
     for record in records:
@@ -206,7 +214,16 @@ def prefer_constrained_records(records: list[EvidenceRecord]) -> list[EvidenceRe
             continue
         if record.stage >= prev.stage:
             best[key] = record
-    return list(best.values())
+    kept = list(best.values())
+    refs = join_authority(workload, logical) if workload is not None else {}
+    if not refs:
+        return kept
+    return [
+        record
+        for record in kept
+        if record.attribute not in refs
+        or (record.candidate_keys or {}).get("constrained")
+    ]
 
 
 def complete_authority(
@@ -257,6 +274,30 @@ def complete_authority(
             )
             seen.add(value.lower())
     return list(records) + extra
+
+
+def authority_domains(
+    records: list[EvidenceRecord],
+    workload: Workload,
+    logical=None,
+) -> dict[str, list[str]]:
+    """Cluster-independent identity sets for equijoin authority columns."""
+
+    refs = join_authority(workload, logical)
+    domains: dict[str, list[str]] = {}
+    for auth in sorted(set(refs.values())):
+        values: list[str] = []
+        seen: set[str] = set()
+        for record in records:
+            if not _on_authority_relation(record, auth):
+                continue
+            text = (record.surface_value or "").strip()
+            if not text or "," in text or text.lower() in seen:
+                continue
+            seen.add(text.lower())
+            values.append(text)
+        domains[auth] = sorted(values, key=str.lower)
+    return domains
 
 
 def _on_authority_relation(record: EvidenceRecord, auth: str) -> bool:
@@ -528,7 +569,7 @@ class StagedExtractor:
             vocab = self._authority_vocab(auth) if auth else []
             if auth and vocab:
                 vocab_for[attribute] = vocab
-                tag = f"|constrained|{auth}"
+                tag = f"|constrained|{auth}|asserted"
             else:
                 tag = ""
             cfg_hash = hashlib.sha256(
@@ -622,7 +663,9 @@ class StagedExtractor:
             return []
         values: list[str] = []
         seen: set[str] = set()
-        for record in self.store.for_attribute(auth):
+        for record in self.store.records.values():
+            if not _on_authority_relation(record, auth):
+                continue
             text = (record.surface_value or "").strip()
             if not text or "," in text:
                 continue
