@@ -172,7 +172,7 @@ def apply_identity_keys(
 
 
 def apply_bridges(sql: str, sqlite_path: str) -> str:
-    """Route a zero-yield equijoin through a bridge table. Surfaces stay as-is."""
+    """Surface equality, with a per-value bridge lookup when it misses."""
 
     try:
         from sqlglot import exp
@@ -227,22 +227,23 @@ def _bridge_join(join, bridges: list[dict[str, str]], index: int):
     alias = f"_br{index}"
     left_slot = "left_value" if left_is_bridge_left else "right_value"
     right_slot = "right_value" if left_is_bridge_left else "left_value"
-    kind = join.args.get("side") or join.args.get("kind")
-    bridge_on = exp.EQ(
-        this=eq.left.copy(),
-        expression=_retarget(eq.left, alias, left_slot),
-    )
     extra = exp.Join(
         this=exp.alias_(exp.table_(table), alias),
-        kind=kind,
-        on=bridge_on,
+        side="LEFT",
+        on=exp.EQ(
+            this=eq.left.copy(),
+            expression=_retarget(eq.left, alias, left_slot),
+        ),
     )
     updated = join.copy()
     updated.set(
         "on",
-        exp.EQ(
-            this=eq.right.copy(),
-            expression=_retarget(eq.right, alias, right_slot),
+        exp.or_(
+            eq.copy(),
+            exp.EQ(
+                this=eq.right.copy(),
+                expression=_retarget(eq.right, alias, right_slot),
+            ),
         ),
     )
     return extra, updated

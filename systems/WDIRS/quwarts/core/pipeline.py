@@ -321,7 +321,8 @@ def compile_workload(
     rewrites: dict[str, str] = {}
     db_by_config = {db.config_id: db for db in selected_dbs}
     config_by_id = {config.id: config for config in selected_configs}
-    needed_pairs = _zero_yield_pairs(workload, routing, config_by_id, db_by_config)
+    needed_pairs = _all_join_pairs(workload)
+    zero_yield_pairs = _zero_yield_pairs(workload, routing, config_by_id, db_by_config)
     bridges = build_bridges(
         needed_pairs,
         records,
@@ -374,7 +375,7 @@ def compile_workload(
                 "bridges": {
                     f"{left}={right}": rows for (left, right), rows in bridges.items()
                 },
-                "zero_yield_pairs": [list(pair) for pair in needed_pairs],
+                "zero_yield_pairs": [list(pair) for pair in zero_yield_pairs],
                 "binding_failures": workload.binding_failures,
                 "requirements": {
                     name: json.loads(req.model_dump_json())
@@ -457,10 +458,20 @@ def _join_aware_sql(sql: str, sqlite_path: str) -> str:
 
     canons = _canonical_columns(sqlite_path)
     grouped = apply_identity_keys(sql, "surface", "canonical", canons) if canons else sql
-    if join_yield(grouped, sqlite_path) > 0:
-        return grouped
-    bridged = apply_bridges(grouped, sqlite_path)
-    return bridged if bridged != grouped else grouped
+    return apply_bridges(grouped, sqlite_path)
+
+
+def _all_join_pairs(workload) -> list[tuple[str, str]]:
+    pairs: list[tuple[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    for template in workload.templates:
+        for left, right in template.join_pairs:
+            key = tuple(sorted((left, right)))
+            if key in seen or left == right:
+                continue
+            seen.add(key)
+            pairs.append((left, right))
+    return pairs
 
 
 def _zero_yield_pairs(

@@ -692,7 +692,20 @@ def test_bridge_rewrite_keeps_surface_columns(tmp_path) -> None:
     assert "bridge_player_team__team_team_name" in rewritten
     assert "p.team" in rewritten or "p.\"team\"" in rewritten
     assert "team__canonical" not in rewritten
+    assert "OR" in rewritten.upper()
     assert join_yield(rewritten, str(path)) == 1.0
+
+    conn = sqlite3.connect(path)
+    conn.execute("INSERT INTO player VALUES ('Lakers', 'Guard')")
+    conn.execute("INSERT INTO team VALUES ('Lakers')")
+    conn.commit()
+    conn.close()
+    mixed = (
+        "SELECT p.team FROM player p JOIN team t ON TRIM(p.team) = TRIM(t.team_name) "
+        "WHERE p.position = 'Guard'"
+    )
+    mixed_sql = apply_bridges(mixed, str(path))
+    assert join_yield(mixed_sql, str(path)) == 1.0
 
 
 def test_physical_keys_are_never_coarsenings() -> None:
