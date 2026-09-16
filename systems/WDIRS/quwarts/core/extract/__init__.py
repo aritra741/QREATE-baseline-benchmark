@@ -224,17 +224,13 @@ def complete_authority(
     refs = join_authority(workload, logical)
     if not refs:
         return records
-    have: dict[str, set[str]] = {}
-    for record in records:
-        text = (record.surface_value or "").strip()
-        if not text:
-            continue
-        have.setdefault(record.attribute, set()).add(text.lower())
-        have.setdefault(record.attribute.split(".")[-1], set()).add(text.lower())
     extra: list[EvidenceRecord] = []
     for ref, auth in refs.items():
-        seen = set(have.get(auth) or ())
-        seen.update(have.get(auth.split(".")[-1]) or ())
+        seen = {
+            (record.surface_value or "").strip().lower()
+            for record in records
+            if _on_authority_relation(record, auth) and record.surface_value
+        }
         entity = auth.split(".", 1)[0]
         for record in records:
             if record.attribute != ref:
@@ -261,6 +257,16 @@ def complete_authority(
             )
             seen.add(value.lower())
     return list(records) + extra
+
+
+def _on_authority_relation(record: EvidenceRecord, auth: str) -> bool:
+    if record.attribute != auth:
+        return False
+    entity = auth.split(".", 1)[0]
+    doc = record.doc_id or ""
+    if "/" in doc:
+        return doc.split("/", 1)[0].lower() == entity.lower()
+    return True
 
 
 def _slug(value: str) -> str:

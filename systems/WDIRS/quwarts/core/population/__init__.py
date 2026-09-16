@@ -99,6 +99,8 @@ def _commit(record: EvidenceRecord, pop: PopulationPolicy) -> Any:
     value: Any = record.surface_value
     if isinstance(value, str):
         value = value.strip()
+    if (record.candidate_keys or {}).get("completed") == "join":
+        return value
     unit = pop.unit.get(record.attribute)
     if unit and unit.strategy == "unit:canonical" and record.parsed_value is not None:
         value = record.parsed_value

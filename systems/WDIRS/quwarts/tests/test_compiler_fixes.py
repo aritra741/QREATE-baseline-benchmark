@@ -774,6 +774,54 @@ def test_complete_authority_adds_missing_identity_row() -> None:
     )
 
 
+def test_complete_authority_ignores_identity_on_wrong_entity_doc() -> None:
+    from quwarts.core.extract import complete_authority
+    from quwarts.core.models import EvidenceRecord
+    from quwarts.core.workload import analyze_workload
+
+    _, workload = analyze_workload(
+        ["SELECT t.team_name FROM player p JOIN team t ON p.team = t.team_name"]
+    )
+    records = [
+        EvidenceRecord(
+            key="p",
+            segment_id="s",
+            doc_id="player/1",
+            attribute="player.team",
+            surface_value="Rochester Royals",
+            extractor_cfg_hash="h",
+            quality_tier="cheap",
+            stage=2,
+        ),
+        EvidenceRecord(
+            key="t_wrong",
+            segment_id="s2",
+            doc_id="player/1",
+            attribute="team.team_name",
+            surface_value="Rochester Royals",
+            extractor_cfg_hash="h",
+            quality_tier="cheap",
+            stage=2,
+        ),
+        EvidenceRecord(
+            key="t",
+            segment_id="s3",
+            doc_id="team/1",
+            attribute="team.team_name",
+            surface_value="Sacramento Kings",
+            extractor_cfg_hash="h",
+            quality_tier="cheap",
+            stage=2,
+        ),
+    ]
+    completed = complete_authority(records, workload)
+    assert any(
+        row.doc_id.startswith("team/join_complete/")
+        and row.surface_value == "Rochester Royals"
+        for row in completed
+    )
+
+
 def test_bridge_rename_requires_comention() -> None:
     from quwarts.core.bridge import build_bridges
     from quwarts.core.models import EvidenceRecord, SourceDocument
