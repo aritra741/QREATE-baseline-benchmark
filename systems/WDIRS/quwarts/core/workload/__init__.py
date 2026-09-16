@@ -608,10 +608,14 @@ def analyze_workload(
         name: [sorted(item) for item in values]
         for name, values in in_lists.items()
     }
-    return logical, Workload(
+    workload = Workload(
         templates=sorted(templates_by_id.values(), key=lambda row: row.id),
         requirements=requirements,
         binding_failures=binding_failures,
         in_lists=stored_lists,
         literal_aliases=literal_aliases,
     )
+    from quwarts.core.domain import apply_predicate_types
+
+    apply_predicate_types(workload, logical)
+    return logical, workload

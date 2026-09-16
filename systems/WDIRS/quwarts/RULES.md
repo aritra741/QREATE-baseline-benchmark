@@ -13,20 +13,17 @@ Derived from `T`, `Q`, and `theta` only. No gold tables, gold row counts, or dat
 7. **Join-yield gating.** Rewrite feasibility uses filtered-left join yield, not set Jaccard. Zero-yield empties score zero. Failed rewrite scores zero.
 8. **Slice-safety.** Unsafe templates do not admit on a predicate slice. Anti-join / `EXCEPT` / `NOT EXISTS` shapes are slice-unsafe.
 9. **Unit standardization.** Numeric commit parses currency marks and scale suffixes (`k`/`m`/`b`, million, billion) into ones. SQL comparison literals already live in that family. Unparseable surfaces stay null. Added after the Finan smoke, before held-out.
+10. **Literal-derived type.** A comparison predicate declares the column type. String literals force string; numeric literals force numeric. Precedence: literal, then corpus evidence, then name heuristics only for attributes no predicate touches. Added after Art, against a typing defect, not an Art vocabulary.
+11. **Coercion retain-and-retry.** `dtype_coercion` keeps the surface and `null_reason`. After the type is corrected, those cells are re-extracted.
+12. **Empty-result reject.** `empty_result_rate` above `EMPTY_RESULT_REJECT` (0.25) is a hard reject. The reason is written on the run manifest. The configuration may still be scored; it is not an accepted freeze.
 
 Operator split: `GROUP BY` may use a canonical form; joins use surface values and consult the bridge per left value.
 
-## Pre-registered predictions (held-out corpora)
+## Pre-registered predictions
 
-From the mechanism, not from a dataset:
+The zero-equijoin parity prediction **failed on Art**. Emptiness was predicate failure from mis-typing, not join yield. The Player analysis identified join linkage as the binding constraint; that did not generalize. Both reduce to the same principle: every correspondence SQL declares must be compiled.
 
-- Zero equijoins: parity with the gold-schema ceiling, or better.
-- One equijoin: near parity; residual loss from `other` residue and partial yield.
-- Two or more relations: degradation; emptiness concentrated on multi-relation shapes.
-- Bridge composition across two hops is unimplemented; three-way joins will miss linkage that needs a path of length two.
-- Unit and date predicates are untested; mismatches will look like empty or low-recall filters, not like join failures.
-
-Player train is not a claim. Report Player test, new datasets, and pooled per-shape breakdown.
+Player train is not a claim. Report Player test, new datasets, and pooled per-shape breakdown. Art after the typing fix is development. Med and Legal remain held-out.
 
 ## Run protocol
 

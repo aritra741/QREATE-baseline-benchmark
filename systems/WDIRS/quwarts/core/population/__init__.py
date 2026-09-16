@@ -38,7 +38,8 @@ def policy_from_demands(
         elif module == "grain":
             pop.grain[entity] = demand
     for name, req in workload.requirements.items():
-        pop.type.setdefault(name, ModuleConfig(strategy=req.dtype, params={}))
+        pop.type[name] = ModuleConfig(strategy=req.dtype, params={})
+        pop.type[name.split(".")[-1]] = pop.type[name]
         pop.norm.setdefault(name, ModuleConfig(strategy="surface", params={}))
         pop.miss.setdefault(name, ModuleConfig(strategy="nulls_preserved", params={}))
         pop.er.setdefault(name, ModuleConfig(strategy="no_merge", params={}))

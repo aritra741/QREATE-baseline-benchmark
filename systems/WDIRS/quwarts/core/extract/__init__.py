@@ -139,7 +139,7 @@ def validate_cell(value: Any, dtype: str = "string") -> tuple[str | None, Any, s
     if dtype in {"numeric", "date"}:
         parsed = _parse(text)
         if not isinstance(parsed, (int, float)):
-            return None, None, "dtype_coercion"
+            return text, None, "dtype_coercion"
         return text, parsed, None
     if len(text) > 400:
         return None, None, "rejected_prose"
@@ -269,7 +269,10 @@ def prefer_constrained_records(
             continue
         if prev_c and not new_c:
             continue
-        if record.stage >= prev.stage:
+        if _cell_quality(record) > _cell_quality(prev):
+            best[key] = record
+            continue
+        if _cell_quality(record) == _cell_quality(prev) and record.stage >= prev.stage:
             best[key] = record
     kept = list(best.values())
     refs = join_authority(workload, logical) if workload is not None else {}
@@ -281,6 +284,14 @@ def prefer_constrained_records(
         if record.attribute not in refs
         or (record.candidate_keys or {}).get("constrained")
     ]
+
+
+def _cell_quality(record: EvidenceRecord) -> int:
+    if record.surface_value in (None, ""):
+        return 0
+    if record.null_reason == "dtype_coercion":
+        return 1
+    return 2
 
 
 def complete_authority(
@@ -509,6 +520,42 @@ class StagedExtractor:
         self.stage1_rate = len(admitted_docs | self.stage1_admitted) / max(1, len(total_docs))
         return counts
 
+    def reextract_coerced(
+        self,
+        documents: list[SourceDocument],
+        workload: Workload,
+        policy: PreprocessPolicy,
+        tiers: dict[str, str],
+        logical=None,
+    ) -> int:
+        """Re-extract cells that failed coercion after the type was corrected."""
+
+        targets: dict[str, set[str]] = defaultdict(set)
+        for record in self.store.records.values():
+            if record.null_reason != "dtype_coercion":
+                continue
+            targets[record.doc_id].add(record.attribute)
+        if not targets:
+            return 0
+        self.constraints = join_authority(workload, logical)
+        dtypes = {name: req.dtype for name, req in workload.requirements.items()}
+        segments = segment_documents(documents, policy)
+        format_clusters = cluster_document_formats(documents)
+        done = 0
+        try:
+            for segment in segments:
+                names = sorted(targets.get(segment.doc_id, ()))
+                if not names:
+                    continue
+                self._extract_many(
+                    segment, names, tiers, stage=3,
+                    format_clusters=format_clusters, policy=policy, dtypes=dtypes,
+                )
+                done += len(names)
+        except BudgetExhausted:
+            pass
+        return done
+
     def _extract_stages(
         self,
         segments,
@@ -629,8 +676,9 @@ class StagedExtractor:
                 tag = f"|constrained|{auth}|asserted"
             else:
                 tag = ""
+            dtype = dtypes.get(attribute, "string")
             cfg_hash = hashlib.sha256(
-                f"{policy_hash(policy)}|{tier}|{extractor_name}{tag}".encode()
+                f"{policy_hash(policy)}|{tier}|{extractor_name}{tag}|{dtype}".encode()
             ).hexdigest()[:12]
             cfg_for[attribute] = (cfg_hash, tier)
             cached = self.store.get(segment.segment_id, attribute, cfg_hash, tier)
@@ -711,7 +759,7 @@ class StagedExtractor:
                 surface_value=None if surface is None else str(surface),
                 parsed_value=parsed,
                 original_unit=_guess_unit(surface),
-                null_reason=None if surface is not None else (reason or "not_found"),
+                null_reason=reason or (None if surface is not None else "not_found"),
                 candidate_keys=keys,
                 span=span,
                 confidence=0.9 if surface is not None else 0.2,

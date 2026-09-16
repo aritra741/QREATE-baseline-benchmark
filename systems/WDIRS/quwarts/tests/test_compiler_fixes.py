@@ -76,7 +76,10 @@ def test_validate_cell_rejects_garbage() -> None:
     assert validate_cell({"value": None}, "string")[2] == "not_found"
     assert validate_cell({"nested": 1}, "string")[2] == "non_scalar"
     assert validate_cell("Sure, I can help with extracting", "string")[2] == "non_scalar"
-    assert validate_cell("of", "numeric")[2] == "dtype_coercion"
+    surface, parsed, reason = validate_cell("of", "numeric")
+    assert reason == "dtype_coercion"
+    assert surface == "of"
+    assert parsed is None
     surface, parsed, reason = validate_cell(24, "numeric")
     assert reason is None
     assert parsed == 24
@@ -1092,6 +1095,32 @@ def test_physical_keys_are_never_coarsenings() -> None:
     for schema in generate_physical_schemas(logical):
         for keys in schema.primary_keys.values():
             assert not any(is_coarsening(item.split(".")[-1]) for item in keys)
+
+
+def test_predicate_literals_dominate_name_heuristics() -> None:
+    from quwarts.core.workload import analyze_workload
+
+    _, workload = analyze_workload(
+        {
+            "q1": "SELECT birth_country FROM art WHERE birth_country IN "
+            "('France', 'Germany', 'Italy')",
+            "q2": "SELECT teaching FROM art WHERE teaching = 1",
+            "q3": "SELECT image_genre FROM art WHERE image_genre IN "
+            "('Portrait', 'Landscape')",
+            "q4": "SELECT awards FROM art WHERE awards > 0",
+        }
+    )
+    assert workload.requirements["art.birth_country"].dtype == "string"
+    assert workload.requirements["art.image_genre"].dtype == "string"
+    assert workload.requirements["art.teaching"].dtype == "numeric"
+    assert workload.requirements["art.awards"].dtype == "numeric"
+    assert workload.literal_types["art.birth_country"] == "string"
+
+
+def test_empty_result_reject_is_declared() -> None:
+    from quwarts.core.pipeline import EMPTY_RESULT_REJECT
+
+    assert EMPTY_RESULT_REJECT == 0.25
 
 
 def test_numeric_surfaces_absorb_currency_and_scale() -> None:

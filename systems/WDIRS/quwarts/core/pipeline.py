@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 from pathlib import Path
 from typing import Iterable
 
@@ -11,6 +12,7 @@ from quwarts.core.bridge import build_bridges, write_bridges
 from quwarts.core.conflict import cluster_templates, conflict_graph, conflict_mix
 from quwarts.core.domain import (
     TypeUnificationError,
+    apply_evidence_types,
     build_domain_maps,
     classify_declared_domains,
     disjoint_attributes,
@@ -46,6 +48,8 @@ from quwarts.core.schema import canonical_schema
 from quwarts.core.search import config_id, generate_candidates, marginal_cost, select_portfolio
 from quwarts.core.surrogate import U_hat
 from quwarts.core.workload import analyze_workload
+
+EMPTY_RESULT_REJECT = 0.25
 
 
 def load_documents(root: Path) -> list[SourceDocument]:
@@ -282,9 +286,21 @@ def compile_workload(
     _ = allocation_weights(workload)
     tiers = allocate_tiers(workload)
     policy = PreprocessPolicy(mode="whole_document")
+    extractor = None
     if extract:
         extractor = StagedExtractor(store=store, ledger=ledger, caller=caller, seed=seed)
         extractor.extract(documents, workload, policy, tiers, logical=logical)
+
+    records = list(store.records.values())
+    apply_evidence_types(workload, records)
+    classify_declared_domains(workload, records)
+    try:
+        unify_join_types(workload, records)
+    except TypeUnificationError:
+        # Do not abort a corpus. Irreconcilable joins stay infeasible and score 0.
+        pass
+    if extract and extractor is not None:
+        extractor.reextract_coerced(documents, workload, policy, tiers, logical=logical)
 
     schema = canonical_schema(logical)
     records = complete_authority(
@@ -297,11 +313,6 @@ def compile_workload(
     )
     authority = authority_domains(records, workload, logical)
     classify_declared_domains(workload, records)
-    try:
-        unify_join_types(workload, records)
-    except TypeUnificationError:
-        # Do not abort a corpus. Irreconcilable joins stay infeasible and score 0.
-        pass
     try:
         maps, identity_report = build_domain_maps(records, workload, caller, logical)
     except BudgetExhausted:
@@ -390,6 +401,22 @@ def compile_workload(
         for stmt_id in template.statement_ids:
             rewrites[stmt_id] = sql
 
+    rejected_empty: list[dict[str, object]] = []
+    if selected_dbs:
+        rate, empty_ids = _empty_result_rate(
+            rewrites, selected_dbs[0].sqlite_path, workload.templates,
+        )
+        if rate > EMPTY_RESULT_REJECT:
+            rejected_empty.append(
+                {
+                    "reason": "empty_result_rate",
+                    "empty_rate": rate,
+                    "threshold": EMPTY_RESULT_REJECT,
+                    "empty_ids": empty_ids,
+                    "cluster": selected_configs[0].cluster_id if selected_configs else None,
+                }
+            )
+
     portfolio = FrozenPortfolio(
         configurations=selected_configs,
         route=routing,
@@ -408,6 +435,8 @@ def compile_workload(
                 "domain_maps": maps,
                 "identity_report": identity_report,
                 "domain_disjoint_rejections": rejected_disjoint,
+                "empty_result_rejections": rejected_empty,
+                "empty_result_threshold": EMPTY_RESULT_REJECT,
                 "conflict_mix": mix,
                 "cluster_count": len(clusters),
                 "bridges": {
@@ -497,6 +526,33 @@ def _join_aware_sql(sql: str, sqlite_path: str) -> str:
     canons = _canonical_columns(sqlite_path)
     grouped = apply_identity_keys(sql, "surface", "canonical", canons) if canons else sql
     return apply_bridges(grouped, sqlite_path)
+
+
+def _empty_result_rate(
+    rewrites: dict[str, str],
+    sqlite_path: str,
+    templates,
+) -> tuple[float, list[str]]:
+    empty: list[str] = []
+    if not templates:
+        return 0.0, empty
+    con = sqlite3.connect(sqlite_path)
+    try:
+        for template in templates:
+            sql = rewrites.get(template.id)
+            if not sql:
+                empty.append(template.id)
+                continue
+            try:
+                rows = con.execute(sql).fetchall()
+            except sqlite3.Error:
+                empty.append(template.id)
+                continue
+            if not rows:
+                empty.append(template.id)
+    finally:
+        con.close()
+    return len(empty) / max(len(list(templates)), 1), empty
 
 
 def _all_join_pairs(workload) -> list[tuple[str, str]]:

@@ -243,6 +243,85 @@ def _looks_numeric(value: str) -> bool:
     return True
 
 
+def apply_predicate_types(workload: Workload, logical=None) -> dict[str, str]:
+    """Comparison literals declare type and dominate name heuristics."""
+
+    derived: dict[str, str] = {}
+    for template in workload.templates:
+        for slot in template.param_slots:
+            inferred = _type_from_slot(slot)
+            if inferred is None:
+                continue
+            names = {slot.attribute, slot.attribute.split(".")[-1]}
+            for name in names:
+                current = derived.get(name)
+                if current is None:
+                    derived[name] = inferred
+                elif current != inferred:
+                    derived[name] = "string"
+    for name, dtype in derived.items():
+        req = workload.requirements.get(name)
+        if req is None:
+            for key, item in workload.requirements.items():
+                if key.split(".")[-1] == name.split(".")[-1]:
+                    req = item
+                    break
+        if req is not None:
+            req.dtype = dtype
+        workload.literal_types[name] = dtype
+    if logical is not None:
+        for item in logical.attributes:
+            qualified = f"{item.entity_type}.{item.name}"
+            dtype = derived.get(qualified) or derived.get(item.name)
+            if dtype:
+                item.dtype = dtype
+    return derived
+
+
+def apply_evidence_types(workload: Workload, records: list[EvidenceRecord]) -> dict[str, str]:
+    """Corpus evidence types attributes that no predicate literal touched."""
+
+    surfaces = _surfaces(records)
+    updated: dict[str, str] = {}
+    for name, req in workload.requirements.items():
+        if name in workload.literal_types or name.split(".")[-1] in workload.literal_types:
+            continue
+        values = set()
+        for key in (name, name.split(".")[-1]):
+            values.update(surfaces.get(key, ()))
+        if values and any(not _looks_numeric(item) for item in values):
+            req.dtype = "string"
+            updated[name] = "string"
+    return updated
+
+
+def _type_from_slot(slot) -> str | None:
+    if (slot.op or "").upper() == "LIKE":
+        return "string"
+    values = [item for item in (slot.observed_constants or []) if item is not None]
+    if not values:
+        return None
+    stringish = False
+    numericish = False
+    for value in values:
+        if isinstance(value, bool):
+            numericish = True
+            continue
+        if isinstance(value, (int, float)):
+            numericish = True
+            continue
+        text = str(value).strip()
+        if text == "" or not _looks_numeric(text):
+            stringish = True
+        else:
+            numericish = True
+    if stringish:
+        return "string"
+    if numericish:
+        return "numeric"
+    return None
+
+
 def classify_declared_domains(workload: Workload, records: list[EvidenceRecord]) -> None:
     """An IN list is a domain iff it is disjoint from extracted surfaces."""
 
