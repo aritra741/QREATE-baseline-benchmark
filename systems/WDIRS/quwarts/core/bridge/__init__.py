@@ -11,7 +11,7 @@ from quwarts.core.extract import _parse_llm_object
 from quwarts.core.models import EvidenceRecord, Workload
 
 KEEP_RELATIONS = frozenset({"rename", "alias", "abbreviation", "historical_name"})
-BRIDGE_AGREE_MODEL = "mistralai/mistral-7b-instruct"
+BRIDGE_AGREE_MODEL = "meta-llama/llama-3.1-8b-instruct"
 
 
 def bridge_table_name(left: str, right: str) -> str:
@@ -198,9 +198,12 @@ def _agreed_links(
     right: str,
 ) -> list[tuple[str, str, str]]:
     first = _llm_link(values, targets, caller, left, right)
-    second = _llm_link(
-        values, targets, caller, left, right, model=BRIDGE_AGREE_MODEL,
-    )
+    try:
+        second = _llm_link(
+            values, targets, caller, left, right, model=BRIDGE_AGREE_MODEL,
+        )
+    except Exception:
+        return []
     agreed: list[tuple[str, str, str]] = []
     for source, (dest, relation) in first.items():
         other = second.get(source)
