@@ -187,6 +187,28 @@ def constrained_cell(
     return surface, parsed, reason, True
 
 
+def prefer_constrained_records(records: list[EvidenceRecord]) -> list[EvidenceRecord]:
+    """One record per cell. A constrained extract replaces free-form cache."""
+
+    best: dict[tuple[str, str], EvidenceRecord] = {}
+    for record in records:
+        key = (record.segment_id, record.attribute)
+        prev = best.get(key)
+        if prev is None:
+            best[key] = record
+            continue
+        prev_c = bool((prev.candidate_keys or {}).get("constrained"))
+        new_c = bool((record.candidate_keys or {}).get("constrained"))
+        if new_c and not prev_c:
+            best[key] = record
+            continue
+        if prev_c and not new_c:
+            continue
+        if record.stage >= prev.stage:
+            best[key] = record
+    return list(best.values())
+
+
 def join_authority(workload: Workload, logical=None) -> dict[str, str]:
     """Referencing join column -> identity (authority) column.
 

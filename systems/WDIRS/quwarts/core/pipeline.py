@@ -15,7 +15,12 @@ from quwarts.core.domain import (
     disjoint_attributes,
     unify_join_types,
 )
-from quwarts.core.extract import EvidenceStore, StagedExtractor, allocate_tiers
+from quwarts.core.extract import (
+    EvidenceStore,
+    StagedExtractor,
+    allocate_tiers,
+    prefer_constrained_records,
+)
 from quwarts.core.ledger import BudgetedCaller, TokenLedger
 from quwarts.core.logical import infer_logical_schema
 from quwarts.core.materialize import file_sha256, materialize
@@ -128,7 +133,7 @@ def synthesize(
             extractor.extract(documents, workload, config.pre, tiers, logical=logical)
         except Exception:
             continue
-        records = list(store.records.values())
+        records = prefer_constrained_records(list(store.records.values()))
         db = materialize(config, records, workload, documents, db_dir, tokens_spent=ledger.spent)
         report = U_hat(db, config, documents, workload, stage1_rate=extractor.stage1_rate)
         db.surrogate = report
@@ -268,7 +273,7 @@ def compile_workload(
         extractor.extract(documents, workload, policy, tiers, logical=logical)
 
     schema = canonical_schema(logical)
-    records = list(store.records.values())
+    records = prefer_constrained_records(list(store.records.values()))
     classify_declared_domains(workload, records)
     unify_join_types(workload, records)
     maps, identity_report = build_domain_maps(records, workload, caller, logical)

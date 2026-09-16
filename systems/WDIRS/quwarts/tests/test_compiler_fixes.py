@@ -729,6 +729,37 @@ def test_constrained_cell_vocab_and_other() -> None:
     assert surface == "Cincinnati Royals"
 
 
+def test_prefer_constrained_replaces_freeform_cache() -> None:
+    from quwarts.core.extract import prefer_constrained_records
+    from quwarts.core.models import EvidenceRecord
+
+    free = EvidenceRecord(
+        key="old",
+        segment_id="s",
+        doc_id="d",
+        attribute="player.team",
+        surface_value="Philadelphia Warriors",
+        extractor_cfg_hash="old",
+        quality_tier="cheap",
+        stage=2,
+        candidate_keys={"surface": "Philadelphia Warriors"},
+    )
+    constrained = EvidenceRecord(
+        key="new",
+        segment_id="s",
+        doc_id="d",
+        attribute="player.team",
+        surface_value="Golden State Warriors",
+        extractor_cfg_hash="new",
+        quality_tier="cheap",
+        stage=2,
+        candidate_keys={"surface": "Golden State Warriors", "constrained": "vocab"},
+    )
+    kept = prefer_constrained_records([free, constrained])
+    assert len(kept) == 1
+    assert kept[0].surface_value == "Golden State Warriors"
+
+
 def test_constrained_extract_uses_authority_vocab() -> None:
     from quwarts.core.extract import EvidenceStore, StagedExtractor
     from quwarts.core.ledger import TokenLedger
