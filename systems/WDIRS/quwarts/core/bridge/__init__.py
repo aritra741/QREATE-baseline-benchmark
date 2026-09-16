@@ -11,7 +11,6 @@ from quwarts.core.extract import _parse_llm_object
 from quwarts.core.models import EvidenceRecord, Workload
 
 KEEP_RELATIONS = frozenset({"rename", "alias", "abbreviation", "historical_name"})
-BRIDGE_AGREE_MODEL = "meta-llama/llama-3.1-8b-instruct"
 
 
 def bridge_table_name(left: str, right: str) -> str:
@@ -55,7 +54,7 @@ def build_bridges(
         ]
         targets = sorted(_atomic(right_vals) or right_vals)
         if unknown and targets and caller is not None:
-            mapped = _agreed_links(unknown, targets, caller, left, right)
+            mapped = _typed_links(unknown, targets, caller, left, right)
             for source, dest, relation in mapped:
                 pair = (source.lower(), dest.lower())
                 if pair in matched:
@@ -190,32 +189,22 @@ def _alias_rows(
     return rows
 
 
-def _agreed_links(
+def _typed_links(
     values: list[str],
     targets: list[str],
     caller,
     left: str,
     right: str,
 ) -> list[tuple[str, str, str]]:
-    first = _llm_link(values, targets, caller, left, right)
-    try:
-        second = _llm_link(
-            values, targets, caller, left, right, model=BRIDGE_AGREE_MODEL,
-        )
-    except Exception:
-        return []
-    agreed: list[tuple[str, str, str]] = []
-    for source, (dest, relation) in first.items():
-        other = second.get(source)
-        if other is None:
+    """Keep a single-model link when its relation is an identity type."""
+
+    mapped = _llm_link(values, targets, caller, left, right)
+    kept: list[tuple[str, str, str]] = []
+    for source, (dest, relation) in mapped.items():
+        if relation not in KEEP_RELATIONS:
             continue
-        dest_b, rel_b = other
-        if dest.lower() != dest_b.lower():
-            continue
-        if relation not in KEEP_RELATIONS or rel_b not in KEEP_RELATIONS:
-            continue
-        agreed.append((source, dest, relation))
-    return agreed
+        kept.append((source, dest, relation))
+    return kept
 
 
 def _llm_link(
@@ -224,7 +213,6 @@ def _llm_link(
     caller,
     left: str,
     right: str,
-    model: str | None = None,
 ) -> dict[str, tuple[str, str]]:
     prompt = (
         "SQL equijoins these columns, so a LEFT value may co-denote a RIGHT "
@@ -240,10 +228,9 @@ def _llm_link(
         '"rename"|"alias"|"abbreviation"|"historical_name"|"affiliate"'
         '|"located_in"|"owned_by"|"parent_of"|"none"}. No commentary.'
     )
-    kwargs = {"purpose": "join_bridge", "attribute": f"{left}={right}"}
-    if model:
-        kwargs["model"] = model
-    text = caller.complete(prompt, **kwargs)
+    text = caller.complete(
+        prompt, purpose="join_bridge", attribute=f"{left}={right}",
+    )
     payload = _parse_llm_object(text)
     allowed = {item.lower(): item for item in targets}
     mapped: dict[str, tuple[str, str]] = {}
